@@ -67,20 +67,39 @@ const Dashboard = () => {
         })}
       </motion.div>
 
-      {/* VITAS Lab Quick Access */}
-      <motion.div variants={item}>
+      {/* Quick Access Grid */}
+      <motion.div variants={item} className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => navigate("/master")}
+          className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 border border-transparent transition-all"
+        >
+          <LayoutDashboard size={20} className="text-primary" />
+          <span className="font-display font-bold text-xs text-foreground">Master Dashboard</span>
+          <span className="text-[9px] text-muted-foreground">Academy Intelligence</span>
+        </button>
         <button
           onClick={() => navigate("/lab")}
-          className="w-full glass rounded-xl p-4 flex items-center gap-4 hover:border-primary/30 border border-transparent transition-all"
+          className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 border border-transparent transition-all"
         >
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Camera size={20} className="text-primary" />
-          </div>
-          <div className="text-left flex-1">
-            <h3 className="font-display font-bold text-sm text-foreground">VITAS.LAB</h3>
-            <p className="text-[10px] text-muted-foreground">Video Analysis · Pitch Homography · Tracking</p>
-          </div>
-          <span className="text-[9px] font-display text-primary uppercase tracking-wider">Abrir →</span>
+          <Camera size={20} className="text-primary" />
+          <span className="font-display font-bold text-xs text-foreground">VITAS.LAB</span>
+          <span className="text-[9px] text-muted-foreground">Video Analysis</span>
+        </button>
+        <button
+          onClick={() => navigate("/compare")}
+          className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 border border-transparent transition-all"
+        >
+          <GitCompareArrows size={20} className="text-electric" />
+          <span className="font-display font-bold text-xs text-foreground">Comparison Tool</span>
+          <span className="text-[9px] text-muted-foreground">Scout Analysis</span>
+        </button>
+        <button
+          onClick={() => navigate("/settings")}
+          className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 border border-transparent transition-all"
+        >
+          <Settings size={20} className="text-gold" />
+          <span className="font-display font-bold text-xs text-foreground">Configuración</span>
+          <span className="text-[9px] text-muted-foreground">Ajustes</span>
         </button>
       </motion.div>
 
