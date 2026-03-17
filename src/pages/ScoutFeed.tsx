@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowUp, Clock } from "lucide-react";
+import { Sparkles, ArrowUp, Clock, GitCompareArrows } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { mockScoutInsights } from "@/lib/mockData";
 import VsiGauge from "@/components/VsiGauge";
 
