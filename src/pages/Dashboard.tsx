@@ -67,6 +67,23 @@ const Dashboard = () => {
         })}
       </motion.div>
 
+      {/* VITAS Lab Quick Access */}
+      <motion.div variants={item}>
+        <button
+          onClick={() => navigate("/lab")}
+          className="w-full glass rounded-xl p-4 flex items-center gap-4 hover:border-primary/30 border border-transparent transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Camera size={20} className="text-primary" />
+          </div>
+          <div className="text-left flex-1">
+            <h3 className="font-display font-bold text-sm text-foreground">VITAS.LAB</h3>
+            <p className="text-[10px] text-muted-foreground">Video Analysis · Pitch Homography · Tracking</p>
+          </div>
+          <span className="text-[9px] font-display text-primary uppercase tracking-wider">Abrir →</span>
+        </button>
+      </motion.div>
+
       {/* Live Matches */}
       <motion.div variants={item}>
         <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
