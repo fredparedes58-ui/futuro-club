@@ -8,6 +8,7 @@ import ScoutFeed from "./pages/ScoutFeed";
 import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
+import PlayerComparison from "./pages/PlayerComparison";
 import NotFound from "./pages/NotFound";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import BottomNav from "./components/BottomNav";
