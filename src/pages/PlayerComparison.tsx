@@ -133,31 +133,23 @@ const PlayerComparison = () => {
       <TopNav />
 
       {/* Header */}
-      <motion.div variants={item} className="px-4 py-4 max-w-5xl mx-auto">
+      <motion.div variants={item} className="px-4 pt-6 max-w-5xl mx-auto">
         <div className="flex items-center justify-between">
           <div>
-            <button
-              onClick={() => navigate(-1)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div>
-              <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
-                Predictive Analysis
-              </span>
-              <h1 className="font-display font-bold text-xl text-foreground">
-                Scout Comparison Tool
-              </h1>
-            </div>
+            <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
+              Predictive Analysis
+            </span>
+            <h1 className="font-display font-bold text-3xl text-foreground italic">
+              Scout Comparison Tool
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors">
-              <Download size={14} />
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors">
+              <Download size={16} />
               Export Report
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors">
-              <Share2 size={14} />
+            <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors">
+              <Share2 size={16} />
               Share View
             </button>
           </div>
