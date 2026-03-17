@@ -10,6 +10,8 @@ import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
 import PlayerComparison from "./pages/PlayerComparison";
 import VitasLab from "./pages/VitasLab";
+import MasterDashboard from "./pages/MasterDashboard";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import BottomNav from "./components/BottomNav";
@@ -24,12 +26,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/master" element={<MasterDashboard />} />
           <Route path="/scout" element={<ScoutFeed />} />
           <Route path="/drill" element={<SoloDrill />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/player/:id" element={<PlayerProfile />} />
           <Route path="/compare" element={<PlayerComparison />} />
           <Route path="/lab" element={<VitasLab />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/checkout" element={<OrderConfirmation />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
