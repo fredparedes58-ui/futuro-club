@@ -1,3 +1,10 @@
+import player1Img from "@/assets/player-1.png";
+import player2Img from "@/assets/player-2.png";
+import player3Img from "@/assets/player-3.png";
+import player4Img from "@/assets/player-4.png";
+import player5Img from "@/assets/player-5.png";
+import player6Img from "@/assets/player-6.png";
+
 export interface Player {
   id: string;
   name: string;
@@ -10,6 +17,7 @@ export interface Player {
   phvCategory: "early" | "on-time" | "late";
   trending: "up" | "down" | "stable";
   avatar: string;
+  image: string;
   stats: {
     speed: number;
     technique: number;
