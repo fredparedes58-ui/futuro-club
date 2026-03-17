@@ -86,8 +86,8 @@ const Rankings = () => {
             <span className="w-6 text-center font-display font-bold text-sm text-muted-foreground">
               {i + 1}
             </span>
-            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center font-display text-xs font-bold text-primary">
-              {player.avatar}
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-border">
+              <img src={player.image} alt={player.name} className="w-full h-full object-cover grayscale" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-display font-semibold text-foreground truncate">
