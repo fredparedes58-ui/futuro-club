@@ -9,6 +9,7 @@ import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
 import PlayerComparison from "./pages/PlayerComparison";
+import VitasLab from "./pages/VitasLab";
 import NotFound from "./pages/NotFound";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import BottomNav from "./components/BottomNav";
