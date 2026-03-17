@@ -14,6 +14,7 @@ import {
 import { mockPlayers } from "@/lib/mockData";
 import RadarChartComponent from "@/components/RadarChart";
 import VsiGauge from "@/components/VsiGauge";
+import TopNav from "@/components/TopNav";
 import {
   ResponsiveContainer,
   RadarChart as ReRadar,
