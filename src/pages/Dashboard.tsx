@@ -13,6 +13,7 @@ const statCards = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const container = {
     hidden: {},
     show: { transition: { staggerChildren: 0.06 } },
