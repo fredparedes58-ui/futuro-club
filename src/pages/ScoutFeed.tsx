@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowUp, Clock } from "lucide-react";
+import { Sparkles, ArrowUp, Clock, GitCompareArrows } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { mockScoutInsights } from "@/lib/mockData";
 import VsiGauge from "@/components/VsiGauge";
 
@@ -20,6 +21,7 @@ const typeLabels: Record<string, string> = {
 
 const ScoutFeed = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   return (
     <div className="h-screen flex flex-col">
@@ -34,6 +36,13 @@ const ScoutFeed = () => {
         <p className="text-[10px] text-muted-foreground font-display tracking-wider uppercase mt-0.5">
           Insights generados por IA · Actualizados en tiempo real
         </p>
+        <button
+          onClick={() => navigate("/compare")}
+          className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
+        >
+          <GitCompareArrows size={14} />
+          Comparison Tool
+        </button>
       </div>
 
       {/* Vertical Scroll Feed */}
