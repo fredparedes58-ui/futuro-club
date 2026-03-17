@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, Users, Zap, TrendingUp, Camera } from "lucide-react";
+import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { mockPlayers, mockMatches } from "@/lib/mockData";
 import LiveMatchCard from "@/components/LiveMatchCard";
