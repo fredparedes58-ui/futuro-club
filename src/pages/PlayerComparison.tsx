@@ -129,8 +129,11 @@ const PlayerComparison = () => {
       animate="show"
       className="min-h-screen pb-24"
     >
+      {/* Top Navigation */}
+      <TopNav />
+
       {/* Header */}
-      <motion.div variants={item} className="glass-strong px-4 py-4">
+      <motion.div variants={item} className="px-4 py-4 max-w-5xl mx-auto">
         <div className="flex items-center justify-between max-w-5xl mx-auto">
           <div className="flex items-center gap-3">
             <button
