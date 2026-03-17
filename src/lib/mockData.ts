@@ -1,3 +1,10 @@
+import player1Img from "@/assets/player-1.png";
+import player2Img from "@/assets/player-2.png";
+import player3Img from "@/assets/player-3.png";
+import player4Img from "@/assets/player-4.png";
+import player5Img from "@/assets/player-5.png";
+import player6Img from "@/assets/player-6.png";
+
 export interface Player {
   id: string;
   name: string;
@@ -10,6 +17,7 @@ export interface Player {
   phvCategory: "early" | "on-time" | "late";
   trending: "up" | "down" | "stable";
   avatar: string;
+  image: string;
   stats: {
     speed: number;
     technique: number;
@@ -66,6 +74,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "late",
     trending: "up",
     avatar: "LM",
+    image: player1Img,
     stats: { speed: 72, technique: 91, vision: 88, stamina: 76, shooting: 65, defending: 54 },
     recentDrills: 12,
     lastActive: "Hace 2h",
@@ -82,6 +91,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "on-time",
     trending: "up",
     avatar: "AR",
+    image: player2Img,
     stats: { speed: 89, technique: 84, vision: 71, stamina: 82, shooting: 93, defending: 38 },
     recentDrills: 8,
     lastActive: "Hace 30min",
@@ -98,6 +108,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "late",
     trending: "up",
     avatar: "DT",
+    image: player3Img,
     stats: { speed: 85, technique: 70, vision: 66, stamina: 88, shooting: 45, defending: 79 },
     recentDrills: 15,
     lastActive: "Hace 1h",
@@ -114,6 +125,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "early",
     trending: "stable",
     avatar: "PG",
+    image: player4Img,
     stats: { speed: 68, technique: 75, vision: 82, stamina: 90, shooting: 55, defending: 88 },
     recentDrills: 6,
     lastActive: "Hace 4h",
@@ -130,6 +142,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "on-time",
     trending: "up",
     avatar: "MF",
+    image: player5Img,
     stats: { speed: 92, technique: 86, vision: 74, stamina: 78, shooting: 77, defending: 35 },
     recentDrills: 20,
     lastActive: "Hace 15min",
@@ -146,6 +159,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "early",
     trending: "down",
     avatar: "IN",
+    image: player6Img,
     stats: { speed: 58, technique: 65, vision: 72, stamina: 80, shooting: 30, defending: 90 },
     recentDrills: 4,
     lastActive: "Ayer",

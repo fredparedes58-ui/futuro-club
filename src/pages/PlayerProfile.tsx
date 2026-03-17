@@ -45,8 +45,8 @@ const PlayerProfile = () => {
 
       {/* Player Header */}
       <motion.div variants={item} className="flex items-center gap-4">
-        <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-xl text-primary">
-          {player.avatar}
+        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary/30">
+          <img src={player.image} alt={player.name} className="w-full h-full object-cover grayscale" />
         </div>
         <div className="flex-1">
           <h1 className="font-display font-bold text-2xl text-foreground">{player.name}</h1>
