@@ -219,3 +219,65 @@ export const mockScoutInsights: ScoutInsight[] = [
     timestamp: "Hace 8h",
   },
 ];
+export interface PlayerReport {
+  id: string;
+  name: string;
+  position: string;
+  academy: string;
+  vsi: number;
+  biasAlert: "low" | "med" | "high";
+}
+
+export interface AnalysisPipeline {
+  id: string;
+  title: string;
+  source: string;
+  pilar: string;
+  progress: number;
+  status: "processing" | "queued" | "complete";
+  eta?: string;
+  queuePosition?: number;
+}
+
+export interface LiveFeedEvent {
+  id: string;
+  message: string;
+  time: string;
+  color: "primary" | "electric" | "gold";
+}
+
+
+// New data for Master Dashboard
+export const mockPlayerReports: PlayerReport[] = [
+  { id: "rp1", name: "David Alaba Jr.", position: "CB", academy: "U15 Academy", vsi: 88.4, biasAlert: "low" },
+  { id: "rp2", name: "Marcus Rashford III", position: "LW", academy: "U16 Academy", vsi: 92.1, biasAlert: "high" },
+  { id: "rp3", name: "Luka Modric II", position: "CM", academy: "U14 Academy", vsi: 81.5, biasAlert: "med" },
+  { id: "rp4", name: "Erling Haaland Jr.", position: "ST", academy: "U17 Academy", vsi: 95.0, biasAlert: "low" },
+];
+
+export const mockPipelines: AnalysisPipeline[] = [
+  {
+    id: "pipe1",
+    title: "Match Analysis: U16 Derby",
+    source: "Video Stream #8293",
+    pilar: "Pilar III: SPADL Engine",
+    progress: 68,
+    status: "processing",
+    eta: "04m 22s",
+  },
+  {
+    id: "pipe2",
+    title: "Solo Drill: Sprint & Control",
+    source: "Mateo Fernandez (U14)",
+    pilar: "Pilar I: Player Selector",
+    progress: 5,
+    status: "queued",
+    queuePosition: 2,
+  },
+];
+
+export const mockLiveFeed: LiveFeedEvent[] = [
+  { id: "lf1", message: "Report confirmed for Leo M.", time: "2 mins ago", color: "primary" },
+  { id: "lf2", message: "New video upload detected: Match_day_14.mp4", time: "15 mins ago", color: "electric" },
+  { id: "lf3", message: "Prophet Horizon update available", time: "1 hour ago", color: "gold" },
+];
