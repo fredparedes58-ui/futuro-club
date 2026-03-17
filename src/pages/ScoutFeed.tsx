@@ -21,6 +21,7 @@ const typeLabels: Record<string, string> = {
 
 const ScoutFeed = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   return (
     <div className="h-screen flex flex-col">
