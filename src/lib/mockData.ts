@@ -142,6 +142,7 @@ export const mockPlayers: Player[] = [
     phvCategory: "on-time",
     trending: "up",
     avatar: "MF",
+    image: player5Img,
     stats: { speed: 92, technique: 86, vision: 74, stamina: 78, shooting: 77, defending: 35 },
     recentDrills: 20,
     lastActive: "Hace 15min",
