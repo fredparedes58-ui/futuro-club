@@ -9,6 +9,7 @@ import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
 import NotFound from "./pages/NotFound";
+import OrderConfirmation from "./pages/OrderConfirmation";
 import BottomNav from "./components/BottomNav";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/drill" element={<SoloDrill />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/player/:id" element={<PlayerProfile />} />
+          <Route path="/checkout" element={<OrderConfirmation />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNav />
