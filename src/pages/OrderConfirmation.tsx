@@ -18,7 +18,7 @@ const OrderConfirmation = () => {
 
   const unitPrice = 149.99;
   const subtotal = unitPrice * quantity;
-  const shipping = 0;
+  const shipping: number = 0;
   const tax = subtotal * 0.16;
   const total = subtotal + shipping + tax;
 
