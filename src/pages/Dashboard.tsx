@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { Activity, Users, Zap, TrendingUp } from "lucide-react";
+import { Activity, Users, Zap, TrendingUp, Camera } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { mockPlayers, mockMatches } from "@/lib/mockData";
 import LiveMatchCard from "@/components/LiveMatchCard";
 import PlayerCard from "@/components/PlayerCard";
@@ -12,6 +13,7 @@ const statCards = [
 ];
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const container = {
     hidden: {},
     show: { transition: { staggerChildren: 0.06 } },
@@ -63,6 +65,23 @@ const Dashboard = () => {
             </div>
           );
         })}
+      </motion.div>
+
+      {/* VITAS Lab Quick Access */}
+      <motion.div variants={item}>
+        <button
+          onClick={() => navigate("/lab")}
+          className="w-full glass rounded-xl p-4 flex items-center gap-4 hover:border-primary/30 border border-transparent transition-all"
+        >
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Camera size={20} className="text-primary" />
+          </div>
+          <div className="text-left flex-1">
+            <h3 className="font-display font-bold text-sm text-foreground">VITAS.LAB</h3>
+            <p className="text-[10px] text-muted-foreground">Video Analysis · Pitch Homography · Tracking</p>
+          </div>
+          <span className="text-[9px] font-display text-primary uppercase tracking-wider">Abrir →</span>
+        </button>
       </motion.div>
 
       {/* Live Matches */}
