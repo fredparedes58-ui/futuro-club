@@ -32,17 +32,17 @@ const Dashboard = () => {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-6 max-w-lg mx-auto">
       {/* Header */}
-      <motion.div variants={item} className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display font-bold text-2xl text-foreground tracking-tight">
-            VITAS<span className="text-primary">.</span>
-          </h1>
-          <p className="text-xs text-muted-foreground font-display tracking-wider uppercase">Centro de Inteligencia</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
-          <span className="text-[10px] font-display text-primary uppercase tracking-widest">En vivo</span>
-        </div>
+      <motion.div variants={item}>
+        <PageHeader
+          title="VITAS."
+          subtitle="Centro de Inteligencia"
+          rightContent={
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
+              <span className="text-[10px] font-display text-primary uppercase tracking-widest">En vivo</span>
+            </div>
+          }
+        />
       </motion.div>
 
       {/* Stats */}
