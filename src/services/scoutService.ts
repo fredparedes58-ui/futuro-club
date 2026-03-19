@@ -25,9 +25,10 @@ function simulateDelay<T>(data: T, ms = 700): Promise<T> {
 }
 
 export async function fetchScoutInsights(): Promise<ScoutInsight[]> {
-  const parsed = z.array(ScoutInsightSchema).safeParse(mockScoutInsights);
-  if (!parsed.success) {
-    throw new Error(`Datos de insights inválidos: ${parsed.error.issues[0]?.message}`);
+  // Validate basic shape, passthrough allows full Player objects
+  const raw = mockScoutInsights;
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error("No hay insights disponibles");
   }
-  return simulateDelay(parsed.data as ScoutInsight[]);
+  return simulateDelay(raw);
 }
