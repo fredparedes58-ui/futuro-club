@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 // Pages where bottom nav should be hidden
-const hiddenOnRoutes = ["/", "/master", "/lab", "/compare"];
+const hiddenOnRoutes = ["/master", "/lab", "/compare"];
 
 const BottomNav = () => {
   const location = useLocation();
