@@ -1,5 +1,6 @@
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity,
   Compass,
@@ -9,205 +10,244 @@ import {
   Camera,
   GitCompareArrows,
   Settings,
-  ChevronRight,
+  ArrowUpRight,
   Zap,
+  Signal,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 
+/* ─── module registry ─── */
 const modules = [
-  {
-    path: "/pulse",
-    icon: Activity,
-    label: "Pulse",
-    desc: "Centro de Inteligencia en vivo",
-    accent: "from-primary/20 to-primary/5 border-primary/30",
-    iconColor: "text-primary",
-  },
-  {
-    path: "/master",
-    icon: LayoutDashboard,
-    label: "Master Dashboard",
-    desc: "Academy Intelligence completa",
-    accent: "from-electric/20 to-electric/5 border-electric/30",
-    iconColor: "text-electric",
-  },
-  {
-    path: "/scout",
-    icon: Compass,
-    label: "Scout Feed",
-    desc: "Insights y alertas de talento",
-    accent: "from-gold/20 to-gold/5 border-gold/30",
-    iconColor: "text-gold",
-  },
-  {
-    path: "/drill",
-    icon: Crosshair,
-    label: "Solo Drill",
-    desc: "Evaluación técnica individual",
-    accent: "from-accent/20 to-accent/5 border-accent/30",
-    iconColor: "text-accent",
-  },
-  {
-    path: "/rankings",
-    icon: BarChart3,
-    label: "Rankings",
-    desc: "Clasificación VSI global",
-    accent: "from-primary/20 to-primary/5 border-primary/30",
-    iconColor: "text-primary",
-  },
-  {
-    path: "/lab",
-    icon: Camera,
-    label: "VITAS.LAB",
-    desc: "Análisis de video avanzado",
-    accent: "from-electric/20 to-electric/5 border-electric/30",
-    iconColor: "text-electric",
-  },
-  {
-    path: "/compare",
-    icon: GitCompareArrows,
-    label: "Comparador",
-    desc: "Análisis comparativo scout",
-    accent: "from-gold/20 to-gold/5 border-gold/30",
-    iconColor: "text-gold",
-  },
-  {
-    path: "/settings",
-    icon: Settings,
-    label: "Configuración",
-    desc: "Ajustes del sistema",
-    accent: "from-muted/40 to-muted/10 border-border",
-    iconColor: "text-muted-foreground",
-  },
-];
+  { path: "/pulse", icon: Activity, label: "Pulse", desc: "Live Intelligence Center", tag: "LIVE", size: "large" },
+  { path: "/master", icon: LayoutDashboard, label: "Master", desc: "Full Academy Intelligence", tag: "AI", size: "large" },
+  { path: "/scout", icon: Compass, label: "Scout", desc: "Talent alerts & insights", tag: "NEW", size: "small" },
+  { path: "/drill", icon: Crosshair, label: "Solo Drill", desc: "Individual evaluation", tag: null, size: "small" },
+  { path: "/rankings", icon: BarChart3, label: "Rankings", desc: "Global VSI classification", tag: null, size: "small" },
+  { path: "/lab", icon: Camera, label: "VITAS.LAB", desc: "Advanced video analysis", tag: "BETA", size: "small" },
+  { path: "/compare", icon: GitCompareArrows, label: "Compare", desc: "Scout comparison tool", tag: null, size: "small" },
+  { path: "/settings", icon: Settings, label: "Settings", desc: "System configuration", tag: null, size: "small" },
+] as const;
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07, delayChildren: 0.3 } },
-};
-const item = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] } },
-};
+/* ─── animated counter ─── */
+function AnimatedStat({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.round(v).toLocaleString());
+  const [display, setDisplay] = useState("0");
 
-const Landing = () => {
+  useEffect(() => {
+    const controls = animate(count, value, { duration: 2, ease: "easeOut" });
+    const unsub = rounded.on("change", setDisplay);
+    return () => { controls.stop(); unsub(); };
+  }, [value, count, rounded]);
+
+  return <span>{display}{suffix}</span>;
+}
+
+/* ─── grid background ─── */
+function GridBg() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
+          backgroundSize: "60px 60px",
+        }}
+      />
+      {/* Radial fade */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background" />
+    </div>
+  );
+}
+
+/* ─── floating orb ─── */
+function Orb({ className }: { className: string }) {
+  return (
+    <motion.div
+      className={`absolute rounded-full blur-[100px] pointer-events-none ${className}`}
+      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
+/* ─── module card ─── */
+function ModuleCard({ mod, index }: { mod: typeof modules[number]; index: number }) {
   const navigate = useNavigate();
+  const Icon = mod.icon;
+  const isLarge = mod.size === "large";
+  const ref = useRef<HTMLButtonElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    ref.current.style.setProperty("--mx", `${x}px`);
+    ref.current.style.setProperty("--my", `${y}px`);
+  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Hero */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        className="relative overflow-hidden"
-      >
-        {/* Ambient glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/8 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-20 right-0 w-[300px] h-[300px] bg-electric/6 rounded-full blur-[100px] pointer-events-none" />
+    <motion.button
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 + index * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      onClick={() => navigate(mod.path)}
+      onMouseMove={handleMouseMove}
+      className={`group relative text-left rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden transition-all duration-500 hover:border-primary/40 hover:bg-card/50 active:scale-[0.97] ${
+        isLarge ? "sm:col-span-2 p-6" : "p-5"
+      }`}
+      style={{ "--mx": "50%", "--my": "50%" } as React.CSSProperties}
+    >
+      {/* Spotlight hover effect */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+        style={{
+          background: "radial-gradient(300px circle at var(--mx) var(--my), hsl(var(--primary) / 0.06), transparent 60%)",
+        }}
+      />
 
-        <div className="relative z-10 px-6 pt-16 pb-10 max-w-2xl mx-auto text-center">
+      {/* Top row: icon + tag */}
+      <div className="relative z-10 flex items-start justify-between mb-4">
+        <div className={`${isLarge ? "p-3" : "p-2.5"} rounded-xl bg-primary/5 border border-primary/10 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-500`}>
+          <Icon size={isLarge ? 22 : 18} className="text-primary group-hover:drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] transition-all duration-500" />
+        </div>
+        <div className="flex items-center gap-2">
+          {mod.tag && (
+            <span className="text-[9px] font-display font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+              {mod.tag}
+            </span>
+          )}
+          <ArrowUpRight
+            size={14}
+            className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300"
+          />
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <h3 className={`font-display font-bold text-foreground ${isLarge ? "text-xl" : "text-base"}`}>
+          {mod.label}
+        </h3>
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{mod.desc}</p>
+      </div>
+
+      {/* Bottom accent line */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/0 to-transparent group-hover:via-primary/30 transition-all duration-700" />
+    </motion.button>
+  );
+}
+
+/* ─── main landing ─── */
+const Landing = () => {
+  const stats = [
+    { icon: Users, label: "Players tracked", value: 12847 },
+    { icon: Signal, label: "Live sessions", value: 342 },
+    { icon: TrendingUp, label: "Insights today", value: 1893 },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background relative">
+      <GridBg />
+
+      {/* Ambient orbs */}
+      <Orb className="w-[500px] h-[500px] bg-primary/20 -top-40 -left-40" />
+      <Orb className="w-[400px] h-[400px] bg-electric/15 top-1/3 -right-32" />
+      <Orb className="w-[300px] h-[300px] bg-gold/10 bottom-20 left-1/4" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-5">
+        {/* ─── Top bar ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex items-center justify-between pt-8 pb-16"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
+            <span className="text-[10px] font-display font-bold uppercase tracking-[0.3em] text-muted-foreground">
+              Prophet Horizon V2.4
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-card/30 backdrop-blur-sm">
+            <Zap size={10} className="text-primary" />
+            <span className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
+              Online
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ─── Hero section ─── */}
+        <div className="text-center mb-16">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-2"
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
-            <h1 className="font-display font-black text-5xl md:text-6xl text-foreground tracking-tight leading-none">
-              VITAS<span className="text-primary">.</span>
+            <h1 className="font-display font-black text-7xl md:text-[120px] text-foreground tracking-tighter leading-[0.85] mb-1">
+              VITAS
+              <span className="text-primary">.</span>
             </h1>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-            className="flex items-center justify-center gap-2 mb-6"
-          >
-            <div className="h-px w-8 bg-gradient-to-r from-transparent to-primary/50" />
-            <span className="text-[10px] font-display font-semibold uppercase tracking-[0.3em] text-primary/80">
-              Prophet Horizon V2.4
-            </span>
-            <div className="h-px w-8 bg-gradient-to-l from-transparent to-primary/50" />
-          </motion.div>
-
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.5 }}
-            className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed"
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="text-sm md:text-base text-muted-foreground max-w-md mx-auto leading-relaxed mt-6"
           >
-            Plataforma de inteligencia deportiva para detección, evaluación y proyección de talento juvenil.
+            Plataforma de inteligencia deportiva para detección,
+            <br className="hidden sm:block" />
+            evaluación y proyección de{" "}
+            <span className="text-foreground font-medium">talento juvenil</span>.
           </motion.p>
 
+          {/* Stats ticker */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-6 flex items-center justify-center gap-2"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="flex items-center justify-center gap-8 mt-10"
           >
-            <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
-            <span className="text-[10px] font-display text-primary uppercase tracking-widest font-semibold">
-              Sistema activo
-            </span>
+            {stats.map((s) => (
+              <div key={s.label} className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-1.5 text-foreground">
+                  <s.icon size={12} className="text-primary" />
+                  <span className="font-display font-bold text-lg md:text-xl">
+                    <AnimatedStat value={s.value} />
+                  </span>
+                </div>
+                <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
+                  {s.label}
+                </span>
+              </div>
+            ))}
           </motion.div>
         </div>
-      </motion.div>
 
-      {/* Modules Grid */}
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="show"
-        className="flex-1 px-4 pb-12 max-w-2xl mx-auto w-full"
-      >
-        <motion.p
-          variants={item}
-          className="text-[10px] font-display font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 px-1"
-        >
-          <Zap size={10} className="inline mr-1 text-primary" />
-          Módulos disponibles
-        </motion.p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {modules.map((mod) => {
-            const Icon = mod.icon;
-            return (
-              <motion.button
-                key={mod.path}
-                variants={item}
-                onClick={() => navigate(mod.path)}
-                className={`group relative w-full text-left rounded-xl border bg-gradient-to-br ${mod.accent} p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 p-2 rounded-lg bg-background/50 backdrop-blur-sm">
-                      <Icon size={18} className={mod.iconColor} />
-                    </div>
-                    <div>
-                      <h3 className="font-display font-bold text-sm text-foreground">
-                        {mod.label}
-                      </h3>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                        {mod.desc}
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className="text-muted-foreground/50 group-hover:text-foreground group-hover:translate-x-0.5 transition-all mt-1"
-                  />
-                </div>
-              </motion.button>
-            );
-          })}
+        {/* ─── Bento grid ─── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pb-8">
+          {modules.map((mod, i) => (
+            <ModuleCard key={mod.path} mod={mod} index={i} />
+          ))}
         </div>
-      </motion.div>
 
-      {/* Footer */}
-      <div className="px-6 py-6 text-center border-t border-border/50">
-        <p className="text-[9px] font-display uppercase tracking-[0.25em] text-muted-foreground/60">
-          © 2026 VITAS Intelligence · Todos los derechos reservados
-        </p>
+        {/* ─── Footer ─── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="py-10 flex items-center justify-center gap-3"
+        >
+          <div className="h-px w-12 bg-gradient-to-r from-transparent to-border" />
+          <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/40">
+            © 2026 VITAS Intelligence
+          </p>
+          <div className="h-px w-12 bg-gradient-to-l from-transparent to-border" />
+        </motion.div>
       </div>
     </div>
   );
