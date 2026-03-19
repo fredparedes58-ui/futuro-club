@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   LayoutDashboard,
   Activity,
