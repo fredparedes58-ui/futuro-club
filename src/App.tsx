@@ -23,31 +23,35 @@ import RoleProfileAudit from "./pages/RoleProfileAudit";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/master" element={<MasterDashboard />} />
-          <Route path="/scout" element={<ScoutFeed />} />
-          <Route path="/drill" element={<SoloDrill />} />
-          <Route path="/rankings" element={<Rankings />} />
-          <Route path="/player/:id" element={<PlayerProfile />} />
-          <Route path="/compare" element={<PlayerComparison />} />
-          <Route path="/lab" element={<VitasLab />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/checkout" element={<OrderConfirmation />} />
-          <Route path="/players/:id/role-profile" element={<RoleProfile />} />
-          <Route path="/players/:id/role-profile/compare" element={<RoleProfileCompare />} />
-          <Route path="/players/:id/role-profile/audit" element={<RoleProfileAudit />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <BottomNav />
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/master" element={<MasterDashboard />} />
+              <Route path="/scout" element={<ScoutFeed />} />
+              <Route path="/drill" element={<SoloDrill />} />
+              <Route path="/rankings" element={<Rankings />} />
+              <Route path="/player/:id" element={<PlayerProfile />} />
+              <Route path="/compare" element={<PlayerComparison />} />
+              <Route path="/lab" element={<VitasLab />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/checkout" element={<OrderConfirmation />} />
+              <Route path="/players/:id/role-profile" element={<RoleProfile />} />
+              <Route path="/players/:id/role-profile/compare" element={<RoleProfileCompare />} />
+              <Route path="/players/:id/role-profile/audit" element={<RoleProfileAudit />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+          <BottomNav />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
