@@ -4,17 +4,25 @@ import TopNav from "@/components/TopNav";
 import PlayerHeader from "@/components/role-profile/PlayerHeader";
 import IndicatorsAuditTable from "@/components/role-profile/IndicatorsAuditTable";
 import EvidenceDrawer from "@/components/role-profile/EvidenceDrawer";
-import { mockRoleProfile, PhaseOfPlay, EvidenceIndicator } from "@/lib/roleProfileData";
+import EmptyState from "@/components/role-profile/EmptyState";
+import { PlayerHeaderSkeleton, AuditTableSkeleton } from "@/components/role-profile/Skeletons";
+import { useRoleProfile } from "@/hooks/useRoleProfile";
+import { PhaseOfPlay, EvidenceIndicator } from "@/lib/roleProfileData";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 export default function RoleProfileAudit() {
   const { id } = useParams();
-  const data = mockRoleProfile;
+  const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
 
   const [phaseFilter, setPhaseFilter] = useState<PhaseOfPlay | "all">("all");
   const [drawerIndicator, setDrawerIndicator] = useState<EvidenceIndicator | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  if (isError) {
+    toast.error(`Error al cargar auditoría: ${error?.message || "Error desconocido"}`);
+  }
 
   const phases = [
     { key: "all" as const, label: "Todas" },
@@ -24,7 +32,7 @@ export default function RoleProfileAudit() {
   ];
 
   const handleOpenEvidence = (indicatorKey: string) => {
-    const found = data.evidence.find(e => e.indicator === indicatorKey);
+    const found = data?.evidence.find(e => e.indicator === indicatorKey);
     if (found) {
       setDrawerIndicator(found);
       setDrawerOpen(true);
@@ -47,8 +55,6 @@ export default function RoleProfileAudit() {
               <h2 className="font-display text-2xl font-bold">Auditoría de indicadores</h2>
             </div>
           </div>
-
-          {/* Phase filter */}
           <div className="flex gap-1 bg-muted rounded-md p-0.5">
             {phases.map(p => (
               <Button
@@ -64,36 +70,47 @@ export default function RoleProfileAudit() {
           </div>
         </div>
 
-        <PlayerHeader data={data} />
+        {isLoading && (
+          <>
+            <PlayerHeaderSkeleton />
+            <AuditTableSkeleton />
+          </>
+        )}
 
-        {/* Stats summary */}
-        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-          <span>{data.evidence.length} indicadores registrados</span>
-          <span>{data.evidence.filter(e => e.reliability >= 0.75).length} con fiabilidad alta</span>
-          <span>{data.evidence.filter(e => e.impact === "positivo").length} con impacto positivo</span>
-        </div>
+        {isError && (
+          <EmptyState type="no-data" onAction={() => refetch()} actionLabel="Reintentar" />
+        )}
 
-        {/* Audit table */}
-        <div className="bg-card border border-border rounded-lg">
-          <IndicatorsAuditTable
-            data={data}
-            phaseFilter={phaseFilter}
-            onOpenEvidence={handleOpenEvidence}
-          />
-        </div>
+        {data && (
+          <>
+            <PlayerHeader data={data} />
 
-        {/* Evidence drawer */}
-        <EvidenceDrawer
-          indicator={drawerIndicator}
-          open={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-        />
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <span>{data.evidence.length} indicadores registrados</span>
+              <span>{data.evidence.filter(e => e.reliability >= 0.75).length} con fiabilidad alta</span>
+              <span>{data.evidence.filter(e => e.impact === "positivo").length} con impacto positivo</span>
+            </div>
 
-        {/* Run metadata */}
-        <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
-          <span>Run: <span className="font-mono">{data.run_id}</span></span>
-          <span>Haz clic en una fila para ver el detalle de evidencia</span>
-        </div>
+            <div className="bg-card border border-border rounded-lg">
+              <IndicatorsAuditTable
+                data={data}
+                phaseFilter={phaseFilter}
+                onOpenEvidence={handleOpenEvidence}
+              />
+            </div>
+
+            <EvidenceDrawer
+              indicator={drawerIndicator}
+              open={drawerOpen}
+              onClose={() => setDrawerOpen(false)}
+            />
+
+            <div className="text-xs text-muted-foreground border-t border-border pt-4">
+              <span>Run: <span className="font-mono">{data.run_id}</span></span>
+              <span className="ml-4">Haz clic en una fila para ver el detalle de evidencia</span>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
