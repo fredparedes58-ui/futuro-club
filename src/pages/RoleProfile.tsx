@@ -62,6 +62,9 @@ export default function RoleProfile() {
           </div>
         </div>
 
+        {/* Filter bar */}
+        <RoleProfileFilterBar onChange={handleFilterChange} />
+
         {/* Loading state */}
         {isLoading && (
           <>
