@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Camera, Play, ChevronRight, Trophy, Flame } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { mockDrillCategories, mockPlayers } from "@/lib/mockData";
 
 const SoloDrill = () => {
