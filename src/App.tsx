@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import ScoutFeed from "./pages/ScoutFeed";
 import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";

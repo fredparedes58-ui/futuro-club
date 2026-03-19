@@ -11,8 +11,8 @@ const navItems = [
   { path: "/player/p1", icon: User, label: "Perfil" },
 ];
 
-// Pages where bottom nav should be hidden (they have their own nav)
-const hiddenOnRoutes = ["/master", "/lab", "/compare"];
+// Pages where bottom nav should be hidden
+const hiddenOnRoutes = ["/", "/master", "/lab", "/compare"];
 
 const BottomNav = () => {
   const location = useLocation();

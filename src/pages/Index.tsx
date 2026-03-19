@@ -1,5 +1,5 @@
-import Dashboard from "./Dashboard";
+import Landing from "./Landing";
 
-const Index = () => <Dashboard />;
+const Index = () => <Landing />;
 
 export default Index;
