@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
+import PageHeader from "@/components/shared/PageHeader";
 import {
   LayoutDashboard,
   Activity,
@@ -56,10 +57,7 @@ const MasterDashboard = () => {
       <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card p-5 justify-between">
         <div>
           <div className="mb-8">
-            <h1 className="font-display font-bold text-xl text-primary">VITAS</h1>
-            <p className="text-[10px] font-display text-muted-foreground uppercase tracking-widest">
-              Academy Intelligence
-            </p>
+            <PageHeader title="VITAS" subtitle="Academy Intelligence" />
           </div>
           <nav className="space-y-1">
             {sidebarItems.map((navItem) => {

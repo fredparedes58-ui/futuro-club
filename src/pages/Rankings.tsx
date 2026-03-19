@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Medal, Shield } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { useRankedPlayers } from "@/hooks/useRankings";
 import { RankingsPodiumSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import VsiGauge from "@/components/VsiGauge";
@@ -34,8 +35,7 @@ const Rankings = () => {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-6 max-w-lg mx-auto">
       <motion.div variants={item}>
-        <h1 className="font-display font-bold text-2xl text-foreground">Rankings<span className="text-primary">.</span></h1>
-        <p className="text-xs text-muted-foreground font-display tracking-wider uppercase">VSI ajustado por maduración biológica</p>
+        <PageHeader title="Rankings" subtitle="VSI ajustado por maduración biológica" />
       </motion.div>
 
       {/* Sort controls */}

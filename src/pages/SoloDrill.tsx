@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Camera, Play, ChevronRight, Trophy, Flame } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { mockDrillCategories, mockPlayers } from "@/lib/mockData";
 
 const SoloDrill = () => {
@@ -29,12 +30,7 @@ const SoloDrill = () => {
     >
       {/* Header */}
       <motion.div variants={item}>
-        <h1 className="font-display font-bold text-2xl text-foreground">
-          Solo Drill<span className="text-primary">.</span>
-        </h1>
-        <p className="text-xs text-muted-foreground font-display tracking-wider uppercase">
-          Análisis biomecánico individual
-        </p>
+        <PageHeader title="Solo Drill" subtitle="Análisis biomecánico individual" />
       </motion.div>
 
       {/* Record CTA */}

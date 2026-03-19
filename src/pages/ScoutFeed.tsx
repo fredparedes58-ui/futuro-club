@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowUp, Clock, GitCompareArrows } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useScoutInsights } from "@/hooks/useScoutFeed";
 import { ScoutFeedSkeleton } from "@/components/shared/Skeletons";
@@ -32,22 +33,19 @@ const ScoutFeed = () => {
     <div className="h-screen flex flex-col">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 glass-strong">
-        <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-primary" />
-          <h1 className="font-display font-bold text-lg text-foreground">
-            Scout<span className="text-primary">Feed</span>
-          </h1>
-        </div>
-        <p className="text-[10px] text-muted-foreground font-display tracking-wider uppercase mt-0.5">
-          Insights generados por IA · Actualizados en tiempo real
-        </p>
-        <button
-          onClick={() => navigate("/compare")}
-          className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
-        >
-          <GitCompareArrows size={14} />
-          Comparison Tool
-        </button>
+        <PageHeader
+          title="ScoutFeed"
+          subtitle="Insights generados por IA · Actualizados en tiempo real"
+          rightContent={
+            <button
+              onClick={() => navigate("/compare")}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
+            >
+              <GitCompareArrows size={14} />
+              Compare
+            </button>
+          }
+        />
       </div>
 
       {/* Feed */}

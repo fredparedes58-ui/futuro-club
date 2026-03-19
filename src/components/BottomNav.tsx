@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Activity, User, Compass, Crosshair, BarChart3, LayoutDashboard } from "lucide-react";
 
 const navItems = [
-  { path: "/", icon: Activity, label: "Pulse" },
+  { path: "/pulse", icon: Activity, label: "Pulse" },
   { path: "/master", icon: LayoutDashboard, label: "Master" },
   { path: "/scout", icon: Compass, label: "Scout" },
   { path: "/drill", icon: Crosshair, label: "Drill" },
@@ -11,14 +11,14 @@ const navItems = [
   { path: "/player/p1", icon: User, label: "Perfil" },
 ];
 
-// Pages where bottom nav should be hidden (they have their own nav)
+// Pages where bottom nav should be hidden
 const hiddenOnRoutes = ["/master", "/lab", "/compare"];
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const shouldHide = hiddenOnRoutes.some((r) => location.pathname.startsWith(r));
+  const shouldHide = location.pathname === "/" || hiddenOnRoutes.some((r) => location.pathname.startsWith(r));
   if (shouldHide) return null;
 
   return (

@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import ScoutFeed from "./pages/ScoutFeed";
 import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
@@ -32,6 +33,7 @@ const App = () => (
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/pulse" element={<Dashboard />} />
               <Route path="/master" element={<MasterDashboard />} />
               <Route path="/scout" element={<ScoutFeed />} />
               <Route path="/drill" element={<SoloDrill />} />
