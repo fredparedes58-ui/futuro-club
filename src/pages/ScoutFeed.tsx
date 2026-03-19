@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowUp, Clock, GitCompareArrows } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useScoutInsights } from "@/hooks/useScoutFeed";
 import { ScoutFeedSkeleton } from "@/components/shared/Skeletons";
