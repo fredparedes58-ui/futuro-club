@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
 import { DashboardStatsSkeleton, MatchesSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
