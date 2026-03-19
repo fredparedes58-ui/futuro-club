@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Crown, Medal, Shield } from "lucide-react";
+import PageHeader from "@/components/shared/PageHeader";
 import { useRankedPlayers } from "@/hooks/useRankings";
 import { RankingsPodiumSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import VsiGauge from "@/components/VsiGauge";
