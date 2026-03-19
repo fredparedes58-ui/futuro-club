@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import TopNav from "@/components/TopNav";
@@ -10,6 +10,7 @@ import ArchetypeRanking from "@/components/role-profile/ArchetypeRanking";
 import StrengthsRisksPanel from "@/components/role-profile/StrengthsRisksPanel";
 import ProjectionComparator from "@/components/role-profile/ProjectionComparator";
 import ViewModeToggle, { ViewMode } from "@/components/role-profile/ViewModeToggle";
+import RoleProfileFilterBar, { type RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
 import EmptyState from "@/components/role-profile/EmptyState";
 import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, PositionFitSkeleton } from "@/components/role-profile/Skeletons";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
@@ -19,7 +20,12 @@ import { FileText, GitCompare, Table2 } from "lucide-react";
 export default function RoleProfile() {
   const { id } = useParams();
   const [mode, setMode] = useState<ViewMode>("scout");
+  const [filters, setFilters] = useState<RoleProfileFilters | null>(null);
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
+
+  const handleFilterChange = useCallback((f: RoleProfileFilters) => {
+    setFilters(f);
+  }, []);
 
   if (isError) {
     toast.error(`No se pudo cargar el perfil: ${error?.message || "Error desconocido"}`);
@@ -55,6 +61,9 @@ export default function RoleProfile() {
             </Button>
           </div>
         </div>
+
+        {/* Filter bar */}
+        <RoleProfileFilterBar onChange={handleFilterChange} />
 
         {/* Loading state */}
         {isLoading && (
