@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { toast } from "sonner";
 import TopNav from "@/components/TopNav";
 import PlayerHeader from "@/components/role-profile/PlayerHeader";
 import IdentityCard from "@/components/role-profile/IdentityCard";
@@ -9,16 +10,20 @@ import ArchetypeRanking from "@/components/role-profile/ArchetypeRanking";
 import StrengthsRisksPanel from "@/components/role-profile/StrengthsRisksPanel";
 import ProjectionComparator from "@/components/role-profile/ProjectionComparator";
 import ViewModeToggle, { ViewMode } from "@/components/role-profile/ViewModeToggle";
-import { mockRoleProfile } from "@/lib/roleProfileData";
+import EmptyState from "@/components/role-profile/EmptyState";
+import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, PositionFitSkeleton } from "@/components/role-profile/Skeletons";
+import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { Button } from "@/components/ui/button";
 import { FileText, GitCompare, Table2 } from "lucide-react";
 
 export default function RoleProfile() {
   const { id } = useParams();
   const [mode, setMode] = useState<ViewMode>("scout");
+  const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
 
-  // In production: fetch from GET /api/player/:id/role-profile
-  const data = mockRoleProfile;
+  if (isError) {
+    toast.error(`No se pudo cargar el perfil: ${error?.message || "Error desconocido"}`);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,37 +56,74 @@ export default function RoleProfile() {
           </div>
         </div>
 
-        {/* Player header */}
-        <PlayerHeader data={data} />
+        {/* Loading state */}
+        {isLoading && (
+          <>
+            <PlayerHeaderSkeleton />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <IdentityCardSkeleton />
+              <div className="lg:col-span-2"><CapabilityCardsSkeleton /></div>
+            </div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <PositionFitSkeleton />
+              <PositionFitSkeleton />
+            </div>
+          </>
+        )}
 
-        {/* Identity + Capabilities */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1">
-            <IdentityCard data={data} />
-          </div>
-          <div className="lg:col-span-2">
-            <CapabilityCards data={data} />
-          </div>
-        </div>
+        {/* Error / empty state */}
+        {isError && (
+          <EmptyState type="no-data" onAction={() => refetch()} actionLabel="Reintentar carga" />
+        )}
 
-        {/* Position fit + Archetypes */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <PositionFitRanking data={data} />
-          <ArchetypeRanking data={data} />
-        </div>
+        {/* Data loaded */}
+        {data && (
+          <>
+            <PlayerHeader data={data} />
 
-        {/* Strengths, risks, gaps */}
-        <StrengthsRisksPanel data={data} />
+            {/* Low confidence warning */}
+            {data.overall_confidence < 0.5 && (
+              <div className="p-3 bg-gold/10 border border-gold/20 rounded-md">
+                <p className="text-sm text-gold">
+                  ⚠️ Confianza global inferior al 50%. Las recomendaciones tienen incertidumbre alta. Revisa la sección de riesgos.
+                </p>
+              </div>
+            )}
 
-        {/* Projection comparator - scout mode shows it inline */}
-        {mode === "scout" && <ProjectionComparator data={data} />}
+            {/* Partial data warnings */}
+            {data.risks.some(r => r.code === "tracking_physical_partial") && (
+              <div className="p-2 bg-muted/50 border border-border rounded-md">
+                <p className="text-xs text-muted-foreground">
+                  ℹ️ Datos de tracking/GPS parciales — las métricas físicas pueden estar subestimadas.
+                </p>
+              </div>
+            )}
 
-        {/* Run metadata */}
-        <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
-          <span>Run: <span className="font-mono">{data.run_id}</span></span>
-          <span>Confianza global: {Math.round(data.overall_confidence * 100)}%</span>
-          <span>Muestra: {data.sample_tier}</span>
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-1">
+                <IdentityCard data={data} />
+              </div>
+              <div className="lg:col-span-2">
+                <CapabilityCards data={data} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              <PositionFitRanking data={data} />
+              <ArchetypeRanking data={data} />
+            </div>
+
+            <StrengthsRisksPanel data={data} />
+
+            {mode === "scout" && <ProjectionComparator data={data} />}
+
+            <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
+              <span>Run: <span className="font-mono">{data.run_id}</span></span>
+              <span>Confianza global: {Math.round(data.overall_confidence * 100)}%</span>
+              <span>Muestra: {data.sample_tier}</span>
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
