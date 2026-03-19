@@ -251,7 +251,7 @@ const Landing = () => {
                 >
                   <div className="relative">
                     <Icon size={18} className="text-muted-foreground group-hover:text-primary transition-colors duration-300" />
-                    {mod.tag && (
+                    {"tag" in mod && mod.tag && (
                       <div className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-primary" />
                     )}
                   </div>
