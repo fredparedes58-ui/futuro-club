@@ -1,6 +1,6 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Activity,
   Compass,
@@ -10,243 +10,272 @@ import {
   Camera,
   GitCompareArrows,
   Settings,
-  ArrowUpRight,
+  ArrowRight,
   Zap,
   Signal,
   Users,
   TrendingUp,
 } from "lucide-react";
+import { Floating3DCard } from "@/components/landing/Floating3DCard";
+import {
+  PulseScreen,
+  MasterScreen,
+  RankingsScreen,
+  ScoutScreen,
+} from "@/components/landing/MockupScreen";
 
-/* ─── module registry ─── */
+/* ─── modules ─── */
 const modules = [
-  { path: "/pulse", icon: Activity, label: "Pulse", desc: "Live Intelligence Center", tag: "LIVE", size: "large" },
-  { path: "/master", icon: LayoutDashboard, label: "Master", desc: "Full Academy Intelligence", tag: "AI", size: "large" },
-  { path: "/scout", icon: Compass, label: "Scout", desc: "Talent alerts & insights", tag: "NEW", size: "small" },
-  { path: "/drill", icon: Crosshair, label: "Solo Drill", desc: "Individual evaluation", tag: null, size: "small" },
-  { path: "/rankings", icon: BarChart3, label: "Rankings", desc: "Global VSI classification", tag: null, size: "small" },
-  { path: "/lab", icon: Camera, label: "VITAS.LAB", desc: "Advanced video analysis", tag: "BETA", size: "small" },
-  { path: "/compare", icon: GitCompareArrows, label: "Compare", desc: "Scout comparison tool", tag: null, size: "small" },
-  { path: "/settings", icon: Settings, label: "Settings", desc: "System configuration", tag: null, size: "small" },
+  { path: "/pulse", icon: Activity, label: "Pulse", desc: "Centro de inteligencia en vivo", tag: "LIVE" },
+  { path: "/master", icon: LayoutDashboard, label: "Master", desc: "Inteligencia de academia completa", tag: "AI" },
+  { path: "/scout", icon: Compass, label: "Scout", desc: "Alertas e insights de talento", tag: "NEW" },
+  { path: "/drill", icon: Crosshair, label: "Solo Drill", desc: "Evaluación individual" },
+  { path: "/rankings", icon: BarChart3, label: "Rankings", desc: "Clasificación VSI global" },
+  { path: "/lab", icon: Camera, label: "VITAS.LAB", desc: "Análisis de video avanzado", tag: "BETA" },
+  { path: "/compare", icon: GitCompareArrows, label: "Compare", desc: "Herramienta de comparación" },
+  { path: "/settings", icon: Settings, label: "Settings", desc: "Configuración del sistema" },
 ] as const;
 
 /* ─── animated counter ─── */
-function AnimatedStat({ value, suffix = "" }: { value: number; suffix?: string }) {
+function AnimatedStat({ value }: { value: number }) {
   const count = useMotionValue(0);
   const rounded = useTransform(count, (v) => Math.round(v).toLocaleString());
   const [display, setDisplay] = useState("0");
 
   useEffect(() => {
-    const controls = animate(count, value, { duration: 2, ease: "easeOut" });
+    const controls = animate(count, value, { duration: 2.5, ease: "easeOut" });
     const unsub = rounded.on("change", setDisplay);
     return () => { controls.stop(); unsub(); };
   }, [value, count, rounded]);
 
-  return <span>{display}{suffix}</span>;
-}
-
-/* ─── grid background ─── */
-function GridBg() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
-          backgroundSize: "60px 60px",
-        }}
-      />
-      {/* Radial fade */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background" />
-    </div>
-  );
-}
-
-/* ─── floating orb ─── */
-function Orb({ className }: { className: string }) {
-  return (
-    <motion.div
-      className={`absolute rounded-full blur-[100px] pointer-events-none ${className}`}
-      animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
-      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
-}
-
-/* ─── module card ─── */
-function ModuleCard({ mod, index }: { mod: typeof modules[number]; index: number }) {
-  const navigate = useNavigate();
-  const Icon = mod.icon;
-  const isLarge = mod.size === "large";
-  const ref = useRef<HTMLButtonElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    ref.current.style.setProperty("--mx", `${x}px`);
-    ref.current.style.setProperty("--my", `${y}px`);
-  };
-
-  return (
-    <motion.button
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 + index * 0.06, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      onClick={() => navigate(mod.path)}
-      onMouseMove={handleMouseMove}
-      className={`group relative text-left rounded-2xl border border-border/50 bg-card/30 backdrop-blur-sm overflow-hidden transition-all duration-500 hover:border-primary/40 hover:bg-card/50 active:scale-[0.97] ${
-        isLarge ? "sm:col-span-2 p-6" : "p-5"
-      }`}
-      style={{ "--mx": "50%", "--my": "50%" } as React.CSSProperties}
-    >
-      {/* Spotlight hover effect */}
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: "radial-gradient(300px circle at var(--mx) var(--my), hsl(var(--primary) / 0.06), transparent 60%)",
-        }}
-      />
-
-      {/* Top row: icon + tag */}
-      <div className="relative z-10 flex items-start justify-between mb-4">
-        <div className={`${isLarge ? "p-3" : "p-2.5"} rounded-xl bg-primary/5 border border-primary/10 group-hover:bg-primary/10 group-hover:border-primary/20 transition-all duration-500`}>
-          <Icon size={isLarge ? 22 : 18} className="text-primary group-hover:drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] transition-all duration-500" />
-        </div>
-        <div className="flex items-center gap-2">
-          {mod.tag && (
-            <span className="text-[9px] font-display font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-              {mod.tag}
-            </span>
-          )}
-          <ArrowUpRight
-            size={14}
-            className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300"
-          />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10">
-        <h3 className={`font-display font-bold text-foreground ${isLarge ? "text-xl" : "text-base"}`}>
-          {mod.label}
-        </h3>
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{mod.desc}</p>
-      </div>
-
-      {/* Bottom accent line */}
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/0 to-transparent group-hover:via-primary/30 transition-all duration-700" />
-    </motion.button>
-  );
+  return <span>{display}</span>;
 }
 
 /* ─── main landing ─── */
 const Landing = () => {
+  const navigate = useNavigate();
+
   const stats = [
-    { icon: Users, label: "Players tracked", value: 12847 },
-    { icon: Signal, label: "Live sessions", value: 342 },
-    { icon: TrendingUp, label: "Insights today", value: 1893 },
+    { icon: Users, label: "Jugadores", value: 12847 },
+    { icon: Signal, label: "Sesiones live", value: 342 },
+    { icon: TrendingUp, label: "Insights hoy", value: 1893 },
   ];
 
   return (
-    <div className="min-h-screen bg-background relative">
-      <GridBg />
+    <div className="min-h-screen relative overflow-hidden" style={{
+      background: `
+        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(var(--primary) / 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(var(--electric) / 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(var(--gold) / 0.03) 0%, transparent 40%),
+        linear-gradient(160deg, hsl(220 25% 4%) 0%, hsl(225 30% 6%) 30%, hsl(220 20% 5%) 60%, hsl(215 25% 3%) 100%)
+      `
+    }}>
 
-      {/* Ambient orbs */}
-      <Orb className="w-[500px] h-[500px] bg-primary/20 -top-40 -left-40" />
-      <Orb className="w-[400px] h-[400px] bg-electric/15 top-1/3 -right-32" />
-      <Orb className="w-[300px] h-[300px] bg-gold/10 bottom-20 left-1/4" />
+      {/* ─── Noise texture ─── */}
+      <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundSize: "128px 128px",
+      }} />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-5">
-        {/* ─── Top bar ─── */}
-        <motion.div
+      {/* ─── Dot grid ─── */}
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 0.5px, transparent 0.5px)`,
+        backgroundSize: "24px 24px",
+      }} />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10">
+
+        {/* ─── Topbar ─── */}
+        <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex items-center justify-between pt-8 pb-16"
+          transition={{ duration: 0.7 }}
+          className="flex items-center justify-between pt-8 pb-6"
         >
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
             <span className="text-[10px] font-display font-bold uppercase tracking-[0.3em] text-muted-foreground">
-              Prophet Horizon V2.4
+              VITAS Intelligence
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/50 bg-card/30 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 bg-card/20 backdrop-blur-md">
             <Zap size={10} className="text-primary" />
             <span className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
               Online
             </span>
           </div>
-        </motion.div>
+        </motion.header>
 
-        {/* ─── Hero section ─── */}
-        <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <h1 className="font-display font-black text-7xl md:text-[120px] text-foreground tracking-tighter leading-[0.85] mb-1">
-              VITAS
-              <span className="text-primary">.</span>
-            </h1>
-          </motion.div>
+        {/* ─── Hero + 3D showcase layout ─── */}
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[75vh]">
 
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="text-sm md:text-base text-muted-foreground max-w-md mx-auto leading-relaxed mt-6"
-          >
-            Plataforma de inteligencia deportiva para detección,
-            <br className="hidden sm:block" />
-            evaluación y proyección de{" "}
-            <span className="text-foreground font-medium">talento juvenil</span>.
-          </motion.p>
+          {/* LEFT: Hero text */}
+          <div className="flex flex-col justify-center py-10 lg:py-0">
+            <motion.div
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h1 className="font-display font-black text-6xl md:text-8xl lg:text-[100px] text-foreground tracking-tighter leading-[0.85]">
+                VITAS
+                <span className="text-primary">.</span>
+              </h1>
+              <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed mt-6">
+                Plataforma de inteligencia deportiva para detección,
+                evaluación y proyección de{" "}
+                <span className="text-foreground font-medium">talento juvenil</span>.
+              </p>
+            </motion.div>
 
-          {/* Stats ticker */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="flex items-center justify-center gap-8 mt-10"
-          >
-            {stats.map((s) => (
-              <div key={s.label} className="flex flex-col items-center gap-1">
-                <div className="flex items-center gap-1.5 text-foreground">
-                  <s.icon size={12} className="text-primary" />
-                  <span className="font-display font-bold text-lg md:text-xl">
-                    <AnimatedStat value={s.value} />
+            {/* Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.7 }}
+              className="flex items-center gap-8 mt-10"
+            >
+              {stats.map((s) => (
+                <div key={s.label} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-foreground">
+                    <s.icon size={12} className="text-primary" />
+                    <span className="font-display font-bold text-xl">
+                      <AnimatedStat value={s.value} />
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
+                    {s.label}
                   </span>
                 </div>
-                <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-                  {s.label}
-                </span>
-              </div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+
+            {/* CTA */}
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+              onClick={() => navigate("/pulse")}
+              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_hsl(var(--primary)/0.4)] transition-all duration-500"
+            >
+              Entrar al sistema
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </motion.button>
+          </div>
+
+          {/* RIGHT: 3D floating mockups */}
+          <div className="relative h-[500px] md:h-[600px] lg:h-[650px]" style={{ perspective: "1200px" }}>
+            {/* Main - Pulse */}
+            <Floating3DCard
+              className="absolute top-[5%] left-[5%] w-[260px] h-[200px] md:w-[300px] md:h-[220px] z-30"
+              delay={0.3}
+              floatAmplitude={8}
+              floatDuration={7}
+              initialRotateX={6}
+              initialRotateY={-10}
+              onClick={() => navigate("/pulse")}
+            >
+              <PulseScreen />
+            </Floating3DCard>
+
+            {/* Master */}
+            <Floating3DCard
+              className="absolute top-[30%] right-[0%] w-[240px] h-[190px] md:w-[280px] md:h-[210px] z-20"
+              delay={0.5}
+              floatAmplitude={12}
+              floatDuration={8}
+              initialRotateX={-4}
+              initialRotateY={14}
+              onClick={() => navigate("/master")}
+            >
+              <MasterScreen />
+            </Floating3DCard>
+
+            {/* Rankings */}
+            <Floating3DCard
+              className="absolute bottom-[10%] left-[10%] w-[220px] h-[200px] md:w-[250px] md:h-[220px] z-20"
+              delay={0.7}
+              floatAmplitude={10}
+              floatDuration={9}
+              initialRotateX={10}
+              initialRotateY={-6}
+              onClick={() => navigate("/rankings")}
+            >
+              <RankingsScreen />
+            </Floating3DCard>
+
+            {/* Scout */}
+            <Floating3DCard
+              className="absolute bottom-[25%] right-[5%] w-[200px] h-[170px] md:w-[230px] md:h-[185px] z-10"
+              delay={0.9}
+              floatAmplitude={14}
+              floatDuration={10}
+              initialRotateX={-8}
+              initialRotateY={-15}
+              onClick={() => navigate("/scout")}
+            >
+              <ScoutScreen />
+            </Floating3DCard>
+
+            {/* Ambient glow behind cards */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/8 blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/4 right-0 w-[200px] h-[200px] rounded-full bg-electric/6 blur-[80px] pointer-events-none" />
+          </div>
         </div>
 
-        {/* ─── Bento grid ─── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pb-8">
-          {modules.map((mod, i) => (
-            <ModuleCard key={mod.path} mod={mod} index={i} />
-          ))}
-        </div>
+        {/* ─── Module quick-access strip ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.7 }}
+          className="py-10"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
+            <span className="text-[9px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground/60">
+              Módulos
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-l from-border/50 to-transparent" />
+          </div>
+
+          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+            {modules.map((mod, i) => {
+              const Icon = mod.icon;
+              return (
+                <motion.button
+                  key={mod.path}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.1 + i * 0.05, duration: 0.4 }}
+                  onClick={() => navigate(mod.path)}
+                  className="group flex flex-col items-center gap-2 p-3 rounded-xl border border-border/20 bg-card/10 backdrop-blur-sm hover:bg-card/30 hover:border-primary/30 transition-all duration-400"
+                >
+                  <div className="relative">
+                    <Icon size={18} className="text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                    {"tag" in mod && mod.tag && (
+                      <div className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-primary" />
+                    )}
+                  </div>
+                  <span className="text-[8px] font-display font-semibold uppercase tracking-wider text-muted-foreground/70 group-hover:text-foreground/80 transition-colors">
+                    {mod.label}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </motion.div>
 
         {/* ─── Footer ─── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="py-10 flex items-center justify-center gap-3"
+          transition={{ delay: 1.4 }}
+          className="py-8 flex items-center justify-center gap-3"
         >
-          <div className="h-px w-12 bg-gradient-to-r from-transparent to-border" />
-          <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/40">
+          <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/30" />
+          <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/30">
             © 2026 VITAS Intelligence
           </p>
-          <div className="h-px w-12 bg-gradient-to-l from-transparent to-border" />
+          <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/30" />
         </motion.div>
       </div>
     </div>
