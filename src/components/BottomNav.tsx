@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Activity, User, Compass, Crosshair, BarChart3, LayoutDashboard } from "lucide-react";
 
 const navItems = [
-  { path: "/", icon: Activity, label: "Pulse" },
+  { path: "/pulse", icon: Activity, label: "Pulse" },
   { path: "/master", icon: LayoutDashboard, label: "Master" },
   { path: "/scout", icon: Compass, label: "Scout" },
   { path: "/drill", icon: Crosshair, label: "Drill" },
