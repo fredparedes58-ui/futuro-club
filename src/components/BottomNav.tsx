@@ -18,7 +18,7 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const shouldHide = hiddenOnRoutes.some((r) => location.pathname.startsWith(r));
+  const shouldHide = location.pathname === "/" || hiddenOnRoutes.some((r) => location.pathname.startsWith(r));
   if (shouldHide) return null;
 
   return (
