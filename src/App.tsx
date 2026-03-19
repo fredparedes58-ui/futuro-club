@@ -32,6 +32,7 @@ const App = () => (
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/pulse" element={<Dashboard />} />
               <Route path="/master" element={<MasterDashboard />} />
               <Route path="/scout" element={<ScoutFeed />} />
               <Route path="/drill" element={<SoloDrill />} />
