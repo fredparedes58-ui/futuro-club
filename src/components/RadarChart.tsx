@@ -14,7 +14,7 @@ const labelMap: Record<string, string> = {
   defending: "DEF",
 };
 
-const RadarChartComponent = ({ stats, color = "hsl(140, 100%, 50%)" }: RadarChartProps) => {
+const RadarChartComponent = ({ stats, color = "hsl(230, 70%, 58%)" }: RadarChartProps) => {
   const data = Object.entries(stats).map(([key, value]) => ({
     stat: labelMap[key] || key,
     value,
@@ -24,10 +24,10 @@ const RadarChartComponent = ({ stats, color = "hsl(140, 100%, 50%)" }: RadarChar
   return (
     <ResponsiveContainer width="100%" height={220}>
       <ReRadar data={data}>
-        <PolarGrid stroke="hsl(215, 20%, 18%)" />
+        <PolarGrid stroke="hsl(225, 18%, 22%)" />
         <PolarAngleAxis
           dataKey="stat"
-          tick={{ fill: "hsl(215, 16%, 52%)", fontSize: 11, fontFamily: "Rajdhani" }}
+          tick={{ fill: "hsl(220, 12%, 55%)", fontSize: 11, fontFamily: "Rajdhani" }}
         />
         <Radar
           dataKey="value"

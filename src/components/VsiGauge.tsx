@@ -18,9 +18,9 @@ const VsiGauge = ({ value, size = "md", label = "VSI" }: VsiGaugeProps) => {
   const progress = (value / 100) * circ;
 
   const getColor = (v: number) => {
-    if (v >= 85) return "hsl(140, 100%, 50%)";
-    if (v >= 70) return "hsl(217, 91%, 60%)";
-    if (v >= 50) return "hsl(45, 90%, 55%)";
+    if (v >= 85) return "hsl(230, 70%, 58%)";
+    if (v >= 70) return "hsl(270, 60%, 55%)";
+    if (v >= 50) return "hsl(38, 90%, 55%)";
     return "hsl(0, 80%, 60%)";
   };
 
@@ -32,7 +32,7 @@ const VsiGauge = ({ value, size = "md", label = "VSI" }: VsiGaugeProps) => {
           cy={s.w / 2}
           r={r}
           fill="none"
-          stroke="hsl(215, 20%, 14%)"
+          stroke="hsl(225, 20%, 18%)"
           strokeWidth={s.stroke}
         />
         <motion.circle
