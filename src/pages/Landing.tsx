@@ -49,21 +49,22 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(220 100% 60% / 0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(280 80% 62% / 0.10) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(185 100% 50% / 0.05) 0%, transparent 40%),
-        linear-gradient(160deg, hsl(230 25% 9%) 0%, hsl(230 23% 6%) 30%, hsl(235 22% 8%) 60%, hsl(230 25% 7%) 100%)
+        radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 55% / 0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 100% 65% / 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 100% 50% / 0.06) 0%, transparent 40%),
+        radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 100% 60% / 0.06) 0%, transparent 35%),
+        linear-gradient(160deg, hsl(235 28% 8%) 0%, hsl(240 26% 5%) 30%, hsl(250 24% 7%) 60%, hsl(235 28% 6%) 100%)
       `
     }}>
-      {/* Subtle noise texture */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+      {/* Noise texture */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         backgroundSize: "128px 128px",
       }} />
 
       {/* Dot grid */}
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
-        backgroundImage: `radial-gradient(circle, hsl(220 20% 70%) 0.5px, transparent 0.5px)`,
+        backgroundImage: `radial-gradient(circle, hsl(210 100% 70%) 0.5px, transparent 0.5px)`,
         backgroundSize: "24px 24px",
       }} />
 
