@@ -6,54 +6,54 @@
 
 @layer base {
   :root {
-    --background: 160 30% 95%;
-    --foreground: 200 20% 16%;
+    --background: 225 30% 8%;
+    --foreground: 210 20% 92%;
 
-    --card: 160 20% 99%;
-    --card-foreground: 200 20% 16%;
+    --card: 225 25% 12%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 160 20% 99%;
-    --popover-foreground: 200 20% 16%;
+    --popover: 225 25% 12%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 170 60% 40%;
+    --primary: 230 70% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 18% 91%;
-    --secondary-foreground: 200 15% 32%;
+    --secondary: 225 20% 16%;
+    --secondary-foreground: 210 15% 80%;
 
-    --muted: 160 16% 92%;
-    --muted-foreground: 180 12% 45%;
+    --muted: 225 18% 14%;
+    --muted-foreground: 220 12% 55%;
 
-    --accent: 200 55% 50%;
+    --accent: 270 60% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 60% 52%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 160 16% 86%;
-    --input: 160 16% 86%;
-    --ring: 170 60% 40%;
+    --border: 225 18% 18%;
+    --input: 225 18% 18%;
+    --ring: 230 70% 58%;
 
     --radius: 0.75rem;
 
     /* Custom VITAS tokens */
-    --neon: 170 60% 40%;
-    --neon-glow: 0 0 20px hsl(170 60% 40% / 0.3);
-    --electric: 200 55% 50%;
-    --surface-glass: 160 25% 97% / 0.8;
-    --surface-elevated: 160 22% 97%;
-    --gold: 38 85% 55%;
-    --danger: 0 60% 52%;
-    --cyan: 180 65% 45%;
+    --neon: 230 70% 58%;
+    --neon-glow: 0 0 20px hsl(230 70% 58% / 0.4);
+    --electric: 270 60% 55%;
+    --surface-glass: 225 25% 12% / 0.7;
+    --surface-elevated: 225 25% 14%;
+    --gold: 38 90% 55%;
+    --danger: 0 72% 55%;
+    --cyan: 190 80% 50%;
 
-    --sidebar-background: 160 22% 97%;
-    --sidebar-foreground: 200 20% 16%;
-    --sidebar-primary: 170 60% 40%;
+    --sidebar-background: 225 25% 10%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 230 70% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 18% 93%;
-    --sidebar-accent-foreground: 200 15% 32%;
-    --sidebar-border: 160 16% 86%;
-    --sidebar-ring: 170 60% 40%;
+    --sidebar-accent: 225 20% 16%;
+    --sidebar-accent-foreground: 210 15% 80%;
+    --sidebar-border: 225 18% 18%;
+    --sidebar-ring: 230 70% 58%;
   }
 }
 
