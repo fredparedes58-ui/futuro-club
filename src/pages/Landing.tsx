@@ -64,10 +64,10 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(var(--primary) / 0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(var(--electric) / 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(var(--gold) / 0.03) 0%, transparent 40%),
-        linear-gradient(160deg, hsl(220 25% 4%) 0%, hsl(225 30% 6%) 30%, hsl(220 20% 5%) 60%, hsl(215 25% 3%) 100%)
+        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(var(--primary) / 0.1) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(var(--electric) / 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(var(--gold) / 0.04) 0%, transparent 40%),
+        linear-gradient(160deg, hsl(215 40% 10%) 0%, hsl(220 38% 14%) 30%, hsl(218 35% 12%) 60%, hsl(222 42% 9%) 100%)
       `
     }}>
 
