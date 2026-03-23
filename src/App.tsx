@@ -20,6 +20,7 @@ import BottomNav from "./components/BottomNav";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
+import ReportsPage from "./pages/ReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/lab" element={<VitasLab />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/checkout" element={<OrderConfirmation />} />
+              <Route path="/reports" element={<ReportsPage />} />
               <Route path="/players/:id/role-profile" element={<RoleProfile />} />
               <Route path="/players/:id/role-profile/compare" element={<RoleProfileCompare />} />
               <Route path="/players/:id/role-profile/audit" element={<RoleProfileAudit />} />

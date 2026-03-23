@@ -286,39 +286,39 @@ const MasterDashboard = () => {
                 <div className="relative w-32 h-32">
                   {/* Simulated globe */}
                   <svg viewBox="0 0 128 128" className="w-full h-full">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="58"
-                      fill="none"
-                      stroke="hsl(140, 100%, 50%)"
-                      strokeWidth="1.5"
-                      opacity="0.3"
-                    />
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="58"
-                      fill="none"
-                      stroke="hsl(140, 100%, 50%)"
-                      strokeWidth="1.5"
-                      strokeDasharray="365"
-                      strokeDashoffset="10"
-                      opacity="0.6"
-                    />
+                     <circle
+                       cx="64"
+                       cy="64"
+                       r="58"
+                       fill="none"
+                       stroke="hsl(230, 70%, 58%)"
+                       strokeWidth="1.5"
+                       opacity="0.3"
+                     />
+                     <circle
+                       cx="64"
+                       cy="64"
+                       r="58"
+                       fill="none"
+                       stroke="hsl(230, 70%, 58%)"
+                       strokeWidth="1.5"
+                       strokeDasharray="365"
+                       strokeDashoffset="10"
+                       opacity="0.6"
+                     />
                     {/* Dots representing talent clusters */}
-                    {[
-                      [40, 35], [50, 42], [55, 38], [62, 45], [70, 50],
-                      [45, 55], [58, 52], [65, 58], [72, 42], [48, 48],
-                      [55, 65], [68, 62], [42, 60], [75, 55], [38, 45],
-                    ].map(([x, y], i) => (
-                      <circle
-                        key={i}
-                        cx={x}
-                        cy={y}
-                        r="2.5"
-                        fill="hsl(140, 100%, 50%)"
-                        opacity={0.4 + Math.random() * 0.6}
+                     {[
+                       [40, 35], [50, 42], [55, 38], [62, 45], [70, 50],
+                       [45, 55], [58, 52], [65, 58], [72, 42], [48, 48],
+                       [55, 65], [68, 62], [42, 60], [75, 55], [38, 45],
+                     ].map(([x, y], i) => (
+                       <circle
+                         key={i}
+                         cx={x}
+                         cy={y}
+                         r="2.5"
+                         fill="hsl(230, 70%, 58%)"
+                         opacity={0.4 + Math.random() * 0.6}
                       />
                     ))}
                   </svg>
