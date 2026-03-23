@@ -6,53 +6,53 @@
 
 @layer base {
   :root {
-    --background: 220 30% 2%;
-    --foreground: 210 40% 98%;
+    --background: 216 30% 94%;
+    --foreground: 220 30% 12%;
 
-    --card: 215 30% 7%;
-    --card-foreground: 210 40% 98%;
+    --card: 216 28% 98%;
+    --card-foreground: 220 30% 12%;
 
-    --popover: 215 30% 7%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 216 28% 98%;
+    --popover-foreground: 220 30% 12%;
 
-    --primary: 140 100% 50%;
-    --primary-foreground: 220 30% 2%;
+    --primary: 220 80% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 30% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 216 20% 88%;
+    --secondary-foreground: 220 30% 18%;
 
-    --muted: 215 20% 14%;
-    --muted-foreground: 215 16% 52%;
+    --muted: 216 18% 90%;
+    --muted-foreground: 220 12% 46%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 250 70% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 215 20% 14%;
-    --input: 215 20% 14%;
-    --ring: 140 100% 50%;
+    --border: 216 20% 86%;
+    --input: 216 20% 86%;
+    --ring: 220 80% 50%;
 
     --radius: 0.75rem;
 
     /* Custom VITAS tokens */
-    --neon: 140 100% 50%;
-    --neon-glow: 0 0 20px hsl(140 100% 50% / 0.4);
-    --electric: 217 91% 60%;
-    --surface-glass: 215 30% 8% / 0.7;
-    --surface-elevated: 215 30% 10%;
-    --gold: 45 90% 55%;
-    --danger: 0 80% 60%;
+    --neon: 220 80% 50%;
+    --neon-glow: 0 0 20px hsl(220 80% 50% / 0.3);
+    --electric: 250 70% 58%;
+    --surface-glass: 216 28% 97% / 0.8;
+    --surface-elevated: 216 28% 96%;
+    --gold: 38 90% 55%;
+    --danger: 0 72% 55%;
 
-    --sidebar-background: 215 30% 5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 140 100% 50%;
-    --sidebar-primary-foreground: 220 30% 2%;
-    --sidebar-accent: 215 30% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 20% 14%;
-    --sidebar-ring: 140 100% 50%;
+    --sidebar-background: 216 28% 97%;
+    --sidebar-foreground: 220 30% 12%;
+    --sidebar-primary: 220 80% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 20% 92%;
+    --sidebar-accent-foreground: 220 30% 18%;
+    --sidebar-border: 216 20% 86%;
+    --sidebar-ring: 220 80% 50%;
   }
 }
 
