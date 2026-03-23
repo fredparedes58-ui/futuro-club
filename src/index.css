@@ -78,9 +78,9 @@
 }
 
 .glass-strong {
-  background: hsl(160 20% 99% / 0.88);
+  background: hsl(225 25% 10% / 0.92);
   backdrop-filter: blur(24px);
-  border: 1px solid hsl(160 16% 88%);
+  border: 1px solid hsl(225 18% 20%);
 }
 
 /* Soft glow */
