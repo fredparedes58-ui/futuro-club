@@ -78,7 +78,7 @@ const Landing = () => {
       }} />
 
       {/* ─── Dot grid ─── */}
-      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+      <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{
         backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 0.5px, transparent 0.5px)`,
         backgroundSize: "24px 24px",
       }} />

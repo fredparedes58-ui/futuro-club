@@ -90,10 +90,10 @@ export function Floating3DCard({
         />
 
         {/* Top bar - fake window chrome */}
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/20 bg-background/40">
-          <div className="w-[5px] h-[5px] rounded-full bg-destructive/50" />
-          <div className="w-[5px] h-[5px] rounded-full bg-gold/50" />
-          <div className="w-[5px] h-[5px] rounded-full bg-primary/50" />
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/30 bg-card/60">
+          <div className="w-[5px] h-[5px] rounded-full bg-destructive/60" />
+          <div className="w-[5px] h-[5px] rounded-full bg-gold/60" />
+          <div className="w-[5px] h-[5px] rounded-full bg-primary/60" />
         </div>
 
         {/* Screen content */}
