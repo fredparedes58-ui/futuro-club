@@ -49,21 +49,21 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(230 70% 58% / 0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(270 60% 55% / 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(190 80% 50% / 0.03) 0%, transparent 40%),
-        linear-gradient(160deg, hsl(225 30% 10%) 0%, hsl(225 28% 7%) 30%, hsl(230 26% 9%) 60%, hsl(225 30% 8%) 100%)
+        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(230 65% 55% / 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(270 50% 60% / 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, hsl(190 70% 48% / 0.03) 0%, transparent 40%),
+        linear-gradient(160deg, hsl(220 30% 97%) 0%, hsl(220 28% 95%) 30%, hsl(225 26% 96%) 60%, hsl(220 30% 96%) 100%)
       `
     }}>
-      {/* Noise texture */}
-      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+      {/* Subtle noise texture */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         backgroundSize: "128px 128px",
       }} />
 
       {/* Dot grid */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
-        backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 0.5px, transparent 0.5px)`,
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
+        backgroundImage: `radial-gradient(circle, hsl(220 20% 70%) 0.5px, transparent 0.5px)`,
         backgroundSize: "24px 24px",
       }} />
 
