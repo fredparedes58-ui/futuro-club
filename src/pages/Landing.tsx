@@ -180,8 +180,9 @@ const Landing = () => {
             </Floating3DCard>
 
             {/* Ambient glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/6 blur-[120px] pointer-events-none" />
-            <div className="absolute top-1/4 right-0 w-[200px] h-[200px] rounded-full bg-accent/5 blur-[80px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full bg-primary/10 blur-[130px] pointer-events-none" />
+            <div className="absolute top-1/4 right-0 w-[250px] h-[250px] rounded-full bg-accent/10 blur-[90px] pointer-events-none" />
+            <div className="absolute bottom-1/4 left-0 w-[200px] h-[200px] rounded-full bg-cyan/8 blur-[80px] pointer-events-none" />
           </div>
         </div>
 
