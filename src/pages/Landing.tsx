@@ -2,41 +2,27 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
-  Activity,
-  Compass,
-  Crosshair,
-  BarChart3,
-  LayoutDashboard,
-  Camera,
-  GitCompareArrows,
-  Settings,
-  ArrowRight,
-  Zap,
-  Signal,
-  Users,
-  TrendingUp,
+  Activity, Compass, Crosshair, BarChart3, LayoutDashboard,
+  Camera, GitCompareArrows, Settings, ArrowRight, Zap,
+  Signal, Users, TrendingUp, FileText,
 } from "lucide-react";
 import { Floating3DCard } from "@/components/landing/Floating3DCard";
 import {
-  PulseScreen,
-  MasterScreen,
-  RankingsScreen,
-  ScoutScreen,
+  PulseScreen, MasterScreen, RankingsScreen, ScoutScreen,
 } from "@/components/landing/MockupScreen";
 
-/* ─── modules ─── */
 const modules = [
-  { path: "/pulse", icon: Activity, label: "Pulse", desc: "Centro de inteligencia en vivo", tag: "LIVE" },
-  { path: "/master", icon: LayoutDashboard, label: "Master", desc: "Inteligencia de academia completa", tag: "AI" },
-  { path: "/scout", icon: Compass, label: "Scout", desc: "Alertas e insights de talento", tag: "NEW" },
-  { path: "/drill", icon: Crosshair, label: "Solo Drill", desc: "Evaluación individual" },
-  { path: "/rankings", icon: BarChart3, label: "Rankings", desc: "Clasificación VSI global" },
-  { path: "/lab", icon: Camera, label: "VITAS.LAB", desc: "Análisis de video avanzado", tag: "BETA" },
-  { path: "/compare", icon: GitCompareArrows, label: "Compare", desc: "Herramienta de comparación" },
-  { path: "/settings", icon: Settings, label: "Settings", desc: "Configuración del sistema" },
+  { path: "/pulse", icon: Activity, label: "Pulse", tag: "LIVE" },
+  { path: "/master", icon: LayoutDashboard, label: "Master", tag: "AI" },
+  { path: "/scout", icon: Compass, label: "Scout", tag: "NEW" },
+  { path: "/drill", icon: Crosshair, label: "Solo Drill" },
+  { path: "/rankings", icon: BarChart3, label: "Rankings" },
+  { path: "/lab", icon: Camera, label: "VITAS.LAB", tag: "BETA" },
+  { path: "/reports", icon: FileText, label: "Reports" },
+  { path: "/compare", icon: GitCompareArrows, label: "Compare" },
+  { path: "/settings", icon: Settings, label: "Settings" },
 ] as const;
 
-/* ─── animated counter ─── */
 function AnimatedStat({ value }: { value: number }) {
   const count = useMotionValue(0);
   const rounded = useTransform(count, (v) => Math.round(v).toLocaleString());
@@ -51,7 +37,6 @@ function AnimatedStat({ value }: { value: number }) {
   return <span>{display}</span>;
 }
 
-/* ─── main landing ─── */
 const Landing = () => {
   const navigate = useNavigate();
 
@@ -64,28 +49,26 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(var(--primary) / 0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(var(--electric) / 0.05) 0%, transparent 50%),
-        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(var(--gold) / 0.03) 0%, transparent 40%),
-        linear-gradient(160deg, hsl(216 30% 96%) 0%, hsl(216 28% 93%) 30%, hsl(220 26% 95%) 60%, hsl(216 30% 94%) 100%)
+        radial-gradient(ellipse 80% 60% at 20% 10%, hsl(230 70% 58% / 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, hsl(270 60% 55% / 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, hsl(190 80% 50% / 0.03) 0%, transparent 40%),
+        linear-gradient(160deg, hsl(225 30% 10%) 0%, hsl(225 28% 7%) 30%, hsl(230 26% 9%) 60%, hsl(225 30% 8%) 100%)
       `
     }}>
-
-      {/* ─── Noise texture ─── */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
+      {/* Noise texture */}
+      <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         backgroundSize: "128px 128px",
       }} />
 
-      {/* ─── Dot grid ─── */}
-      <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{
+      {/* Dot grid */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
         backgroundImage: `radial-gradient(circle, hsl(var(--foreground)) 0.5px, transparent 0.5px)`,
         backgroundSize: "24px 24px",
       }} />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10">
-
-        {/* ─── Topbar ─── */}
+        {/* Topbar */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -98,7 +81,7 @@ const Landing = () => {
               VITAS Intelligence
             </span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/40 bg-card/20 backdrop-blur-md">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/60 bg-card/30 backdrop-blur-md">
             <Zap size={10} className="text-primary" />
             <span className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
               Online
@@ -106,10 +89,9 @@ const Landing = () => {
           </div>
         </motion.header>
 
-        {/* ─── Hero + 3D showcase layout ─── */}
+        {/* Hero + 3D showcase */}
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-4 items-center min-h-[75vh]">
-
-          {/* LEFT: Hero text */}
+          {/* LEFT */}
           <div className="flex flex-col justify-center py-10 lg:py-0">
             <motion.div
               initial={{ opacity: 0, x: -40 }}
@@ -155,7 +137,7 @@ const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6 }}
               onClick={() => navigate("/pulse")}
-              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_hsl(var(--primary)/0.4)] transition-all duration-500"
+              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] transition-all duration-500"
             >
               Entrar al sistema
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -164,65 +146,45 @@ const Landing = () => {
 
           {/* RIGHT: 3D floating mockups */}
           <div className="relative h-[500px] md:h-[600px] lg:h-[650px]" style={{ perspective: "1200px" }}>
-            {/* Main - Pulse */}
             <Floating3DCard
               className="absolute top-[5%] left-[5%] w-[260px] h-[200px] md:w-[300px] md:h-[220px] z-30"
-              delay={0.3}
-              floatAmplitude={8}
-              floatDuration={7}
-              initialRotateX={6}
-              initialRotateY={-10}
+              delay={0.3} floatAmplitude={8} floatDuration={7} initialRotateX={6} initialRotateY={-10}
               onClick={() => navigate("/pulse")}
             >
               <PulseScreen />
             </Floating3DCard>
 
-            {/* Master */}
             <Floating3DCard
               className="absolute top-[30%] right-[0%] w-[240px] h-[190px] md:w-[280px] md:h-[210px] z-20"
-              delay={0.5}
-              floatAmplitude={12}
-              floatDuration={8}
-              initialRotateX={-4}
-              initialRotateY={14}
+              delay={0.5} floatAmplitude={12} floatDuration={8} initialRotateX={-4} initialRotateY={14}
               onClick={() => navigate("/master")}
             >
               <MasterScreen />
             </Floating3DCard>
 
-            {/* Rankings */}
             <Floating3DCard
               className="absolute bottom-[10%] left-[10%] w-[220px] h-[200px] md:w-[250px] md:h-[220px] z-20"
-              delay={0.7}
-              floatAmplitude={10}
-              floatDuration={9}
-              initialRotateX={10}
-              initialRotateY={-6}
+              delay={0.7} floatAmplitude={10} floatDuration={9} initialRotateX={10} initialRotateY={-6}
               onClick={() => navigate("/rankings")}
             >
               <RankingsScreen />
             </Floating3DCard>
 
-            {/* Scout */}
             <Floating3DCard
               className="absolute bottom-[25%] right-[5%] w-[200px] h-[170px] md:w-[230px] md:h-[185px] z-10"
-              delay={0.9}
-              floatAmplitude={14}
-              floatDuration={10}
-              initialRotateX={-8}
-              initialRotateY={-15}
+              delay={0.9} floatAmplitude={14} floatDuration={10} initialRotateX={-8} initialRotateY={-15}
               onClick={() => navigate("/scout")}
             >
               <ScoutScreen />
             </Floating3DCard>
 
-            {/* Ambient glow behind cards */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/8 blur-[120px] pointer-events-none" />
-            <div className="absolute top-1/4 right-0 w-[200px] h-[200px] rounded-full bg-electric/6 blur-[80px] pointer-events-none" />
+            {/* Ambient glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/6 blur-[120px] pointer-events-none" />
+            <div className="absolute top-1/4 right-0 w-[200px] h-[200px] rounded-full bg-accent/5 blur-[80px] pointer-events-none" />
           </div>
         </div>
 
-        {/* ─── Module quick-access strip ─── */}
+        {/* Module strip */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -237,7 +199,7 @@ const Landing = () => {
             <div className="h-px flex-1 bg-gradient-to-l from-border/50 to-transparent" />
           </div>
 
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-9 gap-2">
             {modules.map((mod, i) => {
               const Icon = mod.icon;
               return (
@@ -264,7 +226,7 @@ const Landing = () => {
           </div>
         </motion.div>
 
-        {/* ─── Footer ─── */}
+        {/* Footer */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

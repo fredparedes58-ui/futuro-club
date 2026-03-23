@@ -6,53 +6,54 @@
 
 @layer base {
   :root {
-    --background: 216 30% 94%;
-    --foreground: 220 30% 12%;
+    --background: 225 30% 8%;
+    --foreground: 210 20% 92%;
 
-    --card: 216 28% 98%;
-    --card-foreground: 220 30% 12%;
+    --card: 225 25% 12%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 216 28% 98%;
-    --popover-foreground: 220 30% 12%;
+    --popover: 225 25% 12%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 220 80% 50%;
+    --primary: 230 70% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 216 20% 88%;
-    --secondary-foreground: 220 30% 18%;
+    --secondary: 225 20% 16%;
+    --secondary-foreground: 210 15% 80%;
 
-    --muted: 216 18% 90%;
-    --muted-foreground: 220 12% 46%;
+    --muted: 225 18% 14%;
+    --muted-foreground: 220 12% 55%;
 
-    --accent: 250 70% 58%;
+    --accent: 270 60% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 20% 86%;
-    --input: 216 20% 86%;
-    --ring: 220 80% 50%;
+    --border: 225 18% 18%;
+    --input: 225 18% 18%;
+    --ring: 230 70% 58%;
 
     --radius: 0.75rem;
 
     /* Custom VITAS tokens */
-    --neon: 220 80% 50%;
-    --neon-glow: 0 0 20px hsl(220 80% 50% / 0.3);
-    --electric: 250 70% 58%;
-    --surface-glass: 216 28% 97% / 0.8;
-    --surface-elevated: 216 28% 96%;
+    --neon: 230 70% 58%;
+    --neon-glow: 0 0 20px hsl(230 70% 58% / 0.4);
+    --electric: 270 60% 55%;
+    --surface-glass: 225 25% 12% / 0.7;
+    --surface-elevated: 225 25% 14%;
     --gold: 38 90% 55%;
     --danger: 0 72% 55%;
+    --cyan: 190 80% 50%;
 
-    --sidebar-background: 216 28% 97%;
-    --sidebar-foreground: 220 30% 12%;
-    --sidebar-primary: 220 80% 50%;
+    --sidebar-background: 225 25% 10%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 230 70% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 20% 92%;
-    --sidebar-accent-foreground: 220 30% 18%;
-    --sidebar-border: 216 20% 86%;
-    --sidebar-ring: 220 80% 50%;
+    --sidebar-accent: 225 20% 16%;
+    --sidebar-accent-foreground: 210 15% 80%;
+    --sidebar-border: 225 18% 18%;
+    --sidebar-ring: 230 70% 58%;
   }
 }
 
@@ -77,24 +78,24 @@
 }
 
 .glass-strong {
-  background: hsl(216 28% 98% / 0.9);
+  background: hsl(225 25% 10% / 0.92);
   backdrop-filter: blur(24px);
-  border: 1px solid hsl(216 20% 88%);
+  border: 1px solid hsl(225 18% 20%);
 }
 
 /* Neon glow */
 .neon-glow {
-  box-shadow: 0 0 20px hsl(220 80% 50% / 0.2), 0 0 60px hsl(220 80% 50% / 0.08);
+  box-shadow: 0 0 20px hsl(230 70% 58% / 0.25), 0 0 60px hsl(230 70% 58% / 0.1);
 }
 
 .neon-text {
-  text-shadow: 0 0 20px hsl(220 80% 50% / 0.4);
+  text-shadow: 0 0 20px hsl(230 70% 58% / 0.5);
 }
 
 /* Pulse animation for live indicators */
 @keyframes pulse-neon {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px hsl(220 80% 50% / 0.4); }
-  50% { opacity: 0.6; box-shadow: 0 0 16px hsl(220 80% 50% / 0.2); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px hsl(230 70% 58% / 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 16px hsl(230 70% 58% / 0.25); }
 }
 
 .pulse-live {
@@ -120,4 +121,13 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Gradient card hover */
+.card-hover {
+  transition: all 0.3s ease;
+}
+.card-hover:hover {
+  border-color: hsl(var(--primary) / 0.4);
+  box-shadow: 0 4px 24px hsl(var(--primary) / 0.1);
 }

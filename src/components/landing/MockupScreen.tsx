@@ -1,14 +1,13 @@
 import { motion } from "framer-motion";
 import { Activity, BarChart3, Users, TrendingUp, Zap, Shield } from "lucide-react";
 
-/* ─── Mini bar chart ─── */
-function MiniBars({ count = 5, color = "primary" }: { count?: number; color?: string }) {
+function MiniBars({ count = 5 }: { count?: number }) {
   return (
     <div className="flex items-end gap-[3px] h-8">
       {Array.from({ length: count }).map((_, i) => (
         <motion.div
           key={i}
-          className={`w-[6px] rounded-sm bg-${color}/60`}
+          className="w-[6px] rounded-sm bg-primary/50"
           initial={{ height: 4 }}
           animate={{ height: 8 + Math.random() * 24 }}
           transition={{ delay: i * 0.1, duration: 0.8, repeat: Infinity, repeatType: "reverse", repeatDelay: 1 + Math.random() * 2 }}
@@ -18,7 +17,6 @@ function MiniBars({ count = 5, color = "primary" }: { count?: number; color?: st
   );
 }
 
-/* ─── Mini line pulse ─── */
 function MiniPulse() {
   return (
     <svg viewBox="0 0 120 30" className="w-full h-6 opacity-60">
@@ -36,7 +34,6 @@ function MiniPulse() {
   );
 }
 
-/* ─── Mini player row ─── */
 function MiniPlayerRow({ name, score, rank }: { name: string; score: number; rank: number }) {
   return (
     <div className="flex items-center gap-2 py-1">
@@ -53,10 +50,9 @@ function MiniPlayerRow({ name, score, rank }: { name: string; score: number; ran
   );
 }
 
-/* ─── Mini stat box ─── */
 function MiniStat({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (
-    <div className="flex flex-col gap-1 p-2 rounded-lg bg-background/30 border border-border/30">
+    <div className="flex flex-col gap-1 p-2 rounded-lg bg-secondary/50 border border-border/30">
       <div className="flex items-center gap-1">
         <Icon size={8} className="text-primary/70" />
         <span className="text-[6px] font-display uppercase tracking-wider text-muted-foreground">{label}</span>
@@ -66,7 +62,6 @@ function MiniStat({ label, value, icon: Icon }: { label: string; value: string; 
   );
 }
 
-/* ─── PULSE SCREEN ─── */
 export function PulseScreen() {
   return (
     <div className="w-full h-full p-3 flex flex-col gap-2">
@@ -86,7 +81,6 @@ export function PulseScreen() {
   );
 }
 
-/* ─── MASTER SCREEN ─── */
 export function MasterScreen() {
   return (
     <div className="w-full h-full p-3 flex flex-col gap-2">
@@ -100,14 +94,13 @@ export function MasterScreen() {
       </div>
       <div className="flex gap-2 flex-1">
         <MiniBars count={6} />
-        <MiniBars count={4} color="electric" />
+        <MiniBars count={4} />
       </div>
       <MiniPulse />
     </div>
   );
 }
 
-/* ─── RANKINGS SCREEN ─── */
 export function RankingsScreen() {
   return (
     <div className="w-full h-full p-3 flex flex-col gap-1.5">
@@ -124,7 +117,6 @@ export function RankingsScreen() {
   );
 }
 
-/* ─── SCOUT SCREEN ─── */
 export function ScoutScreen() {
   return (
     <div className="w-full h-full p-3 flex flex-col gap-2">
@@ -137,7 +129,7 @@ export function ScoutScreen() {
         { name: "Rendimiento semanal", tag: "REPORT" },
         { name: "Comparación táctica", tag: "INSIGHT" },
       ].map((item) => (
-        <div key={item.name} className="flex items-center gap-2 p-1.5 rounded-md bg-background/30 border border-border/20">
+        <div key={item.name} className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30 border border-border/20">
           <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
             <Zap size={8} className="text-primary/70" />
           </div>
