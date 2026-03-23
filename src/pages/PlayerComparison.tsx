@@ -202,11 +202,11 @@ const PlayerComparison = () => {
             <div className="relative">
               <ResponsiveContainer width="100%" height={320}>
                 <ReRadar data={radarData}>
-                  <PolarGrid stroke="hsl(215, 20%, 18%)" />
+                  <PolarGrid stroke="hsl(225, 18%, 22%)" />
                   <PolarAngleAxis
                     dataKey="stat"
                     tick={{
-                      fill: "hsl(215, 16%, 52%)",
+                      fill: "hsl(220, 12%, 55%)",
                       fontSize: 12,
                       fontFamily: "Rajdhani",
                       fontWeight: 600,
@@ -215,16 +215,16 @@ const PlayerComparison = () => {
                   <Radar
                     name={playerA.name.split(" ")[1] || playerA.name}
                     dataKey="playerA"
-                    stroke="hsl(140, 100%, 50%)"
-                    fill="hsl(140, 100%, 50%)"
+                    stroke="hsl(230, 70%, 58%)"
+                    fill="hsl(230, 70%, 58%)"
                     fillOpacity={0.15}
                     strokeWidth={2}
                   />
                   <Radar
                     name={playerB.name.split(" ")[1] || playerB.name}
                     dataKey="playerB"
-                    stroke="hsl(217, 91%, 60%)"
-                    fill="hsl(217, 91%, 60%)"
+                    stroke="hsl(270, 60%, 55%)"
+                    fill="hsl(270, 60%, 55%)"
                     fillOpacity={0.12}
                     strokeWidth={2}
                   />
@@ -232,7 +232,7 @@ const PlayerComparison = () => {
                     wrapperStyle={{
                       fontFamily: "Rajdhani",
                       fontSize: 12,
-                      color: "hsl(215, 16%, 52%)",
+                      color: "hsl(220, 12%, 55%)",
                     }}
                   />
                 </ReRadar>
