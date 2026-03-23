@@ -296,16 +296,16 @@ const MasterDashboard = () => {
                        opacity="0.3"
                      />
                      <circle
-                      cx="64"
-                      cy="64"
-                      r="58"
-                      fill="none"
-                      stroke="hsl(140, 100%, 50%)"
-                      strokeWidth="1.5"
-                      strokeDasharray="365"
-                      strokeDashoffset="10"
-                      opacity="0.6"
-                    />
+                       cx="64"
+                       cy="64"
+                       r="58"
+                       fill="none"
+                       stroke="hsl(230, 70%, 58%)"
+                       strokeWidth="1.5"
+                       strokeDasharray="365"
+                       strokeDashoffset="10"
+                       opacity="0.6"
+                     />
                     {/* Dots representing talent clusters */}
                     {[
                       [40, 35], [50, 42], [55, 38], [62, 45], [70, 50],
