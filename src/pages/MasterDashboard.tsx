@@ -286,16 +286,16 @@ const MasterDashboard = () => {
                 <div className="relative w-32 h-32">
                   {/* Simulated globe */}
                   <svg viewBox="0 0 128 128" className="w-full h-full">
-                    <circle
-                      cx="64"
-                      cy="64"
-                      r="58"
-                      fill="none"
-                      stroke="hsl(140, 100%, 50%)"
-                      strokeWidth="1.5"
-                      opacity="0.3"
-                    />
-                    <circle
+                     <circle
+                       cx="64"
+                       cy="64"
+                       r="58"
+                       fill="none"
+                       stroke="hsl(230, 70%, 58%)"
+                       strokeWidth="1.5"
+                       opacity="0.3"
+                     />
+                     <circle
                       cx="64"
                       cy="64"
                       r="58"
