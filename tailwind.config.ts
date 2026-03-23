@@ -55,6 +55,8 @@ export default {
         electric: "hsl(var(--electric))",
         gold: "hsl(var(--gold))",
         danger: "hsl(var(--danger))",
+        cyan: "hsl(var(--cyan))",
+        "hot-pink": "hsl(var(--hot-pink))",
         surface: {
           elevated: "hsl(var(--surface-elevated))",
         },
