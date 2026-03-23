@@ -63,7 +63,7 @@ export function Floating3DCard({
       onClick={onClick}
     >
       <motion.div
-        className="relative w-full h-full rounded-2xl overflow-hidden border border-border/30 bg-card/40 backdrop-blur-xl shadow-2xl shadow-primary/5 transition-shadow duration-500 hover:shadow-primary/15 hover:border-primary/30"
+        className="relative w-full h-full rounded-2xl overflow-hidden border border-border/50 bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/5 transition-shadow duration-500 hover:shadow-primary/15 hover:border-primary/40"
         style={{
           rotateX,
           rotateY,
@@ -90,10 +90,10 @@ export function Floating3DCard({
         />
 
         {/* Top bar - fake window chrome */}
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/20 bg-background/40">
-          <div className="w-[5px] h-[5px] rounded-full bg-destructive/50" />
-          <div className="w-[5px] h-[5px] rounded-full bg-gold/50" />
-          <div className="w-[5px] h-[5px] rounded-full bg-primary/50" />
+        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border/30 bg-card/60">
+          <div className="w-[5px] h-[5px] rounded-full bg-destructive/60" />
+          <div className="w-[5px] h-[5px] rounded-full bg-gold/60" />
+          <div className="w-[5px] h-[5px] rounded-full bg-primary/60" />
         </div>
 
         {/* Screen content */}
