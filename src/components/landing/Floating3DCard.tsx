@@ -63,7 +63,7 @@ export function Floating3DCard({
       onClick={onClick}
     >
       <motion.div
-        className="relative w-full h-full rounded-2xl overflow-hidden border border-border/60 bg-card/90 backdrop-blur-xl shadow-lg shadow-primary/8 transition-shadow duration-500 hover:shadow-xl hover:shadow-primary/15 hover:border-primary/40"
+        className="relative w-full h-full rounded-2xl overflow-hidden border border-border/50 bg-card/80 backdrop-blur-xl shadow-xl shadow-primary/5 transition-shadow duration-500 hover:shadow-primary/15 hover:border-primary/40"
         style={{
           rotateX,
           rotateY,
