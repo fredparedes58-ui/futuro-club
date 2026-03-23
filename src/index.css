@@ -83,19 +83,19 @@
   border: 1px solid hsl(220 18% 90%);
 }
 
-/* Neon glow */
+/* Soft glow */
 .neon-glow {
-  box-shadow: 0 0 20px hsl(230 70% 58% / 0.25), 0 0 60px hsl(230 70% 58% / 0.1);
+  box-shadow: 0 4px 24px hsl(230 65% 55% / 0.15), 0 0 48px hsl(230 65% 55% / 0.06);
 }
 
 .neon-text {
-  text-shadow: 0 0 20px hsl(230 70% 58% / 0.5);
+  text-shadow: 0 0 20px hsl(230 65% 55% / 0.3);
 }
 
 /* Pulse animation for live indicators */
 @keyframes pulse-neon {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px hsl(230 70% 58% / 0.5); }
-  50% { opacity: 0.6; box-shadow: 0 0 16px hsl(230 70% 58% / 0.25); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px hsl(230 65% 55% / 0.4); }
+  50% { opacity: 0.6; box-shadow: 0 0 16px hsl(230 65% 55% / 0.2); }
 }
 
 .pulse-live {

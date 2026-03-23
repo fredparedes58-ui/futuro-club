@@ -137,7 +137,7 @@ const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6 }}
               onClick={() => navigate("/pulse")}
-              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)] transition-all duration-500"
+              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_4px_30px_hsl(var(--primary)/0.3)] transition-all duration-500"
             >
               Entrar al sistema
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
