@@ -86,17 +86,17 @@
 
 /* Neon glow */
 .neon-glow {
-  box-shadow: 0 0 24px hsl(220 100% 60% / 0.35), 0 0 80px hsl(220 100% 60% / 0.15);
+  box-shadow: 0 0 30px hsl(210 100% 55% / 0.45), 0 0 100px hsl(210 100% 55% / 0.2), 0 0 160px hsl(290 100% 65% / 0.08);
 }
 
 .neon-text {
-  text-shadow: 0 0 24px hsl(220 100% 60% / 0.6);
+  text-shadow: 0 0 28px hsl(210 100% 55% / 0.7), 0 0 60px hsl(210 100% 55% / 0.3);
 }
 
 /* Pulse animation for live indicators */
 @keyframes pulse-neon {
-  0%, 100% { opacity: 1; box-shadow: 0 0 10px hsl(220 100% 60% / 0.6); }
-  50% { opacity: 0.6; box-shadow: 0 0 20px hsl(220 100% 60% / 0.3); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px hsl(210 100% 55% / 0.7), 0 0 40px hsl(210 100% 55% / 0.3); }
+  50% { opacity: 0.5; box-shadow: 0 0 24px hsl(290 100% 65% / 0.5), 0 0 60px hsl(290 100% 65% / 0.2); }
 }
 
 .pulse-live {
