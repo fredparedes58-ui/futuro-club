@@ -99,9 +99,9 @@ const Landing = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             >
-              <h1 className="font-display font-black text-6xl md:text-8xl lg:text-[100px] text-foreground tracking-tighter leading-[0.85]">
-                VITAS
-                <span className="text-primary">.</span>
+              <h1 className="font-display font-black text-6xl md:text-8xl lg:text-[100px] tracking-tighter leading-[0.85]">
+                <span className="gradient-text">VITAS</span>
+                <span className="text-accent">.</span>
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed mt-6">
                 Plataforma de inteligencia deportiva para detección,
