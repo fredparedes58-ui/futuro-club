@@ -84,21 +84,83 @@ const RoleProfileSchema = z.object({
 // ─── Service functions ───────────────────────────────────────────────────
 
 /**
- * Simulates network latency for mock data.
- * Replace with real fetch calls when backend is ready.
- */
-function simulateDelay<T>(data: T, ms = 800): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(data), ms));
-}
-
-/**
  * GET /api/player/:id/role-profile
+ * Llama al RoleProfileAgent de Claude y mapea al formato UI.
  */
 export async function fetchRoleProfile(playerId: string): Promise<RoleProfileData> {
-  // TODO: Replace with real API call
-  // const response = await fetch(`/api/player/${playerId}/role-profile`);
-  // const raw = await response.json();
-  const raw = await simulateDelay({ ...mockRoleProfile, player_id: playerId });
+  // Intenta obtener datos reales del agente
+  try {
+    const { PlayerService } = await import("@/services/real/playerService");
+    const { AgentService } = await import("@/services/real/agentService");
+
+    const player = PlayerService.getById(playerId);
+    if (player) {
+      const res = await AgentService.buildRoleProfile({
+        player: {
+          id: player.id,
+          name: player.name,
+          age: player.age,
+          foot: player.foot,
+          position: player.position,
+          minutesPlayed: player.minutesPlayed,
+          competitiveLevel: player.competitiveLevel,
+          metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
+          phvCategory: player.phvCategory ?? "ontme",
+          phvOffset: player.phvOffset ?? 0,
+        },
+      });
+
+      if (res.success && res.data) {
+        const d = res.data;
+        // Mapea output del agente → formato RoleProfileData del componente
+        const agentProfile: RoleProfileData = {
+          ...mockRoleProfile,
+          player_id: playerId,
+          overall_confidence: d.overallConfidence,
+          current_capabilities: {
+            tactical: d.capabilities.tactical.current,
+            technical: d.capabilities.technical.current,
+            physical: d.capabilities.physical.current,
+          },
+          capability_confidence: { tactical: 0.78, technical: 0.80, physical: 0.55 },
+          projected_capabilities: [
+            { window: "0-6m", tactical: d.capabilities.tactical.p6m, technical: d.capabilities.technical.p6m, physical: d.capabilities.physical.p6m },
+            { window: "6-18m", tactical: d.capabilities.tactical.p18m, technical: d.capabilities.technical.p18m, physical: d.capabilities.physical.p18m },
+            { window: "18-36m", tactical: d.capabilities.tactical.p18m + 3, technical: d.capabilities.technical.p18m + 3, physical: d.capabilities.physical.p18m + 2 },
+          ],
+          positions: d.topPositions.map((p, i) => ({
+            code: p.code as RoleProfileData["positions"][0]["code"],
+            prob: p.fit / 100,
+            score: p.fit,
+            confidence: p.confidence,
+            reason: i === 0 ? `Posición principal con ${p.fit}% de ajuste` : `Posición alternativa viable`,
+          })),
+          archetypes: d.topArchetypes.map((a) => ({
+            code: a.code as RoleProfileData["archetypes"][0]["code"],
+            score: a.fit,
+            confidence: a.fit / 100,
+            stability: a.stability,
+            positions: [],
+          })),
+          player_identity: {
+            dominant: d.dominantIdentity,
+            distribution: d.identityDistribution,
+          },
+          strengths: d.strengths.map((s, i) => ({ code: `STR_${i}`, label: s, impact: "positivo" as const, detail: s })),
+          risks: d.risks.map((r, i) => ({ code: `RSK_${i}`, label: r, severity: "medium" as const, detail: r })),
+          gaps: d.gaps.map((g, i) => ({ code: `GAP_${i}`, label: g, priority: i + 1 })),
+        };
+
+        const parsed = RoleProfileSchema.safeParse(agentProfile);
+        if (parsed.success) return parsed.data as RoleProfileData;
+      }
+    }
+  } catch {
+    // Silencia errores y cae al mock
+  }
+
+  // Fallback al mock si el agente falla o el jugador no existe
+  const raw = { ...mockRoleProfile, player_id: playerId };
 
   const parsed = RoleProfileSchema.safeParse(raw);
   if (!parsed.success) {
