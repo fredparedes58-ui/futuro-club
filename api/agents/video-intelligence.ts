@@ -320,7 +320,8 @@ export default async function handler(req: Request): Promise<Response> {
   if (top5Pros.length > 0 && report.jugadorReferencia) {
     const jr = report.jugadorReferencia as Record<string, unknown>;
     // Asegurar que top5 tiene los datos correctos de la DB
-    if (!jr.top5 || !(jr.top5 as unknown[]).length) {
+    const top5Array = jr.top5 as unknown[] | undefined;
+    if (!top5Array || !top5Array.length) {
       const yVec = vsiMetrics
         ? [vsiMetrics.speed/100, vsiMetrics.shooting/100, vsiMetrics.vision/100,
            vsiMetrics.technique/100, vsiMetrics.defending/100, vsiMetrics.stamina/100]
