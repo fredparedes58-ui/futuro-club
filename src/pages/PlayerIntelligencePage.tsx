@@ -30,6 +30,7 @@ import { usePlayerIntelligence, useSavedAnalyses } from "@/hooks/usePlayerIntell
 import ProPlayerMatch from "@/components/ProPlayerMatch";
 import VitasCard from "@/components/VitasCard";
 import AnalysisTimeline from "@/components/AnalysisTimeline";
+import VideoUpload from "@/components/VideoUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
@@ -462,6 +463,20 @@ export default function PlayerIntelligencePage() {
         {/* ── NUEVO ANÁLISIS ── */}
         {activeTab === "nuevo" && (
           <div className="space-y-4">
+            {/* Upload de video */}
+            <div className="glass rounded-2xl p-4">
+              <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-3">
+                Subir nuevo video
+              </p>
+              <VideoUpload
+                playerId={player.id}
+                onDone={(videoId) => {
+                  toast.success("Video listo para analizar");
+                  setSelectedVideoId(videoId);
+                }}
+              />
+            </div>
+
             {/* Selector de video */}
             {playerVideos.length > 0 ? (
               <div className="glass rounded-2xl p-4">

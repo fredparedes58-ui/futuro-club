@@ -195,6 +195,7 @@ const PlayerForm = () => {
       name: player.name,
       age: player.age,
       position: player.position,
+      gender: (player as typeof player & { gender?: "M" | "F" }).gender ?? "M",
       foot: player.foot,
       height: player.height,
       weight: player.weight,
