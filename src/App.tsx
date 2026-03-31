@@ -21,6 +21,7 @@ import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
 import ReportsPage from "./pages/ReportsPage";
+import PlayerForm from "./pages/PlayerForm";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,8 @@ const App = () => (
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/checkout" element={<OrderConfirmation />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/players/new" element={<PlayerForm />} />
+              <Route path="/players/:id/edit" element={<PlayerForm />} />
               <Route path="/players/:id/role-profile" element={<RoleProfile />} />
               <Route path="/players/:id/role-profile/compare" element={<RoleProfileCompare />} />
               <Route path="/players/:id/role-profile/audit" element={<RoleProfileAudit />} />

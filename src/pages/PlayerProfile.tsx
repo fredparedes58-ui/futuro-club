@@ -3,12 +3,18 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
+  Pencil, Trash2,
 } from "lucide-react";
-import { usePlayerById, useRawPlayerById } from "@/hooks/usePlayers";
+import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import VsiGauge from "@/components/VsiGauge";
 import RadarChartComponent from "@/components/RadarChart";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useState } from "react";
 import type { PHVInput } from "@/agents/contracts";
@@ -72,6 +78,8 @@ const PlayerProfile = () => {
   const { data: player, isLoading, isError } = usePlayerById(id);
   // Datos crudos para calcular PHV
   const { data: rawPlayer } = useRawPlayerById(id);
+  // Mutación de eliminación
+  const deletePlayer = useDeletePlayer();
 
   // Agente PHV — solo se activa cuando el usuario pulsa "Calcular PHV"
   const { data: phvResult, isFetching: isCalculatingPHV } = usePHVCalculator(phvInput);
@@ -79,6 +87,13 @@ const PlayerProfile = () => {
   if (phvResult) {
     toast.success(`PHV calculado: ${phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal"} (offset ${phvResult.offset > 0 ? "+" : ""}${phvResult.offset})`);
   }
+
+  const handleDelete = async () => {
+    if (!id) return;
+    await deletePlayer.mutateAsync(id);
+    toast.success(`${player?.name ?? "Jugador"} eliminado`);
+    navigate("/rankings");
+  };
 
   const handleCalculatePHV = () => {
     if (!rawPlayer) return;
@@ -307,6 +322,45 @@ const PlayerProfile = () => {
           </div>
           <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
+      </motion.div>
+
+      {/* Acciones: Editar + Eliminar */}
+      <motion.div variants={item} className="flex gap-3 pt-1">
+        <Button
+          variant="outline"
+          className="flex-1 gap-2"
+          onClick={() => navigate(`/players/${player.id}/edit`)}
+        >
+          <Pencil size={14} />
+          Editar jugador
+        </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="gap-2">
+              <Trash2 size={14} />
+              Eliminar
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar a {player.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Se eliminarán todos los datos del jugador,
+                incluyendo su historial VSI y los análisis PHV calculados.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Sí, eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </motion.div>
   );
