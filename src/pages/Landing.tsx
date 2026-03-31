@@ -49,11 +49,11 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 55% / 0.18) 0%, transparent 55%),
-        radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 100% 65% / 0.15) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 100% 50% / 0.06) 0%, transparent 40%),
-        radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 100% 60% / 0.06) 0%, transparent 35%),
-        linear-gradient(160deg, hsl(235 28% 8%) 0%, hsl(240 26% 5%) 30%, hsl(250 24% 7%) 60%, hsl(235 28% 6%) 100%)
+        radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 40% / 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 70% 50% / 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 70% 35% / 0.04) 0%, transparent 40%),
+        radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 80% 50% / 0.03) 0%, transparent 35%),
+        linear-gradient(160deg, hsl(210 40% 98%) 0%, hsl(210 40% 96%) 30%, hsl(210 40% 97%) 60%, hsl(210 40% 98%) 100%)
       `
     }}>
       {/* Noise texture */}

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="#f0f4f8"/>
+  <!-- Outer circle (ball outline) -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#1a6fcc" stroke-width="12"/>
+  <!-- Pentagon center -->
+  <polygon points="256,148 306,184 287,240 225,240 206,184" fill="#1a6fcc"/>
+  <!-- Connecting lines (soccer ball pattern) -->
+  <line x1="256" y1="148" x2="256" y2="96" stroke="#1a6fcc" stroke-width="8" stroke-linecap="round"/>
+  <line x1="306" y1="184" x2="350" y2="158" stroke="#1a6fcc" stroke-width="8" stroke-linecap="round"/>
+  <line x1="287" y1="240" x2="330" y2="270" stroke="#1a6fcc" stroke-width="8" stroke-linecap="round"/>
+  <line x1="225" y1="240" x2="182" y2="270" stroke="#1a6fcc" stroke-width="8" stroke-linecap="round"/>
+  <line x1="206" y1="184" x2="162" y2="158" stroke="#1a6fcc" stroke-width="8" stroke-linecap="round"/>
+  <!-- VITAS text -->
+  <text x="256" y="360" font-family="Arial, sans-serif" font-size="72" font-weight="900" fill="#1a6fcc" text-anchor="middle" letter-spacing="4">VITAS</text>
+  <!-- Subtitle -->
+  <text x="256" y="400" font-family="Arial, sans-serif" font-size="24" fill="#4a90d9" text-anchor="middle" letter-spacing="6">FOOTBALL</text>
+</svg>
