@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
-  Pencil, Trash2, Video, Plus, ChevronDown,
+  Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter,
 } from "lucide-react";
+import { useMemo } from "react";
+import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
@@ -140,6 +142,12 @@ const PlayerProfile = () => {
   const phv = phvInfo[player.phvCategory] ?? phvInfo["on-time"];
   const phvBarPosition = ((player.phvOffset + 2) / 4) * 100;
   const hasPHV = !!rawPlayer?.phvCategory;
+
+  // ─── Métricas avanzadas (deterministas, sin datos externos requeridos) ────
+  const advancedMetrics = useMemo(() => {
+    if (!rawPlayer) return null;
+    return calculateAdvancedMetrics(rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0]);
+  }, [rawPlayer]);
   const trendText =
     player.trending === "up" ? "En ascenso 📈"
     : player.trending === "down" ? "En descenso 📉"
@@ -315,6 +323,138 @@ const PlayerProfile = () => {
           </span>
         </div>
       </motion.div>
+
+      {/* ── Análisis Avanzado (TruthFilter + Dominant Features) ──────────── */}
+      {advancedMetrics && (
+        <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-gold" />
+            <h2 className="font-display font-semibold text-sm text-foreground">Análisis Avanzado</h2>
+            <span className="ml-auto text-[9px] text-muted-foreground font-display uppercase tracking-wider">
+              TruthFilter · UBI
+            </span>
+          </div>
+
+          {/* TruthFilter — VSI ajustado */}
+          <div className="rounded-lg bg-secondary/40 border border-border p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <Filter size={11} className="text-primary" />
+                <span className="text-[11px] font-display font-semibold text-foreground">
+                  VSI Ajustado (TruthFilter)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-muted-foreground line-through">
+                  {advancedMetrics.truthFilter.originalVSI}
+                </span>
+                <span className={`text-sm font-display font-bold ${
+                  advancedMetrics.truthFilter.delta > 0 ? "text-primary" :
+                  advancedMetrics.truthFilter.delta < 0 ? "text-gold" : "text-electric"
+                }`}>
+                  {advancedMetrics.truthFilter.adjustedVSI}
+                </span>
+                {advancedMetrics.truthFilter.delta !== 0 && (
+                  <span className={`text-[10px] font-display ${
+                    advancedMetrics.truthFilter.delta > 0 ? "text-primary" : "text-gold"
+                  }`}>
+                    ({advancedMetrics.truthFilter.delta > 0 ? "+" : ""}{advancedMetrics.truthFilter.delta})
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {advancedMetrics.truthFilter.explanation}
+            </p>
+            <div className="flex items-center gap-1 mt-2">
+              <div className="h-1 rounded-full bg-muted flex-1 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary/60"
+                  style={{ width: `${Math.round(advancedMetrics.truthFilter.confidence * 100)}%` }}
+                />
+              </div>
+              <span className="text-[9px] text-muted-foreground font-display shrink-0">
+                {Math.round(advancedMetrics.truthFilter.confidence * 100)}% conf.
+              </span>
+            </div>
+          </div>
+
+          {/* UBI */}
+          <div className="rounded-lg bg-secondary/40 border border-border p-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-display font-semibold text-foreground">
+                UBI (Índice de Sesgo)
+              </span>
+              <span className={`text-sm font-display font-bold ${
+                advancedMetrics.ubi.ubi >= 0.6 ? "text-destructive" :
+                advancedMetrics.ubi.ubi >= 0.3 ? "text-gold" : "text-electric"
+              }`}>
+                {(advancedMetrics.ubi.ubi * 100).toFixed(0)}%
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">{advancedMetrics.ubi.description}</p>
+            <div className="flex gap-3 mt-2 text-[9px] text-muted-foreground font-display">
+              <span>RAE: {(advancedMetrics.ubi.raeComponent * 100).toFixed(0)}%</span>
+              <span>PHV: {(advancedMetrics.ubi.phvComponent * 100).toFixed(0)}%</span>
+              <span className="ml-auto text-primary">
+                ×{advancedMetrics.ubi.vsICorrectionFactor} factor corrección
+              </span>
+            </div>
+          </div>
+
+          {/* Dominant Features */}
+          <div className="rounded-lg bg-secondary/40 border border-border p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-display font-semibold text-foreground">
+                Características Dominantes
+              </span>
+              <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-electric/10 text-electric">
+                {advancedMetrics.dominantFeatures.playStyle}
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {advancedMetrics.dominantFeatures.dominant.map((feat) => (
+                <div key={feat.key} className="flex items-center gap-2">
+                  <span className="text-[10px] text-foreground font-display w-20 shrink-0">
+                    {feat.label}
+                  </span>
+                  <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-electric to-primary"
+                      style={{ width: `${feat.value}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-display text-primary shrink-0">
+                    z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-border">
+                <span className="text-[9px] text-muted-foreground font-display">Áreas a desarrollar:</span>
+                <div className="flex gap-2 mt-1 flex-wrap">
+                  {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => (
+                    <span
+                      key={feat.key}
+                      className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold"
+                    >
+                      {feat.label} (−{feat.gap})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* VAEP stub banner */}
+          <div className="rounded-lg border border-dashed border-border/60 p-3 text-center">
+            <span className="text-[10px] text-muted-foreground font-display">
+              VAEP · Tracking GPS · Biomecánica — <span className="text-primary/60">en espera de datos de eventos</span>
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Sección de Videos ─────────────────────────────────────────────── */}
       <motion.div variants={item} className="glass rounded-xl p-4">
