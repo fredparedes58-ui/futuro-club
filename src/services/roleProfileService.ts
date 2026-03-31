@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { mockRoleProfile, type RoleProfileData, type PositionFit, type ArchetypeFit, type EvidenceIndicator } from "@/lib/roleProfileData";
+import type { Player } from "@/services/real/playerService";
 
 // ─── Zod Schemas for validation ──────────────────────────────────────────
 
@@ -112,43 +113,81 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
 
       if (res.success && res.data) {
         const d = res.data;
+
+        // Construir evidencia real desde las métricas del jugador
+        const buildEvidence = (p: typeof player): EvidenceIndicator[] => {
+          const metricsMap: Array<{ key: keyof typeof p.metrics; label: string; phase: EvidenceIndicator["phase_of_play"] }> = [
+            { key: "vision",    label: "Visión de juego",     phase: "in_possession" },
+            { key: "technique", label: "Técnica con balón",   phase: "in_possession" },
+            { key: "shooting",  label: "Eficacia en disparo", phase: "in_possession" },
+            { key: "defending", label: "Recuperación",        phase: "out_of_possession" },
+            { key: "speed",     label: "Velocidad",           phase: "transition" },
+            { key: "stamina",   label: "Resistencia física",  phase: "out_of_possession" },
+          ];
+          return metricsMap.map((m, i) => {
+            const raw = p.metrics[m.key];
+            const norm = raw / 100;
+            return {
+              indicator: m.key,
+              label: m.label,
+              raw_value: raw,
+              normalized: norm,
+              reliability: 0.7 + (norm * 0.2),
+              phase_of_play: m.phase,
+              impact: norm >= 0.7 ? "positivo" : norm >= 0.45 ? "neutro" : "negativo",
+              contribution: Math.round(norm * 10) / 10,
+              positions_impacted: d.topPositions.slice(0, 2).map(p => p.code),
+              archetypes_impacted: d.topArchetypes.slice(0, 1).map(a => a.code),
+              explanation: `${m.label}: ${raw}/100 — ${norm >= 0.7 ? "por encima del umbral" : norm >= 0.45 ? "en rango medio" : "por desarrollar"}`,
+            };
+          });
+        };
+
         // Mapea output del agente → formato RoleProfileData del componente
         const agentProfile: RoleProfileData = {
           ...mockRoleProfile,
-          player_id: playerId,
+          run_id:             `run_${Date.now()}`,
+          player_id:          playerId,
+          player_name:        player.name,
+          player_age:         player.age,
+          dominant_foot:      player.foot === "right" ? "derecho" : player.foot === "left" ? "izquierdo" : "ambidiestro",
+          minutes_played:     player.minutesPlayed,
+          competitive_level:  player.competitiveLevel,
           overall_confidence: d.overallConfidence,
-          current_capabilities: {
-            tactical: d.capabilities.tactical.current,
+          current: {
+            tactical:  d.capabilities.tactical.current,
             technical: d.capabilities.technical.current,
-            physical: d.capabilities.physical.current,
+            physical:  d.capabilities.physical.current,
           },
-          capability_confidence: { tactical: 0.78, technical: 0.80, physical: 0.55 },
-          projected_capabilities: [
-            { window: "0-6m", tactical: d.capabilities.tactical.p6m, technical: d.capabilities.technical.p6m, physical: d.capabilities.physical.p6m },
-            { window: "6-18m", tactical: d.capabilities.tactical.p18m, technical: d.capabilities.technical.p18m, physical: d.capabilities.physical.p18m },
-            { window: "18-36m", tactical: d.capabilities.tactical.p18m + 3, technical: d.capabilities.technical.p18m + 3, physical: d.capabilities.physical.p18m + 2 },
-          ],
+          projections: {
+            "0_6m":   { tactical: d.capabilities.tactical.p6m,        technical: d.capabilities.technical.p6m,        physical: d.capabilities.physical.p6m },
+            "6_18m":  { tactical: d.capabilities.tactical.p18m,       technical: d.capabilities.technical.p18m,       physical: d.capabilities.physical.p18m },
+            "18_36m": { tactical: d.capabilities.tactical.p18m + 3,   technical: d.capabilities.technical.p18m + 3,   physical: d.capabilities.physical.p18m + 2 },
+          },
+          identity: {
+            dominant:     d.dominantIdentity,
+            distribution: d.identityDistribution,
+            explanation:  `Perfil dominante: ${d.dominantIdentity}`,
+          },
           positions: d.topPositions.map((p, i) => ({
-            code: p.code as RoleProfileData["positions"][0]["code"],
-            prob: p.fit / 100,
-            score: p.fit,
+            code:       p.code as RoleProfileData["positions"][0]["code"],
+            prob:       p.fit / 100,
+            score:      p.fit,
             confidence: p.confidence,
-            reason: i === 0 ? `Posición principal con ${p.fit}% de ajuste` : `Posición alternativa viable`,
+            reason:     i === 0 ? `Posición principal con ${p.fit}% de ajuste` : `Posición alternativa viable`,
           })),
           archetypes: d.topArchetypes.map((a) => ({
-            code: a.code as RoleProfileData["archetypes"][0]["code"],
-            score: a.fit,
+            code:       a.code as RoleProfileData["archetypes"][0]["code"],
+            score:      a.fit,
             confidence: a.fit / 100,
-            stability: a.stability,
-            positions: [],
+            stability:  a.stability,
+            positions:  [],
           })),
-          player_identity: {
-            dominant: d.dominantIdentity,
-            distribution: d.identityDistribution,
-          },
-          strengths: d.strengths.map((s, i) => ({ code: `STR_${i}`, label: s, impact: "positivo" as const, detail: s })),
-          risks: d.risks.map((r, i) => ({ code: `RSK_${i}`, label: r, severity: "medium" as const, detail: r })),
-          gaps: d.gaps.map((g, i) => ({ code: `GAP_${i}`, label: g, priority: i + 1 })),
+          strengths:          d.strengths.map((s, i) => ({ code: `STR_${i}`, label: s, impact: "positivo" as const, detail: s })),
+          risks:              d.risks.map((r, i) => ({ code: `RSK_${i}`, label: r, severity: "medium" as const, detail: r })),
+          gaps:               d.gaps.map((g, i) => ({ code: `GAP_${i}`, label: g, priority: i + 1 })),
+          consolidation_notes: d.strengths.slice(0, 2),
+          evidence:           buildEvidence(player),
         };
 
         const parsed = RoleProfileSchema.safeParse(agentProfile);

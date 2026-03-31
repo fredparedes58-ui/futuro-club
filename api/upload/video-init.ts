@@ -81,18 +81,29 @@ export default async function handler(req: Request): Promise<Response> {
       storageSize: number;
     };
 
-    // Step 2: Return upload credentials to client
-    // Client will PUT the file to: https://video.bunnycdn.com/library/{libId}/videos/{guid}
+    // Step 2: Generate a one-time upload signature (SHA256 HMAC)
+    // Bunny Stream supports: AuthorizationSignature = SHA256(libraryId + apiKey + expirationTime + videoId)
+    const expirationTime = Math.floor(Date.now() / 1000) + 3600; // 1 hour
+    const signatureInput = `${libraryId}${apiKey}${expirationTime}${video.guid}`;
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(apiKey);
+    const msgData = encoder.encode(signatureInput);
+    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+    const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+    // Return upload token — API key is NOT exposed to client
     return json({
       success: true,
       data: {
-        videoId: video.guid,
-        libraryId: Number(libraryId),
-        uploadUrl: `${BUNNY_BASE}/${libraryId}/videos/${video.guid}`,
-        accessKey: apiKey, // needed for client-side PUT
-        title: video.title,
-        playerId: playerId ?? null,
-        cdnHostname: process.env.BUNNY_CDN_HOSTNAME ?? null,
+        videoId:        video.guid,
+        libraryId:      Number(libraryId),
+        uploadUrl:      `${BUNNY_BASE}/${libraryId}/videos/${video.guid}`,
+        authSignature:  signature,
+        authExpire:     expirationTime,
+        title:          video.title,
+        playerId:       playerId ?? null,
+        cdnHostname:    process.env.BUNNY_CDN_HOSTNAME ?? null,
       },
     });
   } catch (err) {

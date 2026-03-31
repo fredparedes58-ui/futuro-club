@@ -365,16 +365,27 @@ export default async function handler(req: Request): Promise<Response> {
   // Guardar en Supabase si está configurado
   if (supabaseUrl && supabaseKey) {
     try {
+      // Extraer user_id del JWT de autorización si existe
+      const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
+      let userId: string | null = null;
+      if (authHeader.startsWith("Bearer ")) {
+        try {
+          const token = authHeader.slice(7);
+          const payload = JSON.parse(atob(token.split(".")[1]));
+          userId = payload.sub ?? null;
+        } catch { /* token inválido, userId queda null */ }
+      }
+
       await fetch(`${supabaseUrl}/rest/v1/player_analyses`, {
         method: "POST",
         headers: {
           "apikey":        supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
+          "Authorization": authHeader || `Bearer ${supabaseKey}`,
           "Content-Type":  "application/json",
           "Prefer":        "return=minimal",
         },
         body: JSON.stringify({
-          user_id:         null, // será rellenado por RLS si hay auth header
+          user_id:         userId,
           player_id:       playerId,
           video_id:        videoId,
           report:          report,

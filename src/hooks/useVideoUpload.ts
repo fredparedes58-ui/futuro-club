@@ -85,10 +85,11 @@ export function useVideoUpload(playerId?: string) {
           phase2Pending?: boolean;
           error?: string;
           data?: {
-            videoId: string;
-            uploadUrl: string;
-            accessKey: string;
-            libraryId: number;
+            videoId:       string;
+            uploadUrl:     string;
+            authSignature: string;
+            authExpire:    number;
+            libraryId:     number;
           };
         };
 
@@ -105,7 +106,7 @@ export function useVideoUpload(playerId?: string) {
           throw new Error(initData.error ?? "Init failed");
         }
 
-        const { videoId, uploadUrl, accessKey } = initData.data!;
+        const { videoId, uploadUrl, authSignature, authExpire } = initData.data!;
 
         // Create local stub
         VideoService.createStub({
@@ -123,7 +124,9 @@ export function useVideoUpload(playerId?: string) {
           xhrRef.current = xhr;
 
           xhr.open("PUT", uploadUrl);
-          xhr.setRequestHeader("AccessKey", accessKey);
+          // Use one-time signature instead of permanent API key
+          xhr.setRequestHeader("AuthorizationSignature", authSignature);
+          xhr.setRequestHeader("AuthorizationExpire", String(authExpire));
           xhr.setRequestHeader("Content-Type", "video/*");
 
           xhr.upload.onprogress = (e) => {
