@@ -113,18 +113,18 @@ export default function RoleProfile() {
                 <IdentityCard data={data} />
               </div>
               <div className="lg:col-span-2">
-                <CapabilityCards data={data} />
+                <CapabilityCards data={data} filters={filters} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <PositionFitRanking data={data} />
+              <PositionFitRanking data={data} filters={filters} />
               <ArchetypeRanking data={data} />
             </div>
 
             <StrengthsRisksPanel data={data} />
 
-            {mode === "scout" && <ProjectionComparator data={data} />}
+            {(mode === "scout" || filters?.showProjected) && <ProjectionComparator data={data} />}
 
             <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
               <span>Run: <span className="font-mono">{data.run_id}</span></span>

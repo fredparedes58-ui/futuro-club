@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useSupabaseSync } from "@/hooks/useSupabaseSync";
 
 // Pages — Auth
 import LoginPage from "./pages/LoginPage";
@@ -24,7 +25,6 @@ import VitasLab from "./pages/VitasLab";
 import MasterDashboard from "./pages/MasterDashboard";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
-import OrderConfirmation from "./pages/OrderConfirmation";
 import BottomNav from "./components/BottomNav";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
@@ -32,6 +32,12 @@ import RoleProfileAudit from "./pages/RoleProfileAudit";
 import ReportsPage from "./pages/ReportsPage";
 import PlayerForm from "./pages/PlayerForm";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
+
+// Sync hook — activa pull de Supabase al hacer login
+function SyncManager() {
+  useSupabaseSync();
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +61,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <SyncManager />
             <ErrorBoundary>
               <Routes>
                 {/* ── Rutas públicas (auth) ─────────────────────────── */}
@@ -73,7 +80,6 @@ const App = () => (
                 <Route path="/compare" element={<P><PlayerComparison /></P>} />
                 <Route path="/lab" element={<P><VitasLab /></P>} />
                 <Route path="/settings" element={<P><SettingsPage /></P>} />
-                <Route path="/checkout" element={<P><OrderConfirmation /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
                 <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />

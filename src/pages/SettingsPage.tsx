@@ -11,36 +11,52 @@ import {
   ChevronRight,
   ToggleRight,
   ToggleLeft,
+  Check,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { StorageService } from "@/services/real/storageService";
 
-const settingSections = [
-  {
-    title: "General",
-    items: [
-      { id: "lang", label: "Idioma", desc: "Español (ES)", icon: Globe },
-      { id: "theme", label: "Tema Visual", desc: "Dark Obsidian", icon: Palette },
-      { id: "notif", label: "Notificaciones", desc: "Push + Email", icon: Bell, toggle: true },
-    ],
-  },
-  {
-    title: "Seguridad",
-    items: [
-      { id: "auth", label: "Autenticación", desc: "2FA Activado", icon: Shield },
-      { id: "api", label: "API Keys", desc: "3 keys activas", icon: Key },
-    ],
-  },
-  {
-    title: "Datos",
-    items: [
-      { id: "db", label: "Base de Datos", desc: "PostgreSQL · 2.4GB", icon: Database },
-    ],
-  },
-];
+const SETTINGS_KEY = "vitas_settings";
+
+interface AppSettings {
+  notifications: boolean;
+  theme: "dark" | "light";
+  language: "es" | "en";
+}
+
+const DEFAULT_SETTINGS: AppSettings = {
+  notifications: true,
+  theme: "dark",
+  language: "es",
+};
 
 const SettingsPage = () => {
   const navigate = useNavigate();
-  const [toggles, setToggles] = useState<Record<string, boolean>>({ notif: true });
+  const { user, signOut } = useAuth();
+  const [settings, setSettings] = useState<AppSettings>(() =>
+    StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
+  );
+
+  // Persiste al cambiar
+  useEffect(() => {
+    StorageService.set(SETTINGS_KEY, settings);
+  }, [settings]);
+
+  const toggle = (key: keyof AppSettings) => {
+    setSettings(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      toast.success("Ajuste guardado");
+      return next;
+    });
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+    toast.success("Sesión cerrada");
+  };
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -65,49 +81,129 @@ const SettingsPage = () => {
         </p>
       </motion.div>
 
-      {settingSections.map((section) => (
-        <motion.div key={section.title} variants={item} className="space-y-2">
-          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-            {section.title}
-          </h2>
-          {section.items.map((setting) => {
-            const Icon = setting.icon;
-            const isOn = toggles[setting.id] ?? false;
-            return (
-              <div
-                key={setting.id}
-                className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
-                onClick={() => {
-                  if (setting.toggle) {
-                    setToggles((prev) => ({ ...prev, [setting.id]: !prev[setting.id] }));
-                  }
-                }}
-              >
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                  <Icon size={18} className="text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-display font-semibold text-sm text-foreground">{setting.label}</p>
-                  <p className="text-[10px] text-muted-foreground">{setting.desc}</p>
-                </div>
-                {setting.toggle ? (
-                  isOn ? (
-                    <ToggleRight size={28} className="text-primary" />
-                  ) : (
-                    <ToggleLeft size={28} className="text-muted-foreground" />
-                  )
-                ) : (
-                  <ChevronRight size={16} className="text-muted-foreground" />
-                )}
-              </div>
-            );
-          })}
+      {/* Cuenta */}
+      {user && (
+        <motion.div variants={item} className="space-y-2">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Cuenta</h2>
+          <div className="glass rounded-xl p-4 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <span className="text-sm font-bold text-primary">
+                {user.email?.[0]?.toUpperCase() ?? "U"}
+              </span>
+            </div>
+            <div className="flex-1">
+              <p className="font-display font-semibold text-sm text-foreground">{user.email}</p>
+              <p className="text-[10px] text-muted-foreground">Scout activo</p>
+            </div>
+            <Check size={14} className="text-primary" />
+          </div>
         </motion.div>
-      ))}
+      )}
+
+      {/* General */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">General</h2>
+
+        {/* Notificaciones */}
+        <div
+          className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
+          onClick={() => toggle("notifications")}
+        >
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Bell size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">Notificaciones</p>
+            <p className="text-[10px] text-muted-foreground">Push + Email</p>
+          </div>
+          {settings.notifications
+            ? <ToggleRight size={28} className="text-primary" />
+            : <ToggleLeft size={28} className="text-muted-foreground" />
+          }
+        </div>
+
+        {/* Idioma */}
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Globe size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">Idioma</p>
+            <p className="text-[10px] text-muted-foreground">Español (ES)</p>
+          </div>
+          <Check size={14} className="text-primary" />
+        </div>
+
+        {/* Tema */}
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Palette size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">Tema Visual</p>
+            <p className="text-[10px] text-muted-foreground">Dark Obsidian</p>
+          </div>
+          <Check size={14} className="text-primary" />
+        </div>
+      </motion.div>
+
+      {/* Seguridad */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Seguridad</h2>
+
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Shield size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">Autenticación</p>
+            <p className="text-[10px] text-muted-foreground">{user ? "Sesión activa · Supabase Auth" : "Sin sesión"}</p>
+          </div>
+          <Check size={14} className={user ? "text-primary" : "text-muted-foreground"} />
+        </div>
+
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Key size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">API Keys</p>
+            <p className="text-[10px] text-muted-foreground">Supabase · Anthropic · Bunny</p>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </div>
+      </motion.div>
+
+      {/* Datos */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Datos</h2>
+        <div className="glass rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Database size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">Base de Datos</p>
+            <p className="text-[10px] text-muted-foreground">Supabase PostgreSQL · Conectado</p>
+          </div>
+          <Check size={14} className="text-primary" />
+        </div>
+      </motion.div>
+
+      {/* Cerrar sesión */}
+      {user && (
+        <motion.div variants={item}>
+          <button
+            onClick={handleSignOut}
+            className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-display font-semibold hover:bg-destructive/10 transition-all"
+          >
+            Cerrar sesión
+          </button>
+        </motion.div>
+      )}
 
       <motion.div variants={item} className="glass rounded-xl p-4 text-center">
         <p className="text-[10px] font-display text-muted-foreground tracking-wider">
-          VITAS PLATFORM · BUILD 2.0.42 · © 2024 PROPHET HORIZON TECHNOLOGY
+          VITAS PLATFORM · BUILD 2.1.0 · © 2026 PROPHET HORIZON TECHNOLOGY
         </p>
       </motion.div>
     </motion.div>

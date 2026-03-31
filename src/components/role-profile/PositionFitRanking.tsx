@@ -2,13 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RoleProfileData, POSITION_LABELS, getConfidenceLabel, getConfidenceColor } from "@/lib/roleProfileData";
 import { MapPin } from "lucide-react";
+import type { RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
 
 interface Props {
   data: RoleProfileData;
+  filters?: RoleProfileFilters | null;
 }
 
-export default function PositionFitRanking({ data }: Props) {
-  const positions = [...data.positions].sort((a, b) => b.score - a.score);
+export default function PositionFitRanking({ data, filters }: Props) {
+  const allPositions = [...data.positions].sort((a, b) => b.score - a.score);
+  const positions = filters?.currentPosition && filters.currentPosition !== "all"
+    ? allPositions.filter(p => p.code === filters.currentPosition)
+    : allPositions;
   const top1 = positions[0];
   const top2 = positions[1];
   const isDualFit = top1 && top2 && (top1.score - top2.score) < 5;

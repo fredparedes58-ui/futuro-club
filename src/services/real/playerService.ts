@@ -29,6 +29,7 @@ export const PlayerSchema = z.object({
   }),
   vsi: z.number().default(0),
   vsiHistory: z.array(z.number()).default([]),
+  gender: z.enum(["M", "F"]).default("M"),
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
   createdAt: z.string(),

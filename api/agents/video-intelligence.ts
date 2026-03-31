@@ -316,6 +316,24 @@ export default async function handler(req: Request): Promise<Response> {
     );
   }
 
+  // Validar estructura mínima del reporte
+  const requiredSections = ["estadoActual", "adnFutbolistico", "jugadorReferencia", "proyeccionCarrera", "planDesarrollo"];
+  const missingSections = requiredSections.filter(s => !(s in report));
+  if (missingSections.length > 0) {
+    console.error("[video-intelligence] Missing sections:", missingSections);
+    return new Response(
+      JSON.stringify({ error: "Incomplete model response", missingSections, raw: rawResponse.slice(0, 500) }),
+      { status: 500 }
+    );
+  }
+  const estadoActual = report.estadoActual as Record<string, unknown> | undefined;
+  if (!estadoActual?.dimensiones || typeof estadoActual.nivelActual !== "string") {
+    return new Response(
+      JSON.stringify({ error: "Invalid estadoActual structure in model response" }),
+      { status: 500 }
+    );
+  }
+
   // Enriquecer con similarity scores calculados
   if (top5Pros.length > 0 && report.jugadorReferencia) {
     const jr = report.jugadorReferencia as Record<string, unknown>;

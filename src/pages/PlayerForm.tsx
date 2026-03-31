@@ -28,6 +28,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres").max(80, "Máximo 80 caracteres"),
   age: z.number({ invalid_type_error: "Ingresa la edad" }).min(8, "Mínimo 8 años").max(21, "Máximo 21 años"),
   position: z.string().min(1, "Selecciona una posición"),
+  gender: z.enum(["M", "F"]).default("M"),
   foot: z.enum(["right", "left", "both"], { required_error: "Selecciona pie dominante" }),
   height: z.number({ invalid_type_error: "Ingresa la altura" }).min(100, "Mínimo 100 cm").max(220, "Máximo 220 cm"),
   weight: z.number({ invalid_type_error: "Ingresa el peso" }).min(20, "Mínimo 20 kg").max(120, "Máximo 120 kg"),
@@ -171,6 +172,7 @@ const PlayerForm = () => {
       name: "",
       age: 14,
       position: "",
+      gender: "M",
       foot: "right",
       height: 165,
       weight: 58,
@@ -233,6 +235,7 @@ const PlayerForm = () => {
           name: data.name,
           age: data.age,
           position: data.position,
+          gender: data.gender,
           foot: data.foot,
           height: data.height,
           weight: data.weight,
@@ -343,6 +346,38 @@ const PlayerForm = () => {
               </select>
               {errors.position && <p className="text-[10px] text-destructive">{errors.position.message}</p>}
             </div>
+          </div>
+
+          {/* Género */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+              Género <span className="text-[9px] normal-case">(necesario para PHV)</span>
+            </Label>
+            <Controller
+              name="gender"
+              control={control}
+              render={({ field }) => (
+                <div className="flex gap-2">
+                  {[
+                    { value: "M", label: "Masculino" },
+                    { value: "F", label: "Femenino" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => field.onChange(opt.value)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-display font-semibold border transition-all ${
+                        field.value === opt.value
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            />
           </div>
 
           {/* Pie dominante */}

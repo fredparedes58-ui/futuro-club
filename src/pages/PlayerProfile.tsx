@@ -113,7 +113,7 @@ const PlayerProfile = () => {
       chronologicalAge: rawPlayer.age,
       height: rawPlayer.height,
       weight: rawPlayer.weight,
-      gender: "male", // TODO: agregar campo gender en formulario (Sprint 1.2)
+      gender: (rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M",
     });
     toast.info("Calculando PHV con IA…");
   };

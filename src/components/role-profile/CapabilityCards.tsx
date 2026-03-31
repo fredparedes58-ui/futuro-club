@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleProfileData, getConfidenceLabel, getConfidenceColor } from "@/lib/roleProfileData";
 import { Brain, Crosshair, Zap } from "lucide-react";
+import type { RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
 
 interface Props {
   data: RoleProfileData;
+  filters?: RoleProfileFilters | null;
 }
 
 const DIMS = [
@@ -12,7 +14,7 @@ const DIMS = [
   { key: "physical" as const, label: "Física", icon: Zap, description: "Velocidad, resistencia, fuerza, agilidad" },
 ];
 
-export default function CapabilityCards({ data }: Props) {
+export default function CapabilityCards({ data, filters }: Props) {
   const { current, projections } = data;
 
   // Estimate confidence per dimension based on evidence reliability
@@ -22,9 +24,15 @@ export default function CapabilityCards({ data }: Props) {
     physical: 0.55,
   };
 
+  const activeDims = filters?.dimension && filters.dimension !== "all"
+    ? DIMS.filter(d => d.key === filters.dimension)
+    : DIMS;
+
+  const activeHorizon = filters?.horizon ?? "current";
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {DIMS.map(({ key, label, icon: Icon, description }) => {
+      {activeDims.map(({ key, label, icon: Icon, description }) => {
         const conf = dimConfidence[key];
         const confColor = getConfidenceColor(conf);
 
@@ -60,7 +68,7 @@ export default function CapabilityCards({ data }: Props) {
                   ["0_6m", "0–6m"],
                   ["6_18m", "6–18m"],
                   ["18_36m", "18–36m"],
-                ] as const).map(([pKey, pLabel]) => {
+                ] as const).filter(([pKey]) => activeHorizon === "current" || activeHorizon === pKey || true).map(([pKey, pLabel]) => {
                   const val = projections[pKey][key];
                   const delta = val - current[key];
                   return (
