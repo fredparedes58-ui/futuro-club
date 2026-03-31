@@ -13,8 +13,10 @@ import {
   UserRound,
   Rocket,
   ArrowLeft,
+  Upload,
 } from "lucide-react";
 import pitchImage from "@/assets/pitch-field.jpg";
+import { toast } from "sonner";
 
 interface CalibrationPoint {
   id: number;
@@ -178,6 +180,27 @@ const VitasLab = () => {
 
   const handleCanvasMouseUp = () => setDraggingPoint(null);
 
+  const handleStartAnalysis = () => {
+    toast.info("🚀 Análisis disponible en Fase 2", {
+      description: "Conecta Bunny Stream + Roboflow para analizar video real.",
+      duration: 5000,
+    });
+  };
+
+  const handleAutoDetect = () => {
+    toast.info("🔍 Auto-detección disponible en Fase 2", {
+      description: "El modelo YOLOv11M detectará los puntos del campo automáticamente.",
+      duration: 4000,
+    });
+  };
+
+  const handleVideoUpload = () => {
+    toast.info("📤 Upload de video disponible en Fase 2", {
+      description: "Se usará Bunny Stream para almacenar y procesar el video.",
+      duration: 4000,
+    });
+  };
+
   const resetPoints = () => {
     setPoints([
       { id: 1, x: 28, y: 62, label: "P1" },
@@ -308,9 +331,19 @@ const VitasLab = () => {
                 <RotateCcw size={14} />
                 RESET POINTS
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors">
+              <button
+                onClick={handleAutoDetect}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors"
+              >
                 <Camera size={14} />
                 AUTO-DETECT
+              </button>
+              <button
+                onClick={handleVideoUpload}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-xs font-display font-semibold text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Upload size={14} />
+                SUBIR VIDEO
               </button>
             </div>
           </motion.div>
@@ -445,13 +478,22 @@ const VitasLab = () => {
           </div>
 
           {/* Start Analysis */}
-          <div className="mt-auto">
-            <button className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors">
+          <div className="mt-auto space-y-2">
+            <div className="glass rounded-lg px-3 py-2 text-center">
+              <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-primary">
+                FASE 2 — PRÓXIMO
+              </p>
+              <p className="text-[9px] text-muted-foreground">Requiere Bunny Stream + Roboflow</p>
+            </div>
+            <button
+              onClick={handleStartAnalysis}
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors"
+            >
               START ANALYSIS
               <Rocket size={16} />
             </button>
-            <p className="text-center text-[10px] font-display text-muted-foreground mt-2 tracking-wider">
-              ESTIMATED_TIME: 12m 45s
+            <p className="text-center text-[10px] font-display text-muted-foreground tracking-wider">
+              ESTIMATED_TIME: ~12m por video
             </p>
           </div>
         </motion.div>

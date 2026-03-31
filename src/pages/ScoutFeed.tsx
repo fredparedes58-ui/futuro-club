@@ -1,11 +1,12 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowUp, Clock, GitCompareArrows } from "lucide-react";
+import { Sparkles, ArrowUp, Clock, GitCompareArrows, RefreshCw, Plus } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useScoutInsights } from "@/hooks/useScoutFeed";
 import { ScoutFeedSkeleton } from "@/components/shared/Skeletons";
 import VsiGauge from "@/components/VsiGauge";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const typeColors: Record<string, string> = {
@@ -25,9 +26,15 @@ const typeLabels: Record<string, string> = {
 const ScoutFeed = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { data: insights, isLoading, isError } = useScoutInsights();
+  const queryClient = useQueryClient();
+  const { data: insights, isLoading, isError, isFetching } = useScoutInsights();
 
   if (isError) toast.error("No se pudieron cargar los insights del scout feed");
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["scout-insights"] });
+    toast.info("Regenerando insights…");
+  };
 
   return (
     <div className="h-screen flex flex-col">
@@ -37,13 +44,23 @@ const ScoutFeed = () => {
           title="ScoutFeed"
           subtitle="Insights generados por IA · Actualizados en tiempo real"
           rightContent={
-            <button
-              onClick={() => navigate("/compare")}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
-            >
-              <GitCompareArrows size={14} />
-              Compare
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isFetching}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-muted-foreground text-xs font-display font-semibold hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={isFetching ? "animate-spin" : ""} />
+                {isFetching ? "…" : "Refresh"}
+              </button>
+              <button
+                onClick={() => navigate("/compare")}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
+              >
+                <GitCompareArrows size={14} />
+                Compare
+              </button>
+            </div>
           }
         />
       </div>
@@ -58,10 +75,31 @@ const ScoutFeed = () => {
         )}
 
         {!isLoading && (!insights || insights.length === 0) && (
-          <div className="flex flex-col items-center justify-center h-full px-8 text-center">
-            <Sparkles size={32} className="text-muted-foreground mb-3" />
-            <p className="font-display font-bold text-lg">Sin insights disponibles</p>
-            <p className="text-sm text-muted-foreground mt-1">Los insights se generan automáticamente cuando hay actividad nueva</p>
+          <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-4 py-16">
+            <Sparkles size={36} className="text-muted-foreground" />
+            <div>
+              <p className="font-display font-bold text-lg text-foreground">Sin insights disponibles</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                Los insights se generan con IA desde los datos de tus jugadores.
+                Necesitas ANTHROPIC_API_KEY configurada en Vercel.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRefresh}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold"
+              >
+                <RefreshCw size={12} />
+                Reintentar
+              </button>
+              <button
+                onClick={() => navigate("/players/new")}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground"
+              >
+                <Plus size={12} />
+                Agregar jugador
+              </button>
+            </div>
           </div>
         )}
 
@@ -78,8 +116,8 @@ const ScoutFeed = () => {
             </div>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center font-display font-bold text-primary">
-                {insight.player.avatar}
+              <div className="w-12 h-12 rounded-full bg-secondary border border-border flex items-center justify-center font-display font-bold text-primary">
+                {insight.player.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
               </div>
               <div>
                 <h2 className="font-display font-bold text-lg text-foreground">{insight.player.name}</h2>

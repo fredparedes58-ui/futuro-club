@@ -87,6 +87,24 @@ const ReportsPage = () => {
     <motion.div variants={container} initial="hidden" animate="show" className="min-h-screen">
       <TopNav />
 
+      {/* Fase 2 Banner */}
+      <motion.div variants={item} className="max-w-7xl mx-auto px-6 pt-4">
+        <div className="glass rounded-xl p-4 border border-primary/20 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+            <Video size={14} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-display font-semibold text-foreground">Videos reales disponibles en Fase 2</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Esta vista muestra contenido de ejemplo. En Fase 2 verás los videos de tus jugadores almacenados en Bunny Stream con análisis automático.
+            </p>
+          </div>
+          <span className="text-[9px] font-display font-bold uppercase tracking-wider px-2 py-1 rounded bg-primary/10 text-primary shrink-0">
+            FASE 2
+          </span>
+        </div>
+      </motion.div>
+
       {/* Search Bar */}
       <motion.div variants={item} className="max-w-7xl mx-auto px-6 pt-6">
         <div className="relative">

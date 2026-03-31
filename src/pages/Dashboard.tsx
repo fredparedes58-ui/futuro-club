@@ -1,16 +1,17 @@
 import { motion } from "framer-motion";
-import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings } from "lucide-react";
+import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
 import { DashboardStatsSkeleton, MatchesSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import LiveMatchCard from "@/components/LiveMatchCard";
 import PlayerCard from "@/components/PlayerCard";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 const statIcons = [Users, Zap, Activity, TrendingUp];
 const statLabels = ["Jugadores Activos", "Drills Completados", "VSI Promedio", "Talentos Ocultos"];
-const statChanges = ["+12 hoy", "+8 hoy", "+2.1", "PHV ajustado"];
+const statSubLabels = ["Academia activa", "Histórico total", "Índice academia", "PHV tardío + VSI<65"];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -60,7 +61,7 @@ const Dashboard = () => {
                     <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{label}</span>
                   </div>
                   <div className="font-display font-bold text-xl text-foreground">{statValues[i]}</div>
-                  <div className="text-[10px] text-primary font-medium">{statChanges[i]}</div>
+                  <div className="text-[10px] text-muted-foreground font-medium">{statSubLabels[i]}</div>
                 </div>
               );
             })}
@@ -106,7 +107,12 @@ const Dashboard = () => {
 
       {/* Trending Players */}
       <motion.div variants={item}>
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">Talentos en Tendencia</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Talentos en Tendencia</h2>
+          <Button size="sm" variant="ghost" className="h-6 text-xs gap-1 text-primary" onClick={() => navigate("/players/new")}>
+            <Plus size={11} /> Nuevo
+          </Button>
+        </div>
         {playersLoading ? (
           <PlayerListSkeleton count={4} />
         ) : players?.length ? (
@@ -114,8 +120,13 @@ const Dashboard = () => {
             {players.map((player) => <PlayerCard key={player.id} player={player} />)}
           </div>
         ) : (
-          <div className="glass rounded-xl p-6 text-center">
-            <p className="text-sm text-muted-foreground">No hay jugadores en tendencia</p>
+          <div className="glass rounded-xl p-8 text-center space-y-3">
+            <Users size={32} className="text-muted-foreground mx-auto" />
+            <p className="font-display font-bold text-base text-foreground">Sin jugadores registrados</p>
+            <p className="text-xs text-muted-foreground">Agrega tu primer jugador para ver el análisis VITAS</p>
+            <Button size="sm" className="gap-1.5" onClick={() => navigate("/players/new")}>
+              <Plus size={14} /> Agregar jugador
+            </Button>
           </div>
         )}
       </motion.div>
