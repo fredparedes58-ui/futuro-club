@@ -184,6 +184,122 @@ export type TacticalLabelInput = z.infer<typeof TacticalLabelInputSchema>;
 export type TacticalLabelOutput = z.infer<typeof TacticalLabelOutputSchema>;
 
 // ─────────────────────────────────────────
+// CONTRATO 5: Video Intelligence Agent
+// Análisis automático de video → informe completo VITAS
+// ─────────────────────────────────────────
+export const VideoIntelligenceInputSchema = z.object({
+  playerId:       z.string(),
+  videoId:        z.string(),
+  playerContext:  z.object({
+    name:            z.string(),
+    age:             z.number().min(8).max(21),
+    position:        z.string(),
+    foot:            z.enum(["right", "left", "both"]),
+    height:          z.number().optional(),
+    weight:          z.number().optional(),
+    currentVSI:      z.number().optional(),
+    phvCategory:     z.enum(["early", "ontme", "late"]).optional(),
+    phvOffset:       z.number().optional(),
+    competitiveLevel: z.string().optional(),
+  }),
+  keyframes:      z.array(z.string()).max(12), // URLs de keyframes del video
+  videoDuration:  z.number().optional(),       // segundos
+});
+
+export const VideoIntelligenceOutputSchema = z.object({
+  playerId:       z.string(),
+  videoId:        z.string(),
+  generatedAt:    z.string(),
+
+  // Sección 1: Estado Actual
+  estadoActual: z.object({
+    resumenEjecutivo:    z.string().max(400),
+    nivelActual:         z.enum(["elite", "alto", "medio_alto", "medio", "desarrollo"]),
+    fortalezasPrimarias: z.array(z.string()).max(4),
+    areasDesarrollo:     z.array(z.string()).max(3),
+    // 6 dimensiones observadas en video (complementan VSI, no reemplazan PHV)
+    dimensiones: z.object({
+      velocidadDecision:  z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+      tecnicaConBalon:    z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+      inteligenciaTactica: z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+      capacidadFisica:    z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+      liderazgoPresencia: z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+      eficaciaCompetitiva: z.object({ score: z.number().min(0).max(10), observacion: z.string() }),
+    }),
+    ajusteVSIVideoScore: z.number().min(-15).max(15), // delta sugerido al VSI existente
+  }),
+
+  // Sección 2: ADN Futbolístico
+  adnFutbolistico: z.object({
+    estiloJuego:       z.string().max(200),
+    arquetipoTactico:  z.string().max(100), // "Box-to-box", "Delantero de referencia", etc.
+    patrones: z.array(z.object({
+      patron:      z.string(),
+      frecuencia:  z.enum(["alto", "medio", "bajo"]),
+      descripcion: z.string().max(150),
+    })).max(5),
+    mentalidad:        z.string().max(200),
+  }),
+
+  // Sección 3: Jugador Referencia (Clon)
+  jugadorReferencia: z.object({
+    top5: z.array(z.object({
+      proPlayerId:   z.string(),
+      nombre:        z.string(),
+      posicion:      z.string(),
+      club:          z.string(),
+      score:         z.number(),  // 0-100
+      razonamiento:  z.string().max(200),
+    })).max(5),
+    bestMatch: z.object({
+      proPlayerId:   z.string(),
+      nombre:        z.string(),
+      posicion:      z.string(),
+      club:          z.string(),
+      score:         z.number(),
+      narrativa:     z.string().max(300),
+    }),
+  }),
+
+  // Sección 4: Proyección de Carrera
+  proyeccionCarrera: z.object({
+    escenarioOptimista: z.object({
+      descripcion:   z.string().max(300),
+      nivelProyecto: z.string(),   // "Primera División", "Segunda División", etc.
+      clubTipo:      z.string(),
+      edadPeak:      z.number().optional(),
+    }),
+    escenarioRealista: z.object({
+      descripcion:   z.string().max(300),
+      nivelProyecto: z.string(),
+      clubTipo:      z.string(),
+    }),
+    factoresClave:    z.array(z.string()).max(4),
+    riesgos:          z.array(z.string()).max(3),
+  }),
+
+  // Sección 5: Plan de Desarrollo
+  planDesarrollo: z.object({
+    objetivo6meses:   z.string().max(200),
+    objetivo18meses:  z.string().max(200),
+    pilaresTrabajo: z.array(z.object({
+      pilar:          z.string(),
+      acciones:       z.array(z.string()).max(3),
+      prioridad:      z.enum(["crítica", "alta", "media"]),
+    })).max(4),
+    recomendacionEntrenador: z.string().max(300),
+  }),
+
+  // Meta
+  confianza:          z.number().min(0).max(1),
+  tokensUsados:       z.number().optional(),
+  modeloUsado:        z.string().optional(),
+});
+
+export type VideoIntelligenceInput  = z.infer<typeof VideoIntelligenceInputSchema>;
+export type VideoIntelligenceOutput = z.infer<typeof VideoIntelligenceOutputSchema>;
+
+// ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE
 // ─────────────────────────────────────────
 export interface AgentResponse<T> {

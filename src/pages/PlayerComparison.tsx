@@ -2,14 +2,19 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Download, Share2, TrendingUp, Zap, Target, Brain, Users,
+  ArrowLeft, Download, Share2, TrendingUp, Zap, Target, Brain, Users, Star, FileText,
 } from "lucide-react";
 import { useAllPlayers } from "@/hooks/usePlayers";
+import { useQuery } from "@tanstack/react-query";
+import { PlayerService } from "@/services/real/playerService";
+import { findSimilarPlayers, scoreToBadge, type SimilarityResult } from "@/services/real/similarityService";
 import RadarChartComponent from "@/components/RadarChart";
 import VsiGauge from "@/components/VsiGauge";
 import TopNav from "@/components/TopNav";
+import VitasCard from "@/components/VitasCard";
 import { PlayerListSkeleton } from "@/components/shared/Skeletons";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ResponsiveContainer,
   RadarChart as ReRadar,
@@ -49,14 +54,84 @@ function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
   );
 }
 
+// ─── Mini Clone Card ──────────────────────────────────────────────────────────
+function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | undefined; playerName: string }) {
+  if (!similarity?.bestMatch) {
+    return (
+      <div className="glass rounded-xl p-3 text-center">
+        <Star size={14} className="mx-auto mb-1 text-muted-foreground" />
+        <p className="text-[10px] text-muted-foreground">Calculando clon...</p>
+      </div>
+    );
+  }
+  const { player, score } = similarity.bestMatch;
+  const { color, label } = scoreToBadge(score);
+
+  return (
+    <div className="glass rounded-xl p-3 border border-primary/10">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Star size={10} className="text-gold" />
+        <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
+          Clon de {playerName.split(" ")[0]}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold text-foreground">{player.short_name}</p>
+          <p className="text-[9px] text-muted-foreground">{player.position} · {player.club}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-black" style={{ color }}>{score.toFixed(0)}%</div>
+          <span className="text-[8px] font-bold" style={{ color }}>{label}</span>
+        </div>
+      </div>
+      {/* Top 3 métricas del pro */}
+      <div className="mt-2 grid grid-cols-3 gap-1">
+        {[
+          { k: "pace", l: "Ritmo", v: player.pace },
+          { k: "shooting", l: "Tiro", v: player.shooting },
+          { k: "dribbling", l: "Técnica", v: player.dribbling },
+        ].map(m => (
+          <div key={m.k} className="text-center">
+            <div className="text-[9px] font-bold text-foreground">{m.v}</div>
+            <div className="text-[8px] text-muted-foreground">{m.l}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerComparison = () => {
   const navigate = useNavigate();
   const [playerAIndex, setPlayerAIndex] = useState(0);
   const [playerBIndex, setPlayerBIndex] = useState(1);
+  const [cardPlayer, setCardPlayer] = useState<"A" | "B" | null>(null);
 
   const { data: allPlayers, isLoading } = useAllPlayers();
   const players = allPlayers ?? [];
+
+  const safeAIdx = Math.min(playerAIndex, Math.max(0, players.length - 1));
+  const safeBIdx = Math.min(playerBIndex, Math.max(0, players.length - 1));
+
+  // Similarity para ambos jugadores
+  const rawA = PlayerService.getById(players[safeAIdx]?.id ?? "");
+  const rawB = PlayerService.getById(players[safeBIdx]?.id ?? "");
+
+  const { data: simA } = useQuery({
+    queryKey: ["similarity-compare", rawA?.id],
+    queryFn:  () => rawA ? findSimilarPlayers(rawA.metrics, rawA.position) : null,
+    enabled:  !!rawA,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: simB } = useQuery({
+    queryKey: ["similarity-compare", rawB?.id],
+    queryFn:  () => rawB ? findSimilarPlayers(rawB.metrics, rawB.position) : null,
+    enabled:  !!rawB,
+    staleTime: 1000 * 60 * 10,
+  });
 
   if (isLoading) {
     return (
@@ -78,9 +153,8 @@ const PlayerComparison = () => {
     );
   }
 
-  // Asegurar índices válidos
-  const safeAIndex = Math.min(playerAIndex, players.length - 1);
-  const safeBIndex = Math.min(playerBIndex, players.length - 1);
+  const safeAIndex = safeAIdx;
+  const safeBIndex = safeBIdx;
 
   const playerA = players[safeAIndex];
   const playerB = players[safeBIndex];
@@ -431,12 +505,93 @@ const PlayerComparison = () => {
           </div>
         </motion.div>
 
+        {/* ── CLONES LADO A LADO ── */}
+        <motion.div variants={item}>
+          <div className="flex items-center gap-2 mb-3">
+            <Star size={14} className="text-gold" />
+            <h3 className="font-display font-bold text-lg text-foreground">Jugadores Referencia</h3>
+            <span className="text-[10px] text-muted-foreground">· similitud coseno vs base pro</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <CloneCard similarity={simA ?? undefined} playerName={playerA.name} />
+              <button
+                onClick={() => navigate(`/players/${playerA.id}/intelligence`)}
+                className="w-full text-[10px] font-display text-primary flex items-center justify-center gap-1 py-1.5"
+              >
+                <Zap size={10} /> Ver informe completo
+              </button>
+            </div>
+            <div className="space-y-2">
+              <CloneCard similarity={simB ?? undefined} playerName={playerB.name} />
+              <button
+                onClick={() => navigate(`/players/${playerB.id}/intelligence`)}
+                className="w-full text-[10px] font-display text-primary flex items-center justify-center gap-1 py-1.5"
+              >
+                <Zap size={10} /> Ver informe completo
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── VITAS CARDS ── */}
+        <motion.div variants={item}>
+          <div className="flex items-center gap-2 mb-3">
+            <FileText size={14} className="text-primary" />
+            <h3 className="font-display font-bold text-lg text-foreground">Exportar VITAS Card</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setCardPlayer("A")}
+              className="glass rounded-xl p-3 flex items-center gap-3 hover:border-primary/40 transition-colors border border-border"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                {playerA.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-foreground truncate">{playerA.name.split(" ")[0]}</p>
+                <p className="text-[9px] text-muted-foreground">Generar tarjeta</p>
+              </div>
+            </button>
+            <button
+              onClick={() => setCardPlayer("B")}
+              className="glass rounded-xl p-3 flex items-center gap-3 hover:border-primary/40 transition-colors border border-border"
+            >
+              <div className="w-8 h-8 rounded-lg bg-electric/10 flex items-center justify-center text-xs font-bold text-electric">
+                {playerB.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-foreground truncate">{playerB.name.split(" ")[0]}</p>
+                <p className="text-[9px] text-muted-foreground">Generar tarjeta</p>
+              </div>
+            </button>
+          </div>
+        </motion.div>
+
         {/* Footer */}
         <motion.div variants={item} className="flex items-center justify-between text-[10px] text-muted-foreground font-display px-2 pb-4">
           <span>VITAS ENGINE: <span className="text-primary">ACTIVO</span></span>
           <span>© 2026 VITAS · Football Intelligence</span>
         </motion.div>
       </div>
+
+      {/* Modal VITAS Card */}
+      <Dialog open={!!cardPlayer} onOpenChange={() => setCardPlayer(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-sm">
+              VITAS Card — {cardPlayer === "A" ? playerA?.name : playerB?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {cardPlayer && rawA && rawB && (
+            <VitasCard
+              player={cardPlayer === "A" ? rawA : rawB}
+              bestMatch={(cardPlayer === "A" ? simA : simB)?.bestMatch ?? null}
+              onClose={() => setCardPlayer(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

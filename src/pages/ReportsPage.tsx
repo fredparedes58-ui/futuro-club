@@ -3,9 +3,14 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import TopNav from "@/components/TopNav";
 import {
-  Play, Search, Clock, TrendingUp, Newspaper,
-  Video, ChevronRight, Eye
+  Play, Search, Clock, Video, ChevronRight, Upload
 } from "lucide-react";
+import { useVideos } from "@/hooks/useVideos";
+import VideoCard from "@/components/VideoCard";
+import VideoPlayer from "@/components/VideoPlayer";
+import VideoUpload from "@/components/VideoUpload";
+import { useDeleteVideo } from "@/hooks/useVideos";
+import type { VideoRecord } from "@/services/real/videoService";
 
 const mockVideos = [
   {
@@ -78,7 +83,25 @@ const mockTicker = [
 const ReportsPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const featuredVideo = mockVideos[0];
+  const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const { data: realVideos = [], isLoading: videosLoading } = useVideos();
+  const { mutate: deleteVideo } = useDeleteVideo();
+
+  // Blend real videos with mock fallback for demo
+  const hasRealVideos = realVideos.length > 0;
+  const featuredVideo = hasRealVideos ? null : mockVideos[0];
+
+  // Filter real videos by search
+  const filteredRealVideos = realVideos.filter((v) =>
+    !searchQuery || v.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Filter mock stories by search
+  const filteredStories = mockStories.filter((s) =>
+    !searchQuery || s.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -149,28 +172,48 @@ const ReportsPage = () => {
         <motion.div variants={item} className="space-y-6">
           <div className="glass rounded-xl p-5">
             <h2 className="font-display font-bold text-lg text-foreground mb-4">
-              Scouting Video Thumbnails
+              {hasRealVideos ? `Mis Videos (${realVideos.length})` : "Scouting Video Thumbnails"}
             </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {mockVideos.slice(0, 4).map((video) => (
-                <div key={video.id} className="cursor-pointer group">
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-secondary mb-2">
-                    <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary/80 transition-colors">
-                        <Play size={16} className="text-foreground ml-0.5" />
+            {videosLoading ? (
+              <div className="grid grid-cols-2 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="aspect-video rounded-lg bg-secondary animate-pulse" />
+                ))}
+              </div>
+            ) : hasRealVideos ? (
+              <div className="grid grid-cols-2 gap-3">
+                {filteredRealVideos.slice(0, 4).map((video) => (
+                  <VideoCard
+                    key={video.id}
+                    video={video}
+                    onClick={(v) => setSelectedVideo(v)}
+                    showDelete
+                    onDelete={(id) => deleteVideo(id)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {mockVideos.slice(0, 4).map((video) => (
+                  <div key={video.id} className="cursor-pointer group">
+                    <div className="relative aspect-video rounded-lg overflow-hidden bg-secondary mb-2">
+                      <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-background/60 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary/80 transition-colors">
+                          <Play size={16} className="text-foreground ml-0.5" />
+                        </div>
+                      </div>
+                      <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-background/70 text-[10px] font-display text-foreground">
+                        {video.duration}
                       </div>
                     </div>
-                    <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-background/70 text-[10px] font-display text-foreground">
-                      {video.duration}
-                    </div>
+                    <p className="text-[11px] font-display font-medium text-foreground/80 leading-tight line-clamp-2">
+                      {video.title}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-display font-medium text-foreground/80 leading-tight line-clamp-2">
-                    {video.title}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="glass rounded-xl p-5">
@@ -199,54 +242,150 @@ const ReportsPage = () => {
 
         {/* Center Column: Featured Report */}
         <motion.div variants={item} className="glass rounded-xl p-5 flex flex-col">
-          <h2 className="font-display font-bold text-lg text-foreground mb-4">
-            Featured Report
-          </h2>
-          
-          {/* Video Player */}
-          <div className="relative aspect-video rounded-xl overflow-hidden bg-secondary mb-4 group cursor-pointer">
-            <img
-              src={featuredVideo.thumbnail}
-              alt={featuredVideo.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-primary/80 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary transition-colors group-hover:scale-110 duration-300">
-                <Play size={28} className="text-primary-foreground ml-1" />
-              </div>
-            </div>
-            {/* Video Controls Bar */}
-            <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center gap-3">
-              <Play size={14} className="text-foreground" />
-              <div className="flex-1 h-1 rounded-full bg-muted-foreground/30 overflow-hidden">
-                <div className="h-full w-1/3 rounded-full bg-primary" />
-              </div>
-              <span className="text-[10px] font-display text-foreground/70">0:00 / {featuredVideo.duration}</span>
-            </div>
-          </div>
-
-          {/* Report Info */}
-          <h3 className="font-display font-bold text-xl text-foreground mb-2">
-            Featured Report: {featuredVideo.title.split(":")[0]} - Complete Breakdown
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            {featuredVideo.title.split(":")[0]} measured highlights reel vs. {featuredVideo.title.split(":")[0]} - Complete Breakdown.
-            Analysis of key performance metrics and tactical positioning — League Average.
-          </p>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 mt-auto">
-            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors">
-              Detailed Report
-            </button>
-            <button className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold text-foreground hover:bg-secondary transition-colors">
-              Video Analysis
-            </button>
-            <button className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold text-foreground hover:bg-secondary transition-colors">
-              Compare
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display font-bold text-lg text-foreground">
+              {hasRealVideos ? "Video Seleccionado" : "Featured Report"}
+            </h2>
+            <button
+              onClick={() => setShowUpload(!showUpload)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-display font-semibold hover:bg-primary/20 transition-colors"
+            >
+              <Upload size={12} />
+              Subir video
             </button>
           </div>
+
+          {/* Upload panel inline */}
+          {showUpload && (
+            <div className="mb-4 p-4 rounded-xl border border-border bg-secondary/30">
+              <VideoUpload
+                onDone={(id) => {
+                  setShowUpload(false);
+                  const found = realVideos.find((v) => v.id === id);
+                  if (found) setSelectedVideo(found);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Real video player */}
+          {selectedVideo ? (
+            <>
+              <VideoPlayer video={selectedVideo} className="mb-4" />
+              <h3 className="font-display font-bold text-xl text-foreground mb-2">
+                {selectedVideo.title}
+              </h3>
+              {selectedVideo.analysisResult ? (
+                <div className="p-3 rounded-lg bg-secondary space-y-2 mb-4">
+                  <p className="text-xs font-display font-semibold text-primary">
+                    {selectedVideo.analysisResult.formationHint}
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {selectedVideo.analysisResult.notes}
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedVideo.analysisResult.keyMovements.map((m, i) => (
+                      <span key={i} className="text-[9px] font-display px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                  Sin análisis táctico. Ejecuta el pipeline para generar insights con IA.
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-auto">
+                <button
+                  onClick={() => navigate("/lab")}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Abrir en Lab
+                </button>
+                <button
+                  onClick={() => navigate("/compare")}
+                  className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold text-foreground hover:bg-secondary transition-colors"
+                >
+                  Compare
+                </button>
+              </div>
+            </>
+          ) : hasRealVideos && filteredRealVideos.length > 0 ? (
+            /* Real videos grid — click to feature */
+            <div className="grid grid-cols-2 gap-3">
+              {filteredRealVideos.slice(0, 4).map((video) => (
+                <VideoCard
+                  key={video.id}
+                  video={video}
+                  onClick={(v) => setSelectedVideo(v)}
+                  onDelete={(id) => deleteVideo(id)}
+                  showDelete
+                />
+              ))}
+              {filteredRealVideos.length > 4 && (
+                <div className="col-span-2 text-center">
+                  <span className="text-xs text-muted-foreground font-display">
+                    +{filteredRealVideos.length - 4} más · Usa la búsqueda para filtrar
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : !hasRealVideos && featuredVideo ? (
+            /* Mock fallback */
+            <>
+              <div className="relative aspect-video rounded-xl overflow-hidden bg-secondary mb-4 group cursor-pointer">
+                <img src={featuredVideo.thumbnail} alt={featuredVideo.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/80 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary transition-colors group-hover:scale-110 duration-300">
+                    <Play size={28} className="text-primary-foreground ml-1" />
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-center gap-3">
+                  <Play size={14} className="text-foreground" />
+                  <div className="flex-1 h-1 rounded-full bg-muted-foreground/30 overflow-hidden">
+                    <div className="h-full w-1/3 rounded-full bg-primary" />
+                  </div>
+                  <span className="text-[10px] font-display text-foreground/70">0:00 / {featuredVideo.duration}</span>
+                </div>
+              </div>
+              <h3 className="font-display font-bold text-xl text-foreground mb-2">
+                Featured Report: {featuredVideo.title.split(":")[0]} - Complete Breakdown
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                Contenido de ejemplo. Sube un video real para ver análisis táctico en vivo.
+              </p>
+              <div className="flex items-center gap-3 mt-auto">
+                <button
+                  onClick={() => setShowUpload(true)}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Subir primer video
+                </button>
+                <button
+                  onClick={() => navigate("/compare")}
+                  className="px-4 py-2 rounded-lg border border-border text-sm font-display font-semibold text-foreground hover:bg-secondary transition-colors"
+                >
+                  Compare
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 py-12">
+              <Video size={32} className="text-muted-foreground" />
+              <p className="text-sm font-display font-semibold text-foreground">Sin videos</p>
+              <p className="text-xs text-muted-foreground">
+                {searchQuery ? "Ningún video coincide con tu búsqueda" : "Sube un video para comenzar el análisis"}
+              </p>
+              <button
+                onClick={() => setShowUpload(true)}
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold"
+              >
+                Subir video
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Right Column: Analysis Videos + Top Stories */}
@@ -276,7 +415,7 @@ const ReportsPage = () => {
               Top Stories
             </h2>
             <div className="space-y-4">
-              {mockStories.map((story) => (
+              {filteredStories.map((story) => (
                 <div key={story.id} className="cursor-pointer group">
                   <p className="text-xs font-display text-foreground/70 leading-relaxed line-clamp-2 group-hover:text-foreground/90 transition-colors">
                     {story.title}

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2,
@@ -14,9 +14,15 @@ import {
   Rocket,
   ArrowLeft,
   Upload,
+  X,
+  Video,
 } from "lucide-react";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
+import VideoUpload from "@/components/VideoUpload";
+import { useVideos } from "@/hooks/useVideos";
+import VideoCard from "@/components/VideoCard";
+import VideoPlayer from "@/components/VideoPlayer";
 
 interface CalibrationPoint {
   id: number;
@@ -66,6 +72,9 @@ const VitasLab = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(862); // 14:22 in seconds
   const totalTime = 5400; // 1:30:00
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const { data: videos = [] } = useVideos();
 
   const [points, setPoints] = useState<CalibrationPoint[]>([
     { id: 1, x: 28, y: 62, label: "P1" },
@@ -181,10 +190,28 @@ const VitasLab = () => {
   const handleCanvasMouseUp = () => setDraggingPoint(null);
 
   const handleStartAnalysis = () => {
-    toast.info("🚀 Análisis disponible en Fase 2", {
-      description: "Conecta Bunny Stream + Roboflow para analizar video real.",
-      duration: 5000,
-    });
+    if (selectedVideoId) {
+      toast.promise(
+        fetch("/api/pipeline/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ videoId: selectedVideoId }),
+        }).then((r) => r.json()),
+        {
+          loading: "Iniciando análisis táctico…",
+          success: (data: { success?: boolean; phase2Pending?: boolean }) =>
+            data.phase2Pending
+              ? "Configura las env vars en Vercel para activar el pipeline"
+              : "¡Análisis completado!",
+          error: "Error al iniciar análisis",
+        }
+      );
+    } else {
+      toast.info("🚀 Selecciona un video primero o sube uno nuevo", {
+        description: "Haz clic en 'SUBIR VIDEO' para cargar un partido.",
+        duration: 4000,
+      });
+    }
   };
 
   const handleAutoDetect = () => {
@@ -195,10 +222,7 @@ const VitasLab = () => {
   };
 
   const handleVideoUpload = () => {
-    toast.info("📤 Upload de video disponible en Fase 2", {
-      description: "Se usará Bunny Stream para almacenar y procesar el video.",
-      duration: 4000,
-    });
+    setShowUploadPanel(true);
   };
 
   const resetPoints = () => {
@@ -498,6 +522,112 @@ const VitasLab = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* ── Upload Panel (slide-in from right) ─────────────────────────────── */}
+      <AnimatePresence>
+        {showUploadPanel && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40"
+              onClick={() => setShowUploadPanel(false)}
+            />
+            {/* Panel */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 260, damping: 30 }}
+              className="fixed top-0 right-0 h-full w-full max-w-md bg-card border-l border-border z-50 flex flex-col"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Video size={16} className="text-primary" />
+                  <span className="font-display font-bold text-foreground">Videos VITAS.LAB</span>
+                </div>
+                <button
+                  onClick={() => setShowUploadPanel(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Scroll area */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                {/* Upload */}
+                <div>
+                  <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                    Subir nuevo video
+                  </p>
+                  <VideoUpload
+                    onDone={(id) => {
+                      setSelectedVideoId(id);
+                      toast.success("Video listo para análisis");
+                    }}
+                  />
+                </div>
+
+                {/* Video gallery */}
+                {videos.length > 0 && (
+                  <div>
+                    <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                      Videos guardados ({videos.length})
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {videos.map((video) => (
+                        <div
+                          key={video.id}
+                          onClick={() => {
+                            setSelectedVideoId(video.id);
+                            setShowUploadPanel(false);
+                            toast.info(`Video seleccionado: ${video.title}`);
+                          }}
+                          className={`cursor-pointer rounded-xl border-2 transition-all ${
+                            selectedVideoId === video.id
+                              ? "border-primary"
+                              : "border-transparent"
+                          }`}
+                        >
+                          <VideoCard video={video} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected video preview */}
+                {selectedVideoId && (() => {
+                  const vid = videos.find((v) => v.id === selectedVideoId);
+                  if (!vid) return null;
+                  return (
+                    <div>
+                      <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                        Preview seleccionado
+                      </p>
+                      <VideoPlayer video={vid} />
+                      <button
+                        onClick={() => {
+                          setShowUploadPanel(false);
+                          handleStartAnalysis();
+                        }}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors"
+                      >
+                        <Rocket size={14} />
+                        Analizar este video
+                      </button>
+                    </div>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Bottom Status Bar */}
       <motion.div

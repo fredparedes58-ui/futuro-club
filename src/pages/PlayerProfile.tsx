@@ -3,12 +3,16 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
-  Pencil, Trash2,
+  Pencil, Trash2, Video, Plus, ChevronDown,
 } from "lucide-react";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { usePHVCalculator } from "@/hooks/useAgents";
+import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
 import VsiGauge from "@/components/VsiGauge";
 import RadarChartComponent from "@/components/RadarChart";
+import VideoCard from "@/components/VideoCard";
+import VideoPlayer from "@/components/VideoPlayer";
+import VideoUpload from "@/components/VideoUpload";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -18,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { useState } from "react";
 import type { PHVInput } from "@/agents/contracts";
+import type { VideoRecord } from "@/services/real/videoService";
 
 // ─── Animaciones ──────────────────────────────────────────────────────────────
 const container = {
@@ -73,6 +78,8 @@ const PlayerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [phvInput, setPhvInput] = useState<PHVInput | null>(null);
+  const [showVideoUpload, setShowVideoUpload] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
 
   // Datos adaptados para UI
   const { data: player, isLoading, isError } = usePlayerById(id);
@@ -80,6 +87,10 @@ const PlayerProfile = () => {
   const { data: rawPlayer } = useRawPlayerById(id);
   // Mutación de eliminación
   const deletePlayer = useDeletePlayer();
+
+  // Videos del jugador
+  const { data: playerVideos = [] } = useVideos(id);
+  const { mutate: deleteVideo } = useDeleteVideo();
 
   // Agente PHV — solo se activa cuando el usuario pulsa "Calcular PHV"
   const { data: phvResult, isFetching: isCalculatingPHV } = usePHVCalculator(phvInput);
@@ -305,6 +316,100 @@ const PlayerProfile = () => {
         </div>
       </motion.div>
 
+      {/* ── Sección de Videos ─────────────────────────────────────────────── */}
+      <motion.div variants={item} className="glass rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Video size={14} className="text-primary" />
+            <h2 className="font-display font-semibold text-sm text-foreground">Videos</h2>
+            {playerVideos.length > 0 && (
+              <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                {playerVideos.length}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setShowVideoUpload(!showVideoUpload)}
+            className="flex items-center gap-1 text-[10px] text-primary font-display font-semibold hover:underline"
+          >
+            {showVideoUpload ? <ChevronDown size={10} /> : <Plus size={10} />}
+            {showVideoUpload ? "Cerrar" : "Subir video"}
+          </button>
+        </div>
+
+        {/* Upload inline */}
+        {showVideoUpload && (
+          <div className="mb-4 p-3 rounded-xl bg-secondary/40 border border-border">
+            <VideoUpload
+              playerId={id}
+              onDone={(videoId) => {
+                setShowVideoUpload(false);
+                toast.success("Video subido y asociado al jugador");
+              }}
+            />
+          </div>
+        )}
+
+        {/* Video player (selected) */}
+        {selectedVideo && (
+          <div className="mb-3">
+            <VideoPlayer video={selectedVideo} />
+            {selectedVideo.analysisResult && (
+              <div className="mt-2 p-2 rounded-lg bg-secondary text-xs text-muted-foreground leading-relaxed">
+                <span className="font-display font-semibold text-primary">
+                  {selectedVideo.analysisResult.formationHint}
+                </span>
+                {" — "}
+                {selectedVideo.analysisResult.notes}
+              </div>
+            )}
+            <button
+              onClick={() => setSelectedVideo(null)}
+              className="mt-1 text-[10px] text-muted-foreground hover:text-foreground font-display transition-colors"
+            >
+              Cerrar reproductor
+            </button>
+          </div>
+        )}
+
+        {/* Video grid */}
+        {playerVideos.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2">
+            {playerVideos.slice(0, 4).map((v) => (
+              <VideoCard
+                key={v.id}
+                video={v}
+                onClick={(vid) => setSelectedVideo(vid)}
+                onDelete={(vid) => deleteVideo(vid)}
+                showDelete
+              />
+            ))}
+          </div>
+        ) : !showVideoUpload ? (
+          <div className="text-center py-6 space-y-2">
+            <Video size={24} className="text-muted-foreground mx-auto" />
+            <p className="text-xs font-display text-muted-foreground">
+              Sin videos registrados para este jugador
+            </p>
+            <button
+              onClick={() => setShowVideoUpload(true)}
+              className="text-xs text-primary font-display font-semibold hover:underline"
+            >
+              Subir primer video →
+            </button>
+          </div>
+        ) : null}
+
+        {playerVideos.length > 4 && (
+          <button
+            onClick={() => navigate("/reports")}
+            className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground font-display flex items-center justify-center gap-1 transition-colors"
+          >
+            Ver todos en Reports <ChevronRight size={12} />
+          </button>
+        )}
+      </motion.div>
+
       {/* Acción: Ver Role Profile */}
       <motion.div variants={item}>
         <button
@@ -321,6 +426,30 @@ const PlayerProfile = () => {
             </div>
           </div>
           <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
+        </button>
+      </motion.div>
+
+      {/* Acción: VITAS Intelligence */}
+      <motion.div variants={item}>
+        <button
+          onClick={() => navigate(`/players/${player.id}/intelligence`)}
+          className="w-full glass rounded-xl p-4 flex items-center justify-between hover:border-primary/40 border border-primary/20 transition-colors group relative overflow-hidden"
+        >
+          {/* Glow background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+              <Zap size={16} className="text-primary" />
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-display font-semibold text-foreground">VITAS Intelligence</p>
+                <span className="text-[8px] font-display font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase tracking-wider">NEW</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Clon · Proyección · Plan de desarrollo</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-primary group-hover:translate-x-0.5 transition-transform" />
         </button>
       </motion.div>
 

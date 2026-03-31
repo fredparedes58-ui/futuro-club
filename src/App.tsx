@@ -4,6 +4,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
+
+// Pages — Auth
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+
+// Pages — App
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import ScoutFeed from "./pages/ScoutFeed";
@@ -22,8 +31,21 @@ import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
 import ReportsPage from "./pages/ReportsPage";
 import PlayerForm from "./pages/PlayerForm";
+import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Wrapper para rutas protegidas
+const P = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+);
 
 const App = () => (
   <ErrorBoundary>
@@ -32,29 +54,39 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/pulse" element={<Dashboard />} />
-              <Route path="/master" element={<MasterDashboard />} />
-              <Route path="/scout" element={<ScoutFeed />} />
-              <Route path="/drill" element={<SoloDrill />} />
-              <Route path="/rankings" element={<Rankings />} />
-              <Route path="/player/:id" element={<PlayerProfile />} />
-              <Route path="/compare" element={<PlayerComparison />} />
-              <Route path="/lab" element={<VitasLab />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/checkout" element={<OrderConfirmation />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/players/new" element={<PlayerForm />} />
-              <Route path="/players/:id/edit" element={<PlayerForm />} />
-              <Route path="/players/:id/role-profile" element={<RoleProfile />} />
-              <Route path="/players/:id/role-profile/compare" element={<RoleProfileCompare />} />
-              <Route path="/players/:id/role-profile/audit" element={<RoleProfileAudit />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ErrorBoundary>
-          <BottomNav />
+          <AuthProvider>
+            <ErrorBoundary>
+              <Routes>
+                {/* ── Rutas públicas (auth) ─────────────────────────── */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+                {/* ── Rutas protegidas ──────────────────────────────── */}
+                <Route path="/" element={<P><Index /></P>} />
+                <Route path="/pulse" element={<P><Dashboard /></P>} />
+                <Route path="/master" element={<P><MasterDashboard /></P>} />
+                <Route path="/scout" element={<P><ScoutFeed /></P>} />
+                <Route path="/drill" element={<P><SoloDrill /></P>} />
+                <Route path="/rankings" element={<P><Rankings /></P>} />
+                <Route path="/player/:id" element={<P><PlayerProfile /></P>} />
+                <Route path="/compare" element={<P><PlayerComparison /></P>} />
+                <Route path="/lab" element={<P><VitasLab /></P>} />
+                <Route path="/settings" element={<P><SettingsPage /></P>} />
+                <Route path="/checkout" element={<P><OrderConfirmation /></P>} />
+                <Route path="/reports" element={<P><ReportsPage /></P>} />
+                <Route path="/players/new" element={<P><PlayerForm /></P>} />
+                <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />
+                <Route path="/players/:id/role-profile" element={<P><RoleProfile /></P>} />
+                <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
+                <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
+                <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
+            <BottomNav />
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
