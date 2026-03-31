@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
@@ -17,11 +17,10 @@ import {
   Video,
   Loader2,
 } from "lucide-react";
-import {
-  mockPlayerReports,
-  mockPipelines,
-  mockLiveFeed,
-} from "@/lib/mockData";
+import { mockPipelines, mockLiveFeed } from "@/lib/mockData";
+import { PlayerService } from "@/services/real/playerService";
+import { computeDashboardStats } from "@/services/real/adapters";
+import { MetricsService } from "@/services/real/metricsService";
 
 const sidebarItems = [
   { path: "/master", icon: LayoutDashboard, label: "Master Dashboard" },
@@ -41,6 +40,29 @@ const MasterDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ─── Datos reales ───────────────────────────────────────────────────────────
+  const players = useMemo(() => {
+    PlayerService.seedIfEmpty();
+    return PlayerService.getAll();
+  }, []);
+
+  const stats = useMemo(() => computeDashboardStats(players), [players]);
+
+  // Player reports reales con bias calculado
+  const playerReports = useMemo(() => {
+    const allVSIs = players.map((p) => p.vsi);
+    return players
+      .slice(0, 4)
+      .map((p) => {
+        const pct = MetricsService.calculatePercentile(p.vsi, allVSIs);
+        const biasAlert: "low" | "med" | "high" =
+          p.phvCategory === "early" ? "high"
+          : p.phvCategory === "late" ? "low"
+          : pct > 70 ? "low" : "med";
+        return { id: p.id, name: p.name, position: p.position, academy: "VITAS Academy", vsi: p.vsi, biasAlert };
+      });
+  }, [players]);
 
   const container = {
     hidden: {},
@@ -102,43 +124,43 @@ const MasterDashboard = () => {
         <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-6">
           {/* Left Column - Main Content */}
           <div className="flex-1 space-y-6 min-w-0">
-            {/* Top Stats */}
+            {/* Top Stats — DATOS REALES */}
             <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="glass rounded-xl p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <Users size={16} className="text-muted-foreground" />
                   <span className="text-[10px] font-display text-primary font-semibold">
-                    +12% vs last month
+                    VITAS Academy
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Total Players Scouted
+                  Jugadores Activos
                 </p>
-                <p className="font-display font-bold text-3xl text-foreground">1,482</p>
+                <p className="font-display font-bold text-3xl text-foreground">{stats.activePlayers}</p>
               </div>
               <div className="glass rounded-xl p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <Shield size={16} className="text-muted-foreground" />
                   <span className="text-[10px] font-display text-primary font-semibold">
-                    Top 2.4% Tier
+                    PHV tardío + VSI &lt; 65
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Potential Elite Talents Found
+                  Talentos Ocultos
                 </p>
-                <p className="font-display font-bold text-3xl text-foreground">36</p>
+                <p className="font-display font-bold text-3xl text-foreground">{stats.hiddenTalents}</p>
               </div>
               <div className="glass rounded-xl p-4 border border-border">
                 <div className="flex items-center justify-between mb-3">
                   <TrendingUp size={16} className="text-muted-foreground" />
                   <span className="text-[10px] font-display text-primary font-semibold">
-                    Aggregated Score
+                    Índice VITAS
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Average Academy Growth
+                  VSI Promedio Academia
                 </p>
-                <p className="font-display font-bold text-3xl text-foreground">78.4%</p>
+                <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi}</p>
               </div>
             </motion.div>
 
@@ -229,13 +251,13 @@ const MasterDashboard = () => {
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {mockPlayerReports.map((report) => {
+                {playerReports.map((report) => {
                   const bias = biasColors[report.biasAlert];
                   return (
                     <div
                       key={report.id}
                       className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
-                      onClick={() => navigate("/rankings")}
+                      onClick={() => navigate(`/player/${report.id}`)}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
