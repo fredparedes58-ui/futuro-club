@@ -327,7 +327,7 @@ export default async function handler(req: Request): Promise<Response> {
            vsiMetrics.technique/100, vsiMetrics.defending/100, vsiMetrics.stamina/100]
         : null;
 
-      jr.top5 = top5Pros.map(pro => {
+      const mappedTop5 = top5Pros.map(pro => {
         const pVec = [pro.pace/99, pro.shooting/99, pro.passing/99, pro.dribbling/99, pro.defending/99, pro.physic/99];
         const sim  = yVec ? Math.round(cosine(yVec, pVec) * 1000) / 10 : 70;
         return {
@@ -339,7 +339,8 @@ export default async function handler(req: Request): Promise<Response> {
           razonamiento: `Métricas similares en ${pro.position} — overall ${pro.overall}`,
         };
       });
-      jr.bestMatch = jr.top5[0];
+      jr.top5     = mappedTop5;
+      jr.bestMatch = mappedTop5[0];
     }
   }
 
