@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { mockRoleProfile, type RoleProfileData, type PositionFit, type ArchetypeFit, type EvidenceIndicator } from "@/lib/roleProfileData";
+import { mockRoleProfile, type RoleProfileData, type PositionFit, type ArchetypeFit, type EvidenceIndicator, type GapItem } from "@/lib/roleProfileData";
 import type { Player } from "@/services/real/playerService";
 
 // ─── Zod Schemas for validation ──────────────────────────────────────────
@@ -143,9 +143,14 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
           });
         };
 
-        // Mapea output del agente → formato RoleProfileData del componente
+        // Derivar sample_tier desde minutesPlayed (sin mock)
+        const sampleTier: RoleProfileData["sample_tier"] =
+          player.minutesPlayed >= 1800 ? "platinum" :
+          player.minutesPlayed >= 900  ? "gold"     :
+          player.minutesPlayed >= 360  ? "silver"   : "bronze";
+
+        // Mapea output del agente → formato RoleProfileData del componente (sin spreads mock)
         const agentProfile: RoleProfileData = {
-          ...mockRoleProfile,
           run_id:             `run_${Date.now()}`,
           player_id:          playerId,
           player_name:        player.name,
@@ -153,6 +158,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
           dominant_foot:      player.foot === "right" ? "derecho" : player.foot === "left" ? "izquierdo" : "ambidiestro",
           minutes_played:     player.minutesPlayed,
           competitive_level:  player.competitiveLevel,
+          sample_tier:        sampleTier,
           overall_confidence: d.overallConfidence,
           current: {
             tactical:  d.capabilities.tactical.current,
@@ -160,9 +166,9 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
             physical:  d.capabilities.physical.current,
           },
           projections: {
-            "0_6m":   { tactical: d.capabilities.tactical.p6m,        technical: d.capabilities.technical.p6m,        physical: d.capabilities.physical.p6m },
-            "6_18m":  { tactical: d.capabilities.tactical.p18m,       technical: d.capabilities.technical.p18m,       physical: d.capabilities.physical.p18m },
-            "18_36m": { tactical: d.capabilities.tactical.p18m + 3,   technical: d.capabilities.technical.p18m + 3,   physical: d.capabilities.physical.p18m + 2 },
+            "0_6m":   { tactical: d.capabilities.tactical.p6m,      technical: d.capabilities.technical.p6m,      physical: d.capabilities.physical.p6m },
+            "6_18m":  { tactical: d.capabilities.tactical.p18m,     technical: d.capabilities.technical.p18m,     physical: d.capabilities.physical.p18m },
+            "18_36m": { tactical: d.capabilities.tactical.p18m + 3, technical: d.capabilities.technical.p18m + 3, physical: d.capabilities.physical.p18m + 2 },
           },
           identity: {
             dominant:     d.dominantIdentity,
@@ -183,11 +189,26 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
             stability:  a.stability,
             positions:  [],
           })),
-          strengths:          d.strengths.map((s, i) => ({ code: `STR_${i}`, label: s, impact: "positivo" as const, detail: s })),
-          risks:              d.risks.map((r, i) => ({ code: `RSK_${i}`, label: r, severity: "medium" as const, detail: r })),
-          gaps:               d.gaps.map((g, i) => ({ code: `GAP_${i}`, label: g, priority: i + 1 })),
+          // Strengths: tipo StrengthItem requiere label + evidence + confidence
+          strengths: d.strengths.map((s) => ({
+            label:      s,
+            evidence:   `Detectado en análisis de ${player.minutesPlayed} minutos jugados`,
+            confidence: d.overallConfidence,
+          })),
+          // Risks: tipo requiere code + label + description
+          risks: d.risks.map((r, i) => ({
+            code:        `RSK_${i}`,
+            label:       r,
+            description: r,
+          })),
+          // Gaps: tipo requiere label + priority + relatedPositions
+          gaps: d.gaps.map((g, i) => ({
+            label:            g,
+            priority:         (i === 0 ? "alta" : i === 1 ? "media" : "baja") as GapItem["priority"],
+            relatedPositions: d.topPositions.slice(0, 2).map(p => p.code as RoleProfileData["positions"][0]["code"]),
+          })),
           consolidation_notes: d.strengths.slice(0, 2),
-          evidence:           buildEvidence(player),
+          evidence:            buildEvidence(player),
         };
 
         const parsed = RoleProfileSchema.safeParse(agentProfile);
