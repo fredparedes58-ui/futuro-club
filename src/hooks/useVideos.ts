@@ -9,6 +9,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord } from "@/services/real/videoService";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
+import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
@@ -61,22 +64,25 @@ export function useVideo(id: string | null | undefined) {
 // ── Delete video ──────────────────────────────────────────────────────────────
 export function useDeleteVideo() {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (videoId: string) => {
-      const res = await fetch(`/api/videos/${videoId}/delete`, {
-        method: "DELETE",
-      });
-      const data = (await res.json()) as {
-        success: boolean;
-        phase2Pending?: boolean;
-        error?: string;
-      };
-      if (!data.success && !data.phase2Pending) {
-        throw new Error(data.error ?? "Delete failed");
+      // Delete from Bunny API
+      try {
+        const res = await fetch(`/api/videos/${videoId}/delete`, { method: "DELETE" });
+        const data = (await res.json()) as { success: boolean; phase2Pending?: boolean; error?: string };
+        if (!data.success && !data.phase2Pending) throw new Error(data.error ?? "Delete failed");
+      } catch (err) {
+        // If API delete fails, still remove locally
+        console.warn("[useDeleteVideo] API delete failed:", err);
       }
-      // Always remove locally
-      VideoService.delete(videoId);
+      // Always remove locally + Supabase
+      if (user && SUPABASE_CONFIGURED) {
+        SupabaseVideoService.delete(user.id, videoId);
+      } else {
+        VideoService.delete(videoId);
+      }
     },
     onSuccess: (_, videoId) => {
       toast.success("Video eliminado");

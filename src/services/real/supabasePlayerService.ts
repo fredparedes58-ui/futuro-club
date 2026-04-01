@@ -151,6 +151,19 @@ export const SupabasePlayerService = {
     return updated;
   },
 
+  // ── UPDATE PHV (local + background sync) ──────────────────────────
+  async updatePHV(
+    userId: string,
+    id: string,
+    phvCategory: Player["phvCategory"],
+    phvOffset: number,
+    adjustedVSI: number
+  ): Promise<Player | null> {
+    const updated = PlayerService.updatePHV(id, phvCategory, phvOffset, adjustedVSI);
+    if (updated) this.pushOne(userId, updated).catch(console.warn);
+    return updated;
+  },
+
   // ── DELETE (local + background sync) ──────────────────────────────
   async delete(userId: string, id: string): Promise<boolean> {
     const deleted = PlayerService.delete(id);

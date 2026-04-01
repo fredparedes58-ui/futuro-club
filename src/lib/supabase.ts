@@ -31,3 +31,12 @@ export interface DbPlayer {
   created_at: string;
   updated_at: string;
 }
+
+export interface DbVideo {
+  id: string;
+  user_id: string;
+  player_id: string | null;
+  data: unknown; // VideoRecord JSON
+  created_at: string;
+  updated_at: string;
+}
