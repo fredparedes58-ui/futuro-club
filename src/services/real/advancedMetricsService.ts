@@ -18,6 +18,7 @@
 
 import type { Player } from "./playerService";
 import type { PlayerMetrics } from "./metricsService";
+import type { MatchEvent, EventType, EventZone } from "./matchEventsService";
 
 // ─── Tipos de entrada/salida ──────────────────────────────────────────────────
 
@@ -451,6 +452,72 @@ export const VAEPService = {
       topActions: impacts.slice(0, 5),
       status: "calculated",
       message: `VAEP calculado sobre ${input.actions.length} acciones.`,
+    };
+  },
+
+  /**
+   * Calcula VAEP real desde eventos logueados manualmente por el entrenador.
+   * Usa pesos simplificados por tipo de acción y zona del campo.
+   */
+  calculateFromEvents(events: MatchEvent[], minutesPlayed: number): VAEPResult {
+    if (!events.length) {
+      return {
+        vaepTotal: null,
+        vaep90:    null,
+        topActions: [],
+        status:  "insufficient_data",
+        message: "Sin eventos registrados. Usa '+ LOG' para registrar acciones de partido.",
+      };
+    }
+
+    // Pesos por acción (zona-aware donde aplica)
+    type EventKey = `${EventType}_${"success" | "fail"}`;
+    type ZoneKey  = EventZone | "default";
+    const W: Record<EventKey, number | Record<ZoneKey, number>> = {
+      "shot_success":     0.15,
+      "shot_fail":       -0.03,
+      "pass_success":    { offensive: 0.03, middle: 0.01, defensive: 0.005, default: 0.01 },
+      "pass_fail":       -0.015,
+      "dribble_success":  0.06,
+      "dribble_fail":    -0.02,
+      "tackle_success":   0.04,
+      "tackle_fail":     -0.015,
+      "press_success":    0.025,
+      "press_fail":      -0.005,
+      "cross_success":    0.08,
+      "cross_fail":      -0.02,
+      "header_success":   0.05,
+      "header_fail":     -0.01,
+    };
+
+    const resolveW = (type: EventType, result: "success" | "fail", zone?: EventZone): number => {
+      const key = `${type}_${result}` as EventKey;
+      const entry = W[key];
+      if (typeof entry === "number") return entry;
+      return zone ? (entry[zone] ?? entry["default"]) : entry["default"];
+    };
+
+    let total = 0;
+    const impacts: Array<{ actionId: string; impact: number }> = [];
+
+    for (const evt of events) {
+      const impact = resolveW(evt.type, evt.result, evt.xZone);
+      total += impact;
+      impacts.push({ actionId: evt.id, impact: Math.round(impact * 1000) / 1000 });
+    }
+
+    impacts.sort((a, b) => b.impact - a.impact);
+
+    const vaep90 = minutesPlayed > 0
+      ? Math.round((total / minutesPlayed) * 90 * 1000) / 1000
+      : null;
+
+    return {
+      vaepTotal:  Math.round(total * 1000) / 1000,
+      vaep90,
+      topActions: impacts.slice(0, 5),
+      status:     "calculated",
+      message:    `VAEP calculado desde ${events.length} evento(s) registrados manualmente.`,
     };
   },
 

@@ -4,9 +4,14 @@ import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
+  Activity, ClipboardList,
 } from "lucide-react";
-import { useMemo } from "react";
-import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
+import { useMemo, useState } from "react";
+import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
+import { useMatchEvents, useLogMatchEvent } from "@/hooks/useMatchEvents";
+import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/services/real/matchEventsService";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
@@ -24,7 +29,6 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { useState } from "react";
 import type { PHVInput } from "@/agents/contracts";
 import type { VideoRecord } from "@/services/real/videoService";
 
@@ -84,6 +88,10 @@ const PlayerProfile = () => {
   const [phvInput, setPhvInput] = useState<PHVInput | null>(null);
   const [showVideoUpload, setShowVideoUpload] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
+  const [showLogSheet, setShowLogSheet] = useState(false);
+  const [logForm, setLogForm] = useState<{
+    type: EventType; result: "success" | "fail"; minute: number; xZone: EventZone;
+  }>({ type: "pass", result: "success", minute: 1, xZone: "middle" });
 
   // Datos adaptados para UI
   const { data: player, isLoading, isError } = usePlayerById(id);
@@ -99,9 +107,29 @@ const PlayerProfile = () => {
   // Agente PHV — solo se activa cuando el usuario pulsa "Calcular PHV"
   const { data: phvResult, isFetching: isCalculatingPHV } = usePHVCalculator(phvInput);
 
+  // VAEP — eventos de partido logueados manualmente
+  const { data: matchEvents = [] } = useMatchEvents(id);
+  const logEvent = useLogMatchEvent(id ?? "");
+  const vaepFromEvents = useMemo(
+    () => VAEPService.calculateFromEvents(matchEvents, rawPlayer?.minutesPlayed ?? 0),
+    [matchEvents, rawPlayer]
+  );
+
   if (phvResult) {
     toast.success(`PHV calculado: ${phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal"} (offset ${phvResult.offset > 0 ? "+" : ""}${phvResult.offset})`);
   }
+
+  const handleLogEvent = () => {
+    if (!id) return;
+    logEvent.mutate({
+      type:      logForm.type,
+      result:    logForm.result,
+      minute:    logForm.minute,
+      matchDate: new Date().toISOString().slice(0, 10),
+      xZone:     logForm.xZone,
+    });
+    setShowLogSheet(false);
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -461,11 +489,87 @@ const PlayerProfile = () => {
             )}
           </div>
 
-          {/* VAEP stub banner */}
-          <div className="rounded-lg border border-dashed border-border/60 p-3 text-center">
-            <span className="text-[10px] text-muted-foreground font-display">
-              VAEP · Tracking GPS · Biomecánica — <span className="text-primary/60">en espera de datos de eventos</span>
-            </span>
+          {/* ── VAEP · Valor por Evento ───────────────────────────────────── */}
+          <div className="rounded-lg bg-secondary/40 border border-border p-3 space-y-3">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Activity size={11} className="text-electric" />
+                <span className="text-[11px] font-display font-semibold text-foreground">
+                  VAEP · Valor por Evento
+                </span>
+              </div>
+              <Button size="sm" variant="outline"
+                className="h-6 text-[10px] px-2 font-display"
+                onClick={() => setShowLogSheet(true)}
+              >
+                <Plus size={10} className="mr-1" /> LOG
+              </Button>
+            </div>
+
+            {/* Métricas */}
+            {vaepFromEvents.status === "calculated" ? (
+              <div className="flex gap-4">
+                <div className="text-center">
+                  <p className="text-xs font-display font-bold text-primary">
+                    {vaepFromEvents.vaep90 !== null
+                      ? (vaepFromEvents.vaep90 > 0 ? "+" : "") + vaepFromEvents.vaep90.toFixed(2)
+                      : "—"}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground font-display">VAEP/90</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-display font-bold text-electric">
+                    {vaepFromEvents.vaepTotal !== null
+                      ? (vaepFromEvents.vaepTotal > 0 ? "+" : "") + vaepFromEvents.vaepTotal.toFixed(2)
+                      : "—"}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground font-display">Total xG</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-display font-bold text-gold">{matchEvents.length}</p>
+                  <p className="text-[9px] text-muted-foreground font-display">Eventos</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground font-display">
+                Sin eventos aún — pulsa LOG para registrar acciones de partido.
+              </p>
+            )}
+
+            {/* Top acciones */}
+            {vaepFromEvents.topActions.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[9px] font-display text-muted-foreground uppercase tracking-wider">
+                  Top acciones:
+                </p>
+                {vaepFromEvents.topActions.slice(0, 5).map((action) => {
+                  const evt = matchEvents.find((e) => e.id === action.actionId);
+                  if (!evt) return null;
+                  return (
+                    <div key={action.actionId} className="flex items-center gap-2">
+                      <span className={`text-[10px] ${action.impact >= 0 ? "text-primary" : "text-destructive"}`}>
+                        {action.impact >= 0 ? "✓" : "✗"}
+                      </span>
+                      <span className="text-[10px] font-display text-foreground capitalize">
+                        {evt.type} (min {evt.minute})
+                      </span>
+                      <span className={`ml-auto text-[10px] font-display font-semibold ${action.impact >= 0 ? "text-primary" : "text-destructive"}`}>
+                        {action.impact > 0 ? "+" : ""}{action.impact.toFixed(3)} xG
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Registrar evento */}
+            <button
+              onClick={() => setShowLogSheet(true)}
+              className="w-full text-[10px] font-display text-primary hover:underline flex items-center justify-center gap-1 pt-1"
+            >
+              <ClipboardList size={10} /> Registrar Evento
+            </button>
           </div>
         </motion.div>
       )}
@@ -654,6 +758,95 @@ const PlayerProfile = () => {
           </AlertDialogContent>
         </AlertDialog>
       </motion.div>
+
+      {/* ── Sheet: Log Evento VAEP ─────────────────────────────────────────── */}
+      <Sheet open={showLogSheet} onOpenChange={setShowLogSheet}>
+        <SheetContent side="bottom" className="h-auto pb-8">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="font-display text-base">Registrar Evento</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4">
+            {/* Tipo */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
+                Tipo de acción
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {EVENT_TYPES.map((t) => (
+                  <button key={t}
+                    onClick={() => setLogForm((f) => ({ ...f, type: t }))}
+                    className={`px-3 py-1 rounded-full text-xs font-display border transition-colors ${
+                      logForm.type === t
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-secondary text-foreground border-border hover:border-primary/40"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Resultado */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
+                Resultado
+              </label>
+              <div className="flex gap-2">
+                {(["success", "fail"] as const).map((r) => (
+                  <button key={r}
+                    onClick={() => setLogForm((f) => ({ ...f, result: r }))}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-display border transition-colors ${
+                      logForm.result === r
+                        ? r === "success"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-destructive text-destructive-foreground border-destructive"
+                        : "bg-secondary text-foreground border-border"
+                    }`}
+                  >
+                    {r === "success" ? "✓ Éxito" : "✗ Fallo"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Minuto */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
+                Minuto
+              </label>
+              <Input type="number" min={1} max={120} value={logForm.minute}
+                onChange={(e) => setLogForm((f) => ({ ...f, minute: Number(e.target.value) }))}
+                className="h-9 text-sm font-display"
+              />
+            </div>
+            {/* Zona */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
+                Zona del campo
+              </label>
+              <div className="flex gap-2">
+                {EVENT_ZONES.map((z) => (
+                  <button key={z}
+                    onClick={() => setLogForm((f) => ({ ...f, xZone: z }))}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-display border capitalize transition-colors ${
+                      logForm.xZone === z
+                        ? "bg-primary/10 text-primary border-primary"
+                        : "bg-secondary text-foreground border-border"
+                    }`}
+                  >
+                    {z}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Guardar */}
+            <Button className="w-full mt-2" onClick={handleLogEvent} disabled={logEvent.isPending}>
+              {logEvent.isPending
+                ? <><RefreshCw size={14} className="mr-2 animate-spin" /> Guardando…</>
+                : "Guardar"}
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </motion.div>
   );
 };
