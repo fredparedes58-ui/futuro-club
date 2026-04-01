@@ -1,12 +1,13 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, Crosshair, BarChart3, LayoutDashboard, LogOut } from "lucide-react";
+import { Activity, Compass, Crosshair, BarChart3, LayoutDashboard, LogOut, Users } from "lucide-react";
 import { useState } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
+import { usePlan } from "@/hooks/usePlan";
 
-const navItems = [
+const BASE_NAV = [
   { path: "/pulse",   icon: Activity,       label: "Pulse" },
   { path: "/master",  icon: LayoutDashboard, label: "Master" },
   { path: "/scout",   icon: Compass,         label: "Scout" },
@@ -22,9 +23,14 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const { user, signOut, configured } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const { isClub } = usePlan();
 
   // Sincroniza jugadores desde Supabase al hacer login
   useSupabaseSync();
+
+  const navItems = isClub
+    ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "Equipo" }]
+    : BASE_NAV;
 
   const shouldHide =
     location.pathname === "/" ||

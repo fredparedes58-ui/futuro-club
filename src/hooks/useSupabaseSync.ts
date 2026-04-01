@@ -8,6 +8,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
+import { SubscriptionService } from "@/services/real/subscriptionService";
+import { UserProfileService } from "@/services/real/userProfileService";
 
 export function useSupabaseSync() {
   const { user, configured } = useAuth();
@@ -35,11 +37,15 @@ export function useSupabaseSync() {
     Promise.all([
       SupabasePlayerService.pullAll(user.id),
       SupabaseVideoService.pullAll(user.id),
+      SubscriptionService.syncFromSupabase(user.id),
+      UserProfileService.syncFromSupabase(user.id),
     ]).then(() => {
       qc.invalidateQueries({ queryKey: ["players-all"] });
       qc.invalidateQueries({ queryKey: ["rankings"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
       qc.invalidateQueries({ queryKey: ["videos"] });
+      qc.invalidateQueries({ queryKey: ["subscription", user.id] });
+      qc.invalidateQueries({ queryKey: ["user-profile", user.id] });
     }).catch(console.warn);
   }, [user, configured, qc]);
 

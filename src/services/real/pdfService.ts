@@ -25,6 +25,18 @@ export const PDFService = {
   },
 
   /**
+   * Descarga el informe del jugador como imagen PNG usando html2canvas.
+   * Abre /report/:id?format=image en nueva pestaña que auto-captura.
+   */
+  exportAsImage(playerId: string): void {
+    const url = `/report/${playerId}?format=image`;
+    const win = window.open(url, "_blank");
+    if (!win) {
+      window.location.href = url;
+    }
+  },
+
+  /**
    * Imprime la página actual directamente.
    * Útil para dashboards y rankings.
    */

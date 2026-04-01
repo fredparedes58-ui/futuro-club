@@ -36,6 +36,8 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
 import PlayerReportPrint from "./pages/PlayerReportPrint";
+import TeamPage from "./pages/TeamPage";
+import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 
 // Sync hook — activa pull de Supabase al hacer login
 function SyncManager() {
@@ -95,6 +97,8 @@ const App = () => (
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
                 <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<PlayerReportPrint />} />
+                <Route path="/equipo" element={<P><TeamPage /></P>} />
+                <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>

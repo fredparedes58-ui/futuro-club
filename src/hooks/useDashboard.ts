@@ -24,7 +24,8 @@ export function useLiveMatches() {
   return useQuery({
     queryKey: ["live-matches"],
     queryFn: fetchLiveMatches,
-    staleTime: 1000 * 30, // 30s for live data
+    staleTime: 1000 * 60, // 60s
+    refetchInterval: 1000 * 60, // auto-refresh cada 60s
     retry: 2,
   });
 }

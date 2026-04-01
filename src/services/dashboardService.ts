@@ -27,6 +27,14 @@ export async function fetchTrendingPlayers(): Promise<Player[]> {
 }
 
 export async function fetchLiveMatches(): Promise<LiveMatch[]> {
-  // Partidos en vivo — se conectarán a datos reales en Fase 3
+  try {
+    const res = await fetch("/api/fixtures/live");
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) return data as LiveMatch[];
+    }
+  } catch {
+    // fallback a mock si la API no está disponible
+  }
   return mockMatches as LiveMatch[];
 }
