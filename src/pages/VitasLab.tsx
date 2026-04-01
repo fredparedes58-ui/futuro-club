@@ -32,6 +32,8 @@ import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
+import { usePlan } from "@/hooks/usePlan";
+import { SubscriptionService } from "@/services/real/subscriptionService";
 
 interface CalibrationPoint {
   id: number;
@@ -130,6 +132,7 @@ type AnalysisState = "idle" | "running" | "done" | "error";
 const VitasLab = () => {
   const navigate  = useNavigate();
   const { user }  = useAuth();
+  const { canRunAnalysis, analysesUsed, limits } = usePlan();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -248,6 +251,14 @@ const VitasLab = () => {
   const handleCanvasMouseUp = () => setDraggingPoint(null);
 
   const handleStartAnalysis = async () => {
+    if (!canRunAnalysis) {
+      const limitLabel = limits.analyses >= 9999 ? "∞" : limits.analyses;
+      toast.error(`Límite de análisis alcanzado: ${analysesUsed}/${limitLabel} este mes.`, {
+        action: { label: "Actualizar plan", onClick: () => navigate("/billing") },
+        duration: 5000,
+      });
+      return;
+    }
     if (!selectedVideoId) {
       toast.info("Selecciona un video primero", {
         description: "Haz clic en 'SUBIR VIDEO' para cargar o seleccionar un partido.",
@@ -314,6 +325,7 @@ const VitasLab = () => {
 
       setAnalysisReport(data.report);
       setAnalysisState("done");
+      SubscriptionService.incrementAnalysisCount();
       toast.dismiss(toastId);
       toast.success("¡Análisis completado!", {
         description: `Informe VITAS Intelligence generado. Confianza: ${Math.round((data.report.confianza ?? 0) * 100)}%`,

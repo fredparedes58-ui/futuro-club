@@ -31,6 +31,9 @@ import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
 import ReportsPage from "./pages/ReportsPage";
 import PlayerForm from "./pages/PlayerForm";
+import BillingPage from "./pages/BillingPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import DirectorDashboard from "./pages/DirectorDashboard";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
 import PlayerReportPrint from "./pages/PlayerReportPrint";
 
@@ -71,6 +74,7 @@ const App = () => (
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
+                <Route path="/onboarding" element={<P><OnboardingPage /></P>} />
                 <Route path="/" element={<P><Index /></P>} />
                 <Route path="/pulse" element={<P><Dashboard /></P>} />
                 <Route path="/master" element={<P><MasterDashboard /></P>} />
@@ -81,6 +85,8 @@ const App = () => (
                 <Route path="/compare" element={<P><PlayerComparison /></P>} />
                 <Route path="/lab" element={<P><VitasLab /></P>} />
                 <Route path="/settings" element={<P><SettingsPage /></P>} />
+                <Route path="/billing" element={<P><BillingPage /></P>} />
+                <Route path="/director" element={<P><DirectorDashboard /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
                 <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />

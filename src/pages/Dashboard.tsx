@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus } from "lucide-react";
+import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
@@ -8,6 +8,7 @@ import LiveMatchCard from "@/components/LiveMatchCard";
 import PlayerCard from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const statIcons = [Users, Zap, Activity, TrendingUp];
 const statLabels = ["Jugadores Activos", "Drills Completados", "VSI Promedio", "Talentos Ocultos"];
@@ -15,6 +16,7 @@ const statSubLabels = ["Academia activa", "Histórico total", "Índice academia"
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isDirector } = useUserProfile();
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats();
   const { data: players, isLoading: playersLoading, isError: playersError } = useTrendingPlayers();
   const { data: matches, isLoading: matchesLoading, isError: matchesError } = useLiveMatches();
@@ -75,7 +77,7 @@ const Dashboard = () => {
           { path: "/master", icon: LayoutDashboard, label: "Master Dashboard", sub: "Academy Intelligence", color: "text-primary" },
           { path: "/lab", icon: Camera, label: "VITAS.LAB", sub: "Video Analysis", color: "text-primary" },
           { path: "/compare", icon: GitCompareArrows, label: "Comparison Tool", sub: "Scout Analysis", color: "text-electric" },
-          { path: "/settings", icon: Settings, label: "Configuración", sub: "Ajustes", color: "text-gold" },
+          ...(isDirector ? [{ path: "/director", icon: Trophy, label: "Director", sub: "Analytics & Uso", color: "text-gold" }] : [{ path: "/settings", icon: Settings, label: "Configuración", sub: "Ajustes", color: "text-gold" }]),
         ].map(({ path, icon: Icon, label, sub, color }) => (
           <button
             key={path}

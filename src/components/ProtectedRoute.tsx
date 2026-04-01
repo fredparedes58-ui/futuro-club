@@ -10,6 +10,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { UserProfileService } from "@/services/real/userProfileService";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -42,6 +43,14 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Sin sesión → login, guardando la ruta original
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Onboarding no completado → redirigir (excepto si ya está en /onboarding)
+  if (location.pathname !== "/onboarding") {
+    const onboardingDone = UserProfileService.isOnboardingCompleted(user.id);
+    if (!onboardingDone) {
+      return <Navigate to="/onboarding" replace />;
+    }
   }
 
   return <>{children}</>;

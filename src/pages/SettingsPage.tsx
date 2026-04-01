@@ -12,7 +12,10 @@ import {
   ToggleRight,
   ToggleLeft,
   Check,
+  Zap,
 } from "lucide-react";
+import { usePlan, type PlanState } from "@/hooks/usePlan";
+import { PLAN_LABELS } from "@/services/real/subscriptionService";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -39,6 +42,7 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<AppSettings>(() =>
     StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
   );
+  const planState: PlanState = usePlan();
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const [pushLoading, setPushLoading] = useState(false);
 
@@ -142,6 +146,30 @@ const SettingsPage = () => {
           </div>
         </motion.div>
       )}
+
+      {/* Plan */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Plan</h2>
+        <div
+          className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
+          onClick={() => navigate("/billing")}
+        >
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Zap size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">
+              {PLAN_LABELS[planState.plan]}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {planState.playerCount} / {planState.limits.players >= 9999 ? "∞" : planState.limits.players} jugadores
+              {" · "}
+              {planState.analysesUsed} / {planState.limits.analyses >= 9999 ? "∞" : planState.limits.analyses} análisis
+            </p>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </div>
+      </motion.div>
 
       {/* General */}
       <motion.div variants={item} className="space-y-2">

@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS · Football Intelligence — Platform Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a14;
+      --bg2:       #0f0f1e;
+      --bg3:       #13131f;
+      --border:    rgba(99, 102, 241, 0.15);
+      --border2:   rgba(99, 102, 241, 0.08);
+      --indigo:    #6366f1;
+      --violet:    #8b5cf6;
+      --electric:  #38bdf8;
+      --gold:      #f59e0b;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --text:      #f1f5f9;
+      --muted:     #64748b;
+      --subtle:    #94a3b8;
+      --card-bg:   rgba(15, 15, 30, 0.85);
+      --glass:     rgba(99, 102, 241, 0.05);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Layout ── */
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 80px 0; }
+
+    /* ── Typography ── */
+    .font-display { font-family: 'Rajdhani', sans-serif; }
+    h1, h2, h3, h4 { font-family: 'Rajdhani', sans-serif; font-weight: 700; line-height: 1.2; }
+
+    /* ── Glassmorphism ── */
+    .glass {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(99, 102, 241, 0.12);
+    }
+
+    /* ── Gradient text ── */
+    .grad-text {
+      background: linear-gradient(135deg, var(--indigo) 0%, var(--violet) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .grad-text-gold {
+      background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 20, 0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border2);
+      padding: 14px 0;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .nav-logo {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      color: #fff;
+      padding: 7px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.5px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      padding: 120px 0 80px;
+    }
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 60%, rgba(139,92,246,0.1) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+    .hero-content { position: relative; z-index: 1; max-width: 780px; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.3);
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--indigo);
+      margin-bottom: 28px;
+    }
+    .hero-badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--indigo);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .hero h1 {
+      font-size: clamp(52px, 9vw, 96px);
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .hero-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: clamp(20px, 3.5vw, 30px);
+      font-weight: 500;
+      color: var(--subtle);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero-desc {
+      font-size: 17px;
+      color: var(--subtle);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 64px; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--indigo), var(--violet));
+      color: #fff;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    }
+    .btn-primary:hover { opacity: 0.88; box-shadow: 0 8px 30px rgba(99,102,241,0.45); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--indigo); background: rgba(99,102,241,0.06); }
+    .hero-url {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid var(--border);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .hero-url span { color: var(--indigo); font-weight: 600; }
+
+    /* ── Metrics Banner ── */
+    .metrics-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .metric-cell {
+      background: var(--bg2);
+      padding: 28px 24px;
+      text-align: center;
+      transition: background 0.2s;
+    }
+    .metric-cell:hover { background: var(--bg3); }
+    .metric-num {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .metric-label {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Section headers ── */
+    .section-header { margin-bottom: 52px; }
+    .section-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--indigo);
+      margin-bottom: 12px;
+    }
+    .section-header h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      margin-bottom: 14px;
+    }
+    .section-header p {
+      color: var(--subtle);
+      font-size: 16px;
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    /* ── Module cards grid ── */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .module-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .module-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99,102,241,0.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .module-card:hover {
+      border-color: rgba(99,102,241,0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(99,102,241,0.12);
+    }
+    .module-icon {
+      font-size: 32px;
+      width: 56px; height: 56px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .module-route {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      font-family: 'Courier New', monospace;
+      color: var(--indigo);
+      background: rgba(99,102,241,0.08);
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+    .module-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .module-desc {
+      font-size: 13.5px;
+      color: var(--subtle);
+      line-height: 1.65;
+      flex: 1;
+    }
+    .module-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .tag {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .tag-indigo { background: rgba(99,102,241,0.12); color: var(--indigo); }
+    .tag-violet { background: rgba(139,92,246,0.12); color: var(--violet); }
+    .tag-electric { background: rgba(56,189,248,0.12); color: var(--electric); }
+    .tag-gold { background: rgba(245,158,11,0.12); color: var(--gold); }
+    .tag-green { background: rgba(34,197,94,0.12); color: var(--green); }
+    .tag-red { background: rgba(239,68,68,0.12); color: var(--red); }
+
+    /* ── Stack section ── */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .stack-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+    .stack-card:hover { border-color: rgba(99,102,241,0.35); }
+    .stack-category {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .stack-items { display: flex; flex-wrap: wrap; gap: 7px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .badge-blue { background: rgba(99,102,241,0.12); color: #818cf8; border-color: rgba(99,102,241,0.2); }
+    .badge-purple { background: rgba(139,92,246,0.12); color: #a78bfa; border-color: rgba(139,92,246,0.2); }
+    .badge-sky { background: rgba(56,189,248,0.12); color: #7dd3fc; border-color: rgba(56,189,248,0.2); }
+    .badge-emerald { background: rgba(34,197,94,0.12); color: #6ee7b7; border-color: rgba(34,197,94,0.2); }
+    .badge-amber { background: rgba(245,158,11,0.12); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
+    .badge-rose { background: rgba(239,68,68,0.12); color: #fca5a5; border-color: rgba(239,68,68,0.2); }
+    .badge-slate { background: rgba(100,116,139,0.12); color: #94a3b8; border-color: rgba(100,116,139,0.2); }
+
+    /* ── API table ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead { background: rgba(99,102,241,0.08); }
+    th {
+      padding: 14px 18px;
+      text-align: left;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border2);
+      color: var(--subtle);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(99,102,241,0.03); }
+    .method {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      letter-spacing: 0.5px;
+    }
+    .method-get { background: rgba(34,197,94,0.15); color: #6ee7b7; }
+    .method-post { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .method-patch { background: rgba(245,158,11,0.15); color: #fcd34d; }
+    .method-delete { background: rgba(239,68,68,0.15); color: #fca5a5; }
+    .endpoint-path {
+      font-family: 'Courier New', monospace;
+      font-size: 12.5px;
+      color: var(--text);
+    }
+
+    /* ── Pipeline section ── */
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      position: relative;
+    }
+    .pipeline-step {
+      flex: 1;
+      min-width: 160px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      position: relative;
+    }
+    .pipeline-step:first-child { border-radius: 14px 0 0 14px; }
+    .pipeline-step:last-child { border-radius: 0 14px 14px 0; }
+    .pipeline-step + .pipeline-step { border-left: none; }
+    .pipeline-step::after {
+      content: '→';
+      position: absolute;
+      right: -14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: var(--indigo);
+      z-index: 1;
+    }
+    .pipeline-step:last-child::after { display: none; }
+    .step-num {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--indigo);
+      margin-bottom: 8px;
+    }
+    .step-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .step-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ── PHV section ── */
+    .phv-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .phv-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .phv-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+    .phv-late::before { background: linear-gradient(90deg, var(--indigo), var(--violet)); }
+    .phv-normal::before { background: linear-gradient(90deg, var(--electric), #0ea5e9); }
+    .phv-early::before { background: linear-gradient(90deg, var(--gold), #f97316); }
+    .phv-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .phv-desc { font-size: 13px; color: var(--subtle); line-height: 1.6; }
+
+    /* ── VSI gauge visual ── */
+    .vsi-demo {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+    }
+    .vsi-ring {
+      position: relative;
+      width: 120px; height: 120px;
+      flex-shrink: 0;
+    }
+    .vsi-ring svg { transform: rotate(-90deg); }
+    .vsi-ring-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .vsi-num {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      color: var(--indigo);
+      line-height: 1;
+    }
+    .vsi-label { font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+    /* ── Feature list ── */
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--subtle);
+    }
+    .feature-list li::before {
+      content: '✦';
+      color: var(--indigo);
+      font-size: 10px;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    /* ── Two-col layout ── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    @media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border2);
+      padding: 40px 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: gap;
+      gap: 20px;
+    }
+    .footer-brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 3px;
+    }
+    .footer-meta { font-size: 12px; color: var(--muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0;
+    }
+
+    /* ── Animate on scroll ── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ── Mobile nav ── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      section { padding: 56px 0; }
+      .hero { padding: 100px 0 60px; }
+      .pipeline { flex-direction: column; }
+      .pipeline-step { border-radius: 0 !important; border-left: 1px solid var(--border) !important; }
+      .pipeline-step::after { content: '↓'; right: auto; bottom: -14px; top: auto; left: 50%; transform: translateX(-50%); }
+      .pipeline-step:last-child::after { display: none; }
+    }
+
+    /* ── Glow accents ── */
+    .glow-indigo { text-shadow: 0 0 20px rgba(99,102,241,0.5); }
+    .dot-pulse {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+      margin-right: 6px;
+    }
+    .status-live {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: var(--green);
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+    .highlight-row td { background: rgba(99,102,241,0.06) !important; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ NAV ══════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <span class="nav-logo">VITAS</span>
+    <ul class="nav-links">
+      <li><a href="#modules">Módulos</a></li>
+      <li><a href="#stack">Stack</a></li>
+      <li><a href="#api">API</a></li>
+      <li><a href="#pipeline">Pipeline IA</a></li>
+      <li><a href="#metrics">Métricas</a></li>
+    </ul>
+    <a href="https://futuro-club.vercel.app" target="_blank" class="nav-cta">Ver App →</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════ HERO ═════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="hero-badge-dot"></span>
+        Football Intelligence Platform · v1.0
+      </div>
+      <h1 class="grad-text glow-indigo">VITAS</h1>
+      <p class="hero-sub">Football Intelligence</p>
+      <p class="hero-desc">
+        Plataforma de análisis deportivo de próxima generación. Scouting basado en
+        inteligencia artificial, ajuste por maduración biológica PHV y pipeline
+        de vídeo para descubrir talento oculto en el fútbol de cantera y
+        profesional.
+      </p>
+      <div class="hero-actions">
+        <a href="https://futuro-club.vercel.app" target="_blank" class="btn-primary">Acceder a la App</a>
+        <a href="#modules" class="btn-secondary">Ver Funcionalidades</a>
+      </div>
+      <div class="hero-url">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span>futuro-club.vercel.app</span>
+        &nbsp;·&nbsp;
+        <span class="status-live"><span class="dot-pulse"></span>LIVE</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ METRICS BANNER ════════════════════════ -->
+<section id="metrics" style="padding: 56px 0;">
+  <div class="container">
+    <div class="metrics-banner fade-up">
+      <div class="metric-cell">
+        <div class="metric-num grad-text">139</div>
+        <div class="metric-label">Jugadores Pro</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num" style="color: var(--violet);">11</div>
+        <div class="metric-label">Edge Functions</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num" style="color: var(--electric);">6</div>
+        <div class="metric-label">Dimensiones VSI</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num" style="color: var(--gold);">3</div>
+        <div class="metric-label">Categorías PHV</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num" style="color: var(--green);">99.8%</div>
+        <div class="metric-label">Uptime Sistema</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num grad-text">16</div>
+        <div class="metric-label">Rutas App</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-num" style="color: var(--violet);">PWA</div>
+        <div class="metric-label">Instalable</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ MODULES ══════════════════════════════ -->
+<section id="modules">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Módulos de la plataforma</span>
+      <h2>Todo lo que necesita un <span class="grad-text">scout moderno</span></h2>
+      <p>Cada módulo ha sido diseñado para cubrir el ciclo completo de análisis de talento: captación, evaluación, seguimiento y proyección de carrera.</p>
+    </div>
+
+    <div class="modules-grid">
+
+      <!-- Master Dashboard -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🏛️</div>
+        <div>
+          <div class="module-route">/master</div>
+          <div class="module-title">Master Dashboard</div>
+        </div>
+        <div class="module-desc">
+          Panel ejecutivo de academia. Visualiza métricas globales en tiempo real: jugadores activos, talentos ocultos, VSI promedio de academia y distribución global del talento por clústeres geográficos EU/LATAM. Incluye live feed de eventos y gestión de análisis en curso con barras de progreso animadas.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-indigo">KPIs Globales</span>
+          <span class="tag tag-violet">Live Feed</span>
+          <span class="tag tag-electric">Distribución Geo</span>
+          <span class="tag tag-gold">Bias Alerts</span>
+        </div>
+      </div>
+
+      <!-- Dashboard / Pulse -->
+      <div class="module-card fade-up">
+        <div class="module-icon">⚡</div>
+        <div>
+          <div class="module-route">/pulse</div>
+          <div class="module-title">Pulse Dashboard</div>
+        </div>
+        <div class="module-desc">
+          Vista de pulso personal del scout. Acceso rápido a las últimas actividades, jugadores en seguimiento activo y estado de los análisis. Diseñado para uso móvil diario con navegación inferior contextual.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-indigo">Resumen Diario</span>
+          <span class="tag tag-electric">Mobile First</span>
+          <span class="tag tag-green">Quick Actions</span>
+        </div>
+      </div>
+
+      <!-- Rankings -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🏆</div>
+        <div>
+          <div class="module-route">/rankings</div>
+          <div class="module-title">Rankings & Base de Datos</div>
+        </div>
+        <div class="module-desc">
+          Clasificación completa de jugadores ordenada por índice VSI ajustado por maduración biológica. Pódium visual para el top 3, filtros multicapa por PHV (Tardío/Normal/Precoz) y posición táctica. Sorting bidireccional por VSI, edad o nombre. Tendencias al alza/baja por jugador.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-gold">VSI Ranking</span>
+          <span class="tag tag-indigo">Filtro PHV</span>
+          <span class="tag tag-violet">11 Posiciones</span>
+          <span class="tag tag-electric">Pódium Visual</span>
+        </div>
+      </div>
+
+      <!-- Player Profile -->
+      <div class="module-card fade-up">
+        <div class="module-icon">👤</div>
+        <div>
+          <div class="module-route">/player/:id</div>
+          <div class="module-title">Perfil del Jugador</div>
+        </div>
+        <div class="module-desc">
+          Ficha completa con gauge VSI circular animado, radar chart de 6 atributos, categoría PHV con descripción del sesgo aplicado, vídeos vinculados al jugador y cálculo PHV en tiempo real mediante agente IA. Permite editar, eliminar y subir nuevos vídeos directamente desde el perfil.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-indigo">VSI Gauge</span>
+          <span class="tag tag-violet">Radar Chart</span>
+          <span class="tag tag-gold">PHV Agent</span>
+          <span class="tag tag-electric">Video Upload</span>
+        </div>
+      </div>
+
+      <!-- Player Intelligence -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🧠</div>
+        <div>
+          <div class="module-route">/players/:id/intelligence</div>
+          <div class="module-title">Player Intelligence</div>
+        </div>
+        <div class="module-desc">
+          Motor de inteligencia profunda por jugador. Analiza 6 dimensiones de rendimiento, genera el ADN Futbolístico único, identifica al jugador profesional de referencia (ProPlayerMatch), proyecta trayectoria de carrera y crea un plan de desarrollo personalizado. Soporta disparar nuevos análisis desde vídeo.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-violet">ADN Futbolístico</span>
+          <span class="tag tag-gold">Pro Match IA</span>
+          <span class="tag tag-indigo">Proyección Carrera</span>
+          <span class="tag tag-electric">6 Dimensiones</span>
+          <span class="tag tag-green">Plan Desarrollo</span>
+        </div>
+      </div>
+
+      <!-- Player Comparison -->
+      <div class="module-card fade-up">
+        <div class="module-icon">⚖️</div>
+        <div>
+          <div class="module-route">/compare</div>
+          <div class="module-title">Comparador de Jugadores</div>
+        </div>
+        <div class="module-desc">
+          Herramienta de comparación lado a lado entre jugadores. Radar chart superpuesto con los 6 atributos de ambos perfiles, similarity score mediante algoritmo de distancia coseno, y exportación de informe. Requiere mínimo 2 jugadores en base de datos.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-indigo">Radar Overlay</span>
+          <span class="tag tag-violet">Similarity Score</span>
+          <span class="tag tag-electric">Exportar Informe</span>
+          <span class="tag tag-gold">VSI Dual</span>
+        </div>
+      </div>
+
+      <!-- Role Profile -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🎭</div>
+        <div>
+          <div class="module-route">/players/:id/role-profile</div>
+          <div class="module-title">Perfil de Rol</div>
+        </div>
+        <div class="module-desc">
+          Motor de perfil, rol y proyección. Tarjetas de capacidades, ranking de ajuste por posición táctica, ranking de arquetipo, panel de fortalezas y riesgos, y comparador de proyección. Tres modos de vista: Scout, Director Técnico y Analista. Navegación a comparativa y auditoría de rol.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-violet">Arquetipo</span>
+          <span class="tag tag-indigo">Position Fit</span>
+          <span class="tag tag-gold">Fortalezas/Riesgos</span>
+          <span class="tag tag-electric">3 Vistas</span>
+          <span class="tag tag-green">Auditoría</span>
+        </div>
+      </div>
+
+      <!-- VITAS Lab -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🔬</div>
+        <div>
+          <div class="module-route">/lab</div>
+          <div class="module-title">VITAS Lab — Video IA</div>
+        </div>
+        <div class="module-desc">
+          Centro de procesamiento de vídeo con IA. Subida de partidos, calibración interactiva de puntos en campo (pitch mapping), y cuatro modos de análisis: All Players (heatmaps globales), Click-to-Track (seguimiento individual), Swords (duelos), y Rocket (sprints). Pipeline visual paso a paso: Upload → Mapping → Process.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-violet">Pitch Mapping</span>
+          <span class="tag tag-indigo">4 Modos Análisis</span>
+          <span class="tag tag-electric">Heatmaps</span>
+          <span class="tag tag-gold">Click-to-Track</span>
+          <span class="tag tag-red">Duelos IA</span>
+        </div>
+      </div>
+
+      <!-- Scout Feed -->
+      <div class="module-card fade-up">
+        <div class="module-icon">📡</div>
+        <div>
+          <div class="module-route">/scout</div>
+          <div class="module-title">Scout Feed & Informes</div>
+        </div>
+        <div class="module-desc">
+          Feed inteligente de insights generados por IA. Alertas automáticas de tipo: 🔥 BREAKOUT (jugador en eclosión), 🔬 COMPARATIVA, ⚠️ ALERTA PHV (maduración crítica), y 🏆 RÉCORD DRILL. Scroll infinito con actualización en tiempo real y filtrado por tipo de evento.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-red">Breakout Alerts</span>
+          <span class="tag tag-gold">PHV Alerts</span>
+          <span class="tag tag-indigo">AI Insights</span>
+          <span class="tag tag-electric">Live Updates</span>
+        </div>
+      </div>
+
+      <!-- Reports Page -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🎬</div>
+        <div>
+          <div class="module-route">/reports</div>
+          <div class="module-title">Centro de Vídeos</div>
+        </div>
+        <div class="module-desc">
+          Repositorio central de vídeos de partidos y entrenamientos. Integración con Bunny Stream CDN para reproducción de alta calidad. Búsqueda por jugador o partido, subida inline sin salir de la página, y eliminación con confirmación. Vinculación directa de vídeos a perfiles de jugadores.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-violet">Bunny Stream</span>
+          <span class="tag tag-indigo">CDN Video</span>
+          <span class="tag tag-electric">Búsqueda</span>
+          <span class="tag tag-gold">Upload Inline</span>
+        </div>
+      </div>
+
+      <!-- Solo Drill -->
+      <div class="module-card fade-up">
+        <div class="module-icon">🎯</div>
+        <div>
+          <div class="module-route">/drill</div>
+          <div class="module-title">Solo Drill — Entrenamiento</div>
+        </div>
+        <div class="module-desc">
+          Módulo de sesiones individuales de entrenamiento. Cuatro categorías de trabajo: Técnica (control, pase, regate), Táctica (posicionamiento), Físico (velocidad, resistencia) y Disparo (potencia y precisión). Accesos rápidos a Rankings, Comparador, Intelligence Report y subida de vídeo.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-indigo">4 Categorías</span>
+          <span class="tag tag-violet">Quick Actions</span>
+          <span class="tag tag-electric">Intelligence Link</span>
+          <span class="tag tag-gold">Video Upload</span>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="module-card fade-up">
+        <div class="module-icon">⚙️</div>
+        <div>
+          <div class="module-route">/settings</div>
+          <div class="module-title">Configuración</div>
+        </div>
+        <div class="module-desc">
+          Panel de configuración de cuenta y preferencias del sistema. Gestión de perfil de usuario, configuración de notificaciones push, y preferencias de análisis. Acceso restringido mediante rutas protegidas con AuthProvider + ProtectedRoute.
+        </div>
+        <div class="module-tags">
+          <span class="tag tag-slate">Perfil Usuario</span>
+          <span class="tag tag-indigo">Web Push</span>
+          <span class="tag tag-violet">Auth Protegido</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ VSI INDEX ════════════════════════════ -->
+<section id="vsi">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Motor de evaluación</span>
+      <h2>Índice VSI — <span class="grad-text">VITAS Score Intelligence</span></h2>
+      <p>El VSI es el núcleo algorítmico de la plataforma. Una puntuación holística que combina 6 dimensiones atléticas con corrección estadística por maduración biológica.</p>
+    </div>
+
+    <div class="two-col fade-up" style="gap: 40px;">
+      <div>
+        <div class="vsi-demo">
+          <div class="vsi-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(99,102,241,0.12)" stroke-width="10"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="url(#vsiGrad)" stroke-width="10"
+                stroke-dasharray="314" stroke-dashoffset="78" stroke-linecap="round"/>
+              <defs>
+                <linearGradient id="vsiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#8b5cf6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="vsi-ring-inner">
+              <span class="vsi-num">75</span>
+              <span class="vsi-label">VSI</span>
+            </div>
+          </div>
+          <div>
+            <p style="font-family: 'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px;">6 Dimensiones evaluadas</p>
+            <ul class="feature-list">
+              <li><strong style="color:var(--text);">PACE</strong> — Velocidad y aceleración en carrera</li>
+              <li><strong style="color:var(--text);">TÉC</strong> — Técnica: control, pase, regate</li>
+              <li><strong style="color:var(--text);">VIS</strong> — Visión de juego y lectura táctica</li>
+              <li><strong style="color:var(--text);">PHY</strong> — Resistencia y capacidad física</li>
+              <li><strong style="color:var(--text);">DRI</strong> — Habilidad en conducción/dribling</li>
+              <li><strong style="color:var(--text);">DEF</strong> — Capacidad defensiva e intensidad</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+          <p style="font-family:'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px;">Cómo se calcula el percentil</p>
+          <div style="font-family:'Courier New'; font-size:12px; color:var(--subtle); line-height:1.8; background:rgba(99,102,241,0.05); border:1px solid var(--border); border-radius:8px; padding:14px;">
+            pct = MetricsService.calculatePercentile(player.vsi, allVSIs)<br/>
+            <span style="color:var(--indigo);">// Distribución normalizada sobre toda la base de datos</span><br/>
+            bias = phvCategory === "early" → HIGH<br/>
+            bias = phvCategory === "late"  → LOW  ⭐<br/>
+            bias = pct &gt; 70 ? LOW : MED
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div class="section-header" style="margin-bottom:0;">
+          <span class="section-tag">// Corrección de sesgo biológico</span>
+          <h3 style="font-size:24px; margin-bottom:12px;">Maduración PHV</h3>
+          <p style="font-size:14px;">Peak Height Velocity. El sistema detecta automáticamente la categoría de maduración y aplica correcciones estadísticas al VSI para eliminar sesgos de selección temprana.</p>
+        </div>
+
+        <div class="phv-grid" style="grid-template-columns:1fr;">
+          <div class="phv-card phv-late">
+            <div class="phv-title" style="color:var(--indigo);">⭐ Madurador Tardío</div>
+            <div class="phv-desc">Potencial oculto detectado. VSI ajustado al alza. Alta prioridad de seguimiento. El sistema evita que talentos con desarrollo físico tardío sean descartados prematuramente.</div>
+          </div>
+          <div class="phv-card phv-normal">
+            <div class="phv-title" style="color:var(--electric);">Maduración Normal</div>
+            <div class="phv-desc">Desarrollo acorde a la edad cronológica. Evaluación estándar sin corrección activa.</div>
+          </div>
+          <div class="phv-card phv-early">
+            <div class="phv-title" style="color:var(--gold);">Madurador Precoz</div>
+            <div class="phv-desc">Ventaja física temporal. VSI ajustado a la baja para evitar sobrevaloración. El sistema corrige el sesgo de selección del jugador precoz.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ PIPELINE IA ════════════════════════════ -->
+<section id="pipeline">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Procesamiento de vídeo</span>
+      <h2>Pipeline de <span class="grad-text">Análisis IA</span></h2>
+      <p>Sistema de análisis de vídeo en 3 fases que convierte grabaciones de partidos en inteligencia accionable para el cuerpo técnico.</p>
+    </div>
+
+    <div class="pipeline fade-up">
+      <div class="pipeline-step">
+        <div class="step-num">Paso 01</div>
+        <div class="step-title">UPLOAD</div>
+        <div class="step-desc">Subida del vídeo del partido o entrenamiento. Almacenamiento en Bunny Stream CDN con metadatos del jugador.</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">Paso 02</div>
+        <div class="step-title">MAPPING</div>
+        <div class="step-desc">Calibración interactiva del campo. El scout marca puntos de referencia en el pitch para una perspectiva homográfica correcta.</div>
+      </div>
+      <div class="pipeline-step">
+        <div class="step-num">Paso 03</div>
+        <div class="step-title">PROCESS</div>
+        <div class="step-desc">El motor IA analiza el vídeo según el modo seleccionado y genera el informe de inteligencia estructurado.</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 36px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;" class="fade-up">
+      <div class="card" style="padding: 24px;">
+        <div style="font-size: 24px; margin-bottom: 12px;">👥</div>
+        <div style="font-family:'Rajdhani'; font-size:17px; font-weight:700; margin-bottom:8px;">All Players</div>
+        <div style="font-size:13px; color:var(--subtle);">Cobertura global del campo. Heatmaps de equipo completo y posicionamiento colectivo.</div>
+      </div>
+      <div class="card" style="padding: 24px;">
+        <div style="font-size: 24px; margin-bottom: 12px;">🖱️</div>
+        <div style="font-family:'Rajdhani'; font-size:17px; font-weight:700; margin-bottom:8px;">Click-to-Track</div>
+        <div style="font-size:13px; color:var(--subtle);">Seguimiento individual manual. El scout selecciona el jugador con un clic para análisis enfocado.</div>
+      </div>
+      <div class="card" style="padding: 24px;">
+        <div style="font-size: 24px; margin-bottom: 12px;">⚔️</div>
+        <div style="font-family:'Rajdhani'; font-size:17px; font-weight:700; margin-bottom:8px;">Swords — Duelos</div>
+        <div style="font-size:13px; color:var(--subtle);">Análisis específico de duelos 1v1. Estadísticas de confrontaciones directas y porcentaje de victorias.</div>
+      </div>
+      <div class="card" style="padding: 24px;">
+        <div style="font-size: 24px; margin-bottom: 12px;">🚀</div>
+        <div style="font-family:'Rajdhani'; font-size:17px; font-weight:700; margin-bottom:8px;">Rocket — Sprints</div>
+        <div style="font-size:13px; color:var(--subtle);">Detección y métricas de sprints. Velocidades máximas, aceleraciones y perfiles de carrera.</div>
+      </div>
+    </div>
+
+    <!-- Distrib. global -->
+    <div style="margin-top: 36px;" class="fade-up">
+      <div class="card" style="padding: 28px;">
+        <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:center;">
+          <div>
+            <p style="font-family:'Rajdhani'; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Clústeres de Talento</p>
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+              <div>
+                <p style="font-family:'Rajdhani'; font-size:28px; font-weight:700; color:var(--indigo);">42.1%</p>
+                <p style="font-size:11px; color:var(--muted);">Clúster Europa</p>
+              </div>
+              <div>
+                <p style="font-family:'Rajdhani'; font-size:28px; font-weight:700; color:var(--violet);">38.9%</p>
+                <p style="font-size:11px; color:var(--muted);">Clúster LATAM</p>
+              </div>
+              <div>
+                <p style="font-family:'Rajdhani'; font-size:28px; font-weight:700; color:var(--electric);">19.0%</p>
+                <p style="font-size:11px; color:var(--muted);">Resto del mundo</p>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1; min-width:200px;">
+            <div style="display:flex; gap:6px; margin-bottom:6px; align-items:center;">
+              <div style="flex:0.421; height:8px; background:linear-gradient(90deg,var(--indigo),var(--violet)); border-radius:999px;"></div>
+              <div style="flex:0.389; height:8px; background:linear-gradient(90deg,var(--violet),var(--electric)); border-radius:999px;"></div>
+              <div style="flex:0.19; height:8px; background:linear-gradient(90deg,var(--electric),rgba(56,189,248,0.3)); border-radius:999px;"></div>
+            </div>
+            <p style="font-size:11px; color:var(--muted);">Distribución geográfica del talento monitoreado</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ STACK ════════════════════════════════ -->
+<section id="stack">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Stack tecnológico</span>
+      <h2>Construido con <span class="grad-text">tecnología de vanguardia</span></h2>
+      <p>Cada capa del stack ha sido seleccionada para garantizar rendimiento, escalabilidad y experiencia de usuario premium.</p>
+    </div>
+
+    <div class="stack-grid">
+      <div class="stack-card fade-up">
+        <div class="stack-category">Frontend</div>
+        <div class="stack-items">
+          <span class="badge badge-blue">React 18</span>
+          <span class="badge badge-sky">TypeScript 5.8</span>
+          <span class="badge badge-purple">Vite 8</span>
+          <span class="badge badge-slate">React Router v6</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">UI & Animaciones</div>
+        <div class="stack-items">
+          <span class="badge badge-purple">Radix UI</span>
+          <span class="badge badge-blue">Tailwind CSS 3</span>
+          <span class="badge badge-amber">Framer Motion</span>
+          <span class="badge badge-slate">Lucide Icons</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">Backend & Base de Datos</div>
+        <div class="stack-items">
+          <span class="badge badge-emerald">Supabase</span>
+          <span class="badge badge-emerald">PostgreSQL</span>
+          <span class="badge badge-blue">Edge Functions</span>
+          <span class="badge badge-slate">Row Level Security</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">Inteligencia Artificial</div>
+        <div class="stack-items">
+          <span class="badge badge-purple">Anthropic Claude API</span>
+          <span class="badge badge-rose">@anthropic-ai/sdk</span>
+          <span class="badge badge-amber">PHV Agent</span>
+          <span class="badge badge-blue">Intelligence Agents</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">Data & Charts</div>
+        <div class="stack-items">
+          <span class="badge badge-sky">Recharts</span>
+          <span class="badge badge-blue">TanStack Query v5</span>
+          <span class="badge badge-slate">React Hook Form</span>
+          <span class="badge badge-amber">Zod</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">Vídeo & Medios</div>
+        <div class="stack-items">
+          <span class="badge badge-rose">Bunny Stream CDN</span>
+          <span class="badge badge-purple">html2canvas</span>
+          <span class="badge badge-slate">VideoRecord API</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">PWA & Deploy</div>
+        <div class="stack-items">
+          <span class="badge badge-blue">Vercel</span>
+          <span class="badge badge-purple">vite-plugin-pwa</span>
+          <span class="badge badge-emerald">Service Worker</span>
+          <span class="badge badge-amber">Web Push</span>
+        </div>
+      </div>
+
+      <div class="stack-card fade-up">
+        <div class="stack-category">Testing & Dev Tools</div>
+        <div class="stack-items">
+          <span class="badge badge-emerald">Vitest</span>
+          <span class="badge badge-sky">Playwright</span>
+          <span class="badge badge-slate">ESLint</span>
+          <span class="badge badge-amber">Testing Library</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ API ENDPOINTS ═══════════════════════ -->
+<section id="api">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Rutas y API</span>
+      <h2>Arquitectura de <span class="grad-text">rutas y servicios</span></h2>
+      <p>La plataforma expone 16 rutas de aplicación y un conjunto de servicios internos para gestión de jugadores, vídeos, rankings e inteligencia.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px;" class="fade-up">
+      <div>
+        <p style="font-family:'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:16px;">Rutas públicas (Auth)</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ruta</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="endpoint-path">/login</span></td>
+                <td>Autenticación de usuario</td>
+              </tr>
+              <tr>
+                <td><span class="endpoint-path">/register</span></td>
+                <td>Registro de nueva cuenta</td>
+              </tr>
+              <tr>
+                <td><span class="endpoint-path">/forgot-password</span></td>
+                <td>Recuperación de contraseña</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <p style="font-family:'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:16px;">Estado de seguridad</p>
+        <div class="card" style="padding:22px; display:flex; flex-direction:column; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--green); font-size:16px;">✓</span>
+            <span style="font-size:13px; color:var(--subtle);">Todas las rutas de app requieren autenticación (ProtectedRoute)</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--green); font-size:16px;">✓</span>
+            <span style="font-size:13px; color:var(--subtle);">AuthProvider con context React para sesión global</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--green); font-size:16px;">✓</span>
+            <span style="font-size:13px; color:var(--subtle);">Sync con Supabase al login mediante useSupabaseSync hook</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--green); font-size:16px;">✓</span>
+            <span style="font-size:13px; color:var(--subtle);">ErrorBoundary global + por sección crítica</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="color:var(--indigo); font-size:16px;">✓</span>
+            <span style="font-size:13px; color:var(--subtle);">Vercel SPA rewrite para todas las rutas → /index.html</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fade-up">
+      <p style="font-family:'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:16px;">Rutas protegidas de la aplicación</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Ruta</th>
+              <th>Módulo</th>
+              <th>Descripción</th>
+              <th>Servicio</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="endpoint-path">/</span></td>
+              <td><span class="tag tag-indigo">Index</span></td>
+              <td>Página de entrada / Splash</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/pulse</span></td>
+              <td><span class="tag tag-electric">Dashboard</span></td>
+              <td>Pulso personal del scout</td>
+              <td>PlayerService</td>
+            </tr>
+            <tr class="highlight-row">
+              <td><span class="endpoint-path">/master</span></td>
+              <td><span class="tag tag-gold">MasterDashboard</span></td>
+              <td>Panel ejecutivo de academia</td>
+              <td>PlayerService · MetricsService</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/scout</span></td>
+              <td><span class="tag tag-indigo">ScoutFeed</span></td>
+              <td>Feed de insights IA</td>
+              <td>useScoutInsights</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/drill</span></td>
+              <td><span class="tag tag-violet">SoloDrill</span></td>
+              <td>Sesiones de entrenamiento</td>
+              <td>PlayerService</td>
+            </tr>
+            <tr class="highlight-row">
+              <td><span class="endpoint-path">/rankings</span></td>
+              <td><span class="tag tag-gold">Rankings</span></td>
+              <td>Clasificación VSI con filtros PHV</td>
+              <td>rankingsService · useRankedPlayers</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/player/:id</span></td>
+              <td><span class="tag tag-indigo">PlayerProfile</span></td>
+              <td>Ficha completa del jugador</td>
+              <td>usePlayerById · usePHVCalculator</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/compare</span></td>
+              <td><span class="tag tag-violet">PlayerComparison</span></td>
+              <td>Comparador lado a lado</td>
+              <td>similarityService · findSimilarPlayers</td>
+            </tr>
+            <tr class="highlight-row">
+              <td><span class="endpoint-path">/lab</span></td>
+              <td><span class="tag tag-red">VitasLab</span></td>
+              <td>Pipeline de vídeo IA</td>
+              <td>VideoService · useVideos</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/reports</span></td>
+              <td><span class="tag tag-electric">ReportsPage</span></td>
+              <td>Centro de vídeos Bunny Stream</td>
+              <td>VideoService · useDeleteVideo</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/players/new</span></td>
+              <td><span class="tag tag-green">PlayerForm</span></td>
+              <td>Formulario de alta de jugador</td>
+              <td>PlayerService.create</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/players/:id/edit</span></td>
+              <td><span class="tag tag-gold">PlayerForm</span></td>
+              <td>Edición de perfil</td>
+              <td>PlayerService.update</td>
+            </tr>
+            <tr class="highlight-row">
+              <td><span class="endpoint-path">/players/:id/role-profile</span></td>
+              <td><span class="tag tag-violet">RoleProfile</span></td>
+              <td>Perfil de rol + arquetipo</td>
+              <td>useRoleProfile</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/players/:id/role-profile/compare</span></td>
+              <td><span class="tag tag-indigo">RoleProfileCompare</span></td>
+              <td>Comparativa de perfil de rol</td>
+              <td>useRoleProfile</td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">/players/:id/role-profile/audit</span></td>
+              <td><span class="tag tag-slate">RoleProfileAudit</span></td>
+              <td>Auditoría del perfil de rol</td>
+              <td>useRoleProfile</td>
+            </tr>
+            <tr class="highlight-row">
+              <td><span class="endpoint-path">/players/:id/intelligence</span></td>
+              <td><span class="tag tag-gold">PlayerIntelligence</span></td>
+              <td>ADN + Proyección + Plan de desarrollo</td>
+              <td>usePlayerIntelligence · similarityService</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div style="margin-top: 40px;" class="fade-up">
+      <p style="font-family:'Rajdhani'; font-size:13px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:16px;">Servicios internos principales</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Servicio</th>
+              <th>Método</th>
+              <th>Función</th>
+              <th>Tipo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="endpoint-path">PlayerService</span></td>
+              <td><span class="method method-get">getAll</span></td>
+              <td>Obtiene todos los jugadores con seed automático</td>
+              <td><span class="badge badge-emerald">Supabase</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">rankingsService</span></td>
+              <td><span class="method method-get">getRanked</span></td>
+              <td>Jugadores ordenados por VSI/edad/nombre</td>
+              <td><span class="badge badge-blue">Client Sort</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">MetricsService</span></td>
+              <td><span class="method method-get">calculatePercentile</span></td>
+              <td>Percentil del VSI sobre distribución total</td>
+              <td><span class="badge badge-purple">Algorithm</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">similarityService</span></td>
+              <td><span class="method method-post">findSimilarPlayers</span></td>
+              <td>Distancia coseno entre perfiles de atributos</td>
+              <td><span class="badge badge-rose">IA / Math</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">VideoService</span></td>
+              <td><span class="method method-post">upload</span></td>
+              <td>Subida a Bunny Stream CDN + metadatos Supabase</td>
+              <td><span class="badge badge-amber">CDN + DB</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">usePHVCalculator</span></td>
+              <td><span class="method method-post">calculate</span></td>
+              <td>Agente IA que determina categoría PHV</td>
+              <td><span class="badge badge-rose">Anthropic Claude</span></td>
+            </tr>
+            <tr>
+              <td><span class="endpoint-path">computeDashboardStats</span></td>
+              <td><span class="method method-get">adapt</span></td>
+              <td>Calcula activePlayers, hiddenTalents, avgVsi</td>
+              <td><span class="badge badge-blue">Adapter</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ SYSTEM METRICS ══════════════════════ -->
+<section id="system">
+  <div class="container">
+    <div class="section-header fade-up">
+      <span class="section-tag">// Indicadores del sistema</span>
+      <h2>Métricas de <span class="grad-text">la plataforma</span></h2>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;" class="fade-up">
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">🗄️</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">Base de Datos</div>
+        <ul class="feature-list">
+          <li>139 jugadores profesionales pre-cargados</li>
+          <li>Seed automático si la base está vacía</li>
+          <li>Persistencia en Supabase PostgreSQL</li>
+          <li>Row Level Security por usuario</li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">☁️</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">Edge Functions</div>
+        <ul class="feature-list">
+          <li>11 Supabase Edge Functions activas</li>
+          <li>Deploy global en Deno runtime</li>
+          <li>Latencia &lt; 50ms en EU/LATAM</li>
+          <li>VAPID secrets para Web Push</li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">📱</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">PWA Instalable</div>
+        <ul class="feature-list">
+          <li>Service Worker con cache offline</li>
+          <li>Puerto exclusivo: 5200 (local)</li>
+          <li>Manifest con iconos y splash screens</li>
+          <li>Web Push Notifications habilitado</li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">🌐</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">Infraestructura</div>
+        <ul class="feature-list">
+          <li>Deploy: Vercel (SPA rewrite habilitado)</li>
+          <li>CDN de vídeo: Bunny Stream</li>
+          <li>Uptime del sistema: 99.8%</li>
+          <li>Clústeres EU (42.1%) y LATAM (38.9%)</li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">🧩</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">Arquitectura React</div>
+        <ul class="feature-list">
+          <li>QueryClient con React Query v5</li>
+          <li>ErrorBoundary global + por sección</li>
+          <li>SyncManager hook al iniciar sesión</li>
+          <li>BottomNav adaptativa móvil/desktop</li>
+        </ul>
+      </div>
+
+      <div class="card" style="padding: 28px;">
+        <div style="font-size:28px; margin-bottom:12px;">🤖</div>
+        <div style="font-family:'Rajdhani'; font-size:19px; font-weight:700; margin-bottom:8px;">Agentes IA</div>
+        <ul class="feature-list">
+          <li>Anthropic Claude API integrado</li>
+          <li>Agente PHV on-demand</li>
+          <li>Intelligence Engine: 6 dimensiones</li>
+          <li>ProPlayerMatch: similitud coseno IA</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══════════════════════════════════ CTA ══════════════════════════════════ -->
+<section style="padding: 80px 0; text-align: center;">
+  <div class="container">
+    <div class="fade-up" style="max-width:680px; margin: 0 auto;">
+      <div style="display:inline-block; padding:8px 20px; border-radius:999px; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--indigo); margin-bottom:24px;">
+        Plataforma lista para inversores y academias
+      </div>
+      <h2 style="font-size: clamp(32px, 5vw, 52px); margin-bottom: 20px;">
+        El futuro del scouting<br/>
+        <span class="grad-text">está aquí</span>
+      </h2>
+      <p style="font-size:17px; color:var(--subtle); line-height:1.7; margin-bottom:40px;">
+        VITAS Football Intelligence elimina el sesgo humano del proceso de identificación de talento.
+        IA, datos biométricos y análisis de vídeo en una sola plataforma.
+      </p>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+        <a href="https://futuro-club.vercel.app" target="_blank" class="btn-primary" style="font-size:16px; padding:14px 32px;">
+          Acceder a VITAS →
+        </a>
+        <a href="#modules" class="btn-secondary" style="font-size:16px; padding:14px 32px;">
+          Ver todos los módulos
+        </a>
+      </div>
+      <p style="margin-top:24px; font-size:12px; color:var(--muted);">
+        🌐 &nbsp;<span style="color:var(--indigo); font-weight:600;">futuro-club.vercel.app</span>
+        &nbsp;·&nbsp; React 18 + Supabase + Claude AI + Vercel
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ FOOTER ═══════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <div class="footer-brand grad-text">VITAS</div>
+        <div class="footer-meta" style="margin-top:4px;">Football Intelligence Platform · 2026</div>
+      </div>
+      <div class="footer-links">
+        <a href="#modules">Módulos</a>
+        <a href="#stack">Stack</a>
+        <a href="#api">API</a>
+        <a href="#pipeline">Pipeline IA</a>
+        <a href="https://futuro-club.vercel.app" target="_blank">App Live →</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════ JS ═══════════════════════════════════ -->
+<script>
+  // ── Intersection Observer para animaciones fade-up ──
+  (function() {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.fade-up').forEach(function(el) {
+      observer.observe(el);
+    });
+  })();
+
+  // ── VSI gauge animado al entrar en viewport ──
+  (function() {
+    var ring = document.querySelector('.vsi-ring circle:last-of-type');
+    if (!ring) return;
+    var full = 314;
+    var target = 78; // dashoffset para 75/100
+    ring.style.strokeDashoffset = full;
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        var start = null;
+        var duration = 1200;
+        function step(ts) {
+          if (!start) start = ts;
+          var prog = Math.min((ts - start) / duration, 1);
+          var ease = 1 - Math.pow(1 - prog, 3);
+          ring.style.strokeDashoffset = full - (full - target) * ease;
+          if (prog < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    obs.observe(document.querySelector('.vsi-demo'));
+  })();
+
+  // ── Contador animado en metrics ──
+  (function() {
+    var nums = document.querySelectorAll('.metric-num');
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (!entry.isIntersecting) return;
+        var el = entry.target;
+        var text = el.textContent.trim();
+        var num = parseFloat(text);
+        if (isNaN(num)) return;
+        var suffix = text.replace(/[\d.]/g, '');
+        var duration = 1000;
+        var start = null;
+        function step(ts) {
+          if (!start) start = ts;
+          var prog = Math.min((ts - start) / duration, 1);
+          var ease = 1 - Math.pow(1 - prog, 3);
+          var val = num * ease;
+          el.textContent = (Number.isInteger(num) ? Math.round(val) : val.toFixed(1)) + suffix;
+          if (prog < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+        obs.unobserve(el);
+      });
+    }, { threshold: 0.5 });
+    nums.forEach(function(n) { obs.observe(n); });
+  })();
+</script>
+</body>
+</html>

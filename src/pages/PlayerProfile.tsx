@@ -12,6 +12,7 @@ import { useMatchEvents, useLogMatchEvent } from "@/hooks/useMatchEvents";
 import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/services/real/matchEventsService";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { PlanGuard } from "@/components/PlanGuard";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
@@ -490,6 +491,7 @@ const PlayerProfile = () => {
           </div>
 
           {/* ── VAEP · Valor por Evento ───────────────────────────────────── */}
+          <PlanGuard feature="vaep" showLock>
           <div className="rounded-lg bg-secondary/40 border border-border p-3 space-y-3">
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -571,6 +573,7 @@ const PlayerProfile = () => {
               <ClipboardList size={10} /> Registrar Evento
             </button>
           </div>
+          </PlanGuard>
         </motion.div>
       )}
 

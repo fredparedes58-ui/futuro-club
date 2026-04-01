@@ -22,6 +22,7 @@ import { PlayerService } from "@/services/real/playerService";
 import { StorageService } from "@/services/real/storageService";
 import { MetricsService } from "@/services/real/metricsService";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePlan } from "@/hooks/usePlan";
 
 // ─── Schema del formulario ────────────────────────────────────────────────────
 const formSchema = z.object({
@@ -157,6 +158,7 @@ const PlayerForm = () => {
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
   const queryClient = useQueryClient();
+  const { canAddPlayer, limits, playerCount } = usePlan();
 
   const {
     register,
@@ -208,6 +210,15 @@ const PlayerForm = () => {
   const metricsWatch = watch("metrics");
 
   const onSubmit = async (data: FormValues) => {
+    // Verificar límite del plan antes de crear (solo en modo creación)
+    if (!isEditMode && !canAddPlayer) {
+      const limitLabel = limits.players >= 9999 ? "∞" : limits.players;
+      toast.error(`Límite alcanzado: ${playerCount}/${limitLabel} jugadores. Actualiza tu plan.`, {
+        action: { label: "Ver planes", onClick: () => navigate("/billing") },
+      });
+      return;
+    }
+
     try {
       if (isEditMode && id) {
         // Actualizar métricas + datos básicos
