@@ -17,6 +17,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { StorageService } from "@/services/real/storageService";
+import { PushNotificationService } from "@/services/real/pushNotificationService";
 
 const SETTINGS_KEY = "vitas_settings";
 
@@ -38,18 +39,60 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState<AppSettings>(() =>
     StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
   );
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
+  const [pushLoading, setPushLoading] = useState(false);
 
   // Persiste al cambiar
   useEffect(() => {
     StorageService.set(SETTINGS_KEY, settings);
   }, [settings]);
 
+  // Sync real push permission on mount
+  useEffect(() => {
+    PushNotificationService.getPermission().then(setPushPermission);
+  }, []);
+
   const toggle = (key: keyof AppSettings) => {
+    if (key === "notifications") {
+      handleNotificationsToggle();
+      return;
+    }
     setSettings(prev => {
       const next = { ...prev, [key]: !prev[key] };
       toast.success("Ajuste guardado");
       return next;
     });
+  };
+
+  const handleNotificationsToggle = async () => {
+    if (pushLoading) return;
+    setPushLoading(true);
+    try {
+      if (!settings.notifications) {
+        // Turn ON: request permission then subscribe
+        const granted = await PushNotificationService.requestPermission();
+        const perm = await PushNotificationService.getPermission();
+        setPushPermission(perm);
+        if (granted) {
+          await PushNotificationService.subscribe();
+          setSettings(prev => ({ ...prev, notifications: true }));
+          toast.success("Notificaciones activadas");
+        } else {
+          toast.error("Permiso de notificaciones denegado");
+        }
+      } else {
+        // Turn OFF: unsubscribe
+        await PushNotificationService.unsubscribe();
+        setSettings(prev => ({ ...prev, notifications: false }));
+        setPushPermission("denied");
+        toast.success("Notificaciones desactivadas");
+      }
+    } catch (err) {
+      toast.error("Error al cambiar notificaciones");
+      console.warn(err);
+    } finally {
+      setPushLoading(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -106,15 +149,21 @@ const SettingsPage = () => {
 
         {/* Notificaciones */}
         <div
-          className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
+          className={`glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all ${pushLoading ? "opacity-60 pointer-events-none" : ""}`}
           onClick={() => toggle("notifications")}
         >
           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
             <Bell size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Notificaciones</p>
-            <p className="text-[10px] text-muted-foreground">Push + Email</p>
+            <p className="font-display font-semibold text-sm text-foreground">Notificaciones Push</p>
+            <p className="text-[10px] text-muted-foreground">
+              {pushPermission === "granted"
+                ? "Activas · Análisis + alertas PHV"
+                : pushPermission === "denied"
+                ? "Bloqueadas en el navegador"
+                : "Toca para activar notificaciones nativas"}
+            </p>
           </div>
           {settings.notifications
             ? <ToggleRight size={28} className="text-primary" />

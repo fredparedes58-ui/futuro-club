@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { PushNotificationService } from "@/services/real/pushNotificationService";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
@@ -146,6 +147,11 @@ export function useRunPipeline() {
           VideoService.saveAnalysis(videoId, data.tacticalAnalysis);
         }
       }
+      PushNotificationService.showLocal(
+        "Análisis completado",
+        `El análisis táctico del video está listo`,
+        "/pwa-192x192.png"
+      ).catch(console.warn);
       qc.invalidateQueries({ queryKey: ["video", videoId] });
       qc.invalidateQueries({ queryKey: ["videos"] });
     },

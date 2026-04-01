@@ -16,8 +16,8 @@ import {
   UserRound,
   Video,
   Loader2,
+  Clock,
 } from "lucide-react";
-import { mockPipelines, mockLiveFeed } from "@/lib/mockData";
 import { PlayerService } from "@/services/real/playerService";
 import { computeDashboardStats } from "@/services/real/adapters";
 import { MetricsService } from "@/services/real/metricsService";
@@ -36,6 +36,13 @@ const biasColors: Record<string, { bg: string; text: string; label: string }> = 
   high: { bg: "bg-destructive/20", text: "text-destructive", label: "HIGH BIAS ALERT" },
 };
 
+const VSI_TIERS = [
+  { label: "Elite", min: 80, color: "text-primary" },
+  { label: "High", min: 65, color: "text-gold" },
+  { label: "Medium", min: 50, color: "text-foreground" },
+  { label: "Developing", min: 0, color: "text-muted-foreground" },
+];
+
 const MasterDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,11 +56,16 @@ const MasterDashboard = () => {
 
   const stats = useMemo(() => computeDashboardStats(players), [players]);
 
-  // Player reports reales con bias calculado
+  // Player reports reales con bias calculado — TODOS los jugadores
   const playerReports = useMemo(() => {
     const allVSIs = players.map((p) => p.vsi);
     return players
-      .slice(0, 4)
+      .filter((p) =>
+        searchQuery
+          ? p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.position.toLowerCase().includes(searchQuery.toLowerCase())
+          : true
+      )
       .map((p) => {
         const pct = MetricsService.calculatePercentile(p.vsi, allVSIs);
         const biasAlert: "low" | "med" | "high" =
@@ -62,6 +74,40 @@ const MasterDashboard = () => {
           : pct > 70 ? "low" : "med";
         return { id: p.id, name: p.name, position: p.position, academy: "VITAS Academy", vsi: p.vsi, biasAlert };
       });
+  }, [players, searchQuery]);
+
+  // VSI tier distribution
+  const vsiTiers = useMemo(() => {
+    const elite = players.filter((p) => p.vsi >= 80).length;
+    const high = players.filter((p) => p.vsi >= 65 && p.vsi < 80).length;
+    const medium = players.filter((p) => p.vsi >= 50 && p.vsi < 65).length;
+    const developing = players.filter((p) => p.vsi < 50).length;
+    return { elite, high, medium, developing };
+  }, [players]);
+
+  // Position distribution
+  const positionDist = useMemo(() => {
+    const map: Record<string, number> = {};
+    players.forEach((p) => {
+      const pos = p.position;
+      map[pos] = (map[pos] ?? 0) + 1;
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8);
+  }, [players]);
+
+  // Últimas actualizaciones — reemplaza mockLiveFeed
+  const recentActivity = useMemo(() => {
+    return [...players]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5)
+      .map(p => ({
+        name: p.name,
+        action: p.vsiHistory && p.vsiHistory.length > 1 ? "VSI actualizado" : "Jugador registrado",
+        vsi: p.vsi,
+        time: new Date(p.updatedAt).toLocaleDateString("es-ES"),
+      }));
   }, [players]);
 
   const container = {
@@ -164,7 +210,55 @@ const MasterDashboard = () => {
               </div>
             </motion.div>
 
-            {/* Active Analysis */}
+            {/* VSI Distribution + Position Distribution */}
+            <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* VSI Tier Breakdown */}
+              <div className="glass rounded-xl p-4 border border-border">
+                <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  Distribución VSI
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display text-primary">Elite (≥80)</span>
+                    <span className="font-display font-bold text-sm text-primary">{vsiTiers.elite}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display text-gold">High (65–79)</span>
+                    <span className="font-display font-bold text-sm text-gold">{vsiTiers.high}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display text-foreground">Medium (50–64)</span>
+                    <span className="font-display font-bold text-sm text-foreground">{vsiTiers.medium}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-display text-muted-foreground">Developing (&lt;50)</span>
+                    <span className="font-display font-bold text-sm text-muted-foreground">{vsiTiers.developing}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Position Distribution */}
+              <div className="glass rounded-xl p-4 border border-border">
+                <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  Distribución Posiciones
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {positionDist.map(([pos, count]) => (
+                    <span
+                      key={pos}
+                      className="px-2 py-0.5 rounded-full bg-secondary border border-border text-[10px] font-display font-semibold text-foreground"
+                    >
+                      {pos} <span className="text-primary">{count}</span>
+                    </span>
+                  ))}
+                  {positionDist.length === 0 && (
+                    <span className="text-[10px] text-muted-foreground font-display">Sin datos</span>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Active Analysis — placeholder (link to lab) */}
             <motion.div variants={item}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -180,119 +274,114 @@ const MasterDashboard = () => {
                   View All Pipelines
                 </button>
               </div>
-              <div className="space-y-3">
-                {mockPipelines.map((pipe) => (
-                  <div
-                    key={pipe.id}
-                    className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
-                    onClick={() => navigate("/lab")}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                          {pipe.status === "processing" ? (
-                            <Video size={16} className="text-muted-foreground" />
-                          ) : (
-                            <Loader2 size={16} className="text-muted-foreground" />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="font-display font-bold text-sm text-foreground">
-                            {pipe.title}
-                          </h3>
-                          <p className="text-[10px] text-muted-foreground">
-                            Source: {pipe.source}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">
-                          {pipe.status === "processing" ? "Estimated Arrival" : "Queue Position"}
-                        </span>
-                        <p className="font-display font-bold text-sm text-primary">
-                          {pipe.status === "processing" ? pipe.eta : `#${pipe.queuePosition} in Line`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[10px] text-muted-foreground font-display">
-                        {pipe.pilar}
-                      </span>
-                      <span className="text-[10px] font-display text-muted-foreground">
-                        {pipe.status === "processing" ? `${pipe.progress}% Complete` : "Queued"}
-                      </span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-2">
-                      <motion.div
-                        className="h-full rounded-full bg-primary"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pipe.progress}%` }}
-                        transition={{ duration: 1.2, ease: "easeOut" }}
-                      />
-                    </div>
+              <div
+                className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
+                onClick={() => navigate("/lab")}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+                    <Video size={16} className="text-muted-foreground" />
                   </div>
-                ))}
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-foreground">
+                      Video Analysis Lab
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">
+                      Accede al laboratorio para analizar videos
+                    </p>
+                  </div>
+                  <div className="ml-auto">
+                    <Loader2 size={16} className="text-muted-foreground" />
+                  </div>
+                </div>
               </div>
             </motion.div>
 
-            {/* Recent Player Reports */}
+            {/* Player Reports — TODOS los jugadores, scrollable */}
             <motion.div variants={item}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-xl text-foreground">
-                  Recent Player Reports
+                  Squad Reports
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({playerReports.length})
+                  </span>
                 </h2>
                 <div className="flex items-center gap-2">
                   <button className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
                     <SlidersHorizontal size={14} />
                   </button>
-                  <button className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+                  <button
+                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setSearchQuery(searchQuery ? "" : " ")}
+                  >
                     <Search size={14} />
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {playerReports.map((report) => {
-                  const bias = biasColors[report.biasAlert];
-                  return (
-                    <div
-                      key={report.id}
-                      className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
-                      onClick={() => navigate(`/player/${report.id}`)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
-                            <UserRound size={16} className="text-muted-foreground" />
+
+              {/* Search input */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar jugador o posición..."
+                  className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
+                />
+              </div>
+
+              {/* Scrollable player list */}
+              <div className="max-h-[480px] overflow-y-auto pr-1 space-y-2">
+                {playerReports.length === 0 ? (
+                  <div className="glass rounded-xl p-6 border border-border text-center">
+                    <p className="text-sm text-muted-foreground font-display">
+                      No se encontraron jugadores
+                    </p>
+                  </div>
+                ) : (
+                  playerReports.map((report) => {
+                    const bias = biasColors[report.biasAlert];
+                    return (
+                      <div
+                        key={report.id}
+                        className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
+                        onClick={() => navigate(`/player/${report.id}`)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center">
+                              <UserRound size={16} className="text-muted-foreground" />
+                            </div>
+                            <div>
+                              <h4 className="font-display font-bold text-sm text-foreground">
+                                {report.name}
+                              </h4>
+                              <p className="text-[10px] text-muted-foreground">
+                                {report.position} · {report.academy}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-display font-bold text-sm text-foreground">
-                              {report.name}
-                            </h4>
-                            <p className="text-[10px] text-muted-foreground">
-                              {report.position} · {report.academy}
+                          <div className="text-right">
+                            <p className="font-display font-bold text-xl text-foreground">
+                              {report.vsi.toFixed(1)}
+                            </p>
+                            <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
+                              VSI Score
                             </p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-display font-bold text-xl text-foreground">
-                            {report.vsi.toFixed(1)}
-                          </p>
-                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
-                            VSI Score
-                          </p>
+                        <div className="flex items-center justify-between mt-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase tracking-wider ${bias.bg} ${bias.text}`}
+                          >
+                            {bias.label}
+                          </span>
+                          <ExternalLink size={12} className="text-muted-foreground" />
                         </div>
                       </div>
-                      <div className="flex items-center justify-between mt-3">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-display font-bold uppercase tracking-wider ${bias.bg} ${bias.text}`}
-                        >
-                          {bias.label}
-                        </span>
-                        <ExternalLink size={12} className="text-muted-foreground" />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </motion.div>
           </div>
@@ -368,33 +457,33 @@ const MasterDashboard = () => {
               </div>
             </motion.div>
 
-            {/* Live Feed */}
+            {/* Últimas Actualizaciones — reemplaza mockLiveFeed */}
             <motion.div variants={item} className="glass rounded-xl p-5 border border-border">
               <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                Live Feed
+                Últimas Actualizaciones
               </h3>
               <div className="space-y-4">
-                {mockLiveFeed.map((event) => (
-                  <div key={event.id} className="flex items-start gap-3">
-                    <div
-                      className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                        event.color === "primary"
-                          ? "bg-primary"
-                          : event.color === "electric"
-                          ? "bg-electric"
-                          : "bg-gold"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-sm text-foreground font-display font-medium leading-tight">
-                        {event.message}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">
-                        {event.time}
-                      </p>
+                {recentActivity.length === 0 ? (
+                  <p className="text-xs text-muted-foreground font-display">Sin actividad reciente</p>
+                ) : (
+                  recentActivity.map((event, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0 bg-primary" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground font-display font-medium leading-tight truncate">
+                          {event.name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {event.action} · VSI {event.vsi.toFixed(1)}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <Clock size={9} />
+                          {event.time}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </motion.div>
 
