@@ -371,13 +371,7 @@ export default function LoginPage() {
         <DataStream x="88%"  delay={4.1} />
       </div>
 
-      {/* ── Balones de fútbol flotantes (visibles en toda la pantalla) ── */}
-      {/* Izquierda arriba */}
-      <SoccerBall size={90}  style={{ left:"4%",  top:"8%"  }} delay={0}   floatY={18} glowColor="#22d3ee" />
-      {/* Izquierda centro */}
-      <SoccerBall size={130} style={{ left:"2%",  top:"42%" }} delay={1.4} floatY={22} glowColor="#7c3aed" spin />
-      {/* Izquierda abajo */}
-      <SoccerBall size={70}  style={{ left:"8%",  bottom:"6%" }} delay={2.8} floatY={14} glowColor="#34d399" />
+      {/* ── Balones de fútbol flotantes (solo derecha y centro) ── */}
       {/* Derecha arriba (pequeño, detrás de wireframe) */}
       <SoccerBall size={80}  style={{ right:"28%", top:"6%"  }} delay={0.7} floatY={16} glowColor="#f472b6" />
       {/* Centro arriba */}
