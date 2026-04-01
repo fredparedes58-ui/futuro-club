@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,6 +8,9 @@ import { useAllPlayers } from "@/hooks/usePlayers";
 import { useQuery } from "@tanstack/react-query";
 import { PlayerService } from "@/services/real/playerService";
 import { findSimilarPlayers, scoreToBadge, type SimilarityResult } from "@/services/real/similarityService";
+import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
+import { useMatchEvents } from "@/hooks/useMatchEvents";
+import { PDFService } from "@/services/real/pdfService";
 import RadarChartComponent from "@/components/RadarChart";
 import VsiGauge from "@/components/VsiGauge";
 import TopNav from "@/components/TopNav";
@@ -133,6 +136,23 @@ const PlayerComparison = () => {
     staleTime: 1000 * 60 * 10,
   });
 
+  // VAEP real desde eventos logueados
+  const { data: eventsA = [] } = useMatchEvents(rawA?.id);
+  const { data: eventsB = [] } = useMatchEvents(rawB?.id);
+
+  // Métricas avanzadas reales
+  const advA = useMemo(() => rawA ? calculateAdvancedMetrics(rawA) : null, [rawA]);
+  const advB = useMemo(() => rawB ? calculateAdvancedMetrics(rawB) : null, [rawB]);
+
+  const vaepA = useMemo(
+    () => VAEPService.calculateFromEvents(eventsA, rawA?.minutesPlayed ?? 0),
+    [eventsA, rawA]
+  );
+  const vaepB = useMemo(
+    () => VAEPService.calculateFromEvents(eventsB, rawB?.minutesPlayed ?? 0),
+    [eventsB, rawB]
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen pb-24">
@@ -179,12 +199,14 @@ const PlayerComparison = () => {
     {
       id: "vaep",
       name: "VAEP per 90",
-      description: "Valor estimado de acciones por 90 minutos",
+      description: eventsA.length > 0 || eventsB.length > 0
+        ? "Valor real de acciones por 90 min (eventos logueados)"
+        : "Registra eventos en el perfil para ver VAEP real",
       icon: <TrendingUp size={18} className="text-primary" />,
-      getValueA: () =>
-        +(((playerA.stats.technique + playerA.stats.vision) / 200) * 0.9 + 0.1).toFixed(3),
-      getValueB: () =>
-        +(((playerB.stats.technique + playerB.stats.vision) / 200) * 0.9 + 0.1).toFixed(3),
+      getValueA: () => vaepA.vaep90 !== null ? vaepA.vaep90
+        : +(((playerA.stats.technique + playerA.stats.vision) / 200) * 0.9 + 0.1).toFixed(3),
+      getValueB: () => vaepB.vaep90 !== null ? vaepB.vaep90
+        : +(((playerB.stats.technique + playerB.stats.vision) / 200) * 0.9 + 0.1).toFixed(3),
       format: (v: number) => v.toFixed(3),
     },
     {
@@ -199,12 +221,14 @@ const PlayerComparison = () => {
     {
       id: "ubi",
       name: "UBI Index",
-      description: "Índice de sesgo biológico corregido",
+      description: "Índice de sesgo biológico corregido (RAE + PHV)",
       icon: <Target size={18} className="text-electric" />,
-      getValueA: () =>
-        Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "late" ? 5 : -3)),
-      getValueB: () =>
-        Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "late" ? 5 : -3)),
+      getValueA: () => advA
+        ? Math.round(advA.ubi.ubiScore * 100)
+        : Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "late" ? 5 : -3)),
+      getValueB: () => advB
+        ? Math.round(advB.ubi.ubiScore * 100)
+        : Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "late" ? 5 : -3)),
     },
   ];
 
@@ -247,14 +271,22 @@ const PlayerComparison = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => toast.info("Exportar PDF disponible en Fase 2")}
+              onClick={() => PDFService.exportPlayerReport(aiWinner.id)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors"
             >
               <Download size={16} />
-              Exportar
+              Exportar PDF
             </button>
             <button
-              onClick={() => toast.info("Compartir disponible en Fase 3")}
+              onClick={() => {
+                const url = `${window.location.origin}/compare`;
+                if (navigator.share) {
+                  navigator.share({ title: "VITAS Comparison", url }).catch(() => null);
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast.success("Enlace copiado al portapapeles");
+                }
+              }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
             >
               <Share2 size={16} />
@@ -497,7 +529,7 @@ const PlayerComparison = () => {
               Alta prioridad · Seguimiento recomendado
             </p>
             <button
-              onClick={() => navigate(`/player/${aiWinner.id}`)}
+              onClick={() => navigate(`/players/${aiWinner.id}`)}
               className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-display font-bold text-foreground hover:bg-secondary transition-colors uppercase tracking-wider"
             >
               Ver Perfil Completo
