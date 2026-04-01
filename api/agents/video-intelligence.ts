@@ -172,6 +172,29 @@ Devuelve EXCLUSIVAMENTE este JSON (sin markdown):
 }`;
 }
 
+// ─── RAG: contexto de jugadores profesionales ────────────────────────────────
+
+async function getSemanticProContext(
+  playerDesc: string,
+  position: string,
+  baseUrl: string
+): Promise<string> {
+  try {
+    const res = await fetch(`${baseUrl}/api/rag/query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `${playerDesc} posición ${position}`,
+        category: "pro_player",
+        limit: 3,
+      }),
+    });
+    if (!res.ok) return "";
+    const data = await res.json() as { context?: string };
+    return data.context ?? "";
+  } catch { return ""; }
+}
+
 // ─── Similitud para obtener top5 ────────────────────────────────────────────
 
 async function getTop5(
@@ -246,12 +269,44 @@ export default async function handler(req: Request): Promise<Response> {
 
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const baseUrl = new URL(req.url).origin;
 
   // Obtener top5 similares para incluir en el prompt
   const top5Pros = await getTop5(vsiMetrics, playerContext.position, supabaseUrl, supabaseKey);
 
+  // RAG Pipeline 1: Semantic pro player context + accumulative history
+  const playerDescForRag = [
+    `Jugador: ${playerContext.name}, posición ${playerContext.position}, edad ${playerContext.age} años`,
+    vsiMetrics
+      ? `Velocidad ${vsiMetrics.speed}, Disparo ${vsiMetrics.shooting}, Visión ${vsiMetrics.vision}, Técnica ${vsiMetrics.technique}, Defensa ${vsiMetrics.defending}, Físico ${vsiMetrics.stamina}`
+      : "",
+    playerContext.phvCategory ? `PHV: ${playerContext.phvCategory}` : "",
+  ].filter(Boolean).join(". ");
+
+  const [proContext, historyContext] = await Promise.all([
+    getSemanticProContext(playerDescForRag, playerContext.position, baseUrl),
+    (async () => {
+      try {
+        const res = await fetch(`${baseUrl}/api/rag/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: playerDescForRag, category: "report", player_id: playerId, limit: 3 }),
+        });
+        if (!res.ok) return "";
+        const data = await res.json() as { context?: string };
+        return data.context ?? "";
+      } catch { return ""; }
+    })(),
+  ]);
+
   // Construir mensajes para Claude
-  const systemPrompt = buildSystemPrompt(playerContext, top5Pros);
+  let systemPrompt = buildSystemPrompt(playerContext, top5Pros);
+  if (proContext) {
+    systemPrompt += `\n\nCONTEXTO SEMÁNTICO — JUGADORES PRO DE REFERENCIA:\n${proContext}`;
+  }
+  if (historyContext) {
+    systemPrompt += `\n\nHISTORIAL DE INFORMES PREVIOS DEL JUGADOR:\n${historyContext}`;
+  }
   const userPromptText = buildUserPrompt(videoDuration);
 
   // Construir content con imágenes
@@ -397,6 +452,38 @@ export default async function handler(req: Request): Promise<Response> {
       // No fallar si Supabase no puede guardar
     }
   }
+
+  // RAG Pipeline 3: Save report to knowledge base for accumulative history
+  try {
+    const estadoActualReport = report.estadoActual as Record<string, unknown>;
+    const adnReport = report.adnFutbolistico as Record<string, unknown>;
+    const refReport = report.jugadorReferencia as Record<string, unknown>;
+    const bestMatch = (refReport?.bestMatch as Record<string, unknown> | undefined);
+
+    const reportContent = [
+      `[INFORME VIDEO] Jugador: ${playerContext.name} | ${new Date().toISOString().slice(0, 10)}`,
+      `Posición: ${playerContext.position} | Edad: ${playerContext.age} años | VSI: ${playerContext.currentVSI ?? "N/D"}`,
+      `Resumen ejecutivo: ${(estadoActualReport?.resumenEjecutivo as string | undefined) ?? ""}`,
+      `Fortalezas: ${((estadoActualReport?.fortalezasPrimarias as string[] | undefined) ?? []).join(", ")}`,
+      `Áreas de desarrollo: ${((estadoActualReport?.areasDesarrollo as string[] | undefined) ?? []).join(", ")}`,
+      `ADN: ${(adnReport?.estiloJuego as string | undefined) ?? ""}`,
+      `Arquetipo táctico: ${(adnReport?.arquetipoTactico as string | undefined) ?? ""}`,
+      `Jugador referencia: ${(bestMatch?.nombre as string | undefined) ?? ""}`,
+    ].join("\n");
+
+    await fetch(`${baseUrl}/api/rag/ingest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        documents: [{
+          content: reportContent,
+          category: "report",
+          metadata: { videoId, reportDate: new Date().toISOString() },
+          player_id: playerId,
+        }],
+      }),
+    });
+  } catch { /* non-blocking */ }
 
   return new Response(
     JSON.stringify({

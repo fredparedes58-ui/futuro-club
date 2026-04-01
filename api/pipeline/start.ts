@@ -161,6 +161,36 @@ export default async function handler(req: Request): Promise<Response> {
     const rawTactical = (agentMsg.content[0] as { type: string; text: string }).text;
     const tacticalAnalysis = JSON.parse(rawTactical);
 
+    // ── RAG Pipeline 3: Save tactical report to knowledge base ───────────────
+    if (playerId) {
+      try {
+        const baseUrl = new URL(req.url).origin;
+        const tacticalContent = [
+          `[INFORME TÁCTICO PIPELINE] Video: ${videoId} | ${new Date().toISOString().slice(0, 10)}`,
+          `Jugador: ${playerId} | Título: ${videoData.title}`,
+          `Fase táctica: ${tacticalAnalysis.tacticalPhase ?? "desconocida"}`,
+          `Formación detectada: ${tacticalAnalysis.formationHint ?? "N/D"}`,
+          `Zona de presión: ${tacticalAnalysis.pressureZone ?? "N/D"}`,
+          `Movimientos clave: ${(tacticalAnalysis.keyMovements ?? []).join(", ")}`,
+          `Nota scout: ${tacticalAnalysis.notes ?? ""}`,
+          `Jugadores detectados: ${detectionSummary.playerCount} | Balón: ${detectionSummary.ballDetected ? "sí" : "no"}`,
+        ].join("\n");
+
+        await fetch(`${baseUrl}/api/rag/ingest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documents: [{
+              content: tacticalContent,
+              category: "report",
+              metadata: { videoId, reportDate: new Date().toISOString(), pipeline: "start" },
+              player_id: playerId,
+            }],
+          }),
+        });
+      } catch { /* non-blocking */ }
+    }
+
     // ── Final report ──────────────────────────────────────────────────────────
     return json({
       success: true,
