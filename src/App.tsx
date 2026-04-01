@@ -32,6 +32,7 @@ import RoleProfileAudit from "./pages/RoleProfileAudit";
 import ReportsPage from "./pages/ReportsPage";
 import PlayerForm from "./pages/PlayerForm";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
+import PlayerReportPrint from "./pages/PlayerReportPrint";
 
 // Sync hook — activa pull de Supabase al hacer login
 function SyncManager() {
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
                 <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
+                <Route path="/report/:id" element={<PlayerReportPrint />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>

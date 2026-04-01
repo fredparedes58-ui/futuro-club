@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
-  Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter,
+  Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
 } from "lucide-react";
 import { useMemo } from "react";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
@@ -12,6 +12,8 @@ import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
 import VsiGauge from "@/components/VsiGauge";
 import RadarChartComponent from "@/components/RadarChart";
+import VSIHistoryChart from "@/components/VSIHistoryChart";
+import { PDFService } from "@/services/real/pdfService";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
@@ -305,6 +307,18 @@ const PlayerProfile = () => {
             );
           })}
         </div>
+
+        {/* VSI History Chart */}
+        {rawPlayer?.vsiHistory && rawPlayer.vsiHistory.length >= 2 && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-[10px] font-display text-muted-foreground mb-2 uppercase tracking-wider">Evolución VSI</p>
+            <VSIHistoryChart
+              vsiHistory={rawPlayer.vsiHistory}
+              currentVSI={player.vsi}
+              trend={player.trending}
+            />
+          </div>
+        )}
       </motion.div>
 
       {/* Actividad */}
@@ -593,7 +607,7 @@ const PlayerProfile = () => {
         </button>
       </motion.div>
 
-      {/* Acciones: Editar + Eliminar */}
+      {/* Acciones: Editar + PDF + Eliminar */}
       <motion.div variants={item} className="flex gap-3 pt-1">
         <Button
           variant="outline"
@@ -602,6 +616,15 @@ const PlayerProfile = () => {
         >
           <Pencil size={14} />
           Editar jugador
+        </Button>
+
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => PDFService.exportPlayerReport(id!)}
+        >
+          <FileDown size={14} />
+          Exportar PDF
         </Button>
 
         <AlertDialog>
