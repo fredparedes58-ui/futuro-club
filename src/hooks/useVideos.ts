@@ -7,7 +7,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VideoService } from "@/services/real/videoService";
-import type { VideoRecord } from "@/services/real/videoService";
+import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
@@ -20,10 +20,14 @@ export function useVideos(playerId?: string) {
   return useQuery<VideoRecord[]>({
     queryKey: playerId ? ["videos", playerId] : ["videos"],
     queryFn: async () => {
+      if (SUPABASE_CONFIGURED) {
+        // Supabase sync is handled by useSupabaseSync — just read local
+        const all = VideoService.getAll();
+        return playerId ? all.filter((v) => v.playerId === playerId) : all;
+      }
+      // Non-Supabase: sync from Bunny API
       const synced = await VideoService.syncFromApi(playerId);
-      return playerId
-        ? synced.filter((v) => v.playerId === playerId)
-        : synced;
+      return playerId ? synced.filter((v) => v.playerId === playerId) : synced;
     },
     staleTime: STALE,
     placeholderData: () =>
@@ -33,6 +37,7 @@ export function useVideos(playerId?: string) {
 
 // ── Single video ──────────────────────────────────────────────────────────────
 export function useVideo(id: string | null | undefined) {
+  const { user } = useAuth();
   return useQuery<VideoRecord | null>({
     queryKey: ["video", id],
     queryFn: async () => {
@@ -48,7 +53,11 @@ export function useVideo(id: string | null | undefined) {
           data?: VideoRecord;
         };
         if (data.success && data.data) {
-          VideoService.save(data.data);
+          if (user && SUPABASE_CONFIGURED) {
+            SupabaseVideoService.save(user.id, data.data);
+          } else {
+            VideoService.save(data.data);
+          }
           return data.data;
         }
       } catch {
@@ -98,6 +107,7 @@ export function useDeleteVideo() {
 // ── Run analysis pipeline on existing video ───────────────────────────────────
 export function useRunPipeline() {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -116,7 +126,7 @@ export function useRunPipeline() {
         success: boolean;
         phase2Pending?: boolean;
         error?: string;
-        data?: { tacticalAnalysis: object };
+        data?: { tacticalAnalysis: Omit<VideoAnalysis, "analyzedAt"> };
       };
 
       if (data.phase2Pending) {
@@ -127,8 +137,15 @@ export function useRunPipeline() {
       }
       return data.data!;
     },
-    onSuccess: (data, { videoId }) => {
+    onSuccess: (data, { videoId, playerId: _pid }) => {
       toast.success("Análisis táctico completado");
+      if (data?.tacticalAnalysis) {
+        if (user && SUPABASE_CONFIGURED) {
+          SupabaseVideoService.saveAnalysis(user.id, videoId, data.tacticalAnalysis);
+        } else {
+          VideoService.saveAnalysis(videoId, data.tacticalAnalysis);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["video", videoId] });
       qc.invalidateQueries({ queryKey: ["videos"] });
     },

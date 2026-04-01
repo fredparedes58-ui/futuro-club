@@ -70,7 +70,7 @@ export const SupabaseVideoService = {
         user_id: userId,
         player_id: v.playerId && existingPlayerIds.has(v.playerId) ? v.playerId : null,
         data: v,
-        updated_at: v.dateUploaded,
+        updated_at: new Date().toISOString(),
       }));
       const { error } = await supabase
         .from("videos")
@@ -101,7 +101,7 @@ export const SupabaseVideoService = {
           user_id: userId,
           player_id: safePlayerId,
           data: video,
-          updated_at: video.dateUploaded,
+          updated_at: new Date().toISOString(),
         }, { onConflict: "id" });
       if (error) throw error;
     } catch (err) {

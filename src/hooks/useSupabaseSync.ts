@@ -13,13 +13,22 @@ export function useSupabaseSync() {
   const { user, configured } = useAuth();
   const qc = useQueryClient();
   const syncedRef = useRef<string | null>(null);
+  const prevUserRef = useRef<string | null>(null);
 
   // ── Pull on login ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!configured || !user) {
-      syncedRef.current = null; // reset on logout
+    if (!configured) return;
+
+    if (!user) {
+      // Only reset if we HAD a user before (actual logout)
+      if (prevUserRef.current !== null) {
+        syncedRef.current = null;
+        prevUserRef.current = null;
+      }
       return;
     }
+
+    prevUserRef.current = user.id;
     if (syncedRef.current === user.id) return;
     syncedRef.current = user.id;
 

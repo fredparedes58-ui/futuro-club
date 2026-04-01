@@ -14,6 +14,9 @@ import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
+import { useAuth } from "@/context/AuthContext";
+import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
+import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 export type UploadPhase =
   | "idle"
@@ -54,6 +57,7 @@ export function useVideoUpload(playerId?: string) {
   const xhrRef = useRef<XMLHttpRequest | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const setPhase = (phase: UploadPhase, extra?: Partial<UploadState>) =>
     setState((prev) => ({ ...prev, phase, ...extra }));
@@ -109,12 +113,18 @@ export function useVideoUpload(playerId?: string) {
         const { videoId, uploadUrl, authSignature, authExpire } = initData.data!;
 
         // Create local stub
-        VideoService.createStub({
+        const stubParams = {
           id: videoId,
           title: title ?? file.name,
           playerId: playerId ?? null,
           localPath: URL.createObjectURL(file),
-        });
+        };
+        if (user && SUPABASE_CONFIGURED) {
+          const stub = VideoService.createStub(stubParams);
+          SupabaseVideoService.pushOne(user.id, stub).catch(console.warn);
+        } else {
+          VideoService.createStub(stubParams);
+        }
 
         setState((prev) => ({ ...prev, videoId, phase: "uploading" }));
 

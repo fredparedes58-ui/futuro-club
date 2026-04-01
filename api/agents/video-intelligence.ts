@@ -426,18 +426,21 @@ export default async function handler(req: Request): Promise<Response> {
       if (authHeader.startsWith("Bearer ")) {
         try {
           const token = authHeader.slice(7);
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          userId = payload.sub ?? null;
+          const parts = token.split(".");
+          if (parts.length >= 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            userId = payload.sub ?? null;
+          }
         } catch { /* token inválido, userId queda null */ }
       }
 
-      await fetch(`${supabaseUrl}/rest/v1/player_analyses`, {
+      const insertRes = await fetch(`${supabaseUrl}/rest/v1/player_analyses`, {
         method: "POST",
         headers: {
           "apikey":        supabaseKey,
           "Authorization": authHeader || `Bearer ${supabaseKey}`,
           "Content-Type":  "application/json",
-          "Prefer":        "return=minimal",
+          "Prefer":        "return=minimal,resolution=merge-duplicates",
         },
         body: JSON.stringify({
           user_id:         userId,
@@ -448,6 +451,10 @@ export default async function handler(req: Request): Promise<Response> {
           projection:      report.proyeccionCarrera,
         }),
       });
+      if (!insertRes.ok) {
+        const errBody = await insertRes.text().catch(() => "(unreadable)");
+        console.error("[video-intelligence] player_analyses insert failed:", insertRes.status, errBody);
+      }
     } catch {
       // No fallar si Supabase no puede guardar
     }
