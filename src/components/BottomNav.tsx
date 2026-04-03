@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, Crosshair, BarChart3, LayoutDashboard, LogOut, Users } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy } from "lucide-react";
 import { useState } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -8,15 +8,15 @@ import { useSupabaseSync } from "@/hooks/useSupabaseSync";
 import { usePlan } from "@/hooks/usePlan";
 
 const BASE_NAV = [
-  { path: "/pulse",   icon: Activity,       label: "Pulse" },
-  { path: "/master",  icon: LayoutDashboard, label: "Master" },
-  { path: "/scout",   icon: Compass,         label: "Scout" },
-  { path: "/drill",   icon: Crosshair,       label: "Drill" },
-  { path: "/rankings",icon: BarChart3,        label: "Rank" },
+  { path: "/pulse",    icon: Activity,      label: "Pulse" },
+  { path: "/reports",  icon: FileVideo,     label: "Vídeos" },
+  { path: "/scout",    icon: Compass,       label: "Scout" },
+  { path: "/lab",      icon: FlaskConical,  label: "Lab" },
+  { path: "/rankings", icon: BarChart3,     label: "Rank" },
 ];
 
 // Pages where bottom nav should be hidden
-const hiddenOnRoutes = ["/master", "/lab", "/compare", "/reports", "/login", "/register", "/forgot-password"];
+const hiddenOnRoutes = ["/compare", "/login", "/register", "/forgot-password"];
 
 const BottomNav = () => {
   const location = useLocation();
@@ -78,6 +78,15 @@ const BottomNav = () => {
               </div>
 
               {/* Actions */}
+              {isClub && (
+                <button
+                  onClick={() => { setShowUserMenu(false); navigate("/director"); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
+                >
+                  <Trophy size={12} />
+                  Director
+                </button>
+              )}
               <button
                 onClick={() => { setShowUserMenu(false); navigate("/settings"); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
