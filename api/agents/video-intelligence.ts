@@ -169,7 +169,12 @@ Devuelve EXCLUSIVAMENTE este JSON (sin markdown):
     "recomendacionEntrenador": "..."
   },
   "confianza": 0.85
-}`;
+}
+
+INSTRUCCIÓN ADICIONAL PARA planDesarrollo:
+- En pilaresTrabajo, referencia drills concretos del contexto RAG adjunto cuando aplique.
+- Cada acción debe ser específica: incluye el nombre del drill y su ID entre paréntesis (ej: "Rondo 4v2 — TEC-001").
+- No inventes drills: usa solo los del contexto RAG proporcionado.`;
 }
 
 // ─── RAG: contexto de jugadores profesionales ────────────────────────────────
@@ -283,14 +288,47 @@ export default async function handler(req: Request): Promise<Response> {
     playerContext.phvCategory ? `PHV: ${playerContext.phvCategory}` : "",
   ].filter(Boolean).join(". ");
 
-  const [proContext, historyContext] = await Promise.all([
+  const [proContext, historyContext, drillContext] = await Promise.all([
+    // RAG 1: jugadores pro de referencia
     getSemanticProContext(playerDescForRag, playerContext.position, baseUrl),
+
+    // RAG 2: historial previo del jugador
     (async () => {
       try {
         const res = await fetch(`${baseUrl}/api/rag/query`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: playerDescForRag, category: "report", player_id: playerId, limit: 3 }),
+        });
+        if (!res.ok) return "";
+        const data = await res.json() as { context?: string };
+        return data.context ?? "";
+      } catch { return ""; }
+    })(),
+
+    // RAG 3: drills relevantes según métricas más débiles
+    (async () => {
+      try {
+        const metricLabels: Record<string, string> = {
+          speed:     "velocidad y sprint",
+          shooting:  "disparo y definición",
+          vision:    "visión periférica y pase",
+          technique: "técnica con balón y control",
+          defending: "defensa y pressing",
+          stamina:   "resistencia física",
+        };
+        const weakMetrics = vsiMetrics
+          ? Object.entries(vsiMetrics)
+              .sort(([, a], [, b]) => (a as number) - (b as number))
+              .slice(0, 3)
+              .map(([k]) => metricLabels[k] ?? k)
+          : ["técnica", "visión", "velocidad"];
+
+        const drillQuery = `Ejercicios para mejorar ${weakMetrics.join(", ")} posición ${playerContext.position} edad ${playerContext.age} años`;
+        const res = await fetch(`${baseUrl}/api/rag/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: drillQuery, category: "drill", limit: 5 }),
         });
         if (!res.ok) return "";
         const data = await res.json() as { context?: string };
@@ -306,6 +344,9 @@ export default async function handler(req: Request): Promise<Response> {
   }
   if (historyContext) {
     systemPrompt += `\n\nHISTORIAL DE INFORMES PREVIOS DEL JUGADOR:\n${historyContext}`;
+  }
+  if (drillContext) {
+    systemPrompt += `\n\nDRILLS RECOMENDADOS (extraídos de base de conocimiento RAG — úsalos en el plan de desarrollo):\n${drillContext}`;
   }
   const userPromptText = buildUserPrompt(videoDuration);
 
