@@ -39,6 +39,7 @@ export function useSupabaseSync() {
       SupabaseVideoService.pullAll(user.id),
       SubscriptionService.syncFromSupabase(user.id),
       UserProfileService.syncFromSupabase(user.id),
+      SubscriptionService.syncAnalysesFromSupabase(user.id),
     ]).then(() => {
       qc.invalidateQueries({ queryKey: ["players-all"] });
       qc.invalidateQueries({ queryKey: ["rankings"] });
@@ -46,6 +47,7 @@ export function useSupabaseSync() {
       qc.invalidateQueries({ queryKey: ["videos"] });
       qc.invalidateQueries({ queryKey: ["subscription", user.id] });
       qc.invalidateQueries({ queryKey: ["user-profile", user.id] });
+      qc.invalidateQueries({ queryKey: ["usage-analytics", user.id] });
     }).catch(console.warn);
   }, [user, configured, qc]);
 

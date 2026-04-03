@@ -141,6 +141,35 @@ export const SubscriptionService = {
     );
     const count = data.month === currentMonth ? data.count + 1 : 1;
     StorageService.set(ANALYSES_KEY, { month: currentMonth, count });
+
+    // Sync background a Supabase
+    if (SUPABASE_CONFIGURED) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return;
+        supabase.from("analyses_used").upsert(
+          { user_id: user.id, month: currentMonth, count, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,month" }
+        );
+      });
+    }
+  },
+
+  async syncAnalysesFromSupabase(userId: string): Promise<void> {
+    if (!SUPABASE_CONFIGURED) return;
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data } = await supabase
+        .from("analyses_used")
+        .select("count")
+        .eq("user_id", userId)
+        .eq("month", currentMonth)
+        .single();
+      if (data) {
+        StorageService.set(ANALYSES_KEY, { month: currentMonth, count: data.count });
+      }
+    } catch {
+      // Silently fail — usa contador local
+    }
   },
 
   // ── Sync con Supabase ─────────────────────────────────────────────────────
