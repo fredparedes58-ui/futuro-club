@@ -29,9 +29,11 @@ export const SupabasePlayerService = {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        // Cloud vacío → push los locales al cloud
-        await this.pushAll(userId);
-        return PlayerService.getAll();
+        // Cloud vacío → limpiar localStorage (puede tener jugadores demo) y devolver vacío.
+        // Los jugadores reales que cree el usuario se pushearán al cloud en ese momento.
+        const { StorageService } = await import("./storageService");
+        StorageService.set("players", []);
+        return [];
       }
 
       // Merge: cloud gana en caso de conflicto (updated_at más reciente)

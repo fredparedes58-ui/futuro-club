@@ -21,8 +21,11 @@ import { toast } from "sonner";
 import { PlayerService } from "@/services/real/playerService";
 import { StorageService } from "@/services/real/storageService";
 import { MetricsService } from "@/services/real/metricsService";
+import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
+import { useAuth } from "@/context/AuthContext";
+import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 // ─── Schema del formulario ────────────────────────────────────────────────────
 const formSchema = z.object({
@@ -159,6 +162,7 @@ const PlayerForm = () => {
   const isEditMode = !!id;
   const queryClient = useQueryClient();
   const { canAddPlayer, limits, playerCount } = usePlan();
+  const { user } = useAuth();
 
   const {
     register,
@@ -221,9 +225,8 @@ const PlayerForm = () => {
 
     try {
       if (isEditMode && id) {
-        // Actualizar métricas + datos básicos
+        // Actualizar métricas + datos básicos en localStorage
         PlayerService.updateMetrics(id, data.metrics);
-        // Actualizar otros campos directamente en el player
         const players = PlayerService.getAll();
         const idx = players.findIndex((p) => p.id === id);
         if (idx !== -1) {
@@ -240,10 +243,14 @@ const PlayerForm = () => {
             updatedAt: new Date().toISOString(),
           };
           StorageService.set("players", players);
+          // Sincronizar a Supabase en background
+          if (user && SUPABASE_CONFIGURED) {
+            SupabasePlayerService.pushOne(user.id, players[idx]).catch(console.warn);
+          }
         }
         toast.success(`${data.name} actualizado correctamente`);
       } else {
-        PlayerService.create({
+        const input = {
           name: data.name,
           age: data.age,
           position: data.position,
@@ -254,7 +261,13 @@ const PlayerForm = () => {
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
           metrics: data.metrics,
-        });
+        };
+        // Crear jugador: si Supabase está activo, guardar también en cloud
+        if (user && SUPABASE_CONFIGURED) {
+          await SupabasePlayerService.create(user.id, input);
+        } else {
+          PlayerService.create(input);
+        }
         toast.success(`${data.name} agregado al sistema`);
       }
 

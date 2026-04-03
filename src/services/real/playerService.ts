@@ -7,6 +7,7 @@
 import { z } from "zod";
 import { StorageService } from "./storageService";
 import { MetricsService } from "./metricsService";
+import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 // ─── Schema del jugador ───────────────────
 export const PlayerSchema = z.object({
@@ -155,9 +156,11 @@ export const PlayerService = {
   },
 
   /**
-   * Carga los jugadores mock iniciales si no hay datos
+   * Carga los jugadores mock iniciales si no hay datos.
+   * NUNCA siembra en producción (cuando Supabase está configurado).
    */
   seedIfEmpty(): void {
+    if (SUPABASE_CONFIGURED) return; // En producción los jugadores vienen de Supabase
     if (PlayerService.getAll().length > 0) return;
 
     const mockPlayers: CreatePlayerInput[] = [
