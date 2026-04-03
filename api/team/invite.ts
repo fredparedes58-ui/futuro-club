@@ -42,6 +42,27 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ error: "Invalid role" }), { status: 400 });
   }
 
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return new Response(JSON.stringify({ error: "Email inválido" }), { status: 400 });
+  }
+
+  // Verificar que no exista ya una invitación pendiente para este email
+  const { data: existing } = await supabase
+    .from("team_invitations")
+    .select("id")
+    .eq("org_owner_id", orgOwnerId)
+    .eq("email", email)
+    .eq("status", "pending")
+    .single();
+
+  if (existing) {
+    return new Response(
+      JSON.stringify({ error: "Ya existe una invitación pendiente para este email" }),
+      { status: 409 }
+    );
+  }
+
   // Obtener nombre de la organización
   const { data: profileData } = await supabase
     .from("user_profiles")
