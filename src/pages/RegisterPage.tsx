@@ -1,12 +1,12 @@
 /**
  * VITAS — Register Page
- * Crea una nueva cuenta de academia de scouting.
+ * Crea una nueva cuenta: academia, scout, entrenador, padre o jugador.
  */
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2, Building2, Search, UserRound, Users, Dumbbell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -22,20 +22,39 @@ const container = {
 const pwRules = [
   { label: "Mínimo 8 caracteres", test: (p: string) => p.length >= 8 },
   { label: "Una letra mayúscula", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "Un número", test: (p: string) => /\d/.test(p) },
+  { label: "Un número",           test: (p: string) => /\d/.test(p) },
 ];
+
+type UserType = "academy" | "scout" | "coach" | "parent" | "player";
+
+const USER_TYPES: { id: UserType; label: string; sublabel: string; Icon: React.ElementType }[] = [
+  { id: "academy", label: "Academia / Club",  sublabel: "Gestiona un equipo",     Icon: Building2  },
+  { id: "scout",   label: "Scout",            sublabel: "Descubre talento",        Icon: Search     },
+  { id: "coach",   label: "Entrenador",       sublabel: "Dirige jugadores",        Icon: Dumbbell   },
+  { id: "parent",  label: "Padre / Tutor",    sublabel: "Sigue el desarrollo",     Icon: Users      },
+  { id: "player",  label: "Jugador",          sublabel: "Analiza tu rendimiento",  Icon: UserRound  },
+];
+
+const NAME_PLACEHOLDER: Record<UserType, string> = {
+  academy: "Academia Fútbol Norte",
+  scout:   "Carlos Ramírez",
+  coach:   "Miguel Torres",
+  parent:  "Ana González",
+  player:  "Luis Hernández",
+};
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp, configured } = useAuth();
 
+  const [userType, setUserType]     = useState<UserType>("scout");
   const [displayName, setDisplayName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [showPw, setShowPw]         = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const [success, setSuccess]       = useState(false);
 
   const pwStrength = pwRules.filter((r) => r.test(password)).length;
 
@@ -51,14 +70,14 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const { error: authError } = await signUp(email, password, displayName);
+    const { error: authError } = await signUp(email, password, displayName, userType);
     setLoading(false);
     if (authError) {
       setError(translateError(authError.message));
       return;
     }
     setSuccess(true);
-    toast.success("¡Academia creada! Revisa tu email para confirmar la cuenta.");
+    toast.success("¡Cuenta creada! Revisa tu email para confirmar.");
   };
 
   if (success) {
@@ -72,7 +91,7 @@ export default function RegisterPage() {
           <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
             <CheckCircle2 size={28} className="text-primary" />
           </div>
-          <h2 className="font-display font-bold text-xl text-foreground">¡Academia creada!</h2>
+          <h2 className="font-display font-bold text-xl text-foreground">¡Cuenta creada!</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Hemos enviado un email de confirmación a{" "}
             <span className="text-primary font-semibold">{email}</span>.
@@ -106,7 +125,7 @@ export default function RegisterPage() {
           </div>
           <h1 className="font-display font-black text-3xl text-foreground tracking-tight">VITAS</h1>
           <p className="text-xs text-muted-foreground font-display tracking-widest uppercase">
-            Crea tu academia
+            Football Intelligence
           </p>
         </motion.div>
 
@@ -115,7 +134,7 @@ export default function RegisterPage() {
           <div>
             <h2 className="font-display font-bold text-xl text-foreground">Nueva cuenta</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Registra tu academia de scouting
+              ¿Cómo vas a usar VITAS?
             </p>
           </div>
 
@@ -123,23 +142,43 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-gold/10 border border-gold/20">
               <AlertCircle size={14} className="text-gold shrink-0 mt-0.5" />
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Supabase no configurado. El registro no funcionará hasta agregar{" "}
+                Supabase no configurado. El registro requiere{" "}
                 <code className="text-gold">VITE_SUPABASE_URL</code>.
               </p>
             </div>
           )}
 
+          {/* Tipo de usuario */}
+          <div className="grid grid-cols-2 gap-2">
+            {USER_TYPES.map(({ id, label, sublabel, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setUserType(id)}
+                className={`flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all ${
+                  userType === id
+                    ? "border-primary/60 bg-primary/10 text-foreground"
+                    : "border-border bg-secondary/50 text-muted-foreground hover:border-border/80"
+                } ${id === "player" ? "col-span-2" : ""}`}
+              >
+                <Icon size={14} className={userType === id ? "text-primary" : ""} />
+                <span className="text-xs font-display font-semibold leading-tight">{label}</span>
+                <span className="text-[10px] opacity-70">{sublabel}</span>
+              </button>
+            ))}
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nombre de academia */}
+            {/* Nombre */}
             <div className="space-y-1.5">
               <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                Nombre de academia / entrenador
+                {userType === "academy" ? "Nombre de la academia / club" : "Tu nombre"}
               </label>
               <input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Academia Fútbol Norte"
+                placeholder={NAME_PLACEHOLDER[userType]}
                 autoComplete="name"
                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
               />
@@ -154,7 +193,7 @@ export default function RegisterPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="scout@miclub.com"
+                placeholder="tu@email.com"
                 autoComplete="email"
                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
               />
@@ -183,7 +222,6 @@ export default function RegisterPage() {
                 </button>
               </div>
 
-              {/* Strength meter */}
               {password.length > 0 && (
                 <div className="space-y-2 pt-1">
                   <div className="flex gap-1">
@@ -235,10 +273,10 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Creando academia…
+                  Creando cuenta…
                 </>
               ) : (
-                "Crear academia"
+                "Crear cuenta"
               )}
             </button>
           </form>
@@ -258,7 +296,15 @@ export default function RegisterPage() {
 function translateError(msg: string): string {
   if (msg.includes("already registered") || msg.includes("User already registered"))
     return "Ya existe una cuenta con ese email";
-  if (msg.includes("Password should be")) return "La contraseña debe tener al menos 6 caracteres";
-  if (msg.includes("no configurado")) return msg;
+  if (msg.includes("Password should be"))
+    return "La contraseña debe tener al menos 6 caracteres";
+  if (msg.includes("Invalid API key") || msg.includes("invalid api key"))
+    return "Error de configuración. Contacta al administrador.";
+  if (msg.includes("Invalid login credentials"))
+    return "Email o contraseña incorrectos";
+  if (msg.includes("Email not confirmed"))
+    return "Confirma tu email antes de iniciar sesión";
+  if (msg.includes("no configurado"))
+    return msg;
   return msg;
 }

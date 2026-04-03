@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
+  const signUp = useCallback(async (email: string, password: string, displayName?: string, userType?: string) => {
     if (!SUPABASE_CONFIGURED) {
       return { error: { message: "Supabase no configurado" } as AuthError };
     }
@@ -86,7 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        data: { display_name: displayName ?? email.split("@")[0] },
+        data: {
+          display_name: displayName ?? email.split("@")[0],
+          user_type: userType ?? "scout",
+        },
       },
     });
     return { error };
