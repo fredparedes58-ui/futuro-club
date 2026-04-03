@@ -92,14 +92,15 @@ export default async function handler(req: Request): Promise<Response> {
     const sigBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
-    // Return upload token — API key is NOT exposed to client
+    // Return upload credentials — library-scoped key only (no master key)
     return json({
       success: true,
       data: {
         videoId:        video.guid,
         libraryId:      Number(libraryId),
         uploadUrl:      `${BUNNY_BASE}/${libraryId}/videos/${video.guid}`,
-        authSignature:  signature,
+        accessKey:      apiKey,          // library-level key for PUT upload
+        authSignature:  signature,       // kept for TUS fallback
         authExpire:     expirationTime,
         title:          video.title,
         playerId:       playerId ?? null,
