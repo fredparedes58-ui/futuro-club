@@ -183,7 +183,7 @@ const ReportsPage = () => {
                   {players.slice(0, 10).map((p) => (
                     <div key={p.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-secondary/50 transition-colors group">
                       <button
-                        onClick={() => navigate(`/player/${p.id}/intelligence`)}
+                        onClick={() => navigate(`/players/${p.id}/intelligence`)}
                         className="flex items-center gap-3 flex-1 text-left min-w-0"
                       >
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -286,7 +286,7 @@ const ReportsPage = () => {
                   <button
                     onClick={() => {
                       if (!selectedPlayerId) { alert("Selecciona un jugador primero"); return; }
-                      navigate(`/player/${selectedPlayerId}/intelligence`);
+                      navigate(`/players/${selectedPlayerId}/intelligence`);
                     }}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
                   >
