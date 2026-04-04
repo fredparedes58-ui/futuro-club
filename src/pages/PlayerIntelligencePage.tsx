@@ -409,7 +409,7 @@ export default function PlayerIntelligencePage() {
     }
     const video = playerVideos.find(v => v.id === selectedVideoId);
     if (!video) return;
-    const duration = (video.data as Record<string, unknown>).duration as number ?? 120;
+    const duration = (video.duration as number) || 34;
     try {
       await runAnalysis({
         videoId: selectedVideoId,
@@ -504,10 +504,10 @@ export default function PlayerIntelligencePage() {
                       <Play size={14} className="text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">
-                          {(v.data as Record<string, unknown>).title as string ?? v.id}
+                          {v.title ?? v.id}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {v.status === "ready" ? "Listo para análisis" : v.status}
+                          {v.embedUrl ? "Listo para análisis" : v.status}
                         </p>
                       </div>
                     </button>
