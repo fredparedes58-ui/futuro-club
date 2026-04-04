@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import TopNav from "@/components/TopNav";
 import { Play, Search, Video, Upload, Zap, Clock, Trash2 } from "lucide-react";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
+import { useDeletePlayer } from "@/hooks/usePlayers";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
@@ -27,6 +28,7 @@ const ReportsPage = () => {
 
   const { data: realVideos = [], isLoading } = useVideos();
   const { mutate: deleteVideo } = useDeleteVideo();
+  const { mutate: deletePlayer } = useDeletePlayer();
 
   const players = PlayerService.getAll();
 
@@ -174,23 +176,30 @@ const ReportsPage = () => {
                   Analizar por jugador
                 </h3>
                 <div className="space-y-2">
-                  {players.slice(0, 5).map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => navigate(`/players/${p.id}/intelligence`)}
-                      className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/50 transition-colors text-left"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] font-bold text-primary">
-                          {p.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-display font-medium text-foreground truncate">{p.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{p.position} · VSI {p.vsi}</p>
-                      </div>
-                      <Zap size={10} className="text-primary shrink-0" />
-                    </button>
+                  {players.slice(0, 10).map((p) => (
+                    <div key={p.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-secondary/50 transition-colors group">
+                      <button
+                        onClick={() => navigate(`/players/${p.id}/intelligence`)}
+                        className="flex items-center gap-3 flex-1 text-left min-w-0"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                          <span className="text-[10px] font-bold text-primary">
+                            {p.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-display font-medium text-foreground truncate">{p.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{p.position} · VSI {p.vsi}</p>
+                        </div>
+                        <Zap size={10} className="text-primary shrink-0" />
+                      </button>
+                      <button
+                        onClick={() => { if (confirm(`¿Eliminar a ${p.name}?`)) deletePlayer(p.id); }}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
