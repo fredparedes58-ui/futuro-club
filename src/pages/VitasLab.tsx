@@ -162,6 +162,14 @@ const VitasLab = () => {
   const [playerPosition, setPlayerPosition]     = useState<string>("");
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
 
+  // points DEBE declararse ANTES de useTracking (que lo usa en calibrationPoints)
+  const [points, setPoints] = useState<CalibrationPoint[]>([
+    { id: 1, x: 28, y: 62, label: "P1" },
+    { id: 2, x: 72, y: 62, label: "P2" },
+    { id: 3, x: 80, y: 92, label: "P3" },
+    { id: 4, x: 20, y: 92, label: "P4" },
+  ]);
+
   const tracking = useTracking({
     videoId:           selectedVideoId ?? "",
     playerId:          selectedPlayerId ?? "",
@@ -172,13 +180,6 @@ const VitasLab = () => {
 
   const { data: videos = [] } = useVideos();
   const { data: players = [] } = useAllPlayers();
-
-  const [points, setPoints] = useState<CalibrationPoint[]>([
-    { id: 1, x: 28, y: 62, label: "P1" },
-    { id: 2, x: 72, y: 62, label: "P2" },
-    { id: 3, x: 80, y: 92, label: "P3" },
-    { id: 4, x: 20, y: 92, label: "P4" },
-  ]);
 
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
