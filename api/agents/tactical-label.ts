@@ -1,58 +1,123 @@
 /**
- * VITAS Agent API — Tactical Label Agent (Fase 2 - Video)
- * Vercel Serverless Function
+ * VITAS Agent API — Tactical Label Agent
  * POST /api/agents/tactical-label
+ *
+ * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
  */
 
-import Anthropic from "@anthropic-ai/sdk";
-import { TacticalLabelInputSchema, TacticalLabelOutputSchema } from "../../src/agents/contracts";
-import { TACTICAL_LABEL_PROMPT, AGENT_CONFIG } from "../../src/agents/prompts";
+export const config = { runtime: "edge" };
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const TACTICAL_LABEL_PROMPT = `
+Eres el motor de etiquetado táctico de VITAS Football Intelligence.
+Tu función es asignar etiquetas PHV y tácticas a detecciones de jugadores en frames de video.
+
+REGLAS DE POSICIÓN POR ZONA DE CAMPO:
+- Zonas 1-3 (defensiva): GK, RB, LB, RCB, LCB
+- Zonas 4-6 (media): DM, RCM, LCM
+- Zonas 7-9 (ofensiva): RW, LW, ST
+
+REGLAS DE ACCIÓN:
+- speedKmh > 20 Y !hasBall → "sprint"
+- hasBall Y zone en 7-9 → "shot" o "dribble"
+- hasBall Y zone en 4-6 → "pass"
+- !hasBall Y zone opuesta al balón → "off_ball_run"
+- speedKmh < 5 → "static"
+- Presión sobre rival: "press"
+
+VSI CONTRIBUTION:
+- sprint en zona ofensiva: 0.8-0.9
+- press efectivo: 0.7-0.8
+- pase en zona media: 0.5-0.7
+- movimiento sin balón en zona clave: 0.6-0.75
+- estático: 0.1-0.3
+
+RESPONDE ÚNICAMENTE con JSON válido:
+{"frameId":"string","labels":[{"trackId":number,"positionCode":"string","phvCategory":"early|ontme|late|unknown","action":"sprint|pass|shot|press|dribble|tackle|off_ball_run|static","vsiContribution":number,"labelConfidence":number}]}
+
+No incluyas texto, explicaciones ni markdown fuera del JSON.
+`;
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return json({ error: "Method not allowed" }, 405);
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return json({ success: false, error: "ANTHROPIC_API_KEY not configured", agentName: "TacticalLabelAgent" }, 503);
   }
 
   try {
     const body = await req.json();
-    const input = TacticalLabelInputSchema.parse(body);
 
-    const message = await anthropic.messages.create({
-      model: AGENT_CONFIG.model,
-      max_tokens: AGENT_CONFIG.maxTokens,
-      temperature: AGENT_CONFIG.temperature,
-      system: TACTICAL_LABEL_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: JSON.stringify(input),
-        },
-      ],
+    if (!body?.frameId && !body?.detections) {
+      return json({ success: false, error: "frameId and detections required", agentName: "TacticalLabelAgent" }, 400);
+    }
+
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type":      "application/json",
+        "x-api-key":         apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model:       "claude-haiku-4-5-20251001",
+        max_tokens:  1024,
+        temperature: 0,
+        system:      TACTICAL_LABEL_PROMPT,
+        messages:    [{ role: "user", content: JSON.stringify(body) }],
+      }),
     });
 
-    const raw = (message.content[0] as { type: string; text: string }).text;
-    const parsed = JSON.parse(raw);
-    parsed.frameId = input.frameId;
-
-    const output = TacticalLabelOutputSchema.parse(parsed);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: output,
-        tokensUsed: message.usage.input_tokens + message.usage.output_tokens,
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text().catch(() => "");
+      return json({
+        success: false,
+        error: `Claude API ${claudeRes.status}: ${errText.slice(0, 200)}`,
         agentName: "TacticalLabelAgent",
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+      }, 500);
+    }
+
+    const claudeData = await claudeRes.json() as {
+      content: Array<{ type: string; text?: string }>;
+      usage?: { input_tokens: number; output_tokens: number };
+    };
+
+    let fullText = "";
+    for (const block of claudeData.content) {
+      if (block.type === "text" && block.text) fullText += block.text;
+    }
+
+    const m = fullText.match(/\{[\s\S]*\}/);
+    if (!m) {
+      return json({ success: false, error: "No JSON in Claude response", agentName: "TacticalLabelAgent" }, 500);
+    }
+
+    const parsed = JSON.parse(m[0]);
+    if (body?.frameId) {
+      parsed.frameId = body.frameId;
+    }
+
+    const tokensUsed = claudeData.usage
+      ? claudeData.usage.input_tokens + claudeData.usage.output_tokens
+      : 0;
+
+    return json({
+      success: true,
+      data: parsed,
+      tokensUsed,
+      agentName: "TacticalLabelAgent",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ success: false, error: message, agentName: "TacticalLabelAgent" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return json({ success: false, error: message, agentName: "TacticalLabelAgent" }, 500);
   }
 }
 
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}

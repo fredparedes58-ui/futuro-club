@@ -99,7 +99,7 @@ run_test "Pipeline: valid payload → 200"       POST "/api/pipeline/start"  '{"
 run_test "Tracking save: no auth → 401"        POST "/api/tracking/save"   '{"playerId":"x"}'                          "401"
 run_test "Video init → 200"                    POST "/api/upload/video-init" '{"title":"qa-test","libraryId":"1"}'      "200"
 run_test "Videos list → 200"                   GET  "/api/videos/list"      ""                                          "200"
-run_test "Audit endpoint → 200"                POST "/api/audit"            '{"action":"qa_test","details":{}}'         "200"
+run_test "Audit endpoint → 200"                GET  "/api/audit"            ""                                          "200"
 
 echo ""
 echo "▸ Player Search API"
