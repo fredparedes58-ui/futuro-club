@@ -357,45 +357,60 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const userPromptText = buildUserPrompt(videoDuration);
 
-  // Construir content con imágenes
-  const imageContent: Anthropic.ImageBlockParam[] = keyframes
-    .slice(0, 10) // máximo 10 keyframes
-    .map((url) => ({
-      type: "image",
-      source: {
-        type: "url",
-        url,
-      },
-    }));
+  // Descargar keyframes server-side y convertir a base64
+  // Más fiable que pasar URLs directas (no depende de acceso público del CDN)
+  const imageContent: Anthropic.ImageBlockParam[] = [];
+
+  await Promise.all(
+    keyframes.slice(0, 8).map(async (url) => {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return;
+        const contentType = res.headers.get("content-type") ?? "image/jpeg";
+        const mediaType = (["image/jpeg","image/png","image/gif","image/webp"]
+          .find(t => contentType.includes(t)) ?? "image/jpeg") as "image/jpeg"|"image/png"|"image/gif"|"image/webp";
+        const buffer = await res.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        imageContent.push({
+          type: "image",
+          source: { type: "base64", media_type: mediaType, data: base64 },
+        });
+      } catch {
+        // Keyframe no disponible — se omite
+      }
+    })
+  );
+
+  if (imageContent.length === 0) {
+    return new Response(
+      JSON.stringify({ error: "No se pudieron obtener fotogramas del video. Verifica que VITE_BUNNY_CDN_HOSTNAME esté configurado en Vercel y que el video haya terminado de procesarse en Bunny Stream." }),
+      { status: 422 }
+    );
+  }
 
   const client = new Anthropic({ apiKey });
 
   let rawResponse = "";
   let tokensUsed = 0;
 
-  // Intentar con imágenes primero; si falla, reintentar solo con texto
-  const attemptAnalysis = async (withImages: boolean) => {
-    const content: Anthropic.MessageParam["content"] = withImages && imageContent.length > 0
-      ? [...imageContent, { type: "text" as const, text: userPromptText }]
-      : [{ type: "text" as const, text: userPromptText }];
-
-    return client.messages.create({
+  try {
+    const message = await client.messages.create({
       model:      "claude-sonnet-4-5",
       max_tokens: 4096,
       system:     systemPrompt,
-      messages:   [{ role: "user", content }],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...imageContent,
+            { type: "text", text: userPromptText },
+          ],
+        },
+      ],
     });
-  };
-
-  try {
-    let message;
-    try {
-      message = await attemptAnalysis(true);
-    } catch (imgErr) {
-      // Si falla con imágenes (URLs inaccesibles), reintentar sin ellas
-      console.warn("[video-intelligence] Image fetch failed, retrying text-only:", imgErr instanceof Error ? imgErr.message : imgErr);
-      message = await attemptAnalysis(false);
-    }
 
     rawResponse = (message.content[0] as { type: string; text: string }).text ?? "";
     tokensUsed  = message.usage.input_tokens + message.usage.output_tokens;
@@ -404,7 +419,7 @@ export default async function handler(req: Request): Promise<Response> {
     const errMsg = err instanceof Error ? err.message : "Unknown error";
     console.error("[video-intelligence] Claude error:", errMsg);
     return new Response(
-      JSON.stringify({ error: `Error de análisis: ${errMsg}`, details: errMsg }),
+      JSON.stringify({ error: `Error de análisis con IA: ${errMsg}` }),
       { status: 502 }
     );
   }
