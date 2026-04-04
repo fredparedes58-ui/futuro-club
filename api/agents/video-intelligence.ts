@@ -27,13 +27,18 @@ export default async function handler(req: Request): Promise<Response> {
         const body = await req.json();
         const { playerContext, keyframes, videoId } = body;
 
-        if (!playerContext || !keyframes || keyframes.length === 0) {
-          send("error", { message: "Faltan datos requeridos" });
+        if (!playerContext) {
+          send("error", { message: "Faltan datos requeridos (playerContext)" });
           controller.close();
           return;
         }
 
-        const frame = keyframes[0];
+        // Normalize keyframe: acepta string | { url: string } | { url: string, timestamp, frameIndex }
+        const rawFrame = keyframes?.[0];
+        const frameUrl: string = rawFrame
+          ? (typeof rawFrame === "string" ? rawFrame : ((rawFrame as { url?: string }).url ?? ""))
+          : "";
+
         send("progress", { step: "Analizando fotograma...", percent: 25 });
 
         const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -53,16 +58,20 @@ export default async function handler(req: Request): Promise<Response> {
         let fullText = "";
 
         try {
+          // Build message content — only include image if frameUrl is valid
+          type ContentBlock =
+            | { type: "image"; source: { type: "url"; url: string } }
+            | { type: "text"; text: string };
+          const content: ContentBlock[] = [];
+          if (frameUrl && frameUrl.startsWith("http")) {
+            content.push({ type: "image", source: { type: "url", url: frameUrl } });
+          }
+          content.push({ type: "text", text: prompt });
+
           const sr = await anthropic.messages.create({
             model: "claude-haiku-4-5",
             max_tokens: 800,
-            messages: [{
-              role: "user",
-              content: [
-                { type: "image", source: { type: "url", url: frame.url } },
-                { type: "text", text: prompt }
-              ]
-            }],
+            messages: [{ role: "user", content }],
             stream: true,
           });
 

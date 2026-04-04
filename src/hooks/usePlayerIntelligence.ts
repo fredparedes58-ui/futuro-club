@@ -52,6 +52,10 @@ function getBunnyKeyframes(videoId: string, videoDuration?: number): KeyframeDat
 }
 
 // ——— Helper: leer SSE stream ——————————————————————————————————
+// El agente video-intelligence emite:
+//   event: progress\ndata: { step, percent }\n\n
+//   event: complete\ndata: { report, videoId, timestamp }\n\n
+//   event: error\ndata: { message }\n\n
 
 async function readSSEStream(
     url: string,
@@ -65,8 +69,11 @@ async function readSSEStream(
     });
 
   if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error((errData as { error?: string }).error ?? `HTTP ${response.status}`);
+        // Intenta JSON, si no, usa texto plano
+        const errText = await response.text().catch(() => `HTTP ${response.status}`);
+        let errMsg = `HTTP ${response.status}`;
+        try { errMsg = (JSON.parse(errText) as { error?: string }).error ?? errMsg; } catch { /* ok */ }
+        throw new Error(errMsg);
   }
 
   if (!response.body) {
@@ -77,42 +84,46 @@ async function readSSEStream(
     const decoder = new TextDecoder();
     let buffer = "";
 
-  while (true) {
+  try {
+    while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() ?? "";
+        buffer += decoder.decode(value, { stream: true });
 
-      for (const line of lines) {
-              if (!line.startsWith("data: ")) continue;
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr) continue;
+        // Los eventos SSE están separados por \n\n
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() ?? "";
 
-          let event: {
-                    status: string;
-                    result?: VideoIntelligenceOutput;
-                    error?: string;
-                    chunk?: string;
-          };
+        for (const chunk of chunks) {
+          if (!chunk.trim()) continue;
 
-          try {
-                    event = JSON.parse(jsonStr);
-          } catch {
-                    continue;
+          // Extraer línea "event:" y línea "data:"
+          const eventMatch = chunk.match(/^event:\s*(.+)$/m);
+          const dataMatch  = chunk.match(/^data:\s*(.+)$/m);
+
+          const eventType = eventMatch?.[1]?.trim();
+          const jsonStr   = dataMatch?.[1]?.trim();
+
+          if (!jsonStr) continue;
+
+          let data: Record<string, unknown>;
+          try { data = JSON.parse(jsonStr) as Record<string, unknown>; }
+          catch { continue; }
+
+          if (eventType === "progress") {
+            onProgress((data.step as string) ?? "Analizando...");
+          } else if (eventType === "complete") {
+            // { report: VideoIntelligenceOutput, videoId, timestamp }
+            const report = data.report as VideoIntelligenceOutput | undefined;
+            if (report) return report;
+          } else if (eventType === "error") {
+            throw new Error((data.message as string) ?? "Error en el análisis");
           }
-
-          if (event.status === "analyzing") {
-                    onProgress("Claude está analizando las imágenes...");
-          } else if (event.status === "streaming") {
-                    onProgress("Generando informe...");
-          } else if (event.status === "done" && event.result) {
-                    return event.result;
-          } else if (event.status === "error") {
-                    throw new Error(event.error ?? "Error en el análisis");
-          }
-      }
+        }
+    }
+  } finally {
+    reader.releaseLock();
   }
 
   throw new Error("El stream terminó sin resultado");
@@ -154,7 +165,16 @@ export function usePlayerIntelligence(player: Player) {
         savedAt:    null,
   });
 
-  const runAnalysis = useCallback(async (videoId: string, videoDuration?: number) => {
+  const [isSimilarityLoading, setIsSimilarityLoading] = useState(false);
+
+  // runAnalysis acepta objeto { videoId, videoDuration?, jerseyNumber?, teamColor? }
+  const runAnalysis = useCallback(async (opts: {
+        videoId:        string;
+        videoDuration?: number;
+        jerseyNumber?:  string;
+        teamColor?:     string;
+  }) => {
+        const { videoId, videoDuration, jerseyNumber, teamColor } = opts;
         setState({ step: "keyframes", progress: 10, message: "Obteniendo keyframes del video..." });
 
                                       try {
@@ -181,12 +201,12 @@ export function usePlayerIntelligence(player: Player) {
                                       phvCategory:      player.phvCategory,
                                       phvOffset:        player.phvOffset,
                                       competitiveLevel: player.competitiveLevel,
+                                      jerseyNumber,
+                                      teamColor,
                         },
                         keyframes,
                         videoDuration,
                         vsiMetrics,
-                        jerseyNumber:  player.jerseyNumber,
-                        teamColor:     player.teamColor,
             },
                     (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
                   );
@@ -195,10 +215,13 @@ export function usePlayerIntelligence(player: Player) {
 
           // 3. Similitud con jugadores profesionales
           let similarityData: SimilarityResult | null = null;
+          setIsSimilarityLoading(true);
                                               try {
                                                         similarityData = await findSimilarPlayers(vsiMetrics);
                                               } catch {
                                                         // similitud es opcional
+                                              } finally {
+                                                        setIsSimilarityLoading(false);
                                               }
 
           const savedAt = new Date().toISOString();
@@ -222,12 +245,15 @@ export function usePlayerIntelligence(player: Player) {
   }, [player, queryClient]);
 
   const refetchSimilarity = useCallback(async () => {
+        setIsSimilarityLoading(true);
         try {
                 const vsiMetrics = playerToVSI(player);
                 const similarityData = await findSimilarPlayers(vsiMetrics);
                 setResult((prev) => ({ ...prev, similarity: similarityData }));
         } catch {
                 // silencioso
+        } finally {
+                setIsSimilarityLoading(false);
         }
   }, [player]);
 
@@ -236,18 +262,18 @@ export function usePlayerIntelligence(player: Player) {
         setResult({ report: null, similarity: null, savedAt: null });
   }, []);
 
+  const isAnalyzing = state.step === "keyframes" || state.step === "analyzing";
+
   return {
         // Estado
         state,
-        isLoading: state.step === "keyframes" || state.step === "analyzing",
+        isLoading:          isAnalyzing,
+        isAnalyzing,
+        isSimilarityLoading,
 
         // Resultados
         analysisResult: result.report,
         similarityData: result.similarity,
-
-        // Resultados
-        analysisResult2: result.report,
-        similarityData2: result.similarity,
 
         // Acciones
         runAnalysis,

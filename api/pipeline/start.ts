@@ -70,7 +70,8 @@ export default async function handler(req: Request): Promise<Response> {
 
   // ─── 1. Fetch video info from Bunny Stream ─────────────────────────────────
   let videoDuration = 0;
-  let keyframes: string[] = [];
+  // Keyframes as objects { url, timestamp, frameIndex } — required by video-intelligence agent
+  let keyframes: { url: string; timestamp: number; frameIndex: number }[] = [];
 
   if (bunnyLibraryId && bunnyApiKey) {
     try {
@@ -82,22 +83,18 @@ export default async function handler(req: Request): Promise<Response> {
         const info = await bunnyRes.json() as BunnyVideoInfo;
         videoDuration = info.length ?? 0;
 
-        // Build keyframe URLs from Bunny CDN thumbnails
-        // Bunny provides thumbnail at ?time=X (seconds) on some plans
-        // Fallback: use standard thumbnail endpoint
         const cdnHost = bunnyCdnHost || `${videoId}.b-cdn.net`;
         const thumbBase = `https://${cdnHost}/${videoId}`;
 
         if (videoDuration > 0) {
-          // Sample at 5 evenly-spaced points
+          // Sample at 5 evenly-spaced points — send as { url, timestamp, frameIndex }
           const intervals = [0.05, 0.2, 0.4, 0.6, 0.8];
-          intervals.forEach(pct => {
+          intervals.forEach((pct, i) => {
             const t = Math.round(videoDuration * pct);
-            keyframes.push(`${thumbBase}/thumbnail.jpg?time=${t}`);
+            keyframes.push({ url: `${thumbBase}/thumbnail.jpg?time=${t}`, timestamp: t, frameIndex: i });
           });
         } else {
-          // Fallback: single thumbnail
-          keyframes.push(`${thumbBase}/thumbnail.jpg`);
+          keyframes.push({ url: `${thumbBase}/thumbnail.jpg`, timestamp: 0, frameIndex: 0 });
         }
       }
     } catch {
@@ -105,10 +102,9 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // If no keyframes from Bunny, signal graceful degradation
+  // Fallback placeholder so video-intelligence can run text-only analysis
   if (keyframes.length === 0) {
-    // Still run the analysis — Claude will work with player data only (no vision)
-    keyframes = [];
+    keyframes = [{ url: "", timestamp: 0, frameIndex: 0 }];
   }
 
   // ─── 2. Fetch player context from Supabase ──────────────────────────────────
@@ -161,7 +157,7 @@ export default async function handler(req: Request): Promise<Response> {
       }
     : undefined;
 
-  // ─── 4. Forward to video-intelligence agent ─────────────────────────────────
+  // ─── 4. Forward to video-intelligence agent (consumes SSE stream) ───────────
   const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
 
   try {
@@ -175,29 +171,66 @@ export default async function handler(req: Request): Promise<Response> {
         playerId,
         videoId,
         playerContext,
-        keyframes,
+        keyframes,                        // now { url, timestamp, frameIndex }[]
         videoDuration: videoDuration || undefined,
         vsiMetrics,
         analysisMode,
       }),
     });
 
-    const result = await intelligenceRes.json() as Record<string, unknown>;
+    // video-intelligence returns SSE (text/event-stream) — consume it and extract "complete" event
+    let report: Record<string, unknown> | null = null;
 
-    // Pass through the response, enriched with pipeline metadata
+    if (intelligenceRes.ok && intelligenceRes.body) {
+      const reader = intelligenceRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          // SSE events are separated by double newlines
+          const chunks = buffer.split("\n\n");
+          buffer = chunks.pop() ?? "";
+
+          for (const chunk of chunks) {
+            const eventMatch = chunk.match(/^event:\s*(.+)$/m);
+            const dataMatch  = chunk.match(/^data:\s*(.+)$/m);
+            const eventType  = eventMatch?.[1]?.trim();
+            const jsonStr    = dataMatch?.[1]?.trim();
+
+            if (!jsonStr) continue;
+            try {
+              const data = JSON.parse(jsonStr) as Record<string, unknown>;
+              if (eventType === "complete") {
+                report = (data.report as Record<string, unknown>) ?? null;
+              }
+            } catch { /* malformed chunk, skip */ }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+
+    // Return JSON to the client (upload hook + any caller)
     return new Response(
       JSON.stringify({
-        ...result,
+        success: true,
+        report,
         pipelineMeta: {
-          keyframesUsed:  keyframes.length,
+          keyframesUsed:   keyframes.length,
           videoDuration,
-          analysisMode:   analysisMode ?? "all",
+          analysisMode:    analysisMode ?? "all",
           bunnyConfigured: !!(bunnyLibraryId && bunnyApiKey),
-          ranAt:          new Date().toISOString(),
+          ranAt:           new Date().toISOString(),
         },
       }),
       {
-        status:  intelligenceRes.status,
+        status:  200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       }
     );
@@ -205,8 +238,8 @@ export default async function handler(req: Request): Promise<Response> {
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("[pipeline/start] video-intelligence call failed:", msg);
     return new Response(
-      JSON.stringify({ error: "Pipeline execution failed", details: msg }),
-      { status: 500 }
+      JSON.stringify({ success: false, error: "Pipeline execution failed", details: msg }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

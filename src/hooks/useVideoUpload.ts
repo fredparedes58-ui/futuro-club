@@ -255,18 +255,23 @@ export function useVideoUpload(playerId?: string) {
           body: JSON.stringify({ videoId, playerId }),
         });
 
-        const pipelineData = (await pipelineRes.json()) as {
-          success: boolean;
-          phase2Pending?: boolean;
+        // pipeline/start ahora retorna { success, report, pipelineMeta }
+        // (ya no retorna HTML — consume SSE internamente y devuelve JSON)
+        let pipelineData: {
+          success?: boolean;
+          report?: VideoAnalysis;
           error?: string;
-          data?: {
-            tacticalAnalysis: VideoAnalysis;
-          };
-        };
+        } = {};
+        try {
+          pipelineData = (await pipelineRes.json()) as typeof pipelineData;
+        } catch {
+          // JSON parse falló → continuar con analysis null (upload sigue exitoso)
+          console.warn("[useVideoUpload] pipeline response no es JSON válido");
+        }
 
         let analysis: VideoAnalysis | null = null;
-        if (pipelineData.success && pipelineData.data) {
-          analysis = pipelineData.data.tacticalAnalysis;
+        if (pipelineData.success && pipelineData.report) {
+          analysis = pipelineData.report;
           VideoService.saveAnalysis(videoId, analysis);
         }
 
