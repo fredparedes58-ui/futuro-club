@@ -52,13 +52,20 @@ function send(event: WorkerEvent): void {
 
 // ─── Inicializar modelo ONNX ───────────────────────────────────────────────
 
+// Fallback CDN for YOLO model if local/Bunny CDN isn't available
+const FALLBACK_MODEL_URL = "https://raw.githubusercontent.com/akbartus/Yolov8-Pose-Detection-on-Browser/main/yolov8_pose_onnx/model/yolov8n-pose.onnx";
+
 async function initModel(modelUrl: string): Promise<void> {
   try {
     send({ type: "PROGRESS", percent: 10, message: "Descargando modelo YOLO…" });
 
-    // Descargar con seguimiento de progreso
-    const response = await fetch(modelUrl);
-    if (!response.ok) throw new Error(`HTTP ${response.status} descargando modelo`);
+    // Try primary URL first, fallback to public CDN
+    let response = await fetch(modelUrl);
+    if (!response.ok && modelUrl !== FALLBACK_MODEL_URL) {
+      send({ type: "PROGRESS", percent: 12, message: "Modelo local no encontrado, descargando de CDN…" });
+      response = await fetch(FALLBACK_MODEL_URL);
+    }
+    if (!response.ok) throw new Error(`HTTP ${response.status} — no se pudo descargar el modelo YOLO`);
 
     const contentLength = Number(response.headers.get("content-length") ?? 0);
     const reader = response.body?.getReader();

@@ -29,7 +29,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) {
+  if (!stripeKey || stripeKey.includes("REEMPLAZA")) {
     return new Response(JSON.stringify({ error: "Stripe not configured" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

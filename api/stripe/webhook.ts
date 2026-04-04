@@ -19,7 +19,7 @@ export default async function handler(req: Request): Promise<Response> {
   const supabaseUrl   = process.env.VITE_SUPABASE_URL;
   const serviceKey    = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!stripeKey || !webhookSecret) {
+  if (!stripeKey || !webhookSecret || stripeKey.includes("REEMPLAZA") || webhookSecret.includes("REEMPLAZA")) {
     return new Response("Stripe not configured", { status: 500 });
   }
 

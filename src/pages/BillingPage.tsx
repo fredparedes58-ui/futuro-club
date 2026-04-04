@@ -137,6 +137,13 @@ const BillingPage = () => {
       : Math.round((planState.analysesUsed / planState.limits.analyses) * 100)
   );
 
+  // Detect if Stripe is configured (price IDs exist and aren't placeholders)
+  const stripeConfigured = (() => {
+    const proId = import.meta.env.VITE_STRIPE_PRO_PRICE_ID ?? "";
+    const clubId = import.meta.env.VITE_STRIPE_CLUB_PRICE_ID ?? "";
+    return proId && !proId.includes("REEMPLAZA") && clubId && !clubId.includes("REEMPLAZA");
+  })();
+
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
@@ -245,6 +252,19 @@ const BillingPage = () => {
             }
             Gestionar suscripción
           </Button>
+        </motion.div>
+      )}
+
+      {/* Banner: Stripe no configurado */}
+      {!stripeConfigured && (
+        <motion.div variants={item} className="glass rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/5">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield size={14} className="text-yellow-500" />
+            <span className="font-display font-bold text-sm text-yellow-500">Stripe no configurado</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Los pagos no están activos. Configura las claves de Stripe en las variables de entorno para habilitar suscripciones.
+          </p>
         </motion.div>
       )}
 

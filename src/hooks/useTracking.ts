@@ -221,13 +221,11 @@ export function useTracking(options: UseTrackingOptions) {
     });
 
     // Inicializar worker y cargar modelo
-    // Prioridad: 1) Bunny CDN, 2) public/ local, 3) HuggingFace público
+    // Fallback chain: 1) Bunny CDN, 2) public/ local
     const worker = initWorker();
     const modelUrl = hostname
       ? `https://${hostname}/models/yolov8n-pose.onnx`
       : "/models/yolov8n-pose.onnx";
-    // Nota: si el modelo no existe en Bunny ni en public/, usar fallback público
-    // El usuario debe subir yolov8n-pose.onnx a Bunny CDN /models/ o a public/models/
 
     worker.postMessage({ type: "INIT", modelUrl });
 
