@@ -357,14 +357,56 @@ export default async function handler(req: Request): Promise<Response> {
   }
   const userPromptText = buildUserPrompt(videoDuration);
 
-  // Descargar keyframes server-side y convertir a base64
-  // Más fiable que pasar URLs directas (no depende de acceso público del CDN)
+  // Obtener URLs de thumbnails desde la API de Bunny Stream (más fiable que CDN directo)
+  const bunnyLibId  = process.env.BUNNY_STREAM_LIBRARY_ID;
+  const bunnyApiKey = process.env.BUNNY_STREAM_API_KEY;
+  const bunnyCdnHost = process.env.VITE_BUNNY_CDN_HOSTNAME || process.env.BUNNY_CDN_HOSTNAME;
+
+  let thumbnailUrls: string[] = keyframes; // fallback a los keyframes del cliente
+
+  if (bunnyLibId && bunnyApiKey && videoId) {
+    try {
+      const bunnyRes = await fetch(
+        `https://video.bunnycdn.com/library/${bunnyLibId}/videos/${videoId}`,
+        { headers: { AccessKey: bunnyApiKey }, signal: AbortSignal.timeout(8000) }
+      );
+      if (bunnyRes.ok) {
+        const info = await bunnyRes.json() as {
+          guid: string;
+          length: number;
+          thumbnailFileName?: string;
+          encodeProgress: number;
+          status: number;
+        };
+        const cdnHost = bunnyCdnHost ?? `${info.guid}.b-cdn.net`;
+        const duration = info.length ?? 30;
+
+        // Generar URLs de thumbnails en puntos clave del video
+        const points = [0.1, 0.25, 0.4, 0.55, 0.7, 0.85];
+        thumbnailUrls = points.map(p => {
+          const t = Math.round(duration * p);
+          return `https://${cdnHost}/${videoId}/thumbnail.jpg?time=${t}`;
+        });
+
+        // Añadir thumbnail principal del video
+        if (info.thumbnailFileName) {
+          thumbnailUrls.unshift(`https://${cdnHost}/${videoId}/${info.thumbnailFileName}`);
+        } else {
+          thumbnailUrls.unshift(`https://${cdnHost}/${videoId}/thumbnail.jpg`);
+        }
+      }
+    } catch {
+      // Usar keyframes del cliente como fallback
+    }
+  }
+
+  // Descargar thumbnails y convertir a base64
   const imageContent: Anthropic.ImageBlockParam[] = [];
 
   await Promise.all(
-    keyframes.slice(0, 8).map(async (url) => {
+    thumbnailUrls.slice(0, 8).map(async (url) => {
       try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) return;
         const contentType = res.headers.get("content-type") ?? "image/jpeg";
         const mediaType = (["image/jpeg","image/png","image/gif","image/webp"]
@@ -379,14 +421,14 @@ export default async function handler(req: Request): Promise<Response> {
           source: { type: "base64", media_type: mediaType, data: base64 },
         });
       } catch {
-        // Keyframe no disponible — se omite
+        // Thumbnail no disponible — se omite
       }
     })
   );
 
   if (imageContent.length === 0) {
     return new Response(
-      JSON.stringify({ error: "No se pudieron obtener fotogramas del video. Verifica que VITE_BUNNY_CDN_HOSTNAME esté configurado en Vercel y que el video haya terminado de procesarse en Bunny Stream." }),
+      JSON.stringify({ error: "No se pudieron obtener fotogramas del video. El video puede estar aún procesándose en Bunny Stream. Espera unos minutos e intenta de nuevo." }),
       { status: 422 }
     );
   }
