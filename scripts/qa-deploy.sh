@@ -110,7 +110,7 @@ run_test "Player search: filters → 200"        GET  "/api/players/search?posit
 echo ""
 echo "▸ AI Agent Endpoints (POST, expect non-504)"
 run_test "Video Intelligence → non-timeout"    POST "/api/agents/video-intelligence" '{"playerContext":{"name":"QA","age":18,"position":"CM"},"keyframes":[],"videoId":"qa"}' "200"
-run_test "Scout Insight → responds"            POST "/api/agents/scout-insight"      '{"name":"QA Test","age":18,"position":"CM","metrics":{"speed":70}}' "200"
+run_test "Scout Insight → responds"            POST "/api/agents/scout-insight"      '{"player":{"id":"qa","name":"QA Test","age":18,"position":"CM","vsi":72,"vsiTrend":"up","phvCategory":"ontme","recentMetrics":{"speed":70,"technique":65,"vision":68,"stamina":72,"shooting":60,"defending":55}},"context":"general"}' "200"
 
 echo ""
 echo "▸ SPA Routes (HTML responses)"
