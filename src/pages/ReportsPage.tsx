@@ -137,14 +137,14 @@ const ReportsPage = () => {
                         <div className="flex items-center gap-1 mt-0.5">
                           <Clock size={9} className="text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(video.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })}
+                            {video.dateUploaded ? new Date(video.dateUploaded).toLocaleDateString("es-ES", { day: "2-digit", month: "short" }) : ""}
                           </span>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded ml-1 ${
-                            video.status === "ready"
+                            video.status === "finished"
                               ? "bg-green-500/10 text-green-400"
                               : "bg-amber-500/10 text-amber-400"
                           }`}>
-                            {video.status === "ready" ? "Listo" : "Procesando"}
+                            {video.status === "finished" ? "Listo" : "Procesando"}
                           </span>
                         </div>
                       </div>

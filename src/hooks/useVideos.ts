@@ -16,19 +16,46 @@ import { PushNotificationService } from "@/services/real/pushNotificationService
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
+// ── Auto-heal: videos con embedUrl válido pero status stuck ──────────────────
+function autoHealVideoStatuses(videos: VideoRecord[]): VideoRecord[] {
+  let changed = false;
+  const healed = videos.map((v) => {
+    // Si tiene embedUrl válido y está reproducible pero status no es "finished"
+    if (
+      v.embedUrl &&
+      v.embedUrl.startsWith("http") &&
+      v.status !== "finished" &&
+      v.status !== "error" &&
+      v.status !== "upload-failed"
+    ) {
+      changed = true;
+      const fixed = { ...v, status: "finished" as const, statusCode: 4, encodeProgress: 100 };
+      VideoService.save(fixed);
+      return fixed;
+    }
+    return v;
+  });
+  return changed ? healed : videos;
+}
+
 // ── List all videos ───────────────────────────────────────────────────────────
 export function useVideos(playerId?: string) {
   return useQuery<VideoRecord[]>({
     queryKey: playerId ? ["videos", playerId] : ["videos"],
     queryFn: async () => {
+      let all: VideoRecord[];
       if (SUPABASE_CONFIGURED) {
         // Supabase sync is handled by useSupabaseSync — just read local
-        const all = VideoService.getAll();
-        return playerId ? all.filter((v) => v.playerId === playerId) : all;
+        all = VideoService.getAll();
+      } else {
+        // Non-Supabase: sync from Bunny API
+        all = await VideoService.syncFromApi(playerId);
       }
-      // Non-Supabase: sync from Bunny API
-      const synced = await VideoService.syncFromApi(playerId);
-      return playerId ? synced.filter((v) => v.playerId === playerId) : synced;
+
+      // Auto-heal videos stuck in "processing" that already have valid embedUrl
+      all = autoHealVideoStatuses(all);
+
+      return playerId ? all.filter((v) => v.playerId === playerId) : all;
     },
     staleTime: STALE,
     placeholderData: () =>
