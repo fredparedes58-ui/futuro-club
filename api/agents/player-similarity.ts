@@ -13,7 +13,7 @@
  * }
  */
 
-export const config = { runtime: "edge" };
+export const config = { maxDuration: 60 };
 
 import type { ProPlayer } from "../../src/data/proPlayers";
 

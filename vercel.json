@@ -9,8 +9,6 @@
     }
   ],
   "functions": {
-    "api/agents/video-intelligence.ts": {
-      "maxDuration": 60
-    }
+    "api/agents/*.ts": { "maxDuration": 60 }
   }
 }
