@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "qa": "bash scripts/qa-deploy.sh",
+    "qa:prod": "bash scripts/qa-deploy.sh https://futuro-club.vercel.app"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

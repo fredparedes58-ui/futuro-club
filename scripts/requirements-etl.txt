@@ -1,0 +1,10 @@
+# VITAS ETL Dependencies
+# pip install -r scripts/requirements-etl.txt
+
+statsbombpy>=0.10.0
+soccerdata>=1.0.0
+understat>=0.1.0
+httpx>=0.27.0
+aiohttp>=3.9.0
+pandas>=2.0.0
+python-dotenv>=1.0.0
