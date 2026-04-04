@@ -367,8 +367,13 @@ export default function PlayerIntelligencePage() {
     );
   }
 
-  // Obtener videos disponibles para el análisis
-  const playerVideos = VideoService.getByPlayerId(player.id);
+  // Obtener videos disponibles — primero los del jugador, si no hay, mostrar todos
+  const playerVideos = (() => {
+    const byPlayer = VideoService.getByPlayerId(player.id);
+    if (byPlayer.length > 0) return byPlayer;
+    // Fallback: mostrar todos los videos disponibles para análisis
+    return VideoService.getAll();
+  })();
 
   // Informe a mostrar: último análisis guardado o el recién generado
   const latestReport: VideoIntelligenceOutput | null =

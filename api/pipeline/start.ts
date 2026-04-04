@@ -12,7 +12,7 @@
  * Body: { videoId, playerId, analysisMode?, homographyPoints? }
  */
 
-export const config = { runtime: "edge" };
+export const config = { maxDuration: 60 };
 
 interface HomographyPoint {
   id: number;

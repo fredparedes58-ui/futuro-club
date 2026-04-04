@@ -9,6 +9,8 @@
     }
   ],
   "functions": {
-    "api/agents/*.ts": { "maxDuration": 60 }
+    "api/agents/*.ts":   { "maxDuration": 60 },
+    "api/pipeline/*.ts": { "maxDuration": 60 },
+    "api/tracking/*.ts": { "maxDuration": 60 }
   }
 }

@@ -153,6 +153,13 @@ const VitasLab = () => {
   const [jerseyNumber, setJerseyNumber]         = useState<string>("");
   const [teamColor, setTeamColor]               = useState<string>("");
   const [showTracking, setShowTracking]         = useState(false);
+  // Configuración por modo de análisis
+  const [homeTeamColor, setHomeTeamColor]       = useState<string>("");
+  const [awayTeamColor, setAwayTeamColor]       = useState<string>("");
+  const [homeFormation, setHomeFormation]       = useState<string>("4-3-3");
+  const [awayFormation, setAwayFormation]       = useState<string>("4-4-2");
+  const [playerName, setPlayerName]             = useState<string>("");
+  const [playerPosition, setPlayerPosition]     = useState<string>("");
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const tracking = useTracking({
@@ -421,10 +428,15 @@ const VitasLab = () => {
             </span>
           </div>
           <nav className="hidden md:flex items-center gap-6 ml-6">
-            {["DASHBOARD", "NEW ANALYSIS", "ARCHIVE", "MODELS"].map((link, i) => (
-              <span key={link} className={`text-xs font-display font-semibold tracking-wider cursor-pointer transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                {link}
-              </span>
+            {[
+              { label: "DASHBOARD",    action: () => navigate("/")         },
+              { label: "NEW ANALYSIS", action: () => setShowUploadPanel(true) },
+              { label: "ARCHIVE",      action: () => navigate("/videos")   },
+              { label: "MODELS",       action: () => toast.info("Modelos disponibles próximamente", { description: "YOLOv8n-pose entrenado con SoccerNet estará disponible en Fase 3." }) },
+            ].map(({ label, action }, i) => (
+              <button key={label} onClick={action} className={`text-xs font-display font-semibold tracking-wider transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                {label}
+              </button>
             ))}
           </nav>
         </div>
@@ -646,7 +658,7 @@ const VitasLab = () => {
           {/* Analysis Mode */}
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Analysis Mode
+              Modo de Análisis
             </span>
             <div className="flex flex-col gap-2 mt-3">
               {analysisModes.map((mode) => {
@@ -658,16 +670,163 @@ const VitasLab = () => {
                     onClick={() => setSelectedMode(mode.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
                   >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${active ? "bg-primary/10" : "bg-secondary"}`}>
-                      <Icon size={18} className={active ? "text-primary" : "text-muted-foreground"} />
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${active ? "bg-primary/10" : "bg-secondary"}`}>
+                      <Icon size={15} className={active ? "text-primary" : "text-muted-foreground"} />
                     </div>
                     <div>
-                      <h4 className="font-display font-bold text-sm text-foreground">{mode.label}</h4>
-                      <p className="text-[10px] text-muted-foreground leading-tight">{mode.desc}</p>
+                      <h4 className="font-display font-bold text-xs text-foreground">{mode.label}</h4>
+                      <p className="text-[9px] text-muted-foreground leading-tight">{mode.desc}</p>
                     </div>
                   </button>
                 );
               })}
+            </div>
+
+            {/* Panel de configuración según el modo seleccionado */}
+            <div className="mt-3 space-y-2">
+
+              {/* ALL PLAYERS — colores de equipos */}
+              {selectedMode === "all" && (
+                <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Configuración equipos</p>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Color equipo local</label>
+                    <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
+                      placeholder="Ej: Blanco, Azul..." className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Color equipo visitante</label>
+                    <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
+                      placeholder="Ej: Rojo, Granate..." className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                  </div>
+                </div>
+              )}
+
+              {/* CLICK-TO-TRACK — jugador específico manual */}
+              {selectedMode === "click" && (
+                <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Jugador a seguir</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Nº Camiseta</label>
+                      <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
+                        placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Color uniforme</label>
+                      <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
+                        placeholder="Rojo" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Nombre del jugador (opcional)</label>
+                    <input value={playerName} onChange={e => setPlayerName(e.target.value)}
+                      placeholder="Ej: Samu García" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Posición en campo</label>
+                    <select value={playerPosition} onChange={e => setPlayerPosition(e.target.value)}
+                      className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                      <option value="">Seleccionar...</option>
+                      {["POR","LI","LD","CB","MCD","MC","MCO","EI","ED","DC","SD"].map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">El sistema rastreará automáticamente a este jugador durante todo el video.</p>
+                </div>
+              )}
+
+              {/* FULL TEAM — formaciones de ambos equipos */}
+              {selectedMode === "team" && (
+                <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Contexto táctico</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Formación local</label>
+                      <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
+                        className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                        {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2","4-1-4-1","3-4-3"].map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Formación visitante</label>
+                      <select value={awayFormation} onChange={e => setAwayFormation(e.target.value)}
+                        className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                        {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2","4-1-4-1","3-4-3"].map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Color local</label>
+                      <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
+                        placeholder="Blanco" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Color visitante</label>
+                      <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
+                        placeholder="Rojo" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">Analiza bloques tácticos, presión, líneas defensivas y transiciones de ambos equipos.</p>
+                </div>
+              )}
+
+              {/* SPECIFIC PLAYER — jugador identificado por dorsal */}
+              {selectedMode === "specific" && (
+                <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Perfil del jugador</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Nº Camiseta *</label>
+                      <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
+                        placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Color uniforme *</label>
+                      <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
+                        placeholder="Granate" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Nombre</label>
+                    <input value={playerName} onChange={e => setPlayerName(e.target.value)}
+                      placeholder="Nombre del jugador" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                  </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">Posición</label>
+                    <select value={playerPosition} onChange={e => setPlayerPosition(e.target.value)}
+                      className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                      <option value="">Seleccionar...</option>
+                      {["POR","LI","LD","CB","MCD","MC","MCO","EI","ED","DC","SD"].map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Equipo rival (color)</label>
+                      <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
+                        placeholder="Azul" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-muted-foreground">Formación propia</label>
+                      <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
+                        className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                        {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2"].map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">* Obligatorio para identificar al jugador en el video con precisión.</p>
+                </div>
+              )}
             </div>
           </div>
 
