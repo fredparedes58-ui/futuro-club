@@ -39,6 +39,8 @@ interface RequestBody {
   playerContext:  PlayerContext;
   keyframes:      string[];
   videoDuration?: number;
+  jerseyNumber?:  string;
+  teamColor?:     string;
   vsiMetrics?: {
     speed:     number;
     shooting:  number;
@@ -84,7 +86,7 @@ function cosine(a: number[], b: number[]) {
 
 // ─── Prompt del agente ────────────────────────────────────────────────────────
 
-function buildSystemPrompt(player: PlayerContext, top5: ProPlayer[]): string {
+function buildSystemPrompt(player: PlayerContext, top5: ProPlayer[], jerseyNumber?: string, teamColor?: string): string {
   const phvInfo = player.phvCategory
     ? `PHV: ${player.phvCategory} (offset ${player.phvOffset?.toFixed(1) ?? "N/A"} años)`
     : "PHV: no disponible";
@@ -108,8 +110,13 @@ JUGADOR A ANALIZAR:
 TOP 5 JUGADORES PROFESIONALES POR SIMILITUD MÉTRICA:
 ${proNames}
 
+IDENTIFICACIÓN DEL JUGADOR EN VIDEO:
+${jerseyNumber ? `- Número de camiseta: ${jerseyNumber} — ENFOCA tu análisis visual en el jugador con este dorsal` : "- Número de camiseta: no especificado — analiza al jugador más relevante para la posición indicada"}
+${teamColor ? `- Color del uniforme: ${teamColor} — usa este color para distinguir al jugador entre los demás` : ""}
+${jerseyNumber || teamColor ? "- Si el número o color es visible en los keyframes, PRIORIZA las acciones de ese jugador específico" : ""}
+
 INSTRUCCIONES CRÍTICAS:
-1. Analiza LOS KEYFRAMES con máximo detalle técnico-táctico
+1. Analiza LOS KEYFRAMES con máximo detalle técnico-táctico, IDENTIFICANDO al jugador por camiseta/color
 2. Genera un informe JSON EXACTO según el schema indicado
 3. El análisis de video COMPLEMENTA el PHV (no lo reemplaza)
 4. Sé específico con las observaciones — menciona acciones concretas vistas en los frames
@@ -263,7 +270,7 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { playerId, videoId, playerContext, keyframes, videoDuration, vsiMetrics } = body;
+  const { playerId, videoId, playerContext, keyframes, videoDuration, vsiMetrics, jerseyNumber, teamColor } = body;
 
   if (!playerId || !videoId || !playerContext || !keyframes?.length) {
     return new Response(
@@ -338,7 +345,7 @@ export default async function handler(req: Request): Promise<Response> {
   ]);
 
   // Construir mensajes para Claude
-  let systemPrompt = buildSystemPrompt(playerContext, top5Pros);
+  let systemPrompt = buildSystemPrompt(playerContext, top5Pros, jerseyNumber, teamColor);
   if (proContext) {
     systemPrompt += `\n\nCONTEXTO SEMÁNTICO — JUGADORES PRO DE REFERENCIA:\n${proContext}`;
   }

@@ -160,7 +160,16 @@ export function useVideoUpload(playerId?: string) {
           xhr.send(file);
         });
 
-        VideoService.updateStatus(videoId, "uploaded", 0);
+        // Construir embedUrl inmediatamente usando libraryId (no esperar polling)
+        const embedUrl = `https://iframe.mediadelivery.net/embed/${initData.data!.libraryId}/${videoId}`;
+        const uploadedStub = VideoService.getById(videoId);
+        if (uploadedStub) {
+          VideoService.save({ ...uploadedStub, status: "uploaded", statusCode: 1, encodeProgress: 0, embedUrl });
+          if (user && SUPABASE_CONFIGURED) {
+            const updated = VideoService.getById(videoId);
+            if (updated) SupabaseVideoService.pushOne(user.id, updated).catch(console.warn);
+          }
+        }
         setState((prev) => ({ ...prev, phase: "processing", progress: 100 }));
 
         // ── Step 3: Poll encoding status ─────────────────────────────────────

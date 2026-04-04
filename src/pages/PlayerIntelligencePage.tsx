@@ -341,6 +341,8 @@ export default function PlayerIntelligencePage() {
   const [selectedVideoId, setSelectedVideoId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"nuevo" | "guardado" | "historial">("guardado");
   const [showCard, setShowCard] = useState(false);
+  const [jerseyNumber, setJerseyNumber] = useState<string>("");
+  const [teamColor, setTeamColor] = useState<string>("");
 
   const player = id ? PlayerService.getById(id) : null;
   const { data: analyses, isLoading: loadingAnalyses } = useSavedAnalyses(id ?? "");
@@ -409,7 +411,12 @@ export default function PlayerIntelligencePage() {
     if (!video) return;
     const duration = (video.data as Record<string, unknown>).duration as number ?? 120;
     try {
-      await runAnalysis({ videoId: selectedVideoId, videoDuration: duration });
+      await runAnalysis({
+        videoId: selectedVideoId,
+        videoDuration: duration,
+        jerseyNumber: jerseyNumber.trim() || undefined,
+        teamColor: teamColor.trim() || undefined,
+      });
       toast.success("¡Análisis completado!");
       setActiveTab("guardado");
     } catch (err) {
@@ -484,7 +491,7 @@ export default function PlayerIntelligencePage() {
                   Selecciona el video a analizar
                 </p>
                 <div className="space-y-2">
-                  {playerVideos.filter(v => v.status === "ready").map(v => (
+                  {playerVideos.filter(v => v.status === "finished" || v.status === "uploaded" || !!v.embedUrl).map(v => (
                     <button
                       key={v.id}
                       onClick={() => setSelectedVideoId(v.id)}
@@ -542,6 +549,43 @@ export default function PlayerIntelligencePage() {
                 </div>
               </div>
             )}
+
+            {/* Identificación del jugador en video */}
+            <div className="glass rounded-2xl p-4 space-y-3">
+              <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
+                Identificar jugador en el video
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
+                    Nº Camiseta
+                  </label>
+                  <input
+                    type="text"
+                    value={jerseyNumber}
+                    onChange={(e) => setJerseyNumber(e.target.value)}
+                    placeholder="ej: 7, 10, 23"
+                    maxLength={3}
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
+                    Color uniforme
+                  </label>
+                  <input
+                    type="text"
+                    value={teamColor}
+                    onChange={(e) => setTeamColor(e.target.value)}
+                    placeholder="ej: rojo, verde"
+                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
+                  />
+                </div>
+              </div>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">
+                La IA buscará específicamente ese dorsal y color en los fotogramas del video para centrar el análisis en ese jugador.
+              </p>
+            </div>
 
             <Button
               className="w-full h-12 text-sm font-display font-bold gap-2"

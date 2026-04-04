@@ -23,9 +23,10 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [playing, setPlaying] = useState(autoplay);
 
-  const isReady = video.status === "finished";
+  // Si hay embedUrl, mostrar el player aunque siga "procesando" en Bunny
+  const isReady = video.status === "finished" || (video.status !== "error" && video.status !== "upload-failed" && !!video.embedUrl);
   const isProcessing =
-    video.status === "processing" || video.status === "transcoding";
+    !video.embedUrl && (video.status === "processing" || video.status === "transcoding" || video.status === "created" || video.status === "uploaded");
   const isError =
     video.status === "error" || video.status === "upload-failed";
 

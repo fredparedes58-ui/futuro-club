@@ -18,8 +18,10 @@ export const SupabaseVideoService = {
         .order("updated_at", { ascending: false });
       if (error) throw error;
       if (!data || data.length === 0) {
-        await this.pushAll(userId);
-        return VideoService.getAll();
+        // Cloud vacío → limpiar localStorage para evitar subir videos de otras sesiones
+        const { StorageService } = await import("./storageService");
+        StorageService.set("videos", []);
+        return [];
       }
       const cloudVideos = data.map((row) => row.data as VideoRecord);
       const localVideos = VideoService.getAll();

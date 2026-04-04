@@ -85,9 +85,13 @@ export function usePlayerIntelligence(player: Player) {
     mutationFn: async ({
       videoId,
       videoDuration,
+      jerseyNumber,
+      teamColor,
     }: {
       videoId:       string;
       videoDuration: number;
+      jerseyNumber?: string;
+      teamColor?:    string;
     }): Promise<VideoIntelligenceOutput> => {
       // 1. Generar keyframes
       setStep("keyframes", 15, "Extrayendo fotogramas del video...");
@@ -123,6 +127,8 @@ export function usePlayerIntelligence(player: Player) {
           keyframes,
           videoDuration,
           vsiMetrics,
+          jerseyNumber,
+          teamColor,
         }),
       });
 
