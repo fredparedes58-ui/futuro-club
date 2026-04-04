@@ -37,7 +37,7 @@ interface KeyframeData {
 }
 
 function getBunnyKeyframes(videoId: string, videoDuration?: number): KeyframeData[] {
-    const bunnyBaseUrl = "https://vz-3b255b5d-ff8.b-cdn.net";
+    const bunnyBaseUrl = `https://${import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net"}`;
     const duration = videoDuration || 120;
     const numFrames = 8;
 
@@ -132,19 +132,16 @@ async function readSSEStream(
 // ——— Helper: VSI metrics ————————————————————————————————————————
 
 function playerToVSI(player: Player): VSIMetrics {
+    // VSIMetrics expects {speed, shooting, vision, technique, defending, stamina}
+    // Extract from player metrics or estimate from overall VSI
+    const base = player.vsi ?? 50;
     return {
-          age:               player.age,
-          height:            player.height ?? 175,
-          weight:            player.weight ?? 70,
-          position:          player.position,
-          foot:              player.foot ?? "right",
-          phvCategory:       player.phvCategory ?? "central",
-          phvOffset:         player.phvOffset ?? 0,
-          competitiveLevel:  player.competitiveLevel ?? "regional",
-          technicalScore:    player.vsi ?? 50,
-          tacticalScore:     player.vsi ?? 50,
-          physicalScore:     player.vsi ?? 50,
-          mentalScore:       player.vsi ?? 50,
+          speed:     player.metricSpeed     ?? base,
+          shooting:  player.metricShooting  ?? base,
+          vision:    player.metricVision    ?? base,
+          technique: player.metricTechnique ?? base,
+          defending: player.metricDefending ?? base,
+          stamina:   player.metricStamina   ?? base,
     };
 }
 
@@ -217,7 +214,7 @@ export function usePlayerIntelligence(player: Player) {
           let similarityData: SimilarityResult | null = null;
           setIsSimilarityLoading(true);
                                               try {
-                                                        similarityData = await findSimilarPlayers(vsiMetrics);
+                                                        similarityData = await findSimilarPlayers(vsiMetrics, player.position);
                                               } catch {
                                                         // similitud es opcional
                                               } finally {
@@ -248,7 +245,7 @@ export function usePlayerIntelligence(player: Player) {
         setIsSimilarityLoading(true);
         try {
                 const vsiMetrics = playerToVSI(player);
-                const similarityData = await findSimilarPlayers(vsiMetrics);
+                const similarityData = await findSimilarPlayers(vsiMetrics, player.position);
                 setResult((prev) => ({ ...prev, similarity: similarityData }));
         } catch {
                 // silencioso

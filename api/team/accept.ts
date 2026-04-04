@@ -7,12 +7,19 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { verifyAuth } from "../lib/auth";
 
 export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+  }
+
+  // Verify JWT — userId comes from token, not body
+  const { userId, error: authError } = await verifyAuth(req);
+  if (!userId) {
+    return new Response(JSON.stringify({ error: authError ?? "No autenticado" }), { status: 401 });
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
@@ -24,16 +31,16 @@ export default async function handler(req: Request): Promise<Response> {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  let body: { token?: string; userId?: string };
+  let body: { token?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { token, userId } = body;
-  if (!token || !userId) {
-    return new Response(JSON.stringify({ error: "Missing token or userId" }), { status: 400 });
+  const { token } = body;
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Missing token" }), { status: 400 });
   }
 
   // Buscar invitación válida

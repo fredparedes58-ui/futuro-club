@@ -3,6 +3,9 @@
  * POST /api/notifications/subscribe — save subscription
  * DELETE /api/notifications/subscribe — remove subscription
  */
+
+import { verifyAuth } from "../lib/auth";
+
 export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
@@ -13,19 +16,8 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: "Supabase not configured" }, 503);
   }
 
-  // Extract user from JWT
-  const authHeader = req.headers.get("Authorization") ?? "";
-  let userId: string | null = null;
-  if (authHeader.startsWith("Bearer ")) {
-    try {
-      const token = authHeader.slice(7);
-      const parts = token.split(".");
-      if (parts.length >= 3) {
-        const payload = JSON.parse(atob(parts[1]));
-        userId = payload.sub ?? null;
-      }
-    } catch { /* invalid token */ }
-  }
+  // Verify JWT with signature check
+  const { userId, error: authError } = await verifyAuth(req);
 
   if (req.method === "POST") {
     let body: { subscription: object };

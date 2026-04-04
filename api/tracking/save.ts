@@ -3,6 +3,8 @@
  * Persiste una sesión de tracking YOLO en Supabase.
  */
 
+import { verifyAuth } from "../lib/auth";
+
 export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
@@ -21,16 +23,9 @@ export default async function handler(req: Request): Promise<Response> {
   try { body = await req.json(); }
   catch { return json({ error: "JSON inválido" }, 400); }
 
-  const authHeader = req.headers.get("Authorization") ?? "";
-  let userId: string | null = null;
-  if (authHeader.startsWith("Bearer ")) {
-    try {
-      const payload = JSON.parse(atob(authHeader.slice(7).split(".")[1]));
-      userId = payload.sub ?? null;
-    } catch { /* token inválido */ }
-  }
-
-  if (!userId) return json({ error: "No autenticado" }, 401);
+  // Verify JWT with signature check
+  const { userId, error: authError } = await verifyAuth(req);
+  if (!userId) return json({ error: authError ?? "No autenticado" }, 401);
 
   const row = {
     user_id:           userId,

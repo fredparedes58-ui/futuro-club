@@ -90,6 +90,9 @@ export function useTracking(options: UseTrackingOptions) {
   const duelEventsRef   = useRef<DuelEvent[]>([]);
   const allTracksRef    = useRef<Track[]>([]);
   const sessionStartRef = useRef<number>(0);
+  // Refs to avoid stale closures in polling intervals
+  const statusRef       = useRef<TrackingStatus>("idle");
+  const errorRef        = useRef<string | null>(null);
 
   // ── Actualizar homografía cuando cambian los puntos de calibración ──────────
   useEffect(() => {
@@ -133,6 +136,7 @@ export function useTracking(options: UseTrackingOptions) {
           break;
 
         case "READY":
+          statusRef.current = "ready";
           setState(s => ({ ...s, status: "ready", modelProgress: 100 }));
           break;
 
@@ -167,6 +171,8 @@ export function useTracking(options: UseTrackingOptions) {
         }
 
         case "ERROR":
+          statusRef.current = "error";
+          errorRef.current = event.message;
           setState(s => ({ ...s, status: "error", error: event.message }));
           break;
       }
@@ -225,11 +231,11 @@ export function useTracking(options: UseTrackingOptions) {
 
     worker.postMessage({ type: "INIT", modelUrl });
 
-    // Esperar a que el modelo esté listo
+    // Esperar a que el modelo esté listo (use refs to avoid stale closure)
     await new Promise<void>((resolve, reject) => {
       const check = setInterval(() => {
-        if (state.status === "ready") { clearInterval(check); resolve(); }
-        if (state.status === "error") { clearInterval(check); reject(new Error(state.error ?? "Error")); }
+        if (statusRef.current === "ready") { clearInterval(check); resolve(); }
+        if (statusRef.current === "error") { clearInterval(check); reject(new Error(errorRef.current ?? "Error")); }
       }, 200);
       setTimeout(() => { clearInterval(check); reject(new Error("Timeout cargando modelo")); }, 60000);
     });
@@ -257,7 +263,7 @@ export function useTracking(options: UseTrackingOptions) {
     });
 
     setState(s => ({ ...s, status: "tracking" }));
-  }, [videoId, cdnHostname, initWorker, state.status, state.error]);
+  }, [videoId, cdnHostname, initWorker]);
 
   // ── stopTracking ─────────────────────────────────────────────────────────────
   const stopTracking = useCallback((): PhysicalMetrics => {

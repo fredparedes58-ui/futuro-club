@@ -91,7 +91,6 @@ export function useVideoUpload(playerId?: string) {
           data?: {
             videoId:       string;
             uploadUrl:     string;
-            accessKey:     string;
             authSignature: string;
             authExpire:    number;
             libraryId:     number;
@@ -111,7 +110,7 @@ export function useVideoUpload(playerId?: string) {
           throw new Error(initData.error ?? "Init failed");
         }
 
-        const { videoId, uploadUrl, accessKey, authSignature, authExpire } = initData.data!;
+        const { videoId, uploadUrl, authSignature, authExpire } = initData.data!;
 
         // Create local stub
         const stubParams = {
@@ -135,8 +134,9 @@ export function useVideoUpload(playerId?: string) {
           xhrRef.current = xhr;
 
           xhr.open("PUT", uploadUrl);
-          // Bunny REST upload requires AccessKey header (library-scoped)
-          xhr.setRequestHeader("AccessKey", accessKey);
+          // Bunny REST upload with signed auth (no raw API key exposed)
+          xhr.setRequestHeader("AuthorizationSignature", authSignature);
+          xhr.setRequestHeader("AuthorizationExpire", String(authExpire));
           xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
           xhr.upload.onprogress = (e) => {

@@ -7,6 +7,7 @@
  */
 
 import Stripe from "stripe";
+import { verifyAuth } from "../lib/auth";
 
 export const config = { runtime: "edge" };
 
@@ -14,6 +15,15 @@ export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Verify JWT — userId comes from token, not body
+  const { userId, error: authError } = await verifyAuth(req);
+  if (!userId) {
+    return new Response(JSON.stringify({ error: authError ?? "No autenticado" }), {
+      status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -30,17 +40,17 @@ export default async function handler(req: Request): Promise<Response> {
     apiVersion: "2026-03-25.dahlia" as Stripe.LatestApiVersion,
   });
 
-  let body: { priceId?: string; userId?: string; email?: string; successUrl?: string; cancelUrl?: string };
+  let body: { priceId?: string; email?: string; successUrl?: string; cancelUrl?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { priceId, userId, email, successUrl, cancelUrl } = body;
+  const { priceId, email, successUrl, cancelUrl } = body;
 
-  if (!priceId || !userId || !email) {
-    return new Response(JSON.stringify({ error: "Missing required fields: priceId, userId, email" }), {
+  if (!priceId || !email) {
+    return new Response(JSON.stringify({ error: "Missing required fields: priceId, email" }), {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });

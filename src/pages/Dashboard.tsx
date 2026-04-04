@@ -1,3 +1,4 @@
+import React from "react";
 import { motion } from "framer-motion";
 import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -21,9 +22,20 @@ const Dashboard = () => {
   const { data: players, isLoading: playersLoading, isError: playersError } = useTrendingPlayers();
   const { data: matches, isLoading: matchesLoading, isError: matchesError } = useLiveMatches();
 
-  if (statsError) toast.error("No se pudieron cargar las estadísticas");
-  if (playersError) toast.error("No se pudieron cargar los jugadores en tendencia");
-  if (matchesError) toast.error("No se pudieron cargar los partidos");
+  // Show errors via useEffect to avoid calling toast during render
+  const hasStatsError = statsError;
+  const hasPlayersError = playersError;
+  const hasMatchesError = matchesError;
+
+  React.useEffect(() => {
+    if (hasStatsError) toast.error("No se pudieron cargar las estadísticas");
+  }, [hasStatsError]);
+  React.useEffect(() => {
+    if (hasPlayersError) toast.error("No se pudieron cargar los jugadores en tendencia");
+  }, [hasPlayersError]);
+  React.useEffect(() => {
+    if (hasMatchesError) toast.error("No se pudieron cargar los partidos");
+  }, [hasMatchesError]);
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
