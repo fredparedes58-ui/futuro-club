@@ -8,7 +8,7 @@
  * Body: { videoId, playerId, analysisMode? }
  */
 
-export const config = { maxDuration: 60 };
+export const config = { runtime: "edge" };
 
 interface PipelineStartBody {
   videoId:       string;

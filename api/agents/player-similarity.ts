@@ -13,7 +13,6 @@
  * }
  */
 
-export const config = { maxDuration: 60 };
 
 import type { ProPlayer } from "../../src/data/proPlayers";
 

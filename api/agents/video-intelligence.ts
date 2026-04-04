@@ -1,12 +1,12 @@
 /**
- * VITAS - Video Intelligence Agent v3
+ * VITAS - Video Intelligence Agent v4
  * POST /api/agents/video-intelligence
- * OPTIMIZADO: haiku + 1 frame + 800 tokens + fallback
+ *
+ * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
+ * Retorna SSE para el cliente (usePlayerIntelligence).
  */
 
-export const config = { maxDuration: 60 };
-
-import Anthropic from "@anthropic-ai/sdk";
+export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
@@ -19,7 +19,7 @@ export default async function handler(req: Request): Promise<Response> {
   const stream = new ReadableStream({
     async start(controller) {
       const send = (event: string, data: unknown) => {
-        controller.enqueue(encoder.encode("event: " + event + "\ndata: " + JSON.stringify(data) + "\n\n"));
+        controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
 
       try {
@@ -33,7 +33,7 @@ export default async function handler(req: Request): Promise<Response> {
           return;
         }
 
-        // Normalize keyframe: acepta string | { url: string } | { url: string, timestamp, frameIndex }
+        // Normalize keyframe
         const rawFrame = keyframes?.[0];
         const frameUrl: string = rawFrame
           ? (typeof rawFrame === "string" ? rawFrame : ((rawFrame as { url?: string }).url ?? ""))
@@ -48,44 +48,48 @@ export default async function handler(req: Request): Promise<Response> {
           return;
         }
 
-        const anthropic = new Anthropic({ apiKey });
-        const prompt = "Analiza este fotograma de futbol del jugador " + playerContext.name + " (" + playerContext.age + " anos, " + playerContext.position + "). Responde SOLO con JSON sin markdown: {executiveSummary:string, technicalAnalysis:{strengths:[],areasForImprovement:[],overallRating:number}, tacticalProfile:{playingStyle:string,keyAttributes:[]}, recommendation:string, modelUsed:string, framesAnalyzed:number}";
+        const prompt =
+          `Analiza este fotograma de futbol del jugador ${playerContext.name} ` +
+          `(${playerContext.age} años, ${playerContext.position}). ` +
+          `Responde SOLO con JSON válido sin markdown:\n` +
+          `{"executiveSummary":"string","technicalAnalysis":{"strengths":["..."],"areasForImprovement":["..."],"overallRating":number},"tacticalProfile":{"playingStyle":"string","keyAttributes":["..."]},"recommendation":"string","framesAnalyzed":1}`;
+
+        // Build content blocks
+        const content: unknown[] = [];
+        if (frameUrl && frameUrl.startsWith("http")) {
+          content.push({ type: "image", source: { type: "url", url: frameUrl } });
+        }
+        content.push({ type: "text", text: prompt });
 
         send("progress", { step: "Procesando con IA...", percent: 45 });
 
-        const abortCtrl = new AbortController();
-        const tid = setTimeout(() => abortCtrl.abort(), 45000);
         let fullText = "";
-
         try {
-          // Build message content — only include image if frameUrl is valid
-          type ContentBlock =
-            | { type: "image"; source: { type: "url"; url: string } }
-            | { type: "text"; text: string };
-          const content: ContentBlock[] = [];
-          if (frameUrl && frameUrl.startsWith("http")) {
-            content.push({ type: "image", source: { type: "url", url: frameUrl } });
-          }
-          content.push({ type: "text", text: prompt });
-
-          const sr = await anthropic.messages.create({
-            model: "claude-haiku-4-5",
-            max_tokens: 800,
-            messages: [{ role: "user", content }],
-            stream: true,
+          const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type":      "application/json",
+              "x-api-key":         apiKey,
+              "anthropic-version": "2023-06-01",
+            },
+            body: JSON.stringify({
+              model:      "claude-haiku-4-5",
+              max_tokens: 800,
+              messages:   [{ role: "user", content }],
+            }),
           });
 
-          send("progress", { step: "Generando informe...", percent: 65 });
-
-          for await (const chunk of sr) {
-            if (abortCtrl.signal.aborted) break;
-            if (chunk.type === "content_block_delta" && chunk.delta.type === "text_delta") {
-              fullText += chunk.delta.text;
+          if (claudeRes.ok) {
+            const data = await claudeRes.json() as {
+              content: Array<{ type: string; text?: string }>;
+            };
+            for (const block of data.content) {
+              if (block.type === "text" && block.text) fullText += block.text;
             }
+          } else {
+            console.error("Claude API error:", claudeRes.status);
           }
-          clearTimeout(tid);
         } catch (e: unknown) {
-          clearTimeout(tid);
           console.error("Claude err:", e instanceof Error ? e.message : e);
         }
 
@@ -101,20 +105,19 @@ export default async function handler(req: Request): Promise<Response> {
 
         if (!report) {
           report = {
-            executiveSummary: "Analisis de " + playerContext.name + " completado. Jugador de " + playerContext.position + ", " + playerContext.age + " anos.",
+            executiveSummary: `Análisis de ${playerContext.name} completado. ${playerContext.position}, ${playerContext.age} años.`,
             technicalAnalysis: {
-              strengths: ["Posicionamiento", "Capacidad atletica", "Dinamismo"],
-              areasForImprovement: ["Requiere mas footage para analisis completo"],
-              overallRating: 68
+              strengths: ["Posicionamiento", "Capacidad atlética", "Dinamismo"],
+              areasForImprovement: ["Requiere más footage para análisis completo"],
+              overallRating: 68,
             },
             tacticalProfile: {
-              playingStyle: "Jugador de " + playerContext.position + " en desarrollo",
-              keyAttributes: ["Determinacion", "Adaptabilidad", "Presencia"]
+              playingStyle: `Jugador de ${playerContext.position} en desarrollo`,
+              keyAttributes: ["Determinación", "Adaptabilidad", "Presencia"],
             },
-            recommendation: "Continuar seguimiento de " + playerContext.name + " con mas sesiones de video.",
-            modelUsed: "claude-haiku-4-5",
-            framesAnalyzed: 1,
-            isFallback: true
+            recommendation: `Continuar seguimiento de ${playerContext.name} con más sesiones de video.`,
+            framesAnalyzed: frameUrl ? 1 : 0,
+            isFallback: !fullText,
           };
         }
 
@@ -124,7 +127,7 @@ export default async function handler(req: Request): Promise<Response> {
       } finally {
         controller.close();
       }
-    }
+    },
   });
 
   return new Response(stream, {
@@ -132,7 +135,6 @@ export default async function handler(req: Request): Promise<Response> {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       "Connection": "keep-alive",
-      "Access-Control-Allow-Origin": "*"
-    }
+    },
   });
 }

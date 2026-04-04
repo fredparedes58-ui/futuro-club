@@ -56,4 +56,3 @@ export default async function handler(req: Request): Promise<Response> {
   }
 }
 
-export const config = { maxDuration: 60 };

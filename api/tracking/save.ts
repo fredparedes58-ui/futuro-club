@@ -3,7 +3,7 @@
  * Persiste una sesión de tracking YOLO en Supabase.
  */
 
-export const config = { maxDuration: 30 };
+export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
