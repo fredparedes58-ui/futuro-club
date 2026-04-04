@@ -7,10 +7,5 @@
       "path": "/api/notifications/cron",
       "schedule": "0 9 * * *"
     }
-  ],
-  "functions": {
-    "api/agents/*.ts":   { "maxDuration": 60 },
-    "api/pipeline/*.ts": { "maxDuration": 60 },
-    "api/tracking/*.ts": { "maxDuration": 60 }
-  }
+  ]
 }
