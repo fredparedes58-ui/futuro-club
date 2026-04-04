@@ -429,7 +429,7 @@ export default function PlayerIntelligencePage() {
       {/* Header */}
       <div className="sticky top-0 z-10 glass-strong safe-area-top">
         <div className="flex items-center gap-3 px-4 h-14">
-          <button onClick={() => navigate(`/players/${id}`)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors">
+          <button onClick={() => navigate(`/player/${id}`)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors">
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1 min-w-0">

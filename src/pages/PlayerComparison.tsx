@@ -529,7 +529,7 @@ const PlayerComparison = () => {
               Alta prioridad · Seguimiento recomendado
             </p>
             <button
-              onClick={() => navigate(`/players/${aiWinner.id}`)}
+              onClick={() => navigate(`/player/${aiWinner.id}`)}
               className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-display font-bold text-foreground hover:bg-secondary transition-colors uppercase tracking-wider"
             >
               Ver Perfil Completo
