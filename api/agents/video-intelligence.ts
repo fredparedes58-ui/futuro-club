@@ -400,35 +400,18 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // Descargar thumbnails y convertir a base64
-  const imageContent: Anthropic.ImageBlockParam[] = [];
-
-  await Promise.all(
-    thumbnailUrls.slice(0, 8).map(async (url) => {
-      try {
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        if (!res.ok) return;
-        const contentType = res.headers.get("content-type") ?? "image/jpeg";
-        const mediaType = (["image/jpeg","image/png","image/gif","image/webp"]
-          .find(t => contentType.includes(t)) ?? "image/jpeg") as "image/jpeg"|"image/png"|"image/gif"|"image/webp";
-        const buffer = await res.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-        const base64 = btoa(binary);
-        imageContent.push({
-          type: "image",
-          source: { type: "base64", media_type: mediaType, data: base64 },
-        });
-      } catch {
-        // Thumbnail no disponible — se omite
-      }
-    })
-  );
+  // Pasar URLs directamente a Claude (sin descarga server-side)
+  // Claude accede a las imágenes directamente desde Bunny CDN
+  const imageContent: Anthropic.MessageParam["content"] = thumbnailUrls
+    .slice(0, 6)
+    .map((url) => ({
+      type: "image" as const,
+      source: { type: "url" as const, url },
+    }));
 
   if (imageContent.length === 0) {
     return new Response(
-      JSON.stringify({ error: "No se pudieron obtener fotogramas del video. El video puede estar aún procesándose en Bunny Stream. Espera unos minutos e intenta de nuevo." }),
+      JSON.stringify({ error: "No se pudieron generar fotogramas del video. El video puede estar aún procesándose en Bunny Stream. Espera unos minutos e intenta de nuevo." }),
       { status: 422 }
     );
   }
@@ -447,7 +430,7 @@ export default async function handler(req: Request): Promise<Response> {
         {
           role: "user",
           content: [
-            ...imageContent,
+            ...imageContent as Anthropic.ImageBlockParam[],
             { type: "text", text: userPromptText },
           ],
         },
