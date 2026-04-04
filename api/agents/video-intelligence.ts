@@ -373,30 +373,38 @@ export default async function handler(req: Request): Promise<Response> {
   let rawResponse = "";
   let tokensUsed = 0;
 
-  try {
-    const message = await client.messages.create({
-      model:       "claude-sonnet-4-5",
-      max_tokens:  4096,
-      system:      systemPrompt,
-      messages: [
-        {
-          role:    "user",
-          content: [
-            ...imageContent,
-            { type: "text", text: userPromptText },
-          ],
-        },
-      ],
-    });
+  // Intentar con imágenes primero; si falla, reintentar solo con texto
+  const attemptAnalysis = async (withImages: boolean) => {
+    const content: Anthropic.MessageParam["content"] = withImages && imageContent.length > 0
+      ? [...imageContent, { type: "text" as const, text: userPromptText }]
+      : [{ type: "text" as const, text: userPromptText }];
 
-    rawResponse  = (message.content[0] as { type: string; text: string }).text ?? "";
-    tokensUsed   = message.usage.input_tokens + message.usage.output_tokens;
+    return client.messages.create({
+      model:      "claude-sonnet-4-5",
+      max_tokens: 4096,
+      system:     systemPrompt,
+      messages:   [{ role: "user", content }],
+    });
+  };
+
+  try {
+    let message;
+    try {
+      message = await attemptAnalysis(true);
+    } catch (imgErr) {
+      // Si falla con imágenes (URLs inaccesibles), reintentar sin ellas
+      console.warn("[video-intelligence] Image fetch failed, retrying text-only:", imgErr instanceof Error ? imgErr.message : imgErr);
+      message = await attemptAnalysis(false);
+    }
+
+    rawResponse = (message.content[0] as { type: string; text: string }).text ?? "";
+    tokensUsed  = message.usage.input_tokens + message.usage.output_tokens;
 
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : "Unknown error";
     console.error("[video-intelligence] Claude error:", errMsg);
     return new Response(
-      JSON.stringify({ error: "Claude API error", details: errMsg }),
+      JSON.stringify({ error: `Error de análisis: ${errMsg}`, details: errMsg }),
       { status: 502 }
     );
   }
