@@ -81,4 +81,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    exclude: ["onnxruntime-web"],
+  },
+  assetsInclude: ["**/*.onnx"],
+  worker: {
+    format: "es",
+  },
 }));

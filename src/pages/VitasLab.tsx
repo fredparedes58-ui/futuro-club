@@ -23,7 +23,10 @@ import {
   TrendingUp,
   Target,
   AlertTriangle,
+  Activity,
 } from "lucide-react";
+import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
+import { useTracking } from "@/hooks/useTracking";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
 import VideoUpload from "@/components/VideoUpload";
@@ -149,6 +152,16 @@ const VitasLab = () => {
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
   const [jerseyNumber, setJerseyNumber]         = useState<string>("");
   const [teamColor, setTeamColor]               = useState<string>("");
+  const [showTracking, setShowTracking]         = useState(false);
+  const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const tracking = useTracking({
+    videoId:           selectedVideoId ?? "",
+    playerId:          selectedPlayerId ?? "",
+    calibrationPoints: points.map(p => ({ x: p.x, y: p.y })),
+    anchorPreset:      "full_corners",
+    cdnHostname:       import.meta.env.VITE_BUNNY_CDN_HOSTNAME,
+  });
 
   const { data: videos = [] } = useVideos();
   const { data: players = [] } = useAllPlayers();
@@ -658,23 +671,74 @@ const VitasLab = () => {
             </div>
           </div>
 
-          {/* Start Analysis */}
+          {/* Tracking YOLO en vivo */}
+          {showTracking && (
+            <div className="border-t border-border pt-3">
+              <TrackingMetricsPanel
+                status={tracking.state.status}
+                tracks={tracking.state.currentTracks}
+                focusTrackId={tracking.state.focusTrackId}
+                metrics={tracking.state.sessionMetrics}
+                scanCount={tracking.state.scanEvents.length}
+                duelCount={tracking.state.duelEvents.length}
+                onFocusTrack={tracking.setFocusTrackId}
+              />
+            </div>
+          )}
+
+          {/* Botones de acción */}
           <div className="mt-auto space-y-2">
+            {/* START TRACKING — YOLO real */}
+            <button
+              onClick={() => {
+                if (!selectedVideoId) { toast.error("Selecciona un video primero"); return; }
+                setShowTracking(true);
+                // El video element se crea dinámicamente
+                const videoEl = document.createElement("video");
+                videoEl.style.display = "none";
+                document.body.appendChild(videoEl);
+                trackingVideoRef.current = videoEl;
+                tracking.startTracking(videoEl).catch(err => {
+                  toast.error("Error iniciando tracking: " + err.message);
+                });
+              }}
+              disabled={tracking.state.status === "tracking" || tracking.state.status === "loading-model"}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {tracking.state.status === "loading-model" ? (
+                <><Loader2 size={14} className="animate-spin" /> CARGANDO YOLO {tracking.state.modelProgress}%</>
+              ) : tracking.state.status === "tracking" ? (
+                <><Activity size={14} className="animate-pulse" /> TRACKING ACTIVO</>
+              ) : (
+                <><Activity size={14} /> START TRACKING</>
+              )}
+            </button>
+
+            {tracking.state.status === "tracking" && (
+              <button
+                onClick={() => { tracking.stopTracking(); }}
+                className="w-full py-2 rounded-xl border border-red-500 text-red-400 text-sm font-display font-semibold hover:bg-red-500/10 transition-colors"
+              >
+                Detener tracking
+              </button>
+            )}
+
+            {/* START ANALYSIS — Claude Vision */}
             <button
               onClick={handleStartAnalysis}
               disabled={analysisState === "running"}
-              className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {analysisState === "running" ? (
                 <><Loader2 size={16} className="animate-spin" /> ANALIZANDO…</>
               ) : (
-                <><Rocket size={16} /> START ANALYSIS</>
+                <><Rocket size={16} /> ANALYSIS IA</>
               )}
             </button>
             <p className="text-center text-[10px] font-display text-muted-foreground tracking-wider">
               {analysisState === "done"
                 ? `ÚLTIMO ANÁLISIS: CONFIANZA ${Math.round((analysisReport?.confianza ?? 0) * 100)}%`
-                : "ESTIMATED_TIME: ~12m por video"}
+                : "TRACKING = métricas físicas · IA = táctica"}
             </p>
           </div>
         </motion.div>

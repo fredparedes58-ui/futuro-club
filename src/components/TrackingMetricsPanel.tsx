@@ -1,0 +1,209 @@
+/**
+ * VITAS · TrackingMetricsPanel
+ *
+ * Panel de métricas físicas en tiempo real.
+ * Muestra velocidad, distancia, sprints, escaneos, duelos y zonas de intensidad.
+ */
+
+import { motion } from "framer-motion";
+import { Zap, Activity, Timer, Eye, Swords, Map } from "lucide-react";
+import type { PhysicalMetrics, Track, TrackingStatus } from "@/lib/yolo/types";
+
+interface Props {
+  status:       TrackingStatus;
+  tracks:       Track[];
+  focusTrackId: number | null;
+  metrics:      PhysicalMetrics | null;
+  scanCount:    number;
+  duelCount:    number;
+  onFocusTrack: (id: number | null) => void;
+}
+
+export default function TrackingMetricsPanel({
+  status, tracks, focusTrackId, metrics, scanCount, duelCount, onFocusTrack,
+}: Props) {
+  const focusTrack = tracks.find(t => t.id === focusTrackId);
+  const speedMs    = focusTrack?.smoothSpeedMs ?? 0;
+  const speedKmh   = (speedMs * 3.6).toFixed(1);
+  const distM      = focusTrack?.distanceM ?? 0;
+  const sprints    = focusTrack?.sprintCount ?? 0;
+  const isTracking = status === "tracking";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex flex-col gap-3 w-full"
+    >
+      {/* Estado */}
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${
+          status === "tracking" ? "bg-green-400 animate-pulse" :
+          status === "complete" ? "bg-primary" :
+          status === "error"    ? "bg-red-400" :
+          "bg-muted-foreground"
+        }`} />
+        <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+          {status === "tracking"      ? "TRACKING ACTIVO" :
+           status === "loading-model" ? "CARGANDO YOLO…"  :
+           status === "ready"         ? "LISTO"           :
+           status === "complete"      ? "SESIÓN COMPLETA" :
+           status === "error"         ? "ERROR"           : "INACTIVO"}
+        </span>
+      </div>
+
+      {/* Selector de jugador a seguir */}
+      {tracks.length > 0 && (
+        <div>
+          <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
+            Jugador enfocado
+          </span>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tracks.map(t => (
+              <button
+                key={t.id}
+                onClick={() => onFocusTrack(focusTrackId === t.id ? null : t.id)}
+                className={`px-2 py-1 rounded-lg text-[10px] font-display font-bold transition-colors ${
+                  focusTrackId === t.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                #{t.id}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Métricas en vivo */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Velocidad */}
+        <MetricCard
+          icon={<Zap size={12} className="text-yellow-400" />}
+          label="VELOCIDAD"
+          value={isTracking ? `${speedKmh}` : metrics ? (metrics.maxSpeedMs * 3.6).toFixed(1) : "--"}
+          unit="km/h"
+          sub={isTracking ? `${speedMs.toFixed(1)} m/s` : metrics ? `máx ${(metrics.maxSpeedMs * 3.6).toFixed(1)} km/h` : ""}
+          highlight={speedMs > 5.83}
+        />
+
+        {/* Distancia */}
+        <MetricCard
+          icon={<Activity size={12} className="text-blue-400" />}
+          label="DISTANCIA"
+          value={isTracking ? distM.toFixed(0) : metrics ? metrics.distanceCoveredM.toFixed(0) : "--"}
+          unit="m"
+          sub={isTracking ? `${(distM / 1000).toFixed(2)} km` : ""}
+        />
+
+        {/* Sprints */}
+        <MetricCard
+          icon={<Timer size={12} className="text-orange-400" />}
+          label="SPRINTS"
+          value={isTracking ? String(sprints) : metrics ? String(metrics.sprintCount) : "--"}
+          unit=""
+          sub={isTracking ? ">21 km/h" : metrics ? `${metrics.sprintDistanceM.toFixed(0)}m sprint` : ""}
+        />
+
+        {/* Escaneos */}
+        <MetricCard
+          icon={<Eye size={12} className="text-green-400" />}
+          label="ESCANEOS"
+          value={String(scanCount)}
+          unit=""
+          sub="giros de cabeza"
+        />
+
+        {/* Duelos */}
+        <MetricCard
+          icon={<Swords size={12} className="text-red-400" />}
+          label="DUELOS"
+          value={String(duelCount)}
+          unit=""
+          sub={metrics ? `${metrics.duelsWon}G / ${metrics.duelsLost}P` : ""}
+        />
+
+        {/* Espacio */}
+        <MetricCard
+          icon={<Map size={12} className="text-purple-400" />}
+          label="ESPACIO"
+          value={metrics ? metrics.avgVoronoiAreaM2.toFixed(0) : "--"}
+          unit="m²"
+          sub="área Voronoi"
+        />
+      </div>
+
+      {/* Zonas de intensidad (solo en modo completo) */}
+      {metrics && (
+        <div>
+          <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-2 block">
+            Zonas de intensidad
+          </span>
+          <IntensityBar
+            walk={metrics.intensityZones.walk}
+            jog={metrics.intensityZones.jog}
+            run={metrics.intensityZones.run}
+            sprint={metrics.intensityZones.sprint}
+          />
+          <div className="flex justify-between mt-1">
+            {[
+              { label: "Caminar", color: "bg-slate-400" },
+              { label: "Trote",   color: "bg-blue-400"  },
+              { label: "Carrera", color: "bg-orange-400" },
+              { label: "Sprint",  color: "bg-red-400"   },
+            ].map(z => (
+              <div key={z.label} className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${z.color}`} />
+                <span className="text-[8px] text-muted-foreground">{z.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
+
+function MetricCard({
+  icon, label, value, unit, sub, highlight = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  unit: string;
+  sub?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={`glass rounded-xl p-3 ${highlight ? "border border-yellow-400/40" : ""}`}>
+      <div className="flex items-center gap-1 mb-1">
+        {icon}
+        <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className={`font-display font-bold text-lg ${highlight ? "text-yellow-400" : "text-foreground"}`}>
+          {value}
+        </span>
+        {unit && <span className="text-[9px] text-muted-foreground">{unit}</span>}
+      </div>
+      {sub && <p className="text-[9px] text-muted-foreground mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function IntensityBar({
+  walk, jog, run, sprint,
+}: { walk: number; jog: number; run: number; sprint: number }) {
+  const total = walk + jog + run + sprint || 1;
+  return (
+    <div className="flex h-3 rounded-full overflow-hidden gap-px">
+      <div className="bg-slate-400"    style={{ width: `${(walk   / total) * 100}%` }} />
+      <div className="bg-blue-400"     style={{ width: `${(jog    / total) * 100}%` }} />
+      <div className="bg-orange-400"   style={{ width: `${(run    / total) * 100}%` }} />
+      <div className="bg-red-400"      style={{ width: `${(sprint / total) * 100}%` }} />
+    </div>
+  );
+}
