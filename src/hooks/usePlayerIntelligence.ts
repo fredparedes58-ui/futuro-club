@@ -41,7 +41,7 @@ function generateKeyframeUrls(videoId: string, duration: number, count = 8): str
   const interval = Math.max(1, Math.floor(duration / (count + 1)));
   return Array.from({ length: count }, (_, i) => {
     const t = interval * (i + 1);
-    return `https://${cdnHostname}/${videoId}/thumbnail?time=${t}`;
+    return `https://${cdnHostname}/${videoId}/thumbnail.jpg?time=${t}`;
   });
 }
 
