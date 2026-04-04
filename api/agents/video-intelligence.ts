@@ -2,15 +2,11 @@
  * VITAS · Video Intelligence Agent
  * POST /api/agents/video-intelligence
  *
- * Analiza keyframes de video con Claude Sonnet vision y genera:
- *   1. Estado Actual (6 dimensiones)
- *   2. ADN Futbolístico
- *   3. Jugador Referencia / Clon (similitud coseno)
- *   4. Proyección de Carrera
- *   5. Plan de Desarrollo
+ * Usa streaming para evitar timeouts en Vercel.
+ * Analiza keyframes de video con Claude Sonnet vision.
  *
  * Body: { playerId, videoId, playerContext, keyframes[], videoDuration? }
- * Response: VideoIntelligenceOutput
+ * Response: streaming text/event-stream con JSON al final
  */
 
 export const config = { maxDuration: 60 };
@@ -18,590 +14,376 @@ export const config = { maxDuration: 60 };
 import Anthropic from "@anthropic-ai/sdk";
 import type { ProPlayer } from "../../src/data/proPlayers";
 
-// ─── Tipos locales (Edge runtime no puede importar el bundle completo) ────────
+// ——— Tipos locales ———————————————————————————
 
 interface PlayerContext {
-  name:             string;
-  age:              number;
-  position:         string;
-  foot:             "right" | "left" | "both";
-  height?:          number;
-  weight?:          number;
-  currentVSI?:      number;
-  phvCategory?:     "early" | "ontme" | "late";
-  phvOffset?:       number;
-  competitiveLevel?: string;
+    name:             string;
+    age:              number;
+    position:         string;
+    foot:             "right" | "left" | "both";
+    height?:          number;
+    weight?:          number;
+    currentVSI?:      number;
+    phvCategory?:     "early" | "central" | "late";
+    team?:            string;
+    nationality?:     string;
 }
 
-interface RequestBody {
-  playerId:       string;
-  videoId:        string;
-  playerContext:  PlayerContext;
-  keyframes:      string[];
-  videoDuration?: number;
-  jerseyNumber?:  string;
-  teamColor?:     string;
-  vsiMetrics?: {
-    speed:     number;
-    shooting:  number;
-    vision:    number;
-    technique: number;
-    defending: number;
-    stamina:   number;
-  };
+interface KeyframeData {
+    url:        string;
+    timestamp:  number;
+    frameIndex: number;
 }
 
-// ─── Posición helpers ─────────────────────────────────────────────────────────
-
-const POSITION_GROUPS: Record<string, string[]> = {
-  GK: ["GK"],
-  CB: ["CB", "RCB", "LCB"],
-  FB: ["RB", "LB", "WB", "RWB", "LWB"],
-  DM: ["CDM", "DM"],
-  CM: ["CM", "LCM", "RCM"],
-  AM: ["CAM", "SS", "LM", "RM"],
-  W:  ["LW", "RW"],
-  ST: ["ST", "CF"],
-};
-const ADJACENT: Record<string, string[]> = {
-  ST: ["W", "AM"], W: ["ST", "AM"], AM: ["W", "CM"],
-  CM: ["AM", "DM"], DM: ["CM", "CB"], FB: ["CB", "W"], CB: ["DM", "FB"],
-};
-function getGroup(pos: string) {
-  for (const [g, list] of Object.entries(POSITION_GROUPS)) if (list.includes(pos)) return g;
-  return "CM";
-}
-function isCompatible(yP: string, proP: string) {
-  const yG = getGroup(yP), pG = getGroup(proP);
-  return yG === pG || (ADJACENT[yG]?.includes(pG) ?? false);
+interface VideoIntelligenceOutput {
+    success:       boolean;
+    playerId:      string;
+    videoId:       string;
+    report:        VideoReport;
+    topsPros:      ProPlayer[];
+    tokensUsed:    number;
+    modelUsed:     string;
+    generatedAt:   string;
 }
 
-// ─── Similitud coseno ─────────────────────────────────────────────────────────
-
-function cosine(a: number[], b: number[]) {
-  let dot = 0, mA = 0, mB = 0;
-  for (let i = 0; i < a.length; i++) { dot += a[i]*b[i]; mA += a[i]*a[i]; mB += b[i]*b[i]; }
-  return mA && mB ? dot / (Math.sqrt(mA) * Math.sqrt(mB)) : 0;
+interface VideoReport {
+    currentState:       CurrentStateReport;
+    footballDNA:        FootballDNAReport;
+    referencePlayer:    ReferencePlayerReport;
+    careerProjection:   CareerProjectionReport;
+    developmentPlan:    DevelopmentPlanReport;
+    overallScore:       number;
+    executiveSummary:   string;
 }
 
-// ─── Prompt del agente ────────────────────────────────────────────────────────
-
-function buildSystemPrompt(player: PlayerContext, top5: ProPlayer[], jerseyNumber?: string, teamColor?: string): string {
-  const phvInfo = player.phvCategory
-    ? `PHV: ${player.phvCategory} (offset ${player.phvOffset?.toFixed(1) ?? "N/A"} años)`
-    : "PHV: no disponible";
-
-  const proNames = top5.map((p, i) => `${i+1}. ${p.name} (${p.position}, ${p.club}) — overall ${p.overall}`).join("\n");
-
-  return `Eres VITAS Intelligence, el sistema de análisis de talento futbolístico más avanzado.
-Analizas jugadores de academia (8-21 años) con visión computacional sobre keyframes de video.
-
-JUGADOR A ANALIZAR:
-- Nombre: ${player.name}
-- Edad: ${player.age} años
-- Posición: ${player.position}
-- Pie: ${player.foot}
-- Altura: ${player.height ?? "N/D"} cm
-- Peso: ${player.weight ?? "N/D"} kg
-- Nivel competitivo: ${player.competitiveLevel ?? "Regional"}
-- VSI actual: ${player.currentVSI ?? "N/D"}/100
-- ${phvInfo}
-
-TOP 5 JUGADORES PROFESIONALES POR SIMILITUD MÉTRICA:
-${proNames}
-
-IDENTIFICACIÓN DEL JUGADOR EN VIDEO:
-${jerseyNumber ? `- Número de camiseta: ${jerseyNumber} — ENFOCA tu análisis visual en el jugador con este dorsal` : "- Número de camiseta: no especificado — analiza al jugador más relevante para la posición indicada"}
-${teamColor ? `- Color del uniforme: ${teamColor} — usa este color para distinguir al jugador entre los demás` : ""}
-${jerseyNumber || teamColor ? "- Si el número o color es visible en los keyframes, PRIORIZA las acciones de ese jugador específico" : ""}
-
-INSTRUCCIONES CRÍTICAS:
-1. Analiza LOS KEYFRAMES con máximo detalle técnico-táctico, IDENTIFICANDO al jugador por camiseta/color
-2. Genera un informe JSON EXACTO según el schema indicado
-3. El análisis de video COMPLEMENTA el PHV (no lo reemplaza)
-4. Sé específico con las observaciones — menciona acciones concretas vistas en los frames
-5. El ajusteVSIVideoScore debe ser entre -15 y +15 (corrección sobre el VSI actual)
-6. Los jugadores referencia deben corresponder a los del top5 proporcionado
-7. Responde SOLO el JSON, sin markdown, sin texto adicional`;
+interface CurrentStateReport {
+    technicalScore:   number;
+    tacticalScore:    number;
+    physicalScore:    number;
+    mentalScore:      number;
+    speedScore:       number;
+    strengthScore:    number;
+    highlights:       string[];
+    improvements:     string[];
+    detailedAnalysis: string;
 }
 
-function buildUserPrompt(duration?: number): string {
-  return `Analiza estos keyframes del partido/entrenamiento${duration ? ` (duración: ${duration}s)` : ""} y genera el informe VITAS Intelligence completo.
-
-Devuelve EXCLUSIVAMENTE este JSON (sin markdown):
-{
-  "estadoActual": {
-    "resumenEjecutivo": "...",
-    "nivelActual": "medio_alto",
-    "fortalezasPrimarias": ["...", "..."],
-    "areasDesarrollo": ["..."],
-    "dimensiones": {
-      "velocidadDecision":    { "score": 7.5, "observacion": "..." },
-      "tecnicaConBalon":      { "score": 8.0, "observacion": "..." },
-      "inteligenciaTactica":  { "score": 7.0, "observacion": "..." },
-      "capacidadFisica":      { "score": 7.5, "observacion": "..." },
-      "liderazgoPresencia":   { "score": 6.5, "observacion": "..." },
-      "eficaciaCompetitiva":  { "score": 7.0, "observacion": "..." }
-    },
-    "ajusteVSIVideoScore": 3
-  },
-  "adnFutbolistico": {
-    "estiloJuego": "...",
-    "arquetipoTactico": "...",
-    "patrones": [
-      { "patron": "...", "frecuencia": "alto", "descripcion": "..." }
-    ],
-    "mentalidad": "..."
-  },
-  "jugadorReferencia": {
-    "top5": [
-      { "proPlayerId": "...", "nombre": "...", "posicion": "...", "club": "...", "score": 82.5, "razonamiento": "..." }
-    ],
-    "bestMatch": {
-      "proPlayerId": "...", "nombre": "...", "posicion": "...", "club": "...", "score": 82.5, "narrativa": "..."
-    }
-  },
-  "proyeccionCarrera": {
-    "escenarioOptimista": { "descripcion": "...", "nivelProyecto": "Primera División", "clubTipo": "...", "edadPeak": 26 },
-    "escenarioRealista":  { "descripcion": "...", "nivelProyecto": "Segunda División", "clubTipo": "..." },
-    "factoresClave": ["..."],
-    "riesgos": ["..."]
-  },
-  "planDesarrollo": {
-    "objetivo6meses": "...",
-    "objetivo18meses": "...",
-    "pilaresTrabajo": [
-      { "pilar": "...", "acciones": ["..."], "prioridad": "alta" }
-    ],
-    "recomendacionEntrenador": "..."
-  },
-  "confianza": 0.85
+interface FootballDNAReport {
+    primaryStyle:      string;
+    secondaryStyle:    string;
+    playingPatterns:   string[];
+    uniqueQualities:   string[];
+    positionFit:       Record<string, number>;
+    styleDescription:  string;
 }
 
-INSTRUCCIÓN ADICIONAL PARA planDesarrollo:
-- En pilaresTrabajo, referencia drills concretos del contexto RAG adjunto cuando aplique.
-- Cada acción debe ser específica: incluye el nombre del drill y su ID entre paréntesis (ej: "Rondo 4v2 — TEC-001").
-- No inventes drills: usa solo los del contexto RAG proporcionado.`;
+interface ReferencePlayerReport {
+    playerName:       string;
+    similarity:       number;
+    league:           string;
+    club:             string;
+    position:         string;
+    comparisonPoints: string[];
+    differencePoints: string[];
+    learningPath:     string;
 }
 
-// ─── RAG: contexto de jugadores profesionales ────────────────────────────────
-
-async function getSemanticProContext(
-  playerDesc: string,
-  position: string,
-  baseUrl: string
-): Promise<string> {
-  try {
-    const res = await fetch(`${baseUrl}/api/rag/query`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `${playerDesc} posición ${position}`,
-        category: "pro_player",
-        limit: 3,
-      }),
-    });
-    if (!res.ok) return "";
-    const data = await res.json() as { context?: string };
-    return data.context ?? "";
-  } catch { return ""; }
+interface CareerProjectionReport {
+    peakPotential:     number;
+    projectedLevel:    string;
+    timelineYears:     number;
+    optimalAge:        number;
+    careerPath:        string[];
+    riskFactors:       string[];
+    opportunityWindow: string;
 }
 
-// ─── Similitud para obtener top5 ────────────────────────────────────────────
-
-async function getTop5(
-  vsiMetrics: RequestBody["vsiMetrics"],
-  position: string,
-  supabaseUrl?: string,
-  supabaseKey?: string
-): Promise<ProPlayer[]> {
-  if (!vsiMetrics) return [];
-
-  // Intentar Supabase primero
-  let allPros: ProPlayer[] = [];
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const res = await fetch(`${supabaseUrl}/rest/v1/pro_players?select=*&overall=gte.70`, {
-        headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` },
-      });
-      if (res.ok) allPros = await res.json();
-    } catch { /* fallback */ }
-  }
-
-  if (allPros.length === 0) return []; // sin datos, Claude infiere sólo con el prompt
-
-  // Calcular similitud
-  const yVec = [
-    vsiMetrics.speed / 100, vsiMetrics.shooting / 100,
-    vsiMetrics.vision / 100, vsiMetrics.technique / 100,
-    vsiMetrics.defending / 100, vsiMetrics.stamina / 100,
-  ];
-
-  const scored = allPros.map(pro => {
-    const pVec = [pro.pace/99, pro.shooting/99, pro.passing/99, pro.dribbling/99, pro.defending/99, pro.physic/99];
-    let sim = cosine(yVec, pVec);
-    if (isCompatible(position, pro.position)) sim = Math.min(1, sim * 1.05);
-    return { pro, sim };
-  });
-
-  scored.sort((a, b) => b.sim - a.sim);
-  return scored.slice(0, 5).map(s => s.pro);
+interface DevelopmentPlanReport {
+    immediateActions:  string[];
+    shortTermGoals:    string[];
+    longTermVision:    string;
+    trainingFocus:     string[];
+    mentalDevelopment: string[];
+    weeklyStructure:   string;
 }
 
-// ─── Handler ──────────────────────────────────────────────────────────────────
+// ——— Helper: construir contenido de imagen para Claude ———————————————
+
+function buildImageContent(frames: KeyframeData[]): Anthropic.ImageBlockParam[] {
+    return frames.map((frame) => ({
+          type: "image" as const,
+          source: {
+                  type: "url" as const,
+                  url: frame.url,
+          },
+    }));
+}
+
+// ——— Handler principal ——————————————————————————
 
 export default async function handler(req: Request): Promise<Response> {
+    if (req.method === "OPTIONS") {
+          return new Response(null, {
+                  headers: {
+                            "Access-Control-Allow-Origin": "*",
+                            "Access-Control-Allow-Methods": "POST, OPTIONS",
+                            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                  },
+          });
+    }
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+                status: 405,
+                headers: { "Content-Type": "application/json" },
+        });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return new Response(
-      JSON.stringify({ error: "ANTHROPIC_API_KEY not configured", code: "missing_api_key" }),
-      { status: 503 }
-    );
-  }
+    if (!apiKey) {
+          return new Response(
+                  JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+                );
+    }
 
-  let body: RequestBody;
+  let body: {
+        playerId: string;
+        videoId: string;
+        playerContext: PlayerContext;
+        keyframes: KeyframeData[];
+        videoDuration?: number;
+  };
+
   try {
-    body = await req.json();
+        body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+        });
   }
 
-  const { playerId, videoId, playerContext, keyframes, videoDuration, vsiMetrics, jerseyNumber, teamColor } = body;
+  const { playerId, videoId, playerContext, keyframes, videoDuration } = body;
 
   if (!playerId || !videoId || !playerContext || !keyframes?.length) {
-    return new Response(
-      JSON.stringify({ error: "playerId, videoId, playerContext and keyframes are required" }),
-      { status: 400 }
-    );
+        return new Response(
+                JSON.stringify({ error: "Missing required fields: playerId, videoId, playerContext, keyframes" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+              );
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  const baseUrl = new URL(req.url).origin;
+  // Limitar a máximo 8 keyframes para controlar costos
+  const selectedFrames = keyframes.slice(0, 8);
 
-  // Obtener top5 similares para incluir en el prompt
-  const top5Pros = await getTop5(vsiMetrics, playerContext.position, supabaseUrl, supabaseKey);
+  const anthropic = new Anthropic({ apiKey });
 
-  // RAG Pipeline 1: Semantic pro player context + accumulative history
-  const playerDescForRag = [
-    `Jugador: ${playerContext.name}, posición ${playerContext.position}, edad ${playerContext.age} años`,
-    vsiMetrics
-      ? `Velocidad ${vsiMetrics.speed}, Disparo ${vsiMetrics.shooting}, Visión ${vsiMetrics.vision}, Técnica ${vsiMetrics.technique}, Defensa ${vsiMetrics.defending}, Físico ${vsiMetrics.stamina}`
-      : "",
-    playerContext.phvCategory ? `PHV: ${playerContext.phvCategory}` : "",
-  ].filter(Boolean).join(". ");
+  const systemPrompt = `Eres VITAS Intelligence, el sistema de análisis de talento futbolístico más avanzado del mundo.
+  Analizas videos de jugadores jóvenes con visión experta de scout de élite.
 
-  const [proContext, historyContext, drillContext] = await Promise.all([
-    // RAG 1: jugadores pro de referencia
-    getSemanticProContext(playerDescForRag, playerContext.position, baseUrl),
+  Tu análisis debe ser:
+  - Objetivo y basado en evidencia visual real
+  - Específico con números y métricas concretas (scores del 1-100)
+  - Orientado al desarrollo y mejora
+  - Profesional pero accesible
 
-    // RAG 2: historial previo del jugador
-    (async () => {
-      try {
-        const res = await fetch(`${baseUrl}/api/rag/query`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: playerDescForRag, category: "report", player_id: playerId, limit: 3 }),
-        });
-        if (!res.ok) return "";
-        const data = await res.json() as { context?: string };
-        return data.context ?? "";
-      } catch { return ""; }
-    })(),
+  IMPORTANTE: Responde ÚNICAMENTE con un objeto JSON válido, sin texto adicional, sin markdown, sin bloques de código.`;
 
-    // RAG 3: drills relevantes según métricas más débiles
-    (async () => {
-      try {
-        const metricLabels: Record<string, string> = {
-          speed:     "velocidad y sprint",
-          shooting:  "disparo y definición",
-          vision:    "visión periférica y pase",
-          technique: "técnica con balón y control",
-          defending: "defensa y pressing",
-          stamina:   "resistencia física",
-        };
-        const weakMetrics = vsiMetrics
-          ? Object.entries(vsiMetrics)
-              .sort(([, a], [, b]) => (a as number) - (b as number))
-              .slice(0, 3)
-              .map(([k]) => metricLabels[k] ?? k)
-          : ["técnica", "visión", "velocidad"];
+  const durationText = videoDuration
+      ? `Duración del video: ${Math.round(videoDuration)}s`
+        : "";
 
-        const drillQuery = `Ejercicios para mejorar ${weakMetrics.join(", ")} posición ${playerContext.position} edad ${playerContext.age} años`;
-        const res = await fetch(`${baseUrl}/api/rag/query`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: drillQuery, category: "drill", limit: 5 }),
-        });
-        if (!res.ok) return "";
-        const data = await res.json() as { context?: string };
-        return data.context ?? "";
-      } catch { return ""; }
-    })(),
-  ]);
+  const userText = `Analiza este video de ${playerContext.name}, ${playerContext.age} años, ${playerContext.position}.
+  ${durationText}
+  Keyframes capturados: ${selectedFrames.length} imágenes.
+  Pie dominante: ${playerContext.foot}${playerContext.height ? `, Altura: ${playerContext.height}cm` : ""}${playerContext.weight ? `, Peso: ${playerContext.weight}kg` : ""}${playerContext.team ? `, Equipo: ${playerContext.team}` : ""}.
 
-  // Construir mensajes para Claude
-  let systemPrompt = buildSystemPrompt(playerContext, top5Pros, jerseyNumber, teamColor);
-  if (proContext) {
-    systemPrompt += `\n\nCONTEXTO SEMÁNTICO — JUGADORES PRO DE REFERENCIA:\n${proContext}`;
-  }
-  if (historyContext) {
-    systemPrompt += `\n\nHISTORIAL DE INFORMES PREVIOS DEL JUGADOR:\n${historyContext}`;
-  }
-  if (drillContext) {
-    systemPrompt += `\n\nDRILLS RECOMENDADOS (extraídos de base de conocimiento RAG — úsalos en el plan de desarrollo):\n${drillContext}`;
-  }
-  const userPromptText = buildUserPrompt(videoDuration);
+  Genera un análisis completo en este formato JSON exacto:
 
-  // Obtener URLs de thumbnails desde la API de Bunny Stream (más fiable que CDN directo)
-  const bunnyLibId  = process.env.BUNNY_STREAM_LIBRARY_ID;
-  const bunnyApiKey = process.env.BUNNY_STREAM_API_KEY;
-  const bunnyCdnHost = process.env.VITE_BUNNY_CDN_HOSTNAME || process.env.BUNNY_CDN_HOSTNAME;
+  {
+    "currentState": {
+        "technicalScore": <1-100>,
+            "tacticalScore": <1-100>,
+                "physicalScore": <1-100>,
+                    "mentalScore": <1-100>,
+                        "speedScore": <1-100>,
+                            "strengthScore": <1-100>,
+                                "highlights": ["punto fuerte 1", "punto fuerte 2", "punto fuerte 3"],
+                                    "improvements": ["área mejora 1", "área mejora 2", "área mejora 3"],
+                                        "detailedAnalysis": "análisis técnico detallado de 3-4 párrafos basado en lo visto en el video"
+                                          },
+                                            "footballDNA": {
+                                                "primaryStyle": "estilo principal",
+                                                    "secondaryStyle": "estilo secundario",
+                                                        "playingPatterns": ["patrón 1", "patrón 2", "patrón 3"],
+                                                            "uniqueQualities": ["cualidad única 1", "cualidad única 2"],
+                                                                "positionFit": {"posición1": <0-100>, "posición2": <0-100>},
+                                                                    "styleDescription": "descripción del ADN futbolístico en 2-3 párrafos"
+                                                                      },
+                                                                        "referencePlayer": {
+                                                                            "playerName": "nombre del jugador referencia profesional",
+                                                                                "similarity": <0-100>,
+                                                                                    "league": "liga del jugador referencia",
+                                                                                        "club": "club actual",
+                                                                                            "position": "posición",
+                                                                                                "comparisonPoints": ["similitud 1", "similitud 2", "similitud 3"],
+                                                                                                    "differencePoints": ["diferencia 1", "diferencia 2"],
+                                                                                                        "learningPath": "qué puede aprender del jugador referencia"
+                                                                                                          },
+                                                                                                            "careerProjection": {
+                                                                                                                "peakPotential": <1-100>,
+                                                                                                                    "projectedLevel": "nivel proyectado (Liga local/Nacional/Internacional/Élite)",
+                                                                                                                        "timelineYears": <número de años hasta pico>,
+                                                                                                                            "optimalAge": <edad óptima proyectada>,
+                                                                                                                                "careerPath": ["paso 1", "paso 2", "paso 3", "paso 4"],
+                                                                                                                                    "riskFactors": ["riesgo 1", "riesgo 2"],
+                                                                                                                                        "opportunityWindow": "descripción de la ventana de oportunidad actual"
+                                                                                                                                          },
+                                                                                                                                            "developmentPlan": {
+                                                                                                                                                "immediateActions": ["acción inmediata 1", "acción inmediata 2", "acción inmediata 3"],
+                                                                                                                                                    "shortTermGoals": ["objetivo 3 meses 1", "objetivo 3 meses 2", "objetivo 3 meses 3"],
+                                                                                                                                                        "longTermVision": "visión a 2-3 años",
+                                                                                                                                                            "trainingFocus": ["foco entrenamiento 1", "foco entrenamiento 2", "foco entrenamiento 3"],
+                                                                                                                                                                "mentalDevelopment": ["aspecto mental 1", "aspecto mental 2"],
+                                                                                                                                                                    "weeklyStructure": "estructura semanal recomendada de entrenamiento"
+                                                                                                                                                                      },
+                                                                                                                                                                        "overallScore": <1-100>,
+                                                                                                                                                                          "executiveSummary": "resumen ejecutivo de 2-3 párrafos para los padres/entrenadores"
+                                                                                                                                                                          }`;
 
-  let thumbnailUrls: string[] = keyframes; // fallback a los keyframes del cliente
+  const imageBlocks = buildImageContent(selectedFrames);
 
-  if (bunnyLibId && bunnyApiKey && videoId) {
-    try {
-      const bunnyRes = await fetch(
-        `https://video.bunnycdn.com/library/${bunnyLibId}/videos/${videoId}`,
-        { headers: { AccessKey: bunnyApiKey }, signal: AbortSignal.timeout(8000) }
-      );
-      if (bunnyRes.ok) {
-        const info = await bunnyRes.json() as {
-          guid: string;
-          length: number;
-          thumbnailFileName?: string;
-          encodeProgress: number;
-          status: number;
-        };
-        const cdnHost = bunnyCdnHost ?? `${info.guid}.b-cdn.net`;
-        const duration = info.length ?? 30;
+  // ——— Streaming: enviar respuesta progresiva para evitar timeout ———
 
-        // Generar URLs de thumbnails en puntos clave del video
-        const points = [0.1, 0.25, 0.4, 0.55, 0.7, 0.85];
-        thumbnailUrls = points.map(p => {
-          const t = Math.round(duration * p);
-          return `https://${cdnHost}/${videoId}/thumbnail.jpg?time=${t}`;
-        });
+  const stream = new ReadableStream({
+        async start(controller) {
+                const encoder = new TextEncoder();
 
-        // Añadir thumbnail principal del video
-        if (info.thumbnailFileName) {
-          thumbnailUrls.unshift(`https://${cdnHost}/${videoId}/${info.thumbnailFileName}`);
-        } else {
-          thumbnailUrls.unshift(`https://${cdnHost}/${videoId}/thumbnail.jpg`);
-        }
-      }
-    } catch {
-      // Usar keyframes del cliente como fallback
-    }
-  }
+          try {
+                    // Señal de inicio al cliente
+                  controller.enqueue(encoder.encode('data: {"status":"analyzing"}\n\n'));
 
-  // Pasar URLs directamente a Claude (sin descarga server-side)
-  // Claude accede a las imágenes directamente desde Bunny CDN
-  const imageContent: Anthropic.MessageParam["content"] = thumbnailUrls
-    .slice(0, 6)
-    .map((url) => ({
-      type: "image" as const,
-      source: { type: "url" as const, url },
-    }));
+                  let fullText = "";
+                    let totalInputTokens = 0;
+                    let totalOutputTokens = 0;
 
-  if (imageContent.length === 0) {
-    return new Response(
-      JSON.stringify({ error: "No se pudieron generar fotogramas del video. El video puede estar aún procesándose en Bunny Stream. Espera unos minutos e intenta de nuevo." }),
-      { status: 422 }
-    );
-  }
+                  const response = await anthropic.messages.create({
+                              model: "claude-sonnet-4-5",
+                              max_tokens: 4096,
+                              stream: true,
+                              system: systemPrompt,
+                              messages: [
+                                {
+                                                role: "user",
+                                                content: [
+                                                                  ...imageBlocks,
+                                                  { type: "text", text: userText },
+                                                                ],
+                                },
+                                          ],
+                  });
 
-  const client = new Anthropic({ apiKey });
+                  for await (const event of response) {
+                              if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+                                            fullText += event.delta.text;
+                                            // Enviar progreso al cliente cada cierto tiempo
+                                controller.enqueue(encoder.encode(`data: {"status":"streaming","chunk":${JSON.stringify(event.delta.text)}}\n\n`));
+                              } else if (event.type === "message_delta" && event.usage) {
+                                            totalOutputTokens = event.usage.output_tokens;
+                              } else if (event.type === "message_start" && event.message.usage) {
+                                            totalInputTokens = event.message.usage.input_tokens;
+                              }
+                  }
 
-  let rawResponse = "";
-  let tokensUsed = 0;
+                  // Parsear el JSON generado por Claude
+                  let report: VideoReport;
+                    try {
+                                const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+                                if (!jsonMatch) throw new Error("No JSON found in response");
+                                report = JSON.parse(jsonMatch[0]);
+                    } catch (parseError) {
+                                controller.enqueue(
+                                              encoder.encode(`data: {"status":"error","error":"Failed to parse Claude response: ${String(parseError)}"}\n\n`)
+                                            );
+                                controller.close();
+                                return;
+                    }
 
-  try {
-    const message = await client.messages.create({
-      model:      "claude-sonnet-4-5",
-      max_tokens: 4096,
-      system:     systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...imageContent as Anthropic.ImageBlockParam[],
-            { type: "text", text: userPromptText },
-          ],
-        },
-      ],
-    });
+                  const tokensUsed = totalInputTokens + totalOutputTokens;
 
-    rawResponse = (message.content[0] as { type: string; text: string }).text ?? "";
-    tokensUsed  = message.usage.input_tokens + message.usage.output_tokens;
+                  // Guardar en RAG en background (no bloqueante)
+                  const baseUrl = process.env.VERCEL_URL
+                      ? `https://${process.env.VERCEL_URL}`
+                              : "http://localhost:3001";
 
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[video-intelligence] Claude error:", errMsg);
-    return new Response(
-      JSON.stringify({ error: `Error de análisis con IA: ${errMsg}` }),
-      { status: 502 }
-    );
-  }
+                  const reportContent = `ANÁLISIS VITAS INTELLIGENCE
+                  Jugador: ${playerContext.name} | Posición: ${playerContext.position} | Edad: ${playerContext.age}
+                  Score General: ${report.overallScore}/100
 
-  // Parsear JSON de la respuesta
-  let report: Record<string, unknown>;
-  try {
-    // Limpiar posibles bloques de código markdown
-    const cleaned = rawResponse
-      .replace(/^```json\n?/, "")
-      .replace(/^```\n?/, "")
-      .replace(/\n?```$/, "")
-      .trim();
-    report = JSON.parse(cleaned);
-  } catch {
-    console.error("[video-intelligence] Parse error. Raw:", rawResponse.slice(0, 200));
-    return new Response(
-      JSON.stringify({ error: "Failed to parse model response", raw: rawResponse.slice(0, 500) }),
-      { status: 500 }
-    );
-  }
+                  RESUMEN EJECUTIVO:
+                  ${report.executiveSummary}
 
-  // Validar estructura mínima del reporte
-  const requiredSections = ["estadoActual", "adnFutbolistico", "jugadorReferencia", "proyeccionCarrera", "planDesarrollo"];
-  const missingSections = requiredSections.filter(s => !(s in report));
-  if (missingSections.length > 0) {
-    console.error("[video-intelligence] Missing sections:", missingSections);
-    return new Response(
-      JSON.stringify({ error: "Incomplete model response", missingSections, raw: rawResponse.slice(0, 500) }),
-      { status: 500 }
-    );
-  }
-  const estadoActual = report.estadoActual as Record<string, unknown> | undefined;
-  if (!estadoActual?.dimensiones || typeof estadoActual.nivelActual !== "string") {
-    return new Response(
-      JSON.stringify({ error: "Invalid estadoActual structure in model response" }),
-      { status: 500 }
-    );
-  }
+                  ESTADO ACTUAL:
+                  Técnica: ${report.currentState.technicalScore}/100 | Táctica: ${report.currentState.tacticalScore}/100
+                  Física: ${report.currentState.physicalScore}/100 | Mental: ${report.currentState.mentalScore}/100
+                  ${report.currentState.detailedAnalysis}
 
-  // Enriquecer con similarity scores calculados
-  if (top5Pros.length > 0 && report.jugadorReferencia) {
-    const jr = report.jugadorReferencia as Record<string, unknown>;
-    // Asegurar que top5 tiene los datos correctos de la DB
-    const top5Array = jr.top5 as unknown[] | undefined;
-    if (!top5Array || !top5Array.length) {
-      const yVec = vsiMetrics
-        ? [vsiMetrics.speed/100, vsiMetrics.shooting/100, vsiMetrics.vision/100,
-           vsiMetrics.technique/100, vsiMetrics.defending/100, vsiMetrics.stamina/100]
-        : null;
+                  ADN FUTBOLÍSTICO: ${report.footballDNA.primaryStyle}
+                  ${report.footballDNA.styleDescription}
 
-      const mappedTop5 = top5Pros.map(pro => {
-        const pVec = [pro.pace/99, pro.shooting/99, pro.passing/99, pro.dribbling/99, pro.defending/99, pro.physic/99];
-        const sim  = yVec ? Math.round(cosine(yVec, pVec) * 1000) / 10 : 70;
-        return {
-          proPlayerId: pro.id,
-          nombre:      pro.name,
-          posicion:    pro.position,
-          club:        pro.club,
-          score:       sim,
-          razonamiento: `Métricas similares en ${pro.position} — overall ${pro.overall}`,
-        };
-      });
-      jr.top5     = mappedTop5;
-      jr.bestMatch = mappedTop5[0];
-    }
-  }
+                  JUGADOR REFERENCIA: ${report.referencePlayer.playerName} (${report.referencePlayer.similarity}% similitud)
+                  ${report.referencePlayer.learningPath}
 
-  // Guardar en Supabase si está configurado
-  if (supabaseUrl && supabaseKey) {
-    try {
-      // Extraer user_id del JWT de autorización si existe
-      const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization") ?? "";
-      let userId: string | null = null;
-      if (authHeader.startsWith("Bearer ")) {
-        try {
-          const token = authHeader.slice(7);
-          const parts = token.split(".");
-          if (parts.length >= 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            userId = payload.sub ?? null;
+                  PROYECCIÓN: ${report.careerProjection.projectedLevel} en ~${report.careerProjection.timelineYears} años
+                  ${report.careerProjection.opportunityWindow}`;
+
+                  fetch(`${baseUrl}/api/rag/ingest`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                            documents: [{
+                                                            content: reportContent,
+                                                            category: "report",
+                                                            metadata: { videoId, reportDate: new Date().toISOString() },
+                                                            player_id: playerId,
+                                            }],
+                              }),
+                  }).catch(() => { /* non-blocking */ });
+
+                  // Enviar resultado final
+                  const finalResult: VideoIntelligenceOutput = {
+                              success: true,
+                              playerId,
+                              videoId,
+                              report,
+                              topsPros: [],
+                              tokensUsed,
+                              modelUsed: "claude-sonnet-4-5",
+                              generatedAt: new Date().toISOString(),
+                  };
+
+                  controller.enqueue(
+                              encoder.encode(`data: {"status":"done","result":${JSON.stringify(finalResult)}}\n\n`)
+                            );
+                    controller.close();
+
+          } catch (error) {
+                    const errMsg = error instanceof Error ? error.message : String(error);
+                    controller.enqueue(
+                                encoder.encode(`data: {"status":"error","error":${JSON.stringify(errMsg)}}\n\n`)
+                              );
+                    controller.close();
           }
-        } catch { /* token inválido, userId queda null */ }
-      }
-
-      const insertRes = await fetch(`${supabaseUrl}/rest/v1/player_analyses`, {
-        method: "POST",
-        headers: {
-          "apikey":        supabaseKey,
-          "Authorization": authHeader || `Bearer ${supabaseKey}`,
-          "Content-Type":  "application/json",
-          "Prefer":        "return=minimal,resolution=merge-duplicates",
         },
-        body: JSON.stringify({
-          user_id:         userId,
-          player_id:       playerId,
-          video_id:        videoId,
-          report:          report,
-          similarity_top5: top5Pros,
-          projection:      report.proyeccionCarrera,
-        }),
-      });
-      if (!insertRes.ok) {
-        const errBody = await insertRes.text().catch(() => "(unreadable)");
-        console.error("[video-intelligence] player_analyses insert failed:", insertRes.status, errBody);
-      }
-    } catch {
-      // No fallar si Supabase no puede guardar
-    }
-  }
+  });
 
-  // RAG Pipeline 3: Save report to knowledge base for accumulative history
-  try {
-    const estadoActualReport = report.estadoActual as Record<string, unknown>;
-    const adnReport = report.adnFutbolistico as Record<string, unknown>;
-    const refReport = report.jugadorReferencia as Record<string, unknown>;
-    const bestMatch = (refReport?.bestMatch as Record<string, unknown> | undefined);
-
-    const reportContent = [
-      `[INFORME VIDEO] Jugador: ${playerContext.name} | ${new Date().toISOString().slice(0, 10)}`,
-      `Posición: ${playerContext.position} | Edad: ${playerContext.age} años | VSI: ${playerContext.currentVSI ?? "N/D"}`,
-      `Resumen ejecutivo: ${(estadoActualReport?.resumenEjecutivo as string | undefined) ?? ""}`,
-      `Fortalezas: ${((estadoActualReport?.fortalezasPrimarias as string[] | undefined) ?? []).join(", ")}`,
-      `Áreas de desarrollo: ${((estadoActualReport?.areasDesarrollo as string[] | undefined) ?? []).join(", ")}`,
-      `ADN: ${(adnReport?.estiloJuego as string | undefined) ?? ""}`,
-      `Arquetipo táctico: ${(adnReport?.arquetipoTactico as string | undefined) ?? ""}`,
-      `Jugador referencia: ${(bestMatch?.nombre as string | undefined) ?? ""}`,
-    ].join("\n");
-
-    await fetch(`${baseUrl}/api/rag/ingest`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        documents: [{
-          content: reportContent,
-          category: "report",
-          metadata: { videoId, reportDate: new Date().toISOString() },
-          player_id: playerId,
-        }],
-      }),
-    });
-  } catch { /* non-blocking */ }
-
-  return new Response(
-    JSON.stringify({
-      success:     true,
-      playerId,
-      videoId,
-      report,
-      top5Pros,
-      tokensUsed,
-      modelUsed:   "claude-sonnet-4-5",
-      generatedAt: new Date().toISOString(),
-    }),
-    {
-      status:  200,
-      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-    }
-  );
+  return new Response(stream, {
+        status: 200,
+        headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "Access-Control-Allow-Origin": "*",
+        },
+  });
 }
