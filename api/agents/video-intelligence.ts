@@ -13,7 +13,7 @@
  * Response: VideoIntelligenceOutput
  */
 
-export const config = { runtime: "edge" };
+export const config = { maxDuration: 60 };
 
 import Anthropic from "@anthropic-ai/sdk";
 import type { ProPlayer } from "../../src/data/proPlayers";

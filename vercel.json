@@ -7,5 +7,10 @@
       "path": "/api/notifications/cron",
       "schedule": "0 9 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "api/agents/video-intelligence.ts": {
+      "maxDuration": 60
+    }
+  }
 }
