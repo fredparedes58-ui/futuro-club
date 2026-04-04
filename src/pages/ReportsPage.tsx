@@ -8,7 +8,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import TopNav from "@/components/TopNav";
-import { Play, Search, Video, Upload, Zap, Clock, Trash2 } from "lucide-react";
+import { Play, Search, Video, Upload, Zap, Clock, Trash2, ChevronDown, Brain } from "lucide-react";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
 import { useDeletePlayer } from "@/hooks/usePlayers";
 import VideoCard from "@/components/VideoCard";
@@ -25,6 +25,10 @@ const ReportsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
   const [showUpload, setShowUpload] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
+  const [jerseyNumber, setJerseyNumber] = useState<string>("");
+  const [teamColor, setTeamColor] = useState<string>("");
+  const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
 
   const { data: realVideos = [], isLoading } = useVideos();
   const { mutate: deleteVideo } = useDeleteVideo();
@@ -179,7 +183,7 @@ const ReportsPage = () => {
                   {players.slice(0, 10).map((p) => (
                     <div key={p.id} className="flex items-center gap-2 p-2.5 rounded-xl hover:bg-secondary/50 transition-colors group">
                       <button
-                        onClick={() => navigate(`/players/${p.id}/intelligence`)}
+                        onClick={() => navigate(`/player/${p.id}/intelligence`)}
                         className="flex items-center gap-3 flex-1 text-left min-w-0"
                       >
                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -211,42 +215,89 @@ const ReportsPage = () => {
             {selectedVideo ? (
               <div className="space-y-4">
                 <VideoPlayer video={selectedVideo} />
-                <div>
-                  <h3 className="font-display font-bold text-base text-foreground">{selectedVideo.title}</h3>
-                  {selectedVideo.analysisResult ? (
-                    <div className="mt-3 p-3 rounded-xl bg-secondary space-y-2">
-                      <p className="text-xs font-display font-semibold text-primary">
-                        {selectedVideo.analysisResult.formationHint}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {selectedVideo.analysisResult.notes}
-                      </p>
-                      <div className="flex gap-2 flex-wrap">
-                        {selectedVideo.analysisResult.keyMovements.map((m, i) => (
-                          <span key={i} className="text-[9px] font-display px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                            {m}
-                          </span>
+                <h3 className="font-display font-bold text-base text-foreground">{selectedVideo.title}</h3>
+
+                {/* Selector de jugador */}
+                <div className="space-y-3 p-4 rounded-xl bg-secondary/40 border border-border">
+                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+                    Jugador a analizar
+                  </p>
+
+                  {/* Dropdown jugador */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowPlayerDropdown((v) => !v)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-secondary transition-colors text-left"
+                    >
+                      <span className={`text-sm font-display font-semibold ${selectedPlayerId ? "text-foreground" : "text-muted-foreground"}`}>
+                        {players.find(p => p.id === selectedPlayerId)?.name ?? "Seleccionar jugador…"}
+                      </span>
+                      <ChevronDown size={14} className="text-muted-foreground" />
+                    </button>
+                    {showPlayerDropdown && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-background rounded-xl border border-border z-20 max-h-44 overflow-y-auto shadow-lg">
+                        {players.length === 0 && (
+                          <p className="text-xs text-muted-foreground px-3 py-2">No hay jugadores</p>
+                        )}
+                        {players.map((p) => (
+                          <button
+                            key={p.id}
+                            onClick={() => { setSelectedPlayerId(p.id); setShowPlayerDropdown(false); }}
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/5 transition-colors flex items-center justify-between ${selectedPlayerId === p.id ? "text-primary font-semibold" : "text-foreground"}`}
+                          >
+                            <span>{p.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{p.position}</span>
+                          </button>
                         ))}
                       </div>
+                    )}
+                  </div>
+
+                  {/* Nº Camiseta + Color */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Nº Camiseta</label>
+                      <input
+                        type="text"
+                        maxLength={3}
+                        value={jerseyNumber}
+                        onChange={(e) => setJerseyNumber(e.target.value)}
+                        placeholder="Ej: 10"
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                      />
                     </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Sin análisis táctico. Abre en Intelligence para generar el informe con IA.
-                    </p>
-                  )}
+                    <div>
+                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Color Uniforme</label>
+                      <input
+                        type="text"
+                        value={teamColor}
+                        onChange={(e) => setTeamColor(e.target.value)}
+                        placeholder="Ej: Rojo"
+                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">
+                    La IA identificará al jugador por dorsal y color para el análisis individual.
+                  </p>
                 </div>
+
                 <div className="flex gap-3">
                   <button
-                    onClick={() => navigate("/lab")}
-                    className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
+                    onClick={() => {
+                      if (!selectedPlayerId) { alert("Selecciona un jugador primero"); return; }
+                      navigate(`/player/${selectedPlayerId}/intelligence`);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
                   >
-                    Abrir en Lab
+                    <Brain size={14} />
+                    Analizar con VITAS
                   </button>
                   <button
-                    onClick={() => navigate("/compare")}
+                    onClick={() => navigate("/lab")}
                     className="flex-1 py-2.5 rounded-xl border border-border text-sm font-display font-semibold hover:bg-secondary transition-colors"
                   >
-                    Comparar
+                    Abrir en Lab
                   </button>
                 </div>
               </div>

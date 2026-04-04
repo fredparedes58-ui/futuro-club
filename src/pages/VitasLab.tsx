@@ -147,6 +147,8 @@ const VitasLab = () => {
   const [analysisState, setAnalysisState]       = useState<AnalysisState>("idle");
   const [analysisReport, setAnalysisReport]     = useState<AnalysisReport | null>(null);
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
+  const [jerseyNumber, setJerseyNumber]         = useState<string>("");
+  const [teamColor, setTeamColor]               = useState<string>("");
 
   const { data: videos = [] } = useVideos();
   const { data: players = [] } = useAllPlayers();
@@ -300,10 +302,12 @@ const VitasLab = () => {
         method: "POST",
         headers,
         body: JSON.stringify({
-          videoId:      selectedVideoId,
-          playerId:     selectedPlayerId,
-          analysisMode: selectedMode,
+          videoId:          selectedVideoId,
+          playerId:         selectedPlayerId,
+          analysisMode:     selectedMode,
           homographyPoints: points,
+          jerseyNumber:     jerseyNumber.trim() || undefined,
+          teamColor:        teamColor.trim() || undefined,
         }),
       });
 
@@ -574,6 +578,39 @@ const VitasLab = () => {
                 <span className="text-[10px] font-display text-primary">VSI {selectedPlayer.vsi} · {selectedPlayer.position} · {selectedPlayer.age}a</span>
               </div>
             )}
+          </div>
+
+          {/* Identificación del jugador */}
+          <div>
+            <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+              Identificar Jugador
+            </span>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Nº Camiseta</label>
+                <input
+                  type="text"
+                  maxLength={3}
+                  value={jerseyNumber}
+                  onChange={(e) => setJerseyNumber(e.target.value)}
+                  placeholder="Ej: 10"
+                  className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Color Uniforme</label>
+                <input
+                  type="text"
+                  value={teamColor}
+                  onChange={(e) => setTeamColor(e.target.value)}
+                  placeholder="Ej: Rojo"
+                  className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+            </div>
+            <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
+              La IA buscará ese dorsal y color para centrar el análisis en ese jugador.
+            </p>
           </div>
 
           {/* Coordinate Realtime */}
