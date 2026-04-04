@@ -96,6 +96,8 @@ const App = () => (
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
                 <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
+                {/* Alias: /player/:id/intelligence → misma página (backward compat) */}
+                <Route path="/player/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<PlayerReportPrint />} />
                 <Route path="/equipo" element={<P><TeamPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
