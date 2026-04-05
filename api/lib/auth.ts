@@ -54,8 +54,8 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
       const signInput = `${parts[0]}.${parts[1]}`;
       const sigBuffer = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(signInput));
 
-      // Base64url encode the computed signature
-      const computed = btoa(String.fromCharCode(...new Uint8Array(sigBuffer)))
+      // Base64url encode the computed signature (safe for Edge — no spread on large arrays)
+      const computed = btoa(Array.from(new Uint8Array(sigBuffer)).map(b => String.fromCharCode(b)).join(""))
         .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
       if (computed !== parts[2]) {

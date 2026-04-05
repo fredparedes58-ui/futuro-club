@@ -11,12 +11,13 @@
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-export const config = { runtime: "edge" };
+// Node.js runtime required — Stripe SDK uses Node-only APIs (Buffer, http)
+// export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   const stripeKey     = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  const supabaseUrl   = process.env.VITE_SUPABASE_URL;
+  const supabaseUrl   = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const serviceKey    = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!stripeKey || !webhookSecret || stripeKey.includes("REEMPLAZA") || webhookSecret.includes("REEMPLAZA")) {

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-import { PlayerService } from "@/services/real/playerService";
+import { PlayerService, type Player } from "@/services/real/playerService";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
 import { usePlayerIntelligence, useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
 import ProPlayerMatch from "@/components/ProPlayerMatch";
@@ -355,7 +355,7 @@ export default function PlayerIntelligencePage() {
     similarityData,
     runAnalysis,
     refetchSimilarity,
-  } = usePlayerIntelligence(player!);
+  } = usePlayerIntelligence(player ?? ({} as Player));
 
   if (!player) {
     return (

@@ -61,7 +61,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const body = await req.json();
 
-    if (!body?.playerId && !body?.chronologicalAge) {
+    if (!body?.playerId || !body?.chronologicalAge) {
       return json({ success: false, error: "playerId and chronologicalAge required", agentName: "PHVCalculatorAgent" }, 400);
     }
 

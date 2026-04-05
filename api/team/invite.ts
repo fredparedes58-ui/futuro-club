@@ -9,11 +9,12 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { verifyAuth } from "../lib/auth";
 
-export const config = { runtime: "edge" };
+// Node.js runtime required — Resend SDK uses Node-only APIs
+// export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
   }
 
   // Verify JWT — only authenticated users can send invitations

@@ -45,10 +45,19 @@ export const PushNotificationService = {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
 
-      // Save subscription to backend
+      // Save subscription to backend (include JWT for auth)
+      let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          authHeaders["Authorization"] = `Bearer ${data.session.access_token}`;
+        }
+      } catch { /* no session */ }
+
       await fetch("/api/notifications/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ subscription }),
       }).catch(() => {});
 
@@ -66,9 +75,18 @@ export const PushNotificationService = {
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await sub.unsubscribe();
+        let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        try {
+          const { supabase } = await import("@/lib/supabase");
+          const { data } = await supabase.auth.getSession();
+          if (data.session?.access_token) {
+            authHeaders["Authorization"] = `Bearer ${data.session.access_token}`;
+          }
+        } catch { /* no session */ }
+
         await fetch("/api/notifications/subscribe", {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders,
           body: JSON.stringify({ endpoint: sub.endpoint }),
         }).catch(() => {});
       }

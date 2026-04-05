@@ -14,7 +14,7 @@
  */
 
 
-import { PRO_PLAYERS, type ProPlayer } from "../../src/data/proPlayers";
+import { PRO_PLAYERS, type ProPlayer } from "../data/proPlayers";
 
 // ─── Tipos duplicados aquí para el Edge runtime (no puede importar todo el bundle) ─
 

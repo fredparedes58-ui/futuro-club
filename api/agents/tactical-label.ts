@@ -50,7 +50,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const body = await req.json();
 
-    if (!body?.frameId && !body?.detections) {
+    if (!body?.frameId || !body?.detections) {
       return json({ success: false, error: "frameId and detections required", agentName: "TacticalLabelAgent" }, 400);
     }
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, ArrowUp, Clock, GitCompareArrows, RefreshCw, Plus, Search, Database } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -195,7 +195,9 @@ const ScoutFeed = () => {
   const [tab, setTab] = useState<"insights" | "indexed">("insights");
   const { data: insights, isLoading, isError, isFetching } = useScoutInsights();
 
-  if (isError) toast.error("No se pudieron cargar los insights del scout feed");
+  useEffect(() => {
+    if (isError) toast.error("No se pudieron cargar los insights del scout feed");
+  }, [isError]);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["scout-insights"] });

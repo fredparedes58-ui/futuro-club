@@ -132,17 +132,21 @@ async function readSSEStream(
 // ——— Helper: VSI metrics ————————————————————————————————————————
 
 function playerToVSI(player: Player): VSIMetrics {
-    // VSIMetrics expects {speed, shooting, vision, technique, defending, stamina}
-    // Extract from player metrics or estimate from overall VSI
+    // Extract from player.metrics (the actual nested object on Player type)
+    const m = player.metrics;
+    if (m) {
+      return {
+        speed:     m.speed     ?? 50,
+        shooting:  m.shooting  ?? 50,
+        vision:    m.vision    ?? 50,
+        technique: m.technique ?? 50,
+        defending: m.defending ?? 50,
+        stamina:   m.stamina   ?? 50,
+      };
+    }
+    // Fallback if no metrics available
     const base = player.vsi ?? 50;
-    return {
-          speed:     player.metricSpeed     ?? base,
-          shooting:  player.metricShooting  ?? base,
-          vision:    player.metricVision    ?? base,
-          technique: player.metricTechnique ?? base,
-          defending: player.metricDefending ?? base,
-          stamina:   player.metricStamina   ?? base,
-    };
+    return { speed: base, shooting: base, vision: base, technique: base, defending: base, stamina: base };
 }
 
 // ——— Hook principal ——————————————————————————————————————————————

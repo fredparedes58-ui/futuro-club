@@ -294,7 +294,7 @@ export function useVideoUpload(playerId?: string) {
         setState((prev) => ({ ...prev, phase: "error", error: message }));
       }
     },
-    [playerId, reset, queryClient]
+    [playerId, reset, queryClient, user]
   );
 
   const cancel = useCallback(() => {

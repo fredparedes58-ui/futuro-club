@@ -84,7 +84,8 @@ function auditStorage(): AuditSection {
   // ¿Cuántas claves VITAS existen?
   checks.push(
     check("Claves vitas_ en storage", () => {
-      const keys = StorageService.keys().filter((k) => k.startsWith("vitas_"));
+      // StorageService.keys() already strips the "vitas_" prefix, so no filter needed
+      const keys = StorageService.keys();
       return {
         status: keys.length > 0 ? "ok" : "warning",
         message:

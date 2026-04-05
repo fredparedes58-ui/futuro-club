@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import TopNav from "@/components/TopNav";
 import PlayerHeader from "@/components/role-profile/PlayerHeader";
@@ -20,9 +20,9 @@ export default function RoleProfileAudit() {
   const [drawerIndicator, setDrawerIndicator] = useState<EvidenceIndicator | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  if (isError) {
-    toast.error(`Error al cargar auditoría: ${error?.message || "Error desconocido"}`);
-  }
+  useEffect(() => {
+    if (isError) toast.error(`Error al cargar auditoría: ${error?.message || "Error desconocido"}`);
+  }, [isError, error]);
 
   const phases = [
     { key: "all" as const, label: "Todas" },

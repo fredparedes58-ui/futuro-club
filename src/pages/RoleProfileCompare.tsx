@@ -9,7 +9,7 @@ import { POSITION_LABELS } from "@/lib/roleProfileData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 export default function RoleProfileCompare() {
@@ -17,9 +17,9 @@ export default function RoleProfileCompare() {
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
   const [selectedHorizon, setSelectedHorizon] = useState<"0_6m" | "6_18m" | "18_36m">("18_36m");
 
-  if (isError) {
-    toast.error(`Error al cargar comparación: ${error?.message || "Error desconocido"}`);
-  }
+  useEffect(() => {
+    if (isError) toast.error(`Error al cargar comparación: ${error?.message || "Error desconocido"}`);
+  }, [isError, error]);
 
   const horizons = [
     { key: "0_6m" as const, label: "0–6 meses" },

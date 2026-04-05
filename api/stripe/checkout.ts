@@ -9,7 +9,8 @@
 import Stripe from "stripe";
 import { verifyAuth } from "../lib/auth";
 
-export const config = { runtime: "edge" };
+// Node.js runtime required — Stripe SDK uses Node-only APIs (Buffer, http)
+// export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {

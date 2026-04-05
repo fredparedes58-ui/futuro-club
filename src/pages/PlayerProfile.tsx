@@ -153,6 +153,12 @@ const PlayerProfile = () => {
     toast.info("Calculando PHV con IA…");
   };
 
+  // ─── Métricas avanzadas — MUST be before early returns (Rules of Hooks) ──
+  const advancedMetrics = useMemo(() => {
+    if (!rawPlayer) return null;
+    return calculateAdvancedMetrics(rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0]);
+  }, [rawPlayer]);
+
   // ─── Estados ───────────────────────────────────────────────────────────────
   if (isLoading) return <ProfileSkeleton />;
 
@@ -176,11 +182,6 @@ const PlayerProfile = () => {
   const phvBarPosition = ((player.phvOffset + 2) / 4) * 100;
   const hasPHV = !!rawPlayer?.phvCategory;
 
-  // ─── Métricas avanzadas (deterministas, sin datos externos requeridos) ────
-  const advancedMetrics = useMemo(() => {
-    if (!rawPlayer) return null;
-    return calculateAdvancedMetrics(rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0]);
-  }, [rawPlayer]);
   const trendText =
     player.trending === "up" ? "En ascenso 📈"
     : player.trending === "down" ? "En descenso 📉"

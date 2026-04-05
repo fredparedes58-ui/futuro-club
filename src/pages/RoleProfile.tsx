@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
 import TopNav from "@/components/TopNav";
@@ -27,9 +27,9 @@ export default function RoleProfile() {
     setFilters(f);
   }, []);
 
-  if (isError) {
-    toast.error(`No se pudo cargar el perfil: ${error?.message || "Error desconocido"}`);
-  }
+  useEffect(() => {
+    if (isError) toast.error(`No se pudo cargar el perfil: ${error?.message || "Error desconocido"}`);
+  }, [isError, error]);
 
   return (
     <div className="min-h-screen bg-background">

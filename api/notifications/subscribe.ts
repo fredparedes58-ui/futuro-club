@@ -24,7 +24,7 @@ export default async function handler(req: Request): Promise<Response> {
     let body: { subscription: object };
     try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
-    const { error } = await (await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
+    const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
       method: "POST",
       headers: {
         "apikey": supabaseKey,
@@ -33,9 +33,14 @@ export default async function handler(req: Request): Promise<Response> {
         "Prefer": "resolution=merge-duplicates",
       },
       body: JSON.stringify({ user_id: userId, subscription: body.subscription }),
-    })).json().then(() => ({ error: null })).catch(e => ({ error: e }));
+    });
 
-    return json({ success: !error });
+    if (!insertRes.ok) {
+      const errBody = await insertRes.text().catch(() => "Unknown error");
+      return json({ success: false, error: `Supabase insert failed: ${errBody}` }, 500);
+    }
+
+    return json({ success: true });
   }
 
   if (req.method === "DELETE") {
