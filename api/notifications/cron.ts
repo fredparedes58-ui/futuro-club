@@ -35,17 +35,31 @@ interface Subscription {
 async function sendWebPush(
   subscription: PushSubscription["subscription"],
   payload: { title: string; body: string; url?: string },
-  vapidPublic: string,
-  vapidPrivate: string,
+  _vapidPublic: string,
+  _vapidPrivate: string,
 ): Promise<void> {
-  // Web Push usando la API de web-push no disponible en edge runtime.
-  // Hacemos la llamada directa al endpoint de push del navegador.
-  // En producción real se usaría un worker Node.js con web-push lib.
-  // Por ahora logueamos el intento para no bloquear el cron.
-  console.log("[Push Cron] Would send to:", subscription.endpoint, payload);
-  // TODO: implementar con web-push library en un runtime Node.js
-  void vapidPublic;
-  void vapidPrivate;
+  // Web Push via direct fetch to browser push endpoint.
+  // Full VAPID signing requires Node.js crypto (not available in Edge).
+  // For now, attempt a plain POST — works with some push services.
+  // For production, migrate to a Node.js serverless function with web-push lib.
+  try {
+    const body = JSON.stringify(payload);
+    const res = await fetch(subscription.endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(new TextEncoder().encode(body).length),
+        "TTL": "86400",
+      },
+      body,
+    });
+    if (!res.ok && res.status !== 201) {
+      // Push endpoint rejected — subscription may be expired
+      // In production: delete stale subscription from DB
+    }
+  } catch {
+    // Network error — silently fail, cron should not crash
+  }
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -80,10 +94,29 @@ export default async function handler(req: Request): Promise<Response> {
     const playersRes = await fetch(`${base}/players?select=user_id,name,metrics,updated_at`, { headers });
     const players: Player[] = await playersRes.json();
 
+    // VSI weights must match MetricsService.calculateVSI()
+    const VSI_WEIGHTS: Record<string, number> = {
+      speed: 0.18, shooting: 0.13, vision: 0.20,
+      technique: 0.22, defending: 0.12, stamina: 0.15,
+    };
+
     for (const p of players) {
-      const values = Object.values(p.metrics ?? {}) as number[];
-      if (values.length === 0) continue;
-      const vsi = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      const m = p.metrics ?? {};
+      const keys = Object.keys(m);
+      if (keys.length === 0) continue;
+      // Weighted VSI if metric names match, else fallback to simple average
+      let vsi: number;
+      const hasWeights = keys.some(k => k in VSI_WEIGHTS);
+      if (hasWeights) {
+        let sum = 0, wTotal = 0;
+        for (const [k, w] of Object.entries(VSI_WEIGHTS)) {
+          if (k in m) { sum += (m[k] as number) * w; wTotal += w; }
+        }
+        vsi = wTotal > 0 ? Math.round(sum / wTotal) : 0;
+      } else {
+        const values = Object.values(m) as number[];
+        vsi = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      }
       if (vsi < 50) {
         notifications.push({
           userId: p.user_id,

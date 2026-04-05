@@ -14,7 +14,7 @@
  */
 
 
-import type { ProPlayer } from "../../src/data/proPlayers";
+import { PRO_PLAYERS, type ProPlayer } from "../../src/data/proPlayers";
 
 // ─── Tipos duplicados aquí para el Edge runtime (no puede importar todo el bundle) ─
 
@@ -162,15 +162,10 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  // Si no hay Supabase, la respuesta pedirá usar el endpoint local
+  // Fallback to local dataset if Supabase unavailable or empty
   if (proPlayers.length === 0) {
-    return new Response(
-      JSON.stringify({
-        error:   "pro_players_unavailable",
-        message: "Database not seeded. Use /api/agents/player-similarity/local instead.",
-      }),
-      { status: 503, headers: { "Content-Type": "application/json" } }
-    );
+    proPlayers = PRO_PLAYERS as ProPlayer[];
+    source = "local";
   }
 
   // Filtrar por overall mínimo

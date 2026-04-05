@@ -23,7 +23,7 @@ import { useAuth } from "@/context/AuthContext";
 import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 
-const SETTINGS_KEY = "vitas_settings";
+const SETTINGS_KEY = "settings";
 
 interface AppSettings {
   notifications: boolean;

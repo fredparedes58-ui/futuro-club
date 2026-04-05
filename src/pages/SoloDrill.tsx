@@ -183,6 +183,11 @@ const SoloDrill = () => {
 
       setSessionReport(data.report);
       setSessionState("done");
+
+      // Increment drills completed counter for Director Dashboard
+      const prev = Number(localStorage.getItem("vitas_drills_completed_count") ?? "0");
+      localStorage.setItem("vitas_drills_completed_count", String(prev + 1));
+
       toast.dismiss(toastId);
       toast.success("¡Drill analizado!", {
         description: `Confianza: ${Math.round((data.report.confianza ?? 0) * 100)}%`,
