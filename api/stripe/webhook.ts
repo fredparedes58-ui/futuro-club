@@ -45,8 +45,11 @@ export default async function handler(req: Request): Promise<Response> {
     : null;
 
   const resolvePlan = (priceId: string): "pro" | "club" => {
-    if (priceId === process.env.STRIPE_CLUB_PRICE_ID) return "club";
-    if (priceId === process.env.STRIPE_PRO_PRICE_ID)  return "pro";
+    // Check both server-side and VITE_ variants (Vercel may only have one set)
+    const clubPriceId = process.env.STRIPE_CLUB_PRICE_ID ?? process.env.VITE_STRIPE_CLUB_PRICE_ID;
+    const proPriceId  = process.env.STRIPE_PRO_PRICE_ID  ?? process.env.VITE_STRIPE_PRO_PRICE_ID;
+    if (priceId === clubPriceId) return "club";
+    if (priceId === proPriceId)  return "pro";
     return "pro"; // fallback
   };
 

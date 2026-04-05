@@ -7,7 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AgentService } from "@/services/real/agentService";
 import { PlayerService } from "@/services/real/playerService";
-import type { PHVInput, ScoutInsightInput, RoleProfileInput } from "@/agents/contracts";
+import type { PHVInput, RoleProfileInput } from "@/agents/contracts";
 
 // ─────────────────────────────────────────
 // Hook: PHV Calculator
@@ -37,53 +37,8 @@ export function usePHVCalculator(input: PHVInput | null) {
   });
 }
 
-// ─────────────────────────────────────────
-// Hook: Scout Insights
-// Genera insights para ScoutFeed. Cache 5 min.
-// ─────────────────────────────────────────
-export function useScoutInsights() {
-  const players = PlayerService.getAll();
-
-  return useQuery({
-    queryKey: ["scout-insights", players.map((p) => `${p.id}-${p.vsi}`).join(",")],
-    queryFn: async () => {
-      if (players.length === 0) return [];
-
-      // Genera un insight por cada jugador con tendencia relevante
-      const insightPromises = players.slice(0, 6).map((player) => {
-        const prevVSI = player.vsiHistory?.at(-2) ?? player.vsi;
-        const vsiTrend = player.vsi > prevVSI + 2 ? "up" : player.vsi < prevVSI - 2 ? "down" : "stable";
-
-        const input: ScoutInsightInput = {
-          player: {
-            id: player.id,
-            name: player.name,
-            age: player.age,
-            position: player.position,
-            vsi: player.vsi,
-            vsiTrend: vsiTrend as "up" | "down" | "stable",
-            phvCategory: player.phvCategory ?? "ontme",
-            recentMetrics: player.metrics,
-          },
-          context:
-            player.vsi > 75 && vsiTrend === "up" ? "breakout"
-            : player.phvCategory === "early" && player.metrics.speed > 75 ? "phv_alert"
-            : Math.max(...Object.values(player.metrics)) > 85 ? "drill_record"
-            : "general",
-        };
-        return AgentService.generateScoutInsight(input);
-      });
-
-      const results = await Promise.allSettled(insightPromises);
-      return results
-        .filter((r) => r.status === "fulfilled" && r.value.success && r.value.data)
-        .map((r) => (r as PromiseFulfilledResult<typeof r>).value.data!);
-    },
-    enabled: players.length > 0,
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    retry: 1,
-  });
-}
+// NOTE: useScoutInsights lives in useScoutFeed.ts (single source of truth)
+// Do NOT duplicate it here — ScoutFeed.tsx imports from useScoutFeed.ts
 
 // ─────────────────────────────────────────
 // Hook: Role Profile por jugador
@@ -134,7 +89,16 @@ export function useRecalculatePHV() {
 
   return useMutation({
     mutationFn: (input: PHVInput) => AgentService.calculatePHV(input),
-    onSuccess: (_, input) => {
+    onSuccess: (result, input) => {
+      // Persist PHV result in player storage (same as usePHVCalculator queryFn)
+      if (result.success && result.data) {
+        PlayerService.updatePHV(
+          input.playerId,
+          result.data.category,
+          result.data.offset,
+          result.data.adjustedVSI,
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ["phv", input.playerId] });
       queryClient.invalidateQueries({ queryKey: ["role-profile-agent", input.playerId] });
     },

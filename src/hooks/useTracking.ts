@@ -91,8 +91,9 @@ export function useTracking(options: UseTrackingOptions) {
   const allTracksRef    = useRef<Track[]>([]);
   const sessionStartRef = useRef<number>(0);
   // Refs to avoid stale closures in polling intervals
-  const statusRef       = useRef<TrackingStatus>("idle");
-  const errorRef        = useRef<string | null>(null);
+  const statusRef         = useRef<TrackingStatus>("idle");
+  const errorRef          = useRef<string | null>(null);
+  const focusTrackIdRef   = useRef<number | null>(null);
 
   // ── Actualizar homografía cuando cambian los puntos de calibración ──────────
   useEffect(() => {
@@ -268,17 +269,17 @@ export function useTracking(options: UseTrackingOptions) {
     extractorRef.current?.stop();
     videoRef.current?.pause();
 
-    // Calcular métricas de sesión para el track enfocado
+    // Calcular métricas de sesión para el track enfocado (use ref to avoid stale closure)
     const metrics = computeSessionMetrics(
       allTracksRef.current,
-      state.focusTrackId,
+      focusTrackIdRef.current,
       scanEventsRef.current,
       duelEventsRef.current
     );
 
     setState(s => ({ ...s, status: "complete", sessionMetrics: metrics }));
     return metrics;
-  }, [state.focusTrackId]);
+  }, []); // no state dependency — uses refs only
 
   // ── pauseTracking / resumeTracking ───────────────────────────────────────────
   const pauseTracking = useCallback(() => {
@@ -293,6 +294,7 @@ export function useTracking(options: UseTrackingOptions) {
 
   // ── setFocusTrackId ──────────────────────────────────────────────────────────
   const setFocusTrackId = useCallback((id: number | null) => {
+    focusTrackIdRef.current = id;
     setState(s => ({ ...s, focusTrackId: id }));
   }, []);
 
