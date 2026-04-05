@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Crown, Medal, Shield, Search, Plus, X, SlidersHorizontal } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
@@ -55,7 +55,9 @@ const Rankings = () => {
 
   const { data: sortedPlayers, isLoading, isError } = useRankedPlayers(sortBy, sortDir);
 
-  if (isError) toast.error("No se pudo cargar el ranking");
+  useEffect(() => {
+    if (isError) toast.error("No se pudo cargar el ranking");
+  }, [isError]);
 
   // Filtros en cliente (rápido, sobre datos ya ordenados)
   const filteredPlayers = useMemo(() => {

@@ -33,6 +33,16 @@ export default async function handler(req: Request): Promise<Response> {
     });
   }
 
+  // Protect audit endpoint — require CRON_SECRET or ADMIN_SECRET header
+  const secret = req.headers.get("x-audit-secret") ?? new URL(req.url).searchParams.get("secret") ?? "";
+  const expected = process.env.CRON_SECRET ?? process.env.ADMIN_SECRET ?? "";
+  if (!expected || secret !== expected) {
+    return new Response(JSON.stringify({ error: "Unauthorized — set CRON_SECRET env var and pass as ?secret= or x-audit-secret header" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const checks: BackendCheck[] = [];
 
   // ── Check 1: ANTHROPIC_API_KEY ────────────────────────────────────────────

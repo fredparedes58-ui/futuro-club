@@ -7,12 +7,19 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { verifyAuth } from "../lib/auth";
 
 export const config = { runtime: "edge" };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+  }
+
+  // Verify JWT — only authenticated users can send invitations
+  const { userId, error: authError } = await verifyAuth(req);
+  if (!userId) {
+    return new Response(JSON.stringify({ error: authError ?? "No autenticado" }), { status: 401 });
   }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
@@ -25,15 +32,17 @@ export default async function handler(req: Request): Promise<Response> {
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
-  let body: { orgOwnerId?: string; email?: string; role?: string };
+  let body: { email?: string; role?: string };
   try {
     body = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { orgOwnerId, email, role } = body;
-  if (!orgOwnerId || !email || !role) {
+  // orgOwnerId comes from JWT, not body (prevent spoofing)
+  const orgOwnerId = userId;
+  const { email, role } = body;
+  if (!email || !role) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
   }
 

@@ -18,6 +18,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Verify JWT with signature check
   const { userId, error: authError } = await verifyAuth(req);
+  if (!userId) return json({ error: authError ?? "No autenticado" }, 401);
 
   if (req.method === "POST") {
     let body: { subscription: object };

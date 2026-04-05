@@ -57,24 +57,6 @@ export default function AcceptInvitationPage() {
       });
   }, [token, user, configured]);
 
-  // Post-login: reintenta con token guardado
-  useEffect(() => {
-    if (!user) return;
-    const pending = localStorage.getItem(PENDING_TOKEN_KEY);
-    if (pending && pending === token) {
-      TeamService.acceptInvitation(pending, user.id)
-        .then((res) => {
-          setAcceptedRole(res.role);
-          setState("success");
-          localStorage.removeItem(PENDING_TOKEN_KEY);
-        })
-        .catch((err: Error) => {
-          setState("error");
-          setErrorMsg(err.message);
-        });
-    }
-  }, [user, token]);
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <motion.div
@@ -122,7 +104,7 @@ export default function AcceptInvitationPage() {
                 </p>
               )}
             </div>
-            <Button className="w-full" onClick={() => navigate("/pulse")}>
+            <Button className="w-full" onClick={() => navigate("/")}>
               Ir al dashboard
             </Button>
           </div>
@@ -135,7 +117,7 @@ export default function AcceptInvitationPage() {
               <p className="font-display font-bold text-lg text-foreground">Error</p>
               <p className="text-sm text-muted-foreground mt-1">{errorMsg}</p>
             </div>
-            <Button variant="outline" className="w-full" onClick={() => navigate("/pulse")}>
+            <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
               Volver al inicio
             </Button>
           </div>

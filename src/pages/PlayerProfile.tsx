@@ -6,7 +6,7 @@ import {
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
   Activity, ClipboardList,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
 import { useMatchEvents, useLogMatchEvent } from "@/hooks/useMatchEvents";
 import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/services/real/matchEventsService";
@@ -116,9 +116,11 @@ const PlayerProfile = () => {
     [matchEvents, rawPlayer]
   );
 
-  if (phvResult) {
-    toast.success(`PHV calculado: ${phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal"} (offset ${phvResult.offset > 0 ? "+" : ""}${phvResult.offset})`);
-  }
+  useEffect(() => {
+    if (phvResult) {
+      toast.success(`PHV calculado: ${phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal"} (offset ${phvResult.offset > 0 ? "+" : ""}${phvResult.offset})`);
+    }
+  }, [phvResult]);
 
   const handleLogEvent = () => {
     if (!id) return;
