@@ -166,9 +166,9 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
             physical:  d.capabilities.physical.current,
           },
           projections: {
-            "0_6m":   { tactical: d.capabilities.tactical.p6m,      technical: d.capabilities.technical.p6m,      physical: d.capabilities.physical.p6m },
-            "6_18m":  { tactical: d.capabilities.tactical.p18m,     technical: d.capabilities.technical.p18m,     physical: d.capabilities.physical.p18m },
-            "18_36m": { tactical: d.capabilities.tactical.p18m + 3, technical: d.capabilities.technical.p18m + 3, physical: d.capabilities.physical.p18m + 2 },
+            "0_6m":   { tactical: Math.min(100, d.capabilities.tactical.p6m),      technical: Math.min(100, d.capabilities.technical.p6m),      physical: Math.min(100, d.capabilities.physical.p6m) },
+            "6_18m":  { tactical: Math.min(100, d.capabilities.tactical.p18m),     technical: Math.min(100, d.capabilities.technical.p18m),     physical: Math.min(100, d.capabilities.physical.p18m) },
+            "18_36m": { tactical: Math.min(100, d.capabilities.tactical.p18m + 3), technical: Math.min(100, d.capabilities.technical.p18m + 3), physical: Math.min(100, d.capabilities.physical.p18m + 2) },
           },
           identity: {
             dominant:     d.dominantIdentity,

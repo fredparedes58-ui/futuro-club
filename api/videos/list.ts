@@ -98,9 +98,20 @@ export default async function handler(req: Request): Promise<Response> {
       embedUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${v.guid}`,
     }));
 
-    // Filter by playerId (title convention: "[playerId] title" or metadata tag)
+    // Filter by playerId — check multiple conventions:
+    // 1. "[playerId] title" prefix format
+    // 2. playerId appears anywhere in title (case-insensitive)
+    // 3. Exact match on title segment after splitting by common delimiters
     const filtered = params.playerId
-      ? items.filter((v) => v.title.startsWith(`[${params.playerId}]`))
+      ? items.filter((v) => {
+          const pid = params.playerId!;
+          const title = v.title ?? "";
+          return (
+            title.startsWith(`[${pid}]`) ||
+            title.toLowerCase().includes(pid.toLowerCase()) ||
+            title.split(/[\s_\-|]+/).includes(pid)
+          );
+        })
       : items;
 
     return json({

@@ -11,16 +11,31 @@ import type {
   TacticalLabelInput, TacticalLabelOutput,
   AgentResponse,
 } from "@/agents/contracts";
+import { supabase } from "@/lib/supabase";
 
 const BASE = "/api/agents";
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers["Authorization"] = `Bearer ${data.session.access_token}`;
+    }
+  } catch {
+    // No session available — request will proceed without auth
+  }
+  return headers;
+}
 
 async function callAgent<TInput, TOutput>(
   endpoint: string,
   input: TInput
 ): Promise<AgentResponse<TOutput>> {
+  const headers = await getAuthHeaders();
   const res = await fetch(`${BASE}/${endpoint}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(input),
   });
 
