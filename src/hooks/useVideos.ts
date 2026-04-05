@@ -178,7 +178,7 @@ export function useRunPipeline() {
         "Análisis completado",
         `El análisis táctico del video está listo`,
         "/pwa-192x192.png"
-      ).catch(console.warn);
+      ).catch(() => {});
       qc.invalidateQueries({ queryKey: ["video", videoId] });
       qc.invalidateQueries({ queryKey: ["videos"] });
     },

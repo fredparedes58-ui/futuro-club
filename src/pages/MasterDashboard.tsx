@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageHeader from "@/components/shared/PageHeader";
+import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard,
   Activity,
@@ -46,6 +47,7 @@ const VSI_TIERS = [
 const MasterDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
 
   // ─── Datos reales ───────────────────────────────────────────────────────────
@@ -151,11 +153,11 @@ const MasterDashboard = () => {
         {/* User */}
         <div className="flex items-center gap-3 pt-4 border-t border-border">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-display font-bold text-xs">
-            JS
+            {(user?.email?.[0] ?? "U").toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-display font-semibold text-foreground">Julian Scout</p>
-            <p className="text-[10px] text-muted-foreground">Elite Academy Access</p>
+            <p className="text-sm font-display font-semibold text-foreground">{user?.email?.split("@")[0] ?? "Usuario"}</p>
+            <p className="text-[10px] text-muted-foreground">VITAS Intelligence</p>
           </div>
         </div>
       </aside>

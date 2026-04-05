@@ -103,7 +103,7 @@ export default async function handler(req: Request): Promise<Response> {
           <p style="color:#9ca3af;font-size:12px;margin-top:32px">Este enlace expira en 7 días. Si no esperabas este correo, puedes ignorarlo.</p>
         </div>
       `,
-    }).catch(console.warn);
+    }).catch(() => {});
   }
 
   return new Response(JSON.stringify({ success: true }), {

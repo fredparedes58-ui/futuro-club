@@ -48,7 +48,7 @@ export function useSupabaseSync() {
       qc.invalidateQueries({ queryKey: ["subscription", user.id] });
       qc.invalidateQueries({ queryKey: ["user-profile", user.id] });
       qc.invalidateQueries({ queryKey: ["usage-analytics", user.id] });
-    }).catch(console.warn);
+    }).catch(() => {});
   }, [user, configured, qc]);
 
   // ── Push on reconnect (offline → online) ──────────────────────────
@@ -63,7 +63,7 @@ export function useSupabaseSync() {
       ]).then(() => {
         qc.invalidateQueries({ queryKey: ["players-all"] });
         qc.invalidateQueries({ queryKey: ["videos"] });
-      }).catch(console.warn);
+      }).catch(() => {});
     };
 
     window.addEventListener("online", handleOnline);

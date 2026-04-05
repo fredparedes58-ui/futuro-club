@@ -50,7 +50,7 @@ export const PushNotificationService = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription }),
-      }).catch(console.warn);
+      }).catch(() => {});
 
       return subscription;
     } catch (err) {
@@ -70,7 +70,7 @@ export const PushNotificationService = {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint }),
-        }).catch(console.warn);
+        }).catch(() => {});
       }
       return true;
     } catch (err) {

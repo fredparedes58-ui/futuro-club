@@ -121,7 +121,7 @@ export function useVideoUpload(playerId?: string) {
         };
         if (user && SUPABASE_CONFIGURED) {
           const stub = VideoService.createStub(stubParams);
-          SupabaseVideoService.pushOne(user.id, stub).catch(console.warn);
+          SupabaseVideoService.pushOne(user.id, stub).catch(() => {});
         } else {
           VideoService.createStub(stubParams);
         }
@@ -167,7 +167,7 @@ export function useVideoUpload(playerId?: string) {
           VideoService.save({ ...uploadedStub, status: "uploaded", statusCode: 1, encodeProgress: 0, embedUrl });
           if (user && SUPABASE_CONFIGURED) {
             const updated = VideoService.getById(videoId);
-            if (updated) SupabaseVideoService.pushOne(user.id, updated).catch(console.warn);
+            if (updated) SupabaseVideoService.pushOne(user.id, updated).catch(() => {});
           }
         }
         setState((prev) => ({ ...prev, phase: "processing", progress: 100 }));

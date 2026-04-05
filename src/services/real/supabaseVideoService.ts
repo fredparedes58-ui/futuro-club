@@ -40,7 +40,7 @@ export const SupabaseVideoService = {
       for (const lv of localVideos) {
         if (!cloudMap.has(lv.id)) {
           merged.push(lv);
-          this.pushOne(userId, lv).catch(console.warn);
+          this.pushOne(userId, lv).catch(() => {});
         }
       }
       const { StorageService } = await import("./storageService");
@@ -127,23 +127,23 @@ export const SupabaseVideoService = {
 
   save(userId: string, video: VideoRecord): void {
     VideoService.save(video);
-    this.pushOne(userId, video).catch(console.warn);
+    this.pushOne(userId, video).catch(() => {});
   },
 
   updateStatus(userId: string, id: string, status: VideoRecord["status"], progress?: number): VideoRecord | null {
     const updated = VideoService.updateStatus(id, status, progress);
-    if (updated) this.pushOne(userId, updated).catch(console.warn);
+    if (updated) this.pushOne(userId, updated).catch(() => {});
     return updated;
   },
 
   saveAnalysis(userId: string, id: string, analysis: Parameters<typeof VideoService.saveAnalysis>[1]): VideoRecord | null {
     const updated = VideoService.saveAnalysis(id, analysis);
-    if (updated) this.pushOne(userId, updated).catch(console.warn);
+    if (updated) this.pushOne(userId, updated).catch(() => {});
     return updated;
   },
 
   delete(userId: string, id: string): void {
     VideoService.delete(id);
-    this.deleteOne(userId, id).catch(console.warn);
+    this.deleteOne(userId, id).catch(() => {});
   },
 };

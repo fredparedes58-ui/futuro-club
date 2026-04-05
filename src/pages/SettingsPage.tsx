@@ -18,6 +18,7 @@ import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTheme } from "next-themes";
 import { useAuth } from "@/context/AuthContext";
 import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
@@ -39,6 +40,7 @@ const DEFAULT_SETTINGS: AppSettings = {
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState<AppSettings>(() =>
     StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
   );
@@ -212,16 +214,23 @@ const SettingsPage = () => {
         </div>
 
         {/* Tema */}
-        <div className="glass rounded-xl p-4 flex items-center gap-4">
+        <button
+          onClick={() => {
+            const next = theme === "dark" ? "light" : "dark";
+            setTheme(next);
+            toast.success(`Tema cambiado a ${next === "dark" ? "Dark Obsidian" : "Light Mode"}`);
+          }}
+          className="glass rounded-xl p-4 flex items-center gap-4 w-full text-left hover:border-primary/30 border border-transparent transition-all"
+        >
           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
             <Palette size={18} className="text-primary" />
           </div>
           <div className="flex-1">
             <p className="font-display font-semibold text-sm text-foreground">Tema Visual</p>
-            <p className="text-[10px] text-muted-foreground">Dark Obsidian</p>
+            <p className="text-[10px] text-muted-foreground">{theme === "dark" ? "Dark Obsidian" : "Light Mode"}</p>
           </div>
-          <Check size={14} className="text-primary" />
-        </div>
+          <ChevronRight size={14} className="text-muted-foreground" />
+        </button>
       </motion.div>
 
       {/* Seguridad */}

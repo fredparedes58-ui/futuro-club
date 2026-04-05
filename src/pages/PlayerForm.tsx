@@ -245,7 +245,7 @@ const PlayerForm = () => {
           StorageService.set("players", players);
           // Sincronizar a Supabase en background
           if (user && SUPABASE_CONFIGURED) {
-            SupabasePlayerService.pushOne(user.id, players[idx]).catch(console.warn);
+            SupabasePlayerService.pushOne(user.id, players[idx]).catch(() => {});
           }
         }
         toast.success(`${data.name} actualizado correctamente`);

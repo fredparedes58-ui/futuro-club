@@ -130,7 +130,7 @@ export const UserProfileService = {
   create(profile: Omit<UserProfile, "createdAt">): UserProfile {
     const full: UserProfile = { ...profile, createdAt: new Date().toISOString() };
     StorageService.set(STORAGE_KEY, full);
-    this.syncToSupabase(full).catch(console.warn);
+    this.syncToSupabase(full).catch(() => {});
     return full;
   },
 
@@ -139,7 +139,7 @@ export const UserProfileService = {
     if (!current) return;
     const updated = { ...current, ...patch };
     StorageService.set(STORAGE_KEY, updated);
-    this.syncToSupabase(updated).catch(console.warn);
+    this.syncToSupabase(updated).catch(() => {});
   },
 
   completeOnboarding(userId: string): void {

@@ -59,7 +59,7 @@ export const SupabasePlayerService = {
         if (!cloudMap.has(lp.id)) {
           merged.push(lp);
           // Push al cloud en background
-          this.pushOne(userId, lp).catch(console.warn);
+          this.pushOne(userId, lp).catch(() => {});
         }
       }
 
@@ -138,7 +138,7 @@ export const SupabasePlayerService = {
   // ── CREATE (local + background sync) ──────────────────────────────
   async create(userId: string, input: CreatePlayerInput): Promise<Player> {
     const player = PlayerService.create(input);
-    this.pushOne(userId, player).catch(console.warn); // background
+    this.pushOne(userId, player).catch(() => {}); // background
     return player;
   },
 
@@ -149,7 +149,7 @@ export const SupabasePlayerService = {
     metrics: Player["metrics"]
   ): Promise<Player | null> {
     const updated = PlayerService.updateMetrics(id, metrics);
-    if (updated) this.pushOne(userId, updated).catch(console.warn);
+    if (updated) this.pushOne(userId, updated).catch(() => {});
     return updated;
   },
 
@@ -162,14 +162,14 @@ export const SupabasePlayerService = {
     adjustedVSI: number
   ): Promise<Player | null> {
     const updated = PlayerService.updatePHV(id, phvCategory, phvOffset, adjustedVSI);
-    if (updated) this.pushOne(userId, updated).catch(console.warn);
+    if (updated) this.pushOne(userId, updated).catch(() => {});
     return updated;
   },
 
   // ── DELETE (local + background sync) ──────────────────────────────
   async delete(userId: string, id: string): Promise<boolean> {
     const deleted = PlayerService.delete(id);
-    if (deleted) this.deleteOne(userId, id).catch(console.warn);
+    if (deleted) this.deleteOne(userId, id).catch(() => {});
     return deleted;
   },
 };
