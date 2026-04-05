@@ -6,13 +6,18 @@
  * 1. VSI bajo (< 50) — primer análisis por debajo del umbral
  * 2. Inactividad 30 días — sin análisis ni eventos
  * 3. Límite de plan al 90% — jugadores o análisis
+ *
+ * Node.js runtime required — web-push needs Node crypto for VAPID signing.
  */
 
-export const config = { runtime: "edge" };
+// Node.js runtime (NOT edge) — web-push requires crypto module
+// export const config = { runtime: "edge" };
+
+import webpush from "web-push";
 
 const CRON_SECRET = process.env.CRON_SECRET; // opcional: protege el endpoint
 
-interface PushSubscription {
+interface PushSub {
   user_id: string;
   subscription: {
     endpoint: string;
@@ -32,36 +37,6 @@ interface Subscription {
   plan: string;
 }
 
-async function sendWebPush(
-  subscription: PushSubscription["subscription"],
-  payload: { title: string; body: string; url?: string },
-  _vapidPublic: string,
-  _vapidPrivate: string,
-): Promise<void> {
-  // Web Push via direct fetch to browser push endpoint.
-  // Full VAPID signing requires Node.js crypto (not available in Edge).
-  // For now, attempt a plain POST — works with some push services.
-  // For production, migrate to a Node.js serverless function with web-push lib.
-  try {
-    const body = JSON.stringify(payload);
-    const res = await fetch(subscription.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": String(new TextEncoder().encode(body).length),
-        "TTL": "86400",
-      },
-      body,
-    });
-    if (!res.ok && res.status !== 201) {
-      // Push endpoint rejected — subscription may be expired
-      // In production: delete stale subscription from DB
-    }
-  } catch {
-    // Network error — silently fail, cron should not crash
-  }
-}
-
 export default async function handler(req: Request): Promise<Response> {
   // Verificar secreto del cron (Vercel lo envía en Authorization)
   if (CRON_SECRET) {
@@ -71,14 +46,22 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseUrl  = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? "";
   const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
+  const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
 
   if (!supabaseUrl || !serviceKey) {
     return json({ error: "Supabase not configured" }, 500);
   }
+
+  if (!vapidPublic || !vapidPrivate) {
+    return json({ error: "VAPID keys not configured — push disabled" }, 503);
+  }
+
+  // Configure web-push with VAPID credentials
+  webpush.setVapidDetails(vapidEmail, vapidPublic, vapidPrivate);
 
   const headers = {
     "apikey": serviceKey,
@@ -95,6 +78,7 @@ export default async function handler(req: Request): Promise<Response> {
     const players: Player[] = await playersRes.json();
 
     // VSI weights must match MetricsService.calculateVSI()
+    // Weights sum to 1.0, so the result is simply sum(metric * weight)
     const VSI_WEIGHTS: Record<string, number> = {
       speed: 0.18, shooting: 0.13, vision: 0.20,
       technique: 0.22, defending: 0.12, stamina: 0.15,
@@ -104,19 +88,22 @@ export default async function handler(req: Request): Promise<Response> {
       const m = p.metrics ?? {};
       const keys = Object.keys(m);
       if (keys.length === 0) continue;
-      // Weighted VSI if metric names match, else fallback to simple average
+
       let vsi: number;
       const hasWeights = keys.some(k => k in VSI_WEIGHTS);
       if (hasWeights) {
-        let sum = 0, wTotal = 0;
+        // Weighted sum — NO division by wTotal (weights already sum to 1.0)
+        // If partial metrics, only sum the available ones (result will be lower = safer)
+        let sum = 0;
         for (const [k, w] of Object.entries(VSI_WEIGHTS)) {
-          if (k in m) { sum += (m[k] as number) * w; wTotal += w; }
+          if (k in m) { sum += (m[k] as number) * w; }
         }
-        vsi = wTotal > 0 ? Math.round(sum / wTotal) : 0;
+        vsi = Math.round(sum);
       } else {
         const values = Object.values(m) as number[];
         vsi = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
       }
+
       if (vsi < 50) {
         notifications.push({
           userId: p.user_id,
@@ -160,18 +147,35 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Obtener suscripciones push
     const pushRes = await fetch(`${base}/push_subscriptions?select=user_id,subscription`, { headers });
-    const pushSubs: PushSubscription[] = await pushRes.json();
+    const pushSubs: PushSub[] = await pushRes.json();
 
     let sent = 0;
+    let failed = 0;
     for (const notif of notifications) {
       const pushSub = pushSubs.find((s) => s.user_id === notif.userId);
       if (pushSub) {
-        await sendWebPush(pushSub.subscription, { title: notif.title, body: notif.body }, vapidPublic, vapidPrivate);
-        sent++;
+        try {
+          await webpush.sendNotification(
+            pushSub.subscription,
+            JSON.stringify({ title: notif.title, body: notif.body, url: "/" }),
+          );
+          sent++;
+        } catch (err) {
+          failed++;
+          // If 410 Gone — subscription expired, could delete from DB
+          const statusCode = (err as { statusCode?: number })?.statusCode;
+          if (statusCode === 410) {
+            // Clean up expired subscription
+            await fetch(
+              `${base}/push_subscriptions?endpoint=eq.${encodeURIComponent(pushSub.subscription.endpoint)}`,
+              { method: "DELETE", headers },
+            ).catch(() => {});
+          }
+        }
       }
     }
 
-    return json({ success: true, notifications: notifications.length, sent });
+    return json({ success: true, notifications: notifications.length, sent, failed });
   } catch (err) {
     console.error("[Cron] Error:", err);
     return json({ error: String(err) }, 500);
