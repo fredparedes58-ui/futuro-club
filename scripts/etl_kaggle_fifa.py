@@ -53,7 +53,7 @@ FIFA_VERSIONS = {
     "15": "FIFA 15", "16": "FIFA 16", "17": "FIFA 17",
     "18": "FIFA 18", "19": "FIFA 19", "20": "FIFA 20",
     "21": "FIFA 21", "22": "FIFA 22", "23": "FIFA 23",
-    "24": "FC24",
+    "24": "FC24", "2024": "FC24",
 }
 
 
@@ -79,40 +79,23 @@ def get_bracket(overall: float) -> str:
     return "50-59"
 
 
-def download_dataset() -> Path:
-    """Download dataset via kagglehub, return path to CSV directory."""
-    try:
-        import kagglehub
-        print("  🔽 Descargando dataset via kagglehub...")
-        path = kagglehub.dataset_download("joebeachcapital/fifa-players")
-        print(f"  ✅ Dataset descargado en: {path}")
-        return Path(path)
-    except ImportError:
-        print("  ⚠️  kagglehub no instalado. Intentando carpeta local...")
-        return DATA_DIR
-    except Exception as e:
-        print(f"  ⚠️  Error con kagglehub: {e}")
-        print(f"     Intentando carpeta local {DATA_DIR}...")
-        return DATA_DIR
-
-
 def load_csvs() -> pd.DataFrame:
-    """Load all FIFA CSV files — auto-download via kagglehub or use local."""
-    # Intentar kagglehub primero, luego carpeta local
-    data_path = DATA_DIR
-    csv_files = sorted(glob.glob(str(DATA_DIR / "*.csv")))
+    """Load all FIFA CSV files from data/kaggle/ (supports nested structure)."""
+    # Buscar recursivamente en todas las subcarpetas
+    csv_files = sorted(glob.glob(str(DATA_DIR / "**" / "*.csv"), recursive=True))
+
+    # Filtrar: solo male players, no female, no coaches, no teams, no legacy
+    csv_files = [f for f in csv_files if
+                 "female" not in Path(f).name.lower() and
+                 "coach" not in Path(f).name.lower() and
+                 "team" not in Path(f).name.lower() and
+                 "all_players" not in Path(f).name.lower() and
+                 "legacy" not in Path(f).name.lower()]
 
     if not csv_files:
-        # Auto-download
-        data_path = download_dataset()
-        # kagglehub puede poner CSVs en subdirectorios
-        csv_files = sorted(glob.glob(str(data_path / "**" / "*.csv"), recursive=True))
-
-    if not csv_files:
-        print(f"❌ No se encontraron CSVs")
-        print(f"   Opciones:")
-        print(f"   1. pip install kagglehub → configurar Kaggle API key")
-        print(f"   2. Descargar manualmente y poner CSVs en {DATA_DIR}/")
+        print(f"❌ No se encontraron CSVs en {DATA_DIR}")
+        print(f"   Descarga el dataset de kaggle.com/datasets/joebeachcapital/fifa-players")
+        print(f"   y extrae los CSVs en {DATA_DIR}/")
         sys.exit(1)
 
     frames = []
@@ -125,36 +108,88 @@ def load_csvs() -> pd.DataFrame:
                 version = FIFA_VERSIONS[key]
                 break
         if not version:
-            # Try numeric extraction
+            # Try numeric extraction from filename
             nums = "".join(c for c in fname if c.isdigit())
             if nums in FIFA_VERSIONS:
                 version = FIFA_VERSIONS[nums]
             else:
-                version = fname  # fallback
+                # Try parent folder name (e.g. "2024/male_players.csv")
+                parent = Path(f).parent.name
+                parent_nums = "".join(c for c in parent if c.isdigit())
+                if parent_nums in FIFA_VERSIONS:
+                    version = FIFA_VERSIONS[parent_nums]
+                elif "24" in parent_nums or "2024" in parent:
+                    version = "FC24"
+                else:
+                    version = fname  # fallback
 
         print(f"  📄 Cargando {Path(f).name} → {version}")
-        df = pd.read_csv(f, low_memory=False)
-        df["fifa_version"] = version
+        try:
+            # Solo leer columnas que necesitamos para ahorrar memoria
+            preview = pd.read_csv(f, nrows=0, encoding="utf-8")
+            needed_lower = {
+                "sofifa_id", "player_id", "short_name", "name", "long_name",
+                "overall", "potential", "age", "player_positions", "position",
+                "club_name", "club", "preferred_foot", "fifa_version",
+                "pace", "shooting", "passing", "dribbling", "defending",
+                "physic", "physicality",
+            }
+            actual_cols = [c for c in preview.columns if c.lower().strip() in needed_lower]
+
+            file_size = Path(f).stat().st_size
+            if file_size > 500_000_000:  # >500MB → archivo multi-versión
+                # Este archivo tiene FIFA 15-23 juntas. Solo extraemos FIFA 23
+                # (las demás versiones ya están en los archivos individuales)
+                print(f"    ⚡ Archivo multi-versión ({file_size / 1e9:.1f}GB), extrayendo solo FIFA 23...")
+                chunks = []
+                for chunk in pd.read_csv(f, usecols=actual_cols, encoding="utf-8",
+                                         chunksize=500_000, low_memory=True):
+                    # Filtrar solo FIFA 23 (valor numérico 23)
+                    if "fifa_version" in chunk.columns:
+                        filtered = chunk[chunk["fifa_version"] == 23]
+                        if len(filtered) > 0:
+                            chunks.append(filtered)
+                df = pd.concat(chunks, ignore_index=True) if chunks else pd.DataFrame()
+                del chunks
+                if len(df) == 0:
+                    print(f"    ⚠️  No se encontraron datos de FIFA 23, saltando")
+                    continue
+            else:
+                df = pd.read_csv(f, usecols=actual_cols, encoding="utf-8", low_memory=False)
+        except (UnicodeDecodeError, ValueError):
+            df = pd.read_csv(f, encoding="latin-1", low_memory=False)
+
+        # Normalizar fifa_version a string
+        if "fifa_version" in df.columns:
+            df["fifa_version"] = df["fifa_version"].apply(
+                lambda v: FIFA_VERSIONS.get(str(int(v)), f"FIFA {int(v)}") if pd.notna(v) and isinstance(v, (int, float)) else str(v)
+            )
+        else:
+            df["fifa_version"] = version
+        # Normalizar columnas ANTES de concatenar (evita conflictos entre formatos)
+        df = normalize_columns(df)
         frames.append(df)
+        print(f"    ✅ {len(df):,} filas cargadas")
 
     combined = pd.concat(frames, ignore_index=True)
+    # Remove duplicate columns from concat
+    combined = combined.loc[:, ~combined.columns.duplicated()]
     print(f"\n📊 Total filas cargadas: {len(combined):,}")
     return combined
 
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize column names across FIFA versions."""
-    # Common column name variations
+    """Normalize column names across FIFA versions (3 different formats)."""
     renames = {}
-    cols_lower = {c.lower(): c for c in df.columns}
+    cols_lower = {c.lower().strip(): c for c in df.columns}
 
-    # player_id might be sofifa_id, player_id, or ID
+    # player_id: sofifa_id (15-22), player_id (23), Name hash (24)
     for candidate in ["sofifa_id", "player_id", "id"]:
         if candidate in cols_lower:
             renames[cols_lower[candidate]] = "player_id"
             break
 
-    # short_name or Name
+    # player_name: short_name (15-23), Name (24)
     for candidate in ["short_name", "name"]:
         if candidate in cols_lower:
             renames[cols_lower[candidate]] = "player_name"
@@ -176,24 +211,41 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     if "age" in cols_lower:
         renames[cols_lower["age"]] = "age"
 
-    # Position
+    # Position: player_positions (15-23), Position (24)
     for candidate in ["player_positions", "position", "best_position"]:
         if candidate in cols_lower:
             renames[cols_lower[candidate]] = "position"
             break
 
-    # Club
+    # Club: club_name (15-23), Club (24)
     for candidate in ["club_name", "club"]:
         if candidate in cols_lower:
             renames[cols_lower[candidate]] = "club"
             break
 
-    # Metrics
-    for metric in METRICS:
-        if metric in cols_lower:
-            renames[cols_lower[metric]] = metric
+    # Metrics: same name in 15-23, capitalized in 24
+    # 24 format uses "Physicality" instead of "physic"
+    metric_aliases = {
+        "pace": ["pace"],
+        "shooting": ["shooting"],
+        "passing": ["passing"],
+        "dribbling": ["dribbling"],
+        "defending": ["defending"],
+        "physic": ["physic", "physicality"],
+    }
+    for target, aliases in metric_aliases.items():
+        for alias in aliases:
+            if alias in cols_lower:
+                renames[cols_lower[alias]] = target
+                break
 
     df = df.rename(columns=renames)
+
+    # FC24 format (2024/) has no sofifa_id — generate from Name for tracking
+    if "player_id" not in df.columns and "player_name" in df.columns:
+        df["player_id"] = df["player_name"].apply(
+            lambda x: hash(str(x)) % 10_000_000 if pd.notna(x) else None
+        )
 
     # Ensure numeric
     for col in ["overall", "potential", "age"] + METRICS:
@@ -273,16 +325,23 @@ def extract_player_history(df: pd.DataFrame) -> pd.DataFrame:
 
 def upload_to_supabase(curves: pd.DataFrame, history: pd.DataFrame):
     """Upload results to Supabase."""
+    # Siempre guardar CSV local como backup
+    output_dir = Path(__file__).parent / "data" / "output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    curves.to_csv(output_dir / "development_curves.csv", index=False)
+    history.to_csv(output_dir / "player_history.csv", index=False)
+    print(f"\n💾 CSV guardados en {output_dir}/")
+
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("\n⚠️  Sin credenciales Supabase — guardando como CSV local")
-        output_dir = Path(__file__).parent / "data" / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-        curves.to_csv(output_dir / "development_curves.csv", index=False)
-        history.to_csv(output_dir / "player_history.csv", index=False)
-        print(f"   Guardado en {output_dir}/")
+        print("⚠️  Sin credenciales Supabase — solo CSV local")
         return
 
-    from supabase import create_client
+    try:
+        from supabase import create_client
+    except ImportError:
+        print("⚠️  supabase-py no instalado — solo CSV local")
+        print("   Instala con: pip install supabase")
+        return
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     # Upload curves
@@ -348,11 +407,9 @@ def main():
     print("\n📂 Cargando CSVs...")
     df = load_csvs()
 
-    # 2. Normalize columns
-    print("\n🔧 Normalizando columnas...")
-    df = normalize_columns(df)
-    print(f"   Columnas disponibles: {list(df.columns)}")
-    print(f"   Jugadores únicos: {df['player_id'].nunique():,}")
+    # 2. Columns already normalized per-file in load_csvs
+    print(f"\n🔧 Columnas: {list(df.columns)}")
+    print(f"   Jugadores únicos: {int(df['player_id'].nunique()):,}")
 
     # 3. Compute development curves
     print("\n📈 Calculando curvas de desarrollo...")
