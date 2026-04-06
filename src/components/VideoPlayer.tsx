@@ -9,6 +9,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Play, Loader2, AlertCircle, Film } from "lucide-react";
 import type { VideoRecord } from "@/services/real/videoService";
+import { isLocalSrc } from "@/lib/localVideoUtils";
 
 interface VideoPlayerProps {
   video: VideoRecord;
@@ -23,10 +24,16 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [playing, setPlaying] = useState(autoplay);
 
-  // Si hay embedUrl, mostrar el player aunque siga "procesando" en Bunny
-  const isReady = video.status === "finished" || (video.status !== "error" && video.status !== "upload-failed" && !!video.embedUrl);
+  // Detectar video local (blob URL, ruta local, etc.)
+  const localSrc = isLocalSrc(video.localPath) ? video.localPath!
+    : isLocalSrc(video.streamUrl) ? video.streamUrl!
+    : null;
+  const isLocal = !!localSrc;
+
+  // Si hay embedUrl o es video local, está listo
+  const isReady = video.status === "finished" || isLocal || (video.status !== "error" && video.status !== "upload-failed" && !!video.embedUrl);
   const isProcessing =
-    !video.embedUrl && (video.status === "processing" || video.status === "transcoding" || video.status === "created" || video.status === "uploaded");
+    !isLocal && !video.embedUrl && (video.status === "processing" || video.status === "transcoding" || video.status === "created" || video.status === "uploaded");
   const isError =
     video.status === "error" || video.status === "upload-failed";
 
@@ -88,8 +95,8 @@ export default function VideoPlayer({
     );
   }
 
-  // ── Not ready / no embed URL ───────────────────────────────────────────────
-  if (!isReady || !embedUrl) {
+  // ── Not ready / no embed URL (skip for local videos) ────────────────────────
+  if (!isLocal && (!isReady || !embedUrl)) {
     return (
       <div
         className={`relative aspect-video rounded-xl overflow-hidden bg-secondary flex items-center justify-center ${className}`}
@@ -150,11 +157,25 @@ export default function VideoPlayer({
     );
   }
 
-  // ── Iframe embed ───────────────────────────────────────────────────────────
+  // ── Video playback (local native <video> or Bunny iframe) ──────────────────
+  if (isLocal && localSrc) {
+    return (
+      <div className={`relative aspect-video rounded-xl overflow-hidden bg-black ${className}`}>
+        <video
+          src={localSrc}
+          controls
+          autoPlay={autoplay}
+          playsInline
+          className="absolute inset-0 w-full h-full object-contain"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`relative aspect-video rounded-xl overflow-hidden bg-black ${className}`}>
       <iframe
-        src={embedUrl}
+        src={embedUrl!}
         title={video.title}
         className="absolute inset-0 w-full h-full"
         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"

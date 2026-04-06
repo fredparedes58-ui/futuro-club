@@ -97,6 +97,7 @@ function SectionHeader({ icon: Icon, title, subtitle }: {
 // ─── Secciones del informe ────────────────────────────────────────────────────
 
 function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] }) {
+  if (!data) return null;
   const levelColor = LEVEL_COLORS[data.nivelActual] ?? "#3B82F6";
 
   return (
@@ -130,23 +131,23 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
         </p>
         <div className="grid grid-cols-3 gap-3 justify-items-center">
           {Object.entries({
-            "Decisión":  data.dimensiones.velocidadDecision,
-            "Técnica":   data.dimensiones.tecnicaConBalon,
-            "Táctica":   data.dimensiones.inteligenciaTactica,
-            "Físico":    data.dimensiones.capacidadFisica,
-            "Liderazgo": data.dimensiones.liderazgoPresencia,
-            "Eficacia":  data.dimensiones.eficaciaCompetitiva,
-          }).map(([label, dim]) => (
-            <ScoreRing key={label} score={dim.score} label={label} />
+            "Decisión":  data.dimensiones?.velocidadDecision,
+            "Técnica":   data.dimensiones?.tecnicaConBalon,
+            "Táctica":   data.dimensiones?.inteligenciaTactica,
+            "Físico":    data.dimensiones?.capacidadFisica,
+            "Liderazgo": data.dimensiones?.liderazgoPresencia,
+            "Eficacia":  data.dimensiones?.eficaciaCompetitiva,
+          }).filter(([, dim]) => dim).map(([label, dim]) => (
+            <ScoreRing key={label} score={dim!.score ?? 0} label={label} />
           ))}
         </div>
         {/* Observaciones expandibles */}
         <div className="mt-4 space-y-2">
           {Object.entries({
-            "Velocidad de decisión":  data.dimensiones.velocidadDecision.observacion,
-            "Técnica con balón":      data.dimensiones.tecnicaConBalon.observacion,
-            "Inteligencia táctica":   data.dimensiones.inteligenciaTactica.observacion,
-          }).map(([k, obs]) => (
+            "Velocidad de decisión":  data.dimensiones?.velocidadDecision?.observacion,
+            "Técnica con balón":      data.dimensiones?.tecnicaConBalon?.observacion,
+            "Inteligencia táctica":   data.dimensiones?.inteligenciaTactica?.observacion,
+          }).filter(([, obs]) => obs).map(([k, obs]) => (
             <div key={k} className="text-[11px] text-muted-foreground leading-relaxed">
               <span className="font-medium text-foreground">{k}: </span>{obs}
             </div>
@@ -161,7 +162,7 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
             <CheckCircle size={11} className="text-green-400" />
             <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Fortalezas</span>
           </div>
-          {data.fortalezasPrimarias.map((f, i) => (
+          {(data.fortalezasPrimarias ?? []).map((f, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {f}</p>
           ))}
         </div>
@@ -170,7 +171,7 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
             <Target size={11} className="text-amber-400" />
             <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">A trabajar</span>
           </div>
-          {data.areasDesarrollo.map((a, i) => (
+          {(data.areasDesarrollo ?? []).map((a, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {a}</p>
           ))}
         </div>
@@ -180,17 +181,19 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
 }
 
 function ADNFutbolistico({ data }: { data: VideoIntelligenceOutput["adnFutbolistico"] }) {
+  if (!data) return null;
+
   return (
     <div className="glass rounded-2xl p-4">
       <SectionHeader icon={Zap} title="ADN Futbolístico" subtitle="Identidad y patrones de juego" />
 
       <div className="mb-3">
-        <Badge className="text-xs mb-2">{data.arquetipoTactico}</Badge>
-        <p className="text-xs text-muted-foreground leading-relaxed">{data.estiloJuego}</p>
+        <Badge className="text-xs mb-2">{data.arquetipoTactico ?? "—"}</Badge>
+        <p className="text-xs text-muted-foreground leading-relaxed">{data.estiloJuego ?? ""}</p>
       </div>
 
       <div className="space-y-2 mb-3">
-        {data.patrones.map((pat, i) => {
+        {(data.patrones ?? []).map((pat, i) => {
           const freqColor = pat.frecuencia === "alto" ? "#22C55E" : pat.frecuencia === "medio" ? "#F59E0B" : "#6B7280";
           return (
             <div key={i} className="flex items-start gap-2 text-[11px]">
@@ -205,7 +208,7 @@ function ADNFutbolistico({ data }: { data: VideoIntelligenceOutput["adnFutbolist
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed italic border-t border-border pt-3">
-        {data.mentalidad}
+        {data.mentalidad ?? ""}
       </p>
     </div>
   );
@@ -214,32 +217,38 @@ function ADNFutbolistico({ data }: { data: VideoIntelligenceOutput["adnFutbolist
 function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccionCarrera"] }) {
   const [expanded, setExpanded] = useState(false);
 
+  if (!data) return null;
+
   return (
     <div className="glass rounded-2xl p-4">
       <SectionHeader icon={TrendingUp} title="Proyección de Carrera" subtitle="Escenarios a largo plazo" />
 
       {/* Optimista */}
-      <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-3 mb-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <Star size={11} className="text-green-400" />
-          <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Escenario óptimo</span>
-          <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioOptimista.nivelProyecto}</Badge>
+      {data.escenarioOptimista && (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-3 mb-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Star size={11} className="text-green-400" />
+            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Escenario óptimo</span>
+            <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioOptimista.nivelProyecto ?? "—"}</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioOptimista.descripcion ?? ""}</p>
+          {data.escenarioOptimista.edadPeak && (
+            <p className="text-[10px] text-green-400 mt-1.5">Peak proyectado: {data.escenarioOptimista.edadPeak} años</p>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioOptimista.descripcion}</p>
-        {data.escenarioOptimista.edadPeak && (
-          <p className="text-[10px] text-green-400 mt-1.5">Peak proyectado: {data.escenarioOptimista.edadPeak} años</p>
-        )}
-      </div>
+      )}
 
       {/* Realista */}
-      <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 mb-3">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <Target size={11} className="text-blue-400" />
-          <span className="text-[10px] font-display uppercase tracking-wider text-blue-400">Escenario realista</span>
-          <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioRealista.nivelProyecto}</Badge>
+      {data.escenarioRealista && (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 mb-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Target size={11} className="text-blue-400" />
+            <span className="text-[10px] font-display uppercase tracking-wider text-blue-400">Escenario realista</span>
+            <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioRealista.nivelProyecto ?? "—"}</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioRealista.descripcion ?? ""}</p>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioRealista.descripcion}</p>
-      </div>
+      )}
 
       {/* Factores y riesgos */}
       <button
@@ -261,13 +270,13 @@ function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccion
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
                 <p className="text-[10px] font-display uppercase tracking-wider text-green-400 mb-1">Factores +</p>
-                {data.factoresClave.map((f, i) => (
+                {(data.factoresClave ?? []).map((f, i) => (
                   <p key={i} className="text-[11px] text-muted-foreground leading-relaxed">• {f}</p>
                 ))}
               </div>
               <div>
                 <p className="text-[10px] font-display uppercase tracking-wider text-red-400 mb-1">Riesgos</p>
-                {data.riesgos.map((r, i) => (
+                {(data.riesgos ?? []).map((r, i) => (
                   <p key={i} className="text-[11px] text-muted-foreground leading-relaxed">• {r}</p>
                 ))}
               </div>
@@ -283,6 +292,8 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
   const prioColor = (p: string) =>
     p === "crítica" ? "#EF4444" : p === "alta" ? "#F59E0B" : "#3B82F6";
 
+  if (!data) return null;
+
   return (
     <div className="glass rounded-2xl p-4">
       <SectionHeader icon={ClipboardList} title="Plan de Desarrollo" subtitle="Hoja de ruta personalizada" />
@@ -293,28 +304,28 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
             <Clock size={10} className="text-primary" />
             <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">6 meses</span>
           </div>
-          <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo6meses}</p>
+          <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo6meses ?? "—"}</p>
         </div>
         <div className="rounded-xl border border-border p-2.5">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={10} className="text-gold" />
             <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">18 meses</span>
           </div>
-          <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo18meses}</p>
+          <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo18meses ?? "—"}</p>
         </div>
       </div>
 
       <div className="space-y-2 mb-4">
-        {data.pilaresTrabajo.map((pilar, i) => (
+        {(data.pilaresTrabajo ?? []).map((pilar, i) => (
           <div key={i} className="rounded-xl border border-border p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-display font-bold text-foreground">{pilar.pilar}</span>
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                style={{ color: prioColor(pilar.prioridad), backgroundColor: `${prioColor(pilar.prioridad)}15` }}>
-                {pilar.prioridad.toUpperCase()}
+                style={{ color: prioColor(pilar.prioridad ?? "media"), backgroundColor: `${prioColor(pilar.prioridad ?? "media")}15` }}>
+                {(pilar.prioridad ?? "media").toUpperCase()}
               </span>
             </div>
-            {pilar.acciones.map((acc, j) => (
+            {(pilar.acciones ?? []).map((acc, j) => (
               <p key={j} className="text-[11px] text-muted-foreground">→ {acc}</p>
             ))}
           </div>
@@ -326,7 +337,7 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
           Para el entrenador
         </p>
         <p className="text-xs text-foreground leading-relaxed italic">
-          "{data.recomendacionEntrenador}"
+          "{data.recomendacionEntrenador ?? "—"}"
         </p>
       </div>
     </div>
@@ -416,11 +427,17 @@ export default function PlayerIntelligencePage() {
     if (!video) return;
     const duration = (video.duration as number) || 34;
     try {
+      // Detectar video local (blob URL o ruta local)
+      const localSrc = video.localPath && !video.localPath.startsWith("http") ? video.localPath
+        : video.streamUrl && !video.streamUrl.startsWith("http") ? video.streamUrl
+        : undefined;
+
       await runAnalysis({
         videoId: selectedVideoId,
         videoDuration: duration,
         jerseyNumber: jerseyNumber.trim() || undefined,
         teamColor: teamColor.trim() || undefined,
+        localVideoSrc: localSrc,
       });
       toast.success("¡Análisis completado!");
       setActiveTab("guardado");
@@ -496,7 +513,7 @@ export default function PlayerIntelligencePage() {
                   Selecciona el video a analizar
                 </p>
                 <div className="space-y-2">
-                  {playerVideos.filter(v => v.status === "finished" || v.status === "uploaded" || !!v.embedUrl).map(v => (
+                  {playerVideos.filter(v => v.status === "finished" || v.status === "uploaded" || !!v.embedUrl || (v.localPath && !v.localPath.startsWith("http"))).map(v => (
                     <button
                       key={v.id}
                       onClick={() => setSelectedVideoId(v.id)}
@@ -512,7 +529,7 @@ export default function PlayerIntelligencePage() {
                           {v.title ?? v.id}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {v.embedUrl ? "Listo para análisis" : v.status}
+                          {v.embedUrl || (v.localPath && !v.localPath.startsWith("http")) ? "Listo para análisis" : v.status}
                         </p>
                       </div>
                     </button>

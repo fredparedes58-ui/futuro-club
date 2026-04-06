@@ -17,6 +17,11 @@ import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
 import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import {
+  generateLocalVideoId,
+  extractVideoMetadata,
+  extractThumbnailFromVideo,
+} from "@/lib/localVideoUtils";
 
 export type UploadPhase =
   | "idle"
@@ -99,12 +104,69 @@ export function useVideoUpload(playerId?: string) {
 
         if (!initData.success) {
           if (initData.phase2Pending) {
-            setState((prev) => ({
-              ...prev,
-              phase: "error",
-              phase2Pending: true,
-              error: initData.error ?? "Bunny Stream no configurado (Fase 2 pendiente)",
-            }));
+            // ── LOCAL FALLBACK: Bunny CDN no configurado ────────────────────
+            // Procesar el video localmente sin necesidad de CDN
+            setPhase("uploading", { progress: 10 });
+
+            const localId = generateLocalVideoId();
+            const blobUrl = URL.createObjectURL(file);
+
+            let meta = { duration: 0, width: 1280, height: 720 };
+            try {
+              meta = await extractVideoMetadata(file);
+              setState((prev) => ({ ...prev, progress: 40 }));
+            } catch {
+              // Si falla metadata, usar defaults
+            }
+
+            let thumbnailUrl: string | null = null;
+            try {
+              thumbnailUrl = await extractThumbnailFromVideo(
+                blobUrl,
+                Math.min(2, (meta.duration || 10) / 2)
+              );
+              setState((prev) => ({ ...prev, progress: 70 }));
+            } catch {
+              // Thumbnail opcional
+            }
+
+            const localVideo: VideoRecord = {
+              id: localId,
+              title: title ?? file.name,
+              playerId: playerId ?? null,
+              status: "finished",
+              statusCode: 4,
+              encodeProgress: 100,
+              duration: Math.round(meta.duration),
+              width: meta.width,
+              height: meta.height,
+              fps: 30,
+              storageSize: file.size,
+              thumbnailUrl,
+              embedUrl: "",
+              streamUrl: blobUrl,
+              dateUploaded: new Date().toISOString(),
+              localPath: blobUrl,
+              analysisResult: null,
+            };
+
+            VideoService.save(localVideo);
+            if (user && SUPABASE_CONFIGURED) {
+              SupabaseVideoService.pushOne(user.id, localVideo).catch(() => {});
+            }
+
+            setState({
+              ...INITIAL,
+              phase: "done",
+              progress: 100,
+              videoId: localId,
+              video: localVideo,
+            });
+
+            queryClient.invalidateQueries({ queryKey: ["videos"] });
+            if (playerId) {
+              queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
+            }
             return;
           }
           throw new Error(initData.error ?? "Init failed");

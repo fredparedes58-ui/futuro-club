@@ -170,16 +170,26 @@ const VitasLab = () => {
     { id: 4, x: 20, y: 92, label: "P4" },
   ]);
 
+  // Videos y players DEBEN declararse ANTES de useTracking para poder pasar localVideoSrc
+  const { data: videos = [] } = useVideos();
+  const { data: players = [] } = useAllPlayers();
+
+  // Detectar video local para pasarlo al tracking
+  const trackingVideo = videos.find(v => v.id === selectedVideoId);
+  const localVideoSrc = trackingVideo?.localPath && !trackingVideo.localPath.startsWith("http")
+    ? trackingVideo.localPath
+    : trackingVideo?.streamUrl && !trackingVideo.streamUrl.startsWith("http")
+      ? trackingVideo.streamUrl
+      : undefined;
+
   const tracking = useTracking({
     videoId:           selectedVideoId ?? "",
     playerId:          selectedPlayerId ?? "",
     calibrationPoints: points.map(p => ({ x: p.x, y: p.y })),
     anchorPreset:      "full_corners",
     cdnHostname:       import.meta.env.VITE_BUNNY_CDN_HOSTNAME,
+    localVideoSrc,
   });
-
-  const { data: videos = [] } = useVideos();
-  const { data: players = [] } = useAllPlayers();
 
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 

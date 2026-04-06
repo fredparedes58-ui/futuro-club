@@ -13,6 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
+import { isLocalSrc } from "@/lib/localVideoUtils";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
@@ -22,8 +23,10 @@ function autoHealVideoStatuses(videos: VideoRecord[]): VideoRecord[] {
   const healed = videos.map((v) => {
     // Si tiene embedUrl válido y está reproducible pero status no es "finished"
     if (
-      v.embedUrl &&
-      v.embedUrl.startsWith("http") &&
+      (
+        (v.embedUrl && v.embedUrl.startsWith("http")) ||
+        isLocalSrc(v.localPath)
+      ) &&
       v.status !== "finished" &&
       v.status !== "error" &&
       v.status !== "upload-failed"

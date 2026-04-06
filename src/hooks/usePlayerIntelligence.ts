@@ -13,6 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
 import type { Player } from "@/services/real/playerService";
+import { extractKeyframesFromVideo, isLocalSrc } from "@/lib/localVideoUtils";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -168,19 +169,27 @@ export function usePlayerIntelligence(player: Player) {
 
   const [isSimilarityLoading, setIsSimilarityLoading] = useState(false);
 
-  // runAnalysis acepta objeto { videoId, videoDuration?, jerseyNumber?, teamColor? }
+  // runAnalysis acepta objeto { videoId, videoDuration?, jerseyNumber?, teamColor?, localVideoSrc? }
   const runAnalysis = useCallback(async (opts: {
         videoId:        string;
         videoDuration?: number;
         jerseyNumber?:  string;
         teamColor?:     string;
+        localVideoSrc?: string; // blob: URL para videos locales
   }) => {
-        const { videoId, videoDuration, jerseyNumber, teamColor } = opts;
+        const { videoId, videoDuration, jerseyNumber, teamColor, localVideoSrc } = opts;
         setState({ step: "keyframes", progress: 10, message: "Obteniendo keyframes del video..." });
 
                                       try {
-                                              // 1. Obtener keyframes
-          const keyframes = getBunnyKeyframes(videoId, videoDuration);
+                                              // 1. Obtener keyframes (local via Canvas o Bunny CDN)
+          let keyframes: KeyframeData[];
+          if (localVideoSrc && isLocalSrc(localVideoSrc)) {
+            setState({ step: "keyframes", progress: 15, message: "Extrayendo frames del video local..." });
+            keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, 8);
+            if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+          } else {
+            keyframes = getBunnyKeyframes(videoId, videoDuration);
+          }
                                               const vsiMetrics = playerToVSI(player);
 
           setState({ step: "analyzing", progress: 30, message: "Enviando a VITAS Intelligence..." });

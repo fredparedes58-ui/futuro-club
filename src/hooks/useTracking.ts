@@ -50,6 +50,7 @@ export interface UseTrackingOptions {
   calibrationPoints: Array<{ x: number; y: number }>;
   anchorPreset?:    FieldAnchorPreset;
   cdnHostname?:     string;
+  localVideoSrc?:   string; // blob: URL for local videos (no Bunny CDN)
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -64,7 +65,7 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc } = options;
 
   const [state, setState] = useState<TrackingState>({
     status:          "idle",
@@ -203,13 +204,19 @@ export function useTracking(options: UseTrackingOptions) {
       error:         null,
     }));
 
-    // Construir URL del video
-    const hostname = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
-    const streamUrl = buildBunnyCdnUrl(videoId, hostname, "mp4");
+    // Construir URL del video (local blob o Bunny CDN)
+    let streamUrl: string;
+    if (localVideoSrc) {
+      streamUrl = localVideoSrc;
+      // blob: URLs son same-origin, no necesitan crossOrigin
+    } else {
+      const hostname = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
+      streamUrl = buildBunnyCdnUrl(videoId, hostname, "mp4");
+      videoEl.crossOrigin = "anonymous";
+    }
 
     // Configurar el video element
-    videoEl.crossOrigin = "anonymous";
-    videoEl.src         = streamUrl;
+    videoEl.src = streamUrl;
     videoEl.load();
 
     // Esperar a que el video esté listo
