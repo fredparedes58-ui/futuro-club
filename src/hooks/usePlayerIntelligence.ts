@@ -14,6 +14,7 @@ import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
 import type { Player } from "@/services/real/playerService";
 import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64, getOptimalFrameCount } from "@/lib/localVideoUtils";
+import { computeKPIs, generateMonthlyChallenges } from "@/lib/kpiProjections";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -304,6 +305,9 @@ export function usePlayerIntelligence(player: Player) {
                   score:    m.score,
                 })),
               } : null,
+              // KPIs y retos mensuales calculados client-side
+              kpiReport: computeKPIs(vsiMetrics, player.age, player.position, player.phvOffset ?? 0),
+              monthlyChallenges: generateMonthlyChallenges(vsiMetrics, player.age, player.position),
             },
             (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
           );

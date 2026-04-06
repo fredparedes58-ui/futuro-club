@@ -26,7 +26,7 @@ export default async function handler(req: Request): Promise<Response> {
       try {
         send("progress", { step: "Iniciando VITAS Intelligence...", percent: 5 });
         const body = await req.json();
-        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations } = body;
+        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges } = body;
 
         if (!playerContext) {
           send("error", { message: "Faltan datos requeridos (playerContext)" });
@@ -127,10 +127,33 @@ Estas observaciones provienen del análisis del VIDEO COMPLETO. Úsalas como bas
           ? `\nObserva cuidadosamente cada fotograma. Busca al jugador con dorsal ${ctx.jerseyNumber || "?"} y uniforme ${ctx.teamColor || "?"}.`
           : "";
 
+        // Bloque de KPIs pre-calculados
+        const kpiBlock = kpiReport ? `
+INDICADORES DE DESARROLLO (calculados con curvas científicas + datos de 60,000 jugadores FIFA):
+- % del peak estimado (promedio): ${kpiReport.avgPctOfPeak}%
+- VSI proyectado a los 18: ${kpiReport.projectedVSI.at18.estimate} (rango: ${kpiReport.projectedVSI.at18.low}-${kpiReport.projectedVSI.at18.high})
+- VSI proyectado a los 21: ${kpiReport.projectedVSI.at21.estimate} (rango: ${kpiReport.projectedVSI.at21.low}-${kpiReport.projectedVSI.at21.high})
+- Ventaja madurativa: ${kpiReport.maturationAdvantage > 0 ? "+" : ""}${kpiReport.maturationAdvantage} puntos
+- Edad equivalente pro: ${kpiReport.ageEquivalentPro} años
+- Confianza de la proyección: ${Math.round(kpiReport.confidence * 100)}%
+${kpiReport.disclaimer ? `- Nota: ${kpiReport.disclaimer}` : ""}
+
+USA estos datos para la sección "proyeccionCarrera". Los rangos de confianza son obligatorios.` : "";
+
+        // Bloque de retos mensuales
+        const challengesBlock = monthlyChallenges ? `
+PLAN DE RETOS MENSUALES (${monthlyChallenges.horizonMonths} meses, grupo: ${monthlyChallenges.ageGroup}):
+Áreas foco: ${monthlyChallenges.focusAreas.join(", ")}
+${monthlyChallenges.challenges.map((c: { month: number; title: string; metric: string; description: string; kpiTarget: string }) =>
+  `- Mes ${c.month}: [${c.metric}] ${c.title} — ${c.description} (KPI: ${c.kpiTarget})`
+).join("\n")}
+
+INTEGRA estos retos en la sección "retosDesarrollo" del JSON. Adapta el lenguaje al jugador.` : "";
+
         const prompt = `${introBlock}
 
 ${playerDataBlock}
-${geminiContextBlock}${frameInstructionBlock}${similarityBlock}
+${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
@@ -167,7 +190,20 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
     "escenarioOptimista": {"descripcion":"string max 300","nivelProyecto":"string","clubTipo":"string","edadPeak":number},
     "escenarioRealista": {"descripcion":"string max 300","nivelProyecto":"string","clubTipo":"string"},
     "factoresClave": ["max 4 strings"],
-    "riesgos": ["max 3 strings"]
+    "riesgos": ["max 3 strings"],
+    "kpis": {
+      "pctOfPeak": number,
+      "vsiProyectado18": {"estimado":number,"bajo":number,"alto":number},
+      "vsiProyectado21": {"estimado":number,"bajo":number,"alto":number},
+      "ventajaMadurativa": number,
+      "edadEquivalentePro": number,
+      "confianzaProyeccion": number
+    }
+  },
+  "retosDesarrollo": {
+    "horizonte": "string (ej: '6 meses')",
+    "grupoEdad": "string",
+    "retos": [{"mes":number,"titulo":"string","metrica":"string","descripcion":"string max 150","kpiObjetivo":"string","ejercicioSugerido":"string"}]
   },
   "planDesarrollo": {
     "objetivo6meses": "string max 200",
