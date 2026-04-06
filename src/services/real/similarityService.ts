@@ -15,7 +15,13 @@
  */
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
-import PRO_PLAYERS, { type ProPlayer, getPositionGroup, POSITION_GROUPS } from "@/data/proPlayers";
+import PRO_PLAYERS, { type ProPlayer, getPositionGroup } from "@/data/proPlayers";
+import {
+  estimateAtAge,
+  phvAdjustment,
+  ageConfidence,
+  type MetricName,
+} from "@/data/developmentCurves";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -29,18 +35,22 @@ export interface VSIMetrics {
 }
 
 export interface SimilarityMatch {
-  player:        ProPlayer;
-  score:         number;   // 0-100 (porcentaje de similitud coseno)
-  positionMatch: boolean;
+  player:          ProPlayer;
+  score:           number;   // 0-100 (porcentaje de similitud coseno)
+  positionMatch:   boolean;
+  ageAdjusted?:    boolean;  // true si se aplicó ajuste por edad
+  proAtYouthAge?:  Record<string, number>; // métricas estimadas del pro a la edad del youth
 }
 
 export interface SimilarityResult {
-  top5:           SimilarityMatch[];
-  bestMatch:      SimilarityMatch;
-  avgScore:       number;
-  dominantGroup:  string;
-  source:         "supabase" | "local";
-  computedAt:     string;
+  top5:            SimilarityMatch[];
+  bestMatch:       SimilarityMatch;
+  avgScore:        number;
+  dominantGroup:   string;
+  source:          "supabase" | "local";
+  computedAt:      string;
+  ageAdjusted:     boolean;
+  confidence:      number;  // 0-1, basado en edad del youth
 }
 
 // ─── Internos ─────────────────────────────────────────────────────────────────
@@ -100,10 +110,47 @@ function isPositionCompatible(playerPos: string, proPos: string): boolean {
   return adjacent[playerGroup]?.includes(proGroup) ?? false;
 }
 
+// ─── De-aging: estimar stats del pro a la edad del youth ─────────────────────
+
+/**
+ * Estima las métricas de un jugador profesional a una edad más joven,
+ * usando las curvas de desarrollo científicas + Kaggle.
+ *
+ * Ejemplo: Rodri (28, passing 88) → a los 14 se estima ~47
+ */
+function deAgeProPlayer(
+  pro: ProPlayer,
+  targetAge: number
+): { pace: number; shooting: number; passing: number; dribbling: number; defending: number; physic: number } {
+  const posGroup = getPositionGroup(pro.position);
+  const metrics: MetricName[] = ["pace", "shooting", "passing", "dribbling", "defending", "physic"];
+
+  const result: Record<string, number> = {};
+  for (const metric of metrics) {
+    const currentVal = pro[metric];
+    result[metric] = estimateAtAge(currentVal, pro.age, targetAge, posGroup, metric);
+  }
+
+  return result as { pace: number; shooting: number; passing: number; dribbling: number; defending: number; physic: number };
+}
+
+/** Convierte métricas de pro de-aged a vector normalizado (0-1) */
+function deAgedToVector(deAged: Record<string, number>): number[] {
+  return [
+    deAged.pace      / 99,
+    deAged.shooting  / 99,
+    deAged.passing   / 99,
+    deAged.dribbling / 99,
+    deAged.defending / 99,
+    deAged.physic    / 99,
+  ];
+}
+
 // ─── Función principal ────────────────────────────────────────────────────────
 
 /**
  * Calcula top-5 jugadores profesionales similares a un jugador de academia.
+ * Con ajuste por edad: "de-ages" a los pros para compararlos al nivel del youth.
  *
  * @param metrics   - Métricas VSI del jugador (0-100)
  * @param position  - Posición del jugador ("ST", "CM", "RW", etc.)
@@ -117,6 +164,8 @@ export async function findSimilarPlayers(
     minOverall?:        number;
     positionFilter?:    "strict" | "flexible" | "none";
     boostSamePosition?: boolean;
+    youthAge?:          number;  // Edad del jugador de academia
+    phvOffset?:         number;  // PHV offset para ajuste madurativo
   } = {}
 ): Promise<SimilarityResult> {
   const {
@@ -124,7 +173,11 @@ export async function findSimilarPlayers(
     minOverall        = 70,
     positionFilter    = "flexible",
     boostSamePosition = true,
+    youthAge,
+    phvOffset         = 0,
   } = options;
+
+  const useAgeAdjustment = youthAge !== undefined && youthAge < 21;
 
   // 1. Obtener la base de datos de pros (Supabase preferido, fallback local)
   let proPlayers: ProPlayer[] = [];
@@ -153,23 +206,38 @@ export async function findSimilarPlayers(
   // 2. Construir vector del jugador de academia
   const youthVec = toVSIVector(metrics);
 
+  // Ajuste PHV: modificar el vector youth si hay offset madurativo
+  const phvFactor = youthAge ? phvAdjustment(youthAge, phvOffset) : 1.0;
+
   // 3. Calcular similitud para cada pro
-  // Overall promedio del jugador de academia (para penalizar brechas de nivel)
-  const youthAvg = (metrics.speed + metrics.shooting + metrics.vision +
-                    metrics.technique + metrics.defending + metrics.stamina) / 6;
-
   const scored = proPlayers.map((pro) => {
-    const proVec      = toProVector(pro);
-    let   rawSimilarity = cosineSimilarity(youthVec, proVec);
+    let comparisonVec: number[];
+    let proAtYouthAgeMetrics: Record<string, number> | undefined;
 
-    // Penalización por brecha de magnitud:
-    // Un jugador de 50 overall no debería matchear con Rodri (89).
-    // Cuanto mayor la brecha, más se reduce el score.
-    const levelGap = pro.overall - youthAvg;
-    if (levelGap > 10) {
-      // Penalizar proporcional a la brecha (máx ~50% reducción)
-      const penalty = Math.max(0.5, 1 - (levelGap - 10) / 80);
-      rawSimilarity *= penalty;
+    if (useAgeAdjustment) {
+      // MODE: Age-adjusted — "de-age" el pro a la edad del youth
+      // En vez de comparar youth (14, ~50 OVR) vs pro (28, 89 OVR),
+      // estimamos qué métricas tenía el pro a los 14 y comparamos eso.
+      const deAged = deAgeProPlayer(pro, youthAge!);
+      comparisonVec = deAgedToVector(deAged);
+      proAtYouthAgeMetrics = deAged;
+    } else {
+      // MODE: Classic — comparar vectores directos (con penalización magnitud)
+      comparisonVec = toProVector(pro);
+    }
+
+    let rawSimilarity = cosineSimilarity(youthVec, comparisonVec);
+
+    // Penalización por brecha de magnitud (solo en modo clásico)
+    // En modo age-adjusted la brecha ya se reduce por el de-aging
+    if (!useAgeAdjustment) {
+      const youthAvg = (metrics.speed + metrics.shooting + metrics.vision +
+                        metrics.technique + metrics.defending + metrics.stamina) / 6;
+      const levelGap = pro.overall - youthAvg;
+      if (levelGap > 10) {
+        const penalty = Math.max(0.5, 1 - (levelGap - 10) / 80);
+        rawSimilarity *= penalty;
+      }
     }
 
     // Boost de 5% si comparte posición exacta (para relevancia táctica)
@@ -185,9 +253,11 @@ export async function findSimilarPlayers(
     }
 
     return {
-      player:        pro,
-      score:         Math.round(rawSimilarity * 1000) / 10, // 0-100 con 1 decimal
+      player:         pro,
+      score:          Math.round(rawSimilarity * 1000) / 10, // 0-100 con 1 decimal
       positionMatch,
+      ageAdjusted:    useAgeAdjustment,
+      proAtYouthAge:  proAtYouthAgeMetrics,
     } as SimilarityMatch;
   }).filter(Boolean) as SimilarityMatch[];
 
@@ -207,6 +277,8 @@ export async function findSimilarPlayers(
     ? Math.round((top.reduce((s, m) => s + m.score, 0) / top.length) * 10) / 10
     : 0;
 
+  const { confidence } = youthAge ? ageConfidence(youthAge) : { confidence: 0.95 };
+
   return {
     top5:          top,
     bestMatch:     top[0],
@@ -214,6 +286,8 @@ export async function findSimilarPlayers(
     dominantGroup,
     source,
     computedAt:    new Date().toISOString(),
+    ageAdjusted:   useAgeAdjustment,
+    confidence,
   };
 }
 

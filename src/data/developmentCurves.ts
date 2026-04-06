@@ -22,7 +22,7 @@ import { getPositionGroup } from "./proPlayers";
 // ─── Tipo ────────────────────────────────────────────────────────────────────
 
 type AgeCurve = Record<number, number>;
-type MetricName = "pace" | "shooting" | "passing" | "dribbling" | "defending" | "physic";
+export type MetricName = "pace" | "shooting" | "passing" | "dribbling" | "defending" | "physic";
 
 // ─── Curvas por métrica (8-35 años) ─────────────────────────────────────────
 

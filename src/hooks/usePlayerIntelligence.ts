@@ -188,7 +188,10 @@ export function usePlayerIntelligence(player: Player) {
           let similarityData: SimilarityResult | null = null;
           setIsSimilarityLoading(true);
           try {
-            similarityData = await findSimilarPlayers(vsiMetrics, player.position);
+            similarityData = await findSimilarPlayers(vsiMetrics, player.position, {
+              youthAge: player.age,
+              phvOffset: player.phvOffset ?? 0,
+            });
           } catch {
             // similitud es opcional
           } finally {
@@ -344,7 +347,10 @@ export function usePlayerIntelligence(player: Player) {
         setIsSimilarityLoading(true);
         try {
                 const vsiMetrics = playerToVSI(player);
-                const similarityData = await findSimilarPlayers(vsiMetrics, player.position);
+                const similarityData = await findSimilarPlayers(vsiMetrics, player.position, {
+                  youthAge: player.age,
+                  phvOffset: player.phvOffset ?? 0,
+                });
                 setResult((prev) => ({ ...prev, similarity: similarityData }));
         } catch {
                 // silencioso
