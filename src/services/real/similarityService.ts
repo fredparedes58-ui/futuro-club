@@ -154,9 +154,23 @@ export async function findSimilarPlayers(
   const youthVec = toVSIVector(metrics);
 
   // 3. Calcular similitud para cada pro
+  // Overall promedio del jugador de academia (para penalizar brechas de nivel)
+  const youthAvg = (metrics.speed + metrics.shooting + metrics.vision +
+                    metrics.technique + metrics.defending + metrics.stamina) / 6;
+
   const scored = proPlayers.map((pro) => {
     const proVec      = toProVector(pro);
     let   rawSimilarity = cosineSimilarity(youthVec, proVec);
+
+    // Penalización por brecha de magnitud:
+    // Un jugador de 50 overall no debería matchear con Rodri (89).
+    // Cuanto mayor la brecha, más se reduce el score.
+    const levelGap = pro.overall - youthAvg;
+    if (levelGap > 10) {
+      // Penalizar proporcional a la brecha (máx ~50% reducción)
+      const penalty = Math.max(0.5, 1 - (levelGap - 10) / 80);
+      rawSimilarity *= penalty;
+    }
 
     // Boost de 5% si comparte posición exacta (para relevancia táctica)
     const positionMatch = isPositionCompatible(position, pro.position);

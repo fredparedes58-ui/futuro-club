@@ -148,6 +148,62 @@ export function extractThumbnailFromVideo(
   });
 }
 
+// ── Video completo como base64 (para Gemini) ───────────────────────────────
+
+export interface VideoBase64Result {
+  base64: string;       // raw base64 sin prefijo data:
+  mediaType: string;    // "video/mp4", "video/webm", etc.
+  sizeBytes: number;
+}
+
+/**
+ * Lee un video como base64 para enviarlo a Gemini.
+ * Acepta rutas locales (/public/...) o blob: URLs.
+ * Retorna null si el video excede maxSizeMB.
+ */
+export async function readVideoAsBase64(
+  src: string,
+  maxSizeMB = 20
+): Promise<VideoBase64Result | null> {
+  try {
+    const response = await fetch(src);
+    if (!response.ok) return null;
+
+    const blob = await response.blob();
+    if (blob.size > maxSizeMB * 1024 * 1024) {
+      console.warn(`[LocalVideo] Video demasiado grande: ${(blob.size / 1024 / 1024).toFixed(1)}MB > ${maxSizeMB}MB`);
+      return null;
+    }
+
+    const arrayBuffer = await blob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    // Convertir a base64 en chunks para evitar stack overflow con btoa
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    const base64 = btoa(binary);
+
+    const mediaType = blob.type || "video/mp4";
+    console.log(`[LocalVideo] Video leído: ${(blob.size / 1024 / 1024).toFixed(1)}MB, tipo: ${mediaType}`);
+
+    return { base64, mediaType, sizeBytes: blob.size };
+  } catch (err) {
+    console.error("[LocalVideo] Error leyendo video como base64:", err);
+    return null;
+  }
+}
+
+// ── Frame count óptimo ──────────────────────────────────────────────────────
+
+/** Calcula cuántos frames extraer según la duración del video (fallback Claude) */
+export function getOptimalFrameCount(durationSec: number): number {
+  if (durationSec < 60) return 20;       // <1min: 1 cada 3s
+  if (durationSec < 300) return 60;      // 1-5min: 1 cada 5s
+  return 100;                            // 5min+: máximo API (1 cada 6-9s)
+}
+
 // ── Keyframes (para Intelligence Report) ─────────────────────────────────────
 
 export interface LocalKeyframe {

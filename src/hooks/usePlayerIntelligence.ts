@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
 import type { Player } from "@/services/real/playerService";
-import { extractKeyframesFromVideo, isLocalSrc } from "@/lib/localVideoUtils";
+import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64, getOptimalFrameCount } from "@/lib/localVideoUtils";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -180,59 +180,130 @@ export function usePlayerIntelligence(player: Player) {
         const { videoId, videoDuration, jerseyNumber, teamColor, localVideoSrc } = opts;
         setState({ step: "keyframes", progress: 10, message: "Obteniendo keyframes del video..." });
 
-                                      try {
-                                              // 1. Obtener keyframes (local via Canvas o Bunny CDN)
-          let keyframes: KeyframeData[];
-          if (localVideoSrc && isLocalSrc(localVideoSrc)) {
-            setState({ step: "keyframes", progress: 15, message: "Extrayendo frames del video local..." });
-            keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, 8);
-            if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
-          } else {
-            keyframes = getBunnyKeyframes(videoId, videoDuration);
-          }
-                                              const vsiMetrics = playerToVSI(player);
+        try {
+          const vsiMetrics = playerToVSI(player);
 
-          setState({ step: "analyzing", progress: 30, message: "Enviando a VITAS Intelligence..." });
-
-          // 2. Llamar al API con SSE streaming
-          const analysisResult = await readSSEStream(
-                    "/api/agents/video-intelligence",
-            {
-                        playerId:      player.id,
-                        videoId,
-                        playerContext: {
-                                      name:             player.name,
-                                      age:              player.age,
-                                      position:         player.position,
-                                      foot:             player.foot,
-                                      height:           player.height,
-                                      weight:           player.weight,
-                                      currentVSI:       player.vsi,
-                                      phvCategory:      player.phvCategory,
-                                      phvOffset:        player.phvOffset,
-                                      competitiveLevel: player.competitiveLevel,
-                                      jerseyNumber,
-                                      teamColor,
-                        },
-                        keyframes,
-                        videoDuration,
-                        vsiMetrics,
-            },
-                    (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
-                  );
-
-          setState({ step: "analyzing", progress: 90, message: "Calculando similitud con pros..." });
-
-          // 3. Similitud con jugadores profesionales
+          // 1. Calcular similitud ANTES del análisis (para informar a Claude)
+          setState({ step: "analyzing", progress: 12, message: "Calculando similitud con pros..." });
           let similarityData: SimilarityResult | null = null;
           setIsSimilarityLoading(true);
-                                              try {
-                                                        similarityData = await findSimilarPlayers(vsiMetrics, player.position);
-                                              } catch {
-                                                        // similitud es opcional
-                                              } finally {
-                                                        setIsSimilarityLoading(false);
-                                              }
+          try {
+            similarityData = await findSimilarPlayers(vsiMetrics, player.position);
+          } catch {
+            // similitud es opcional
+          } finally {
+            setIsSimilarityLoading(false);
+          }
+
+          // 2. Intentar Gemini primero (video completo) si es video local
+          let geminiObservations: Record<string, unknown> | null = null;
+          let keyframes: KeyframeData[] = [];
+
+          if (localVideoSrc && isLocalSrc(localVideoSrc)) {
+            // 2a. Intentar leer video como base64 para Gemini
+            setState({ step: "analyzing", progress: 18, message: "Preparando video para análisis..." });
+            try {
+              const videoData = await readVideoAsBase64(localVideoSrc);
+              if (videoData) {
+                setState({ step: "analyzing", progress: 22, message: "Analizando video completo con Gemini..." });
+                const geminiRes = await fetch("/api/agents/video-observation", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    videoBase64: videoData.base64,
+                    mediaType: videoData.mediaType,
+                    playerContext: {
+                      name: player.name,
+                      age: player.age,
+                      position: player.position,
+                      foot: player.foot,
+                      height: player.height,
+                      weight: player.weight,
+                      competitiveLevel: player.competitiveLevel,
+                      jerseyNumber,
+                      teamColor,
+                    },
+                  }),
+                });
+
+                if (geminiRes.ok) {
+                  const geminiData = await geminiRes.json() as { observations?: Record<string, unknown> };
+                  if (geminiData.observations) {
+                    geminiObservations = geminiData.observations;
+                    console.log("[Intelligence] Gemini observaciones recibidas correctamente");
+                  }
+                } else {
+                  console.warn("[Intelligence] Gemini no disponible, usando fallback frames");
+                }
+              }
+            } catch (geminiErr) {
+              console.warn("[Intelligence] Error con Gemini, usando fallback:", geminiErr);
+            }
+
+            // 2b. Si Gemini falló → extraer frames como fallback
+            if (!geminiObservations) {
+              setState({ step: "keyframes", progress: 20, message: "Extrayendo fotogramas del video..." });
+              const frameCount = getOptimalFrameCount(videoDuration || 120);
+              keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, frameCount);
+              if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+
+              // Verificar que el payload no exceda 4MB (límite Vercel)
+              const payloadEstimate = JSON.stringify(keyframes).length;
+              if (payloadEstimate > 4_000_000) {
+                console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB, reduciendo frames`);
+                keyframes = keyframes.filter((_, i) => i % 2 === 0);
+              }
+            }
+          } else {
+            // Bunny CDN — solo thumbnails
+            keyframes = getBunnyKeyframes(videoId, videoDuration);
+          }
+
+          setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe con Claude..." : "Enviando a VITAS Intelligence..." });
+
+          // 3. Llamar a Claude con SSE streaming (con observaciones Gemini O con frames)
+          const analysisResult = await readSSEStream(
+            "/api/agents/video-intelligence",
+            {
+              playerId:      player.id,
+              videoId,
+              playerContext: {
+                name:             player.name,
+                age:              player.age,
+                position:         player.position,
+                foot:             player.foot,
+                height:           player.height,
+                weight:           player.weight,
+                currentVSI:       player.vsi,
+                phvCategory:      player.phvCategory,
+                phvOffset:        player.phvOffset,
+                competitiveLevel: player.competitiveLevel,
+                jerseyNumber,
+                teamColor,
+              },
+              keyframes,
+              videoDuration,
+              vsiMetrics,
+              geminiObservations,
+              similarityMatches: similarityData ? {
+                bestMatch: {
+                  name:     similarityData.bestMatch.player.short_name,
+                  club:     similarityData.bestMatch.player.club,
+                  position: similarityData.bestMatch.player.position,
+                  overall:  similarityData.bestMatch.player.overall,
+                  score:    similarityData.bestMatch.score,
+                },
+                top5: similarityData.top5.map(m => ({
+                  name:     m.player.short_name,
+                  club:     m.player.club,
+                  position: m.player.position,
+                  overall:  m.player.overall,
+                  score:    m.score,
+                })),
+              } : null,
+            },
+            (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
+          );
 
           const savedAt = new Date().toISOString();
 
@@ -262,11 +333,11 @@ export function usePlayerIntelligence(player: Player) {
 
           setState({ step: "done", progress: 100, message: "Análisis completado" });
 
-                                      } catch (err) {
-                                              const msg = err instanceof Error ? err.message : "Error desconocido";
-                                              setState({ step: "error", progress: 0, message: msg });
-                                              throw err;
-                                      }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Error desconocido";
+          setState({ step: "error", progress: 0, message: msg });
+          throw err;
+        }
   }, [player, queryClient]);
 
   const refetchSimilarity = useCallback(async () => {

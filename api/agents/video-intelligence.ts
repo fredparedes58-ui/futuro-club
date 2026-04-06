@@ -26,7 +26,7 @@ export default async function handler(req: Request): Promise<Response> {
       try {
         send("progress", { step: "Iniciando VITAS Intelligence...", percent: 5 });
         const body = await req.json();
-        const { playerContext, keyframes, videoId, playerId, vsiMetrics } = body;
+        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations } = body;
 
         if (!playerContext) {
           send("error", { message: "Faltan datos requeridos (playerContext)" });
@@ -74,9 +74,10 @@ export default async function handler(req: Request): Promise<Response> {
 
         // Build the full prompt requesting VideoIntelligenceOutput format
         const ctx = playerContext;
-        const prompt = `Eres VITAS, un scout de fútbol IA de élite. Analiza estos ${imageBlocks.length} fotogramas del jugador:
+        const hasGemini = !!geminiObservations;
 
-DATOS DEL JUGADOR:
+        // Sección de datos del jugador (común a ambos modos)
+        const playerDataBlock = `DATOS DEL JUGADOR:
 - Nombre: ${ctx.name}
 - Edad: ${ctx.age} años
 - Posición: ${ctx.position}
@@ -85,9 +86,51 @@ DATOS DEL JUGADOR:
 - VSI actual: ${ctx.currentVSI || "?"}
 - PHV: ${ctx.phvCategory || "?"} (offset: ${ctx.phvOffset || 0})
 - Nivel competitivo: ${ctx.competitiveLevel || "formativo"}
-- Dorsal: ${ctx.jerseyNumber || "?"} | Color uniforme: ${ctx.teamColor || "?"}
+- Dorsal: ${ctx.jerseyNumber || "?"} | Color uniforme: ${ctx.teamColor || "?"}`;
 
-Observa cuidadosamente cada fotograma. Busca al jugador con dorsal ${ctx.jerseyNumber || "?"} y uniforme ${ctx.teamColor || "?"}.
+        const similarityBlock = similarityMatches ? `
+DATOS DE SIMILITUD ESTADÍSTICA (motor coseno con base de datos EA FC25):
+- Mejor match: ${similarityMatches.bestMatch.name} (${similarityMatches.bestMatch.club}, ${similarityMatches.bestMatch.position}, OVR ${similarityMatches.bestMatch.overall}) — similitud ${similarityMatches.bestMatch.score}%
+- Top 5: ${similarityMatches.top5.map((m: { name: string; club: string; overall: number; score: number }) => `${m.name} (${m.club}, OVR ${m.overall}, ${m.score}%)`).join(", ")}
+
+IMPORTANTE: Estos matches reflejan ESTILO de juego (perfil de métricas similar), NO nivel absoluto. Un juvenil puede tener el mismo perfil que un profesional de élite pero estar en etapas tempranas de desarrollo. La proyeccion de carrera y el jugadorReferencia deben ser COHERENTES entre sí: si el match es un jugador de primera división, la proyección debe explicar el camino realista para llegar (o no) a ese nivel, considerando edad, nivel competitivo actual y lo que se observa en el video.` : "";
+
+        // Modo Gemini: Claude recibe observaciones detalladas del video completo
+        const geminiContextBlock = hasGemini ? `
+OBSERVACIONES DE VIDEO (generadas por IA que analizó el video completo del jugador):
+
+RESUMEN: ${geminiObservations.resumenGeneral}
+
+TIMELINE DE ACCIONES:
+${geminiObservations.timeline?.map((t: { timestamp: string; tipo: string; descripcion: string }) => `- [${t.timestamp}] (${t.tipo}) ${t.descripcion}`).join("\n") || "No disponible"}
+
+DIMENSIONES OBSERVADAS:
+${Object.entries(geminiObservations.dimensiones || {}).map(([dim, data]: [string, unknown]) => {
+  const d = data as { observaciones: string[]; score_estimado: number };
+  return `- ${dim} (${d.score_estimado}/10): ${d.observaciones?.join("; ") || "sin datos"}`;
+}).join("\n")}
+
+MOMENTOS DESTACADOS:
+${geminiObservations.momentosDestacados?.map((m: { timestamp: string; tipo: string; descripcion: string }) => `- [${m.timestamp}] (${m.tipo}) ${m.descripcion}`).join("\n") || "No disponible"}
+
+PATRONES DE JUEGO:
+${geminiObservations.patronesJuego?.join(", ") || "No identificados"}
+
+Estas observaciones provienen del análisis del VIDEO COMPLETO. Úsalas como base principal de tu evaluación.` : "";
+
+        // Intro diferente según modo
+        const introBlock = hasGemini
+          ? `Eres VITAS, un scout de fútbol IA de élite. Un sistema de observación ha analizado el video completo del jugador y te proporciona sus observaciones detalladas. Tu trabajo es interpretar estas observaciones y generar el informe de inteligencia estructurado.`
+          : `Eres VITAS, un scout de fútbol IA de élite. Analiza estos ${imageBlocks.length} fotogramas del jugador:`;
+
+        const frameInstructionBlock = !hasGemini
+          ? `\nObserva cuidadosamente cada fotograma. Busca al jugador con dorsal ${ctx.jerseyNumber || "?"} y uniforme ${ctx.teamColor || "?"}.`
+          : "";
+
+        const prompt = `${introBlock}
+
+${playerDataBlock}
+${geminiContextBlock}${frameInstructionBlock}${similarityBlock}
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
@@ -138,8 +181,10 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
 
 Usa jugadores profesionales REALES para jugadorReferencia (usa IDs tipo "pro-nombre"). Basa tu análisis en lo que observas en los fotogramas. Sé honesto y específico. Responde en español.`;
 
-        // Build content array: images first, then text prompt
-        const content: unknown[] = [...imageBlocks, { type: "text", text: prompt }];
+        // Build content array: images only when no Gemini observations (fallback mode)
+        const content: unknown[] = hasGemini
+          ? [{ type: "text", text: prompt }]
+          : [...imageBlocks, { type: "text", text: prompt }];
 
         send("progress", { step: "Procesando con IA...", percent: 45 });
 
@@ -154,7 +199,7 @@ Usa jugadores profesionales REALES para jugadorReferencia (usa IDs tipo "pro-nom
             },
             body: JSON.stringify({
               model:      "claude-sonnet-4-20250514",
-              max_tokens: 4096,
+              max_tokens: 6000,
               messages:   [{ role: "user", content }],
             }),
           });
