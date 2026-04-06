@@ -336,13 +336,33 @@ def upload_to_supabase(curves: pd.DataFrame, history: pd.DataFrame):
         print("⚠️  Sin credenciales Supabase — solo CSV local")
         return
 
-    try:
-        from supabase import create_client
-    except ImportError:
-        print("⚠️  supabase-py no instalado — solo CSV local")
-        print("   Instala con: pip install supabase")
-        return
-    sb = create_client(SUPABASE_URL, SUPABASE_KEY)
+    import json
+    import urllib.request
+
+    headers = {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates",
+    }
+    batch_size = 500
+
+    def supabase_upsert(table: str, records: list):
+        url = f"{SUPABASE_URL}/rest/v1/{table}"
+        for i in range(0, len(records), batch_size):
+            batch = records[i:i + batch_size]
+            data = json.dumps(batch).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+            try:
+                with urllib.request.urlopen(req) as resp:
+                    pass  # 200/201 = ok
+            except Exception as e:
+                print(f"   ❌ Error en batch {i}-{i+len(batch)}: {e}")
+                # Try to read error body
+                if hasattr(e, 'read'):
+                    print(f"      {e.read().decode()[:200]}")
+                return False
+        return True
 
     # Upload curves
     print("\n⬆️  Subiendo development_curves...")
@@ -362,15 +382,8 @@ def upload_to_supabase(curves: pd.DataFrame, history: pd.DataFrame):
             "sample_size": int(row["sample_size"]),
         })
 
-    # Batch upsert (500 at a time)
-    batch_size = 500
-    for i in range(0, len(curve_records), batch_size):
-        batch = curve_records[i:i + batch_size]
-        sb.table("development_curves").upsert(
-            batch,
-            on_conflict="position_group,overall_bracket,age"
-        ).execute()
-    print(f"   ✅ {len(curve_records)} curvas subidas")
+    if supabase_upsert("development_curves", curve_records):
+        print(f"   ✅ {len(curve_records)} curvas subidas")
 
     # Upload history
     print("⬆️  Subiendo player_history...")
@@ -384,18 +397,16 @@ def upload_to_supabase(curves: pd.DataFrame, history: pd.DataFrame):
             "position": str(row.get("position", "")),
             "club": str(row.get("club", "")),
         }
+        # All records MUST have the same keys (Supabase REST requires it)
         for col in ["overall", "potential"] + METRICS:
-            if col in row and pd.notna(row[col]):
+            if col in row.index and pd.notna(row[col]):
                 record[col] = int(row[col])
+            else:
+                record[col] = None
         hist_records.append(record)
 
-    for i in range(0, len(hist_records), batch_size):
-        batch = hist_records[i:i + batch_size]
-        sb.table("player_history").upsert(
-            batch,
-            on_conflict="player_id,fifa_version"
-        ).execute()
-    print(f"   ✅ {len(hist_records)} registros históricos subidos")
+    if supabase_upsert("player_history", hist_records):
+        print(f"   ✅ {len(hist_records)} registros históricos subidos")
 
 
 def main():
