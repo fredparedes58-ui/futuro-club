@@ -127,10 +127,9 @@ export default function VideoCard({
             </div>
           )}
           <span className="text-[9px] text-muted-foreground font-display">
-            {new Date(video.dateUploaded).toLocaleDateString("es-ES", {
-              day: "numeric",
-              month: "short",
-            })}
+            {video.dateUploaded && !isNaN(new Date(video.dateUploaded).getTime())
+              ? new Date(video.dateUploaded).toLocaleDateString("es-ES", { day: "numeric", month: "short" })
+              : ""}
           </span>
         </div>
       </div>

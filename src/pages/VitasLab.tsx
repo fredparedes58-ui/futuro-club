@@ -37,6 +37,7 @@ import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
+import { extractKeyframesFromVideo, isLocalSrc } from "@/lib/localVideoUtils";
 
 interface CalibrationPoint {
   id: number;
@@ -309,61 +310,105 @@ const VitasLab = () => {
 
     setAnalysisState("running");
     const toastId = toast.loading("Iniciando análisis VITAS Intelligence…", {
-      description: "Procesando keyframes y generando informe con IA",
+      description: "Extrayendo keyframes y enviando a IA",
     });
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      // Pass auth token if available
-      const token = user
-        ? (() => {
-            try {
-              const stored = localStorage.getItem("sb-tloadypygzqyfefanrza-auth-token");
-              if (stored) {
-                const parsed = JSON.parse(stored) as { access_token?: string };
-                return parsed.access_token;
-              }
-            } catch { return null; }
-            return null;
-          })()
-        : null;
-      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const video = videos.find(v => v.id === selectedVideoId);
+      const playerData = players.find(p => p.id === selectedPlayerId);
+      if (!video || !playerData) throw new Error("Video o jugador no encontrado");
 
-      const res = await fetch("/api/pipeline/start", {
+      // 1. Extraer keyframes (local o Bunny CDN)
+      const videoSrc = isLocalSrc(video.localPath) ? video.localPath!
+        : isLocalSrc(video.streamUrl) ? video.streamUrl!
+        : undefined;
+
+      let keyframes: Array<{ url: string; timestamp: number; frameIndex: number }>;
+      if (videoSrc) {
+        toast.loading("Extrayendo fotogramas del video…", { id: toastId });
+        keyframes = await extractKeyframesFromVideo(videoSrc, (video.duration as number) || 90, 8);
+        if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+      } else {
+        // Bunny CDN thumbnails
+        const hostname = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
+        const duration = (video.duration as number) || 90;
+        keyframes = Array.from({ length: 8 }, (_, i) => {
+          const ts = Math.floor((duration / 9) * (i + 1));
+          return { url: `https://${hostname}/${video.id}/thumbnails/thumbnail_${String(ts).padStart(4, "0")}.jpg`, timestamp: ts, frameIndex: i };
+        });
+      }
+
+      toast.loading("Analizando con IA…", { id: toastId });
+
+      // 2. Llamar al agente via SSE
+      const res = await fetch("/api/agents/video-intelligence", {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          videoId:          selectedVideoId,
-          playerId:         selectedPlayerId,
-          analysisMode:     selectedMode,
-          homographyPoints: points,
-          jerseyNumber:     jerseyNumber.trim() || undefined,
-          teamColor:        teamColor.trim() || undefined,
+          playerId: playerData.id,
+          videoId: selectedVideoId,
+          playerContext: {
+            name: playerData.name,
+            age: playerData.age,
+            position: playerData.position,
+            foot: playerData.foot,
+            height: playerData.height,
+            weight: playerData.weight,
+            currentVSI: playerData.vsi,
+            jerseyNumber: jerseyNumber.trim() || undefined,
+            teamColor: teamColor.trim() || undefined,
+          },
+          keyframes,
+          videoDuration: (video.duration as number) || 90,
         }),
       });
 
-      const data = await res.json() as { success?: boolean; report?: AnalysisReport; error?: string; phase2Pending?: boolean };
+      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 
-      if (data.phase2Pending) {
-        toast.dismiss(toastId);
-        toast.warning("Configura las variables de Bunny Stream", {
-          description: "BUNNY_STREAM_LIBRARY_ID y BUNNY_STREAM_API_KEY en Vercel para activar el pipeline completo.",
-          duration: 6000,
-        });
-        setAnalysisState("idle");
-        return;
+      // 3. Leer SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let report: AnalysisReport | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split("\n\n");
+        buffer = chunks.pop() ?? "";
+
+        for (const chunk of chunks) {
+          if (!chunk.trim()) continue;
+          const eventMatch = chunk.match(/^event:\s*(.+)$/m);
+          const dataMatch = chunk.match(/^data:\s*(.+)$/m);
+          const eventType = eventMatch?.[1]?.trim();
+          const jsonStr = dataMatch?.[1]?.trim();
+          if (!jsonStr) continue;
+          try {
+            const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
+            if (eventType === "progress") {
+              toast.loading(parsed.step as string, { id: toastId });
+            } else if (eventType === "complete") {
+              report = parsed.report as AnalysisReport;
+            } else if (eventType === "error") {
+              throw new Error(parsed.message as string);
+            }
+          } catch (e) {
+            if (e instanceof Error && e.message !== jsonStr) throw e;
+          }
+        }
       }
+      reader.releaseLock();
 
-      if (!res.ok || !data.success || !data.report) {
-        throw new Error(data.error ?? "Error desconocido en el pipeline");
-      }
+      if (!report) throw new Error("El análisis no produjo resultado");
 
-      setAnalysisReport(data.report);
+      setAnalysisReport(report);
       setAnalysisState("done");
       SubscriptionService.incrementAnalysisCount();
       toast.dismiss(toastId);
       toast.success("¡Análisis completado!", {
-        description: `Informe VITAS Intelligence generado. Confianza: ${Math.round((data.report.confianza ?? 0) * 100)}%`,
+        description: `Informe VITAS Intelligence generado. Confianza: ${Math.round((report.confianza ?? 0) * 100)}%`,
         duration: 5000,
       });
       setShowResultsPanel(true);
@@ -789,7 +834,7 @@ const VitasLab = () => {
               )}
 
               {/* SPECIFIC PLAYER — jugador identificado por dorsal */}
-              {selectedMode === "specific" && (
+              {selectedMode === "player" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
                   <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Perfil del jugador</p>
                   <div className="grid grid-cols-2 gap-2">

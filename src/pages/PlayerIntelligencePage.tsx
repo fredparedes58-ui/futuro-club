@@ -392,31 +392,11 @@ export default function PlayerIntelligencePage() {
     (analyses && analyses[0]?.report as VideoIntelligenceOutput) ??
     null;
 
-  // Construir SimilarityMatch[] desde el informe
-  const top5Matches: SimilarityMatch[] = latestReport?.jugadorReferencia?.top5?.map(m => ({
-    player: {
-      id:            m.proPlayerId,
-      name:          m.nombre,
-      short_name:    m.nombre.split(" ").pop() ?? m.nombre,
-      overall:       0,
-      potential:     0,
-      age:           0,
-      nationality:   "",
-      club:          m.club,
-      league:        "",
-      position:      m.posicion,
-      positions:     [m.posicion],
-      foot:          "right" as const,
-      height:        0,
-      pace:          0, shooting: 0, passing: 0,
-      dribbling:     0, defending: 0, physic: 0,
-    },
-    score:         m.score,
-    positionMatch: true,
-  })) ?? similarityData?.top5 ?? [];
+  // Similitud: priorizar motor determinista (datos reales de PRO_PLAYERS) sobre Claude
+  const top5Matches: SimilarityMatch[] = similarityData?.top5 ?? [];
 
   const bestMatchData: SimilarityMatch | null =
-    top5Matches[0] ?? similarityData?.bestMatch ?? null;
+    similarityData?.bestMatch ?? top5Matches[0] ?? null;
 
   const handleRunAnalysis = async () => {
     if (!selectedVideoId) {

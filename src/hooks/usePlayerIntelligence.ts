@@ -236,6 +236,21 @@ export function usePlayerIntelligence(player: Player) {
 
           const savedAt = new Date().toISOString();
 
+          // Guardar análisis en Supabase para persistencia
+          if (SUPABASE_CONFIGURED) {
+            try {
+              await supabase.from("player_analyses").insert({
+                player_id:  player.id,
+                video_id:   videoId,
+                report:     analysisResult,
+                similarity: similarityData,
+                created_at: savedAt,
+              });
+            } catch (saveErr) {
+              console.warn("[Intelligence] No se pudo guardar en Supabase:", saveErr);
+            }
+          }
+
           setResult({
                     report:     analysisResult,
                     similarity: similarityData,
