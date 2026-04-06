@@ -156,25 +156,114 @@ export interface LocalKeyframe {
   frameIndex: number;
 }
 
-/** Extrae N keyframes espaciados del video local */
-export async function extractKeyframesFromVideo(
+/**
+ * Extrae N keyframes espaciados del video local.
+ * Usa UN SOLO video element para todos los frames (evita recargar 8 veces).
+ */
+export function extractKeyframesFromVideo(
   videoSrc: string,
   durationSec: number,
   count = 8
 ): Promise<LocalKeyframe[]> {
-  const keyframes: LocalKeyframe[] = [];
-  const effectiveDuration = Math.max(durationSec, 5);
-
-  for (let i = 0; i < count; i++) {
-    const timestamp = (effectiveDuration / (count + 1)) * (i + 1);
-    try {
-      const url = await extractThumbnailFromVideo(videoSrc, timestamp, 640, 360);
-      keyframes.push({ url, timestamp, frameIndex: i });
-    } catch {
-      // Si falla un frame, continuar con los demás
-      console.warn(`[LocalVideo] No se pudo extraer frame ${i} @ ${timestamp}s`);
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    // Solo crossOrigin para URLs externas
+    if (videoSrc.startsWith("http") && !videoSrc.startsWith(window.location.origin)) {
+      video.crossOrigin = "anonymous";
     }
-  }
+    video.src = videoSrc;
 
-  return keyframes;
+    const keyframes: LocalKeyframe[] = [];
+    const effectiveDuration = Math.max(durationSec, 5);
+    const timestamps = Array.from({ length: count }, (_, i) =>
+      (effectiveDuration / (count + 1)) * (i + 1)
+    );
+    let currentIdx = 0;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d");
+
+    function captureCurrentFrame() {
+      if (!ctx) return;
+      try {
+        ctx.drawImage(video, 0, 0, 640, 360);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        // Verificar que no sea un frame vacío (todo negro/transparente)
+        if (dataUrl.length > 500) {
+          keyframes.push({
+            url: dataUrl,
+            timestamp: timestamps[currentIdx],
+            frameIndex: currentIdx,
+          });
+        } else {
+          console.warn(`[LocalVideo] Frame ${currentIdx} vacío, saltando`);
+        }
+      } catch (err) {
+        console.warn(`[LocalVideo] Error capturando frame ${currentIdx}:`, err);
+      }
+    }
+
+    function seekToNext() {
+      currentIdx++;
+      if (currentIdx >= timestamps.length) {
+        // Terminamos — cleanup y resolver
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+        video.remove();
+        console.log(`[LocalVideo] Extraídos ${keyframes.length}/${count} keyframes`);
+        resolve(keyframes);
+        return;
+      }
+      const seekTo = Math.min(timestamps[currentIdx], Math.max(0, video.duration - 0.5));
+      video.currentTime = seekTo;
+    }
+
+    video.onseeked = () => {
+      captureCurrentFrame();
+      seekToNext();
+    };
+
+    video.onloadeddata = () => {
+      console.log(`[LocalVideo] Video cargado: ${video.duration}s, ${video.videoWidth}x${video.videoHeight}`);
+      // Ajustar canvas al aspect ratio real del video
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        const aspect = video.videoWidth / video.videoHeight;
+        canvas.width = 640;
+        canvas.height = Math.round(640 / aspect);
+      }
+      // Iniciar primera extracción
+      const seekTo = Math.min(timestamps[0], Math.max(0, video.duration - 0.5));
+      video.currentTime = seekTo;
+    };
+
+    video.onerror = () => {
+      const code = video.error?.code ?? 0;
+      const msg = video.error?.message ?? "desconocido";
+      console.error(`[LocalVideo] Error cargando video: code=${code}, msg=${msg}`);
+      video.remove();
+      // Si ya extrajimos algunos frames, devolver lo que tengamos
+      if (keyframes.length > 0) {
+        resolve(keyframes);
+      } else {
+        reject(new Error(`Error cargando video (code ${code}): ${msg}`));
+      }
+    };
+
+    // Timeout de seguridad global (30s para todos los frames)
+    setTimeout(() => {
+      if (currentIdx < timestamps.length) {
+        console.warn(`[LocalVideo] Timeout global — extraídos ${keyframes.length}/${count} frames`);
+        video.pause();
+        video.remove();
+        // Devolver lo que tengamos
+        resolve(keyframes);
+      }
+    }, 30000);
+  });
 }
