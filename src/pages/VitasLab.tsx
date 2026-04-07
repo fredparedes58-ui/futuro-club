@@ -647,7 +647,13 @@ const VitasLab = () => {
                   {players.map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => { setSelectedPlayerId(p.id); setShowPlayerDropdown(false); }}
+                      onClick={() => {
+                        setSelectedPlayerId(p.id);
+                        setShowPlayerDropdown(false);
+                        // Auto-rellenar campos del jugador para evitar redundancia
+                        if (p.name) setPlayerName(p.name);
+                        if (p.position) setPlayerPosition(p.position);
+                      }}
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/5 transition-colors flex items-center justify-between ${selectedPlayerId === p.id ? "text-primary font-semibold" : "text-foreground"}`}
                     >
                       <span>{p.name}</span>
@@ -665,7 +671,8 @@ const VitasLab = () => {
             )}
           </div>
 
-          {/* Identificación del jugador */}
+          {/* Identificación del jugador — solo visible en modos que NO tienen su propio panel de config */}
+          {(selectedMode === "all" || selectedMode === "team") && (
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
               Identificar Jugador
@@ -697,6 +704,7 @@ const VitasLab = () => {
               La IA buscará ese dorsal y color para centrar el análisis en ese jugador.
             </p>
           </div>
+          )}
 
           {/* Coordinate Realtime */}
           <div>
