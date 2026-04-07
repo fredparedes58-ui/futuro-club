@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|models/|assets/|icons/|sw\\.js|workbox-).*)", "destination": "/index.html" }
   ],
   "crons": [
     {
