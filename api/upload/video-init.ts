@@ -81,15 +81,13 @@ export default async function handler(req: Request): Promise<Response> {
       storageSize: number;
     };
 
-    // Step 2: Generate a one-time upload signature (SHA256 HMAC)
-    // Bunny Stream supports: AuthorizationSignature = SHA256(libraryId + apiKey + expirationTime + videoId)
+    // Step 2: Generate a one-time upload signature (plain SHA256)
+    // Bunny Stream: AuthorizationSignature = SHA256(libraryId + apiKey + expirationTime + videoId)
     const expirationTime = Math.floor(Date.now() / 1000) + 3600; // 1 hour
     const signatureInput = `${libraryId}${apiKey}${expirationTime}${video.guid}`;
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(apiKey);
     const msgData = encoder.encode(signatureInput);
-    const cryptoKey = await crypto.subtle.importKey("raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    const sigBuffer = await crypto.subtle.sign("HMAC", cryptoKey, msgData);
+    const sigBuffer = await crypto.subtle.digest("SHA-256", msgData);
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     // Return upload credentials — use signed auth, NEVER expose raw API key
