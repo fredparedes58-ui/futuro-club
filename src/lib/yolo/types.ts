@@ -36,18 +36,19 @@ export interface FieldPosition {
 }
 
 export interface Track {
-  id:           number;
-  bbox:         [number, number, number, number];
-  keypoints:    Keypoint[];
-  age:          number;       // frames sin match (0 = activo)
-  positions:    FieldPosition[];  // historial de posiciones en campo
-  lastFieldPos: FieldPoint | null;
+  id:              number;
+  bbox:            [number, number, number, number];
+  keypoints:       Keypoint[];
+  age:             number;       // frames sin match (0 = activo)
+  positions:       FieldPosition[];  // historial de posiciones en campo
+  lastFieldPos:    FieldPoint | null;
+  lastTimestampMs: number;       // timestamp del último frame procesado para este track
   // Métricas calculadas en tiempo real
-  speedMs:      number;       // velocidad actual m/s
-  smoothSpeedMs: number;      // velocidad suavizada (EMA)
-  accelMs2:     number;       // aceleración m/s²
-  distanceM:    number;       // distancia acumulada en metros
-  sprintCount:  number;
+  speedMs:         number;       // velocidad actual m/s
+  smoothSpeedMs:   number;       // velocidad suavizada (EMA)
+  accelMs2:        number;       // aceleración m/s²
+  distanceM:       number;       // distancia acumulada en metros
+  sprintCount:     number;
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────

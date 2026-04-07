@@ -128,10 +128,9 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
       cmd.imageData.height
     );
 
-    // 4. Actualizar tracker
+    // 4. Actualizar tracker (usa timestamps reales, no FPS hardcoded)
     const H = new Float64Array(cmd.homography);
-    const fps = 8; // FPS objetivo
-    const tracks = tracker.update(detections, H, cmd.timestampMs, fps);
+    const tracks = tracker.update(detections, H, cmd.timestampMs);
 
     send({
       type:       "RESULT",

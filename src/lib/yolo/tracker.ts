@@ -9,10 +9,18 @@
 import type { Detection, Track, FieldPosition } from "./types";
 import { pixelToField, fieldDistance } from "./homography";
 
-const EMA_ALPHA  = 0.35;   // suavizado de velocidad (exponential moving average)
-const MAX_AGE    = 8;       // frames sin match antes de eliminar track
-const IOU_THRESH = 0.25;    // umbral mínimo IoU para match
-const SPRINT_MS  = 5.83;    // m/s ≈ 21 km/h
+const EMA_ALPHA    = 0.35;   // suavizado de velocidad (exponential moving average)
+const MAX_AGE      = 8;       // frames sin match antes de eliminar track
+const IOU_THRESH   = 0.25;    // umbral mínimo IoU para match
+const SPRINT_MS    = 5.83;    // m/s ≈ 21 km/h
+
+// ── Sanity checks para evitar métricas absurdas ──────────────────────────────
+const MAX_SPEED_MS      = 12.5;  // 45 km/h — imposible en fútbol
+const MAX_DIST_PER_FRAME = 5.0;  // metros — un jugador NO se mueve 5m entre frames a 8fps
+const MIN_DT_S           = 0.05; // 50ms mínimo entre frames
+const MAX_DT_S           = 2.0;  // 2s máximo (si más, el track probablemente cambió)
+const FIELD_MAX_X        = 115;  // metros (campo + margen)
+const FIELD_MAX_Y        = 78;   // metros (campo + margen)
 
 export class CentroidTracker {
   private tracks  = new Map<number, Track>();
@@ -24,15 +32,12 @@ export class CentroidTracker {
    * @param detections  Detecciones YOLO del frame actual
    * @param H           Matriz de homografía (píxeles → metros)
    * @param timestampMs Timestamp del frame en ms
-   * @param fps         FPS de extracción (para calcular dt)
    */
   update(
     detections: Detection[],
     H: Float64Array,
     timestampMs: number,
-    fps: number
   ): Track[] {
-    const dt = fps > 0 ? 1 / fps : 0.1; // segundos entre frames
 
     // ── 1. Calcular matriz IoU entre tracks existentes y detecciones ──────────
     const trackList = [...this.tracks.values()];
@@ -65,34 +70,58 @@ export class CentroidTracker {
         const cy = det.bbox[1] + det.bbox[3] / 2;
         const fieldPos = pixelToField(H, cx, cy);
 
-        // Calcular velocidad y aceleración
+        // Sanity check: si las coordenadas de campo están fuera de rango,
+        // la homografía es inválida → no acumular métricas
+        const fieldValid = Math.abs(fieldPos.fx) < FIELD_MAX_X
+                        && Math.abs(fieldPos.fy) < FIELD_MAX_Y
+                        && isFinite(fieldPos.fx) && isFinite(fieldPos.fy);
+
+        // Calcular velocidad y aceleración usando timestamps REALES
         let speedMs = 0;
         let accelMs2 = 0;
-        if (track.lastFieldPos && dt > 0) {
-          const dist = fieldDistance(track.lastFieldPos, fieldPos);
-          speedMs  = dist / dt;
-          // EMA para suavizar
-          const smooth = EMA_ALPHA * speedMs + (1 - EMA_ALPHA) * track.smoothSpeedMs;
-          accelMs2 = (smooth - track.smoothSpeedMs) / dt;
+        if (track.lastFieldPos && track.lastTimestampMs > 0 && fieldValid) {
+          // dt REAL desde el último frame de ESTE track (no hardcoded)
+          const dt = (timestampMs - track.lastTimestampMs) / 1000;
 
+          // Solo calcular si dt está en rango razonable
+          if (dt >= MIN_DT_S && dt <= MAX_DT_S) {
+            const dist = fieldDistance(track.lastFieldPos, fieldPos);
+
+            // Sanity: si un jugador "salta" >5m en un frame, es un glitch de tracking
+            if (dist < MAX_DIST_PER_FRAME) {
+              speedMs = dist / dt;
+
+              // Clamp a velocidad física máxima (45 km/h)
+              speedMs = Math.min(speedMs, MAX_SPEED_MS);
+
+              // EMA para suavizar
+              const smooth = EMA_ALPHA * speedMs + (1 - EMA_ALPHA) * track.smoothSpeedMs;
+              accelMs2 = (smooth - track.smoothSpeedMs) / dt;
+
+              // Acumular distancia e intensidad
+              track.distanceM += dist;
+              if (speedMs > SPRINT_MS) track.sprintCount++;
+
+              track.speedMs       = speedMs;
+              track.smoothSpeedMs = smooth;
+              track.accelMs2      = Math.min(Math.abs(accelMs2), 8.0) * Math.sign(accelMs2); // clamp accel
+            }
+            // else: salto grande → mantener métricas anteriores, no acumular
+          }
+        }
+
+        // Almacenar posición si es válida
+        if (fieldValid) {
           const pos: FieldPosition = { fx: fieldPos.fx, fy: fieldPos.fy, timestampMs };
-          const prevLen = track.positions.length;
           track.positions.push(pos);
-
-          // Acumular distancia e intensidad
-          track.distanceM += dist;
-          if (speedMs > SPRINT_MS) track.sprintCount++;
-
-          track.speedMs       = speedMs;
-          track.smoothSpeedMs = smooth;
-          track.accelMs2      = accelMs2;
+          track.lastFieldPos    = fieldPos;
+          track.lastTimestampMs = timestampMs;
         }
 
         // Actualizar track
         track.bbox      = det.bbox;
         track.keypoints = det.keypoints;
         track.age       = 0;
-        track.lastFieldPos = fieldPos;
       }
     }
 
@@ -104,17 +133,18 @@ export class CentroidTracker {
       const fieldPos = pixelToField(H, cx, cy);
 
       const newTrack: Track = {
-        id:           this.nextId++,
-        bbox:         det.bbox,
-        keypoints:    det.keypoints,
-        age:          0,
-        positions:    [{ fx: fieldPos.fx, fy: fieldPos.fy, timestampMs }],
-        lastFieldPos: fieldPos,
-        speedMs:      0,
-        smoothSpeedMs: 0,
-        accelMs2:     0,
-        distanceM:    0,
-        sprintCount:  0,
+        id:              this.nextId++,
+        bbox:            det.bbox,
+        keypoints:       det.keypoints,
+        age:             0,
+        positions:       [{ fx: fieldPos.fx, fy: fieldPos.fy, timestampMs }],
+        lastFieldPos:    fieldPos,
+        lastTimestampMs: timestampMs,
+        speedMs:         0,
+        smoothSpeedMs:   0,
+        accelMs2:        0,
+        distanceM:       0,
+        sprintCount:     0,
       };
       this.tracks.set(newTrack.id, newTrack);
     });

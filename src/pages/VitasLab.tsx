@@ -26,6 +26,7 @@ import {
   Activity,
 } from "lucide-react";
 import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
+import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { useTracking } from "@/hooks/useTracking";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
@@ -894,7 +895,7 @@ const VitasLab = () => {
 
           {/* Tracking YOLO en vivo */}
           {showTracking && (
-            <div className="border-t border-border pt-3">
+            <div className="border-t border-border pt-3 space-y-3">
               <TrackingMetricsPanel
                 status={tracking.state.status}
                 tracks={tracking.state.currentTracks}
@@ -904,6 +905,20 @@ const VitasLab = () => {
                 duelCount={tracking.state.duelEvents.length}
                 onFocusTrack={tracking.setFocusTrackId}
               />
+
+              {/* Mapa de calor del jugador enfocado */}
+              {(() => {
+                const focusTrack = tracking.state.currentTracks.find(
+                  t => t.id === tracking.state.focusTrackId
+                );
+                const positions = focusTrack?.positions ?? [];
+                return positions.length > 0 ? (
+                  <PlayerHeatmap
+                    positions={positions}
+                    title={`Mapa de Calor — Jugador #${tracking.state.focusTrackId}`}
+                  />
+                ) : null;
+              })()}
             </div>
           )}
 
