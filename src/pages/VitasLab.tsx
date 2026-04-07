@@ -906,16 +906,27 @@ const VitasLab = () => {
                 onFocusTrack={tracking.setFocusTrackId}
               />
 
-              {/* Mapa de calor del jugador enfocado */}
+              {/* Mapa de calor — jugador individual o equipo completo */}
               {(() => {
-                const focusTrack = tracking.state.currentTracks.find(
-                  t => t.id === tracking.state.focusTrackId
-                );
-                const positions = focusTrack?.positions ?? [];
-                return positions.length > 0 ? (
+                if (tracking.state.focusTrackId) {
+                  // Modo jugador individual
+                  const focusTrack = tracking.state.currentTracks.find(
+                    t => t.id === tracking.state.focusTrackId
+                  );
+                  const positions = focusTrack?.positions ?? [];
+                  return positions.length > 0 ? (
+                    <PlayerHeatmap
+                      positions={positions}
+                      title={`Mapa de Calor — Jugador #${tracking.state.focusTrackId}`}
+                    />
+                  ) : null;
+                }
+                // Modo equipo: unir posiciones de todos los tracks
+                const allPositions = tracking.state.currentTracks.flatMap(t => t.positions);
+                return allPositions.length > 0 ? (
                   <PlayerHeatmap
-                    positions={positions}
-                    title={`Mapa de Calor — Jugador #${tracking.state.focusTrackId}`}
+                    positions={allPositions}
+                    title={`Mapa de Calor — Equipo (${tracking.state.currentTracks.length} jugadores)`}
                   />
                 ) : null;
               })()}
