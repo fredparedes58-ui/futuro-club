@@ -12,6 +12,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import * as tus from "tus-js-client";
 import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
 import { useAuth } from "@/context/AuthContext";
@@ -59,7 +60,7 @@ const POLL_MAX_ATTEMPTS = 60; // 4 min max wait
 
 export function useVideoUpload(playerId?: string) {
   const [state, setState] = useState<UploadState>(INITIAL);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const tusRef = useRef<tus.Upload | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -68,7 +69,7 @@ export function useVideoUpload(playerId?: string) {
     setState((prev) => ({ ...prev, phase, ...extra }));
 
   const reset = useCallback(() => {
-    xhrRef.current?.abort();
+    tusRef.current?.abort();
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     setState(INITIAL);
   }, []);
@@ -172,7 +173,8 @@ export function useVideoUpload(playerId?: string) {
           throw new Error(initData.error ?? "Init failed");
         }
 
-        const { videoId, uploadUrl, authSignature, authExpire } = initData.data!;
+        const { videoId, authSignature, authExpire } = initData.data!;
+        const libraryId = initData.data!.libraryId;
 
         // Create local stub
         const stubParams = {
@@ -190,36 +192,36 @@ export function useVideoUpload(playerId?: string) {
 
         setState((prev) => ({ ...prev, videoId, phase: "uploading" }));
 
-        // ── Step 2: Direct upload to Bunny via XHR ──────────────────────────
+        // ── Step 2: Upload to Bunny via TUS protocol (signed, resumable) ────
         await new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhrRef.current = xhr;
-
-          xhr.open("PUT", uploadUrl);
-          // Bunny REST upload with signed auth (no raw API key exposed)
-          xhr.setRequestHeader("AuthorizationSignature", authSignature);
-          xhr.setRequestHeader("AuthorizationExpire", String(authExpire));
-          xhr.setRequestHeader("Content-Type", "application/octet-stream");
-
-          xhr.upload.onprogress = (e) => {
-            if (e.lengthComputable) {
-              const pct = Math.round((e.loaded / e.total) * 100);
+          const tusUpload = new tus.Upload(file, {
+            endpoint: "https://video.bunnycdn.com/tusupload",
+            retryDelays: [0, 1000, 3000, 5000],
+            headers: {
+              AuthorizationSignature: authSignature,
+              AuthorizationExpire: String(authExpire),
+              VideoId: videoId,
+              LibraryId: String(libraryId),
+            },
+            metadata: {
+              filetype: file.type,
+              title: title ?? file.name,
+            },
+            onError: (error) => {
+              reject(new Error(`Upload failed: ${error.message || error}`));
+            },
+            onProgress: (bytesUploaded, bytesTotal) => {
+              const pct = Math.round((bytesUploaded / bytesTotal) * 100);
               setState((prev) => ({ ...prev, progress: pct }));
-            }
-          };
-
-          xhr.onload = () => {
-            if (xhr.status >= 200 && xhr.status < 300) {
+            },
+            onSuccess: () => {
               resolve();
-            } else {
-              reject(new Error(`Upload failed: HTTP ${xhr.status}`));
-            }
-          };
+            },
+          });
 
-          xhr.onerror = () => reject(new Error("XHR network error"));
-          xhr.onabort = () => reject(new Error("Upload cancelled"));
-
-          xhr.send(file);
+          // Store reference for cancel support
+          tusRef.current = tusUpload;
+          tusUpload.start();
         });
 
         // Construir embedUrl inmediatamente usando libraryId (no esperar polling)
@@ -360,7 +362,7 @@ export function useVideoUpload(playerId?: string) {
   );
 
   const cancel = useCallback(() => {
-    xhrRef.current?.abort();
+    tusRef.current?.abort();
     reset();
   }, [reset]);
 
