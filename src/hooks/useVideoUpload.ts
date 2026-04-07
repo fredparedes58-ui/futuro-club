@@ -23,6 +23,7 @@ import {
   extractVideoMetadata,
   extractThumbnailFromVideo,
 } from "@/lib/localVideoUtils";
+import { getErrorDetails } from "@/services/errorDiagnosticService";
 
 export type UploadPhase =
   | "idle"
@@ -354,8 +355,8 @@ export function useVideoUpload(playerId?: string) {
           queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Upload error";
-        setState((prev) => ({ ...prev, phase: "error", error: message }));
+        const { title, description } = getErrorDetails(err, "upload");
+        setState((prev) => ({ ...prev, phase: "error", error: `${title}. ${description}` }));
       }
     },
     [playerId, reset, queryClient, user]

@@ -36,6 +36,7 @@ import type { SimilarityMatch } from "@/services/real/similarityService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
+import { getErrorDetails } from "@/services/errorDiagnosticService";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -424,7 +425,8 @@ export default function PlayerIntelligencePage() {
       toast.success("¡Análisis completado!");
       setActiveTab("guardado");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error en el análisis");
+      const { title, description } = getErrorDetails(err, "intelligence");
+      toast.error(title, { description });
     }
   };
 

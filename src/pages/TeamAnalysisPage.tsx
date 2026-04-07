@@ -30,6 +30,7 @@ import type { TeamIntelligenceOutput } from "@/agents/contracts";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import { getErrorDetails } from "@/services/errorDiagnosticService";
 
 // ─── Helpers UI ──────────────────────────────────────────────────
 
@@ -321,7 +322,8 @@ export default function TeamAnalysisPage() {
       toast.success("¡Análisis de equipo completado!");
       setActiveTab("informe");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error en el análisis");
+      const { title, description } = getErrorDetails(err, "team-analysis");
+      toast.error(title, { description });
     }
   };
 
