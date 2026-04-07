@@ -212,7 +212,7 @@ const DirectorDashboard = () => {
           )}
 
           {/* Quick links */}
-          <motion.div variants={item} className="grid grid-cols-2 gap-3">
+          <motion.div variants={item} className="grid grid-cols-3 gap-3">
             <button
               onClick={() => navigate("/billing")}
               className="glass rounded-xl p-3 text-center hover:border-primary/30 border border-transparent transition-all"
@@ -226,6 +226,13 @@ const DirectorDashboard = () => {
             >
               <Users size={18} className="text-electric mx-auto mb-1" />
               <p className="text-xs font-display text-foreground">Base de datos</p>
+            </button>
+            <button
+              onClick={() => navigate("/team-analysis")}
+              className="glass rounded-xl p-3 text-center hover:border-primary/30 border border-transparent transition-all"
+            >
+              <Activity size={18} className="text-gold mx-auto mb-1" />
+              <p className="text-xs font-display text-foreground">Análisis equipo</p>
             </button>
           </motion.div>
         </>

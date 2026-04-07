@@ -332,6 +332,147 @@ export type VideoIntelligenceInput  = z.infer<typeof VideoIntelligenceInputSchem
 export type VideoIntelligenceOutput = z.infer<typeof VideoIntelligenceOutputSchema>;
 
 // ─────────────────────────────────────────
+// CONTRATO 6: Team Observation Agent (Gemini)
+// Observación táctica del equipo completo
+// ─────────────────────────────────────────
+
+export const TeamObservationOutputSchema = z.object({
+  formacionDetectada: z.string(),
+  posesionEstimada:   z.object({
+    equipo: z.number(),
+    rival:  z.number(),
+  }),
+  jugadoresObservados: z.array(z.object({
+    dorsalEstimado:  z.string().nullable(),
+    posicionEstimada: z.string(),
+    acciones: z.array(z.object({
+      timestamp:   z.string(),
+      tipo:        z.string(),
+      descripcion: z.string(),
+    })).max(8),
+    eventosContados: z.object({
+      pasesCompletados: z.number(),
+      pasesFallados:    z.number(),
+      recuperaciones:   z.number(),
+      duelosGanados:    z.number(),
+      duelosPerdidos:   z.number(),
+      disparosAlArco:   z.number(),
+      centros:          z.number(),
+    }),
+  })),
+  fasesJuego: z.object({
+    pressing: z.object({
+      tipo:           z.string(),
+      alturaLinea:    z.string(),
+      intensidad:     z.number().min(1).max(10),
+      observaciones:  z.array(z.string()).max(3),
+    }),
+    transicionOfensiva: z.object({
+      velocidad: z.string(),
+      patrones:  z.array(z.string()).max(3),
+    }),
+    transicionDefensiva: z.object({
+      velocidad: z.string(),
+      patrones:  z.array(z.string()).max(3),
+    }),
+    posesion: z.object({
+      estilo:   z.string(),
+      patrones: z.array(z.string()).max(3),
+    }),
+  }),
+  momentosColectivos: z.array(z.object({
+    timestamp:   z.string(),
+    tipo:        z.enum(["positivo", "negativo"]),
+    descripcion: z.string(),
+  })).max(6),
+  resumenGeneral: z.string(),
+});
+
+export type TeamObservationOutput = z.infer<typeof TeamObservationOutputSchema>;
+
+// ─────────────────────────────────────────
+// CONTRATO 7: Team Intelligence Agent (Claude)
+// Informe táctico completo del equipo
+// ─────────────────────────────────────────
+
+export const TeamIntelligenceOutputSchema = z.object({
+  videoId:      z.string(),
+  generatedAt:  z.string(),
+
+  equipoAnalizado: z.object({
+    colorUniforme:       z.string(),
+    jugadoresDetectados: z.number(),
+  }),
+
+  resumenEjecutivo: z.string().max(500),
+
+  formacion: z.object({
+    sistema:   z.string(),
+    variantes: z.array(z.string()).max(3),
+    rigidez:   z.number().min(1).max(10),
+  }),
+
+  posesion: z.object({
+    porcentaje:         z.number(),
+    estiloCirculacion:  z.string().max(200),
+    zonasDominadas:     z.array(z.string()).max(4),
+  }),
+
+  fasesJuego: z.object({
+    pressing: z.object({
+      tipo:        z.string(),
+      alturaLinea: z.enum(["alta", "media", "baja"]),
+      intensidad:  z.number().min(1).max(10),
+      descripcion: z.string().max(200),
+    }),
+    transiciones: z.object({
+      ofensiva: z.object({
+        velocidad:   z.string(),
+        patron:      z.string(),
+        descripcion: z.string().max(200),
+      }),
+      defensiva: z.object({
+        velocidad:   z.string(),
+        patron:      z.string(),
+        descripcion: z.string().max(200),
+      }),
+    }),
+  }),
+
+  metricasColectivas: z.object({
+    compacidad:            z.number().min(1).max(10),
+    alturaLineaDefensiva:  z.enum(["alta", "media", "baja"]),
+    amplitud:              z.number().min(1).max(10),
+    sincronizacion:        z.number().min(1).max(10),
+    descripcion:           z.string().max(300),
+  }),
+
+  jugadores: z.array(z.object({
+    dorsalEstimado:  z.string().nullable(),
+    posicion:        z.string(),
+    rol:             z.string().max(100),
+    rendimiento:     z.enum(["destacado", "bueno", "regular", "bajo"]),
+    velocidadMaxKmh: z.number().nullable(),
+    distanciaM:      z.number().nullable(),
+    pases:           z.object({ completados: z.number(), fallados: z.number() }),
+    duelos:          z.object({ ganados: z.number(), perdidos: z.number() }),
+    recuperaciones:  z.number(),
+    heatmapPositions: z.array(z.object({ fx: z.number(), fy: z.number() })).optional(),
+    resumen:         z.string().max(150),
+  })),
+
+  evaluacionGeneral: z.object({
+    fortalezasEquipo:  z.array(z.string()).max(4),
+    areasTrabajar:     z.array(z.string()).max(3),
+    recomendaciones:   z.array(z.string()).max(3),
+  }),
+
+  confianza: z.number().min(0).max(1),
+});
+
+export type TeamIntelligenceOutput = z.infer<typeof TeamIntelligenceOutputSchema>;
+
+// ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE
 // ─────────────────────────────────────────
 export interface AgentResponse<T> {
