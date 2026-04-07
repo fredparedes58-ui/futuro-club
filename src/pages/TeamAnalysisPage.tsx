@@ -17,13 +17,14 @@ import {
   ArrowLeft, Zap, Play, Users, Target, TrendingUp,
   Shield, AlertTriangle, CheckCircle, Loader2,
   ChevronDown, ChevronUp, Swords, MapPin, Activity,
+  GitCompare, ArrowUpRight, ArrowDownRight, Minus, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
-import { useTeamIntelligence } from "@/hooks/useTeamIntelligence";
+import { useTeamIntelligence, useAllTeamAnalyses } from "@/hooks/useTeamIntelligence";
 import VideoUpload from "@/components/VideoUpload";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import type { TeamIntelligenceOutput } from "@/agents/contracts";
@@ -31,6 +32,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
+import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 
 // ─── Helpers UI ──────────────────────────────────────────────────
 
@@ -284,6 +286,10 @@ export default function TeamAnalysisPage() {
   const [teamColor, setTeamColor] = useState("");
   const [opponentColor, setOpponentColor] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
+  const [analysisFocus, setAnalysisFocus] = useState<string[]>([]);
+  const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState(0);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIdx, setCompareIdx] = useState(1);
 
   const {
     state,
@@ -292,8 +298,17 @@ export default function TeamAnalysisPage() {
     runAnalysis,
   } = useTeamIntelligence();
 
+  const { data: savedAnalyses } = useAllTeamAnalyses();
+
   const allVideos = VideoService.getAll();
-  const report = analysisResult;
+  const savedReport = savedAnalyses && savedAnalyses[selectedAnalysisIdx]
+    ? (savedAnalyses[selectedAnalysisIdx].report as TeamIntelligenceOutput)
+    : null;
+  const report = analysisResult ?? savedReport;
+  const compareReport: TeamIntelligenceOutput | null =
+    compareMode && savedAnalyses && savedAnalyses[compareIdx]
+      ? (savedAnalyses[compareIdx].report as TeamIntelligenceOutput)
+      : null;
 
   const handleRunAnalysis = async () => {
     if (!selectedVideoId) {
@@ -318,6 +333,7 @@ export default function TeamAnalysisPage() {
         teamColor: teamColor.trim(),
         opponentColor: opponentColor.trim() || undefined,
         localVideoSrc: localSrc,
+        analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
       toast.success("¡Análisis de equipo completado!");
       setActiveTab("informe");
@@ -469,6 +485,9 @@ export default function TeamAnalysisPage() {
               </div>
             )}
 
+            {/* Selector de enfoque */}
+            <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />
+
             <Button
               className="w-full h-12 text-sm font-display font-bold gap-2"
               onClick={handleRunAnalysis}
@@ -488,6 +507,120 @@ export default function TeamAnalysisPage() {
           <>
             {report ? (
               <div className="space-y-4">
+
+                {/* Selector de análisis guardados */}
+                {savedAnalyses && savedAnalyses.length > 1 && (
+                  <div className="glass rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Video size={14} className="text-primary" />
+                        <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
+                          Análisis guardados ({savedAnalyses.length})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setCompareMode(m => !m)}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                          compareMode ? "bg-primary text-primary-foreground" : "text-primary hover:bg-primary/10"
+                        }`}
+                      >
+                        <GitCompare size={10} />
+                        {compareMode ? "Cerrar" : "Comparar"}
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {savedAnalyses.map((a: { video_id?: string; created_at?: string; report?: unknown }, idx: number) => {
+                        const r = a.report as TeamIntelligenceOutput | null;
+                        const videoTitle = a.video_id
+                          ? VideoService.getById(a.video_id)?.title ?? a.video_id
+                          : `Análisis ${savedAnalyses.length - idx}`;
+                        const date = a.created_at ? new Date(a.created_at).toLocaleDateString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+                        const isSelected = selectedAnalysisIdx === idx;
+                        const isCompare = compareMode && compareIdx === idx;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              if (compareMode && idx !== selectedAnalysisIdx) {
+                                setCompareIdx(idx);
+                              } else if (!compareMode) {
+                                setSelectedAnalysisIdx(idx);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
+                              isSelected ? "border-primary bg-primary/10" :
+                              isCompare ? "border-amber-500 bg-amber-500/10" :
+                              "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              isSelected ? "bg-primary text-primary-foreground" :
+                              isCompare ? "bg-amber-500 text-white" :
+                              "bg-secondary text-muted-foreground"
+                            }`}>
+                              {isSelected ? "A" : isCompare ? "B" : idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium text-foreground truncate">
+                                {r?.equipoAnalizado?.colorUniforme ? `Equipo ${r.equipoAnalizado.colorUniforme}` : videoTitle}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground">
+                                {date} · {r?.formacion?.sistema ?? "?"} · Confianza {Math.round((r?.confianza ?? 0) * 100)}%
+                              </p>
+                            </div>
+                            {isSelected && <Badge variant="secondary" className="text-[8px]">Actual</Badge>}
+                            {isCompare && <Badge className="text-[8px] bg-amber-500">Comparar</Badge>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Comparativa equipo */}
+                {compareReport && (
+                  <div className="glass rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <GitCompare size={14} className="text-primary" />
+                      <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
+                        Comparativa entre análisis
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "Compacidad", cur: report.metricasColectivas?.compacidad, prev: compareReport.metricasColectivas?.compacidad },
+                        { label: "Amplitud", cur: report.metricasColectivas?.amplitud, prev: compareReport.metricasColectivas?.amplitud },
+                        { label: "Sincronización", cur: report.metricasColectivas?.sincronizacion, prev: compareReport.metricasColectivas?.sincronizacion },
+                        { label: "Posesión %", cur: report.posesion?.porcentaje, prev: compareReport.posesion?.porcentaje },
+                      ].map(({ label, cur, prev }) => {
+                        const delta = (cur ?? 0) - (prev ?? 0);
+                        const DeltaIcon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
+                        const color = delta > 0 ? "text-green-400" : delta < 0 ? "text-red-400" : "text-muted-foreground";
+                        return (
+                          <div key={label} className="rounded-lg bg-secondary/50 p-2 flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground">{label}</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] font-mono">{prev ?? "?"}</span>
+                              <DeltaIcon size={10} className={color} />
+                              <span className={`text-[10px] font-mono font-bold ${color}`}>{cur ?? "?"}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-lg bg-secondary/50 p-2">
+                        <p className="text-[9px] text-muted-foreground">Formación anterior</p>
+                        <p className="text-[11px] font-bold">{compareReport.formacion?.sistema ?? "?"}</p>
+                      </div>
+                      <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
+                        <p className="text-[9px] text-primary">Formación actual</p>
+                        <p className="text-[11px] font-bold">{report.formacion?.sistema ?? "?"}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <ResumenFormacion report={report} />
                 <FasesJuego data={report.fasesJuego} />
                 <MetricasColectivas data={report.metricasColectivas} />

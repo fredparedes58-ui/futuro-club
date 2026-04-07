@@ -196,8 +196,9 @@ export function usePlayerIntelligence(player: Player) {
         localVideoSrc?:   string; // blob: URL para videos locales
         physicalMetrics?: PhysicalMetrics; // métricas YOLO de sesión de tracking previa
         trackPositions?:  FieldPosition[]; // posiciones del jugador para heatmap
+        analysisFocus?:   string[]; // enfoque: ofensivas, defensivas, recuperación, duelos
   }) => {
-        const { videoId, videoDuration, jerseyNumber, teamColor, localVideoSrc, physicalMetrics, trackPositions } = opts;
+        const { videoId, videoDuration, jerseyNumber, teamColor, localVideoSrc, physicalMetrics, trackPositions, analysisFocus } = opts;
         setState({ step: "keyframes", progress: 10, message: "Obteniendo keyframes del video..." });
 
         try {
@@ -343,6 +344,7 @@ export function usePlayerIntelligence(player: Player) {
                 },
               } : null,
               geminiEventCounts: geminiObservations?.eventosContados ?? null,
+              analysisFocus: analysisFocus ?? null,
             },
             (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
           );

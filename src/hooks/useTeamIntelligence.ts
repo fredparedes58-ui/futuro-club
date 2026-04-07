@@ -103,8 +103,9 @@ export function useTeamIntelligence() {
     competitiveLevel?: string;
     localVideoSrc?:   string;
     yoloTracks?:      Track[];
+    analysisFocus?:   string[];
   }) => {
-    const { videoId, videoDuration, teamColor, opponentColor, competitiveLevel, localVideoSrc, yoloTracks } = opts;
+    const { videoId, videoDuration, teamColor, opponentColor, competitiveLevel, localVideoSrc, yoloTracks, analysisFocus } = opts;
     setState({ step: "analyzing", progress: 10, message: "Preparando video para análisis de equipo..." });
 
     try {
@@ -186,6 +187,7 @@ export function useTeamIntelligence() {
           keyframes,
           videoId,
           yoloTrackData,
+          analysisFocus: analysisFocus ?? null,
         },
         (msg) => setState(prev => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
       );
@@ -257,6 +259,25 @@ export function useSavedTeamAnalyses(videoId: string) {
       return data ?? [];
     },
     enabled:   !!videoId && SUPABASE_CONFIGURED,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/** Trae TODOS los análisis de equipo del usuario (sin filtrar por video) */
+export function useAllTeamAnalyses() {
+  return useQuery({
+    queryKey: ["team-analyses-all"],
+    queryFn:  async () => {
+      if (!SUPABASE_CONFIGURED) return [];
+      const { data, error } = await supabase
+        .from("team_analyses")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: SUPABASE_CONFIGURED,
     staleTime: 1000 * 60 * 5,
   });
 }

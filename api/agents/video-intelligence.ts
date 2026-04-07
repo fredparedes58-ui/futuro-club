@@ -26,7 +26,7 @@ export default async function handler(req: Request): Promise<Response> {
       try {
         send("progress", { step: "Iniciando VITAS Intelligence...", percent: 5 });
         const body = await req.json();
-        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges, physicalMetrics, geminiEventCounts } = body;
+        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges, physicalMetrics, geminiEventCounts, analysisFocus } = body;
 
         if (!playerContext) {
           send("error", { message: "Faltan datos requeridos (playerContext)" });
@@ -176,6 +176,9 @@ Estos conteos provienen de la observación del video completo. Intégralos en tu
 
 ${playerDataBlock}
 ${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}${physicalBlock}${eventCountsBlock}
+${analysisFocus ? `
+ENFOQUE DEL ANÁLISIS: El usuario pidió que te CONCENTRES especialmente en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
+Dedica más detalle a estas áreas en el resumen ejecutivo, observaciones por dimensión, patrones ADN, y plan de desarrollo. Los scores de las dimensiones deben reflejar con mayor precisión el rendimiento en estas áreas específicas. Las fortalezas y áreas de desarrollo deben priorizar estas acciones.` : ""}
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 

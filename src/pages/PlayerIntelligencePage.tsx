@@ -38,6 +38,7 @@ import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
+import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -463,6 +464,7 @@ export default function PlayerIntelligencePage() {
   const [showCard, setShowCard] = useState(false);
   const [jerseyNumber, setJerseyNumber] = useState<string>("");
   const [teamColor, setTeamColor] = useState<string>("");
+  const [analysisFocus, setAnalysisFocus] = useState<string[]>([]);
 
   const player = id ? PlayerService.getById(id) : null;
   const { data: analyses, isLoading: loadingAnalyses } = useSavedAnalyses(id ?? "");
@@ -538,6 +540,7 @@ export default function PlayerIntelligencePage() {
         jerseyNumber: jerseyNumber.trim() || undefined,
         teamColor: teamColor.trim() || undefined,
         localVideoSrc: localSrc,
+        analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
       toast.success("¡Análisis completado!");
       setActiveTab("guardado");
@@ -709,6 +712,9 @@ export default function PlayerIntelligencePage() {
                 La IA buscará específicamente ese dorsal y color en los fotogramas del video para centrar el análisis en ese jugador.
               </p>
             </div>
+
+            {/* Selector de enfoque */}
+            <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />
 
             <Button
               className="w-full h-12 text-sm font-display font-bold gap-2"

@@ -38,6 +38,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
 import { extractKeyframesFromVideo, isLocalSrc } from "@/lib/localVideoUtils";
+import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 
 interface CalibrationPoint {
   id: number;
@@ -157,6 +158,7 @@ const VitasLab = () => {
   // Configuración por modo de análisis
   const [homeTeamColor, setHomeTeamColor]       = useState<string>("");
   const [awayTeamColor, setAwayTeamColor]       = useState<string>("");
+  const [analysisFocus, setAnalysisFocus]       = useState<string[]>([]);
   const [homeFormation, setHomeFormation]       = useState<string>("4-3-3");
   const [awayFormation, setAwayFormation]       = useState<string>("4-4-2");
   const [playerName, setPlayerName]             = useState<string>("");
@@ -360,6 +362,7 @@ const VitasLab = () => {
           },
           keyframes,
           videoDuration: (video.duration as number) || 90,
+          analysisFocus: analysisFocus.length > 0 ? analysisFocus : null,
         }),
       });
 
@@ -883,6 +886,9 @@ const VitasLab = () => {
                   <p className="text-[9px] text-muted-foreground">* Obligatorio para identificar al jugador en el video con precisión.</p>
                 </div>
               )}
+
+              {/* Selector de enfoque del análisis */}
+              <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />
             </div>
           </div>
 

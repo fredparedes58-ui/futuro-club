@@ -26,7 +26,7 @@ export default async function handler(req: Request): Promise<Response> {
       try {
         send("progress", { step: "Iniciando análisis de equipo...", percent: 5 });
         const body = await req.json();
-        const { teamContext, geminiObservations, keyframes, videoId, yoloTrackData } = body;
+        const { teamContext, geminiObservations, keyframes, videoId, yoloTrackData, analysisFocus } = body;
 
         if (!teamContext) {
           send("error", { message: "Faltan datos requeridos (teamContext)" });
@@ -130,6 +130,9 @@ DATOS DEL EQUIPO:
 - Color rival: ${ctx.opponentColor || "no especificado"}
 - Nivel competitivo: ${ctx.competitiveLevel || "formativo"}
 ${geminiBlock}${frameInstructionBlock}${yoloBlock}
+${analysisFocus ? `
+ENFOQUE DEL ANÁLISIS: Concentra especialmente el análisis en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
+Dedica más detalle a estas acciones en el resumen ejecutivo, fases de juego, métricas colectivas y per-jugador. Si el enfoque es defensivo, profundiza en pressing, línea defensiva, recuperaciones. Si es ofensivo, profundiza en circulación, transiciones ofensivas, centros, disparos.` : ""}
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
