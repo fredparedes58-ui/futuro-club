@@ -231,8 +231,9 @@ export function useTracking(options: UseTrackingOptions) {
     // Inicializar worker y cargar modelo
     // Fallback chain: 1) Bunny CDN, 2) public/ local
     const worker = initWorker();
-    const modelUrl = hostname
-      ? `https://${hostname}/models/yolov8n-pose.onnx`
+    const cdnHost = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
+    const modelUrl = cdnHost
+      ? `https://${cdnHost}/models/yolov8n-pose.onnx`
       : "/models/yolov8n-pose.onnx";
 
     worker.postMessage({ type: "INIT", modelUrl });
