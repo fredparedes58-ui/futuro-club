@@ -34,6 +34,8 @@ import VideoUpload from "@/components/VideoUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
+import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
+import PlayerHeatmap from "@/components/PlayerHeatmap";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -630,6 +632,20 @@ export default function PlayerIntelligencePage() {
               <div className="space-y-4">
                 {/* Estado Actual */}
                 <EstadoActual data={latestReport.estadoActual} />
+
+                {/* Métricas Cuantitativas */}
+                {latestReport.metricasCuantitativas && (
+                  <QuantitativeMetricsPanel data={latestReport.metricasCuantitativas} />
+                )}
+
+                {/* Mapa de Calor */}
+                {latestReport.metricasCuantitativas?.heatmapPositions &&
+                  latestReport.metricasCuantitativas.heatmapPositions.length > 0 && (
+                  <PlayerHeatmap
+                    positions={latestReport.metricasCuantitativas.heatmapPositions}
+                    title={`Mapa de Calor — ${player.name}`}
+                  />
+                )}
 
                 {/* ADN */}
                 <ADNFutbolistico data={latestReport.adnFutbolistico} />

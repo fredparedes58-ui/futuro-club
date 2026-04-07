@@ -26,6 +26,17 @@ interface GeminiObservation {
   }>;
   patronesJuego: string[];
   resumenGeneral: string;
+  eventosContados: {
+    pasesCompletados: number;
+    pasesFallados: number;
+    recuperaciones: number;
+    duelosGanados: number;
+    duelosPerdidos: number;
+    disparosAlArco: number;
+    disparosFuera: number;
+    centros: number;
+    faltas: number;
+  };
 }
 
 export default async function handler(req: Request): Promise<Response> {
@@ -72,6 +83,7 @@ INSTRUCCIONES:
 2. Identifica al jugador objetivo y sigue cada una de sus acciones
 3. Anota timestamps precisos de cada acción relevante
 4. Evalúa cada dimensión basándote SOLO en lo que observas
+5. CUENTA con precisión cada evento del jugador: pases completados/fallados, recuperaciones, duelos, disparos, centros, faltas
 
 Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin backticks):
 
@@ -93,7 +105,18 @@ Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin
     {"timestamp": "5:10", "tipo": "negativo", "descripcion": "Pierde balón por exceso de confianza en zona peligrosa"}
   ],
   "patronesJuego": ["Tiende a asociarse por banda derecha", "Busca el 1v1 en velocidad", "Se ofrece como pivote de descarga"],
-  "resumenGeneral": "Jugador con buen pie y visión de juego. Destaca en la toma de decisiones y lectura táctica para su edad. Necesita mejorar intensidad defensiva y presencia física en duelos aéreos."
+  "resumenGeneral": "Jugador con buen pie y visión de juego. Destaca en la toma de decisiones y lectura táctica para su edad. Necesita mejorar intensidad defensiva y presencia física en duelos aéreos.",
+  "eventosContados": {
+    "pasesCompletados": 12,
+    "pasesFallados": 3,
+    "recuperaciones": 2,
+    "duelosGanados": 3,
+    "duelosPerdidos": 1,
+    "disparosAlArco": 1,
+    "disparosFuera": 0,
+    "centros": 2,
+    "faltas": 0
+  }
 }
 
 REGLAS:
@@ -102,6 +125,7 @@ REGLAS:
 - Scores: 1-10, sé honesto y objetivo para la edad del jugador
 - Mínimo 10 entradas en timeline, 3 momentos destacados
 - Describe lo que VES, no lo que asumes
+- eventosContados: cuenta CADA evento individualmente mirando el video. Si no puedes confirmar un evento, no lo cuentes. Es mejor sub-contar que inventar.
 - Responde en español
 - Solo JSON válido, sin markdown ni backticks`;
 

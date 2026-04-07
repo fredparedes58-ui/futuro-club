@@ -290,6 +290,38 @@ export const VideoIntelligenceOutputSchema = z.object({
     recomendacionEntrenador: z.string().max(300),
   }),
 
+  // Sección 6: Métricas Cuantitativas (opcionales — dependen de fuente de datos)
+  metricasCuantitativas: z.object({
+    fisicas: z.object({
+      velocidadMaxKmh:   z.number(),
+      velocidadPromKmh:  z.number(),
+      distanciaM:        z.number(),
+      sprints:           z.number(),
+      zonasIntensidad:   z.object({
+        caminar: z.number(),
+        trotar:  z.number(),
+        correr:  z.number(),
+        sprint:  z.number(),
+      }),
+    }).optional(),
+    eventos: z.object({
+      pasesCompletados: z.number(),
+      pasesFallados:    z.number(),
+      precisionPases:   z.number(),
+      recuperaciones:   z.number(),
+      duelosGanados:    z.number(),
+      duelosPerdidos:   z.number(),
+      disparosAlArco:   z.number(),
+      disparosFuera:    z.number(),
+    }).optional(),
+    fuente:    z.enum(["yolo+gemini", "gemini_only", "yolo_only"]),
+    confianza: z.number().min(0).max(1),
+    heatmapPositions: z.array(z.object({
+      fx: z.number(),
+      fy: z.number(),
+    })).optional(),
+  }).optional(),
+
   // Meta
   confianza:          z.number().min(0).max(1),
   tokensUsados:       z.number().optional(),

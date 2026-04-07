@@ -26,7 +26,7 @@ export default async function handler(req: Request): Promise<Response> {
       try {
         send("progress", { step: "Iniciando VITAS Intelligence...", percent: 5 });
         const body = await req.json();
-        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges } = body;
+        const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges, physicalMetrics, geminiEventCounts } = body;
 
         if (!playerContext) {
           send("error", { message: "Faltan datos requeridos (playerContext)" });
@@ -150,10 +150,32 @@ ${monthlyChallenges.challenges.map((c: { month: number; title: string; metric: s
 
 INTEGRA estos retos en la sección "retosDesarrollo" del JSON. Adapta el lenguaje al jugador.` : "";
 
+        // Bloque de métricas cuantitativas
+        const physicalBlock = physicalMetrics ? `
+MÉTRICAS FÍSICAS (tracking por computadora, datos objetivos):
+- Velocidad máxima: ${physicalMetrics.maxSpeedKmh?.toFixed(1)} km/h
+- Velocidad promedio: ${physicalMetrics.avgSpeedKmh?.toFixed(1)} km/h
+- Distancia recorrida: ${physicalMetrics.distanceM?.toFixed(0)} m
+- Sprints (>21 km/h): ${physicalMetrics.sprints}
+- Duelos (tracking): ${physicalMetrics.duelsWon}G / ${physicalMetrics.duelsLost}P
+- Zonas: caminar ${physicalMetrics.intensityZones?.walk?.toFixed(0)}m | trote ${physicalMetrics.intensityZones?.jog?.toFixed(0)}m | carrera ${physicalMetrics.intensityZones?.run?.toFixed(0)}m | sprint ${physicalMetrics.intensityZones?.sprint?.toFixed(0)}m
+
+Estos son datos medidos por computadora, NO estimaciones. Úsalos como referencia objetiva.` : "";
+
+        const eventCountsBlock = geminiEventCounts ? `
+EVENTOS CONTADOS (observación IA del video completo):
+- Pases completados: ${geminiEventCounts.pasesCompletados ?? 0} | Fallados: ${geminiEventCounts.pasesFallados ?? 0} | Precisión: ${((geminiEventCounts.pasesCompletados ?? 0) + (geminiEventCounts.pasesFallados ?? 0)) > 0 ? Math.round(((geminiEventCounts.pasesCompletados ?? 0) / ((geminiEventCounts.pasesCompletados ?? 0) + (geminiEventCounts.pasesFallados ?? 0))) * 100) : 0}%
+- Recuperaciones: ${geminiEventCounts.recuperaciones ?? 0}
+- Duelos ganados: ${geminiEventCounts.duelosGanados ?? 0} | Perdidos: ${geminiEventCounts.duelosPerdidos ?? 0}
+- Disparos al arco: ${geminiEventCounts.disparosAlArco ?? 0} | Fuera: ${geminiEventCounts.disparosFuera ?? 0}
+- Centros: ${geminiEventCounts.centros ?? 0} | Faltas: ${geminiEventCounts.faltas ?? 0}
+
+Estos conteos provienen de la observación del video completo. Intégralos en tu análisis.` : "";
+
         const prompt = `${introBlock}
 
 ${playerDataBlock}
-${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}
+${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}${physicalBlock}${eventCountsBlock}
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 

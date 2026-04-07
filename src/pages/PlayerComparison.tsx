@@ -124,14 +124,14 @@ const PlayerComparison = () => {
 
   const { data: simA } = useQuery({
     queryKey: ["similarity-compare", rawA?.id],
-    queryFn:  () => rawA ? findSimilarPlayers(rawA.metrics, rawA.position) : null,
+    queryFn:  () => rawA ? findSimilarPlayers(rawA.metrics, rawA.position, { youthAge: rawA.age }) : null,
     enabled:  !!rawA,
     staleTime: 1000 * 60 * 10,
   });
 
   const { data: simB } = useQuery({
     queryKey: ["similarity-compare", rawB?.id],
-    queryFn:  () => rawB ? findSimilarPlayers(rawB.metrics, rawB.position) : null,
+    queryFn:  () => rawB ? findSimilarPlayers(rawB.metrics, rawB.position, { youthAge: rawB.age }) : null,
     enabled:  !!rawB,
     staleTime: 1000 * 60 * 10,
   });
