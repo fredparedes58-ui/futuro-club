@@ -209,10 +209,10 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
     "bestMatch": {"proPlayerId":"id","nombre":"string","posicion":"string","club":"string","score":0-100,"narrativa":"string max 300"}
   },
   "proyeccionCarrera": {
-    "escenarioOptimista": {"descripcion":"string max 300","nivelProyecto":"string","clubTipo":"string","edadPeak":number},
-    "escenarioRealista": {"descripcion":"string max 300","nivelProyecto":"string","clubTipo":"string"},
-    "factoresClave": ["max 4 strings"],
-    "riesgos": ["max 3 strings"],
+    "escenarioOptimista": {"descripcion":"string max 300 — DEBE mencionar evidencias concretas del video","nivelProyecto":"string","clubTipo":"string","edadPeak":number},
+    "escenarioRealista": {"descripcion":"string max 300 — DEBE mencionar evidencias concretas del video","nivelProyecto":"string","clubTipo":"string"},
+    "factoresClave": ["max 4 strings — al menos 2 deben venir de lo observado en video"],
+    "riesgos": ["max 3 strings — al menos 1 debe venir de lo observado en video"],
     "kpis": {
       "pctOfPeak": number,
       "vsiProyectado18": {"estimado":number,"bajo":number,"alto":number},
@@ -237,7 +237,12 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
   "modeloUsado": "claude-sonnet-4-20250514"
 }
 
-Usa jugadores profesionales REALES para jugadorReferencia (usa IDs tipo "pro-nombre"). Basa tu análisis en lo que observas en los fotogramas. Sé honesto y específico. Responde en español.`;
+REGLAS CRÍTICAS:
+- Usa jugadores profesionales REALES para jugadorReferencia (usa IDs tipo "pro-nombre")
+- Basa tu análisis en lo que observas en el video/fotogramas. Sé honesto y específico
+- PROYECCIÓN DE CARRERA: La proyección DEBE cambiar según lo que se observa en cada video. NO repitas proyecciones genéricas. Cita acciones específicas del video que justifiquen la proyección (ej: "su capacidad de desmarque mostrada en el minuto 2:15 sugiere potencial para..."). Si el video muestra bajo rendimiento, la proyección debe reflejarlo
+- DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimiento mostrado en ESTE video específico. Scores, proyecciones y observaciones deben variar si el rendimiento es diferente
+- Responde en español.`;
 
         // Build content array: images only when no Gemini observations (fallback mode)
         const content: unknown[] = hasGemini

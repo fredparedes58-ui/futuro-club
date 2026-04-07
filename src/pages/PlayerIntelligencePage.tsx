@@ -18,7 +18,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Play, Brain, Target, TrendingUp,
   ClipboardList, Star, AlertTriangle, CheckCircle, Clock,
-  ChevronDown, ChevronUp, RefreshCw, Loader2,
+  ChevronDown, ChevronUp, RefreshCw, Loader2, GitCompare,
+  ArrowUpRight, ArrowDownRight, Minus, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -347,6 +348,111 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
   );
 }
 
+// ─── Comparativa entre análisis ───────────────────────────────────────────────
+
+function ScoreDelta({ label, current, previous }: { label: string; current: number; previous: number }) {
+  const delta = current - previous;
+  const Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
+  const color = delta > 0 ? "text-green-400" : delta < 0 ? "text-red-400" : "text-muted-foreground";
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-foreground font-mono">{previous}</span>
+        <Icon size={12} className={color} />
+        <span className={`text-[11px] font-mono font-bold ${color}`}>{current}</span>
+        {delta !== 0 && (
+          <span className={`text-[9px] font-bold ${color}`}>({delta > 0 ? "+" : ""}{delta})</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalysisComparison({ current, previous, currentDate, previousDate }: {
+  current: VideoIntelligenceOutput;
+  previous: VideoIntelligenceOutput;
+  currentDate: string;
+  previousDate: string;
+}) {
+  const dims = current.estadoActual?.dimensiones;
+  const prevDims = previous.estadoActual?.dimensiones;
+  if (!dims || !prevDims) return null;
+
+  const dimensionLabels: Record<string, string> = {
+    velocidadDecision: "Velocidad decisión",
+    tecnicaConBalon: "Técnica con balón",
+    inteligenciaTactica: "Inteligencia táctica",
+    capacidadFisica: "Capacidad física",
+    liderazgoPresencia: "Liderazgo",
+    eficaciaCompetitiva: "Eficacia competitiva",
+  };
+
+  // Calcular evolución general
+  const currentAvg = Object.values(dims).reduce((s, d) => s + (d?.score ?? 0), 0) / Object.keys(dims).length;
+  const prevAvg = Object.values(prevDims).reduce((s, d) => s + (d?.score ?? 0), 0) / Object.keys(prevDims).length;
+  const avgDelta = currentAvg - prevAvg;
+
+  return (
+    <div className="glass rounded-2xl p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <GitCompare size={14} className="text-primary" />
+        <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
+          Comparativa entre análisis
+        </span>
+      </div>
+
+      {/* Resumen evolución */}
+      <div className={`rounded-xl p-3 border ${avgDelta >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+        <div className="flex items-center gap-2 mb-1">
+          {avgDelta >= 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+          <span className="text-xs font-bold text-foreground">
+            {avgDelta > 0 ? "Progreso detectado" : avgDelta < 0 ? "Regresión detectada" : "Sin cambios"}
+          </span>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Promedio: {prevAvg.toFixed(1)} → {currentAvg.toFixed(1)} ({avgDelta >= 0 ? "+" : ""}{avgDelta.toFixed(1)})
+        </p>
+        <p className="text-[9px] text-muted-foreground mt-1">
+          {new Date(previousDate).toLocaleDateString("es")} vs {new Date(currentDate).toLocaleDateString("es")}
+        </p>
+      </div>
+
+      {/* Detalle por dimensión */}
+      <div className="space-y-0.5">
+        {Object.entries(dimensionLabels).map(([key, label]) => {
+          const cur = (dims as Record<string, { score: number }>)[key]?.score ?? 0;
+          const prev = (prevDims as Record<string, { score: number }>)[key]?.score ?? 0;
+          return <ScoreDelta key={key} label={label} current={cur} previous={prev} />;
+        })}
+      </div>
+
+      {/* Proyección comparada */}
+      {current.proyeccionCarrera?.escenarioRealista && previous.proyeccionCarrera?.escenarioRealista && (
+        <div className="border-t border-border pt-3 space-y-1.5">
+          <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">Proyección</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-lg bg-secondary/50 p-2">
+              <p className="text-[9px] text-muted-foreground">Anterior</p>
+              <p className="text-[11px] font-bold text-foreground">{previous.proyeccionCarrera.escenarioRealista.nivelProyecto ?? "—"}</p>
+            </div>
+            <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
+              <p className="text-[9px] text-primary">Actual</p>
+              <p className="text-[11px] font-bold text-foreground">{current.proyeccionCarrera.escenarioRealista.nivelProyecto ?? "—"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confianza comparada */}
+      <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-1">
+        <span>Confianza anterior: {Math.round((previous.confianza ?? 0) * 100)}%</span>
+        <span>Confianza actual: {Math.round((current.confianza ?? 0) * 100)}%</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function PlayerIntelligencePage() {
@@ -389,11 +495,22 @@ export default function PlayerIntelligencePage() {
     return VideoService.getAll();
   })();
 
-  // Informe a mostrar: último análisis guardado o el recién generado
-  const latestReport: VideoIntelligenceOutput | null =
-    analysisResult ??
-    (analyses && analyses[0]?.report as VideoIntelligenceOutput) ??
-    null;
+  // Selector de análisis guardado (por video)
+  const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIdx, setCompareIdx] = useState<number>(1);
+
+  // Informe a mostrar: el recién generado o el seleccionado del historial
+  const savedReport = analyses && analyses[selectedAnalysisIdx]
+    ? (analyses[selectedAnalysisIdx].report as VideoIntelligenceOutput)
+    : null;
+  const latestReport: VideoIntelligenceOutput | null = analysisResult ?? savedReport;
+
+  // Para comparativa
+  const compareReport: VideoIntelligenceOutput | null =
+    compareMode && analyses && analyses[compareIdx]
+      ? (analyses[compareIdx].report as VideoIntelligenceOutput)
+      : null;
 
   // Similitud: priorizar motor determinista (datos reales de PRO_PLAYERS) sobre Claude
   const top5Matches: SimilarityMatch[] = similarityData?.top5 ?? [];
@@ -623,7 +740,7 @@ export default function PlayerIntelligencePage() {
           </div>
         )}
 
-        {/* ── ÚLTIMO INFORME ── */}
+        {/* ── INFORME ── */}
         {activeTab === "guardado" && (
           <>
             {loadingAnalyses ? (
@@ -632,6 +749,87 @@ export default function PlayerIntelligencePage() {
               </div>
             ) : latestReport ? (
               <div className="space-y-4">
+
+                {/* Selector de análisis por video */}
+                {analyses && analyses.length > 1 && (
+                  <div className="glass rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Video size={14} className="text-primary" />
+                        <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
+                          Análisis guardados ({analyses.length})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setCompareMode(m => !m)}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg transition-all ${
+                          compareMode ? "bg-primary text-primary-foreground" : "text-primary hover:bg-primary/10"
+                        }`}
+                      >
+                        <GitCompare size={10} />
+                        {compareMode ? "Cerrar" : "Comparar"}
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {analyses.map((a: { video_id?: string; created_at?: string; report?: unknown }, idx: number) => {
+                        const report = a.report as VideoIntelligenceOutput | null;
+                        const videoTitle = report?.videoId && report.videoId !== "unknown"
+                          ? VideoService.getById(report.videoId)?.title ?? report.videoId
+                          : `Análisis ${analyses.length - idx}`;
+                        const date = a.created_at ? new Date(a.created_at).toLocaleDateString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+                        const isSelected = selectedAnalysisIdx === idx;
+                        const isCompare = compareMode && compareIdx === idx;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              if (compareMode && idx !== selectedAnalysisIdx) {
+                                setCompareIdx(idx);
+                              } else if (!compareMode) {
+                                setSelectedAnalysisIdx(idx);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
+                              isSelected ? "border-primary bg-primary/10" :
+                              isCompare ? "border-amber-500 bg-amber-500/10" :
+                              "border-border hover:border-primary/50"
+                            }`}
+                          >
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                              isSelected ? "bg-primary text-primary-foreground" :
+                              isCompare ? "bg-amber-500 text-white" :
+                              "bg-secondary text-muted-foreground"
+                            }`}>
+                              {isSelected ? "A" : isCompare ? "B" : idx + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-medium text-foreground truncate">{videoTitle}</p>
+                              <p className="text-[9px] text-muted-foreground">{date} · Confianza {Math.round(((report?.confianza ?? 0)) * 100)}%</p>
+                            </div>
+                            {isSelected && <Badge variant="secondary" className="text-[8px]">Actual</Badge>}
+                            {isCompare && <Badge className="text-[8px] bg-amber-500">Comparar</Badge>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {compareMode && (
+                      <p className="text-[9px] text-muted-foreground text-center">
+                        Selecciona <span className="text-primary font-bold">A</span> (actual) y <span className="text-amber-500 font-bold">B</span> (comparar)
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Comparativa */}
+                {compareReport && analyses && (
+                  <AnalysisComparison
+                    current={latestReport}
+                    previous={compareReport}
+                    currentDate={analyses[selectedAnalysisIdx]?.created_at ?? ""}
+                    previousDate={analyses[compareIdx]?.created_at ?? ""}
+                  />
+                )}
+
                 {/* Estado Actual */}
                 <EstadoActual data={latestReport.estadoActual} />
 
