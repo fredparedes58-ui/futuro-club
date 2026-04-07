@@ -622,7 +622,7 @@ const VitasLab = () => {
         </div>
 
         {/* Right Sidebar */}
-        <motion.div variants={item} className="hidden lg:flex flex-col w-72 border-l border-border p-5 gap-5">
+        <motion.div variants={item} className="hidden lg:flex flex-col w-72 border-l border-border p-5 gap-5 overflow-y-auto max-h-screen">
 
           {/* Player Selector */}
           <div>
