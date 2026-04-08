@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy } from "lucide-react";
-import { useState } from "react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, Wifi, WifiOff, RefreshCw, Check } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
@@ -26,7 +26,25 @@ const BottomNav = () => {
   const { isClub } = usePlan();
 
   // Sincroniza jugadores desde Supabase al hacer login
-  useSupabaseSync();
+  const syncState = useSupabaseSync();
+  const prevOnline = useRef(syncState.online);
+
+  // Toast al reconectar
+  useEffect(() => {
+    if (syncState.online && !prevOnline.current) {
+      toast.success("Conexión restaurada", {
+        description: syncState.pending > 0
+          ? `Sincronizando ${syncState.pending} cambios pendientes...`
+          : "Todos los datos están sincronizados",
+      });
+    }
+    if (!syncState.online && prevOnline.current) {
+      toast.warning("Sin conexión", {
+        description: "Los cambios se guardarán localmente",
+      });
+    }
+    prevOnline.current = syncState.online;
+  }, [syncState.online, syncState.pending]);
 
   const navItems = isClub
     ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "Equipo" }]
@@ -148,6 +166,34 @@ const BottomNav = () => {
               </button>
             );
           })}
+
+          {/* Sync indicator */}
+          {configured && (
+            <div className="flex flex-col items-center gap-0.5 px-1" title={
+              !syncState.online ? "Sin conexión" :
+              syncState.syncing ? "Sincronizando..." :
+              syncState.pending > 0 ? `${syncState.pending} pendientes` :
+              "Sincronizado"
+            }>
+              {!syncState.online ? (
+                <WifiOff size={14} className="text-red-400" />
+              ) : syncState.syncing ? (
+                <RefreshCw size={14} className="text-yellow-400 animate-spin" />
+              ) : syncState.pending > 0 ? (
+                <div className="relative">
+                  <RefreshCw size={14} className="text-yellow-400" />
+                  <span className="absolute -top-1 -right-1.5 bg-yellow-500 text-[7px] text-black font-bold rounded-full w-3 h-3 flex items-center justify-center">
+                    {syncState.pending}
+                  </span>
+                </div>
+              ) : (
+                <Check size={14} className="text-green-400" />
+              )}
+              <span className="text-[7px] text-muted-foreground">
+                {!syncState.online ? "OFF" : syncState.syncing ? "SYNC" : syncState.pending > 0 ? "PEND" : "OK"}
+              </span>
+            </div>
+          )}
 
           {/* Avatar de usuario */}
           <button

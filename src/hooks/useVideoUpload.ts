@@ -154,7 +154,9 @@ export function useVideoUpload(playerId?: string) {
 
             VideoService.save(localVideo);
             if (user && SUPABASE_CONFIGURED) {
-              SupabaseVideoService.pushOne(user.id, localVideo).catch(() => {});
+              SupabaseVideoService.pushOne(user.id, localVideo).catch((err) => {
+                console.warn("[useVideoUpload] pushOne local video failed:", err);
+              });
             }
 
             setState({
@@ -186,7 +188,9 @@ export function useVideoUpload(playerId?: string) {
         };
         if (user && SUPABASE_CONFIGURED) {
           const stub = VideoService.createStub(stubParams);
-          SupabaseVideoService.pushOne(user.id, stub).catch(() => {});
+          SupabaseVideoService.pushOne(user.id, stub).catch((err) => {
+            console.warn("[useVideoUpload] pushOne stub failed:", err);
+          });
         } else {
           VideoService.createStub(stubParams);
         }
@@ -232,14 +236,18 @@ export function useVideoUpload(playerId?: string) {
           VideoService.save({ ...uploadedStub, status: "uploaded", statusCode: 1, encodeProgress: 0, embedUrl });
           if (user && SUPABASE_CONFIGURED) {
             const updated = VideoService.getById(videoId);
-            if (updated) SupabaseVideoService.pushOne(user.id, updated).catch(() => {});
+            if (updated) SupabaseVideoService.pushOne(user.id, updated).catch((err) => {
+              console.warn("[useVideoUpload] pushOne uploaded stub failed:", err);
+            });
           }
         }
         setState((prev) => ({ ...prev, phase: "processing", progress: 100 }));
 
         // ── Step 3: Poll encoding status ─────────────────────────────────────
+        const MAX_CONSECUTIVE_ERRORS = 5;
         await new Promise<void>((resolve, reject) => {
           let attempts = 0;
+          let consecutiveErrors = 0;
 
           const poll = async () => {
             if (attempts++ >= POLL_MAX_ATTEMPTS) {
@@ -267,6 +275,7 @@ export function useVideoUpload(playerId?: string) {
               };
 
               if (statusData.success && statusData.data) {
+                consecutiveErrors = 0; // reset on success
                 const d = statusData.data;
                 setState((prev) => ({
                   ...prev,
@@ -301,8 +310,14 @@ export function useVideoUpload(playerId?: string) {
                   return;
                 }
               }
-            } catch {
-              // Poll silently fails → keep trying
+            } catch (pollErr) {
+              // Poll failed — count consecutive failures
+              consecutiveErrors++;
+              console.warn(`[useVideoUpload] poll error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, pollErr);
+              if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+                reject(new Error("Polling falló repetidamente — verifica tu conexión a internet"));
+                return;
+              }
             }
 
             pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);

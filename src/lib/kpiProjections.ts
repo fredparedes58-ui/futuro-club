@@ -97,7 +97,7 @@ export function computeKPIs(
   let totalPct = 0;
 
   for (const [vsiKey, eaMetric] of Object.entries(VSI_TO_EA)) {
-    const currentVal = metrics[vsiKey as keyof VSIMetrics];
+    const currentVal = metrics[vsiKey as keyof VSIMetrics] ?? 0;
     const factor = developmentFactor(age, posGroup, eaMetric);
 
     // Si está al X% de desarrollo y tiene valor Y, su peak estimado es Y/factor
@@ -105,7 +105,7 @@ export function computeKPIs(
     // Pero ajustamos: si su valor real es mayor que el esperado, está adelantado
     const expectedFactor = factor * phvFactor;
     const estimatedPeak = expectedFactor > 0 ? currentVal / expectedFactor : currentVal;
-    const pct = Math.min(1.2, currentVal / Math.max(1, estimatedPeak)); // cap at 120%
+    const pct = estimatedPeak > 0 ? Math.min(1.2, currentVal / estimatedPeak) : 0;
 
     // Más simple: su % del peak = currentVal / (estimatedPeak a edad de peak)
     // Pero estimatedPeak puede ser irreal. Usamos el factor directo.
@@ -116,8 +116,8 @@ export function computeKPIs(
   const avgPctOfPeak = Math.round((totalPct / 6) * 100);
 
   // Proyección VSI a 18 y 21
-  const currentVSI = (metrics.speed + metrics.shooting + metrics.vision +
-                      metrics.technique + metrics.defending + metrics.stamina) / 6;
+  const currentVSI = ((metrics.speed ?? 0) + (metrics.shooting ?? 0) + (metrics.vision ?? 0) +
+                      (metrics.technique ?? 0) + (metrics.defending ?? 0) + (metrics.stamina ?? 0)) / 6;
 
   const currentFactor = developmentFactorAvg(age, posGroup);
   const factor18 = developmentFactorAvg(18, posGroup);

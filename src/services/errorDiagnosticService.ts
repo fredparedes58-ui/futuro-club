@@ -575,6 +575,148 @@ const RULES: DiagnosticRule[] = [
     },
   },
 
+  // ── Circuit Breaker / Resiliencia ──────────────────────────────────
+  {
+    pattern: /Circuit OPEN|circuit.*open/i,
+    diagnosis: {
+      code: "CIRCUIT_BREAKER_OPEN",
+      category: "api",
+      title: "Agente temporalmente deshabilitado",
+      cause: "El agente falló múltiples veces consecutivas. El circuit breaker lo deshabilitó temporalmente.",
+      action: "Espera unos segundos e intenta de nuevo. El sistema se recuperará automáticamente.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+  {
+    pattern: /falló después de \d+ intentos/i,
+    diagnosis: {
+      code: "AGENT_MAX_RETRIES",
+      category: "api",
+      title: "Agente no responde",
+      cause: "El agente de IA no respondió correctamente después de múltiples intentos.",
+      action: "Verifica tu conexión a internet. Si persiste, el servicio de IA puede estar experimentando problemas.",
+      severity: "error",
+      retryable: true,
+    },
+  },
+  {
+    pattern: /Token budget|presupuesto.*agotado|context window/i,
+    diagnosis: {
+      code: "TOKEN_BUDGET_EXCEEDED",
+      category: "api",
+      title: "Presupuesto de tokens agotado",
+      cause: "Se alcanzó el límite diario de tokens de IA o el contexto es demasiado grande.",
+      action: "Espera al próximo día o reduce la cantidad de análisis simultáneos.",
+      severity: "warning",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /Output validation failed|schema/i,
+    diagnosis: {
+      code: "AGENT_SCHEMA_VIOLATION",
+      category: "api",
+      title: "Respuesta del agente inválida",
+      cause: "El agente de IA retornó datos que no cumplen el formato esperado.",
+      action: "Reintenta el análisis. Si persiste, reporta el error.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── RAG Security ──────────────────────────────────────────────────────
+  {
+    pattern: /prompt injection|BLOQUEADO.*injection|injection.*detectad/i,
+    diagnosis: {
+      code: "RAG_INJECTION_BLOCKED",
+      category: "api",
+      title: "Contenido malicioso detectado",
+      cause: "Se detectó un intento de inyección de instrucciones en el contenido de la base de conocimiento.",
+      action: "El contenido fue bloqueado automáticamente. Revisa el documento que intentaste indexar.",
+      severity: "error",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /sanitizado.*patrón|neutralizado/i,
+    diagnosis: {
+      code: "RAG_CONTENT_SANITIZED",
+      category: "api",
+      title: "Contenido sanitizado",
+      cause: "Se neutralizaron patrones sospechosos en el contenido antes de indexarlo.",
+      action: "El contenido fue almacenado con las partes sospechosas neutralizadas.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── Semantic Validation ────────────────────────────────────────────────
+  {
+    pattern: /VALIDACIÓN SEMÁNTICA FALLIDA|semantic.*validation.*fail/i,
+    diagnosis: {
+      code: "REPORT_SEMANTIC_INVALID",
+      category: "api",
+      title: "Reporte con incoherencias",
+      cause: "El agente IA generó un reporte con datos contradictorios que fue detectado por el validador semántico.",
+      action: "El sistema reintentará automáticamente con feedback correctivo. Si persiste, reporta el error.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+  {
+    pattern: /nivel.*dimension.*coherence|nivelActual.*elite.*promedio/i,
+    diagnosis: {
+      code: "REPORT_LEVEL_MISMATCH",
+      category: "api",
+      title: "Nivel del jugador inconsistente con métricas",
+      cause: "El nivel reportado no coincide con los scores de las dimensiones observadas.",
+      action: "El validador semántico corregirá esto automáticamente en el próximo intento.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+  {
+    pattern: /physical.*plausibility|velocidad.*imposible|km\/h.*imposible/i,
+    diagnosis: {
+      code: "REPORT_PHYSICAL_IMPLAUSIBLE",
+      category: "api",
+      title: "Métricas físicas no realistas",
+      cause: "El reporte contiene valores físicos fuera de rangos humanos posibles.",
+      action: "Los valores serán corregidos automáticamente. Si usas tracking YOLO, verifica la calibración del campo.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── Chunking / RAG Indexing ─────────────────────────────────────────────
+  {
+    pattern: /needsReindex|re-index|chunk.*hash.*changed/i,
+    diagnosis: {
+      code: "RAG_REINDEX_NEEDED",
+      category: "api",
+      title: "Base de conocimiento desactualizada",
+      cause: "El contenido cambió desde la última indexación. Los chunks necesitan re-indexarse.",
+      action: "Ejecuta la re-indexación desde Ajustes > Base de Conocimiento.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── Cascading Failure ─────────────────────────────────────────────────
+  {
+    pattern: /cascading failure|fallado.*consecutivas/i,
+    diagnosis: {
+      code: "CASCADING_FAILURE",
+      category: "api",
+      title: "Fallo en cascada detectado",
+      cause: "Múltiples agentes de IA están fallando consecutivamente, indicando un problema sistémico.",
+      action: "Verifica la conexión a internet y el estado de las APIs. Los circuit breakers se activaron para proteger el sistema.",
+      severity: "error",
+      retryable: true,
+    },
+  },
+
   // ── Football API ──────────────────────────────────────────────────────
   {
     pattern: /FOOTBALL_DATA_API_KEY/i,

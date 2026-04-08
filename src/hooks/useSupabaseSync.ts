@@ -55,14 +55,23 @@ export function useSupabaseSync() {
     }
   }, [qc, user]);
 
-  // ── Procesar cola offline ──────────────────────────────────────────
+  // ── Procesar cola offline con backoff exponencial ───────────────────
   const processQueue = useCallback(async () => {
     if (!user || !configured) return;
 
     const queue = SyncQueueService.getQueue();
     if (queue.length === 0) return;
 
+    let processed = 0;
+    let failed = 0;
+
     for (const item of queue) {
+      // Backoff exponencial: esperar según retries previos (0s, 1s, 2s, 4s, 8s)
+      if (item.retries > 0) {
+        const delay = Math.min(1000 * Math.pow(2, item.retries - 1), 8000);
+        await new Promise(r => setTimeout(r, delay));
+      }
+
       try {
         if (item.entity === "player") {
           if (item.action === "delete") {
@@ -78,18 +87,26 @@ export function useSupabaseSync() {
           }
         }
         SyncQueueService.dequeue(item.id);
-      } catch {
+        processed++;
+      } catch (err) {
+        console.warn(`[Sync] Failed to process ${item.action} ${item.entity}/${item.entityId}:`, err);
         SyncQueueService.incrementRetry(item.id);
+        failed++;
       }
     }
 
     // Limpiar items con demasiados reintentos
-    SyncQueueService.pruneStale();
+    const pruned = SyncQueueService.pruneStale();
 
-    setSyncState(s => ({
-      ...s,
-      pending: SyncQueueService.pendingCount(),
-    }));
+    const remaining = SyncQueueService.pendingCount();
+    setSyncState(s => ({ ...s, pending: remaining }));
+
+    // Log resultado para auditoría
+    if (processed > 0 || failed > 0 || pruned > 0) {
+      console.info(`[Sync] Queue processed: ${processed} ok, ${failed} failed, ${pruned} pruned, ${remaining} pending`);
+    }
+
+    return { processed, failed, remaining };
   }, [user, configured]);
 
   // ── Pull on login (con delta sync) ─────────────────────────────────
@@ -166,8 +183,9 @@ export function useSupabaseSync() {
           lastSync: new Date().toISOString(),
           pending: SyncQueueService.pendingCount(),
         }));
-      }).catch(() => {
-        setSyncState(s => ({ ...s, syncing: false }));
+      }).catch((err) => {
+        console.warn("[Sync] Reconnect push failed:", err);
+        setSyncState(s => ({ ...s, syncing: false, error: "Error al sincronizar al reconectar" }));
       });
     };
 

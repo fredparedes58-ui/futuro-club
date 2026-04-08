@@ -4,8 +4,20 @@
  */
 
 import { verifyAuth } from "../lib/auth";
+import { z } from "zod";
 
 export const config = { runtime: "edge" };
+
+const TrackingSaveSchema = z.object({
+  playerId: z.string().optional(),
+  videoId: z.string().optional(),
+  targetTrackId: z.number().int().nullable().optional(),
+  durationMs: z.number().int().min(0).default(0),
+  metrics: z.record(z.unknown()).default({}),
+  scanEvents: z.array(z.unknown()).default([]),
+  duelEvents: z.array(z.unknown()).default([]),
+  calibrationPreset: z.string().default("full_corners"),
+});
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== "POST") {
@@ -19,9 +31,19 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: "Supabase no configurado" }, 503);
   }
 
-  let body: Record<string, unknown>;
-  try { body = await req.json(); }
+  let rawBody: unknown;
+  try { rawBody = await req.json(); }
   catch { return json({ error: "JSON inválido" }, 400); }
+
+  const parsed = TrackingSaveSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return json({
+      error: "Datos de tracking inválidos",
+      details: parsed.error.errors.map(e => ({ path: e.path.join("."), message: e.message })),
+    }, 400);
+  }
+
+  const body = parsed.data;
 
   // Verify JWT with signature check
   const { userId, error: authError } = await verifyAuth(req);

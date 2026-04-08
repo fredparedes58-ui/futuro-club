@@ -7,6 +7,8 @@
  *
  * Body: IngestRequest | IngestRequest[]
  */
+import { sanitizeForIngestion } from "../lib/ragSanitizer";
+
 export const config = { runtime: "edge" };
 
 export interface IngestRequest {
@@ -65,6 +67,26 @@ export default async function handler(req: Request): Promise<Response> {
   const baseUrl = new URL(req.url).origin;
   const errors: string[] = [];
   let indexed = 0;
+
+  // Sanitize all documents before indexing (prompt injection defense)
+  const sanitizationWarnings: string[] = [];
+  for (let i = 0; i < documents.length; i++) {
+    const result = sanitizeForIngestion(documents[i].content);
+    if (result.blocked) {
+      errors.push(`Doc[${i}]: BLOQUEADO — contenido contiene prompt injection (risk: ${result.riskScore}, patrones: ${result.detections.map(d => d.name).join(", ")})`);
+      documents.splice(i, 1);
+      i--;
+      continue;
+    }
+    if (result.detections.length > 0) {
+      sanitizationWarnings.push(`Doc[${i}]: sanitizado (${result.detections.length} patrón(es) neutralizado(s))`);
+      documents[i].content = result.content;
+    }
+  }
+
+  if (!documents.length) {
+    return json({ success: errors.length === 0, indexed: 0, errors, sanitizationWarnings } as IngestResult & { sanitizationWarnings: string[] });
+  }
 
   // Embed all documents in one request
   const texts = documents.map(d => d.content);

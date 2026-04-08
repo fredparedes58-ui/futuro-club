@@ -80,7 +80,7 @@ export function useUpdateMetrics() {
       if (user && SUPABASE_CONFIGURED) {
         return SupabasePlayerService.updateMetrics(user.id, id, metrics);
       }
-      return PlayerService.updateMetrics(id, metrics);
+      return await PlayerService.updateMetrics(id, metrics);
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["player", id] });

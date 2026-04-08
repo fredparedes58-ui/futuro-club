@@ -5,6 +5,7 @@
  */
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { VideoService, type VideoRecord } from "./videoService";
+import { SyncQueueService } from "./syncQueueService";
 
 export const SupabaseVideoService = {
 
@@ -18,9 +19,18 @@ export const SupabaseVideoService = {
         .order("updated_at", { ascending: false });
       if (error) throw error;
       if (!data || data.length === 0) {
-        // Cloud vacío → limpiar localStorage para evitar subir videos de otras sesiones
-        const { StorageService } = await import("./storageService");
-        StorageService.set("videos", []);
+        // Cloud vacío — NO borrar localStorage ciegamente.
+        // Puede haber videos locales legítimos que aún no se sincronizaron.
+        const localVideos = VideoService.getAll();
+        if (localVideos.length > 0) {
+          for (const lv of localVideos) {
+            this.pushOne(userId, lv).catch((err) => {
+              console.warn("[SupabaseVideoService] pushOne (recovery) failed:", err);
+              SyncQueueService.enqueue("create", "video", lv.id, lv);
+            });
+          }
+          return localVideos;
+        }
         return [];
       }
       const cloudVideos = data.map((row) => row.data as VideoRecord);
@@ -40,7 +50,10 @@ export const SupabaseVideoService = {
       for (const lv of localVideos) {
         if (!cloudMap.has(lv.id)) {
           merged.push(lv);
-          this.pushOne(userId, lv).catch(() => {});
+          this.pushOne(userId, lv).catch((err) => {
+            console.warn("[SupabaseVideoService] pushOne (merge) failed:", err);
+            SyncQueueService.enqueue("create", "video", lv.id, lv);
+          });
         }
       }
       const { StorageService } = await import("./storageService");
@@ -127,23 +140,35 @@ export const SupabaseVideoService = {
 
   save(userId: string, video: VideoRecord): void {
     VideoService.save(video);
-    this.pushOne(userId, video).catch(() => {});
+    this.pushOne(userId, video).catch((err) => {
+      console.warn("[SupabaseVideoService] save sync failed:", err);
+      SyncQueueService.enqueue("update", "video", video.id, video);
+    });
   },
 
   updateStatus(userId: string, id: string, status: VideoRecord["status"], progress?: number): VideoRecord | null {
     const updated = VideoService.updateStatus(id, status, progress);
-    if (updated) this.pushOne(userId, updated).catch(() => {});
+    if (updated) this.pushOne(userId, updated).catch((err) => {
+      console.warn("[SupabaseVideoService] updateStatus sync failed:", err);
+      SyncQueueService.enqueue("update", "video", id, updated);
+    });
     return updated;
   },
 
   saveAnalysis(userId: string, id: string, analysis: Parameters<typeof VideoService.saveAnalysis>[1]): VideoRecord | null {
     const updated = VideoService.saveAnalysis(id, analysis);
-    if (updated) this.pushOne(userId, updated).catch(() => {});
+    if (updated) this.pushOne(userId, updated).catch((err) => {
+      console.warn("[SupabaseVideoService] saveAnalysis sync failed:", err);
+      SyncQueueService.enqueue("update", "video", id, updated);
+    });
     return updated;
   },
 
   delete(userId: string, id: string): void {
     VideoService.delete(id);
-    this.deleteOne(userId, id).catch(() => {});
+    this.deleteOne(userId, id).catch((err) => {
+      console.warn("[SupabaseVideoService] delete sync failed:", err);
+      SyncQueueService.enqueue("delete", "video", id, null);
+    });
   },
 };

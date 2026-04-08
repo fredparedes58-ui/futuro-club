@@ -8,6 +8,14 @@
 
 import Stripe from "stripe";
 import { verifyAuth } from "../lib/auth";
+import { z } from "zod";
+
+const CheckoutSchema = z.object({
+  priceId: z.string().min(1, "priceId es requerido"),
+  email: z.string().email("Email inválido"),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
+});
 
 // Node.js runtime required — Stripe SDK uses Node-only APIs (Buffer, http)
 // export const config = { runtime: "edge" };
@@ -41,21 +49,22 @@ export default async function handler(req: Request): Promise<Response> {
     apiVersion: "2026-03-25.dahlia" as Stripe.LatestApiVersion,
   });
 
-  let body: { priceId?: string; email?: string; successUrl?: string; cancelUrl?: string };
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
   }
 
-  const { priceId, email, successUrl, cancelUrl } = body;
-
-  if (!priceId || !email) {
-    return new Response(JSON.stringify({ error: "Missing required fields: priceId, email" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  const parsed = CheckoutSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return new Response(JSON.stringify({
+      error: "Datos inválidos",
+      details: parsed.error.errors.map(e => ({ path: e.path.join("."), message: e.message })),
+    }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
+
+  const { priceId, email, successUrl, cancelUrl } = parsed.data;
 
   const origin = new URL(req.url).origin;
 

@@ -8,7 +8,17 @@
  * Body: { query, category?, player_id?, limit? }
  * Response: { context, results }
  */
+import { buildSecureContext } from "../lib/ragSanitizer";
+import { z } from "zod";
+
 export const config = { runtime: "edge" };
+
+const QueryRequestSchema = z.object({
+  query: z.string().min(1, "query es requerido").max(2000, "query muy largo"),
+  category: z.enum(["drill", "pro_player", "report", "methodology", "scouting"]).optional(),
+  player_id: z.string().optional(),
+  limit: z.number().int().min(1).max(20).default(5),
+});
 
 export interface QueryRequest {
   query: string;
@@ -46,17 +56,22 @@ export default async function handler(req: Request): Promise<Response> {
     return json({ error: "Supabase not configured" }, 503);
   }
 
-  let body: QueryRequest;
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return json({ error: "Invalid JSON" }, 400);
   }
 
-  const { query, category, player_id, limit = 5 } = body;
-  if (!query?.trim()) {
-    return json({ error: "query is required" }, 400);
+  const parsed = QueryRequestSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return json({
+      error: "Datos inválidos",
+      details: parsed.error.errors.map(e => ({ path: e.path.join("."), message: e.message })),
+    }, 400);
   }
+
+  const { query, category, player_id, limit } = parsed.data;
 
   const baseUrl = new URL(req.url).origin;
 
@@ -137,14 +152,17 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
-  const context = formatContext(results);
+  // Sanitize retrieved content (prompt injection defense)
+  const secureContext = buildSecureContext(results);
+  const legacyContext = formatContext(results);
 
   return json({
     success: true,
-    context,
+    context: secureContext || legacyContext,
     results,
     usedEmbeddings,
-  } satisfies QueryResponse);
+    sanitized: !!secureContext,
+  } satisfies QueryResponse & { sanitized: boolean });
 }
 
 function formatContext(results: KnowledgeResult[]): string {

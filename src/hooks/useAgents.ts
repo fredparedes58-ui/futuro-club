@@ -22,7 +22,7 @@ export function usePHVCalculator(input: PHVInput | null) {
       if (!res.success || !res.data) throw new Error(res.error ?? "Error en PHV Agent");
 
       // Persiste el resultado en el jugador
-      PlayerService.updatePHV(
+      await PlayerService.updatePHV(
         input.playerId,
         res.data.category,
         res.data.offset,
@@ -89,10 +89,10 @@ export function useRecalculatePHV() {
 
   return useMutation({
     mutationFn: (input: PHVInput) => AgentService.calculatePHV(input),
-    onSuccess: (result, input) => {
+    onSuccess: async (result, input) => {
       // Persist PHV result in player storage (same as usePHVCalculator queryFn)
       if (result.success && result.data) {
-        PlayerService.updatePHV(
+        await PlayerService.updatePHV(
           input.playerId,
           result.data.category,
           result.data.offset,

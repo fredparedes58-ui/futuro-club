@@ -70,14 +70,23 @@ export const SyncQueueService = {
     };
 
     if (existing >= 0) {
-      // Si la acción nueva es delete, reemplazar cualquier create/update previo
+      const existingAction = queue[existing].action;
       if (action === "delete") {
-        queue[existing] = item;
+        // Delete cancela todo: si era un create local, simplemente quitar de la cola
+        if (existingAction === "create") {
+          queue.splice(existing, 1);
+        } else {
+          queue[existing] = item;
+        }
       } else {
-        // Actualizar data y timestamp, mantener la acción original si era create
+        // Mantener la acción original ("create" sigue como "create")
+        // pero SIEMPRE usar los datos más recientes (merge update data)
         queue[existing] = {
           ...item,
-          action: queue[existing].action === "create" ? "create" : action,
+          action: existingAction === "create" ? "create" : action,
+          data: action === "update" && existingAction === "create"
+            ? { ...(queue[existing].data as Record<string, unknown> ?? {}), ...(data as Record<string, unknown> ?? {}) }
+            : data,
         };
       }
     } else {
@@ -108,12 +117,16 @@ export const SyncQueueService = {
     StorageService.set(QUEUE_KEY, []);
   },
 
-  /** Remover items con demasiados reintentos (>5) */
+  /** Remover items con demasiados reintentos (>5). Logs para auditoría. */
   pruneStale(): number {
     const queue = this.getQueue();
+    const stale = queue.filter((q) => q.retries > 5);
     const fresh = queue.filter((q) => q.retries <= 5);
-    const pruned = queue.length - fresh.length;
+    const pruned = stale.length;
     if (pruned > 0) {
+      for (const item of stale) {
+        console.warn(`[SyncQueue] Pruned stale item: ${item.action} ${item.entity}/${item.entityId} (${item.retries} retries)`);
+      }
       StorageService.set(QUEUE_KEY, fresh);
     }
     return pruned;

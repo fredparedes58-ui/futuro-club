@@ -12,6 +12,7 @@
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PlayerService, type Player, type CreatePlayerInput } from "./playerService";
+import { SyncQueueService } from "./syncQueueService";
 
 export const SupabasePlayerService = {
 
@@ -29,10 +30,19 @@ export const SupabasePlayerService = {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        // Cloud vacío → limpiar localStorage (puede tener jugadores demo) y devolver vacío.
-        // Los jugadores reales que cree el usuario se pushearán al cloud en ese momento.
-        const { StorageService } = await import("./storageService");
-        StorageService.set("players", []);
+        // Cloud vacío — NO borrar localStorage ciegamente.
+        // Puede haber jugadores locales legítimos que aún no se sincronizaron.
+        const localPlayers = PlayerService.getAll();
+        if (localPlayers.length > 0) {
+          // Intentar subir los jugadores locales al cloud en background
+          for (const lp of localPlayers) {
+            this.pushOne(userId, lp).catch((err) => {
+              console.warn("[SupabasePlayerService] pushOne (recovery) failed:", err);
+              SyncQueueService.enqueue("create", "player", lp.id, lp);
+            });
+          }
+          return localPlayers;
+        }
         return [];
       }
 
@@ -59,7 +69,10 @@ export const SupabasePlayerService = {
         if (!cloudMap.has(lp.id)) {
           merged.push(lp);
           // Push al cloud en background
-          this.pushOne(userId, lp).catch(() => {});
+          this.pushOne(userId, lp).catch((err) => {
+            console.warn("[SupabasePlayerService] pushOne (merge) failed:", err);
+            SyncQueueService.enqueue("create", "player", lp.id, lp);
+          });
         }
       }
 
@@ -138,7 +151,10 @@ export const SupabasePlayerService = {
   // ── CREATE (local + background sync) ──────────────────────────────
   async create(userId: string, input: CreatePlayerInput): Promise<Player> {
     const player = PlayerService.create(input);
-    this.pushOne(userId, player).catch(() => {}); // background
+    this.pushOne(userId, player).catch((err) => {
+      console.warn("[SupabasePlayerService] create sync failed:", err);
+      SyncQueueService.enqueue("create", "player", player.id, player);
+    });
     return player;
   },
 
@@ -148,8 +164,11 @@ export const SupabasePlayerService = {
     id: string,
     metrics: Player["metrics"]
   ): Promise<Player | null> {
-    const updated = PlayerService.updateMetrics(id, metrics);
-    if (updated) this.pushOne(userId, updated).catch(() => {});
+    const updated = await PlayerService.updateMetrics(id, metrics);
+    if (updated) this.pushOne(userId, updated).catch((err) => {
+      console.warn("[SupabasePlayerService] updateMetrics sync failed:", err);
+      SyncQueueService.enqueue("update", "player", id, updated);
+    });
     return updated;
   },
 
@@ -161,15 +180,21 @@ export const SupabasePlayerService = {
     phvOffset: number,
     adjustedVSI: number
   ): Promise<Player | null> {
-    const updated = PlayerService.updatePHV(id, phvCategory, phvOffset, adjustedVSI);
-    if (updated) this.pushOne(userId, updated).catch(() => {});
+    const updated = await PlayerService.updatePHV(id, phvCategory, phvOffset, adjustedVSI);
+    if (updated) this.pushOne(userId, updated).catch((err) => {
+      console.warn("[SupabasePlayerService] updatePHV sync failed:", err);
+      SyncQueueService.enqueue("update", "player", id, updated);
+    });
     return updated;
   },
 
   // ── DELETE (local + background sync) ──────────────────────────────
   async delete(userId: string, id: string): Promise<boolean> {
     const deleted = PlayerService.delete(id);
-    if (deleted) this.deleteOne(userId, id).catch(() => {});
+    if (deleted) this.deleteOne(userId, id).catch((err) => {
+      console.warn("[SupabasePlayerService] delete sync failed:", err);
+      SyncQueueService.enqueue("delete", "player", id, null);
+    });
     return deleted;
   },
 };

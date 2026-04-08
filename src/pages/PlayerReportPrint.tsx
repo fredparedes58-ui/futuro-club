@@ -112,9 +112,11 @@ export default function PlayerReportPrint() {
 
   const reportId = `VIT-${rawPlayer.id?.slice(0, 6).toUpperCase() ?? "000000"}`;
 
-  // VAEP data if available
-  const hasVaep = (rawPlayer as unknown as { vaepPer90?: number }).vaepPer90 != null;
-  const vaepPer90 = (rawPlayer as unknown as { vaepPer90?: number }).vaepPer90;
+  // VAEP data if available (safe runtime check)
+  const vaepPer90 = rawPlayer && typeof rawPlayer === "object" && "vaepPer90" in rawPlayer
+    ? (rawPlayer as Record<string, unknown>).vaepPer90 as number | undefined
+    : undefined;
+  const hasVaep = vaepPer90 != null;
 
   return (
     <div

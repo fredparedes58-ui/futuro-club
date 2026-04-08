@@ -5,8 +5,23 @@
  */
 
 import { verifyAuth } from "../lib/auth";
+import { z } from "zod";
 
 export const config = { runtime: "edge" };
+
+const SubscribeSchema = z.object({
+  subscription: z.object({
+    endpoint: z.string().url(),
+    keys: z.object({
+      p256dh: z.string(),
+      auth: z.string(),
+    }),
+  }).passthrough(),
+});
+
+const UnsubscribeSchema = z.object({
+  endpoint: z.string().url(),
+});
 
 export default async function handler(req: Request): Promise<Response> {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -21,8 +36,13 @@ export default async function handler(req: Request): Promise<Response> {
   if (!userId) return json({ error: authError ?? "No autenticado" }, 401);
 
   if (req.method === "POST") {
-    let body: { subscription: object };
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+    const parsed = SubscribeSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return json({ error: "Datos de suscripción inválidos", details: parsed.error.errors }, 400);
+    }
+    const body = parsed.data;
 
     const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
       method: "POST",
@@ -44,8 +64,13 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   if (req.method === "DELETE") {
-    let body: { endpoint: string };
-    try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+    let rawBody: unknown;
+    try { rawBody = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
+    const parsedDel = UnsubscribeSchema.safeParse(rawBody);
+    if (!parsedDel.success) {
+      return json({ error: "Endpoint inválido" }, 400);
+    }
+    const body = parsedDel.data;
     await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(body.endpoint)}`, {
       method: "DELETE",
       headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` },

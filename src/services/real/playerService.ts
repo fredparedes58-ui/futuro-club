@@ -42,6 +42,27 @@ export type CreatePlayerInput = Omit<Player, "id" | "vsi" | "vsiHistory" | "crea
 
 const STORAGE_KEY = "players";
 
+/**
+ * Simple write-lock para evitar race conditions entre
+ * updateMetrics() y updatePHV() ejecutados concurrentemente.
+ * Si el lock está ocupado, espera hasta 500ms y reintenta.
+ */
+let _writeLock = false;
+async function acquireWriteLock(): Promise<void> {
+  const start = Date.now();
+  while (_writeLock) {
+    if (Date.now() - start > 500) {
+      console.warn("[PlayerService] Write lock timeout — proceeding anyway");
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  _writeLock = true;
+}
+function releaseWriteLock(): void {
+  _writeLock = false;
+}
+
 export const PlayerService = {
   /**
    * Obtiene todos los jugadores
@@ -81,47 +102,59 @@ export const PlayerService = {
   },
 
   /**
-   * Actualiza métricas de un jugador y recalcula VSI
+   * Actualiza métricas de un jugador y recalcula VSI.
+   * Usa write-lock para evitar race condition con updatePHV.
    */
-  updateMetrics(id: string, metrics: Player["metrics"]): Player | null {
-    const players = PlayerService.getAll();
-    const idx = players.findIndex((p) => p.id === id);
-    if (idx === -1) return null;
+  async updateMetrics(id: string, metrics: Player["metrics"]): Promise<Player | null> {
+    await acquireWriteLock();
+    try {
+      const players = PlayerService.getAll();
+      const idx = players.findIndex((p) => p.id === id);
+      if (idx === -1) return null;
 
-    const previous = players[idx];
-    const newVSI = MetricsService.calculateVSI(metrics);
+      const previous = players[idx];
+      const newVSI = MetricsService.calculateVSI(metrics);
 
-    const updated: Player = {
-      ...previous,
-      metrics,
-      vsi: newVSI,
-      vsiHistory: [...(previous.vsiHistory ?? []), newVSI].slice(-10), // máximo 10 históricos
-      updatedAt: new Date().toISOString(),
-    };
+      const updated: Player = {
+        ...previous,
+        metrics,
+        vsi: newVSI,
+        vsiHistory: [...(previous.vsiHistory ?? []), newVSI].slice(-10),
+        updatedAt: new Date().toISOString(),
+      };
 
-    players[idx] = updated;
-    StorageService.set(STORAGE_KEY, players);
-    return updated;
+      players[idx] = updated;
+      StorageService.set(STORAGE_KEY, players);
+      return updated;
+    } finally {
+      releaseWriteLock();
+    }
   },
 
   /**
-   * Actualiza datos PHV calculados por el agente
+   * Actualiza datos PHV calculados por el agente.
+   * Usa write-lock para evitar race condition con updateMetrics.
    */
-  updatePHV(id: string, phvCategory: Player["phvCategory"], phvOffset: number, adjustedVSI: number): Player | null {
-    const players = PlayerService.getAll();
-    const idx = players.findIndex((p) => p.id === id);
-    if (idx === -1) return null;
+  async updatePHV(id: string, phvCategory: Player["phvCategory"], phvOffset: number, adjustedVSI: number): Promise<Player | null> {
+    await acquireWriteLock();
+    try {
+      const players = PlayerService.getAll();
+      const idx = players.findIndex((p) => p.id === id);
+      if (idx === -1) return null;
 
-    players[idx] = {
-      ...players[idx],
-      phvCategory,
-      phvOffset,
-      vsi: adjustedVSI,
-      updatedAt: new Date().toISOString(),
-    };
+      players[idx] = {
+        ...players[idx],
+        phvCategory,
+        phvOffset,
+        vsi: adjustedVSI,
+        updatedAt: new Date().toISOString(),
+      };
 
-    StorageService.set(STORAGE_KEY, players);
-    return players[idx];
+      StorageService.set(STORAGE_KEY, players);
+      return players[idx];
+    } finally {
+      releaseWriteLock();
+    }
   },
 
   /**

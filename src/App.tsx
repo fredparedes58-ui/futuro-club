@@ -1,3 +1,4 @@
+import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -44,8 +45,31 @@ import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 
 // Sync hook — activa pull de Supabase al hacer login
+// Health check — diagnóstico automático al iniciar
 function SyncManager() {
   useSupabaseSync();
+
+  // Health check on mount (once)
+  React.useEffect(() => {
+    import("@/services/real/healthCheck").then(({ HealthCheckService }) => {
+      const result = HealthCheckService.run();
+      if (!result.healthy) {
+        const errors = result.checks.filter(c => c.status === "error");
+        console.error("[HealthCheck] Issues detected:", errors);
+        // Import toast dynamically to avoid circular deps
+        import("sonner").then(({ toast }) => {
+          for (const err of errors) {
+            toast.error(`${err.name}: ${err.message}`);
+          }
+        });
+      }
+      const warnings = result.checks.filter(c => c.status === "warning");
+      if (warnings.length > 0) {
+        console.warn("[HealthCheck] Warnings:", warnings);
+      }
+    });
+  }, []);
+
   return null;
 }
 

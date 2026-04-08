@@ -13,6 +13,8 @@ import {
   ToggleLeft,
   Check,
   Zap,
+  Download,
+  Upload,
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
@@ -22,6 +24,7 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/context/AuthContext";
 import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
+import { BackupService } from "@/services/real/backupService";
 
 const SETTINGS_KEY = "settings";
 
@@ -321,6 +324,57 @@ const SettingsPage = () => {
             <p className="text-[10px] text-muted-foreground">Supabase PostgreSQL · Conectado</p>
           </div>
           <Check size={14} className="text-primary" />
+        </div>
+      </motion.div>
+
+      {/* Backup / Restaurar */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Backup</h2>
+        <div className="glass rounded-xl p-4 space-y-3">
+          <button
+            onClick={() => {
+              BackupService.downloadBackup();
+              toast.success("Backup descargado");
+            }}
+            className="w-full flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+          >
+            <Download size={16} className="text-primary" />
+            <div className="text-left flex-1">
+              <p className="text-sm font-display font-semibold text-foreground">Exportar datos</p>
+              <p className="text-[10px] text-muted-foreground">Descarga jugadores, videos y configuraciones</p>
+            </div>
+          </button>
+          <label className="w-full flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer">
+            <Upload size={16} className="text-primary" />
+            <div className="text-left flex-1">
+              <p className="text-sm font-display font-semibold text-foreground">Importar datos</p>
+              <p className="text-[10px] text-muted-foreground">Restaurar desde archivo de backup</p>
+            </div>
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const content = await BackupService.readFile(file);
+                  const result = BackupService.import(content);
+                  if (result.success) {
+                    toast.success(`Importado: ${result.imported.join(", ")}`);
+                    if (result.errors.length > 0) {
+                      toast.warning(`Advertencias: ${result.errors.join("; ")}`);
+                    }
+                  } else {
+                    toast.error(result.errors[0] ?? "Error al importar");
+                  }
+                } catch {
+                  toast.error("Error leyendo el archivo");
+                }
+                e.target.value = ""; // Reset input
+              }}
+            />
+          </label>
         </div>
       </motion.div>
 

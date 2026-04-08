@@ -181,7 +181,7 @@ export default async function handler(req: Request): Promise<Response> {
     const posMatch    = isCompatible(position, pro.position);
 
     if (boostSamePosition && posMatch)   sim = Math.min(1, sim * 1.05);
-    if (positionFilter === "strict"   && !posMatch) return null as unknown as SimilarityMatch;
+    if (positionFilter === "strict"   && !posMatch) return null!;
     if (positionFilter === "flexible" && !posMatch) sim *= 0.85;
 
     return {

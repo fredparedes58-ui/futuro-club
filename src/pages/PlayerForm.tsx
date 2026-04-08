@@ -226,7 +226,7 @@ const PlayerForm = () => {
     try {
       if (isEditMode && id) {
         // Actualizar métricas + datos básicos en localStorage
-        PlayerService.updateMetrics(id, data.metrics);
+        await PlayerService.updateMetrics(id, data.metrics);
         const players = PlayerService.getAll();
         const idx = players.findIndex((p) => p.id === id);
         if (idx !== -1) {

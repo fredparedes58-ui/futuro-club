@@ -220,6 +220,7 @@ REGLAS:
             body: JSON.stringify({
               model:      "claude-sonnet-4-20250514",
               max_tokens: 8000,
+              temperature: 0,
               messages:   [{ role: "user", content }],
             }),
           });
