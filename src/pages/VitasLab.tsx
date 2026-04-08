@@ -130,6 +130,28 @@ interface AnalysisReport {
     objetivo18meses: string;
     pilaresTrabajo:  Array<{ pilar: string; acciones: string[]; prioridad: string }>;
   };
+  metricasCuantitativas?: {
+    fisicas?: {
+      velocidadMaxKmh:  number;
+      velocidadPromKmh: number;
+      distanciaM:       number;
+      sprints:          number;
+      zonasIntensidad:  { caminar: number; trotar: number; correr: number; sprint: number };
+    };
+    eventos?: {
+      pasesCompletados: number;
+      pasesFallados:    number;
+      precisionPases:   number;
+      recuperaciones:   number;
+      duelosGanados:    number;
+      duelosPerdidos:   number;
+      disparosAlArco:   number;
+      disparosFuera:    number;
+    };
+    fuente:     string;
+    confianza:  number;
+    heatmapPositions?: Array<{ fx: number; fy: number }>;
+  };
   confianza: number;
 }
 
@@ -343,7 +365,39 @@ const VitasLab = () => {
 
       toast.loading("Analizando con IA…", { id: toastId });
 
-      // 2. Llamar al agente via SSE
+      // 2. Recoger métricas YOLO si hay sesión de tracking completada o activa
+      let physicalMetrics: Record<string, unknown> | undefined;
+      let heatmapPositions: Array<{ fx: number; fy: number }> | undefined;
+
+      const yoloMetrics = tracking.state.sessionMetrics;
+      if (yoloMetrics && yoloMetrics.distanceCoveredM > 0) {
+        // Convertir m/s → km/h para Claude
+        physicalMetrics = {
+          maxSpeedKmh:    +(yoloMetrics.maxSpeedMs * 3.6).toFixed(1),
+          avgSpeedKmh:    +(yoloMetrics.avgSpeedMs * 3.6).toFixed(1),
+          distanceM:      +yoloMetrics.distanceCoveredM.toFixed(0),
+          sprints:        yoloMetrics.sprintCount,
+          duelsWon:       yoloMetrics.duelsWon,
+          duelsLost:      yoloMetrics.duelsLost,
+          intensityZones: yoloMetrics.intensityZones,
+        };
+
+        // Recoger posiciones del track enfocado para heatmap (subsample: 1 por segundo)
+        const focusTrack = tracking.state.currentTracks.find(
+          t => t.id === tracking.state.focusTrackId
+        );
+        const allPos = focusTrack?.positions
+          ?? tracking.state.currentTracks.flatMap(t => t.positions);
+        if (allPos.length > 0) {
+          // Subsamplear a ~1 posición por segundo para no enviar demasiados datos
+          const step = Math.max(1, Math.floor(allPos.length / Math.min(allPos.length, 600)));
+          heatmapPositions = allPos
+            .filter((_, i) => i % step === 0)
+            .map(p => ({ fx: p.fx, fy: p.fy }));
+        }
+      }
+
+      // 3. Llamar al agente via SSE (con métricas YOLO si disponibles)
       const res = await fetch("/api/agents/video-intelligence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -364,6 +418,7 @@ const VitasLab = () => {
           keyframes,
           videoDuration: (video.duration as number) || 90,
           analysisFocus: analysisFocus.length > 0 ? analysisFocus : null,
+          physicalMetrics: physicalMetrics || undefined,
         }),
       });
 
@@ -406,6 +461,23 @@ const VitasLab = () => {
       reader.releaseLock();
 
       if (!report) throw new Error("El análisis no produjo resultado");
+
+      // 4. Enriquecer el reporte con métricas cuantitativas YOLO (si disponibles)
+      if (physicalMetrics) {
+        report.metricasCuantitativas = {
+          fisicas: {
+            velocidadMaxKmh:  physicalMetrics.maxSpeedKmh as number,
+            velocidadPromKmh: physicalMetrics.avgSpeedKmh as number,
+            distanciaM:       physicalMetrics.distanceM as number,
+            sprints:          physicalMetrics.sprints as number,
+            zonasIntensidad:  physicalMetrics.intensityZones as { caminar: number; trotar: number; correr: number; sprint: number },
+          },
+          eventos: report.metricasCuantitativas?.eventos,
+          fuente:     "yolo_only",
+          confianza:  0.85,
+          heatmapPositions,
+        };
+      }
 
       setAnalysisReport(report);
       setAnalysisState("done");
@@ -1133,6 +1205,74 @@ const VitasLab = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Métricas Cuantitativas (YOLO tracking) */}
+                {analysisReport.metricasCuantitativas?.fisicas && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Activity size={14} className="text-green-500" />
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Métricas Físicas</p>
+                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+                        YOLO Tracking
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="glass rounded-lg p-3 text-center">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Vel. Máx</p>
+                        <p className="text-lg font-display font-black text-yellow-500">{analysisReport.metricasCuantitativas.fisicas.velocidadMaxKmh}</p>
+                        <p className="text-[9px] text-muted-foreground">km/h</p>
+                      </div>
+                      <div className="glass rounded-lg p-3 text-center">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Distancia</p>
+                        <p className="text-lg font-display font-black text-blue-500">{analysisReport.metricasCuantitativas.fisicas.distanciaM}</p>
+                        <p className="text-[9px] text-muted-foreground">metros</p>
+                      </div>
+                      <div className="glass rounded-lg p-3 text-center">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Sprints</p>
+                        <p className="text-lg font-display font-black text-orange-500">{analysisReport.metricasCuantitativas.fisicas.sprints}</p>
+                        <p className="text-[9px] text-muted-foreground">&gt;21 km/h</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div className="glass rounded-lg p-3 text-center">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Vel. Prom</p>
+                        <p className="text-base font-display font-bold text-foreground">{analysisReport.metricasCuantitativas.fisicas.velocidadPromKmh} <span className="text-[9px] text-muted-foreground">km/h</span></p>
+                      </div>
+                      <div className="glass rounded-lg p-3">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">Intensidad</p>
+                        <div className="flex h-2 rounded-full overflow-hidden gap-px">
+                          {(() => {
+                            const z = analysisReport.metricasCuantitativas!.fisicas!.zonasIntensidad;
+                            const total = z.caminar + z.trotar + z.correr + z.sprint || 1;
+                            return <>
+                              <div className="bg-slate-400" style={{ width: `${(z.caminar / total) * 100}%` }} />
+                              <div className="bg-blue-400"  style={{ width: `${(z.trotar  / total) * 100}%` }} />
+                              <div className="bg-orange-400" style={{ width: `${(z.correr / total) * 100}%` }} />
+                              <div className="bg-red-400"   style={{ width: `${(z.sprint / total) * 100}%` }} />
+                            </>;
+                          })()}
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          {[{l:"Cam",c:"bg-slate-400"},{l:"Tro",c:"bg-blue-400"},{l:"Cor",c:"bg-orange-400"},{l:"Spr",c:"bg-red-400"}].map(z => (
+                            <div key={z.l} className="flex items-center gap-0.5">
+                              <div className={`w-1 h-1 rounded-full ${z.c}`} />
+                              <span className="text-[7px] text-muted-foreground">{z.l}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Heatmap del jugador (si hay posiciones) */}
+                {analysisReport.metricasCuantitativas?.heatmapPositions &&
+                 analysisReport.metricasCuantitativas.heatmapPositions.length > 0 && (
+                  <PlayerHeatmap
+                    positions={analysisReport.metricasCuantitativas.heatmapPositions}
+                    title="Mapa de Calor — Sesión Analizada"
+                  />
+                )}
 
                 {/* ADN Futbolístico */}
                 <div className="glass rounded-xl p-4">
