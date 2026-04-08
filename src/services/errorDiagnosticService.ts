@@ -386,6 +386,60 @@ const RULES: DiagnosticRule[] = [
       retryable: true,
     },
   },
+
+  // ── Gemini Video Observation ───────────────────────────────────────────
+  {
+    pattern: /Video demasiado grande para Gemini|>.*20MB/i,
+    diagnosis: {
+      code: "GEMINI_VIDEO_TOO_LARGE",
+      category: "api",
+      title: "Video demasiado grande para observación IA",
+      cause: "El video supera los 20MB, que es el límite para enviar a Gemini.",
+      action: "El análisis continuará con keyframes. Para observación completa, usa videos más cortos o menor resolución.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /Gemini falló.*continuando sin observaciones/i,
+    diagnosis: {
+      code: "GEMINI_OBSERVATION_FAILED",
+      category: "api",
+      title: "Observación de video falló",
+      cause: "Gemini no pudo analizar el video. El análisis continúa con keyframes.",
+      action: "No es crítico — el análisis usa keyframes como fallback. Si necesitas eventos, reintenta.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── Persistencia Supabase ──────────────────────────────────────────────
+  {
+    pattern: /No se pudo guardar en Supabase/i,
+    diagnosis: {
+      code: "SUPABASE_SAVE_FAILED",
+      category: "supabase",
+      title: "No se pudo guardar el análisis",
+      cause: "La persistencia del reporte en la base de datos falló.",
+      action: "El análisis está disponible en pantalla pero no se guardó. Verifica tu conexión.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── VAEP ───────────────────────────────────────────────────────────────
+  {
+    pattern: /No se encontraron eventos.*VAEP|sin eventos para.*VAEP/i,
+    diagnosis: {
+      code: "VAEP_NO_EVENTS",
+      category: "api",
+      title: "Sin datos para calcular VAEP",
+      cause: "No se obtuvieron eventos de la observación de video para calcular VAEP.",
+      action: "Asegúrate de usar un video con acciones visibles (pases, disparos, duelos).",
+      severity: "info",
+      retryable: false,
+    },
+  },
 ];
 
 // ── Servicio principal ───────────────────────────────────────────────────────

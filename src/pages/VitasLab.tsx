@@ -24,6 +24,9 @@ import {
   Target,
   AlertTriangle,
   Activity,
+  FileDown,
+  History,
+  Zap,
 } from "lucide-react";
 import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
@@ -38,8 +41,11 @@ import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
-import { extractKeyframesFromVideo, isLocalSrc } from "@/lib/localVideoUtils";
+import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64 } from "@/lib/localVideoUtils";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
+import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { calculateVAEPFromGemini } from "@/lib/geminiToVaep";
 
 interface CalibrationPoint {
   id: number;
@@ -163,6 +169,7 @@ const VitasLab = () => {
   const { canRunAnalysis, analysesUsed, limits } = usePlan();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showHistorial, setShowHistorial]       = useState(false);
 
   const [selectedMode, setSelectedMode]         = useState("all");
   const [isPlaying, setIsPlaying]               = useState(false);
@@ -172,6 +179,7 @@ const VitasLab = () => {
   const [showResultsPanel, setShowResultsPanel] = useState(false);
   const [selectedVideoId, setSelectedVideoId]   = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const { data: savedAnalyses = [], refetch: refetchAnalyses } = useSavedAnalyses(selectedPlayerId ?? "");
   const [analysisState, setAnalysisState]       = useState<AnalysisState>("idle");
   const [analysisReport, setAnalysisReport]     = useState<AnalysisReport | null>(null);
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
@@ -363,9 +371,55 @@ const VitasLab = () => {
         });
       }
 
+      // 2. Intentar observación Gemini (video base64) — opcional, fallback a keyframes
+      let geminiObservations: Record<string, unknown> | null = null;
+      let geminiEventCounts: Record<string, number> | null = null;
+
+      if (videoSrc) {
+        try {
+          toast.loading("Preparando video para observación IA…", { id: toastId });
+          const videoData = await readVideoAsBase64(videoSrc, 20);
+          if (videoData) {
+            toast.loading("Observando video con Gemini…", { id: toastId });
+            const geminiRes = await fetch("/api/agents/video-observation", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                videoBase64: videoData.base64,
+                mediaType: videoData.mediaType,
+                playerContext: {
+                  name: playerData.name,
+                  age: playerData.age,
+                  position: playerData.position,
+                  foot: playerData.foot,
+                  height: playerData.height,
+                  weight: playerData.weight,
+                  jerseyNumber: jerseyNumber.trim() || undefined,
+                  teamColor: teamColor.trim() || undefined,
+                },
+              }),
+            });
+            if (geminiRes.ok) {
+              const geminiData = await geminiRes.json();
+              if (geminiData.observations && !geminiData.fallback) {
+                geminiObservations = geminiData.observations;
+                geminiEventCounts = (geminiData.observations as Record<string, unknown>).eventosContados as Record<string, number> ?? null;
+                console.log("[VitasLab] Gemini observaciones recibidas:", Object.keys(geminiData.observations));
+              }
+            } else {
+              console.warn("[VitasLab] Gemini respondió con HTTP", geminiRes.status, "— continuando sin observaciones");
+            }
+          } else {
+            console.warn("[VitasLab] Video demasiado grande para Gemini (>20MB) — usando solo keyframes");
+          }
+        } catch (geminiErr) {
+          console.warn("[VitasLab] Gemini falló, continuando sin observaciones:", geminiErr);
+        }
+      }
+
       toast.loading("Analizando con IA…", { id: toastId });
 
-      // 2. Recoger métricas YOLO si hay sesión de tracking completada o activa
+      // 3. Recoger métricas YOLO si hay sesión de tracking completada o activa
       let physicalMetrics: Record<string, unknown> | undefined;
       let heatmapPositions: Array<{ fx: number; fy: number }> | undefined;
 
@@ -419,6 +473,8 @@ const VitasLab = () => {
           videoDuration: (video.duration as number) || 90,
           analysisFocus: analysisFocus.length > 0 ? analysisFocus : null,
           physicalMetrics: physicalMetrics || undefined,
+          geminiObservations: geminiObservations || undefined,
+          geminiEventCounts: geminiEventCounts || undefined,
         }),
       });
 
@@ -462,19 +518,44 @@ const VitasLab = () => {
 
       if (!report) throw new Error("El análisis no produjo resultado");
 
-      // 4. Enriquecer el reporte con métricas cuantitativas YOLO (si disponibles)
-      if (physicalMetrics) {
+      // 4. Enriquecer el reporte con métricas cuantitativas (YOLO + Gemini)
+      const hasYolo = !!physicalMetrics;
+      const hasGemini = !!geminiEventCounts;
+
+      if (hasYolo || hasGemini) {
+        const fuente = hasYolo && hasGemini ? "yolo+gemini" : hasYolo ? "yolo_only" : "gemini_only";
+        const confianza = hasYolo && hasGemini ? 0.85 : hasGemini ? 0.7 : 0.6;
+
+        // Métricas físicas (YOLO)
+        const fisicas = hasYolo ? {
+          velocidadMaxKmh:  physicalMetrics!.maxSpeedKmh as number,
+          velocidadPromKmh: physicalMetrics!.avgSpeedKmh as number,
+          distanciaM:       physicalMetrics!.distanceM as number,
+          sprints:          physicalMetrics!.sprints as number,
+          zonasIntensidad:  physicalMetrics!.intensityZones as { caminar: number; trotar: number; correr: number; sprint: number },
+        } : undefined;
+
+        // Métricas de eventos (Gemini)
+        const eventos = hasGemini ? (() => {
+          const ec = geminiEventCounts!;
+          const totalPases = (ec.pasesCompletados ?? 0) + (ec.pasesFallados ?? 0);
+          return {
+            pasesCompletados: ec.pasesCompletados ?? 0,
+            pasesFallados:    ec.pasesFallados ?? 0,
+            precisionPases:   totalPases > 0 ? Math.round(((ec.pasesCompletados ?? 0) / totalPases) * 100) : 0,
+            recuperaciones:   ec.recuperaciones ?? 0,
+            duelosGanados:    ec.duelosGanados ?? 0,
+            duelosPerdidos:   ec.duelosPerdidos ?? 0,
+            disparosAlArco:   ec.disparosAlArco ?? 0,
+            disparosFuera:    ec.disparosFuera ?? 0,
+          };
+        })() : undefined;
+
         report.metricasCuantitativas = {
-          fisicas: {
-            velocidadMaxKmh:  physicalMetrics.maxSpeedKmh as number,
-            velocidadPromKmh: physicalMetrics.avgSpeedKmh as number,
-            distanciaM:       physicalMetrics.distanceM as number,
-            sprints:          physicalMetrics.sprints as number,
-            zonasIntensidad:  physicalMetrics.intensityZones as { caminar: number; trotar: number; correr: number; sprint: number },
-          },
-          eventos: report.metricasCuantitativas?.eventos,
-          fuente:     "yolo_only",
-          confianza:  0.85,
+          fisicas,
+          eventos,
+          fuente,
+          confianza,
           heatmapPositions,
         };
       }
@@ -482,6 +563,24 @@ const VitasLab = () => {
       setAnalysisReport(report);
       setAnalysisState("done");
       SubscriptionService.incrementAnalysisCount();
+
+      // 5. Persistir en Supabase (si configurado)
+      if (SUPABASE_CONFIGURED && user) {
+        try {
+          await supabase.from("player_analyses").insert({
+            user_id:        user.id,
+            player_id:      selectedPlayerId,
+            video_id:       selectedVideoId,
+            report:         report,
+            similarity_top5: null,
+            projection:     report.proyeccionCarrera ?? null,
+          });
+          refetchAnalyses();
+        } catch (saveErr) {
+          console.warn("[VitasLab] No se pudo guardar en Supabase:", saveErr);
+        }
+      }
+
       toast.dismiss(toastId);
       toast.success("¡Análisis completado!", {
         description: `Informe VITAS Intelligence generado. Confianza: ${Math.round((report.confianza ?? 0) * 100)}%`,
@@ -1155,15 +1254,72 @@ const VitasLab = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <Brain size={16} className="text-primary" />
-                  <span className="font-display font-bold text-foreground">VITAS Intelligence Report</span>
+                  <span className="font-display font-bold text-foreground text-sm">VITAS Report</span>
                   <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
-                    {Math.round(analysisReport.confianza * 100)}% confianza
+                    {Math.round(analysisReport.confianza * 100)}%
                   </span>
                 </div>
-                <button onClick={() => setShowResultsPanel(false)} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <X size={18} />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {/* Historial */}
+                  <button
+                    onClick={() => setShowHistorial(!showHistorial)}
+                    className="flex items-center gap-1 text-[10px] font-display px-2 py-1 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <History size={12} />
+                    HISTORIAL{savedAnalyses.length > 0 ? ` (${savedAnalyses.length})` : ""}
+                  </button>
+                  {/* Exportar PDF */}
+                  <button
+                    onClick={() => {
+                      const tempId = `temp-${Date.now()}`;
+                      sessionStorage.setItem(`vitas-analysis-report-${tempId}`, JSON.stringify({
+                        report: analysisReport,
+                        playerName: playerName || "Jugador",
+                        playerPosition: playerPosition || "Sin posición",
+                      }));
+                      window.open(`/analysis-report/${tempId}`, "_blank");
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-display px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                  >
+                    <FileDown size={12} />
+                    PDF
+                  </button>
+                  <button onClick={() => setShowResultsPanel(false)} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
+
+              {/* Dropdown Historial */}
+              {showHistorial && savedAnalyses.length > 0 && (
+                <div className="border-b border-border bg-muted/30 px-5 py-3 max-h-48 overflow-y-auto">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">Análisis Guardados</p>
+                  <div className="space-y-1.5">
+                    {savedAnalyses.map((sa: { id: string; created_at: string; report: AnalysisReport }) => (
+                      <button
+                        key={sa.id}
+                        onClick={() => {
+                          setAnalysisReport(sa.report);
+                          setShowHistorial(false);
+                        }}
+                        className="w-full text-left glass rounded-lg px-3 py-2 hover:bg-primary/5 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-display font-semibold text-foreground">
+                            {sa.report?.estadoActual?.nivelActual?.replace("_", " ").toUpperCase() ?? "Análisis"}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground">
+                            {new Date(sa.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          {sa.report?.estadoActual?.resumenEjecutivo?.slice(0, 80)}…
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Scrollable content */}
               <div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -1273,6 +1429,118 @@ const VitasLab = () => {
                     title="Mapa de Calor — Sesión Analizada"
                   />
                 )}
+
+                {/* Métricas de Eventos (Gemini observation) */}
+                {analysisReport.metricasCuantitativas?.eventos && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target size={14} className="text-blue-500" />
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Eventos del Partido</p>
+                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                        {analysisReport.metricasCuantitativas.fuente === "yolo+gemini" ? "Tracking + IA" : "Observación IA"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Pases */}
+                      <div className="glass rounded-lg p-3">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Pases</p>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-lg font-display font-black text-green-500">
+                            {analysisReport.metricasCuantitativas.eventos.pasesCompletados}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground">
+                            / {analysisReport.metricasCuantitativas.eventos.pasesCompletados + analysisReport.metricasCuantitativas.eventos.pasesFallados}
+                          </span>
+                        </div>
+                        <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
+                          <div className="h-full bg-green-500 rounded-full" style={{ width: `${analysisReport.metricasCuantitativas.eventos.precisionPases}%` }} />
+                        </div>
+                        <p className="text-[8px] text-muted-foreground mt-0.5">{analysisReport.metricasCuantitativas.eventos.precisionPases}% precisión</p>
+                      </div>
+                      {/* Duelos */}
+                      <div className="glass rounded-lg p-3">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Duelos</p>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-lg font-display font-black text-orange-500">
+                            {analysisReport.metricasCuantitativas.eventos.duelosGanados}G
+                          </span>
+                          <span className="text-[9px] text-red-400">
+                            / {analysisReport.metricasCuantitativas.eventos.duelosPerdidos}P
+                          </span>
+                        </div>
+                      </div>
+                      {/* Recuperaciones */}
+                      <div className="glass rounded-lg p-3">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Recuperaciones</p>
+                        <span className="text-lg font-display font-black text-blue-500">
+                          {analysisReport.metricasCuantitativas.eventos.recuperaciones}
+                        </span>
+                      </div>
+                      {/* Disparos */}
+                      <div className="glass rounded-lg p-3">
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Disparos</p>
+                        <div className="flex items-baseline gap-1 mt-1">
+                          <span className="text-lg font-display font-black text-purple-500">
+                            {analysisReport.metricasCuantitativas.eventos.disparosAlArco}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground">
+                            al arco / {analysisReport.metricasCuantitativas.eventos.disparosFuera} fuera
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* VAEP Estimado (si hay eventos Gemini) */}
+                {analysisReport.metricasCuantitativas?.eventos && (() => {
+                  const vaepResult = calculateVAEPFromGemini(
+                    analysisReport.metricasCuantitativas.eventos,
+                    playerPosition || "mediocampista",
+                    90, // asumimos 90 min si no hay dato exacto
+                  );
+                  if (vaepResult.status !== "calculated") return null;
+                  return (
+                    <div className="glass rounded-xl p-4 border border-purple-500/20">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Zap size={14} className="text-purple-500" />
+                        <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">VAEP Estimado</p>
+                        <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                          Aproximado
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="text-center">
+                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">VAEP Total</p>
+                          <p className={`text-2xl font-display font-black ${(vaepResult.vaepTotal ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                            {(vaepResult.vaepTotal ?? 0) >= 0 ? "+" : ""}{vaepResult.vaepTotal?.toFixed(3)}
+                          </p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">VAEP / 90 min</p>
+                          <p className={`text-2xl font-display font-black ${(vaepResult.vaep90 ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                            {(vaepResult.vaep90 ?? 0) >= 0 ? "+" : ""}{vaepResult.vaep90?.toFixed(3)}
+                          </p>
+                        </div>
+                      </div>
+                      {vaepResult.topActions.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">Top Acciones</p>
+                          <div className="flex flex-wrap gap-1">
+                            {vaepResult.topActions.slice(0, 4).map((a, i) => (
+                              <span key={i} className={`text-[9px] font-display px-1.5 py-0.5 rounded ${a.impact >= 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"}`}>
+                                {a.actionId.replace("synth-", "").split("-")[0]} {a.impact >= 0 ? "+" : ""}{a.impact.toFixed(3)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-[8px] text-muted-foreground mt-2 italic">
+                        Calculado a partir de observación de video IA. Valores aproximados basados en conteos de eventos.
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 {/* ADN Futbolístico */}
                 <div className="glass rounded-xl p-4">

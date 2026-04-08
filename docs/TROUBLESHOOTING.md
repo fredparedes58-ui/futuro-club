@@ -94,3 +94,45 @@
 **Síntoma:** Página de billing muestra error.
 **Causa:** Faltan `VITE_STRIPE_PUBLISHABLE_KEY`, `VITE_STRIPE_PRO_PRICE_ID`, `VITE_STRIPE_CLUB_PRICE_ID`.
 **Solución:** Configurar en Vercel env vars con valores de Stripe Dashboard.
+
+---
+
+## Gemini en VitasLab
+
+### Gemini timeout en VitasLab
+**Síntoma:** Toast "Observando video con Gemini..." queda cargando indefinidamente.
+**Causa:** El endpoint `/api/agents/video-observation` usa Node runtime, que es lento en `vercel dev` local.
+**Solución:** Testear en deploy de Vercel. En local, Gemini se salta (fallback a keyframes). El análisis continúa sin Gemini.
+
+### Event metrics muestran 0
+**Síntoma:** Las cards de Pases, Duelos, Recuperaciones, Disparos muestran todo en 0.
+**Causa:** Gemini no detectó eventos en el video. Puede ser video muy corto, baja calidad, o sin acciones visibles.
+**Solución:** Usar videos de al menos 30s con acción de juego visible (pases, disparos, duelos). Si Gemini falla, las métricas de eventos no aparecen.
+
+---
+
+## VAEP
+
+### VAEP negativo
+**Síntoma:** El VAEP Total muestra valor negativo (ej: -0.120).
+**Causa:** Es esperado. Un VAEP negativo indica que las acciones del jugador tuvieron más impacto negativo (pases fallados, pérdidas) que positivo. Esto es más común en defensas con muchas acciones defensivas.
+**Solución:** No es un error. VAEP negativo = el jugador necesita mejorar eficiencia en sus acciones. Revisar "Top Acciones" para ver cuáles restan más valor.
+
+### VAEP muestra "Sin datos"
+**Síntoma:** La card VAEP no aparece en el reporte.
+**Causa:** No se obtuvieron eventos de Gemini (video no procesado por Gemini, o Gemini no detectó acciones).
+**Solución:** Asegurar que Gemini está configurado (GEMINI_API_KEY) y el video es < 20MB para observación completa.
+
+---
+
+## Persistencia de Análisis
+
+### Análisis no persiste tras refresh
+**Síntoma:** El reporte se pierde al refrescar la página de VitasLab.
+**Causa:** Si Supabase no está configurado, el análisis solo vive en el state de React.
+**Solución:** Configurar Supabase (VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY). Con Supabase activo, los análisis se guardan automáticamente y se acceden via HISTORIAL.
+
+### Botón HISTORIAL muestra (0)
+**Síntoma:** Hay análisis previos pero el historial muestra 0.
+**Causa:** El historial filtra por `player_id`. Si no se seleccionó el mismo jugador, no aparecen.
+**Solución:** Seleccionar el mismo jugador del dropdown para ver sus análisis previos.

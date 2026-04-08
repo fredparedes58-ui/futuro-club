@@ -38,6 +38,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
 import PlayerReportPrint from "./pages/PlayerReportPrint";
+import AnalysisReportPrint from "./pages/AnalysisReportPrint";
 import TeamPage from "./pages/TeamPage";
 import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
@@ -104,6 +105,7 @@ const App = () => (
                 {/* Alias: /player/:id/intelligence → misma página (backward compat) */}
                 <Route path="/player/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<P><PlayerReportPrint /></P>} />
+                <Route path="/analysis-report/:id" element={<AnalysisReportPrint />} />
                 <Route path="/equipo" element={<P><TeamPage /></P>} />
                 <Route path="/team-analysis" element={<P><TeamAnalysisPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
