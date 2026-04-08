@@ -6,7 +6,7 @@
  */
 
 import { motion } from "framer-motion";
-import { Play, Loader2, AlertCircle, Zap, Trash2 } from "lucide-react";
+import { Play, Loader2, AlertCircle, Zap, Trash2, UserRound } from "lucide-react";
 import type { VideoRecord } from "@/services/real/videoService";
 
 interface VideoCardProps {
@@ -15,6 +15,8 @@ interface VideoCardProps {
   onDelete?: (videoId: string) => void;
   showDelete?: boolean;
   className?: string;
+  /** Nombre del jugador vinculado (si existe) */
+  playerName?: string;
 }
 
 const statusBadge: Record<string, { label: string; class: string }> = {
@@ -34,6 +36,7 @@ export default function VideoCard({
   onDelete,
   showDelete = false,
   className = "",
+  playerName,
 }: VideoCardProps) {
   const badge = statusBadge[video.status] ?? statusBadge.unknown;
   const isProcessing = video.status === "processing" || video.status === "transcoding";
@@ -119,7 +122,13 @@ export default function VideoCard({
         <p className="text-xs font-display font-semibold text-foreground leading-tight line-clamp-2">
           {video.title}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {playerName && (
+            <div className="flex items-center gap-0.5">
+              <UserRound size={9} className="text-blue-400" />
+              <span className="text-[9px] font-display text-blue-400">{playerName}</span>
+            </div>
+          )}
           {video.analysisResult && (
             <div className="flex items-center gap-0.5">
               <Zap size={9} className="text-primary" />

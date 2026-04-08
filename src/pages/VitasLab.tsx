@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
+import VoronoiOverlay from "@/components/VoronoiOverlay";
 import { useTracking } from "@/hooks/useTracking";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
@@ -42,6 +43,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
 import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64 } from "@/lib/localVideoUtils";
+import { VideoService } from "@/services/real/videoService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
@@ -186,6 +188,7 @@ const VitasLab = () => {
   const [jerseyNumber, setJerseyNumber]         = useState<string>("");
   const [teamColor, setTeamColor]               = useState<string>("");
   const [showTracking, setShowTracking]         = useState(false);
+  const [showVoronoi, setShowVoronoi]           = useState(false);
   // Configuración por modo de análisis
   const [homeTeamColor, setHomeTeamColor]       = useState<string>("");
   const [awayTeamColor, setAwayTeamColor]       = useState<string>("");
@@ -350,6 +353,11 @@ const VitasLab = () => {
       const video = videos.find(v => v.id === selectedVideoId);
       const playerData = players.find(p => p.id === selectedPlayerId);
       if (!video || !playerData) throw new Error("Video o jugador no encontrado");
+
+      // Vincular video ↔ jugador (persistente)
+      if (video.playerId !== selectedPlayerId) {
+        VideoService.save({ ...video, playerId: selectedPlayerId });
+      }
 
       // 1. Extraer keyframes (local o Bunny CDN)
       const videoSrc = isLocalSrc(video.localPath) ? video.localPath!
@@ -596,11 +604,41 @@ const VitasLab = () => {
     }
   };
 
+  // Presets de perspectiva comunes para calibración rápida
+  const CALIBRATION_PRESETS: Record<string, { label: string; points: CalibrationPoint[] }> = {
+    lateral: {
+      label: "Vista Lateral",
+      points: [
+        { id: 1, x: 15, y: 55, label: "P1" },
+        { id: 2, x: 85, y: 55, label: "P2" },
+        { id: 3, x: 92, y: 90, label: "P3" },
+        { id: 4, x: 8, y: 90, label: "P4" },
+      ],
+    },
+    aerial: {
+      label: "Vista Aérea",
+      points: [
+        { id: 1, x: 10, y: 10, label: "P1" },
+        { id: 2, x: 90, y: 10, label: "P2" },
+        { id: 3, x: 90, y: 90, label: "P3" },
+        { id: 4, x: 10, y: 90, label: "P4" },
+      ],
+    },
+    tribuna: {
+      label: "Vista Tribuna",
+      points: [
+        { id: 1, x: 20, y: 45, label: "P1" },
+        { id: 2, x: 80, y: 45, label: "P2" },
+        { id: 3, x: 88, y: 85, label: "P3" },
+        { id: 4, x: 12, y: 85, label: "P4" },
+      ],
+    },
+  };
+
+  const [showCalibPresets, setShowCalibPresets] = useState(false);
+
   const handleAutoDetect = () => {
-    toast.info("Auto-detección disponible en Fase 3 con YOLOv11M", {
-      description: "El modelo detectará los puntos del campo automáticamente.",
-      duration: 4000,
-    });
+    setShowCalibPresets(v => !v);
   };
 
   const resetPoints = () => {
@@ -722,10 +760,33 @@ const VitasLab = () => {
                 <RotateCcw size={14} />
                 RESET POINTS
               </button>
-              <button onClick={handleAutoDetect} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors">
-                <Camera size={14} />
-                AUTO-DETECT
-              </button>
+              <div className="relative">
+                <button onClick={handleAutoDetect} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors">
+                  <Camera size={14} />
+                  PRESETS
+                  <ChevronDown size={12} />
+                </button>
+                {showCalibPresets && (
+                  <div className="absolute top-full left-0 mt-1 glass rounded-xl border border-border z-20 min-w-[160px] overflow-hidden">
+                    {Object.entries(CALIBRATION_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          setPoints(preset.points);
+                          setShowCalibPresets(false);
+                          toast.success(`Preset "${preset.label}" aplicado`, {
+                            description: "Ajusta los puntos si es necesario.",
+                            duration: 3000,
+                          });
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-primary/5 transition-colors text-foreground font-display"
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button onClick={() => setShowUploadPanel(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-xs font-display font-semibold text-primary hover:bg-primary/20 transition-colors">
                 <Upload size={14} />
                 SUBIR VIDEO
@@ -750,6 +811,15 @@ const VitasLab = () => {
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseUp}
             />
+            {/* Voronoi Overlay */}
+            {showVoronoi && showTracking && tracking.state.voronoiRegions.length >= 2 && containerRef.current && (
+              <VoronoiOverlay
+                regions={tracking.state.voronoiRegions}
+                width={containerRef.current.clientWidth}
+                height={containerRef.current.clientHeight}
+                focusTrackId={tracking.state.focusTrackId}
+              />
+            )}
             {/* Calibration Status */}
             <div className="absolute bottom-4 left-4 glass rounded-lg px-4 py-2 flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${analysisState === "running" ? "bg-yellow-400" : "bg-destructive"} animate-pulse`} />
@@ -1083,6 +1153,9 @@ const VitasLab = () => {
                 scanCount={tracking.state.scanEvents.length}
                 duelCount={tracking.state.duelEvents.length}
                 onFocusTrack={tracking.setFocusTrackId}
+                voronoiRegions={tracking.state.voronoiRegions}
+                showVoronoi={showVoronoi}
+                onToggleVoronoi={() => setShowVoronoi(v => !v)}
               />
 
               {/* Mapa de calor — jugador individual o equipo completo */}

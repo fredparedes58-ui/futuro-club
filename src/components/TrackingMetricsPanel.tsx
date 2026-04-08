@@ -6,8 +6,8 @@
  */
 
 import { motion } from "framer-motion";
-import { Zap, Activity, Timer, Eye, Swords, Map } from "lucide-react";
-import type { PhysicalMetrics, Track, TrackingStatus } from "@/lib/yolo/types";
+import { Zap, Activity, Timer, Eye, Swords, Map, Hexagon } from "lucide-react";
+import type { PhysicalMetrics, Track, TrackingStatus, VoronoiRegion } from "@/lib/yolo/types";
 
 interface Props {
   status:       TrackingStatus;
@@ -17,10 +17,14 @@ interface Props {
   scanCount:    number;
   duelCount:    number;
   onFocusTrack: (id: number | null) => void;
+  voronoiRegions?: VoronoiRegion[];
+  showVoronoi?:    boolean;
+  onToggleVoronoi?: () => void;
 }
 
 export default function TrackingMetricsPanel({
   status, tracks, focusTrackId, metrics, scanCount, duelCount, onFocusTrack,
+  voronoiRegions = [], showVoronoi = false, onToggleVoronoi,
 }: Props) {
   const focusTrack = tracks.find(t => t.id === focusTrackId);
   const speedMs    = focusTrack?.smoothSpeedMs ?? 0;
@@ -159,6 +163,70 @@ export default function TrackingMetricsPanel({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Voronoi — Toggle + Control Territorial */}
+      {isTracking && onToggleVoronoi && (
+        <div className="space-y-2">
+          <button
+            onClick={onToggleVoronoi}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-wider transition-colors ${
+              showVoronoi
+                ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                : "bg-secondary/50 text-muted-foreground hover:bg-secondary border border-border"
+            }`}
+          >
+            <Hexagon size={12} />
+            VORONOI {showVoronoi ? "ON" : "OFF"}
+          </button>
+
+          {showVoronoi && voronoiRegions.length >= 2 && (() => {
+            const totalArea = voronoiRegions.reduce((s, r) => s + r.areaM2, 0);
+            const focusArea = focusTrackId != null
+              ? voronoiRegions.find(r => r.trackId === focusTrackId)?.areaM2 ?? 0
+              : 0;
+            const focusPct = totalArea > 0 ? Math.round((focusArea / totalArea) * 100) : 0;
+            const avgArea  = totalArea / voronoiRegions.length;
+
+            return (
+              <div className="glass rounded-xl p-3 space-y-2">
+                <div className="flex items-center gap-1 mb-1">
+                  <Hexagon size={10} className="text-indigo-400" />
+                  <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
+                    Control Territorial
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">Jugadores detectados</span>
+                  <span className="font-display font-bold text-foreground">{voronoiRegions.length}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-muted-foreground">Área promedio</span>
+                  <span className="font-display font-bold text-foreground">{avgArea.toFixed(0)} m²</span>
+                </div>
+                {focusTrackId != null && focusArea > 0 && (
+                  <>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground">Área #{focusTrackId}</span>
+                      <span className="font-display font-bold text-indigo-400">{focusArea.toFixed(0)} m²</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground">% del campo</span>
+                      <span className="font-display font-bold text-indigo-400">{focusPct}%</span>
+                    </div>
+                    {/* Barra de proporción */}
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                        style={{ width: `${focusPct}%` }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
         </div>
       )}
     </motion.div>

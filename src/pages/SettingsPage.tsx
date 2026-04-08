@@ -25,14 +25,30 @@ import { PushNotificationService } from "@/services/real/pushNotificationService
 
 const SETTINGS_KEY = "settings";
 
+interface NotifPreferences {
+  rendimientoBajo: boolean;
+  inactividad: boolean;
+  limitePlan: boolean;
+  analisisCompletado: boolean;
+}
+
 interface AppSettings {
   notifications: boolean;
+  notifPrefs: NotifPreferences;
   theme: "dark" | "light";
   language: "es" | "en";
 }
 
+const DEFAULT_NOTIF_PREFS: NotifPreferences = {
+  rendimientoBajo: true,
+  inactividad: true,
+  limitePlan: true,
+  analisisCompletado: true,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   notifications: true,
+  notifPrefs: DEFAULT_NOTIF_PREFS,
   theme: "dark",
   language: "es",
 };
@@ -200,6 +216,39 @@ const SettingsPage = () => {
             : <ToggleLeft size={28} className="text-muted-foreground" />
           }
         </div>
+
+        {/* Preferencias granulares de notificación */}
+        {settings.notifications && pushPermission === "granted" && (
+          <div className="glass rounded-xl p-4 space-y-3 ml-4 border-l-2 border-primary/20">
+            <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+              Tipos de notificación
+            </p>
+            {([
+              { key: "rendimientoBajo" as const, label: "Alerta de rendimiento bajo", desc: "VSI del jugador < 50" },
+              { key: "inactividad" as const, label: "Recordatorio de inactividad", desc: "Jugador sin actualizar 30+ días" },
+              { key: "limitePlan" as const, label: "Alerta de límite de plan", desc: "Cerca del máximo de jugadores" },
+              { key: "analisisCompletado" as const, label: "Análisis completado", desc: "Notificar al terminar un análisis" },
+            ]).map(({ key, label, desc }) => (
+              <div
+                key={key}
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setSettings(prev => ({
+                  ...prev,
+                  notifPrefs: { ...prev.notifPrefs, [key]: !prev.notifPrefs[key] },
+                }))}
+              >
+                <div>
+                  <p className="text-xs font-display font-semibold text-foreground">{label}</p>
+                  <p className="text-[9px] text-muted-foreground">{desc}</p>
+                </div>
+                {settings.notifPrefs[key]
+                  ? <ToggleRight size={22} className="text-primary" />
+                  : <ToggleLeft size={22} className="text-muted-foreground" />
+                }
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Idioma */}
         <div className="glass rounded-xl p-4 flex items-center gap-4">

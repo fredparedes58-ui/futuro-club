@@ -19,6 +19,7 @@
 import type { Player } from "./playerService";
 import type { PlayerMetrics } from "./metricsService";
 import type { MatchEvent, EventType, EventZone } from "./matchEventsService";
+import type { FieldPosition } from "@/lib/yolo/types";
 
 // ─── Tipos de entrada/salida ──────────────────────────────────────────────────
 
@@ -698,6 +699,24 @@ export const TrackingService = {
       sprintDistanceM: Math.round(sprintDist),
       status: "calculated",
       message: `Tracking calculado desde ${positions.length} muestras GPS (${minutesPlayed} min).`,
+    };
+  },
+
+  /**
+   * Convierte posiciones de YOLO tracking (FieldPosition[]) al formato TrackingInput.
+   * Esto permite alimentar el cálculo GPS-like con datos del tracker de video.
+   *
+   * @param positions — Historial de posiciones del YOLO tracker (fx, fy en metros)
+   * @param minutesPlayed — Duración del tracking en minutos
+   */
+  fromYoloPositions(positions: FieldPosition[], minutesPlayed: number): TrackingInput {
+    return {
+      positions: positions.map(p => ({
+        x: p.fx,
+        y: p.fy,
+        timestampMs: p.timestampMs,
+      })),
+      minutesPlayed,
     };
   },
 };

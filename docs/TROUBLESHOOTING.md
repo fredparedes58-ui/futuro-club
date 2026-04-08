@@ -136,3 +136,80 @@
 **Síntoma:** Hay análisis previos pero el historial muestra 0.
 **Causa:** El historial filtra por `player_id`. Si no se seleccionó el mismo jugador, no aparecen.
 **Solución:** Seleccionar el mismo jugador del dropdown para ver sus análisis previos.
+
+---
+
+## Voronoi
+
+### Voronoi no se renderiza
+**Síntoma:** El toggle VORONOI está ON pero no aparecen los polígonos.
+**Causa:** Se necesitan al menos 2 jugadores detectados (3+ para diagrama significativo). Si el YOLO solo detecta 1 persona, no puede calcular Voronoi.
+**Solución:** Usar video con múltiples jugadores visibles. El diagrama solo aparece durante tracking activo.
+
+---
+
+## Sincronización
+
+### Sync muestra "conflicto de datos"
+**Síntoma:** Aparece mensaje sobre conflicto al sincronizar.
+**Causa:** El mismo jugador/video fue editado en dos dispositivos o pestañas sin sincronizar entre ediciones.
+**Solución:** El sistema usa "last-write-wins" automáticamente. La versión más reciente prevalece. No se requiere acción manual.
+
+### Cambios no se sincronizan
+**Síntoma:** Datos creados offline no aparecen en Supabase después de reconectar.
+**Causa:** La cola de sync puede tener items con demasiados reintentos (>5).
+**Solución:** Verificar conexión. Los items con >5 reintentos se eliminan automáticamente. Crear el registro de nuevo si se perdió.
+
+---
+
+## Videos
+
+### Video no se vincula al jugador
+**Síntoma:** Tras analizar un video, no aparece vinculado al jugador en su perfil.
+**Causa:** La vinculación ocurre al iniciar el análisis. Si se cancela antes de completar, puede no guardarse.
+**Solución:** Volver a seleccionar el jugador y ejecutar el análisis completo.
+
+---
+
+## Notificaciones
+
+### Cron no ejecuta
+**Síntoma:** No se reciben notificaciones diarias.
+**Causa:** El endpoint `/api/notifications/cron` requiere `CRON_SECRET` para autenticarse. Sin ella, Vercel Cron no puede ejecutar.
+**Solución:** `vercel env add CRON_SECRET` con un valor secreto aleatorio. El cron está configurado para 09:00 UTC diario.
+
+---
+
+## RAG / Knowledge Base
+
+### RAG retorna resultados vacíos
+**Síntoma:** Buscar ejercicios no retorna nada.
+**Causa:** La base de conocimiento puede no estar inicializada (drills no indexados).
+**Solución:** Ejecutar `POST /api/rag/seed` para indexar los 32 drills del catálogo. Requiere VOYAGE_API_KEY para embeddings vectoriales.
+
+---
+
+## Fixtures / Partidos en vivo
+
+### Fixtures API no responde
+**Síntoma:** El widget de partidos muestra error o está vacío.
+**Causa:** Falta `FOOTBALL_DATA_API_KEY` o se alcanzó el límite del plan gratuito (10 req/min).
+**Solución:** Registrarse en football-data.org (gratis), obtener API key, y configurar en Vercel.
+
+---
+
+## GPS / Tracking avanzado
+
+### GPS muestra stub
+**Síntoma:** Las métricas GPS muestran "STUB: En espera de datos".
+**Causa:** No se ha ejecutado una sesión de tracking YOLO que genere datos de posición.
+**Solución:** Usar `TrackingService.fromYoloPositions()` para convertir posiciones del tracker YOLO al formato GPS. Ejecutar tracking antes de solicitar métricas.
+
+---
+
+## Calibración
+
+### Calibración rechazada
+**Síntoma:** La homografía no se calcula correctamente, las posiciones en campo son absurdas.
+**Causa:** Los 4 puntos de calibración no forman un cuadrilátero convexo válido (puntos cruzados o colineales).
+**Solución:** Usar los presets de perspectiva (Vista Lateral, Aérea, Tribuna) como punto de partida. Ajustar manualmente si es necesario.

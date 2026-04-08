@@ -440,6 +440,166 @@ const RULES: DiagnosticRule[] = [
       retryable: false,
     },
   },
+
+  // ── Voronoi ────────────────────────────────────────────────────────────
+  {
+    pattern: /voronoi.*tracks|menos de 3 jugadores/i,
+    diagnosis: {
+      code: "VORONOI_NO_TRACKS",
+      category: "tracking",
+      title: "Insuficientes jugadores para Voronoi",
+      cause: "Se necesitan al menos 3 jugadores detectados para calcular el diagrama de control territorial.",
+      action: "Asegúrate de que el video muestre a varios jugadores en el campo.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── Sync ──────────────────────────────────────────────────────────────
+  {
+    pattern: /sync.*conflict|conflicto.*datos/i,
+    diagnosis: {
+      code: "SYNC_CONFLICT",
+      category: "supabase",
+      title: "Conflicto de datos detectado",
+      cause: "El mismo registro fue modificado en dos lugares. Se usó la versión más reciente.",
+      action: "No se requiere acción. El sistema resuelve conflictos automáticamente (last-write-wins).",
+      severity: "info",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /sync.*queue|cambios pendientes/i,
+    diagnosis: {
+      code: "SYNC_QUEUE_FULL",
+      category: "supabase",
+      title: "Cambios pendientes de sincronizar",
+      cause: "Hay operaciones que no se han podido sincronizar con el servidor.",
+      action: "Verifica tu conexión a internet. Los cambios se sincronizarán automáticamente al reconectar.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── Video linking ─────────────────────────────────────────────────────
+  {
+    pattern: /vincular.*video|video.*player.*link/i,
+    diagnosis: {
+      code: "VIDEO_PLAYER_LINK_FAILED",
+      category: "video",
+      title: "No se pudo vincular el video al jugador",
+      cause: "Hubo un error al guardar la vinculación video-jugador.",
+      action: "Intenta de nuevo. Si persiste, recarga la página.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+
+  // ── Cron / Push ───────────────────────────────────────────────────────
+  {
+    pattern: /CRON_SECRET/i,
+    diagnosis: {
+      code: "CRON_SECRET_MISSING",
+      category: "api",
+      title: "Cron no configurado",
+      cause: "Falta la variable CRON_SECRET en las variables de entorno.",
+      action: "Agrega CRON_SECRET en Vercel para proteger el endpoint de notificaciones.",
+      severity: "warning",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /push.*subscription.*expir/i,
+    diagnosis: {
+      code: "PUSH_SUBSCRIPTION_EXPIRED",
+      category: "api",
+      title: "Suscripción push expirada",
+      cause: "La suscripción a notificaciones push expiró o fue revocada.",
+      action: "Ve a Ajustes y reactiva las notificaciones push.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── GPS / Tracking ────────────────────────────────────────────────────
+  {
+    pattern: /tracking session.*requer|sesión de tracking/i,
+    diagnosis: {
+      code: "GPS_NO_TRACKING_SESSION",
+      category: "tracking",
+      title: "Sin sesión de tracking",
+      cause: "Se requiere una sesión de tracking completada para calcular métricas GPS.",
+      action: "Inicia tracking YOLO en un video antes de solicitar métricas GPS.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── Calibración ───────────────────────────────────────────────────────
+  {
+    pattern: /cuadrilátero.*inválido|calibration.*invalid/i,
+    diagnosis: {
+      code: "CALIBRATION_INVALID",
+      category: "tracking",
+      title: "Calibración inválida",
+      cause: "Los 4 puntos no forman un cuadrilátero convexo válido.",
+      action: "Reposiciona los puntos de calibración o usa un preset (Vista Lateral, Aérea, Tribuna).",
+      severity: "warning",
+      retryable: false,
+    },
+  },
+
+  // ── RAG ────────────────────────────────────────────────────────────────
+  {
+    pattern: /RAG.*query.*fail|knowledge.*base.*error/i,
+    diagnosis: {
+      code: "RAG_QUERY_FAILED",
+      category: "api",
+      title: "Búsqueda en base de conocimiento falló",
+      cause: "No se pudo consultar la base de datos de ejercicios y metodologías.",
+      action: "Verifica que Supabase y VOYAGE_API_KEY están configurados.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
+  {
+    pattern: /no.*resultados.*búsqueda|RAG.*no results/i,
+    diagnosis: {
+      code: "RAG_NO_RESULTS",
+      category: "api",
+      title: "Sin resultados de búsqueda",
+      cause: "No se encontraron ejercicios o metodologías que coincidan con la búsqueda.",
+      action: "Prueba con términos más generales o en otro idioma.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+
+  // ── Football API ──────────────────────────────────────────────────────
+  {
+    pattern: /FOOTBALL_DATA_API_KEY/i,
+    diagnosis: {
+      code: "FOOTBALL_API_NOT_CONFIGURED",
+      category: "api",
+      title: "API de partidos no configurada",
+      cause: "Falta la variable FOOTBALL_DATA_API_KEY para obtener fixtures en vivo.",
+      action: "Regístrate en football-data.org y configura la API key en Vercel.",
+      severity: "info",
+      retryable: false,
+    },
+  },
+  {
+    pattern: /football.*rate.*limit|Football-Data.*429/i,
+    diagnosis: {
+      code: "FOOTBALL_API_RATE_LIMIT",
+      category: "api",
+      title: "Límite de la API de fútbol alcanzado",
+      cause: "Se superó la cuota de requests de Football-Data.org.",
+      action: "Espera unos minutos. El plan gratuito permite 10 requests/min.",
+      severity: "warning",
+      retryable: true,
+    },
+  },
 ];
 
 // ── Servicio principal ───────────────────────────────────────────────────────
