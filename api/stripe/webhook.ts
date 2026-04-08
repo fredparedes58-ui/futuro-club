@@ -71,7 +71,7 @@ export default async function handler(req: Request): Promise<Response> {
         stripe_customer_id:     session.customer as string,
         stripe_subscription_id: sub.id,
         current_period_end: new Date(
-          (typeof sub.current_period_end === "number" ? sub.current_period_end : 0) * 1000
+          (typeof (sub as Record<string, unknown>).current_period_end === "number" ? (sub as Record<string, unknown>).current_period_end as number : 0) * 1000
         ).toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
@@ -92,7 +92,7 @@ export default async function handler(req: Request): Promise<Response> {
         status: sub.status,
         stripe_subscription_id: sub.id,
         current_period_end: new Date(
-          (typeof sub.current_period_end === "number" ? sub.current_period_end : 0) * 1000
+          (typeof (sub as Record<string, unknown>).current_period_end === "number" ? (sub as Record<string, unknown>).current_period_end as number : 0) * 1000
         ).toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
