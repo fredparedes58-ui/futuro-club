@@ -45,6 +45,7 @@ import { SubscriptionService } from "@/services/real/subscriptionService";
 import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64 } from "@/lib/localVideoUtils";
 import { VideoService } from "@/services/real/videoService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
+import KnowledgeSearch from "@/components/KnowledgeSearch";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
 import { calculateVAEPFromGemini } from "@/lib/geminiToVaep";
@@ -1281,7 +1282,7 @@ const VitasLab = () => {
                           onClick={() => { setSelectedVideoId(video.id); setShowUploadPanel(false); toast.info(`Video seleccionado: ${video.title}`); }}
                           className={`cursor-pointer rounded-xl border-2 transition-all ${selectedVideoId === video.id ? "border-primary" : "border-transparent"}`}
                         >
-                          <VideoCard video={video} />
+                          <VideoCard video={video} playerName={video.playerId ? players?.find(p => p.id === video.playerId)?.name : undefined} />
                         </div>
                       ))}
                     </div>
@@ -1698,6 +1699,19 @@ const VitasLab = () => {
                       </ul>
                     </div>
                   ))}
+                </div>
+
+                {/* Ejercicios Recomendados (RAG) */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Zap size={14} className="text-electric" />
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Ejercicios Recomendados</p>
+                  </div>
+                  <KnowledgeSearch
+                    compact
+                    className="mb-2"
+                    onSelectResult={(r) => toast.info(`Drill: ${r.content.slice(0, 80)}...`)}
+                  />
                 </div>
 
                 {/* Riesgos */}

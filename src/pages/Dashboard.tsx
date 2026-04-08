@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
 import { DashboardStatsSkeleton, MatchesSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import LiveMatchCard from "@/components/LiveMatchCard";
+import LiveFixtures from "@/components/LiveFixtures";
 import PlayerCard from "@/components/PlayerCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -117,6 +118,11 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">No hay partidos programados</p>
           </div>
         )}
+      </motion.div>
+
+      {/* Fixtures en Vivo — Football-Data.org */}
+      <motion.div variants={item}>
+        <LiveFixtures compact />
       </motion.div>
 
       {/* Trending Players */}
