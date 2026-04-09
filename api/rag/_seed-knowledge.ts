@@ -71,9 +71,13 @@ export default withHandler(
       }));
 
       try {
+        const authHeader = req.headers.get("Authorization") ?? "";
         const res = await fetch(`${baseUrl}/api/rag/ingest`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": authHeader,
+          },
           body: JSON.stringify({ documents }),
         });
 

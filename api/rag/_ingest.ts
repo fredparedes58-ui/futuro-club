@@ -22,8 +22,22 @@ const IngestDocSchema = z.object({
 export type IngestRequest = z.infer<typeof IngestDocSchema>;
 
 export default withHandler(
-  { requireAuth: true, maxRequests: 20, rawBody: true },
-  async ({ req }) => {
+  { optionalAuth: true, maxRequests: 20, rawBody: true },
+  async ({ req, userId }) => {
+    // Allow authenticated users OR service role (for seed endpoints)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const cronSecret = process.env.CRON_SECRET;
+    const adminSecret = process.env.ADMIN_SECRET;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const isService =
+      (cronSecret && token === cronSecret) ||
+      (adminSecret && token === adminSecret) ||
+      (serviceKey && token === serviceKey);
+
+    if (!userId && !isService) {
+      return errorResponse("No autenticado", 401, "UNAUTHORIZED");
+    }
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 
