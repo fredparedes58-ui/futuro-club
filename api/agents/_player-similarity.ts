@@ -9,7 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../lib/withHandler";
 import { successResponse } from "../lib/apiResponse";
-import { PRO_PLAYERS, type ProPlayer } from "../data/proPlayers";
+import { PRO_PLAYERS, type ProPlayer } from "../data/_proPlayers";
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────
 

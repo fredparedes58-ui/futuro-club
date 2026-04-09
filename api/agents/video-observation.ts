@@ -87,7 +87,7 @@ export default withHandler(
         RW: "FOCO POSICIONAL (Extremo derecho): Observa 1v1, desborde, centros, regates, movimiento sin balón al espacio, repliegue defensivo, combinaciones con lateral.",
         LW: "FOCO POSICIONAL (Extremo izquierdo): Observa 1v1, desborde, centros, regates, movimiento sin balón al espacio, repliegue defensivo, combinaciones con lateral.",
         ST: "FOCO POSICIONAL (Delantero centro): Observa movimientos de desmarque, disparo, juego de espaldas, pressing al rival, inteligencia en el área, timing de carrera.",
-      }[ctx.position] || "Observa todas las acciones del jugador con atención al contexto táctico.";
+      } as Record<string, string>)[ctx.position] || "Observa todas las acciones del jugador con atención al contexto táctico.";
 
       const prompt = `Eres un scout profesional de fútbol formado en metodologías de scouting europeas (La Masia, Ajax Academy, Clairefontaine). Tienes experiencia evaluando jugadores desde categorías sub-10 hasta profesional. Observa este video completo con la mentalidad de un ojeador que debe decidir si este jugador merece seguimiento.
 
