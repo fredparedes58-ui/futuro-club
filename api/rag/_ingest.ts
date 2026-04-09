@@ -99,30 +99,49 @@ export default withHandler(
       return successResponse({ success: errors.length === 0, indexed: 0, errors });
     }
 
-    // Embed all documents in one request
+    // Embed documents — try batch first, fallback to one-by-one
     const texts = documents.map(d => d.content);
     let embeddings: (number[] | null)[] = texts.map(() => null);
+    const authHeader = req.headers.get("Authorization") ?? "";
 
-    try {
-      const authHeader = req.headers.get("Authorization") ?? "";
-      const embedRes = await fetch(`${baseUrl}/api/rag/embed`, {
+    async function callEmbed(input: string[]): Promise<(number[] | null)[]> {
+      const res = await fetch(`${baseUrl}/api/rag/embed`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": authHeader,
         },
-        body: JSON.stringify({ texts, inputType: "document" }),
+        body: JSON.stringify({ texts: input, inputType: "document" }),
       });
-      if (embedRes.ok) {
-        const raw = await embedRes.json() as { ok?: boolean; data?: { embeddings?: (number[] | null)[] }; embeddings?: (number[] | null)[] };
-        // successResponse wraps in { ok, data }, so unwrap
-        const embedData = raw.data ?? raw;
-        if (embedData.embeddings?.length === texts.length) {
-          embeddings = embedData.embeddings;
+      if (!res.ok) return input.map(() => null);
+      const raw = await res.json() as { ok?: boolean; data?: { embeddings?: (number[] | null)[] }; embeddings?: (number[] | null)[] };
+      const data = raw.data ?? raw;
+      return data.embeddings ?? input.map(() => null);
+    }
+
+    try {
+      // Try batch first
+      const batchResult = await callEmbed(texts);
+      if (batchResult.length === texts.length && batchResult.some(e => e !== null)) {
+        embeddings = batchResult;
+      }
+      // For any that failed in batch, retry individually
+      for (let i = 0; i < embeddings.length; i++) {
+        if (embeddings[i] === null) {
+          try {
+            const single = await callEmbed([texts[i]]);
+            if (single[0] !== null) embeddings[i] = single[0];
+          } catch { /* skip */ }
         }
       }
     } catch {
-      // Embedding failed — proceed without vectors
+      // Batch failed entirely — try one by one
+      for (let i = 0; i < texts.length; i++) {
+        try {
+          const single = await callEmbed([texts[i]]);
+          if (single[0] !== null) embeddings[i] = single[0];
+        } catch { /* skip */ }
+      }
     }
 
     // Insert each document
