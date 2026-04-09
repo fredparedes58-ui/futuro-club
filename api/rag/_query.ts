@@ -44,13 +44,18 @@ export default withHandler(
     // Try vector search first
     let embedding: number[] | null = null;
     try {
+      const authHeader = req.headers.get("Authorization") ?? "";
       const embedRes = await fetch(`${baseUrl}/api/rag/embed`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader,
+        },
         body: JSON.stringify({ texts: [query], inputType: "query" }),
       });
       if (embedRes.ok) {
-        const embedData = await embedRes.json() as { embeddings?: (number[] | null)[] };
+        const raw = await embedRes.json() as { ok?: boolean; data?: { embeddings?: (number[] | null)[] }; embeddings?: (number[] | null)[] };
+        const embedData = raw.data ?? raw;
         embedding = embedData.embeddings?.[0] ?? null;
       }
     } catch {
