@@ -10,6 +10,7 @@ import ingest from "./_ingest";
 import feedback from "./_feedback";
 import seed from "./_seed";
 import seedKnowledge from "./_seed-knowledge";
+import backfillEmbeddings from "./_backfill-embeddings";
 
 export const config = { runtime: "edge" };
 
@@ -20,6 +21,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "feedback": feedback,
   "seed": seed,
   "seed-knowledge": seedKnowledge,
+  "backfill-embeddings": backfillEmbeddings,
 };
 
 export default async function handler(req: Request): Promise<Response> {
