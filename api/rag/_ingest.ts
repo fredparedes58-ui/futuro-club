@@ -102,7 +102,6 @@ export default withHandler(
     // Embed documents — try batch first, fallback to one-by-one
     const texts = documents.map(d => d.content);
     let embeddings: (number[] | null)[] = texts.map(() => null);
-    const authHeader = req.headers.get("Authorization") ?? "";
 
     async function callEmbed(input: string[]): Promise<(number[] | null)[]> {
       const res = await fetch(`${baseUrl}/api/rag/embed`, {
