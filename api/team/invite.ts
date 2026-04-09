@@ -2,122 +2,96 @@
  * POST /api/team/invite
  * Crea una invitación y envía email con Resend.
  *
- * Body: { orgOwnerId, email, role }
+ * Body: { email, role }
  */
 
+import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import { verifyAuth } from "../lib/auth";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 // Node.js runtime required — Resend SDK uses Node-only APIs
 // export const config = { runtime: "edge" };
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
-  }
+const InviteSchema = z.object({
+  email: z.string().email("Email inválido"),
+  role: z.enum(["scout", "coach", "viewer"], { errorMap: () => ({ message: "Rol inválido" }) }),
+});
 
-  // Verify JWT — only authenticated users can send invitations
-  const { userId, error: authError } = await verifyAuth(req);
-  if (!userId) {
-    return new Response(JSON.stringify({ error: authError ?? "No autenticado" }), { status: 401 });
-  }
+export default withHandler(
+  { schema: InviteSchema, requireAuth: true, maxRequests: 10 },
+  async ({ req, body, userId }) => {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const resendKey   = process.env.RESEND_API_KEY;
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const resendKey   = process.env.RESEND_API_KEY;
+    if (!supabaseUrl || !serviceKey) {
+      return errorResponse("Supabase not configured", 500);
+    }
 
-  if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500 });
-  }
+    const supabase = createClient(supabaseUrl, serviceKey);
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+    // orgOwnerId comes from JWT, not body (prevent spoofing)
+    const orgOwnerId = userId!;
+    const { email, role } = body;
 
-  let body: { email?: string; role?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
-  }
+    // Verificar que no exista ya una invitación pendiente para este email
+    const { data: existing } = await supabase
+      .from("team_invitations")
+      .select("id")
+      .eq("org_owner_id", orgOwnerId)
+      .eq("email", email)
+      .eq("status", "pending")
+      .single();
 
-  // orgOwnerId comes from JWT, not body (prevent spoofing)
-  const orgOwnerId = userId;
-  const { email, role } = body;
-  if (!email || !role) {
-    return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
-  }
+    if (existing) {
+      return errorResponse("Ya existe una invitación pendiente para este email", 409);
+    }
 
-  const validRoles = ["scout", "coach", "viewer"];
-  if (!validRoles.includes(role)) {
-    return new Response(JSON.stringify({ error: "Invalid role" }), { status: 400 });
-  }
+    // Obtener nombre de la organización
+    const { data: profileData } = await supabase
+      .from("user_profiles")
+      .select("organization_name")
+      .eq("user_id", orgOwnerId)
+      .single();
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return new Response(JSON.stringify({ error: "Email inválido" }), { status: 400 });
-  }
+    const orgName = profileData?.organization_name ?? "VITAS Football Intelligence";
 
-  // Verificar que no exista ya una invitación pendiente para este email
-  const { data: existing } = await supabase
-    .from("team_invitations")
-    .select("id")
-    .eq("org_owner_id", orgOwnerId)
-    .eq("email", email)
-    .eq("status", "pending")
-    .single();
+    // Crear la invitación en Supabase
+    const { data: invitation, error: inviteError } = await supabase
+      .from("team_invitations")
+      .insert({ org_owner_id: orgOwnerId, email, role })
+      .select("token")
+      .single();
 
-  if (existing) {
-    return new Response(
-      JSON.stringify({ error: "Ya existe una invitación pendiente para este email" }),
-      { status: 409 }
-    );
-  }
+    if (inviteError || !invitation) {
+      return errorResponse(inviteError?.message ?? "Error creating invitation", 500);
+    }
 
-  // Obtener nombre de la organización
-  const { data: profileData } = await supabase
-    .from("user_profiles")
-    .select("organization_name")
-    .eq("user_id", orgOwnerId)
-    .single();
+    const origin = new URL(req.url).origin;
+    const acceptUrl = `${origin}/aceptar-invitacion?token=${invitation.token}`;
 
-  const orgName = profileData?.organization_name ?? "VITAS Football Intelligence";
+    // Enviar email con Resend (si está configurado)
+    if (resendKey && !resendKey.startsWith("placeholder")) {
+      const resend = new Resend(resendKey);
+      await resend.emails.send({
+        from: "VITAS <no-reply@prophet-horizon.tech>",
+        to: [email],
+        subject: `Invitación a unirte al equipo de ${orgName}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+            <h2 style="color:#7c3aed;margin-bottom:8px">VITAS Football Intelligence</h2>
+            <p style="color:#374151;font-size:15px">Has sido invitado a unirte al equipo de <strong>${orgName}</strong> con el rol de <strong>${role}</strong>.</p>
+            <a href="${acceptUrl}" style="display:inline-block;margin-top:24px;padding:12px 24px;background:#7c3aed;color:white;text-decoration:none;border-radius:8px;font-weight:bold">
+              Aceptar invitación
+            </a>
+            <p style="color:#9ca3af;font-size:12px;margin-top:32px">Este enlace expira en 7 días. Si no esperabas este correo, puedes ignorarlo.</p>
+          </div>
+        `,
+      }).catch(() => {});
+    }
 
-  // Crear la invitación en Supabase
-  const { data: invitation, error: inviteError } = await supabase
-    .from("team_invitations")
-    .insert({ org_owner_id: orgOwnerId, email, role })
-    .select("token")
-    .single();
-
-  if (inviteError || !invitation) {
-    return new Response(JSON.stringify({ error: inviteError?.message ?? "Error creating invitation" }), { status: 500 });
-  }
-
-  const origin = new URL(req.url).origin;
-  const acceptUrl = `${origin}/aceptar-invitacion?token=${invitation.token}`;
-
-  // Enviar email con Resend (si está configurado)
-  if (resendKey && !resendKey.startsWith("placeholder")) {
-    const resend = new Resend(resendKey);
-    await resend.emails.send({
-      from: "VITAS <no-reply@prophet-horizon.tech>",
-      to: [email],
-      subject: `Invitación a unirte al equipo de ${orgName}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
-          <h2 style="color:#7c3aed;margin-bottom:8px">VITAS Football Intelligence</h2>
-          <p style="color:#374151;font-size:15px">Has sido invitado a unirte al equipo de <strong>${orgName}</strong> con el rol de <strong>${role}</strong>.</p>
-          <a href="${acceptUrl}" style="display:inline-block;margin-top:24px;padding:12px 24px;background:#7c3aed;color:white;text-decoration:none;border-radius:8px;font-weight:bold">
-            Aceptar invitación
-          </a>
-          <p style="color:#9ca3af;font-size:12px;margin-top:32px">Este enlace expira en 7 días. Si no esperabas este correo, puedes ignorarlo.</p>
-        </div>
-      `,
-    }).catch(() => {});
-  }
-
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+    return successResponse({ success: true });
+  },
+);

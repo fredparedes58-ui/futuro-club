@@ -11,6 +11,8 @@
  */
 
 import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 const BodySchema = z.object({
   title: z.string().min(1).max(200),
@@ -20,29 +22,22 @@ const BodySchema = z.object({
 
 const BUNNY_BASE = "https://video.bunnycdn.com/library";
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+export default withHandler(
+  { method: "POST", schema: BodySchema, requireAuth: true, maxRequests: 10 },
+  async ({ req, body }) => {
+    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY;
 
-  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-  const apiKey = process.env.BUNNY_STREAM_API_KEY;
+    // Graceful degradation — env vars not configured yet
+    if (!libraryId || !apiKey) {
+      return errorResponse(
+        "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
+        503,
+        "CONFIG_MISSING",
+      );
+    }
 
-  // Graceful degradation — env vars not configured yet
-  if (!libraryId || !apiKey) {
-    return json(
-      {
-        success: false,
-        error: "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
-        phase2Pending: true,
-      },
-      503
-    );
-  }
-
-  try {
-    const body = await req.json();
-    const { title, playerId, collection } = BodySchema.parse(body);
+    const { title, playerId, collection } = body;
 
     // Step 1: Create video entry in Bunny Stream
     const createPayload: Record<string, string> = { title };
@@ -91,30 +86,17 @@ export default async function handler(req: Request): Promise<Response> {
     const signature = Array.from(new Uint8Array(sigBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
 
     // Return upload credentials — use signed auth, NEVER expose raw API key
-    return json({
-      success: true,
-      data: {
-        videoId:        video.guid,
-        libraryId:      Number(libraryId),
-        uploadUrl:      `${BUNNY_BASE}/${libraryId}/videos/${video.guid}`,
-        authSignature:  signature,
-        authExpire:     expirationTime,
-        title:          video.title,
-        playerId:       playerId ?? null,
-        cdnHostname:    process.env.BUNNY_CDN_HOSTNAME ?? null,
-      },
+    return successResponse({
+      videoId:        video.guid,
+      libraryId:      Number(libraryId),
+      uploadUrl:      `${BUNNY_BASE}/${libraryId}/videos/${video.guid}`,
+      authSignature:  signature,
+      authExpire:     expirationTime,
+      title:          video.title,
+      playerId:       playerId ?? null,
+      cdnHostname:    process.env.BUNNY_CDN_HOSTNAME ?? null,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ success: false, error: message }, 500);
-  }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+  },
+);
 
 export const config = { runtime: "edge" };

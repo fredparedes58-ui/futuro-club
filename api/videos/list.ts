@@ -6,6 +6,8 @@
  */
 
 import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 const QuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -16,28 +18,26 @@ const QuerySchema = z.object({
 
 const BUNNY_BASE = "https://video.bunnycdn.com/library";
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "GET") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+export default withHandler(
+  { method: "GET", requireAuth: true, maxRequests: 30 },
+  async ({ req }) => {
+    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY;
+    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
 
-  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-  const apiKey = process.env.BUNNY_STREAM_API_KEY;
-  const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
+    if (!libraryId || !apiKey) {
+      return successResponse(
+        {
+          items: [],
+          totalItems: 0,
+          currentPage: 1,
+          totalPages: 0,
+          phase2Pending: true,
+        },
+        200,
+      );
+    }
 
-  if (!libraryId || !apiKey) {
-    return json(
-      {
-        success: false,
-        error: "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
-        phase2Pending: true,
-        data: { items: [], totalItems: 0, currentPage: 1, totalPages: 0 },
-      },
-      200 // Return 200 so UI can render empty state gracefully
-    );
-  }
-
-  try {
     const url = new URL(req.url);
     const params = QuerySchema.parse(Object.fromEntries(url.searchParams));
 
@@ -114,20 +114,14 @@ export default async function handler(req: Request): Promise<Response> {
         })
       : items;
 
-    return json({
-      success: true,
-      data: {
-        items: filtered,
-        totalItems: params.playerId ? filtered.length : raw.totalItems,
-        currentPage: raw.currentPage,
-        totalPages: Math.ceil(raw.totalItems / params.perPage),
-      },
+    return successResponse({
+      items: filtered,
+      totalItems: params.playerId ? filtered.length : raw.totalItems,
+      currentPage: raw.currentPage,
+      totalPages: Math.ceil(raw.totalItems / params.perPage),
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ success: false, error: message }, 500);
-  }
-}
+  },
+);
 
 function mapBunnyStatus(code: number): string {
   switch (code) {
@@ -140,13 +134,6 @@ function mapBunnyStatus(code: number): string {
     case 6: return "upload-failed";
     default: return "unknown";
   }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }
 
 export const config = { runtime: "edge" };

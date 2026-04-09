@@ -5,7 +5,18 @@
  * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
  */
 
+import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
+
 export const config = { runtime: "edge" };
+
+const roleSchema = z.object({
+  player: z.object({
+    id: z.string().optional(),
+    name: z.string().min(1),
+  }).passthrough(),
+}).passthrough();
 
 const ROLE_PROFILE_PROMPT = `
 Eres el motor de perfilado táctico de VITAS Football Intelligence.
@@ -42,21 +53,12 @@ No incluyas texto, explicaciones ni markdown fuera del JSON.
 Todos los números con 2 decimales máximo. El summary en español, máximo 400 caracteres.
 `;
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return json({ success: false, error: "ANTHROPIC_API_KEY not configured", agentName: "RoleProfileAgent" }, 503);
-  }
-
-  try {
-    const body = await req.json();
-
-    if (!body?.player?.id && !body?.player?.name) {
-      return json({ success: false, error: "Player data required", agentName: "RoleProfileAgent" }, 400);
+export default withHandler(
+  { schema: roleSchema, requireAuth: true, maxRequests: 30 },
+  async ({ body }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return errorResponse("ANTHROPIC_API_KEY not configured", 503, "CONFIG_ERROR");
     }
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -77,11 +79,11 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (!claudeRes.ok) {
       const errText = await claudeRes.text().catch(() => "");
-      return json({
-        success: false,
-        error: `Claude API ${claudeRes.status}: ${errText.slice(0, 200)}`,
-        agentName: "RoleProfileAgent",
-      }, 500);
+      return errorResponse(
+        `Claude API ${claudeRes.status}: ${errText.slice(0, 200)}`,
+        500,
+        "CLAUDE_ERROR",
+      );
     }
 
     const claudeData = await claudeRes.json() as {
@@ -96,7 +98,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     const m = fullText.match(/\{[\s\S]*\}/);
     if (!m) {
-      return json({ success: false, error: "No JSON in Claude response", agentName: "RoleProfileAgent" }, 500);
+      return errorResponse("No JSON in Claude response", 500, "PARSE_ERROR");
     }
 
     const parsed = JSON.parse(m[0]);
@@ -108,21 +110,10 @@ export default async function handler(req: Request): Promise<Response> {
       ? claudeData.usage.input_tokens + claudeData.usage.output_tokens
       : 0;
 
-    return json({
-      success: true,
-      data: parsed,
+    return successResponse({
+      ...parsed,
       tokensUsed,
       agentName: "RoleProfileAgent",
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ success: false, error: message, agentName: "RoleProfileAgent" }, 500);
-  }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+  },
+);

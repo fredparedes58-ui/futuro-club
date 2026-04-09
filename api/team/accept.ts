@@ -2,93 +2,78 @@
  * POST /api/team/accept
  * Acepta una invitación por token y crea el registro en team_members.
  *
- * Body: { token, userId }
+ * Body: { token }
  * Returns: { success, role, orgOwnerId }
  */
 
+import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import { verifyAuth } from "../lib/auth";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 export const config = { runtime: "edge" };
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers: { "Content-Type": "application/json" } });
-  }
+const AcceptSchema = z.object({
+  token: z.string().min(1, "Token es requerido"),
+});
 
-  // Verify JWT — userId comes from token, not body
-  const { userId, error: authError } = await verifyAuth(req);
-  if (!userId) {
-    return new Response(JSON.stringify({ error: authError ?? "No autenticado" }), { status: 401 });
-  }
+export default withHandler(
+  { schema: AcceptSchema, requireAuth: true, maxRequests: 10 },
+  async ({ body, userId }) => {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+    const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceKey  = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey) {
+      return errorResponse("Supabase not configured", 500);
+    }
 
-  if (!supabaseUrl || !serviceKey) {
-    return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500 });
-  }
+    const supabase = createClient(supabaseUrl, serviceKey);
+    const { token } = body;
 
-  const supabase = createClient(supabaseUrl, serviceKey);
+    // Buscar invitación válida
+    const { data: invitation, error: findError } = await supabase
+      .from("team_invitations")
+      .select("*")
+      .eq("token", token)
+      .eq("status", "pending")
+      .single();
 
-  let body: { token?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
-  }
+    if (findError || !invitation) {
+      return errorResponse("Invitación no encontrada o ya utilizada", 404);
+    }
 
-  const { token } = body;
-  if (!token) {
-    return new Response(JSON.stringify({ error: "Missing token" }), { status: 400 });
-  }
+    // Verificar que no haya expirado
+    if (new Date(invitation.expires_at) < new Date()) {
+      await supabase
+        .from("team_invitations")
+        .update({ status: "expired" })
+        .eq("id", invitation.id);
+      return errorResponse("La invitación ha expirado", 410);
+    }
 
-  // Buscar invitación válida
-  const { data: invitation, error: findError } = await supabase
-    .from("team_invitations")
-    .select("*")
-    .eq("token", token)
-    .eq("status", "pending")
-    .single();
+    // Crear miembro del equipo (ignorar conflicto si ya existe)
+    const { error: memberError } = await supabase
+      .from("team_members")
+      .upsert({
+        org_owner_id: invitation.org_owner_id,
+        member_id: userId,
+        role: invitation.role,
+      }, { onConflict: "org_owner_id,member_id" });
 
-  if (findError || !invitation) {
-    return new Response(JSON.stringify({ error: "Invitación no encontrada o ya utilizada" }), { status: 404 });
-  }
+    if (memberError) {
+      return errorResponse(memberError.message, 500);
+    }
 
-  // Verificar que no haya expirado
-  if (new Date(invitation.expires_at) < new Date()) {
+    // Marcar invitación como aceptada
     await supabase
       .from("team_invitations")
-      .update({ status: "expired" })
+      .update({ status: "accepted" })
       .eq("id", invitation.id);
-    return new Response(JSON.stringify({ error: "La invitación ha expirado" }), { status: 410 });
-  }
 
-  // Crear miembro del equipo (ignorar conflicto si ya existe)
-  const { error: memberError } = await supabase
-    .from("team_members")
-    .upsert({
-      org_owner_id: invitation.org_owner_id,
-      member_id: userId,
+    return successResponse({
+      success: true,
       role: invitation.role,
-    }, { onConflict: "org_owner_id,member_id" });
-
-  if (memberError) {
-    return new Response(JSON.stringify({ error: memberError.message }), { status: 500 });
-  }
-
-  // Marcar invitación como aceptada
-  await supabase
-    .from("team_invitations")
-    .update({ status: "accepted" })
-    .eq("id", invitation.id);
-
-  return new Response(JSON.stringify({
-    success: true,
-    role: invitation.role,
-    orgOwnerId: invitation.org_owner_id,
-  }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+      orgOwnerId: invitation.org_owner_id,
+    });
+  },
+);

@@ -12,6 +12,8 @@
  */
 
 import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 const QuerySchema = z.object({
   path: z.string().optional(), // e.g. "players/abc123/avatar.jpg"
@@ -19,40 +21,34 @@ const QuerySchema = z.object({
 
 const BUNNY_STORAGE_BASE = "https://storage.bunnycdn.com";
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+export default withHandler(
+  { method: "POST", requireAuth: true, maxRequests: 30, rawBody: true },
+  async ({ req }) => {
+    const storageZone = process.env.BUNNY_STORAGE_ZONE;
+    const apiKey = process.env.BUNNY_STORAGE_API_KEY;
+    const cdnUrl = process.env.BUNNY_STORAGE_CDN_URL;
 
-  const storageZone = process.env.BUNNY_STORAGE_ZONE;
-  const apiKey = process.env.BUNNY_STORAGE_API_KEY;
-  const cdnUrl = process.env.BUNNY_STORAGE_CDN_URL;
+    if (!storageZone || !apiKey || !cdnUrl) {
+      return errorResponse(
+        "BUNNY_STORAGE_ZONE / BUNNY_STORAGE_API_KEY / BUNNY_STORAGE_CDN_URL no configuradas",
+        503,
+        "CONFIG_MISSING",
+      );
+    }
 
-  if (!storageZone || !apiKey || !cdnUrl) {
-    return json(
-      {
-        success: false,
-        error: "BUNNY_STORAGE_ZONE / BUNNY_STORAGE_API_KEY / BUNNY_STORAGE_CDN_URL no configuradas",
-        phase2Pending: true,
-      },
-      503
-    );
-  }
-
-  try {
     const url = new URL(req.url);
     const { path: filePath } = QuerySchema.parse(
-      Object.fromEntries(url.searchParams)
+      Object.fromEntries(url.searchParams),
     );
 
     const contentType = req.headers.get("Content-Type") ?? "image/jpeg";
     const fileBuffer = await req.arrayBuffer();
 
     if (fileBuffer.byteLength === 0) {
-      return json({ success: false, error: "Empty file body" }, 400);
+      return errorResponse("Empty file body", 400);
     }
     if (fileBuffer.byteLength > 10 * 1024 * 1024) {
-      return json({ success: false, error: "File too large (max 10 MB)" }, 413);
+      return errorResponse("File too large (max 10 MB)", 413);
     }
 
     // Build storage path: storageZone/path or storageZone/{timestamp}.jpg
@@ -77,26 +73,13 @@ export default async function handler(req: Request): Promise<Response> {
 
     const publicUrl = `${cdnUrl}/${uploadPath}`;
 
-    return json({
-      success: true,
-      data: {
-        url: publicUrl,
-        path: uploadPath,
-        size: fileBuffer.byteLength,
-        contentType,
-      },
+    return successResponse({
+      url: publicUrl,
+      path: uploadPath,
+      size: fileBuffer.byteLength,
+      contentType,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ success: false, error: message }, 500);
-  }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+  },
+);
 
 export const config = { runtime: "edge" };

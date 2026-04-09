@@ -4,8 +4,9 @@
  * DELETE /api/notifications/subscribe — remove subscription
  */
 
-import { verifyAuth } from "../lib/auth";
 import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 export const config = { runtime: "edge" };
 
@@ -19,70 +20,49 @@ const SubscribeSchema = z.object({
   }).passthrough(),
 });
 
-const UnsubscribeSchema = z.object({
-  endpoint: z.string().url(),
-});
+export default withHandler(
+  { method: ["POST", "DELETE"], schema: SubscribeSchema, requireAuth: true, maxRequests: 10 },
+  async ({ req, body, userId }) => {
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 
-export default async function handler(req: Request): Promise<Response> {
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return json({ error: "Supabase not configured" }, 503);
-  }
-
-  // Verify JWT with signature check
-  const { userId, error: authError } = await verifyAuth(req);
-  if (!userId) return json({ error: authError ?? "No autenticado" }, 401);
-
-  if (req.method === "POST") {
-    let rawBody: unknown;
-    try { rawBody = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-    const parsed = SubscribeSchema.safeParse(rawBody);
-    if (!parsed.success) {
-      return json({ error: "Datos de suscripción inválidos", details: parsed.error.errors }, 400);
-    }
-    const body = parsed.data;
-
-    const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
-      method: "POST",
-      headers: {
-        "apikey": supabaseKey,
-        "Authorization": `Bearer ${supabaseKey}`,
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates",
-      },
-      body: JSON.stringify({ user_id: userId, subscription: body.subscription }),
-    });
-
-    if (!insertRes.ok) {
-      const errBody = await insertRes.text().catch(() => "Unknown error");
-      return json({ success: false, error: `Supabase insert failed: ${errBody}` }, 500);
+    if (!supabaseUrl || !supabaseKey) {
+      return errorResponse("Supabase not configured", 503);
     }
 
-    return json({ success: true });
-  }
+    if (req.method === "POST") {
+      const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
+        method: "POST",
+        headers: {
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ user_id: userId, subscription: body.subscription }),
+      });
 
-  if (req.method === "DELETE") {
-    let rawBody: unknown;
-    try { rawBody = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-    const parsedDel = UnsubscribeSchema.safeParse(rawBody);
+      if (!insertRes.ok) {
+        const errBody = await insertRes.text().catch(() => "Unknown error");
+        return errorResponse(`Supabase insert failed: ${errBody}`, 500);
+      }
+
+      return successResponse({ success: true });
+    }
+
+    // DELETE — parse body manually (withHandler only parses POST)
+    let delBody: unknown;
+    try { delBody = await req.json(); } catch { return errorResponse("Invalid JSON", 400); }
+    const parsedDel = z.object({ endpoint: z.string().url() }).safeParse(delBody);
     if (!parsedDel.success) {
-      return json({ error: "Endpoint inválido" }, 400);
+      return errorResponse("Endpoint inválido", 400);
     }
-    const body = parsedDel.data;
-    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(body.endpoint)}`, {
+
+    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(parsedDel.data.endpoint)}`, {
       method: "DELETE",
       headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` },
     });
-    return json({ success: true });
-  }
 
-  return json({ error: "Method not allowed" }, 405);
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status, headers: { "Content-Type": "application/json" },
-  });
-}
+    return successResponse({ success: true });
+  },
+);

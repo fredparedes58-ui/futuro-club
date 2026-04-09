@@ -4,12 +4,11 @@
  *
  * Embeds the query, performs similarity search via Supabase RPC,
  * falls back to full-text search when embeddings are unavailable.
- *
- * Body: { query, category?, player_id?, limit? }
- * Response: { context, results }
  */
-import { buildSecureContext } from "../lib/ragSanitizer";
 import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
+import { buildSecureContext } from "../lib/ragSanitizer";
 
 export const config = { runtime: "edge" };
 
@@ -20,13 +19,6 @@ const QueryRequestSchema = z.object({
   limit: z.number().int().min(1).max(20).default(5),
 });
 
-export interface QueryRequest {
-  query: string;
-  category?: "drill" | "pro_player" | "report" | "methodology" | "scouting";
-  player_id?: string;
-  limit?: number;
-}
-
 export interface KnowledgeResult {
   id: string;
   content: string;
@@ -36,149 +28,114 @@ export interface KnowledgeResult {
   similarity: number;
 }
 
-export interface QueryResponse {
-  success: boolean;
-  context: string;
-  results: KnowledgeResult[];
-  usedEmbeddings: boolean;
-  error?: string;
-}
+export default withHandler(
+  { schema: QueryRequestSchema, requireAuth: true, maxRequests: 30 },
+  async ({ body, req }) => {
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+    if (!supabaseUrl || !supabaseKey) {
+      return errorResponse("Supabase not configured", 503);
+    }
 
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+    const { query, category, player_id, limit } = body;
+    const baseUrl = new URL(req.url).origin;
 
-  if (!supabaseUrl || !supabaseKey) {
-    return json({ error: "Supabase not configured" }, 503);
-  }
+    // Try vector search first
+    let embedding: number[] | null = null;
+    try {
+      const embedRes = await fetch(`${baseUrl}/api/rag/embed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts: [query], inputType: "query" }),
+      });
+      if (embedRes.ok) {
+        const embedData = await embedRes.json() as { embeddings?: (number[] | null)[] };
+        embedding = embedData.embeddings?.[0] ?? null;
+      }
+    } catch {
+      // proceed with full-text search
+    }
 
-  let rawBody: unknown;
-  try {
-    rawBody = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
+    let results: KnowledgeResult[] = [];
+    let usedEmbeddings = false;
 
-  const parsed = QueryRequestSchema.safeParse(rawBody);
-  if (!parsed.success) {
-    return json({
-      error: "Datos inválidos",
-      details: parsed.error.errors.map(e => ({ path: e.path.join("."), message: e.message })),
-    }, 400);
-  }
+    if (embedding !== null) {
+      try {
+        const rpcBody: Record<string, unknown> = {
+          query_embedding: `[${embedding.join(",")}]`,
+          match_threshold: 0.60,
+          match_count: limit,
+        };
+        if (category) rpcBody.filter_category = category;
+        if (player_id) rpcBody.filter_player_id = player_id;
 
-  const { query, category, player_id, limit } = parsed.data;
+        const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/match_knowledge`, {
+          method: "POST",
+          headers: {
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(rpcBody),
+        });
 
-  const baseUrl = new URL(req.url).origin;
+        if (rpcRes.ok) {
+          results = await rpcRes.json() as KnowledgeResult[];
+          usedEmbeddings = true;
+        }
+      } catch {
+        // fall through to text search
+      }
+    }
 
-  // Try vector search first
-  let embedding: number[] | null = null;
-  try {
-    const embedRes = await fetch(`${baseUrl}/api/rag/embed`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ texts: [query], inputType: "query" }),
+    // Full-text search fallback
+    if (!usedEmbeddings) {
+      try {
+        const rpcBody: Record<string, unknown> = {
+          query_text: query,
+          match_count: limit,
+        };
+        if (category) rpcBody.filter_category = category;
+        if (player_id) rpcBody.filter_player_id = player_id;
+
+        const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/search_knowledge_text`, {
+          method: "POST",
+          headers: {
+            "apikey": supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(rpcBody),
+        });
+
+        if (rpcRes.ok) {
+          results = await rpcRes.json() as KnowledgeResult[];
+        }
+      } catch {
+        // return empty context — non-blocking
+      }
+    }
+
+    const secureContext = buildSecureContext(results);
+    const legacyContext = formatContext(results);
+
+    return successResponse({
+      success: true,
+      context: secureContext || legacyContext,
+      results,
+      usedEmbeddings,
+      sanitized: !!secureContext,
     });
-    if (embedRes.ok) {
-      const embedData = await embedRes.json() as { embeddings?: (number[] | null)[] };
-      embedding = embedData.embeddings?.[0] ?? null;
-    }
-  } catch {
-    // proceed with full-text search
   }
-
-  let results: KnowledgeResult[] = [];
-  let usedEmbeddings = false;
-
-  if (embedding !== null) {
-    // Vector similarity search via RPC
-    try {
-      const rpcBody: Record<string, unknown> = {
-        query_embedding: `[${embedding.join(",")}]`,
-        match_threshold: 0.60,
-        match_count: limit,
-      };
-      if (category) rpcBody.filter_category = category;
-      if (player_id) rpcBody.filter_player_id = player_id;
-
-      const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/match_knowledge`, {
-        method: "POST",
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(rpcBody),
-      });
-
-      if (rpcRes.ok) {
-        results = await rpcRes.json() as KnowledgeResult[];
-        usedEmbeddings = true;
-      }
-    } catch {
-      // fall through to text search
-    }
-  }
-
-  // Full-text search fallback
-  if (!usedEmbeddings) {
-    try {
-      const rpcBody: Record<string, unknown> = {
-        query_text: query,
-        match_count: limit,
-      };
-      if (category) rpcBody.filter_category = category;
-      if (player_id) rpcBody.filter_player_id = player_id;
-
-      const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/search_knowledge_text`, {
-        method: "POST",
-        headers: {
-          "apikey": supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(rpcBody),
-      });
-
-      if (rpcRes.ok) {
-        results = await rpcRes.json() as KnowledgeResult[];
-      }
-    } catch {
-      // return empty context — non-blocking
-    }
-  }
-
-  // Sanitize retrieved content (prompt injection defense)
-  const secureContext = buildSecureContext(results);
-  const legacyContext = formatContext(results);
-
-  return json({
-    success: true,
-    context: secureContext || legacyContext,
-    results,
-    usedEmbeddings,
-    sanitized: !!secureContext,
-  } satisfies QueryResponse & { sanitized: boolean });
-}
+);
 
 function formatContext(results: KnowledgeResult[]): string {
   if (!results.length) return "";
-
   return results
     .map((r, i) => {
       const header = `[CONTEXTO ${i + 1}] Categoría: ${r.category}${r.player_id ? ` | Jugador: ${r.player_id}` : ""}`;
       return `${header}\n${r.content}`;
     })
     .join("\n\n---\n\n");
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }

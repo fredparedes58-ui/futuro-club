@@ -7,6 +7,9 @@
  * Retorna JSON con timeline, dimensiones, momentos y patrones.
  */
 
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
+
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
 interface GeminiObservation {
@@ -29,6 +32,12 @@ interface GeminiObservation {
   eventosContados: {
     pasesCompletados: number;
     pasesFallados: number;
+    pasesProgresivos: number;
+    regatesConVentaja: number;
+    regatesSinVentaja: number;
+    pressingEfectivo: number;
+    pressingInefectivo: number;
+    escaneos: number;
     recuperaciones: number;
     duelosGanados: number;
     duelosPerdidos: number;
@@ -39,35 +48,49 @@ interface GeminiObservation {
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+export default withHandler(
+  { requireAuth: true, rawBody: true },
+  async ({ req }) => {
+    try {
+      const body = await req.json();
+      const { videoBase64, mediaType, playerContext } = body;
 
-  try {
-    const body = await req.json();
-    const { videoBase64, mediaType, playerContext } = body;
+      if (!videoBase64 || !playerContext) {
+        return errorResponse("Faltan datos requeridos (videoBase64, playerContext)", 400);
+      }
 
-    if (!videoBase64 || !playerContext) {
-      return new Response(
-        JSON.stringify({ error: "Faltan datos requeridos (videoBase64, playerContext)" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
+      }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "GEMINI_API_KEY no configurada", fallback: true }),
-        { status: 503, headers: { "Content-Type": "application/json" } }
-      );
-    }
+      const ctx = playerContext;
 
-    const ctx = playerContext;
-    const prompt = `Eres un scout profesional de fútbol de élite. Observa este video completo con máxima atención.
+      // Calibración de exigencia por edad y nivel competitivo
+      const ageCalibration = ctx.age <= 12
+        ? `CALIBRACIÓN POR EDAD (sub-12): A esta edad prioriza la relación con el balón, la capacidad de tomar decisiones simples y la disposición a participar. NO penalices errores técnicos bajo presión — es normal. Valora especialmente: primer toque, orientación corporal al recibir, disposición a pedir el balón, alegría y desparpajo con balón. La capacidad física es IRRELEVANTE a esta edad para predecir talento.`
+        : ctx.age <= 15
+        ? `CALIBRACIÓN POR EDAD (sub-15): Etapa de formación técnico-táctica. Valora: capacidad de ejecutar bajo presión, lectura de espacios, timing de pase, desmarques inteligentes, y primeros signos de toma de decisiones en velocidad. La diferencia física entre "early" y "late maturers" puede ser enorme — un jugador más pequeño que lee bien el juego puede tener más potencial que uno grande y rápido que solo usa el físico.`
+        : ctx.age <= 18
+        ? `CALIBRACIÓN POR EDAD (sub-18): Etapa de especialización. Aquí ya se puede evaluar rendimiento competitivo real. Valora: consistencia, capacidad de rendir bajo presión, contribución táctica al equipo, eficacia en acciones decisivas, y madurez competitiva. Los jugadores deben demostrar que pueden combinar técnica + inteligencia + físico.`
+        : `CALIBRACIÓN POR EDAD (adulto/profesional): Evaluación de rendimiento completo. Se espera dominio técnico, inteligencia táctica avanzada, consistencia física, y capacidad de impactar partidos en momentos clave.`;
+
+      const positionFocus = {
+        GK: "FOCO POSICIONAL (Portero): Observa posicionamiento en el arco, decisión de salir o quedarse, juego con los pies, distribución, comunicación con la defensa, valentía en 1v1, reflejos.",
+        RB: "FOCO POSICIONAL (Lateral derecho): Observa incorporaciones al ataque, centros, 1v1 defensivo, posicionamiento en repliegue, amplitud que da al equipo, timing de subida.",
+        LB: "FOCO POSICIONAL (Lateral izquierdo): Observa incorporaciones al ataque, centros, 1v1 defensivo, posicionamiento en repliegue, amplitud que da al equipo, timing de subida.",
+        RCB: "FOCO POSICIONAL (Central derecho): Observa anticipación, lectura de línea de pase, juego aéreo, salida con balón, coberturas, duelos 1v1, comunicación con la línea defensiva.",
+        LCB: "FOCO POSICIONAL (Central izquierdo): Observa anticipación, lectura de línea de pase, juego aéreo, salida con balón, coberturas, duelos 1v1, comunicación con la línea defensiva.",
+        DM: "FOCO POSICIONAL (Pivote/Mediocentro defensivo): Observa posicionamiento entre líneas, interceptaciones, distribución de juego, orientación corporal al recibir, capacidad de filtrar pases verticales, cobertura de espacios, pressing.",
+        RCM: "FOCO POSICIONAL (Interior derecho): Observa llegada al área, asociaciones en corto, cambios de ritmo, pases entre líneas, equilibrio ataque-defensa, transiciones.",
+        LCM: "FOCO POSICIONAL (Interior izquierdo): Observa llegada al área, asociaciones en corto, cambios de ritmo, pases entre líneas, equilibrio ataque-defensa, transiciones.",
+        RW: "FOCO POSICIONAL (Extremo derecho): Observa 1v1, desborde, centros, regates, movimiento sin balón al espacio, repliegue defensivo, combinaciones con lateral.",
+        LW: "FOCO POSICIONAL (Extremo izquierdo): Observa 1v1, desborde, centros, regates, movimiento sin balón al espacio, repliegue defensivo, combinaciones con lateral.",
+        ST: "FOCO POSICIONAL (Delantero centro): Observa movimientos de desmarque, disparo, juego de espaldas, pressing al rival, inteligencia en el área, timing de carrera.",
+      }[ctx.position] || "Observa todas las acciones del jugador con atención al contexto táctico.";
+
+      const prompt = `Eres un scout profesional de fútbol formado en metodologías de scouting europeas (La Masia, Ajax Academy, Clairefontaine). Tienes experiencia evaluando jugadores desde categorías sub-10 hasta profesional. Observa este video completo con la mentalidad de un ojeador que debe decidir si este jugador merece seguimiento.
+
 Busca al jugador con dorsal ${ctx.jerseyNumber || "?"} y uniforme color ${ctx.teamColor || "?"}.
 
 DATOS DEL JUGADOR:
@@ -78,37 +101,88 @@ DATOS DEL JUGADOR:
 - Estatura: ${ctx.height || "?"} cm | Peso: ${ctx.weight || "?"} kg
 - Nivel competitivo: ${ctx.competitiveLevel || "formativo"}
 
-INSTRUCCIONES:
-1. Observa TODO el video de principio a fin
-2. Identifica al jugador objetivo y sigue cada una de sus acciones
-3. Anota timestamps precisos de cada acción relevante
-4. Evalúa cada dimensión basándote SOLO en lo que observas
-5. CUENTA con precisión cada evento del jugador: pases completados/fallados, recuperaciones, duelos, disparos, centros, faltas
+${ageCalibration}
+
+${positionFocus}
+
+METODOLOGÍA DE OBSERVACIÓN (sigue este orden):
+
+1. PRIMERA PASADA — Contexto general:
+   - ¿Qué tipo de partido es? (intensidad, nivel de los equipos, espacio disponible)
+   - ¿Dónde se posiciona el jugador cuando su equipo tiene/no tiene el balón?
+   - ¿Cuánto participa? (¿pide el balón? ¿se esconde? ¿busca el juego?)
+
+2. SEGUNDA PASADA — Acciones con balón:
+   - Primer toque: ¿orienta el control hacia donde quiere jugar o para y piensa?
+   - Pases: ¿son seguros/cortos o arriesga con pases verticales/entre líneas?
+   - Conducción: ¿usa el regate como recurso táctico o por inercia?
+   - Disparo: ¿busca gol cuando tiene oportunidad o evita la responsabilidad?
+   - Centros/asistencias: ¿tiene capacidad de generar peligro para los compañeros?
+
+3. TERCERA PASADA — Acciones sin balón (CLAVE para detectar talento):
+   - Escaneo visual: ¿gira la cabeza antes de recibir? (el mejor indicador de inteligencia)
+   - Desmarques: ¿se mueve al espacio o se queda estático esperando?
+   - Pressing: ¿presiona con intención de recuperar o solo "corre hacia"?
+   - Posicionamiento defensivo: ¿ajusta su posición según el balón?
+   - Transiciones: ¿reacciona rápido al cambio de posesión?
+
+4. CUARTA PASADA — Indicadores de mentalidad y psicología:
+   - RESILIENCIA: ¿Cómo reacciona después de un error? ¿Pide el balón o se esconde?
+   - COMUNICACIÓN: ¿Señala? ¿Organiza? ¿Grita instrucciones a compañeros?
+   - TOLERANCIA AL RIESGO: ¿Intenta pases difíciles o siempre elige lo seguro?
+   - HAMBRE COMPETITIVA: ¿Presiona cada balón? ¿Se frustra con errores propios? ¿Quiere ganar cada duelo?
+   - LENGUAJE CORPORAL: Postura erguida vs hombros caídos, cabeza arriba vs baja
+   Clasifica cada indicador como: alto, medio, bajo — con evidencia del video
+
+5. QUINTA PASADA — Contexto del rival:
+   - ¿El rival presiona organizadamente o solo corre?
+   - ¿Los defensas rivales anticipan o solo reaccionan?
+   - ¿El nivel técnico del rival es comparable, superior o inferior?
+   - Categoría: fuerte (peso ×1.15), medio (×1.0), débil (×0.85)
+   - Las acciones contra rival fuerte valen más. Un regate 1v1 contra defensor que anticipa vale más que contra uno que solo corre
+
+6. CONTEO DE EVENTOS — Cuenta cada acción individualmente:
+   - Pases completados y fallados
+   - Pases PROGRESIVOS (superan línea de presión) vs simples (laterales/atrás)
+   - Regates CON VENTAJA (generan superioridad) vs sin ventaja
+   - Pressing EFECTIVO (genera recuperación o error) vs inefectivo
+   - Escaneos visuales (giros de cabeza antes de recibir)
+   - Recuperaciones (robo activo vs interceptación posicional)
+   - Duelos ganados y perdidos (1v1 ofensivo y defensivo)
+   - Disparos al arco y fuera
+   - Centros intentados
+   - Faltas cometidas y recibidas
 
 Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin backticks):
 
 {
   "timeline": [
-    {"timestamp": "0:15", "tipo": "accion_con_balon", "descripcion": "Recibe de espaldas, gira y filtra pase entre líneas"},
-    {"timestamp": "0:32", "tipo": "sin_balon", "descripcion": "Desmarcaje diagonal al espacio"}
+    {"timestamp": "0:15", "tipo": "accion_con_balon", "descripcion": "Recibe de espaldas al juego, gira sobre pie derecho y filtra pase entre líneas al mediapunta — buen escaneo previo"},
+    {"timestamp": "0:32", "tipo": "sin_balon", "descripcion": "Desmarcaje diagonal al half-space derecho creando línea de pase progresiva"}
   ],
   "dimensiones": {
-    "velocidadDecision": {"observaciones": ["Decide rápido en espacios reducidos", "Elige bien cuándo filtrar"], "score_estimado": 7},
-    "tecnicaConBalon": {"observaciones": ["Buen primer toque orientado", "Control limpio bajo presión"], "score_estimado": 6},
-    "inteligenciaTactica": {"observaciones": ["Se posiciona entre líneas", "Lee bien los espacios"], "score_estimado": 7},
-    "capacidadFisica": {"observaciones": ["Buena aceleración en corto", "Aguanta bien los duelos"], "score_estimado": 5},
-    "liderazgoPresencia": {"observaciones": ["Pide el balón constantemente", "Comunica con compañeros"], "score_estimado": 6},
-    "eficaciaCompetitiva": {"observaciones": ["2 pases clave", "1 disparo al arco"], "score_estimado": 6}
+    "velocidadDecision": {"observaciones": ["Decide rápido en espacios reducidos, elige pase vertical sobre opción segura", "Tiempo de decisión corto tras control orientado"], "score_estimado": 7},
+    "tecnicaConBalon": {"observaciones": ["Primer toque orientado limpio bajo presión de 2 rivales", "Conducción con cambio de ritmo en zona 14"], "score_estimado": 6},
+    "inteligenciaTactica": {"observaciones": ["Se posiciona en el half-space entre líneas de presión rival", "Escanea 2 veces antes de recibir — lee el juego"], "score_estimado": 7},
+    "capacidadFisica": {"observaciones": ["Buena aceleración en los primeros 5 metros", "Aguanta contacto físico en duelo pero pierde en duelo aéreo"], "score_estimado": 5},
+    "liderazgoPresencia": {"observaciones": ["Pide el balón en situaciones de presión — no se esconde", "Comunica con central para solicitar pase en profundidad"], "score_estimado": 6},
+    "eficaciaCompetitiva": {"observaciones": ["2 de 3 pases progresivos completados — buena ratio", "1 disparo al arco desde fuera del área, colocado"], "score_estimado": 6}
   },
   "momentosDestacados": [
-    {"timestamp": "2:30", "tipo": "positivo", "descripcion": "Regate en velocidad superando a 2 rivales"},
-    {"timestamp": "5:10", "tipo": "negativo", "descripcion": "Pierde balón por exceso de confianza en zona peligrosa"}
+    {"timestamp": "2:30", "tipo": "positivo", "descripcion": "Regate en velocidad superando a 2 rivales con cambio de dirección al half-space — muestra capacidad de desequilibrio individual"},
+    {"timestamp": "5:10", "tipo": "negativo", "descripcion": "Pierde balón por exceso de confianza en zona de construcción propia — error de decisión, no técnico"}
   ],
-  "patronesJuego": ["Tiende a asociarse por banda derecha", "Busca el 1v1 en velocidad", "Se ofrece como pivote de descarga"],
-  "resumenGeneral": "Jugador con buen pie y visión de juego. Destaca en la toma de decisiones y lectura táctica para su edad. Necesita mejorar intensidad defensiva y presencia física en duelos aéreos.",
+  "patronesJuego": ["Tiende a asociarse por banda derecha buscando combinaciones con el lateral", "Busca el 1v1 en velocidad cuando recibe de cara — prefiere atacar espacio a jugar de espaldas", "Se ofrece como pivote de descarga para la salida de balón"],
+  "resumenGeneral": "Jugador con buen pie y visión de juego para su edad. Destaca en la toma de decisiones bajo presión y en la lectura de espacios entre líneas. Su escaneo visual antes de recibir indica madurez táctica superior a la media. Necesita mejorar la intensidad defensiva en las transiciones y la presencia física en duelos aéreos — esto último puede ser cuestión de maduración biológica.",
   "eventosContados": {
     "pasesCompletados": 12,
     "pasesFallados": 3,
+    "pasesProgresivos": 5,
+    "regatesConVentaja": 2,
+    "regatesSinVentaja": 1,
+    "pressingEfectivo": 3,
+    "pressingInefectivo": 2,
+    "escaneos": 8,
     "recuperaciones": 2,
     "duelosGanados": 3,
     "duelosPerdidos": 1,
@@ -122,111 +196,100 @@ Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin
 REGLAS:
 - Tipos de timeline: "accion_con_balon", "sin_balon", "defensiva", "tactica", "transicion"
 - Tipos de momentos: "positivo" o "negativo"
-- Scores: 1-10, sé honesto y objetivo para la edad del jugador
+- Scores: 1-10, calibrados para la edad y nivel competitivo del jugador. Un 7 en un sub-12 formativo NO es lo mismo que un 7 en un sub-18 de liga nacional
 - Mínimo 10 entradas en timeline, 3 momentos destacados
-- Describe lo que VES, no lo que asumes
-- eventosContados: cuenta CADA evento individualmente mirando el video. Si no puedes confirmar un evento, no lo cuentes. Es mejor sub-contar que inventar.
+- Describe lo que VES con vocabulario táctico preciso: usa términos como "half-space", "entre líneas", "pase progresivo", "control orientado", "pressing tras pérdida", "transición defensiva", "línea de pase", "desmarque de ruptura"
+- Las observaciones por dimensión deben ser ESPECÍFICAS del video, no genéricas. Mal: "Buena técnica". Bien: "Control con exterior del pie derecho bajo presión del central, girando hacia el espacio libre"
+- eventosContados: cuenta CADA evento individualmente mirando el video. Si no puedes confirmar un evento, no lo cuentes. Es mejor sub-contar que inventar
+- pasesProgresivos: pases que superan al menos una línea de presión rival (vertical u oblicuo hacia adelante, NO lateral ni atrás)
+- regatesConVentaja: regates exitosos que generaron espacio, superioridad o oportunidad real (no solo "pasó al rival y perdió luego")
+- pressingEfectivo: presión que resultó en recuperación directa o error forzado del rival
+- escaneos: giros de cabeza observables ANTES de recibir el balón. Es la métrica más predictiva de inteligencia de juego
 - Responde en español
 - Solo JSON válido, sin markdown ni backticks`;
 
-    // Llamar a Gemini API directamente via REST
-    // Usamos gemini-2.0-flash para video (soporta hasta 1h)
-    const model = "gemini-2.0-flash";
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      // Llamar a Gemini API directamente via REST
+      // Usamos gemini-2.0-flash para video (soporta hasta 1h)
+      const model = "gemini-2.0-flash";
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    const geminiBody = {
-      contents: [
-        {
-          parts: [
-            {
-              inlineData: {
-                mimeType: mediaType || "video/mp4",
-                data: videoBase64,
+      const geminiBody = {
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mediaType || "video/mp4",
+                  data: videoBase64,
+                },
               },
-            },
-            {
-              text: prompt,
-            },
-          ],
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 8192,
+          responseMimeType: "application/json",
         },
-      ],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json",
-      },
-    };
+      };
 
-    const geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
-    });
+      const geminiRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(geminiBody),
+      });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text().catch(() => "");
-      console.error("[Gemini] API error:", geminiRes.status, errText);
-      return new Response(
-        JSON.stringify({
-          error: `Gemini API error: ${geminiRes.status}`,
-          fallback: true,
-        }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const geminiData = await geminiRes.json() as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-
-    // Extraer texto de la respuesta
-    let fullText = "";
-    if (geminiData.candidates?.[0]?.content?.parts) {
-      for (const part of geminiData.candidates[0].content.parts) {
-        if (part.text) fullText += part.text;
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text().catch(() => "");
+        console.error("[Gemini] API error:", geminiRes.status, errText);
+        return errorResponse(`Gemini API error: ${geminiRes.status}`, 502, "GEMINI_API_ERROR");
       }
-    }
 
-    if (!fullText) {
-      return new Response(
-        JSON.stringify({ error: "Gemini no retornó respuesta", fallback: true }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
-      );
-    }
+      const geminiData = await geminiRes.json() as {
+        candidates?: Array<{
+          content?: { parts?: Array<{ text?: string }> };
+        }>;
+      };
 
-    // Parsear JSON de la respuesta
-    let observations: GeminiObservation;
-    try {
-      // Gemini con responseMimeType: "application/json" debería retornar JSON limpio
-      // pero por seguridad intentamos extraer si viene envuelto
-      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        observations = JSON.parse(jsonMatch[0]) as GeminiObservation;
-      } else {
-        throw new Error("No se encontró JSON en la respuesta");
+      // Extraer texto de la respuesta
+      let fullText = "";
+      if (geminiData.candidates?.[0]?.content?.parts) {
+        for (const part of geminiData.candidates[0].content.parts) {
+          if (part.text) fullText += part.text;
+        }
       }
-    } catch (e) {
-      console.error("[Gemini] JSON parse error:", e, "Raw:", fullText.substring(0, 300));
-      return new Response(
-        JSON.stringify({ error: "No se pudo parsear la respuesta de Gemini", fallback: true }),
-        { status: 502, headers: { "Content-Type": "application/json" } }
+
+      if (!fullText) {
+        return errorResponse("Gemini no retornó respuesta", 502, "GEMINI_EMPTY_RESPONSE");
+      }
+
+      // Parsear JSON de la respuesta
+      let observations: GeminiObservation;
+      try {
+        // Gemini con responseMimeType: "application/json" debería retornar JSON limpio
+        // pero por seguridad intentamos extraer si viene envuelto
+        const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          observations = JSON.parse(jsonMatch[0]) as GeminiObservation;
+        } else {
+          throw new Error("No se encontró JSON en la respuesta");
+        }
+      } catch (e) {
+        console.error("[Gemini] JSON parse error:", e, "Raw:", fullText.substring(0, 300));
+        return errorResponse("No se pudo parsear la respuesta de Gemini", 502, "GEMINI_PARSE_ERROR");
+      }
+
+      return successResponse({ observations });
+    } catch (error: unknown) {
+      console.error("[Gemini] Handler error:", error);
+      return errorResponse(
+        error instanceof Error ? error.message : "Error interno",
+        500,
+        "INTERNAL_ERROR"
       );
     }
-
-    return new Response(JSON.stringify({ observations }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error: unknown) {
-    console.error("[Gemini] Handler error:", error);
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Error interno",
-        fallback: true,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
   }
-}
+);

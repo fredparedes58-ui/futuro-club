@@ -1,6 +1,6 @@
 /**
  * VITAS RAG — Knowledge Base Seeding
- * POST /api/rag/seed
+ * POST|GET /api/rag/seed
  *
  * Indexes the DRILLS_LIBRARY into the knowledge_base table.
  * Protected: requires SUPABASE_SERVICE_ROLE_KEY to be present.
@@ -8,6 +8,9 @@
  * Process drills in batches of 10 to avoid timeouts.
  */
 export const config = { runtime: "edge" };
+
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 // Inline minimal drill types to avoid importing the src bundle in Edge runtime
 interface DrillDocument {
@@ -88,79 +91,71 @@ interface SeedResult {
   batches: number;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST" && req.method !== "GET") {
-    return json({ error: "Method not allowed" }, 405);
-  }
-
-  // Protected: only runs if service role key is present
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) {
-    return json({ error: "SUPABASE_SERVICE_ROLE_KEY not configured — seed is protected" }, 403);
-  }
-
-  const baseUrl = new URL(req.url).origin;
-  const errors: string[] = [];
-  let totalIndexed = 0;
-  let batchCount = 0;
-
-  // Process drills in batches of BATCH_SIZE
-  for (let i = 0; i < DRILLS_LIBRARY.length; i += BATCH_SIZE) {
-    const batch = DRILLS_LIBRARY.slice(i, i + BATCH_SIZE);
-    batchCount++;
-
-    const documents = batch.map(drill => ({
-      content: drillToSearchText(drill),
-      category: "drill" as const,
-      metadata: {
-        drillId: drill.id,
-        name: drill.name,
-        drillCategory: drill.category,
-        difficulty: drill.difficulty,
-        positions: drill.positions,
-        metricsImproved: drill.metricsImproved,
-        ageRange: drill.ageRange,
-        source: drill.source,
-      },
-    }));
-
-    try {
-      const res = await fetch(`${baseUrl}/api/rag/ingest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documents }),
-      });
-
-      if (res.ok) {
-        const data = await res.json() as { indexed?: number; errors?: string[] };
-        totalIndexed += data.indexed ?? 0;
-        if (data.errors?.length) {
-          errors.push(...data.errors.map(e => `Batch ${batchCount}: ${e}`));
-        }
-      } else {
-        const errText = await res.text();
-        errors.push(`Batch ${batchCount} failed (${res.status}): ${errText.slice(0, 200)}`);
-      }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      errors.push(`Batch ${batchCount} exception: ${msg}`);
+export default withHandler(
+  { method: ["POST", "GET"], serviceOnly: true },
+  async ({ req }) => {
+    // Protected: only runs if service role key is present
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceRoleKey) {
+      return errorResponse("SUPABASE_SERVICE_ROLE_KEY not configured — seed is protected", 403);
     }
-  }
 
-  const result: SeedResult = {
-    success: errors.length === 0,
-    totalDrills: DRILLS_LIBRARY.length,
-    indexed: totalIndexed,
-    errors,
-    batches: batchCount,
-  };
+    const baseUrl = new URL(req.url).origin;
+    const errors: string[] = [];
+    let totalIndexed = 0;
+    let batchCount = 0;
 
-  return json(result);
-}
+    // Process drills in batches of BATCH_SIZE
+    for (let i = 0; i < DRILLS_LIBRARY.length; i += BATCH_SIZE) {
+      const batch = DRILLS_LIBRARY.slice(i, i + BATCH_SIZE);
+      batchCount++;
 
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+      const documents = batch.map(drill => ({
+        content: drillToSearchText(drill),
+        category: "drill" as const,
+        metadata: {
+          drillId: drill.id,
+          name: drill.name,
+          drillCategory: drill.category,
+          difficulty: drill.difficulty,
+          positions: drill.positions,
+          metricsImproved: drill.metricsImproved,
+          ageRange: drill.ageRange,
+          source: drill.source,
+        },
+      }));
+
+      try {
+        const res = await fetch(`${baseUrl}/api/rag/ingest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documents }),
+        });
+
+        if (res.ok) {
+          const data = await res.json() as { indexed?: number; errors?: string[] };
+          totalIndexed += data.indexed ?? 0;
+          if (data.errors?.length) {
+            errors.push(...data.errors.map(e => `Batch ${batchCount}: ${e}`));
+          }
+        } else {
+          const errText = await res.text();
+          errors.push(`Batch ${batchCount} failed (${res.status}): ${errText.slice(0, 200)}`);
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        errors.push(`Batch ${batchCount} exception: ${msg}`);
+      }
+    }
+
+    const result: SeedResult = {
+      success: errors.length === 0,
+      totalDrills: DRILLS_LIBRARY.length,
+      indexed: totalIndexed,
+      errors,
+      batches: batchCount,
+    };
+
+    return successResponse(result);
+  },
+);

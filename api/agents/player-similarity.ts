@@ -4,19 +4,34 @@
  *
  * Calcula top-5 jugadores profesionales similares usando similitud por coseno.
  * Determinista puro — sin tokens de IA, sin latencia extra.
- *
- * Body:
- * {
- *   metrics:  { speed, shooting, vision, technique, defending, stamina }  // 0-100
- *   position: "ST" | "CM" | "RW" | ...
- *   options?: { minOverall, positionFilter, boostSamePosition }
- * }
  */
 
-
+import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse } from "../lib/apiResponse";
 import { PRO_PLAYERS, type ProPlayer } from "../data/proPlayers";
 
-// ─── Tipos duplicados aquí para el Edge runtime (no puede importar todo el bundle) ─
+// ─── Zod schema ───────────────────────────────────────────────────────────────
+
+const similaritySchema = z.object({
+  metrics: z.object({
+    speed: z.number(),
+    shooting: z.number(),
+    vision: z.number(),
+    technique: z.number(),
+    defending: z.number(),
+    stamina: z.number(),
+  }),
+  position: z.string().min(1),
+  options: z.object({
+    minOverall: z.number().optional(),
+    positionFilter: z.enum(["strict", "flexible", "none"]).optional(),
+    boostSamePosition: z.boolean().optional(),
+    topN: z.number().optional(),
+  }).optional(),
+});
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface VSIMetrics {
   speed:     number;
@@ -93,129 +108,98 @@ function proVec(p: ProPlayer): number[] {
 
 // ─── Handler ───────────────────────────────────────────────────────────────────
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+export default withHandler(
+  { requireAuth: true, schema: similaritySchema },
+  async ({ body }) => {
+    const { metrics, position, options = {} } = body;
+    const {
+      minOverall        = 70,
+      positionFilter    = "flexible",
+      boostSamePosition = true,
+      topN              = 5,
+    } = options ?? {};
 
-  let body: {
-    metrics:  VSIMetrics;
-    position: string;
-    options?: {
-      minOverall?:        number;
-      positionFilter?:    "strict" | "flexible" | "none";
-      boostSamePosition?: boolean;
-      topN?:              number;
-    };
-  };
+    // Obtener jugadores desde Supabase
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-  try {
-    body = await req.json();
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+    let proPlayers: ProPlayer[] = [];
+    let source = "local";
 
-  const { metrics, position, options = {} } = body;
-  const {
-    minOverall        = 70,
-    positionFilter    = "flexible",
-    boostSamePosition = true,
-    topN              = 5,
-  } = options;
-
-  // Validar métricas
-  if (!metrics || !position) {
-    return new Response(JSON.stringify({ error: "metrics and position are required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Obtener jugadores desde Supabase
-  const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-  let proPlayers: ProPlayer[] = [];
-  let source = "local";
-
-  if (supabaseUrl && supabaseKey) {
-    try {
-      const url = `${supabaseUrl}/rest/v1/pro_players?select=*&overall=gte.${minOverall}`;
-      const res = await fetch(url, {
-        headers: {
-          "apikey":        supabaseKey,
-          "Authorization": `Bearer ${supabaseKey}`,
-        },
-      });
-      if (res.ok) {
-        proPlayers = await res.json();
-        source = "supabase";
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const url = `${supabaseUrl}/rest/v1/pro_players?select=*&overall=gte.${minOverall}`;
+        const res = await fetch(url, {
+          headers: {
+            "apikey":        supabaseKey,
+            "Authorization": `Bearer ${supabaseKey}`,
+          },
+        });
+        if (res.ok) {
+          proPlayers = await res.json();
+          source = "supabase";
+        }
+      } catch {
+        // fallback local
       }
-    } catch {
-      // fallback local
     }
+
+    // Fallback to local dataset if Supabase unavailable or empty
+    if (proPlayers.length === 0) {
+      proPlayers = PRO_PLAYERS as ProPlayer[];
+      source = "local";
+    }
+
+    // Filtrar por overall mínimo
+    const candidates = proPlayers.filter(p => p.overall >= minOverall);
+
+    // Vector del jugador
+    const yVec = vsiVec(metrics as VSIMetrics);
+
+    // Calcular similitud
+    const scored: SimilarityMatch[] = candidates.map(pro => {
+      const pVec        = proVec(pro);
+      let   sim         = cosine(yVec, pVec);
+      const posMatch    = isCompatible(position, pro.position);
+
+      if (boostSamePosition && posMatch)   sim = Math.min(1, sim * 1.05);
+      if (positionFilter === "strict"   && !posMatch) return null!;
+      if (positionFilter === "flexible" && !posMatch) sim *= 0.85;
+
+      return {
+        player:        pro,
+        score:         Math.round(sim * 1000) / 10,
+        positionMatch: posMatch,
+      };
+    }).filter(Boolean);
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, topN);
+
+    // Grupo dominante
+    const groupCount: Record<string, number> = {};
+    top.forEach(m => {
+      const g = getGroup(m.player.position);
+      groupCount[g] = (groupCount[g] ?? 0) + 1;
+    });
+    const dominantGroup = Object.entries(groupCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "CM";
+
+    const avgScore = top.length > 0
+      ? Math.round(top.reduce((s, m) => s + m.score, 0) / top.length * 10) / 10
+      : 0;
+
+    return successResponse(
+      {
+        success:       true,
+        top5:          top,
+        bestMatch:     top[0] ?? null,
+        avgScore,
+        dominantGroup,
+        source,
+        computedAt:    new Date().toISOString(),
+      },
+      200,
+      { "Cache-Control": "no-store" }
+    );
   }
-
-  // Fallback to local dataset if Supabase unavailable or empty
-  if (proPlayers.length === 0) {
-    proPlayers = PRO_PLAYERS as ProPlayer[];
-    source = "local";
-  }
-
-  // Filtrar por overall mínimo
-  const candidates = proPlayers.filter(p => p.overall >= minOverall);
-
-  // Vector del jugador
-  const yVec = vsiVec(metrics);
-
-  // Calcular similitud
-  const scored: SimilarityMatch[] = candidates.map(pro => {
-    const pVec        = proVec(pro);
-    let   sim         = cosine(yVec, pVec);
-    const posMatch    = isCompatible(position, pro.position);
-
-    if (boostSamePosition && posMatch)   sim = Math.min(1, sim * 1.05);
-    if (positionFilter === "strict"   && !posMatch) return null!;
-    if (positionFilter === "flexible" && !posMatch) sim *= 0.85;
-
-    return {
-      player:        pro,
-      score:         Math.round(sim * 1000) / 10,
-      positionMatch: posMatch,
-    };
-  }).filter(Boolean);
-
-  scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, topN);
-
-  // Grupo dominante
-  const groupCount: Record<string, number> = {};
-  top.forEach(m => {
-    const g = getGroup(m.player.position);
-    groupCount[g] = (groupCount[g] ?? 0) + 1;
-  });
-  const dominantGroup = Object.entries(groupCount).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "CM";
-
-  const avgScore = top.length > 0
-    ? Math.round(top.reduce((s, m) => s + m.score, 0) / top.length * 10) / 10
-    : 0;
-
-  return new Response(
-    JSON.stringify({
-      success:       true,
-      top5:          top,
-      bestMatch:     top[0] ?? null,
-      avgScore,
-      dominantGroup,
-      source,
-      computedAt:    new Date().toISOString(),
-    }),
-    { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
-  );
-}
+);

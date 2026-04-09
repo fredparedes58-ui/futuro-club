@@ -14,8 +14,8 @@
 // export const config = { runtime: "edge" };
 
 import webpush from "web-push";
-
-const CRON_SECRET = process.env.CRON_SECRET; // opcional: protege el endpoint
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
 
 interface PushSub {
   user_id: string;
@@ -37,48 +37,40 @@ interface Subscription {
   plan: string;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  // Verificar secreto del cron (Vercel lo envía en Authorization)
-  if (CRON_SECRET) {
-    const auth = req.headers.get("Authorization");
-    if (auth !== `Bearer ${CRON_SECRET}`) {
-      return json({ error: "Unauthorized" }, 401);
+export default withHandler(
+  { method: "GET", serviceOnly: true },
+  async () => {
+    const supabaseUrl  = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+    const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? "";
+    const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
+    const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+
+    if (!supabaseUrl || !serviceKey) {
+      return errorResponse("Supabase not configured", 500);
     }
-  }
 
-  const supabaseUrl  = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? "";
-  const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
-  const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+    if (!vapidPublic || !vapidPrivate) {
+      return errorResponse("VAPID keys not configured — push disabled", 503);
+    }
 
-  if (!supabaseUrl || !serviceKey) {
-    return json({ error: "Supabase not configured" }, 500);
-  }
+    // Configure web-push with VAPID credentials
+    webpush.setVapidDetails(vapidEmail, vapidPublic, vapidPrivate);
 
-  if (!vapidPublic || !vapidPrivate) {
-    return json({ error: "VAPID keys not configured — push disabled" }, 503);
-  }
+    const headers = {
+      "apikey": serviceKey,
+      "Authorization": `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    };
 
-  // Configure web-push with VAPID credentials
-  webpush.setVapidDetails(vapidEmail, vapidPublic, vapidPrivate);
+    const base = `${supabaseUrl}/rest/v1`;
+    const notifications: Array<{ userId: string; title: string; body: string }> = [];
 
-  const headers = {
-    "apikey": serviceKey,
-    "Authorization": `Bearer ${serviceKey}`,
-    "Content-Type": "application/json",
-  };
-
-  const base = `${supabaseUrl}/rest/v1`;
-  const notifications: Array<{ userId: string; title: string; body: string }> = [];
-
-  try {
     // 1. Jugadores con VSI bajo
     const playersRes = await fetch(`${base}/players?select=user_id,name,metrics,updated_at`, { headers });
     const players: Player[] = await playersRes.json();
 
     // VSI weights must match MetricsService.calculateVSI()
-    // Weights sum to 1.0, so the result is simply sum(metric * weight)
     const VSI_WEIGHTS: Record<string, number> = {
       speed: 0.18, shooting: 0.13, vision: 0.20,
       technique: 0.22, defending: 0.12, stamina: 0.15,
@@ -92,8 +84,6 @@ export default async function handler(req: Request): Promise<Response> {
       let vsi: number;
       const hasWeights = keys.some(k => k in VSI_WEIGHTS);
       if (hasWeights) {
-        // Weighted sum — NO division by wTotal (weights already sum to 1.0)
-        // If partial metrics, only sum the available ones (result will be lower = safer)
         let sum = 0;
         for (const [k, w] of Object.entries(VSI_WEIGHTS)) {
           if (k in m) { sum += (m[k] as number) * w; }
@@ -135,7 +125,7 @@ export default async function handler(req: Request): Promise<Response> {
     for (const sub of subs) {
       if (sub.plan === "free") {
         const playerCount = players.filter((p) => p.user_id === sub.user_id).length;
-        if (playerCount >= 4) { // 80% de 5
+        if (playerCount >= 4) {
           notifications.push({
             userId: sub.user_id,
             title: "Límite de jugadores",
@@ -162,10 +152,8 @@ export default async function handler(req: Request): Promise<Response> {
           sent++;
         } catch (err) {
           failed++;
-          // If 410 Gone — subscription expired, could delete from DB
           const statusCode = (err as { statusCode?: number })?.statusCode;
           if (statusCode === 410) {
-            // Clean up expired subscription
             await fetch(
               `${base}/push_subscriptions?endpoint=eq.${encodeURIComponent(pushSub.subscription.endpoint)}`,
               { method: "DELETE", headers },
@@ -175,16 +163,6 @@ export default async function handler(req: Request): Promise<Response> {
       }
     }
 
-    return json({ success: true, notifications: notifications.length, sent, failed });
-  } catch (err) {
-    console.error("[Cron] Error:", err);
-    return json({ error: String(err) }, 500);
-  }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+    return successResponse({ success: true, notifications: notifications.length, sent, failed });
+  },
+);

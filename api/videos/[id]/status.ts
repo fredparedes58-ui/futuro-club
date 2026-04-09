@@ -8,45 +8,42 @@
  * Env vars: BUNNY_STREAM_LIBRARY_ID, BUNNY_STREAM_API_KEY, BUNNY_CDN_HOSTNAME
  */
 
+import { withHandler } from "../../lib/withHandler";
+import { successResponse, errorResponse } from "../../lib/apiResponse";
+
 const BUNNY_BASE = "https://video.bunnycdn.com/library";
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "GET") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+export default withHandler(
+  { method: "GET", requireAuth: true, maxRequests: 30 },
+  async ({ req }) => {
+    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY;
+    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
 
-  const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-  const apiKey = process.env.BUNNY_STREAM_API_KEY;
-  const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
+    if (!libraryId || !apiKey) {
+      return errorResponse(
+        "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
+        503,
+        "CONFIG_MISSING",
+      );
+    }
 
-  if (!libraryId || !apiKey) {
-    return json(
-      {
-        success: false,
-        error: "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
-        phase2Pending: true,
-      },
-      503
-    );
-  }
+    // Extract video ID from URL path
+    // Vercel passes it as part of the URL: /api/videos/{id}/status
+    const url = new URL(req.url);
+    const segments = url.pathname.split("/");
+    const videoId = segments[segments.length - 2]; // ../{id}/status
 
-  // Extract video ID from URL path
-  // Vercel passes it as part of the URL: /api/videos/{id}/status
-  const url = new URL(req.url);
-  const segments = url.pathname.split("/");
-  const videoId = segments[segments.length - 2]; // ../{id}/status
+    if (!videoId || videoId === "undefined") {
+      return errorResponse("Missing video ID", 400);
+    }
 
-  if (!videoId || videoId === "undefined") {
-    return json({ success: false, error: "Missing video ID" }, 400);
-  }
-
-  try {
     const res = await fetch(`${BUNNY_BASE}/${libraryId}/videos/${videoId}`, {
       headers: { AccessKey: apiKey },
     });
 
     if (res.status === 404) {
-      return json({ success: false, error: "Video not found" }, 404);
+      return errorResponse("Video not found", 404);
     }
     if (!res.ok) {
       throw new Error(`Bunny status failed (${res.status})`);
@@ -69,33 +66,27 @@ export default async function handler(req: Request): Promise<Response> {
     const cdn = cdnHostname ?? "";
     const isReady = v.status === 4;
 
-    return json({
-      success: true,
-      data: {
-        id: v.guid,
-        title: v.title,
-        status: mapBunnyStatus(v.status),
-        statusCode: v.status,
-        encodeProgress: v.encodeProgress,
-        isReady,
-        duration: v.length,
-        width: v.width,
-        height: v.height,
-        fps: v.framesPerSecond,
-        storageSize: v.storageSize,
-        dateUploaded: v.dateUploaded,
-        thumbnailUrl: cdn && v.thumbnailFileName
-          ? `https://${cdn}/${v.guid}/${v.thumbnailFileName}`
-          : null,
-        embedUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${v.guid}`,
-        streamUrl: cdn ? `https://${cdn}/${v.guid}/playlist.m3u8` : null,
-      },
+    return successResponse({
+      id: v.guid,
+      title: v.title,
+      status: mapBunnyStatus(v.status),
+      statusCode: v.status,
+      encodeProgress: v.encodeProgress,
+      isReady,
+      duration: v.length,
+      width: v.width,
+      height: v.height,
+      fps: v.framesPerSecond,
+      storageSize: v.storageSize,
+      dateUploaded: v.dateUploaded,
+      thumbnailUrl: cdn && v.thumbnailFileName
+        ? `https://${cdn}/${v.guid}/${v.thumbnailFileName}`
+        : null,
+      embedUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${v.guid}`,
+      streamUrl: cdn ? `https://${cdn}/${v.guid}/playlist.m3u8` : null,
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json({ success: false, error: message }, 500);
-  }
-}
+  },
+);
 
 function mapBunnyStatus(code: number): string {
   switch (code) {
@@ -108,13 +99,6 @@ function mapBunnyStatus(code: number): string {
     case 6: return "upload-failed";
     default: return "unknown";
   }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
 }
 
 export const config = { runtime: "edge" };

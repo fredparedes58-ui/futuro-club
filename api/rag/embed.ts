@@ -5,54 +5,36 @@
  * Generates embeddings using Voyage AI (voyage-3, 1024 dims)
  * Fallback: returns null if VOYAGE_API_KEY not configured
  */
+import { z } from "zod";
+import { withHandler } from "../lib/withHandler";
+import { successResponse, errorResponse } from "../lib/apiResponse";
+
 export const config = { runtime: "edge" };
 
 const VOYAGE_URL = "https://api.voyageai.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-3";
 
-export interface EmbedRequest {
-  texts: string[];
-  inputType?: "document" | "query";
-}
+const EmbedSchema = z.object({
+  texts: z.array(z.string()).min(1, "texts array es requerido"),
+  inputType: z.enum(["document", "query"]).default("document"),
+});
 
-export interface EmbedResponse {
-  success: boolean;
-  embeddings: (number[] | null)[];
-  model: string;
-  tokenCount?: number;
-  error?: string;
-}
+export default withHandler(
+  { schema: EmbedSchema, requireAuth: true, maxRequests: 60 },
+  async ({ body }) => {
+    const voyageKey = process.env.VOYAGE_API_KEY;
+    const { texts, inputType } = body;
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== "POST") {
-    return json({ error: "Method not allowed" }, 405);
-  }
+    // No API key: return null embeddings (graceful degradation)
+    if (!voyageKey) {
+      return successResponse({
+        success: true,
+        embeddings: texts.map(() => null),
+        model: "none",
+        error: "VOYAGE_API_KEY not configured — using full-text search fallback",
+      });
+    }
 
-  const voyageKey = process.env.VOYAGE_API_KEY;
-
-  let body: EmbedRequest;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON" }, 400);
-  }
-
-  const { texts, inputType = "document" } = body;
-  if (!texts?.length) {
-    return json({ error: "texts array is required" }, 400);
-  }
-
-  // No API key: return null embeddings (graceful degradation — use full-text search)
-  if (!voyageKey) {
-    return json({
-      success: true,
-      embeddings: texts.map(() => null),
-      model: "none",
-      error: "VOYAGE_API_KEY not configured — using full-text search fallback",
-    } satisfies EmbedResponse);
-  }
-
-  try {
     const res = await fetch(VOYAGE_URL, {
       method: "POST",
       headers: {
@@ -68,7 +50,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Voyage API error (${res.status}): ${errText}`);
+      return errorResponse(`Voyage API error (${res.status}): ${errText}`, 500, "EMBED_ERROR");
     }
 
     const data = await res.json() as {
@@ -81,24 +63,11 @@ export default async function handler(req: Request): Promise<Response> {
       return found?.embedding ?? null;
     });
 
-    return json({
+    return successResponse({
       success: true,
       embeddings,
       model: VOYAGE_MODEL,
       tokenCount: data.usage.total_tokens,
-    } satisfies EmbedResponse);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return json(
-      { success: false, embeddings: texts.map(() => null), model: "error", error: message } satisfies EmbedResponse,
-      500,
-    );
+    });
   }
-}
-
-function json(data: unknown, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+);
