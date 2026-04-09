@@ -137,7 +137,10 @@ export function developmentFactor(
   const effectiveAge = age - offset;
   const clampedAge = Math.max(8, Math.min(35, effectiveAge));
 
-  // Interpolación lineal entre los dos años más cercanos
+  // Interpolación smoothstep entre los dos años más cercanos.
+  // Smoothstep modela mejor el desarrollo biológico que la interpolación lineal:
+  // el crecimiento de capacidades no es constante sino que acelera y desacelera
+  // (curva sigmoid), especialmente durante los períodos sensibles.
   const lower = Math.floor(clampedAge);
   const upper = Math.ceil(clampedAge);
 
@@ -147,7 +150,11 @@ export function developmentFactor(
   const upperVal = curve[upper] ?? 0.5;
   const fraction = clampedAge - lower;
 
-  return lowerVal + (upperVal - lowerVal) * fraction;
+  // Smoothstep: t² × (3 - 2t) — transición suave tipo sigmoid entre puntos
+  const t = Math.max(0, Math.min(1, fraction));
+  const smooth = t * t * (3 - 2 * t);
+
+  return lowerVal + (upperVal - lowerVal) * smooth;
 }
 
 /**

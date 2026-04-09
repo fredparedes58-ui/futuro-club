@@ -7,6 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AgentService } from "@/services/real/agentService";
 import { PlayerService } from "@/services/real/playerService";
+import { ragService } from "@/services/real/ragService";
 import type { PHVInput, RoleProfileInput } from "@/agents/contracts";
 
 // ─────────────────────────────────────────
@@ -63,8 +64,9 @@ export function useRoleProfileAgent(playerId: string | undefined) {
           competitiveLevel: player.competitiveLevel,
           metrics: {
             ...player.metrics,
-            pressing: player.metrics.stamina,      // aproximación
-            positioning: player.metrics.vision,    // aproximación
+            // NOTE: pressing y positioning eliminados — eran aproximaciones falsas
+            // (pressing ≈ stamina, positioning ≈ vision). El prompt de Role Profile
+            // solo usa las 6 métricas VSI reales: speed, technique, vision, stamina, shooting, defending.
           },
           phvCategory: player.phvCategory ?? "ontme",
           phvOffset: player.phvOffset ?? 0,
@@ -78,6 +80,48 @@ export function useRoleProfileAgent(playerId: string | undefined) {
     enabled: !!playerId,
     staleTime: 1000 * 60 * 30, // 30 minutos
     retry: 2,
+  });
+}
+
+// ─────────────────────────────────────────
+// Hook: RAG Drill Recommendations
+// Busca ejercicios en la base de conocimiento RAG
+// a partir de las áreas de desarrollo identificadas.
+// Cache 1h (los drills no cambian seguido).
+// ─────────────────────────────────────────
+export function useRAGDrillRecommendations(areasDesarrollo: string[] | undefined) {
+  return useQuery({
+    queryKey: ["rag-drills", ...(areasDesarrollo ?? [])],
+    queryFn: async () => {
+      if (!areasDesarrollo || areasDesarrollo.length === 0) return [];
+
+      // Para cada área de desarrollo, buscar drills relevantes en el RAG
+      const traceId = `rag_drill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const results = await Promise.all(
+        areasDesarrollo.map(async (area) => {
+          const res = await ragService.query(area, {
+            category: "drill",
+            limit: 2,
+          });
+          return {
+            area,
+            traceId,
+            drills: res.results.map((r) => ({
+              id: r.id,
+              content: r.content,
+              similarity: r.similarity,
+              metadata: r.metadata,
+              traceId,
+            })),
+          };
+        })
+      );
+
+      return results.filter((r) => r.drills.length > 0);
+    },
+    enabled: !!areasDesarrollo && areasDesarrollo.length > 0,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    retry: 1,
   });
 }
 

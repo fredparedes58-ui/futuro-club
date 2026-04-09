@@ -250,6 +250,28 @@ export const UBIService = {
    *   UBI = 0.55 * raeComponent + 0.45 * phvComponent
    *
    *   vsICorrectionFactor = 1 + UBI * 0.12  (hasta +12% sobre el VSI)
+   *
+   * Justificación del split 0.55 RAE / 0.45 PHV:
+   *
+   * RAE recibe MAYOR peso (0.55) porque es un sesgo SISTÉMICO de selección:
+   *   - Cobley et al. (2009): en academias europeas, Q1 está sobrerrepresentado 2-3x vs Q4
+   *   - Helsen et al. (2005): el efecto RAE persiste incluso después de controlar por maduración
+   *   - El RAE actúa como filtro de selección: los jugadores Q4 son descartados ANTES de
+   *     poder demostrar su talento, creando un sesgo acumulativo (dropout temprano)
+   *   - Es observable desde los 6 años y afecta desde la primera selección
+   *
+   * PHV recibe peso MENOR (0.45) porque es un sesgo TEMPORAL de rendimiento:
+   *   - El PHV offset se normaliza naturalmente: a los 18-20 años todos han madurado
+   *   - Malina et al. (2004): las diferencias por maduración son máximas a los 13-15 y
+   *     convergen significativamente a los 17-18
+   *   - Un late maturer que SOBREVIVE al proceso de selección (no fue descartado) tiene
+   *     alta probabilidad de alcanzar o superar a los early maturers post-maduración
+   *   - El sesgo PHV es más corregible con paciencia; el RAE es más insidioso
+   *
+   * El factor de corrección VSI (1 + UBI * 0.12) permite ajustar hasta +12%:
+   *   - 12% es conservador: algunos estudios sugieren que Q4 late maturers pueden estar
+   *     subestimados hasta un 15-20%, pero preferimos ajuste moderado para evitar
+   *     sobrecompensar
    */
   calculate(
     raeResult: RAEResult | null,
@@ -295,19 +317,49 @@ export const TruthFilterService = {
   /**
    * Determina el caso TruthFilter según la combinación PHV + RAE.
    *
-   * Caso 1 — early_maturers:
-   *   phvOffset > +0.5 → jugador maduro anticipado.
-   *   Corrección: -3 a -8 puntos VSI (sobreestimado por ventaja física).
+   * El TruthFilter es un sistema de 4 casos que corrige el VSI observado
+   * para aproximar el "VSI verdadero" (talento real descontando sesgos).
    *
-   * Caso 2 — late_maturers:
-   *   phvOffset < -0.5 → jugador en maduración tardía.
-   *   Corrección: +3 a +10 puntos VSI (subestimado por desventaja física).
+   * Rangos de corrección por caso:
+   *
+   * Caso 1 — early_maturers (phvOffset > +0.5):
+   *   Corrección: -3 a -8 puntos VSI
+   *   Magnitud = min(8, round(phvOffset × 4))
+   *   Confianza: 0.85 con datos PHV reales, 0.60 sin ellos
+   *   Justificación: Los early maturers tienen ventaja física transitoria (más altos,
+   *   más fuertes, más rápidos que sus pares de la misma edad cronológica). Esto infla
+   *   artificialmente su rendimiento en métricas como speed y stamina. La corrección
+   *   negativa busca estimar cómo rendirían sin esa ventaja madurativa.
+   *   Evidencia: Meylan et al. (2010) mostró que el 70% de la ventaja en sprint de
+   *   early maturers desaparece al controlar por edad biológica.
+   *
+   * Caso 2 — late_maturers (phvOffset < -0.5):
+   *   Corrección: +3 a +10 puntos VSI
+   *   Magnitud = min(10, round(|phvOffset| × 4))
+   *   Confianza: 0.88 con datos PHV reales, 0.65 sin ellos
+   *   Justificación: Los late maturers son sistemáticamente subestimados porque compiten
+   *   contra pares que pueden tener 2+ años de ventaja biológica. Su talento técnico y
+   *   táctico está oculto detrás de una desventaja física temporal.
+   *   Evidencia: Deprez et al. (2015) demostró que late maturers que sobreviven al proceso
+   *   de selección tienen mayor probabilidad de alcanzar nivel profesional.
+   *   El rango mayor (+10 vs -8) es intencional: es más dañino descartar un late maturer
+   *   talentoso que sobreestimar ligeramente a un early maturer.
    *
    * Caso 3 — ontme_high_rae (nacido Q1/Q2, maduración normal):
-   *   Corrección: -1 a -3 puntos VSI (ligera ventaja por RAE).
+   *   Corrección: -1 a -3 puntos VSI
+   *   Q1: -3, Q2: -1
+   *   Confianza: 0.70
+   *   Justificación: Sin sesgo PHV pero con ventaja RAE. Un jugador Q1 de enero tiene
+   *   hasta 11 meses más de desarrollo que un Q4 de diciembre del mismo año. En sub-12/sub-14,
+   *   esto se traduce en ventaja física y experiencia acumulada.
    *
    * Caso 4 — ontme_low_rae (nacido Q3/Q4, maduración normal):
-   *   Corrección: +1 a +4 puntos VSI (ligera desventaja por RAE).
+   *   Corrección: +1 a +4 puntos VSI
+   *   Q4: +4, Q3: +1
+   *   Confianza: 0.72
+   *   Justificación: Sin sesgo PHV pero con desventaja RAE. Estos jugadores compiten
+   *   con hasta 11 meses menos de desarrollo — una corrección moderada al alza
+   *   reconoce esta desventaja cronológica.
    */
   detectCase(
     phvOffset: number | null,
@@ -472,6 +524,37 @@ export const VAEPService = {
     }
 
     // Pesos por acción (zona-aware donde aplica)
+    //
+    // Justificación de pesos VAEP (inspirados en Decroos et al. 2019, adaptados a contexto juvenil):
+    //
+    // shot_success (0.15): El gol es la acción de mayor impacto en fútbol. 0.15 refleja
+    //   que un gol vale ~15% de la victoria esperada en un partido promedio.
+    // shot_fail (-0.03): Disparo fallado tiene costo bajo porque al menos indica intención
+    //   ofensiva y posición de remate. Penalizar más desincentivaría el disparo en juveniles.
+    // pass_success (0.005-0.03 según zona): Pases en zona ofensiva (0.03) valen 6x más que
+    //   en zona defensiva (0.005) porque los pases progresivos acercan al gol. Basado en la
+    //   distribución de xG por zona: zona ofensiva genera ~60% de las ocasiones.
+    // pass_fail (-0.015): Pérdida de balón por pase. Moderadamente penalizado — en juveniles
+    //   queremos que arriesguen pases progresivos, no solo jueguen seguro.
+    // dribble_success (0.06): Alto valor porque superar a un rival crea superioridad numérica.
+    //   En juveniles el 1v1 exitoso es indicador de talento y confianza.
+    // dribble_fail (-0.02): Pérdida por regate. Penalización moderada — desincentivar exceso
+    //   de regate pero no eliminarlo del repertorio juvenil.
+    // tackle_success (0.04): Recuperación activa de balón. Valor significativo porque inicia
+    //   transición ofensiva y demuestra capacidad defensiva.
+    // tackle_fail (-0.015): Tackle fallado deja al equipo en desventaja momentánea.
+    // press_success (0.025): Pressing efectivo que genera recuperación. Indicador de
+    //   inteligencia táctica y disciplina colectiva.
+    // press_fail (-0.005): Pressing fallido tiene costo mínimo — queremos fomentar pressing
+    //   activo en juveniles, aunque no siempre resulte.
+    // cross_success (0.08): Centro que conecta con compañero. Alto valor porque genera
+    //   ocasión directa desde zona lateral.
+    // cross_fail (-0.02): Centro perdido. Costo de perder posesión en zona ofensiva.
+    // header_success (0.05): Juego aéreo ganado. Depende de maduración pero cuando conecta
+    //   genera peligro directo.
+    // header_fail (-0.01): Duelo aéreo perdido. Penalización baja porque en juveniles la
+    //   estatura es función de la maduración, no del talento.
+    //
     type EventKey = `${EventType}_${"success" | "fail"}`;
     type ZoneKey  = EventZone | "default";
     const W: Record<EventKey, number | Record<ZoneKey, number>> = {

@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — Analisis Competitivo Detallado — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · Analisis Competitivo Detallado</h1>
+<blockquote>
+<p>Comparacion metrica-por-metrica de VITAS contra cada competidor.
+Donde esta VITAS, que le falta, y que hacer para mejorar.
+Ultima actualizacion: Abril 2026</p>
+</blockquote>
+<hr>
+<h2>Indice</h2>
+<ol>
+<li><a href="#1-posicion-general-de-vitas">Posicion General de VITAS</a></li>
+<li><a href="#2-scorecard-competitivo">Scorecard Competitivo</a></li>
+<li><a href="#3-comparacion-por-categoria-de-metricas">Comparacion por Categoria de Metricas</a></li>
+<li><a href="#4-analisis-1v1-contra-cada-competidor">Analisis 1v1 contra cada Competidor</a></li>
+<li><a href="#5-donde-vitas-esta-por-debajo--plan-de-accion">Donde VITAS esta por Debajo — Plan de Accion</a></li>
+<li><a href="#6-donde-vitas-esta-bien--como-mejorar">Donde VITAS esta Bien — Como Mejorar</a></li>
+<li><a href="#7-donde-vitas-es-unico--como-defender">Donde VITAS es Unico — Como Defender</a></li>
+<li><a href="#8-roadmap-de-mejora-priorizado">Roadmap de Mejora Priorizado</a></li>
+<li><a href="#9-conclusion">Conclusion</a></li>
+</ol>
+<hr>
+<h2>1. Posicion General de VITAS</h2>
+<h3>Resumen de Posicion por Dimension</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Posicion de VITAS</th>
+<th>Nivel</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Metricas fisicas (tracking)</td>
+<td>5to de 7</td>
+<td>Bajo — necesita mejorar</td>
+</tr>
+<tr>
+<td>Metricas tecnicas (ball data)</td>
+<td>6to de 8</td>
+<td>Bajo — limitado por falta de ball tracking</td>
+</tr>
+<tr>
+<td>Metricas tacticas</td>
+<td>4to de 6</td>
+<td>Medio — base solida, falta profundidad</td>
+</tr>
+<tr>
+<td>Maduracion biologica</td>
+<td><strong>1ro de 16</strong></td>
+<td>Lider absoluto — nadie compite</td>
+</tr>
+<tr>
+<td>Indices compuestos (VSI, UBI)</td>
+<td><strong>2do de 5</strong></td>
+<td>Fuerte — solo SciSports es comparable</td>
+</tr>
+<tr>
+<td>Proyecciones de desarrollo</td>
+<td><strong>1ro de 3</strong></td>
+<td>Lider — unico con ajuste PHV</td>
+</tr>
+<tr>
+<td>Video IA</td>
+<td><strong>2do de 5</strong></td>
+<td>Fuerte — Claude+Gemini es potente</td>
+</tr>
+<tr>
+<td>Accesibilidad/Precio</td>
+<td><strong>1ro de 16</strong></td>
+<td>Lider — PWA gratis sin hardware</td>
+</tr>
+<tr>
+<td>Base de datos de scouting</td>
+<td>5to de 6</td>
+<td>Medio-Bajo — 290 pros vs 600K+ de Wyscout</td>
+</tr>
+<tr>
+<td>Metricas de equipo</td>
+<td>5to de 7</td>
+<td>Bajo — mayormente cualitativo</td>
+</tr>
+</tbody></table>
+<h3>Veredicto General</h3>
+<p>VITAS esta <strong>bien posicionada como plataforma juvenil integral</strong> pero tiene gaps importantes en metricas fisicas de precision, ball tracking, y profundidad tactica algortimica. Su ventaja competitiva (PHV + TruthFilter) es inigualable y debe ser la base de toda la estrategia.</p>
+<hr>
+<h2>2. Scorecard Competitivo</h2>
+<h3>Puntuacion 1-10 por Capacidad</h3>
+<table>
+<thead>
+<tr>
+<th>Capacidad</th>
+<th>VITAS</th>
+<th>Wyscout</th>
+<th>StatsBomb</th>
+<th>InStat</th>
+<th>Metrica</th>
+<th>SciSports</th>
+<th>Catapult</th>
+<th>STATSports</th>
+<th>PlayerMaker</th>
+<th>SkillCorner</th>
+<th>AiSCOUT</th>
+<th>Veo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Fisico (GPS/Track)</strong></td>
+<td>5</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>6</td>
+<td>1</td>
+<td><strong>10</strong></td>
+<td><strong>10</strong></td>
+<td>7</td>
+<td>7</td>
+<td>4</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>Tecnico (ball data)</strong></td>
+<td>3</td>
+<td>7</td>
+<td><strong>9</strong></td>
+<td>7</td>
+<td>4</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td><strong>8</strong></td>
+<td>3</td>
+<td>5</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>Tactico</strong></td>
+<td>5</td>
+<td>6</td>
+<td><strong>8</strong></td>
+<td>5</td>
+<td>7</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td><strong>8</strong></td>
+<td>2</td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>Maduracion/PHV</strong></td>
+<td><strong>10</strong></td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Indices compuestos</strong></td>
+<td><strong>8</strong></td>
+<td>5</td>
+<td>7</td>
+<td>6</td>
+<td>5</td>
+<td><strong>9</strong></td>
+<td>3</td>
+<td>3</td>
+<td>2</td>
+<td>5</td>
+<td>4</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>Proyecciones</strong></td>
+<td><strong>9</strong></td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td><strong>8</strong></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Video IA</strong></td>
+<td><strong>8</strong></td>
+<td>4</td>
+<td>3</td>
+<td>4</td>
+<td><strong>7</strong></td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td><strong>8</strong></td>
+<td>6</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Youth Focus</strong></td>
+<td><strong>9</strong></td>
+<td>2</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>3</td>
+<td>5</td>
+<td>5</td>
+<td>6</td>
+<td>1</td>
+<td><strong>8</strong></td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Accesibilidad</strong></td>
+<td><strong>9</strong></td>
+<td>5</td>
+<td>1</td>
+<td>2</td>
+<td><strong>8</strong></td>
+<td>4</td>
+<td>4</td>
+<td>6</td>
+<td>5</td>
+<td>1</td>
+<td><strong>9</strong></td>
+<td>4</td>
+</tr>
+<tr>
+<td><strong>Scouting DB</strong></td>
+<td>4</td>
+<td><strong>10</strong></td>
+<td><strong>9</strong></td>
+<td>8</td>
+<td>2</td>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>TOTAL /100</strong></td>
+<td><strong>70</strong></td>
+<td>42</td>
+<td>42</td>
+<td>38</td>
+<td>45</td>
+<td>45</td>
+<td>23</td>
+<td>25</td>
+<td>30</td>
+<td>38</td>
+<td>45</td>
+<td>22</td>
+</tr>
+</tbody></table>
+<h3>Interpretacion</h3>
+<ul>
+<li>VITAS lidera el total con 70/100 gracias a su combinacion unica</li>
+<li>Ningun competidor supera 50/100 cuando se mide todo</li>
+<li>Los especialistas (Catapult, StatsBomb) dominan su nicho pero fallan fuera de el</li>
+<li>AiSCOUT y Metrica son los competidores mas cercanos en filosofia (45 cada uno)</li>
+</ul>
+<hr>
+<h2>3. Comparacion por Categoria de Metricas</h2>
+<h3>A. METRICAS FISICAS — VITAS vs Competidores GPS</h3>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>VITAS</th>
+<th>Catapult</th>
+<th>STATSports</th>
+<th>PlayerMaker</th>
+<th>SkillCorner</th>
+<th>Metrica</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Velocidad max</td>
+<td>Si (YOLO)</td>
+<td>Si (GPS 10Hz)</td>
+<td>Si (GPS)</td>
+<td>Si (IMU)</td>
+<td>Si (AI video)</td>
+<td>Si (AI video)</td>
+</tr>
+<tr>
+<td>Distancia total</td>
+<td>Si (YOLO)</td>
+<td>Si (GPS)</td>
+<td>Si (GPS)</td>
+<td>Si (IMU)</td>
+<td>Si (AI video)</td>
+<td>Si (AI video)</td>
+</tr>
+<tr>
+<td>Sprints (count)</td>
+<td>Si (&gt;5.83 m/s)</td>
+<td>Si (configurable)</td>
+<td>Si (configurable)</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Aceleracion</td>
+<td>Si (EMA)</td>
+<td>Si (3 ejes, 100Hz)</td>
+<td>Si (3 ejes)</td>
+<td>Si (6 ejes, 1000Hz)</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>PlayerLoad</td>
+<td><strong>No</strong></td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>HMLD</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>DSL (Dynamic Stress)</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Metabolic Power</td>
+<td><strong>No</strong></td>
+<td><strong>Si</strong></td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>IMA (Inertial)</td>
+<td><strong>No</strong></td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Heart Rate zones</td>
+<td><strong>No</strong></td>
+<td>Si (ECG)</td>
+<td>Si (HR strap)</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Step Balance</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Zonas de intensidad</td>
+<td>Si (4 zonas)</td>
+<td>Si (6+ zonas)</td>
+<td>Si (6 zonas)</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Field Coverage</td>
+<td>Si (5x5m grid)</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Voronoi area</td>
+<td><strong>Si (unico)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Toques de balon</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (1000Hz)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Kick velocity</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Symmetry Index</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>Si (Step Balance)</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> Las metricas fisicas de VITAS son funcionales pero basicas comparadas con hardware dedicado. YOLO tracking tiene precision de +-2-5% vs GPS que tiene +-0.3%. La ventaja de VITAS es que no necesita hardware.</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Alta:</strong> Agregar Metabolic Power estimado desde aceleracion/desaceleracion del tracking YOLO</li>
+<li><strong>Prioridad Alta:</strong> Agregar Step Balance / asimetria de movimiento desde pose keypoints (COCO-17 ya lo detecta)</li>
+<li><strong>Prioridad Media:</strong> Crear un &quot;VITAS Load&quot; equivalente a PlayerLoad basado en aceleracion 2D del centroid tracking</li>
+<li><strong>Prioridad Baja:</strong> Integrar con Catapult/STATSports via API para importar datos GPS reales cuando disponibles</li>
+</ol>
+<hr>
+<h3>B. METRICAS TECNICAS — VITAS vs Data Providers</h3>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>VITAS</th>
+<th>StatsBomb</th>
+<th>Wyscout</th>
+<th>InStat</th>
+<th>Opta</th>
+<th>PlayerMaker</th>
+<th>AiSCOUT</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>xG (Expected Goals)</td>
+<td><strong>No</strong></td>
+<td><strong>Si (el mejor)</strong></td>
+<td>Si</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>xA (Expected Assists)</td>
+<td><strong>No</strong></td>
+<td>Si</td>
+<td>Si</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>OBV (On-Ball Value)</td>
+<td><strong>No</strong></td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>xT (Expected Threat)</td>
+<td>Parcial (xt_pass)</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (2025)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>VAEP</td>
+<td><strong>Si (simplificado)</strong></td>
+<td>No (usa OBV)</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Pases completados</td>
+<td>Manual/Gemini</td>
+<td>Si (por tipo)</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Progressive passes</td>
+<td><strong>No</strong></td>
+<td>Si</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Smart passes</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Deep completions</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Regates exitosos</td>
+<td>Manual/Gemini</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si (sensor)</td>
+<td>Si (drill)</td>
+</tr>
+<tr>
+<td>Precision disparo</td>
+<td>Manual/Gemini</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td><strong>Si (km/h)</strong></td>
+<td>Si (drill)</td>
+</tr>
+<tr>
+<td>First Touch quality</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (1000Hz)</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ball Retention</td>
+<td>Parcial</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> Esta es la mayor debilidad. VITAS no puede calcular xG, xA, ni metricas de pase avanzadas porque no tiene ball tracking. Depende de input manual o Gemini (que es impreciso para conteos exactos).</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Critica:</strong> Implementar modelo xG simplificado usando ubicacion del disparo (zona) + tipo de asistencia. No necesita ball tracking — solo los eventos de disparo logueados</li>
+<li><strong>Prioridad Alta:</strong> Agregar ball tracking basico via YOLO (el modelo ya detecta balon como clase). Calcular posesion algoritmica</li>
+<li><strong>Prioridad Alta:</strong> Calcular Progressive Passes algoritmicamente si se tiene ball tracking (delta Y &gt; 10m hacia porteria rival)</li>
+<li><strong>Prioridad Media:</strong> Entrenar VAEP con modelo xG real en vez de pesos heuristicos</li>
+<li><strong>Prioridad Baja:</strong> Integrar datos de StatsBomb/Opta open data para benchmarking de xG</li>
+</ol>
+<hr>
+<h3>C. METRICAS TACTICAS — VITAS vs Analisis Tactico</h3>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>VITAS</th>
+<th>StatsBomb</th>
+<th>Metrica</th>
+<th>SkillCorner</th>
+<th>Opta</th>
+<th>Nacsport</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Deteccion formacion</td>
+<td>Gemini (cualitativo)</td>
+<td>Si (from events)</td>
+<td>Si (from tracking)</td>
+<td>Si (from tracking)</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Pitch Control</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>EPV (Expected Possession)</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td><strong>Si (propietario)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>PPDA (pressing)</td>
+<td><strong>No</strong></td>
+<td>Si</td>
+<td>No</td>
+<td>Si</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Pressing intensity</td>
+<td>Gemini (1-10)</td>
+<td>Si (contrapresion)</td>
+<td>Si (from tracking)</td>
+<td><strong>Si (4 tipos)</strong></td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Off-ball runs</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (10 tipos)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Defensive line height</td>
+<td>Gemini (cualitativo)</td>
+<td>Si</td>
+<td>Si (centroid)</td>
+<td>Si</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Transition speed</td>
+<td>Gemini (cualitativo)</td>
+<td>Si (from events)</td>
+<td>Si (from tracking)</td>
+<td>Si</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Compactness</td>
+<td>Gemini (1-10)</td>
+<td>No</td>
+<td>Si (variance)</td>
+<td>Si</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Voronoi control</td>
+<td><strong>Si (D3 Delaunay)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Heatmaps</td>
+<td><strong>Si (YOLO)</strong></td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+<tr>
+<td>Scan events</td>
+<td><strong>Si (pose analysis)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Duel detection</td>
+<td><strong>Si (proximity)</strong></td>
+<td>Si (from events)</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>Manual</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> Tiene una base solida (Voronoi, scans, duels, heatmaps) pero las metricas son mayormente cualitativas via Gemini. Falta profundidad algoritmica en pressing y off-ball.</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Alta:</strong> Calcular PPDA algoritmicamente — contar pases del equipo rival entre acciones defensivas propias (si se tiene ball tracking + team tracking)</li>
+<li><strong>Prioridad Alta:</strong> Calcular Defensive Line Height como centroide Y de los 4 defensores mas retrasados</li>
+<li><strong>Prioridad Media:</strong> Implementar Pitch Control simplificado usando posiciones Voronoi + velocidad de jugadores</li>
+<li><strong>Prioridad Media:</strong> Detectar Off-Ball Runs midiendo velocidad + direccion de jugadores sin balon hacia zonas de alto xT</li>
+<li><strong>Prioridad Baja:</strong> Calcular Compactness como desviacion estandar de posiciones del equipo</li>
+</ol>
+<hr>
+<h3>D. MADURACION BIOLOGICA — VITAS vs Todos</h3>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>VITAS</th>
+<th>AiSCOUT</th>
+<th>PlayerMaker</th>
+<th>Hylyght*</th>
+<th>Kitman Labs*</th>
+<th>Resto (12 plataformas)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PHV (Peak Height Velocity)</td>
+<td><strong>Si (Mirwald)</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (%PAH)</strong></td>
+<td><strong>Si</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td>RAE (Relative Age Effect)</td>
+<td><strong>Si (cuartiles + correccion)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>UBI (Unified Bias Index)</td>
+<td><strong>Si (unico)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>TruthFilter (ajuste VSI)</td>
+<td><strong>Si (unico)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Benchmarks por edad</td>
+<td><strong>Si (curvas 8-35)</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td>Si</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ventana de desarrollo</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ajuste de metricas por PHV</td>
+<td><strong>Si (0.85-1.15)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Parcial</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Proyeccion ajustada por biologia</td>
+<td><strong>Si (unico)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p>*Hylyght y Kitman Labs son plataformas de salud/maduracion, no de analisis futbolistico.</p>
+<p><strong>Diagnostico VITAS:</strong> LIDER ABSOLUTO. Ningun competidor de analisis futbolistico ofrece lo que VITAS tiene en maduracion. Hylyght y Kitman Labs miden PHV pero no lo conectan con metricas de rendimiento ni ajustan evaluaciones.</p>
+<p><strong>Que hacer para defender esta posicion:</strong></p>
+<ol>
+<li><strong>Prioridad Critica:</strong> Publicar un whitepaper tecnico explicando TruthFilter + UBI con datos anonimizados</li>
+<li><strong>Prioridad Alta:</strong> Agregar metodo %PAH (Predicted Adult Height) como alternativa a Mirwald para mayor precision</li>
+<li><strong>Prioridad Alta:</strong> Integrar con Hylyght/Kitman Labs para importar datos de maduracion medidos</li>
+<li><strong>Prioridad Media:</strong> Crear un dataset publico de correlacion PHV-rendimiento para establecer autoridad cientifica</li>
+<li><strong>Prioridad Baja:</strong> Certificacion FIFA (FIFA ha publicado sobre RAE — aliarse con el programa)</li>
+</ol>
+<hr>
+<h3>E. INDICES COMPUESTOS — VITAS vs Ratings</h3>
+<table>
+<thead>
+<tr>
+<th>Indice</th>
+<th>VITAS</th>
+<th>SciSports</th>
+<th>InStat</th>
+<th>Wyscout</th>
+<th>SkillCorner</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Score compuesto unico</td>
+<td><strong>VSI (0-100)</strong></td>
+<td><strong>SciSkill (Elo)</strong></td>
+<td><strong>InStat Index</strong></td>
+<td>Wyscout Index</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Componentes</td>
+<td>6 metricas ponderadas</td>
+<td>Ofensivo + Defensivo</td>
+<td>12-14 factores/posicion</td>
+<td>No publicado</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ajuste por posicion</td>
+<td>Pesos fijos</td>
+<td>Si (ponderacion)</td>
+<td><strong>Si (per-posicion)</strong></td>
+<td>No publicado</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ajuste por nivel de rival</td>
+<td><strong>No</strong></td>
+<td><strong>Si (expectation vs result)</strong></td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ajuste por maduracion</td>
+<td><strong>Si (TruthFilter)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Transparencia de formula</td>
+<td><strong>Total (open)</strong></td>
+<td>Parcial (paper publicado)</td>
+<td>Baja (propietario)</td>
+<td>Baja</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td>Score de confianza</td>
+<td><strong>Si (0-1 per metrica)</strong></td>
+<td>No publicado</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Sample Tier</td>
+<td><strong>Si (Bronze-Platinum)</strong></td>
+<td>No</td>
+<td>Req minutos minimos</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> El VSI es competitivo pero necesita mejoras. SciSports tiene un modelo superior (Bayesiano, basado en resultados reales). InStat ajusta por posicion y nivel de rival de forma mas sofisticada.</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Alta:</strong> Agregar pesos VSI dinamicos por posicion (un portero no deberia pesar 22% en tecnica igual que un mediocampista)</li>
+<li><strong>Prioridad Alta:</strong> Agregar factor de nivel de rival/liga — un VSI 70 en liga regional no es igual que en cantera profesional</li>
+<li><strong>Prioridad Media:</strong> Evolucionar VSI a un modelo Bayesiano que se actualice partido a partido (como SciSkill)</li>
+<li><strong>Prioridad Media:</strong> Agregar componente de impacto en resultado del equipo (como InStat: &quot;contribucion al exito del equipo&quot;)</li>
+<li><strong>Ya implementado (ventaja):</strong> Score de confianza y Sample Tier — ningun competidor lo ofrece</li>
+</ol>
+<hr>
+<h3>F. PROYECCIONES DE DESARROLLO — VITAS vs Predictores</h3>
+<table>
+<thead>
+<tr>
+<th>Capacidad</th>
+<th>VITAS</th>
+<th>SciSports</th>
+<th>AiSCOUT</th>
+<th>Resto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Proyeccion temporal</td>
+<td><strong>Si (6m, 18m, 3a)</strong></td>
+<td><strong>Si (5-7 anos)</strong></td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Ajuste por PHV</td>
+<td><strong>Si (unico)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Curvas por posicion</td>
+<td><strong>Si (8 posiciones)</strong></td>
+<td>No publicado</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Curvas por metrica</td>
+<td><strong>Si (6 metricas x 28 edades)</strong></td>
+<td>No publicado</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Margen de confianza</td>
+<td><strong>Si (+-10-20%)</strong></td>
+<td>No publicado</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Edad equivalente pro</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Escenarios (opt/real/pess)</td>
+<td><strong>Si (3 escenarios)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> LIDER. SciSports predice desarrollo pero no publica como lo hace y no ajusta por biologia. VITAS tiene las curvas mas transparentes y cientificamente fundamentadas.</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Alta:</strong> Extender horizonte de proyeccion a 5-7 anos (como SciSports) con margenes mas amplios</li>
+<li><strong>Prioridad Alta:</strong> Agregar &quot;Transfer Value Estimation&quot; basado en VSI proyectado + posicion + mercado</li>
+<li><strong>Prioridad Media:</strong> Validar curvas de desarrollo con datos reales de jugadores que pasaron por el sistema</li>
+<li><strong>Prioridad Baja:</strong> Crear modelo ML que aprenda de las proyecciones pasadas vs resultados reales</li>
+</ol>
+<hr>
+<h3>G. VIDEO IA — VITAS vs AI-Powered Analysis</h3>
+<table>
+<thead>
+<tr>
+<th>Capacidad</th>
+<th>VITAS</th>
+<th>SkillCorner</th>
+<th>Metrica</th>
+<th>AiSCOUT</th>
+<th>Veo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tracking automatico 22 jugadores</td>
+<td><strong>No</strong></td>
+<td><strong>Si (broadcast)</strong></td>
+<td><strong>Si (any video)</strong></td>
+<td>No</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>Analisis de video por LLM</td>
+<td><strong>Si (Claude + Gemini)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (Coach Assist)</strong></td>
+</tr>
+<tr>
+<td>Reporte narrativo completo</td>
+<td><strong>Si (6 dimensiones)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>Plan de desarrollo personalizado</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Comparacion con pros</td>
+<td><strong>Si (cosine similarity)</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Deteccion de eventos</td>
+<td>Gemini (semi-auto)</td>
+<td>Si (auto)</td>
+<td>Si (Smart Tagging)</td>
+<td>Si (75 drills)</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>Biomechanics 3D</td>
+<td><strong>No</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si (1000 pts)</strong></td>
+<td>No</td>
+</tr>
+<tr>
+<td>Pose estimation</td>
+<td><strong>Si (COCO-17)</strong></td>
+<td>No publicado</td>
+<td>No publicado</td>
+<td><strong>Si (markerless 3D)</strong></td>
+<td>No</td>
+</tr>
+</tbody></table>
+<p><strong>Diagnostico VITAS:</strong> Fuerte en analisis narrativo (Claude) pero debil en tracking automatico completo. SkillCorner y Metrica tienen tracking superior de 22 jugadores.</p>
+<p><strong>Que hacer:</strong></p>
+<ol>
+<li><strong>Prioridad Critica:</strong> Mejorar el tracking YOLO para sostener 22 jugadores simultaneos (actualmente funcional pero no optimizado para campo completo)</li>
+<li><strong>Prioridad Alta:</strong> Agregar Smart Tagging automatico: detectar contraataques, build-ups, transiciones desde patrones de movimiento</li>
+<li><strong>Prioridad Media:</strong> Agregar biomechanics score usando keypoints COCO-17 existentes (angulos articulares, asimetria, zancada)</li>
+<li><strong>Prioridad Baja:</strong> Explorar reconstruccion 3D desde 2D (como AiSCOUT) para evaluacion biomecanica mas precisa</li>
+</ol>
+<hr>
+<h2>4. Analisis 1v1 contra cada Competidor</h2>
+<h3>VITAS vs Wyscout</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Base de datos</td>
+<td><strong>Wyscout</strong></td>
+<td>600K perfiles vs 290</td>
+</tr>
+<tr>
+<td>Video library</td>
+<td><strong>Wyscout</strong></td>
+<td>Miles de partidos completos</td>
+</tr>
+<tr>
+<td>Metricas avanzadas</td>
+<td><strong>Wyscout</strong></td>
+<td>xG, PPDA, Smart Passes</td>
+</tr>
+<tr>
+<td>Enfoque juvenil</td>
+<td><strong>VITAS</strong></td>
+<td>PHV, TruthFilter, desarrollo</td>
+</tr>
+<tr>
+<td>Precio</td>
+<td><strong>VITAS</strong></td>
+<td>$0-19 vs $325+</td>
+</tr>
+<tr>
+<td>IA generativa</td>
+<td><strong>VITAS</strong></td>
+<td>Claude reports vs ninguno</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td><strong>No compiten directamente.</strong> Wyscout es para ver jugadores ajenos. VITAS es para analizar los propios.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs StatsBomb</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Densidad de datos</td>
+<td><strong>StatsBomb</strong></td>
+<td>3,400 eventos/partido</td>
+</tr>
+<tr>
+<td>xG/OBV precision</td>
+<td><strong>StatsBomb</strong></td>
+<td>360 freeze frames</td>
+</tr>
+<tr>
+<td>VAEP</td>
+<td><strong>Empate</strong></td>
+<td>SB tiene OBV (superior), VITAS tiene VAEP simplificado</td>
+</tr>
+<tr>
+<td>Maduracion</td>
+<td><strong>VITAS</strong></td>
+<td>StatsBomb no lo tiene</td>
+</tr>
+<tr>
+<td>Accesibilidad</td>
+<td><strong>VITAS</strong></td>
+<td>Free vs decenas de miles</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td>StatsBomb es el gold standard de datos. VITAS lo complementa con la capa de maduracion que SB no tiene.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs Metrica Sports</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tracking AI</td>
+<td><strong>Metrica</strong></td>
+<td>GameCloud &gt; YOLO browser</td>
+</tr>
+<tr>
+<td>Pitch Control / EPV</td>
+<td><strong>Metrica</strong></td>
+<td>VITAS no lo tiene</td>
+</tr>
+<tr>
+<td>Smart Tagging</td>
+<td><strong>Metrica</strong></td>
+<td>Automatico vs Gemini</td>
+</tr>
+<tr>
+<td>Maduracion</td>
+<td><strong>VITAS</strong></td>
+<td>Metrica no lo tiene</td>
+</tr>
+<tr>
+<td>Indices compuestos</td>
+<td><strong>VITAS</strong></td>
+<td>VSI+UBI vs nada</td>
+</tr>
+<tr>
+<td>IA narrativa</td>
+<td><strong>VITAS</strong></td>
+<td>Claude reports vs nada</td>
+</tr>
+<tr>
+<td>Precio</td>
+<td><strong>Empate</strong></td>
+<td>Ambos accesibles</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td><strong>Competidor mas peligroso.</strong> Metrica podria agregar PHV y cerrar el gap. VITAS debe moverse rapido.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs SciSports</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Modelo predictivo</td>
+<td><strong>SciSports</strong></td>
+<td>Bayesiano &gt; curvas estaticas</td>
+</tr>
+<tr>
+<td>Rating compuesto</td>
+<td><strong>Empate</strong></td>
+<td>SciSkill vs VSI — filosofias distintas</td>
+</tr>
+<tr>
+<td>VAEP</td>
+<td><strong>SciSports</strong></td>
+<td>Co-desarrollador del framework</td>
+</tr>
+<tr>
+<td>Maduracion</td>
+<td><strong>VITAS</strong></td>
+<td>SciSports no ajusta por PHV</td>
+</tr>
+<tr>
+<td>Arquetipos</td>
+<td><strong>VITAS</strong></td>
+<td>20 arquetipos vs roles genericos</td>
+</tr>
+<tr>
+<td>Confianza/transparencia</td>
+<td><strong>VITAS</strong></td>
+<td>Score per metrica publicado</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td>SciSports tiene mejor ciencia de datos. VITAS tiene mejor ciencia de maduracion. Juntos serian imbatibles.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs Catapult/STATSports</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Precision GPS</td>
+<td><strong>Catapult/STATSports</strong></td>
+<td>Hardware dedicado 10Hz-100Hz</td>
+</tr>
+<tr>
+<td>Metricas propietarias</td>
+<td><strong>Catapult/STATSports</strong></td>
+<td>PlayerLoad, HMLD, DSL</td>
+</tr>
+<tr>
+<td>Metabolic Power</td>
+<td><strong>Catapult</strong></td>
+<td>Modelo probado</td>
+</tr>
+<tr>
+<td>Sin hardware</td>
+<td><strong>VITAS</strong></td>
+<td>100% video-based</td>
+</tr>
+<tr>
+<td>Analisis tactico</td>
+<td><strong>VITAS</strong></td>
+<td>GPS no tiene</td>
+</tr>
+<tr>
+<td>Maduracion</td>
+<td><strong>VITAS</strong></td>
+<td>GPS no lo mide</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td><strong>Complementarios.</strong> VITAS deberia integrar datos de Catapult/STATSports cuando disponibles.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs AiSCOUT</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Biomechanics</td>
+<td><strong>AiSCOUT</strong></td>
+<td>1000 puntos 3D vs 17 keypoints</td>
+</tr>
+<tr>
+<td>Drills evaluados</td>
+<td><strong>AiSCOUT</strong></td>
+<td>75 drills estructurados</td>
+</tr>
+<tr>
+<td>Analisis de partido real</td>
+<td><strong>VITAS</strong></td>
+<td>AiSCOUT solo evalua drills</td>
+</tr>
+<tr>
+<td>Maduracion</td>
+<td><strong>VITAS</strong></td>
+<td>AiSCOUT no corrige por PHV</td>
+</tr>
+<tr>
+<td>Plan de desarrollo</td>
+<td><strong>VITAS</strong></td>
+<td>Personalizado por IA</td>
+</tr>
+<tr>
+<td>Modelo de negocio</td>
+<td><strong>AiSCOUT</strong></td>
+<td>Gratis para jugadores, clubes pagan</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td><strong>Competidor en youth.</strong> Pero AiSCOUT evalua ejercicios, VITAS evalua partidos. Diferentes casos de uso.</td>
+<td></td>
+</tr>
+</tbody></table>
+<h3>VITAS vs Veo</h3>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Ganador</th>
+<th>Por que</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Captura de video</td>
+<td><strong>Veo</strong></td>
+<td>Camara autonoma 180deg</td>
+</tr>
+<tr>
+<td>Analisis de video</td>
+<td><strong>VITAS</strong></td>
+<td>Claude + Gemini &gt;&gt; Coach Assist</td>
+</tr>
+<tr>
+<td>Metricas avanzadas</td>
+<td><strong>VITAS</strong></td>
+<td>VSI, VAEP, PHV vs posesion basica</td>
+</tr>
+<tr>
+<td>Hardware necesario</td>
+<td><strong>Veo</strong> (requiere camara)</td>
+<td>VITAS no requiere</td>
+</tr>
+<tr>
+<td><strong>Veredicto</strong></td>
+<td><strong>Perfectamente complementarios.</strong> Veo graba, VITAS analiza. Integracion ideal.</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. Donde VITAS esta por Debajo — Plan de Accion</h2>
+<h3>5.1 Ball Tracking (CRITICO)</h3>
+<p><strong>Problema:</strong> Sin ball tracking, VITAS no puede calcular xG, xA, posesion, progressive passes, ni VAEP basado en probabilidad.</p>
+<p><strong>Competidores que lo tienen:</strong> StatsBomb, Wyscout, Opta, Metrica, SkillCorner, Veo</p>
+<p><strong>Plan de accion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Accion</th>
+<th>Esfuerzo</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Agregar clase &quot;ball&quot; al modelo YOLO (ya la detecta)</td>
+<td>1 semana</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Tracker especifico para balon (Kalman separado)</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Calcular posesion algoritmica (proximidad balon-jugador)</td>
+<td>1 semana</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Detectar eventos automaticos: pases, disparos, centros</td>
+<td>3 semanas</td>
+<td>Muy Alto</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Implementar xG basico por zona de disparo</td>
+<td>1 semana</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Migrar VAEP de heuristico a modelo basado en xG</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+</tbody></table>
+<p><strong>Resultado:</strong> VITAS pasaria de 3/10 a 7/10 en metricas tecnicas.</p>
+<h3>5.2 Precision de Tracking Fisico</h3>
+<p><strong>Problema:</strong> YOLO tracking tiene +-2-5% de error vs +-0.3% de GPS dedicado.</p>
+<p><strong>Competidores superiores:</strong> Catapult (10), STATSports (10), SkillCorner (7)</p>
+<p><strong>Plan de accion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Accion</th>
+<th>Esfuerzo</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Crear &quot;VITAS Load&quot; (equivalente PlayerLoad) desde aceleracion 2D</td>
+<td>1 semana</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Estimar Metabolic Power desde velocidad + aceleracion</td>
+<td>1 semana</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Agregar asimetria de movimiento desde pose keypoints</td>
+<td>2 semanas</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>4</td>
+<td>API de importacion de datos GPS (Catapult CSV, STATSports)</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Fusion de datos: YOLO tracking + GPS importado</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+</tbody></table>
+<p><strong>Resultado:</strong> VITAS pasaria de 5/10 a 7/10 en metricas fisicas.</p>
+<h3>5.3 Metricas Tacticas Algoritmicas</h3>
+<p><strong>Problema:</strong> La mayoria de metricas tacticas dependen de Gemini (cualitativo, no reproducible).</p>
+<p><strong>Competidores superiores:</strong> SkillCorner (8), StatsBomb (8), Metrica (7)</p>
+<p><strong>Plan de accion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Accion</th>
+<th>Esfuerzo</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Calcular PPDA si hay ball tracking + team tracking</td>
+<td>1 semana</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Calcular Defensive Line Height (centroide Y de defensores)</td>
+<td>3 dias</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Calcular Compactness (std deviation de posiciones)</td>
+<td>3 dias</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Implementar Pitch Control simplificado (Voronoi + velocidad)</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Detectar Off-Ball Runs (velocidad + direccion hacia zonas libres)</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+</tbody></table>
+<p><strong>Resultado:</strong> VITAS pasaria de 5/10 a 7/10 en metricas tacticas.</p>
+<h3>5.4 Base de Datos de Scouting</h3>
+<p><strong>Problema:</strong> 290 jugadores EA FC25 vs 600K+ de Wyscout.</p>
+<p><strong>Plan de accion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Paso</th>
+<th>Accion</th>
+<th>Esfuerzo</th>
+<th>Impacto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Expandir a 1000+ pros con datos de FBref (gratis)</td>
+<td>1 semana</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Agregar jugadores sub-21 de ligas juveniles</td>
+<td>2 semanas</td>
+<td>Alto</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Crear scraper para actualizar metricas automaticamente</td>
+<td>2 semanas</td>
+<td>Medio</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Integrar StatsBomb open data (gratis, 200+ partidos)</td>
+<td>1 semana</td>
+<td>Medio</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Donde VITAS esta Bien — Como Mejorar</h2>
+<h3>6.1 Video IA (actualmente 8/10)</h3>
+<p><strong>Para llegar a 10/10:</strong></p>
+<ul>
+<li>Agregar Smart Tagging automatico (contraataques, build-ups, transiciones)</li>
+<li>Reducir latencia del pipeline (actualmente 30-60s por analisis)</li>
+<li>Agregar analisis comparativo entre reportes del mismo jugador (evolucion en video)</li>
+<li>Permitir upload de video de 90 minutos completo (actualmente optimizado para clips)</li>
+</ul>
+<h3>6.2 Indices Compuestos (actualmente 8/10)</h3>
+<p><strong>Para llegar a 10/10:</strong></p>
+<ul>
+<li>Pesos VSI dinamicos por posicion</li>
+<li>Factor de nivel de rival/liga</li>
+<li>VSI Bayesiano que se actualice partido a partido</li>
+<li>Validacion externa con datos de transferencias reales</li>
+<li>Publicar paper academico sobre VSI para credibilidad</li>
+</ul>
+<h3>6.3 Youth Focus (actualmente 9/10)</h3>
+<p><strong>Para llegar a 10/10:</strong></p>
+<ul>
+<li>Agregar evaluacion de drills estructurados (como AiSCOUT)</li>
+<li>Crear programa de certificacion para academias (&quot;VITAS Certified Academy&quot;)</li>
+<li>Dashboard para padres (version simplificada del perfil del jugador)</li>
+<li>Benchmark por liga/region (no solo interno)</li>
+</ul>
+<h3>6.4 Accesibilidad (actualmente 9/10)</h3>
+<p><strong>Para llegar a 10/10:</strong></p>
+<ul>
+<li>App nativa (React Native) para mejor experiencia mobile</li>
+<li>Modo offline completo para zonas sin internet constante</li>
+<li>Soporte multiidioma (portugues, ingles, frances)</li>
+<li>Version lite para smartphones de gama baja</li>
+</ul>
+<hr>
+<h2>7. Donde VITAS es Unico — Como Defender</h2>
+<h3>7.1 PHV + TruthFilter (Monopolio actual)</h3>
+<p><strong>Riesgo:</strong> Metrica Sports o SciSports podrian implementar PHV en 6-12 meses si lo ven como oportunidad.</p>
+<p><strong>Defensa:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Accion</th>
+<th>Plazo</th>
+<th>Efecto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Publicar whitepaper cientifico</td>
+<td>2 meses</td>
+<td>Establece autoridad academica</td>
+</tr>
+<tr>
+<td>Patentar TruthFilter como metodo</td>
+<td>3 meses</td>
+<td>Proteccion legal</td>
+</tr>
+<tr>
+<td>Alianza con universidad de deportes</td>
+<td>1 mes</td>
+<td>Validacion cientifica</td>
+</tr>
+<tr>
+<td>Dataset publico PHV-rendimiento</td>
+<td>3 meses</td>
+<td>Comunidad dependiente de VITAS</td>
+</tr>
+<tr>
+<td>Presentacion en congreso FIFA/UEFA</td>
+<td>6 meses</td>
+<td>Reconocimiento institucional</td>
+</tr>
+<tr>
+<td>Agregar %PAH como segundo metodo</td>
+<td>1 mes</td>
+<td>Mas precision, mas profundidad</td>
+</tr>
+</tbody></table>
+<h3>7.2 UBI (Sin competencia)</h3>
+<p>Ningun competidor tiene un indice que combine RAE + PHV. Este es el moat mas defensible.</p>
+<p><strong>Para profundizar:</strong></p>
+<ul>
+<li>Agregar componente de &quot;nivel de competicion&quot; al UBI</li>
+<li>Agregar componente de &quot;lateralidad&quot; (zurdo subestimado en ciertos sistemas)</li>
+<li>Publicar UBI como open-source para que investigadores lo citen</li>
+</ul>
+<h3>7.3 Voronoi Territorial (Diferenciador visual)</h3>
+<p>Metrica tiene algo similar pero no lo llama Voronoi ni lo presenta como control territorial individual.</p>
+<p><strong>Para profundizar:</strong></p>
+<ul>
+<li>Agregar metricas derivadas: &quot;espacio creado por minuto&quot;, &quot;reaccion a perdida de espacio&quot;</li>
+<li>Crear &quot;Space Control Index&quot; como metrica exportable</li>
+<li>Comparar Voronoi de jugador vs posicion ideal</li>
+</ul>
+<h3>7.4 Transparencia (Score de confianza + Sample Tier)</h3>
+<p>Ningun competidor expone confianza per metrica ni calidad de muestra.</p>
+<p><strong>Para profundizar:</strong></p>
+<ul>
+<li>Publicar metodologia de confianza</li>
+<li>Crear &quot;Data Quality Badge&quot; visible en cada reporte</li>
+<li>Ofrecer API de scores con confianza incluida</li>
+</ul>
+<hr>
+<h2>8. Roadmap de Mejora Priorizado</h2>
+<h3>Fase 1: Cerrar Gaps Criticos (0-3 meses)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Accion</th>
+<th>Impacto</th>
+<th>Esfuerzo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Ball tracking con YOLO (clase balon)</td>
+<td>Desbloquea xG, posesion, pases</td>
+<td>3 semanas</td>
+</tr>
+<tr>
+<td>2</td>
+<td>xG basico por zona de disparo</td>
+<td>Metrica fundamental faltante</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Posesion algoritmica</td>
+<td>Metrica basica esperada</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>4</td>
+<td>VAEP basado en xG (no heuristico)</td>
+<td>Credibilidad analitica</td>
+<td>2 semanas</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Pesos VSI dinamicos por posicion</td>
+<td>VSI mas justo</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Whitepaper PHV + TruthFilter</td>
+<td>Proteger ventaja</td>
+<td>4 semanas</td>
+</tr>
+</tbody></table>
+<h3>Fase 2: Mejorar Posicion Competitiva (3-6 meses)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Accion</th>
+<th>Impacto</th>
+<th>Esfuerzo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>7</td>
+<td>VITAS Load (equivalente PlayerLoad)</td>
+<td>Compite con Catapult</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Metabolic Power estimado</td>
+<td>Compite con STATSports</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Smart Tagging automatico</td>
+<td>Compite con Metrica</td>
+<td>3 semanas</td>
+</tr>
+<tr>
+<td>10</td>
+<td>PPDA + Defensive Line Height</td>
+<td>Metricas tacticas basicas</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Factor nivel de rival en VSI</td>
+<td>VSI mas creible</td>
+<td>2 semanas</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Expandir DB a 1000+ pros</td>
+<td>Mejor similarity</td>
+<td>1 semana</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Importacion GPS (Catapult/STATSports CSV)</td>
+<td>Interoperabilidad</td>
+<td>2 semanas</td>
+</tr>
+</tbody></table>
+<h3>Fase 3: Liderazgo (6-12 meses)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Accion</th>
+<th>Impacto</th>
+<th>Esfuerzo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>14</td>
+<td>Pitch Control simplificado</td>
+<td>Metrica elite</td>
+<td>3 semanas</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Off-Ball Run detection</td>
+<td>Tactica avanzada</td>
+<td>3 semanas</td>
+</tr>
+<tr>
+<td>16</td>
+<td>VSI Bayesiano (actualizable por partido)</td>
+<td>Modelo superior</td>
+<td>6 semanas</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Transfer Value Estimation</td>
+<td>Monetizable</td>
+<td>4 semanas</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Integracion Veo (importar video directo)</td>
+<td>Partnership</td>
+<td>4 semanas</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Biomechanics score desde COCO-17</td>
+<td>Compite con AiSCOUT</td>
+<td>4 semanas</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Alianza FIFA/UEFA sobre RAE</td>
+<td>Institucional</td>
+<td>Continuo</td>
+</tr>
+</tbody></table>
+<h3>Impacto Proyectado del Roadmap</h3>
+<table>
+<thead>
+<tr>
+<th>Fase</th>
+<th>Scorecard VITAS</th>
+<th>De</th>
+<th>A</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Actual</td>
+<td>Total</td>
+<td><strong>70/100</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Post Fase 1</td>
+<td>Tecnico 3→6, Indice 8→9</td>
+<td>70</td>
+<td><strong>78</strong></td>
+</tr>
+<tr>
+<td>Post Fase 2</td>
+<td>Fisico 5→7, Tactico 5→7, DB 4→6</td>
+<td>78</td>
+<td><strong>86</strong></td>
+</tr>
+<tr>
+<td>Post Fase 3</td>
+<td>Tactico 7→8, Tecnico 6→8, Video 8→9</td>
+<td>86</td>
+<td><strong>92</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>9. Conclusion</h2>
+<h3>Donde esta VITAS hoy</h3>
+<p>VITAS es la <strong>plataforma mas completa para scouting juvenil</strong> del mercado (70/100 general). Su ventaja en maduracion biologica es un monopolio que ningun competidor puede replicar rapidamente. Pero tiene gaps importantes en ball tracking y precision fisica que la limitan frente a especialistas.</p>
+<h3>Que debe hacer</h3>
+<ol>
+<li><strong>Proteger lo unico:</strong> Publicar, patentar, y crear comunidad alrededor de PHV + TruthFilter + UBI</li>
+<li><strong>Cerrar lo critico:</strong> Ball tracking y xG son metricas que el mercado ESPERA. Sin ellas, VITAS parece incompleta</li>
+<li><strong>No competir donde pierde:</strong> No intentar replicar Catapult (hardware) ni Wyscout (600K DB). Integrar con ellos</li>
+<li><strong>Moverse rapido:</strong> Metrica Sports es el competidor mas peligroso. Si agrega PHV, VITAS pierde su moat</li>
+</ol>
+<h3>El estado ideal</h3>
+<p>Con las 3 fases del roadmap completadas, VITAS seria una plataforma 92/100 que:</p>
+<ul>
+<li>Tiene las metricas fundamentales (xG, posesion, VAEP)</li>
+<li>Mantiene el monopolio en maduracion biologica</li>
+<li>Ofrece tracking fisico competitivo sin hardware</li>
+<li>Genera reportes de IA superiores a cualquier competidor</li>
+<li>Es accesible para cualquier academia del mundo</li>
+</ul>
+<p><strong>VITAS no necesita ser la mejor en todo. Necesita ser la unica que lo tiene TODO para juventud.</strong></p>
+<hr>
+<blockquote>
+<p>Fuentes: StatsBomb, Wyscout, Opta/Stats Perform, Metrica Sports, SciSports, Catapult, STATSports, PlayerMaker, SkillCorner, AiSCOUT, Veo, Nacsport, Hudl, Hylyght, Kitman Labs, KU Leuven (VAEP), FIFA RAE Research, Fortune BI, Markets &amp; Markets.</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

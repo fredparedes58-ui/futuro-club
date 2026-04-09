@@ -229,6 +229,15 @@ export const VideoIntelligenceOutputSchema = z.object({
     ajusteVSIVideoScore: z.number().min(-15).max(15), // delta sugerido al VSI existente
   }),
 
+  // Sección 1.5: Evaluación Psicológica (opcional — depende del video)
+  evaluacionPsicologica: z.object({
+    resiliencia:        z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
+    comunicacion:       z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
+    toleranciaRiesgo:   z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
+    hambreCompetitiva:  z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
+    lenguajeCorporal:   z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
+  }).optional(),
+
   // Sección 2: ADN Futbolístico
   adnFutbolistico: z.object({
     estiloJuego:       z.string().max(200),

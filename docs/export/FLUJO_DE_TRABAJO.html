@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — Flujo de Trabajo — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · Flujo de Trabajo</h1>
+<blockquote>
+<p>Documento que describe todos los flujos de usuario en la plataforma VITAS.
+Ultima actualizacion: Abril 2026</p>
+</blockquote>
+<hr>
+<h2>Indice</h2>
+<ol>
+<li><a href="#1-onboarding-y-autenticacion">Onboarding y Autenticacion</a></li>
+<li><a href="#2-gestion-de-jugadores">Gestion de Jugadores</a></li>
+<li><a href="#3-pipeline-de-video-analysis-vitaslab">Pipeline de Video Analysis (VitasLab)</a></li>
+<li><a href="#4-tracking-en-tiempo-real-yolo">Tracking en Tiempo Real (YOLO)</a></li>
+<li><a href="#5-reporte-de-inteligencia-claude-ai">Reporte de Inteligencia (Claude AI)</a></li>
+<li><a href="#6-comparacion-con-profesionales">Comparacion con Profesionales</a></li>
+<li><a href="#7-perfil-de-rol-tactico">Perfil de Rol Tactico</a></li>
+<li><a href="#8-registro-de-eventos-de-partido">Registro de Eventos de Partido</a></li>
+<li><a href="#9-dashboard-y-monitoreo">Dashboard y Monitoreo</a></li>
+<li><a href="#10-master-dashboard-academia">Master Dashboard (Academia)</a></li>
+<li><a href="#11-director-dashboard">Director Dashboard</a></li>
+<li><a href="#12-billing-y-suscripciones">Billing y Suscripciones</a></li>
+<li><a href="#13-notificaciones-push">Notificaciones Push</a></li>
+<li><a href="#14-knowledge-base-rag">Knowledge Base (RAG)</a></li>
+<li><a href="#15-sincronizacion-y-offline">Sincronizacion y Offline</a></li>
+<li><a href="#16-exportacion-pdf">Exportacion PDF</a></li>
+</ol>
+<hr>
+<h2>1. Onboarding y Autenticacion</h2>
+<pre><code>[Usuario nuevo] --&gt; /register
+     |
+     v
+  Email + Password --&gt; Supabase Auth
+     |
+     v
+  Trigger: handle_new_user() --&gt; Crea perfil en tabla `profiles`
+     |
+     v
+  /onboarding --&gt; Nombre academia, rol (scout/entrenador/director)
+     |
+     v
+  /pulse (Dashboard principal)
+</code></pre>
+<p><strong>Login posterior:</strong></p>
+<pre><code>/login --&gt; Supabase Auth
+  |
+  v
+  Session activa --&gt; syncFromSupabase()
+  |                  (descarga jugadores, videos, suscripcion)
+  v
+  /pulse
+</code></pre>
+<p><strong>Modo Offline (sin Supabase configurado):</strong></p>
+<pre><code>App inicia --&gt; detecta VITE_SUPABASE_URL ausente
+  |
+  v
+  Modo demo: usuario simulado, datos en localStorage
+</code></pre>
+<hr>
+<h2>2. Gestion de Jugadores</h2>
+<h3>Crear jugador</h3>
+<pre><code>/players/new --&gt; Formulario:
+  - Nombre, edad, posicion, pie dominante
+  - Altura, peso, numero de camiseta
+  - Color de equipo, nivel competitivo
+  - 6 metricas (speed, technique, vision, stamina, shooting, defending)
+     |
+     v
+  playerService.create() --&gt; localStorage
+     |
+     v
+  VSI calculado automaticamente (formula ponderada)
+     |
+     v
+  syncQueue.enqueue() --&gt; Push a Supabase (si online)
+</code></pre>
+<h3>Ver perfil</h3>
+<pre><code>/player/:id --&gt; PlayerProfile.tsx
+  |
+  +--&gt; VSI Gauge (score circular)
+  +--&gt; Radar Chart (6 metricas)
+  +--&gt; Banner PHV (si calculado)
+  +--&gt; Metricas Detalladas (barras)
+  +--&gt; VSI History Chart (evolucion temporal)
+  +--&gt; Analisis Avanzado:
+  |    +--&gt; TruthFilter (VSI ajustado)
+  |    +--&gt; UBI (indice de sesgo)
+  |    +--&gt; Dominant Features (estilo de juego)
+  |    +--&gt; VAEP (valor por evento)
+  +--&gt; Videos vinculados (grid)
+  +--&gt; Link: Perfil de Rol Tactico
+  +--&gt; Link: VITAS Intelligence
+  +--&gt; Acciones: Editar | PDF | Eliminar
+</code></pre>
+<h3>Calcular PHV</h3>
+<pre><code>PlayerProfile --&gt; Click &quot;Calcular PHV&quot;
+  |
+  v
+  POST /api/agents/phv-calculator
+  {playerId, age, height, weight, gender}
+     |
+     v
+  Formula Mirwald --&gt; phvCategory + phvOffset
+     |
+     v
+  Player actualizado --&gt; VSI recalculado con ajuste PHV
+  Notificacion: &quot;PHV calculado: Tardio (offset +1.2)&quot;
+</code></pre>
+<hr>
+<h2>3. Pipeline de Video Analysis (VitasLab)</h2>
+<pre><code>/lab --&gt; VitasLab.tsx
+
+PASO 1: SUBIR VIDEO
+  |
+  +--&gt; VideoUpload component
+  |    |
+  |    v
+  |    POST /api/upload/video-init --&gt; Bunny Stream
+  |    Returns: {uploadUrl, videoId, accessKey}
+  |    |
+  |    v
+  |    PUT directo a Bunny CDN (XHR con progress %)
+  |    |
+  |    v
+  |    Poll /api/videos/:id/status cada 5s
+  |    Espera: encodeProgress = 100%
+  |    |
+  |    v
+  |    Video &quot;ready&quot; en galeria
+
+PASO 2: SELECCIONAR VIDEO + JUGADOR
+  |
+  +--&gt; Elegir video de galeria (o subir nuevo)
+  +--&gt; Elegir jugador del dropdown
+  +--&gt; Elegir modo de analisis:
+  |    - &quot;all&quot;: Todos los jugadores
+  |    - &quot;click&quot;: Click para seleccionar
+  |    - &quot;team&quot;: Comparacion de equipos
+  |    - &quot;player&quot;: Jugador especifico (camiseta + posicion)
+  |
+  v
+  Video se vincula al jugador: VideoService.save({...video, playerId})
+
+PASO 3: CALIBRACION (Opcional)
+  |
+  +--&gt; Preset de perspectiva:
+  |    - Vista Lateral
+  |    - Vista Aerea
+  |    - Vista Tribuna
+  |    (o manual: click 4 esquinas del campo)
+  |
+  v
+  computeHomography(4 puntos) --&gt; Matriz H 3x3
+  Transforma: pixel (x,y) --&gt; campo (metros)
+
+PASO 4: TRACKING YOLO (Opcional)
+  |
+  +--&gt; Boton &quot;Iniciar Tracking&quot;
+  |    |
+  |    v
+  |    trackingWorker.ts (Web Worker)
+  |    YOLO v8/v11 ONNX en navegador
+  |    |
+  |    v
+  |    Frame-by-frame (25 FPS):
+  |    Deteccion --&gt; Tracker (Kalman) --&gt; Pose Analysis
+  |    |
+  |    v
+  |    PhysicalMetrics generadas:
+  |    maxSpeed, distance, sprints, scans, duels
+  |    |
+  |    v
+  |    TrackingMetricsPanel (tiempo real)
+  |    + PlayerHeatmap
+  |    + VoronoiOverlay (si &gt;=3 tracks + toggle ON)
+
+PASO 5: ANALISIS IA
+  |
+  +--&gt; Boton &quot;Iniciar Analisis&quot;
+  |    |
+  |    v
+  |    Extrae 8 keyframes del video
+  |    |
+  |    v
+  |    (Opcional) POST /api/agents/video-observation (Gemini)
+  |    Observaciones detalladas + event counts
+  |    |
+  |    v
+  |    POST /api/agents/video-intelligence (Claude Sonnet)
+  |    {playerContext, keyframes, metrics, similarity, gemini}
+  |    |
+  |    v
+  |    SSE Stream:
+  |    [progress 10%] --&gt; [progress 40%] --&gt; [progress 80%] --&gt; [complete]
+  |    |
+  |    v
+  |    Reporte renderizado:
+  |    - Estado Actual (6 dimensiones)
+  |    - ADN Futbolistico
+  |    - Jugador Referencia (pro similar)
+  |    - Proyeccion de Carrera (3 escenarios)
+  |    - Plan de Desarrollo (6/18 meses + pilares)
+  |    - Ejercicios Recomendados (RAG)
+  |    - Riesgos Identificados
+  |    |
+  |    v
+  |    Guardado: Supabase player_analyses + localStorage
+</code></pre>
+<hr>
+<h2>4. Tracking en Tiempo Real (YOLO)</h2>
+<pre><code>Video reproduciendose en VitasLab
+  |
+  v
+  FrameExtractor: captura frames a 8 FPS
+  |
+  v
+  trackingWorker (Web Worker):
+  +--&gt; ONNX Runtime: YOLOv8n-pose inference
+  |    Input: frame 640x640
+  |    Output: [bbox, confidence, 17 keypoints] por deteccion
+  |
+  +--&gt; Tracker (Hungarian Algorithm):
+  |    Asigna IDs persistentes a detecciones
+  |    Kalman filter para suavizar trayectorias
+  |
+  +--&gt; Homography Transform:
+  |    pixel (x,y) --&gt; campo (fx, fy) en metros
+  |
+  +--&gt; PoseAnalyzer:
+  |    +--&gt; Scan Events (rotacion cabeza)
+  |    +--&gt; Duel Detection (proximidad entre jugadores)
+  |
+  +--&gt; VoronoiCompute:
+  |    d3-delaunay --&gt; poligonos por jugador
+  |    Area m2 por zona
+  |
+  v
+  UI actualizada por frame:
+  +--&gt; TrackingMetricsPanel: velocidad, distancia, sprints
+  +--&gt; PlayerHeatmap: mapa de calor del campo
+  +--&gt; VoronoiOverlay: poligonos de control territorial
+</code></pre>
+<hr>
+<h2>5. Reporte de Inteligencia (Claude AI)</h2>
+<pre><code>POST /api/agents/video-intelligence
+  |
+  v
+  Construir prompt:
+  +--&gt; Context del jugador (nombre, edad, VSI, PHV, posicion)
+  +--&gt; 8 keyframes en base64 (o URLs de Bunny)
+  +--&gt; Metricas fisicas YOLO (si disponibles)
+  +--&gt; Matches de similitud (pro player comparisons)
+  +--&gt; Observaciones Gemini (si disponibles)
+  +--&gt; Instrucciones de formato JSON
+  |
+  v
+  Claude Sonnet (vision):
+  POST https://api.anthropic.com/v1/messages
+  model: claude-3-5-sonnet-20241022
+  max_tokens: 4096
+  |
+  v
+  SSE Stream al cliente:
+  event: progress (10%, 30%, 60%, 80%)
+  event: complete (JSON del reporte)
+  event: error (si falla)
+  |
+  v
+  Output: VideoIntelligenceOutput
+  +--&gt; estadoActual (6 dimensiones con score + observacion)
+  +--&gt; adnFutbolistico (ADN descriptivo + caracteristicas)
+  +--&gt; jugadorReferencia (nombre pro + club + posicion)
+  +--&gt; proyeccionCarrera (optimista/realista/pesimista)
+  +--&gt; planDesarrollo (objetivos 6m/18m + pilares + acciones)
+  +--&gt; recomendaciones (para entrenador + padres)
+</code></pre>
+<hr>
+<h2>6. Comparacion con Profesionales</h2>
+<pre><code>Analisis de Similarity (automatico durante intelligence pipeline):
+  |
+  v
+  Seleccionar metricas del jugador juvenil:
+  [speed, technique, vision, stamina, shooting, defending]
+  |
+  v
+  Mapear a vector EA FC25:
+  [pace, dribbling, passing, physic, shooting, defending]
+  |
+  v
+  Para cada uno de 290+ pros:
+  +--&gt; Mode 1 (Age-Adjusted): de-envejecer pro a edad del juvenil
+  |    usando curvas de desarrollo
+  +--&gt; Cosine Similarity del vector 6D
+  +--&gt; Bonus/penalizacion por posicion (+5% / -15%)
+  |
+  v
+  Ranking: Top 5 matches
+  +--&gt; bestMatch (similitud mas alta)
+  +--&gt; avgScore (promedio top 5)
+  +--&gt; dominantGroup (posicion mas comun)
+  |
+  v
+  Clasificacion:
+  92+ = &quot;Clon&quot; | 85+ = &quot;Muy similar&quot; | 75+ = &quot;Similar&quot; | 60+ = &quot;Referencia&quot;
+
+  Herramienta de comparacion manual:
+  /compare --&gt; PlayerComparison.tsx
+  +--&gt; Seleccionar 2-4 jugadores
+  +--&gt; Vista lado a lado: Radar, VSI, metricas, percentiles
+</code></pre>
+<hr>
+<h2>7. Perfil de Rol Tactico</h2>
+<pre><code>/players/:id/role-profile --&gt; RoleProfile.tsx
+  |
+  v
+  POST /api/agents/role-profile
+  {playerData, metrics, phv, matchEvents}
+  |
+  v
+  Claude AI genera perfil:
+  +--&gt; Identidad dominante (ofensivo/defensivo/tecnico/fisico/mixto)
+  +--&gt; Top 5 posiciones (GK, RB, CB, LB, DM, CM, AM, RW, LW, ST)
+  |    Cada una: probabilidad, score, confianza
+  +--&gt; Top 5 arquetipos (20 posibles)
+  |    Cada uno: score, confianza, estabilidad
+  +--&gt; 3 capacidades (tactical/technical/physical)
+  |    Con proyecciones: actual, +6m, +18m, +36m
+  +--&gt; Fortalezas y riesgos
+  |
+  v
+  Render en UI:
+  +--&gt; Card principal con identidad + arquetipos
+  +--&gt; Radar de posiciones
+  +--&gt; Barras de capacidades con timeline
+  +--&gt; Sample Tier (Bronze/Silver/Gold/Platinum)
+
+  Sub-flujos:
+  /role-profile/compare --&gt; Comparar perfiles de rol entre jugadores
+  /role-profile/audit --&gt; Historial de cambios en el perfil
+</code></pre>
+<hr>
+<h2>8. Registro de Eventos de Partido</h2>
+<pre><code>PlayerProfile --&gt; Seccion VAEP --&gt; Boton &quot;LOG&quot;
+  |
+  v
+  Sheet (bottom drawer):
+  +--&gt; Tipo de accion: pass|shot|dribble|tackle|press|cross|header
+  +--&gt; Resultado: success | fail
+  +--&gt; Minuto: 1-120
+  +--&gt; Zona: offensive | middle | defensive
+  |
+  v
+  matchEventsService.create() --&gt; localStorage
+  |
+  v
+  VAEP recalculado automaticamente:
+  VAEPService.calculateFromEvents(events, minutesPlayed)
+  |
+  v
+  UI actualizada:
+  +--&gt; VAEP Total (xG acumulado)
+  +--&gt; VAEP/90 (normalizado)
+  +--&gt; Top 5 acciones (mayor impacto)
+  +--&gt; Contador de eventos
+</code></pre>
+<hr>
+<h2>9. Dashboard y Monitoreo</h2>
+<pre><code>/pulse --&gt; Dashboard.tsx
+
+Secciones:
++--&gt; Stats Cards (4):
+|    - Jugadores Activos (total en academia)
+|    - Drills Completados (historico)
+|    - VSI Promedio (indice academia)
+|    - Talentos Ocultos (PHV tardio + VSI &lt; 65)
+|
++--&gt; Quick Access (4 botones):
+|    - Master Dashboard
+|    - VITAS.LAB
+|    - Comparison Tool
+|    - Director / Settings
+|
++--&gt; Partidos (LiveMatchCard):
+|    Datos locales de matches programados
+|
++--&gt; Fixtures en Vivo (LiveFixtures):
+|    Football-Data.org API
+|    Auto-refresh cada 60s si hay partidos en juego
+|
++--&gt; Talentos en Tendencia:
+     Top jugadores con tendencia &quot;up&quot;
+     Boton: Agregar nuevo jugador
+</code></pre>
+<hr>
+<h2>10. Master Dashboard (Academia)</h2>
+<pre><code>/master --&gt; MasterDashboard.tsx
+
++--&gt; Busqueda de jugadores (nombre, posicion)
++--&gt; Filtros: VSI tier, PHV category, academia
++--&gt; Tabla de jugadores:
+|    - Nombre, posicion, edad
+|    - VSI actual + tendencia
+|    - Badge de sesgo:
+|      LOW (verde): madurador tardio, subestimado
+|      MED (amarillo): factores mixtos
+|      HIGH (rojo): madurador precoz, posible sobreestimacion
+|
++--&gt; Quick stats:
+|    - Total jugadores
+|    - VSI promedio academia
+|    - Talentos ocultos detectados
+|
++--&gt; Click en jugador --&gt; /player/:id
+</code></pre>
+<hr>
+<h2>11. Director Dashboard</h2>
+<pre><code>/director --&gt; DirectorDashboard.tsx (solo plan Club)
+
++--&gt; Uso mensual:
+|    - Analisis usados / limite del plan
+|    - Jugadores agregados / limite
+|    - Horas de video subidas
+|
++--&gt; Jugadores mas activos (este mes)
+|
++--&gt; Alertas:
+|    - Uso alto (cerca del limite)
+|    - Rendimiento bajo (VSI &lt; 50)
+|
++--&gt; Detalles del plan:
+     Plan actual, fecha renovacion, upgrade
+</code></pre>
+<hr>
+<h2>12. Billing y Suscripciones</h2>
+<pre><code>/billing --&gt; BillingPage.tsx
+
+Planes:
++--&gt; Free: 5 jugadores, 3 analisis/mes
++--&gt; Pro ($19/mes): 25 jugadores, 20 analisis, VAEP, PDF, Push
++--&gt; Club ($79/mes): Ilimitado, roles, director dashboard
+
+Flujo de compra:
+  Click &quot;Suscribir&quot; --&gt;
+  POST /api/stripe/checkout {priceId, email}
+  |
+  v
+  Redirect a Stripe Checkout UI
+  |
+  v
+  Usuario paga --&gt;
+  Stripe webhook: POST /api/stripe/webhook
+  |
+  v
+  Actualiza tabla `subscriptions` en Supabase
+  |
+  v
+  syncFromSupabase() --&gt; Plan actualizado en app
+
+Portal de gestion:
+  Click &quot;Gestionar suscripcion&quot; --&gt;
+  GET /api/stripe/portal --&gt;
+  Redirect a Stripe Customer Portal
+</code></pre>
+<hr>
+<h2>13. Notificaciones Push</h2>
+<pre><code>/settings --&gt; Toggle &quot;Notificaciones Push&quot; ON
+  |
+  v
+  PushNotificationService.requestPermission()
+  |
+  v
+  (Si concedido) PushNotificationService.subscribe()
+  POST /api/notifications/subscribe
+  {endpoint, keys.p256dh, keys.auth}
+  |
+  v
+  Guardado en tabla push_subscriptions
+
+  Preferencias granulares:
+  +--&gt; Alerta de rendimiento bajo (VSI &lt; 50)
+  +--&gt; Recordatorio de inactividad (30+ dias sin actualizar)
+  +--&gt; Alerta de limite de plan
+  +--&gt; Analisis completado
+
+  Cron diario (09:00 UTC):
+  Vercel Cron --&gt; GET /api/notifications/cron
+  |
+  v
+  Para cada usuario suscrito:
+  +--&gt; Check VSI &lt; 50 en jugadores --&gt; enviar push
+  +--&gt; Check inactividad &gt; 30 dias --&gt; enviar push
+  +--&gt; Check uso &gt;= 90% del plan --&gt; enviar push
+</code></pre>
+<hr>
+<h2>14. Knowledge Base (RAG)</h2>
+<pre><code>Busqueda (en reporte VitasLab o standalone):
+  |
+  v
+  KnowledgeSearch component
+  Input: &quot;ejercicios de pase&quot;
+  |
+  v
+  POST /api/rag/query
+  {query, category?, limit}
+  |
+  v
+  Server:
+  1. Genera embedding del query (Voyage AI / Gemini)
+  2. match_knowledge(embedding, threshold=0.6, limit=5) [vector search]
+  3. Fallback: search_knowledge_text(query) [FTS espanol]
+  |
+  v
+  Resultados:
+  [{ content, category, similarity, metadata }]
+
+  Ingesta:
+  POST /api/rag/ingest {content, category, metadata}
+  POST /api/rag/seed --&gt; Carga 32 drills iniciales
+
+  Uso en pipeline:
+  VitasLab reporte --&gt; seccion &quot;Ejercicios Recomendados&quot;
+  Query automatico basado en areas de desarrollo del jugador
+</code></pre>
+<hr>
+<h2>15. Sincronizacion y Offline</h2>
+<pre><code>App inicia (online):
+  |
+  v
+  useSupabaseSync():
+  1. Pull delta: registros con updated_at &gt; last_synced_at
+  2. Actualizar localStorage
+  3. Registrar last_synced_at
+
+  Mutacion (crear/editar jugador):
+  |
+  +--&gt; (Online) --&gt; Push directo a Supabase
+  |
+  +--&gt; (Offline) --&gt; syncQueueService.enqueue()
+       {action, entity, entityId, data, timestamp}
+       |
+       v
+       Almacenado en localStorage (persiste tras refresh)
+
+  Reconexion:
+  navigator.onLine event --&gt;
+  processQueue() (FIFO):
+  |
+  v
+  Para cada item en cola:
+  +--&gt; Push a Supabase
+  +--&gt; Si exito: dequeue()
+  +--&gt; Si fallo: retries++ (max 5, luego pruning)
+
+  Conflictos:
+  Resolucion: Last-Write-Wins
+  Compara updated_at local vs remoto
+  El mas reciente prevalece
+
+  Indicador UI:
+  +--&gt; Synced (check verde)
+  +--&gt; Syncing (spinner)
+  +--&gt; N cambios pendientes (badge)
+  +--&gt; Offline (icono rojo)
+</code></pre>
+<hr>
+<h2>16. Exportacion PDF</h2>
+<pre><code>PlayerProfile --&gt; Boton &quot;Exportar PDF&quot;
+  |
+  v
+  PDFService.exportPlayerReport(playerId)
+  |
+  v
+  Navega a /report/:id (PlayerReportPrint.tsx)
+  |
+  v
+  Renderiza version print-friendly:
+  +--&gt; Header con logo VITAS
+  +--&gt; Datos del jugador
+  +--&gt; Radar chart
+  +--&gt; VSI + PHV + TruthFilter
+  +--&gt; Metricas detalladas
+  |
+  v
+  html2canvas --&gt; Captura DOM como imagen
+  |
+  v
+  Descarga como PDF (o Ctrl+P nativo)
+
+  Reporte de analisis:
+  /analysis-report/:id --&gt; AnalysisReportPrint.tsx
+  +--&gt; 6 dimensiones
+  +--&gt; Pro player comparison
+  +--&gt; Proyeccion de carrera
+  +--&gt; Plan de desarrollo
+</code></pre>
+<hr>
+<h2>Diagrama de Arquitectura General</h2>
+<pre><code>                    +------------------+
+                    |    Usuario PWA   |
+                    +--------+---------+
+                             |
+                    +--------v---------+
+                    |   React 18 + Vite |
+                    |   (Puerto 5200)   |
+                    +--------+---------+
+                             |
+              +--------------+--------------+
+              |              |              |
+     +--------v---+  +-------v------+ +----v-------+
+     | localStorage|  | Supabase    | | Vercel API |
+     | (offline)   |  | (PostgreSQL) | | (Edge/Node)|
+     +-------------+  | + Auth + RLS| +----+-------+
+                       +-------------+      |
+                                    +-------+--------+
+                                    |       |        |
+                              +-----v+ +---v---+ +--v------+
+                              |Claude | |Gemini | |Bunny CDN|
+                              |Sonnet | |Vision | |Stream   |
+                              +-------+ +-------+ +---------+
+                                    |
+                              +-----v------+
+                              | Stripe     |
+                              | Payments   |
+                              +------------+
+</code></pre>
+<hr>
+<blockquote>
+<p><strong>Nota:</strong> Todos los flujos son offline-first. Si Supabase no esta configurado, la app funciona completa con localStorage. Los datos se sincronizan automaticamente cuando se detecta conexion.</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

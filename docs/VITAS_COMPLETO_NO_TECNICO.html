@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>VITAS Football Intelligence — Documento Completo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --primary: #4F46E5;
+    --primary-light: #818CF8;
+    --primary-dark: #3730A3;
+    --accent: #06B6D4;
+    --success: #22C55E;
+    --warning: #F59E0B;
+    --danger: #EF4444;
+    --gold: #FFD700;
+    --bg: #0F172A;
+    --bg-card: #1E293B;
+    --bg-card2: #334155;
+    --text: #F8FAFC;
+    --text-muted: #94A3B8;
+    --border: #475569;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 30px; }
+
+  /* COVER */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #0F172A 100%);
+    padding: 60px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(79,70,229,0.15) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    border-radius: 50%;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(6,182,212,0.1) 0%, transparent 70%);
+    bottom: -50px; left: -50px;
+    border-radius: 50%;
+  }
+  .cover h1 {
+    font-size: 4em;
+    font-weight: 900;
+    background: linear-gradient(135deg, #818CF8, #06B6D4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .cover .subtitle {
+    font-size: 1.4em;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    position: relative; z-index: 1;
+  }
+  .cover .meta {
+    font-size: 0.9em;
+    color: var(--border);
+    position: relative; z-index: 1;
+  }
+  .cover .badge {
+    display: inline-block;
+    background: var(--primary);
+    color: white;
+    padding: 8px 24px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-top: 20px;
+    position: relative; z-index: 1;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 40px;
+    margin: 40px 0;
+    border: 1px solid var(--border);
+  }
+  .toc h2 { color: var(--primary-light); margin-bottom: 24px; font-size: 1.6em; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .toc-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-radius: 8px;
+    border-left: 3px solid var(--primary);
+    font-size: 0.95em;
+  }
+  .toc-num {
+    background: var(--primary);
+    color: white;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8em; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* SECTIONS */
+  .section {
+    margin: 60px 0;
+    page-break-inside: avoid;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 30px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--primary);
+  }
+  .section-num {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4em; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .section-header h2 { font-size: 1.8em; font-weight: 700; }
+
+  h3 {
+    color: var(--primary-light);
+    font-size: 1.2em;
+    margin: 30px 0 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  h3::before { content: '▸'; color: var(--accent); }
+
+  p { margin-bottom: 14px; color: var(--text-muted); }
+  strong { color: var(--text); }
+
+  /* CARDS */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 20px 0; }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: transform 0.2s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4em;
+    margin-bottom: 12px;
+  }
+  .card h4 { font-size: 1.05em; margin-bottom: 8px; }
+  .card p { font-size: 0.88em; margin: 0; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 12px; overflow: hidden; }
+  th { background: var(--primary-dark); color: white; padding: 12px 16px; text-align: left; font-size: 0.85em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 0.9em; color: var(--text-muted); }
+  tr:nth-child(even) { background: rgba(30,41,59,0.5); }
+  tr:hover td { background: rgba(79,70,229,0.05); }
+
+  /* DIAGRAMS */
+  .diagram {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 30px;
+    margin: 24px 0;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 0.85em;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* FLOW */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .flow-step {
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-card2));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .flow-step .icon { font-size: 1.8em; margin-bottom: 6px; }
+  .flow-step .label { font-size: 0.82em; font-weight: 600; }
+  .flow-step .desc { font-size: 0.72em; color: var(--text-muted); margin-top: 4px; }
+  .flow-arrow { font-size: 1.5em; color: var(--primary-light); padding: 0 8px; }
+
+  /* METRICS VISUAL */
+  .metric-bar {
+    display: flex; align-items: center; gap: 12px; margin: 8px 0;
+  }
+  .metric-label { width: 100px; font-size: 0.85em; font-weight: 600; text-align: right; }
+  .metric-track { flex: 1; height: 24px; background: var(--bg); border-radius: 12px; overflow: hidden; position: relative; }
+  .metric-fill { height: 100%; border-radius: 12px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: 0.7em; font-weight: 700; }
+  .metric-weight { width: 50px; font-size: 0.75em; color: var(--text-muted); }
+
+  /* PLAN CARDS */
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 24px 0; }
+  .plan-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 30px 24px;
+    text-align: center;
+    position: relative;
+  }
+  .plan-card.featured { border-color: var(--primary); }
+  .plan-card.featured::after {
+    content: 'MAS POPULAR';
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--primary); color: white;
+    padding: 4px 16px; border-radius: 12px;
+    font-size: 0.7em; font-weight: 700; letter-spacing: 1px;
+  }
+  .plan-price { font-size: 2.8em; font-weight: 800; margin: 10px 0; }
+  .plan-price span { font-size: 0.35em; color: var(--text-muted); font-weight: 400; }
+  .plan-name { font-size: 1.3em; font-weight: 700; margin-bottom: 6px; }
+  .plan-features { list-style: none; text-align: left; margin-top: 20px; }
+  .plan-features li { padding: 8px 0; font-size: 0.88em; color: var(--text-muted); border-bottom: 1px solid rgba(71,85,105,0.3); display: flex; gap: 8px; }
+
+  /* STAT BOXES */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 20px 0; }
+  .stat-box {
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-card2));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-box .number { font-size: 2.4em; font-weight: 800; background: linear-gradient(135deg, var(--primary-light), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-box .label { font-size: 0.8em; color: var(--text-muted); margin-top: 4px; }
+
+  /* TIMELINE */
+  .timeline { position: relative; margin: 30px 0; padding-left: 40px; }
+  .timeline::before { content: ''; position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: var(--primary); }
+  .timeline-item { position: relative; margin-bottom: 24px; }
+  .timeline-item::before {
+    content: '';
+    position: absolute; left: -33px; top: 6px;
+    width: 14px; height: 14px;
+    background: var(--primary);
+    border-radius: 50%;
+    border: 3px solid var(--bg);
+  }
+  .timeline-item h4 { font-size: 1em; margin-bottom: 4px; }
+  .timeline-item p { font-size: 0.85em; color: var(--text-muted); margin: 0; }
+
+  /* SVG styles */
+  svg text { font-family: 'Inter', sans-serif; }
+
+  .highlight-box {
+    background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(6,182,212,0.1));
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 20px 0;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 20px 0; }
+
+  .check { color: var(--success); }
+  .cross { color: var(--danger); opacity: 0.4; }
+
+  @media print {
+    .cover { min-height: auto; padding: 80px 30px; }
+    .page { padding: 20px; }
+    .section { page-break-inside: avoid; }
+    body { font-size: 12px; }
+  }
+
+  .page-break { page-break-after: always; height: 0; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div style="font-size:5em; margin-bottom:20px;">⚽</div>
+  <h1>VITAS</h1>
+  <div class="subtitle">Football Intelligence Platform</div>
+  <p style="color:var(--text-muted); max-width:600px; margin:0 auto 30px;">
+    Plataforma integral de scouting, análisis de video e inteligencia deportiva potenciada por inteligencia artificial para el fútbol formativo y profesional.
+  </p>
+  <div class="badge">Versión 2.1.0 · Abril 2026</div>
+  <div class="meta" style="margin-top:30px;">Prophet Horizon Technology</div>
+</div>
+
+<!-- ==================== STATS OVERVIEW ==================== -->
+<div class="page">
+
+<div class="stat-grid">
+  <div class="stat-box">
+    <div class="number">8</div>
+    <div class="label">Agentes IA</div>
+  </div>
+  <div class="stat-box">
+    <div class="number">300+</div>
+    <div class="label">Profesionales en DB</div>
+  </div>
+  <div class="stat-box">
+    <div class="number">100+</div>
+    <div class="label">Ejercicios</div>
+  </div>
+  <div class="stat-box">
+    <div class="number">30+</div>
+    <div class="label">Páginas/Vistas</div>
+  </div>
+</div>
+
+<!-- ==================== TABLE OF CONTENTS ==================== -->
+<div class="toc">
+  <h2>Contenido</h2>
+  <div class="toc-grid">
+    <div class="toc-item"><div class="toc-num">1</div> Visión General y Arquitectura</div>
+    <div class="toc-item"><div class="toc-num">2</div> Flujo del Usuario</div>
+    <div class="toc-item"><div class="toc-num">3</div> Área: Evaluación de Jugadores</div>
+    <div class="toc-item"><div class="toc-num">4</div> Área: Análisis de Video + IA</div>
+    <div class="toc-item"><div class="toc-num">5</div> Área: Métricas Físicas y Tracking</div>
+    <div class="toc-item"><div class="toc-num">6</div> Área: Inteligencia Artificial (8 Agentes)</div>
+    <div class="toc-item"><div class="toc-num">7</div> Área: Comparación con Profesionales</div>
+    <div class="toc-item"><div class="toc-num">8</div> Área: Base de Conocimiento (RAG)</div>
+    <div class="toc-item"><div class="toc-num">9</div> Área: Gestión de Equipos</div>
+    <div class="toc-item"><div class="toc-num">10</div> Área: Visualizaciones y Dashboards</div>
+    <div class="toc-item"><div class="toc-num">11</div> Área: Planes y Facturación</div>
+    <div class="toc-item"><div class="toc-num">12</div> Área: Seguridad y Estabilidad</div>
+    <div class="toc-item"><div class="toc-num">13</div> Área: Notificaciones</div>
+    <div class="toc-item"><div class="toc-num">14</div> Mapa Completo de la Plataforma</div>
+    <div class="toc-item"><div class="toc-num">15</div> KPIs, Proyecciones y Métricas Avanzadas</div>
+    <div class="toc-item"><div class="toc-num">16</div> Reporte de Video Intelligence (completo)</div>
+    <div class="toc-item"><div class="toc-num">17</div> Análisis de Equipo (detalle completo)</div>
+    <div class="toc-item"><div class="toc-num">18</div> Perfil de Rol Táctico (20 arquetipos)</div>
+    <div class="toc-item"><div class="toc-num">19</div> Modelos de Detección y Tracking (técnico)</div>
+  </div>
+</div>
+
+<!-- ==================== 1. VISION GENERAL ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2>Visión General y Arquitectura</h2>
+  </div>
+
+  <p>VITAS es una <strong>Progressive Web App (PWA)</strong> que combina ciencia del deporte, inteligencia artificial y análisis de video para transformar el scouting de fútbol. Funciona en cualquier dispositivo sin descargas, con capacidad offline.</p>
+
+  <h3>Mapa Conceptual — Qué hace VITAS</h3>
+  <div class="diagram">
+    <div class="diagram-title">Ecosistema VITAS</div>
+    <svg viewBox="0 0 900 480" style="max-width:100%;">
+      <!-- Center node -->
+      <circle cx="450" cy="240" r="70" fill="#4F46E5" opacity="0.9"/>
+      <text x="450" y="232" text-anchor="middle" fill="white" font-size="18" font-weight="800">VITAS</text>
+      <text x="450" y="254" text-anchor="middle" fill="#C7D2FE" font-size="10">Football Intelligence</text>
+
+      <!-- Nodes -->
+      <!-- Top -->
+      <rect x="355" y="20" width="190" height="56" rx="12" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
+      <text x="450" y="45" text-anchor="middle" fill="#818CF8" font-size="11" font-weight="700">🎥 ANÁLISIS DE VIDEO</text>
+      <text x="450" y="62" text-anchor="middle" fill="#94A3B8" font-size="9">YOLO + Gemini + Claude</text>
+      <line x1="450" y1="76" x2="450" y2="170" stroke="#818CF8" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Top-Right -->
+      <rect x="680" y="70" width="190" height="56" rx="12" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+      <text x="775" y="95" text-anchor="middle" fill="#06B6D4" font-size="11" font-weight="700">🧠 8 AGENTES IA</text>
+      <text x="775" y="112" text-anchor="middle" fill="#94A3B8" font-size="9">Claude + Gemini</text>
+      <line x1="680" y1="98" x2="520" y2="210" stroke="#06B6D4" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Right -->
+      <rect x="680" y="212" width="190" height="56" rx="12" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="775" y="237" text-anchor="middle" fill="#22C55E" font-size="11" font-weight="700">📊 MÉTRICAS + VSI</text>
+      <text x="775" y="254" text-anchor="middle" fill="#94A3B8" font-size="9">6 dimensiones ponderadas</text>
+      <line x1="680" y1="240" x2="520" y2="240" stroke="#22C55E" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Bottom-Right -->
+      <rect x="680" y="350" width="190" height="56" rx="12" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+      <text x="775" y="375" text-anchor="middle" fill="#F59E0B" font-size="11" font-weight="700">🏃 TRACKING FÍSICO</text>
+      <text x="775" y="392" text-anchor="middle" fill="#94A3B8" font-size="9">Velocidad, distancia, sprints</text>
+      <line x1="680" y1="378" x2="520" y2="270" stroke="#F59E0B" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Bottom -->
+      <rect x="355" y="400" width="190" height="56" rx="12" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
+      <text x="450" y="425" text-anchor="middle" fill="#EF4444" font-size="11" font-weight="700">👥 GESTIÓN EQUIPOS</text>
+      <text x="450" y="442" text-anchor="middle" fill="#94A3B8" font-size="9">Roles, invitaciones, director</text>
+      <line x1="450" y1="400" x2="450" y2="310" stroke="#EF4444" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Bottom-Left -->
+      <rect x="30" y="350" width="190" height="56" rx="12" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
+      <text x="125" y="375" text-anchor="middle" fill="#A855F7" font-size="11" font-weight="700">📚 BASE CONOCIMIENTO</text>
+      <text x="125" y="392" text-anchor="middle" fill="#94A3B8" font-size="9">100+ ejercicios + RAG</text>
+      <line x1="220" y1="378" x2="380" y2="270" stroke="#A855F7" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Left -->
+      <rect x="30" y="212" width="190" height="56" rx="12" fill="#1E293B" stroke="#EC4899" stroke-width="2"/>
+      <text x="125" y="237" text-anchor="middle" fill="#EC4899" font-size="11" font-weight="700">⭐ 300+ PROFESIONALES</text>
+      <text x="125" y="254" text-anchor="middle" fill="#94A3B8" font-size="9">Similitud + clon match</text>
+      <line x1="220" y1="240" x2="380" y2="240" stroke="#EC4899" stroke-width="2" stroke-dasharray="4"/>
+
+      <!-- Top-Left -->
+      <rect x="30" y="70" width="190" height="56" rx="12" fill="#1E293B" stroke="#14B8A6" stroke-width="2"/>
+      <text x="125" y="95" text-anchor="middle" fill="#14B8A6" font-size="11" font-weight="700">🔬 PHV + MADURACIÓN</text>
+      <text x="125" y="112" text-anchor="middle" fill="#94A3B8" font-size="9">Ciencia del desarrollo</text>
+      <line x1="220" y1="98" x2="380" y2="210" stroke="#14B8A6" stroke-width="2" stroke-dasharray="4"/>
+    </svg>
+  </div>
+
+  <h3>Arquitectura del Sistema</h3>
+  <div class="diagram">
+    <div class="diagram-title">Arquitectura de 3 Capas</div>
+    <svg viewBox="0 0 860 360" style="max-width:100%;">
+      <!-- Layer 1: Client -->
+      <rect x="20" y="20" width="820" height="90" rx="16" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
+      <text x="40" y="50" fill="#818CF8" font-size="13" font-weight="700">📱 CLIENTE (PWA)</text>
+      <rect x="40" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="90" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">React 18</text>
+      <rect x="150" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="200" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">TypeScript</text>
+      <rect x="260" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="310" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">Tailwind CSS</text>
+      <rect x="370" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="420" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">YOLO v8 (ONNX)</text>
+      <rect x="480" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="530" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">Service Worker</text>
+      <rect x="590" y="60" width="100" height="36" rx="8" fill="#312E81"/><text x="640" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">Recharts + d3</text>
+      <rect x="700" y="60" width="120" height="36" rx="8" fill="#312E81"/><text x="760" y="83" text-anchor="middle" fill="#C7D2FE" font-size="9">localStorage</text>
+
+      <!-- Arrows -->
+      <line x1="430" y1="110" x2="430" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+      <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#475569"/></marker></defs>
+
+      <!-- Layer 2: Server -->
+      <rect x="20" y="140" width="820" height="90" rx="16" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+      <text x="40" y="170" fill="#06B6D4" font-size="13" font-weight="700">⚡ SERVIDOR (Vercel Edge)</text>
+      <rect x="40" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="95" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Claude API</text>
+      <rect x="160" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="215" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Gemini API</text>
+      <rect x="280" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="335" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Stripe API</text>
+      <rect x="400" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="455" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Bunny CDN</text>
+      <rect x="520" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="575" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Roboflow</text>
+      <rect x="640" y="180" width="110" height="36" rx="8" fill="#164E63"/><text x="695" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Football-Data</text>
+      <rect x="760" y="180" width="60" height="36" rx="8" fill="#164E63"/><text x="790" y="203" text-anchor="middle" fill="#67E8F9" font-size="9">Zod</text>
+
+      <!-- Arrows -->
+      <line x1="430" y1="230" x2="430" y2="260" stroke="#475569" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+      <!-- Layer 3: Data -->
+      <rect x="20" y="260" width="820" height="90" rx="16" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="40" y="290" fill="#22C55E" font-size="13" font-weight="700">🗄️ DATOS (Supabase)</text>
+      <rect x="40" y="300" width="130" height="36" rx="8" fill="#14532D"/><text x="105" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">PostgreSQL</text>
+      <rect x="180" y="300" width="130" height="36" rx="8" fill="#14532D"/><text x="245" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">Auth (JWT)</text>
+      <rect x="320" y="300" width="130" height="36" rx="8" fill="#14532D"/><text x="385" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">Storage (Archivos)</text>
+      <rect x="460" y="300" width="130" height="36" rx="8" fill="#14532D"/><text x="525" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">Realtime</text>
+      <rect x="600" y="300" width="130" height="36" rx="8" fill="#14532D"/><text x="665" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">Edge Functions</text>
+      <rect x="740" y="300" width="80" height="36" rx="8" fill="#14532D"/><text x="780" y="323" text-anchor="middle" fill="#86EFAC" font-size="9">RLS</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 2. FLUJO DEL USUARIO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2>Flujo del Usuario</h2>
+  </div>
+
+  <h3>Recorrido Completo del Usuario</h3>
+  <div class="diagram">
+    <div class="diagram-title">Journey del usuario desde registro hasta análisis completo</div>
+    <svg viewBox="0 0 860 520" style="max-width:100%;">
+      <!-- Row 1: Onboarding -->
+      <text x="20" y="30" fill="#818CF8" font-size="11" font-weight="700">ONBOARDING</text>
+
+      <rect x="20" y="40" width="120" height="60" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="80" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="600">📝 Registro</text>
+      <text x="80" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">Email o Google</text>
+
+      <text x="155" y="72" fill="#818CF8" font-size="16">→</text>
+
+      <rect x="175" y="40" width="120" height="60" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="235" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="600">🎯 Onboarding</text>
+      <text x="235" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">Rol + preferencias</text>
+
+      <text x="310" y="72" fill="#818CF8" font-size="16">→</text>
+
+      <rect x="330" y="40" width="120" height="60" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="390" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="600">🏠 Landing</text>
+      <text x="390" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">Módulos disponibles</text>
+
+      <text x="465" y="72" fill="#818CF8" font-size="16">→</text>
+
+      <rect x="485" y="40" width="120" height="60" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="545" y="65" text-anchor="middle" fill="white" font-size="10" font-weight="600">➕ Crear Jugador</text>
+      <text x="545" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">Datos + métricas</text>
+
+      <!-- Row 2: Core Loop -->
+      <text x="20" y="150" fill="#06B6D4" font-size="11" font-weight="700">CICLO PRINCIPAL</text>
+
+      <rect x="20" y="160" width="155" height="70" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="97" y="185" text-anchor="middle" fill="white" font-size="10" font-weight="600">📊 Dashboard Pulse</text>
+      <text x="97" y="200" text-anchor="middle" fill="#94A3B8" font-size="8">Stats, fixtures, trending</text>
+      <text x="97" y="215" text-anchor="middle" fill="#67E8F9" font-size="7">/ pulse</text>
+
+      <text x="190" y="197" fill="#06B6D4" font-size="16">→</text>
+
+      <rect x="210" y="160" width="155" height="70" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="287" y="185" text-anchor="middle" fill="white" font-size="10" font-weight="600">🎥 Subir Video</text>
+      <text x="287" y="200" text-anchor="middle" fill="#94A3B8" font-size="8">Bunny CDN + transcoding</text>
+      <text x="287" y="215" text-anchor="middle" fill="#67E8F9" font-size="7">/ reports</text>
+
+      <text x="380" y="197" fill="#06B6D4" font-size="16">→</text>
+
+      <rect x="400" y="160" width="155" height="70" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="477" y="185" text-anchor="middle" fill="white" font-size="10" font-weight="600">🔬 VITAS Lab</text>
+      <text x="477" y="200" text-anchor="middle" fill="#94A3B8" font-size="8">Tracking + calibración</text>
+      <text x="477" y="215" text-anchor="middle" fill="#67E8F9" font-size="7">/ lab</text>
+
+      <text x="570" y="197" fill="#06B6D4" font-size="16">→</text>
+
+      <rect x="590" y="160" width="155" height="70" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="667" y="185" text-anchor="middle" fill="white" font-size="10" font-weight="600">🤖 Análisis IA</text>
+      <text x="667" y="200" text-anchor="middle" fill="#94A3B8" font-size="8">8 agentes procesan</text>
+      <text x="667" y="215" text-anchor="middle" fill="#67E8F9" font-size="7">Streaming SSE</text>
+
+      <!-- Row 3: Results -->
+      <text x="20" y="280" fill="#22C55E" font-size="11" font-weight="700">RESULTADOS</text>
+
+      <rect x="20" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="82" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">👤 Perfil</text>
+      <text x="82" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">Radar + VSI + PHV</text>
+      <text x="82" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">/ player/:id</text>
+
+      <rect x="155" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="217" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">🧩 Rol Táctico</text>
+      <text x="217" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">Identidad + posición</text>
+      <text x="217" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">/ role-profile</text>
+
+      <rect x="290" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="352" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">⭐ Clon Pro</text>
+      <text x="352" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">5 similares + %</text>
+      <text x="352" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">Similarity agent</text>
+
+      <rect x="425" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="487" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">🏆 Ranking</text>
+      <text x="487" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">Podio + filtros</text>
+      <text x="487" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">/ rankings</text>
+
+      <rect x="560" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="622" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">🔥 Heatmap</text>
+      <text x="622" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">Campo 105×68m</text>
+      <text x="622" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">PlayerHeatmap</text>
+
+      <rect x="695" y="290" width="125" height="70" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="757" y="315" text-anchor="middle" fill="white" font-size="10" font-weight="600">📄 Reporte PDF</text>
+      <text x="757" y="330" text-anchor="middle" fill="#94A3B8" font-size="8">Export + print</text>
+      <text x="757" y="345" text-anchor="middle" fill="#86EFAC" font-size="7">/ report/:id</text>
+
+      <!-- Row 4: Team (Club) -->
+      <text x="20" y="410" fill="#F59E0B" font-size="11" font-weight="700">EQUIPO (Plan Club)</text>
+
+      <rect x="20" y="420" width="155" height="70" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="97" y="445" text-anchor="middle" fill="white" font-size="10" font-weight="600">👥 Gestión Equipo</text>
+      <text x="97" y="460" text-anchor="middle" fill="#94A3B8" font-size="8">Roles + invitaciones</text>
+      <text x="97" y="475" text-anchor="middle" fill="#FCD34D" font-size="7">/ equipo</text>
+
+      <rect x="210" y="420" width="155" height="70" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="287" y="445" text-anchor="middle" fill="white" font-size="10" font-weight="600">📈 Análisis Colectivo</text>
+      <text x="287" y="460" text-anchor="middle" fill="#94A3B8" font-size="8">Formación + posesión</text>
+      <text x="287" y="475" text-anchor="middle" fill="#FCD34D" font-size="7">/ team-analysis</text>
+
+      <rect x="400" y="420" width="155" height="70" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="477" y="445" text-anchor="middle" fill="white" font-size="10" font-weight="600">🎯 Dashboard Director</text>
+      <text x="477" y="460" text-anchor="middle" fill="#94A3B8" font-size="8">Analytics de uso</text>
+      <text x="477" y="475" text-anchor="middle" fill="#FCD34D" font-size="7">/ director</text>
+
+      <rect x="590" y="420" width="155" height="70" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="667" y="445" text-anchor="middle" fill="white" font-size="10" font-weight="600">🧠 Master Dashboard</text>
+      <text x="667" y="460" text-anchor="middle" fill="#94A3B8" font-size="8">Alertas sesgo + tiers</text>
+      <text x="667" y="475" text-anchor="middle" fill="#FCD34D" font-size="7">/ master</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 3. EVALUACION DE JUGADORES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2>Área: Evaluación de Jugadores</h2>
+  </div>
+
+  <p>El corazón de VITAS es la evaluación integral de cada jugador. Cada jugador recibe un perfil completo con métricas, maduración biológica, comparaciones y proyecciones.</p>
+
+  <h3>El VSI — VITAS Scouting Index</h3>
+  <p>Puntaje de 0 a 100 que representa el nivel general del jugador. Se calcula ponderando 6 dimensiones con pesos calibrados según su importancia en el fútbol formativo:</p>
+
+  <div class="diagram">
+    <div class="diagram-title">Composición del VSI (pesos ponderados)</div>
+    <div style="max-width:600px; margin:0 auto;">
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#818CF8;">Técnica</div>
+        <div class="metric-track"><div class="metric-fill" style="width:100%; background: linear-gradient(90deg, #4F46E5, #818CF8);">22%</div></div>
+        <div class="metric-weight">×0.22</div>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#06B6D4;">Visión</div>
+        <div class="metric-track"><div class="metric-fill" style="width:91%; background: linear-gradient(90deg, #0891B2, #06B6D4);">20%</div></div>
+        <div class="metric-weight">×0.20</div>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#22C55E;">Velocidad</div>
+        <div class="metric-track"><div class="metric-fill" style="width:82%; background: linear-gradient(90deg, #16A34A, #22C55E);">18%</div></div>
+        <div class="metric-weight">×0.18</div>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#F59E0B;">Resistencia</div>
+        <div class="metric-track"><div class="metric-fill" style="width:68%; background: linear-gradient(90deg, #D97706, #F59E0B);">15%</div></div>
+        <div class="metric-weight">×0.15</div>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#EF4444;">Disparo</div>
+        <div class="metric-track"><div class="metric-fill" style="width:59%; background: linear-gradient(90deg, #DC2626, #EF4444);">13%</div></div>
+        <div class="metric-weight">×0.13</div>
+      </div>
+      <div class="metric-bar">
+        <div class="metric-label" style="color:#A855F7;">Defensa</div>
+        <div class="metric-track"><div class="metric-fill" style="width:55%; background: linear-gradient(90deg, #9333EA, #A855F7);">12%</div></div>
+        <div class="metric-weight">×0.12</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Clasificación por Nivel</h3>
+  <div class="card-grid">
+    <div class="card" style="border-left: 4px solid #FFD700;">
+      <div class="card-icon" style="background:rgba(255,215,0,0.1);">🏆</div>
+      <h4 style="color:#FFD700;">Elite (80-100)</h4>
+      <p>Jugador de nivel excepcional. Listo para competir en categorías superiores o ser observado por clubes de alto nivel.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #A855F7;">
+      <div class="card-icon" style="background:rgba(168,85,247,0.1);">⭐</div>
+      <h4 style="color:#A855F7;">Alto (65-79)</h4>
+      <p>Por encima del promedio. Muestra fortalezas claras y potencial de crecimiento hacia nivel elite.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #06B6D4;">
+      <div class="card-icon" style="background:rgba(6,182,212,0.1);">📊</div>
+      <h4 style="color:#06B6D4;">Medio (50-64)</h4>
+      <p>Nivel competitivo estándar. Necesita trabajo específico en las dimensiones más débiles.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #F59E0B;">
+      <div class="card-icon" style="background:rgba(245,158,11,0.1);">🌱</div>
+      <h4 style="color:#F59E0B;">En Desarrollo (&lt;50)</h4>
+      <p>Jugador en formación temprana. Las métricas mejorarán con entrenamiento y maduración.</p>
+    </div>
+  </div>
+
+  <h3>Maduración Biológica (PHV)</h3>
+  <div class="highlight-box">
+    <p style="margin:0;"><strong>¿Por qué es importante?</strong> Dos jugadores de la misma edad pueden tener hasta 4 años de diferencia en desarrollo físico. Sin ajustar por maduración, los scouts descartan talentos tardíos que simplemente no han crecido aún. VITAS corrige esto automáticamente.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Ventanas de Maduración y Ajuste de VSI</div>
+    <svg viewBox="0 0 800 200" style="max-width:100%;">
+      <!-- Timeline -->
+      <line x1="50" y1="100" x2="750" y2="100" stroke="#475569" stroke-width="3"/>
+
+      <!-- Pre PHV -->
+      <rect x="50" y="60" width="220" height="80" rx="10" fill="rgba(6,182,212,0.15)" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="160" y="90" text-anchor="middle" fill="#06B6D4" font-size="12" font-weight="700">Pre-PHV</text>
+      <text x="160" y="110" text-anchor="middle" fill="#94A3B8" font-size="9">Ventana CRÍTICA</text>
+      <text x="160" y="128" text-anchor="middle" fill="#67E8F9" font-size="9">Técnica + Coordinación</text>
+
+      <!-- During PHV -->
+      <rect x="290" y="60" width="220" height="80" rx="10" fill="rgba(245,158,11,0.15)" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="400" y="90" text-anchor="middle" fill="#F59E0B" font-size="12" font-weight="700">Durante PHV</text>
+      <text x="400" y="110" text-anchor="middle" fill="#94A3B8" font-size="9">Ventana ACTIVA</text>
+      <text x="400" y="128" text-anchor="middle" fill="#FCD34D" font-size="9">Estirón + adaptación</text>
+
+      <!-- Post PHV -->
+      <rect x="530" y="60" width="220" height="80" rx="10" fill="rgba(34,197,94,0.15)" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="640" y="90" text-anchor="middle" fill="#22C55E" font-size="12" font-weight="700">Post-PHV</text>
+      <text x="640" y="110" text-anchor="middle" fill="#94A3B8" font-size="9">Ventana ESTABLE</text>
+      <text x="640" y="128" text-anchor="middle" fill="#86EFAC" font-size="9">Fuerza + Velocidad</text>
+
+      <!-- Dots -->
+      <circle cx="160" cy="100" r="6" fill="#06B6D4"/>
+      <circle cx="400" cy="100" r="6" fill="#F59E0B"/>
+      <circle cx="640" cy="100" r="6" fill="#22C55E"/>
+
+      <!-- Labels -->
+      <text x="50" y="170" fill="#94A3B8" font-size="9">Offset: -3.0</text>
+      <text x="370" y="170" fill="#94A3B8" font-size="9">Offset: 0</text>
+      <text x="700" y="170" fill="#94A3B8" font-size="9">Offset: +3.0</text>
+
+      <!-- Adjustments -->
+      <text x="160" y="190" text-anchor="middle" fill="#06B6D4" font-size="9" font-weight="600">Tardío: VSI ×1.12</text>
+      <text x="400" y="190" text-anchor="middle" fill="#F59E0B" font-size="9" font-weight="600">Normal: VSI ×1.00</text>
+      <text x="640" y="190" text-anchor="middle" fill="#22C55E" font-size="9" font-weight="600">Precoz: VSI ×0.92</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 4. ANÁLISIS DE VIDEO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2>Área: Análisis de Video con IA</h2>
+  </div>
+
+  <p>VITAS permite subir videos de partidos o entrenamientos y obtener un análisis completo con métricas físicas, tácticas y recomendaciones generadas por inteligencia artificial.</p>
+
+  <h3>Pipeline de Video</h3>
+  <div class="diagram">
+    <div class="diagram-title">Del video al reporte: proceso completo</div>
+    <svg viewBox="0 0 860 300" style="max-width:100%;">
+      <!-- Step 1 -->
+      <rect x="20" y="40" width="150" height="100" rx="14" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="95" y="75" text-anchor="middle" fill="white" font-size="24">📱</text>
+      <text x="95" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="600">1. Subir Video</text>
+      <text x="95" y="118" text-anchor="middle" fill="#94A3B8" font-size="8">Desde móvil o PC</text>
+      <text x="95" y="130" text-anchor="middle" fill="#94A3B8" font-size="8">TUS protocol</text>
+
+      <text x="185" y="92" fill="#818CF8" font-size="20">→</text>
+
+      <!-- Step 2 -->
+      <rect x="210" y="40" width="150" height="100" rx="14" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="285" y="75" text-anchor="middle" fill="white" font-size="24">☁️</text>
+      <text x="285" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="600">2. CDN + Transcoding</text>
+      <text x="285" y="118" text-anchor="middle" fill="#94A3B8" font-size="8">Bunny Stream</text>
+      <text x="285" y="130" text-anchor="middle" fill="#94A3B8" font-size="8">HLS adaptativo</text>
+
+      <text x="375" y="92" fill="#06B6D4" font-size="20">→</text>
+
+      <!-- Step 3 -->
+      <rect x="400" y="40" width="150" height="100" rx="14" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="475" y="75" text-anchor="middle" fill="white" font-size="24">🎯</text>
+      <text x="475" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="600">3. Calibrar Campo</text>
+      <text x="475" y="118" text-anchor="middle" fill="#94A3B8" font-size="8">4 puntos de referencia</text>
+      <text x="475" y="130" text-anchor="middle" fill="#94A3B8" font-size="8">Homografía píxel→campo</text>
+
+      <text x="565" y="92" fill="#22C55E" font-size="20">→</text>
+
+      <!-- Step 4 -->
+      <rect x="590" y="40" width="150" height="100" rx="14" fill="#451A03" stroke="#F59E0B" stroke-width="2"/>
+      <text x="665" y="75" text-anchor="middle" fill="white" font-size="24">🤖</text>
+      <text x="665" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="600">4. YOLO Tracking</text>
+      <text x="665" y="118" text-anchor="middle" fill="#94A3B8" font-size="8">Detección en browser</text>
+      <text x="665" y="130" text-anchor="middle" fill="#94A3B8" font-size="8">17 keypoints × jugador</text>
+
+      <!-- Row 2 -->
+      <text x="665" y="170" fill="#F59E0B" font-size="20">↓</text>
+
+      <rect x="590" y="180" width="150" height="100" rx="14" fill="#4C1D95" stroke="#A855F7" stroke-width="2"/>
+      <text x="665" y="215" text-anchor="middle" fill="white" font-size="24">🧠</text>
+      <text x="665" y="240" text-anchor="middle" fill="white" font-size="11" font-weight="600">5. Análisis IA</text>
+      <text x="665" y="258" text-anchor="middle" fill="#94A3B8" font-size="8">8 keyframes → Claude/Gemini</text>
+      <text x="665" y="270" text-anchor="middle" fill="#94A3B8" font-size="8">Streaming SSE en vivo</text>
+
+      <text x="575" y="232" fill="#A855F7" font-size="20">←</text>
+
+      <rect x="400" y="180" width="150" height="100" rx="14" fill="#7F1D1D" stroke="#EF4444" stroke-width="2"/>
+      <text x="475" y="215" text-anchor="middle" fill="white" font-size="24">📊</text>
+      <text x="475" y="240" text-anchor="middle" fill="white" font-size="11" font-weight="600">6. Métricas Físicas</text>
+      <text x="475" y="258" text-anchor="middle" fill="#94A3B8" font-size="8">Velocidad, sprints, dist.</text>
+      <text x="475" y="270" text-anchor="middle" fill="#94A3B8" font-size="8">Heatmaps + Voronoi</text>
+
+      <text x="385" y="232" fill="#EF4444" font-size="20">←</text>
+
+      <rect x="210" y="180" width="150" height="100" rx="14" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="285" y="215" text-anchor="middle" fill="white" font-size="24">📋</text>
+      <text x="285" y="240" text-anchor="middle" fill="white" font-size="11" font-weight="600">7. Reporte Final</text>
+      <text x="285" y="258" text-anchor="middle" fill="#94A3B8" font-size="8">Táctico + físico + IA</text>
+      <text x="285" y="270" text-anchor="middle" fill="#94A3B8" font-size="8">PDF exportable</text>
+
+      <text x="195" y="232" fill="#22C55E" font-size="20">←</text>
+
+      <rect x="20" y="180" width="150" height="100" rx="14" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="95" y="215" text-anchor="middle" fill="white" font-size="24">🏅</text>
+      <text x="95" y="240" text-anchor="middle" fill="white" font-size="11" font-weight="600">8. Perfil Actualizado</text>
+      <text x="95" y="258" text-anchor="middle" fill="#94A3B8" font-size="8">VSI + métricas + clon</text>
+      <text x="95" y="270" text-anchor="middle" fill="#94A3B8" font-size="8">Timeline + comparación</text>
+    </svg>
+  </div>
+
+  <h3>Modos de Análisis en VITAS Lab</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon" style="background:rgba(79,70,229,0.1);">👥</div>
+      <h4>Todos los Jugadores</h4>
+      <p>Analiza el movimiento de todos los jugadores detectados. Genera heatmaps colectivos y Voronoi de control territorial.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(6,182,212,0.1);">👆</div>
+      <h4>Click-to-Track</h4>
+      <p>Toca sobre un jugador en el video para seguirlo específicamente. Métricas individuales en tiempo real.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(34,197,94,0.1);">⚔️</div>
+      <h4>Equipo Completo</h4>
+      <p>Separación automática local vs visitante. Análisis táctico de formación, posesión y fases de juego.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon" style="background:rgba(245,158,11,0.1);">🔢</div>
+      <h4>Jugador Específico</h4>
+      <p>Selecciona por número de camiseta. Seguimiento dedicado con todas las métricas individuales.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 5. MÉTRICAS FÍSICAS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2>Área: Métricas Físicas y Tracking</h2>
+  </div>
+
+  <p>El modelo YOLOv8 ejecutado directamente en el navegador detecta jugadores frame a frame y calcula métricas físicas profesionales sin necesidad de GPS ni wearables.</p>
+
+  <h3>Métricas Extraídas Automáticamente</h3>
+  <table>
+    <tr><th>Métrica</th><th>Unidad</th><th>Cómo se obtiene</th><th>Uso</th></tr>
+    <tr><td><strong>Velocidad máxima</strong></td><td>km/h</td><td>Delta de posición entre frames + homografía</td><td>Capacidad de sprint</td></tr>
+    <tr><td><strong>Velocidad media</strong></td><td>km/h</td><td>Promedio ponderado de todas las velocidades</td><td>Intensidad del partido</td></tr>
+    <tr><td><strong>Distancia total</strong></td><td>metros</td><td>Suma acumulada de desplazamientos</td><td>Capacidad aeróbica</td></tr>
+    <tr><td><strong>Sprints</strong></td><td>conteo</td><td>Períodos con velocidad > 21 km/h</td><td>Explosividad</td></tr>
+    <tr><td><strong>Aceleración máxima</strong></td><td>m/s²</td><td>Derivada de velocidad entre frames</td><td>Arranque y frenado</td></tr>
+    <tr><td><strong>Escaneos</strong></td><td>conteo</td><td>Giros de cabeza detectados por pose (keypoints de nariz/orejas)</td><td>Conciencia espacial</td></tr>
+    <tr><td><strong>Duelos</strong></td><td>conteo</td><td>Proximidad entre jugadores < 1.8m</td><td>Agresividad / defensa</td></tr>
+    <tr><td><strong>Área Voronoi</strong></td><td>m²</td><td>Diagrama de Delaunay → celdas Voronoi por jugador</td><td>Control territorial</td></tr>
+  </table>
+
+  <h3>Zonas de Intensidad</h3>
+  <div class="diagram">
+    <div class="diagram-title">Distribución de intensidad de movimiento</div>
+    <svg viewBox="0 0 700 100" style="max-width:100%;">
+      <rect x="20" y="20" width="160" height="60" rx="8" fill="#22C55E" opacity="0.8"/>
+      <text x="100" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="700">Caminata</text>
+      <text x="100" y="65" text-anchor="middle" fill="white" font-size="10">&lt;7 km/h</text>
+
+      <rect x="185" y="20" width="160" height="60" rx="8" fill="#F59E0B" opacity="0.8"/>
+      <text x="265" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="700">Trote</text>
+      <text x="265" y="65" text-anchor="middle" fill="white" font-size="10">7-14 km/h</text>
+
+      <rect x="350" y="20" width="160" height="60" rx="8" fill="#EF4444" opacity="0.8"/>
+      <text x="430" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="700">Carrera</text>
+      <text x="430" y="65" text-anchor="middle" fill="white" font-size="10">14-21 km/h</text>
+
+      <rect x="515" y="20" width="160" height="60" rx="8" fill="#7C3AED" opacity="0.8"/>
+      <text x="595" y="48" text-anchor="middle" fill="white" font-size="12" font-weight="700">Sprint</text>
+      <text x="595" y="65" text-anchor="middle" fill="white" font-size="10">&gt;21 km/h</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 6. AGENTES IA ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2>Área: Inteligencia Artificial (8 Agentes)</h2>
+  </div>
+
+  <p>VITAS utiliza <strong>8 agentes de IA especializados</strong>, cada uno con una función específica. Los agentes trabajan de forma independiente y tienen protección de circuit breaker para evitar que un fallo afecte a los demás.</p>
+
+  <div class="diagram">
+    <div class="diagram-title">Mapa de Agentes IA</div>
+    <svg viewBox="0 0 860 420" style="max-width:100%;">
+      <!-- Individual Analysis -->
+      <text x="20" y="30" fill="#818CF8" font-size="12" font-weight="700">ANÁLISIS INDIVIDUAL</text>
+
+      <rect x="20" y="40" width="195" height="80" rx="12" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
+      <text x="117" y="63" text-anchor="middle" fill="#818CF8" font-size="11" font-weight="700">🧒 PHV Calculator</text>
+      <text x="117" y="80" text-anchor="middle" fill="#94A3B8" font-size="9">Maduración biológica</text>
+      <text x="117" y="95" text-anchor="middle" fill="#94A3B8" font-size="9">Fórmula de Mirwald</text>
+      <rect x="30" y="105" width="50" height="12" rx="4" fill="#312E81"/><text x="55" y="114" text-anchor="middle" fill="#C7D2FE" font-size="7">Haiku</text>
+
+      <rect x="225" y="40" width="195" height="80" rx="12" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
+      <text x="322" y="63" text-anchor="middle" fill="#818CF8" font-size="11" font-weight="700">💡 Scout Insight</text>
+      <text x="322" y="80" text-anchor="middle" fill="#94A3B8" font-size="9">Insights contextuales</text>
+      <text x="322" y="95" text-anchor="middle" fill="#94A3B8" font-size="9">Breakout + alertas</text>
+      <rect x="235" y="105" width="50" height="12" rx="4" fill="#312E81"/><text x="260" y="114" text-anchor="middle" fill="#C7D2FE" font-size="7">Haiku</text>
+
+      <rect x="430" y="40" width="195" height="80" rx="12" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+      <text x="527" y="63" text-anchor="middle" fill="#06B6D4" font-size="11" font-weight="700">🎭 Role Profile</text>
+      <text x="527" y="80" text-anchor="middle" fill="#94A3B8" font-size="9">Identidad táctica</text>
+      <text x="527" y="95" text-anchor="middle" fill="#94A3B8" font-size="9">Proyecciones 6/18/36m</text>
+      <rect x="440" y="105" width="55" height="12" rx="4" fill="#164E63"/><text x="467" y="114" text-anchor="middle" fill="#67E8F9" font-size="7">Sonnet</text>
+
+      <rect x="635" y="40" width="195" height="80" rx="12" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+      <text x="732" y="63" text-anchor="middle" fill="#06B6D4" font-size="11" font-weight="700">⭐ Player Similarity</text>
+      <text x="732" y="80" text-anchor="middle" fill="#94A3B8" font-size="9">Top 5 clones profesionales</text>
+      <text x="732" y="95" text-anchor="middle" fill="#94A3B8" font-size="9">Coseno en 6D</text>
+      <rect x="645" y="105" width="55" height="12" rx="4" fill="#164E63"/><text x="672" y="114" text-anchor="middle" fill="#67E8F9" font-size="7">Sonnet</text>
+
+      <!-- Video Analysis -->
+      <text x="20" y="165" fill="#22C55E" font-size="12" font-weight="700">ANÁLISIS DE VIDEO</text>
+
+      <rect x="20" y="175" width="250" height="80" rx="12" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="145" y="198" text-anchor="middle" fill="#22C55E" font-size="11" font-weight="700">🎥 Video Intelligence</text>
+      <text x="145" y="215" text-anchor="middle" fill="#94A3B8" font-size="9">8 keyframes → análisis con visión</text>
+      <text x="145" y="232" text-anchor="middle" fill="#94A3B8" font-size="9">Formación, pressing, movimientos clave</text>
+      <rect x="30" y="240" width="55" height="12" rx="4" fill="#14532D"/><text x="57" y="249" text-anchor="middle" fill="#86EFAC" font-size="7">Sonnet</text>
+      <rect x="90" y="240" width="55" height="12" rx="4" fill="#14532D"/><text x="117" y="249" text-anchor="middle" fill="#86EFAC" font-size="7">Gemini</text>
+      <rect x="150" y="240" width="30" height="12" rx="4" fill="#22C55E"/><text x="165" y="249" text-anchor="middle" fill="white" font-size="7">SSE</text>
+
+      <rect x="290" y="175" width="250" height="80" rx="12" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="415" y="198" text-anchor="middle" fill="#22C55E" font-size="11" font-weight="700">👁️ Video Observation</text>
+      <text x="415" y="215" text-anchor="middle" fill="#94A3B8" font-size="9">Análisis sin Gemini (fallback)</text>
+      <text x="415" y="232" text-anchor="middle" fill="#94A3B8" font-size="9">Acciones técnicas, posicionamiento</text>
+      <rect x="300" y="240" width="55" height="12" rx="4" fill="#164E63"/><text x="327" y="249" text-anchor="middle" fill="#67E8F9" font-size="7">Sonnet</text>
+
+      <!-- Team Analysis -->
+      <text x="20" y="305" fill="#F59E0B" font-size="12" font-weight="700">ANÁLISIS DE EQUIPO</text>
+
+      <rect x="20" y="315" width="250" height="80" rx="12" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+      <text x="145" y="338" text-anchor="middle" fill="#F59E0B" font-size="11" font-weight="700">⚽ Team Intelligence</text>
+      <text x="145" y="355" text-anchor="middle" fill="#94A3B8" font-size="9">Formación, posesión, fases tácticas</text>
+      <text x="145" y="372" text-anchor="middle" fill="#94A3B8" font-size="9">Pases, recuperaciones, centros</text>
+      <rect x="30" y="380" width="55" height="12" rx="4" fill="#451A03"/><text x="57" y="389" text-anchor="middle" fill="#FCD34D" font-size="7">Sonnet</text>
+      <rect x="90" y="380" width="55" height="12" rx="4" fill="#451A03"/><text x="117" y="389" text-anchor="middle" fill="#FCD34D" font-size="7">Gemini</text>
+      <rect x="150" y="380" width="30" height="12" rx="4" fill="#F59E0B"/><text x="165" y="389" text-anchor="middle" fill="white" font-size="7">SSE</text>
+
+      <rect x="290" y="315" width="250" height="80" rx="12" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+      <text x="415" y="338" text-anchor="middle" fill="#F59E0B" font-size="11" font-weight="700">📋 Team Observation</text>
+      <text x="415" y="355" text-anchor="middle" fill="#94A3B8" font-size="9">Análisis sin Gemini (fallback)</text>
+      <text x="415" y="372" text-anchor="middle" fill="#94A3B8" font-size="9">Ajustes tácticos, rendimientos</text>
+      <rect x="300" y="380" width="55" height="12" rx="4" fill="#164E63"/><text x="327" y="389" text-anchor="middle" fill="#67E8F9" font-size="7">Sonnet</text>
+
+      <!-- Protection -->
+      <rect x="580" y="175" width="260" height="220" rx="12" fill="rgba(239,68,68,0.05)" stroke="#EF4444" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="710" y="200" text-anchor="middle" fill="#EF4444" font-size="12" font-weight="700">🛡️ PROTECCIÓN</text>
+
+      <rect x="600" y="215" width="220" height="35" rx="8" fill="#1E293B" stroke="#475569"/>
+      <text x="710" y="237" text-anchor="middle" fill="#94A3B8" font-size="10">Circuit Breaker por agente</text>
+
+      <rect x="600" y="258" width="220" height="35" rx="8" fill="#1E293B" stroke="#475569"/>
+      <text x="710" y="280" text-anchor="middle" fill="#94A3B8" font-size="10">3 fallos → 30s cooldown</text>
+
+      <rect x="600" y="301" width="220" height="35" rx="8" fill="#1E293B" stroke="#475569"/>
+      <text x="710" y="323" text-anchor="middle" fill="#94A3B8" font-size="10">Retry con feedback (max 3)</text>
+
+      <rect x="600" y="344" width="220" height="35" rx="8" fill="#1E293B" stroke="#475569"/>
+      <text x="710" y="366" text-anchor="middle" fill="#94A3B8" font-size="10">Monitor de tokens</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 7. COMPARACION CON PROFESIONALES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2>Área: Comparación con Profesionales</h2>
+  </div>
+
+  <p>VITAS incluye una base de datos de <strong>más de 300 jugadores profesionales de élite mundial</strong> que se usa como referencia para encontrar el "clon profesional" de cada jugador juvenil.</p>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="number">300+</div>
+      <div class="label">Jugadores Elite</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">15+</div>
+      <div class="label">Ligas Mundiales</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">40+</div>
+      <div class="label">Nacionalidades</div>
+    </div>
+    <div class="stat-box">
+      <div class="number">8</div>
+      <div class="label">Grupos de Posición</div>
+    </div>
+  </div>
+
+  <h3>Cómo Funciona la Comparación</h3>
+  <div class="diagram">
+    <div class="diagram-title">Pipeline de similitud</div>
+    <svg viewBox="0 0 800 160" style="max-width:100%;">
+      <rect x="20" y="30" width="160" height="100" rx="12" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="100" y="60" text-anchor="middle" fill="white" font-size="10" font-weight="600">Tu jugador</text>
+      <text x="100" y="78" text-anchor="middle" fill="#94A3B8" font-size="8">VEL:75 TÉC:82 VIS:70</text>
+      <text x="100" y="92" text-anchor="middle" fill="#94A3B8" font-size="8">RES:68 DIS:71 DEF:45</text>
+      <text x="100" y="110" text-anchor="middle" fill="#818CF8" font-size="8">→ Vector 6D normalizado</text>
+
+      <text x="195" y="82" fill="#818CF8" font-size="18">→</text>
+
+      <rect x="215" y="30" width="180" height="100" rx="12" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="305" y="58" text-anchor="middle" fill="#06B6D4" font-size="10" font-weight="600">Similitud Coseno</text>
+      <text x="305" y="78" text-anchor="middle" fill="#94A3B8" font-size="8">Compara tu vector contra</text>
+      <text x="305" y="92" text-anchor="middle" fill="#94A3B8" font-size="8">300+ profesionales en 6D</text>
+      <text x="305" y="110" text-anchor="middle" fill="#67E8F9" font-size="8">Ajustado por edad + posición</text>
+
+      <text x="410" y="82" fill="#06B6D4" font-size="18">→</text>
+
+      <rect x="430" y="30" width="180" height="100" rx="12" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="520" y="58" text-anchor="middle" fill="#22C55E" font-size="10" font-weight="600">Top 5 Matches</text>
+      <text x="520" y="78" text-anchor="middle" fill="#94A3B8" font-size="8">1. Pedri — 87%</text>
+      <text x="520" y="92" text-anchor="middle" fill="#94A3B8" font-size="8">2. Gavi — 82%</text>
+      <text x="520" y="106" text-anchor="middle" fill="#94A3B8" font-size="8">3. Bellingham — 79%</text>
+      <text x="520" y="120" text-anchor="middle" fill="#94A3B8" font-size="7">+2 más...</text>
+
+      <text x="625" y="82" fill="#22C55E" font-size="18">→</text>
+
+      <rect x="645" y="30" width="140" height="100" rx="12" fill="#4C1D95" stroke="#A855F7" stroke-width="2"/>
+      <text x="715" y="58" text-anchor="middle" fill="#A855F7" font-size="10" font-weight="600">VITAS Card</text>
+      <text x="715" y="78" text-anchor="middle" fill="#94A3B8" font-size="8">Clon: Pedri 87%</text>
+      <text x="715" y="92" text-anchor="middle" fill="#94A3B8" font-size="8">Radar hexagonal</text>
+      <text x="715" y="110" text-anchor="middle" fill="#C084FC" font-size="8">Exportable como PNG</text>
+    </svg>
+  </div>
+
+  <h3>Grupos de Posición para Matching</h3>
+  <div class="diagram">
+    <div class="diagram-title">Grupos de posición con reglas de adyacencia</div>
+    <svg viewBox="0 0 800 300" style="max-width:100%;">
+      <!-- Field shape -->
+      <rect x="100" y="10" width="600" height="280" rx="16" fill="rgba(34,197,94,0.05)" stroke="#22C55E" stroke-width="1" stroke-dasharray="4"/>
+
+      <!-- GK -->
+      <circle cx="200" cy="150" r="35" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="200" y="147" text-anchor="middle" fill="white" font-size="11" font-weight="700">GK</text>
+      <text x="200" y="162" text-anchor="middle" fill="#94A3B8" font-size="8">Portero</text>
+
+      <!-- CB -->
+      <circle cx="310" cy="90" r="32" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="310" y="87" text-anchor="middle" fill="white" font-size="11" font-weight="700">CB</text>
+      <text x="310" y="102" text-anchor="middle" fill="#94A3B8" font-size="8">Central</text>
+
+      <!-- FB -->
+      <circle cx="310" cy="210" r="32" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="310" y="207" text-anchor="middle" fill="white" font-size="11" font-weight="700">FB</text>
+      <text x="310" y="222" text-anchor="middle" fill="#94A3B8" font-size="8">Lateral</text>
+
+      <!-- DM -->
+      <circle cx="420" cy="100" r="32" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="420" y="97" text-anchor="middle" fill="white" font-size="11" font-weight="700">DM</text>
+      <text x="420" y="112" text-anchor="middle" fill="#94A3B8" font-size="8">Pivote</text>
+
+      <!-- CM -->
+      <circle cx="420" cy="200" r="32" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="420" y="197" text-anchor="middle" fill="white" font-size="11" font-weight="700">CM</text>
+      <text x="420" y="212" text-anchor="middle" fill="#94A3B8" font-size="8">Centro</text>
+
+      <!-- AM -->
+      <circle cx="530" cy="150" r="32" fill="#451A03" stroke="#F59E0B" stroke-width="2"/>
+      <text x="530" y="147" text-anchor="middle" fill="white" font-size="11" font-weight="700">AM</text>
+      <text x="530" y="162" text-anchor="middle" fill="#94A3B8" font-size="8">Enganche</text>
+
+      <!-- W -->
+      <circle cx="600" cy="70" r="32" fill="#4C1D95" stroke="#A855F7" stroke-width="2"/>
+      <text x="600" y="67" text-anchor="middle" fill="white" font-size="11" font-weight="700">W</text>
+      <text x="600" y="82" text-anchor="middle" fill="#94A3B8" font-size="8">Extremo</text>
+
+      <!-- ST -->
+      <circle cx="600" cy="230" r="32" fill="#7F1D1D" stroke="#EF4444" stroke-width="2"/>
+      <text x="600" y="227" text-anchor="middle" fill="white" font-size="11" font-weight="700">ST</text>
+      <text x="600" y="242" text-anchor="middle" fill="#94A3B8" font-size="8">Delantero</text>
+
+      <!-- Adjacency lines -->
+      <line x1="235" y1="150" x2="278" y2="95" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="235" y1="150" x2="278" y2="205" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="342" y1="90" x2="388" y2="100" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="342" y1="210" x2="388" y2="200" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="452" y1="100" x2="498" y2="145" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="452" y1="200" x2="498" y2="155" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="562" y1="150" x2="573" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+      <line x1="562" y1="150" x2="573" y2="220" stroke="#475569" stroke-width="1" stroke-dasharray="3"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 8. BASE DE CONOCIMIENTO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2>Área: Base de Conocimiento (RAG)</h2>
+  </div>
+
+  <p>VITAS incluye una <strong>biblioteca de más de 100 ejercicios</strong> y contenido metodológico accesible mediante búsqueda inteligente con IA. El sistema RAG (Retrieval-Augmented Generation) encuentra automáticamente los ejercicios más relevantes según las necesidades del jugador.</p>
+
+  <h3>Categorías de Ejercicios</h3>
+  <div class="card-grid">
+    <div class="card" style="border-top: 3px solid #818CF8;">
+      <h4 style="color:#818CF8;">🎯 Técnica</h4>
+      <p>Rondos, circuitos de control, primer toque bajo presión, conducción, pases.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #06B6D4;">
+      <h4 style="color:#06B6D4;">♟️ Táctica</h4>
+      <p>Salida de balón, posicionamiento, transiciones, cambios de juego, pressing.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #22C55E;">
+      <h4 style="color:#22C55E;">🏃 Físico</h4>
+      <p>Velocidad con balón, resistencia, coordinación, agilidad, fuerza funcional.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #EF4444;">
+      <h4 style="color:#EF4444;">⚽ Disparo</h4>
+      <p>Finalización, disparo desde fuera del área, cabeceo, remates al segundo palo.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #F59E0B;">
+      <h4 style="color:#F59E0B;">⚡ Transición</h4>
+      <p>Contraataques rápidos, cambios de orientación, recuperación y salida.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #A855F7;">
+      <h4 style="color:#A855F7;">🛡️ Pressing</h4>
+      <p>Pressing alto, medio, bajo, trampas de presión, coberturas en bloque.</p>
+    </div>
+  </div>
+
+  <h3>Pipeline de Búsqueda RAG</h3>
+  <div class="diagram">
+    <div class="diagram-title">De la pregunta al ejercicio recomendado</div>
+    <svg viewBox="0 0 860 140" style="max-width:100%;">
+      <rect x="20" y="20" width="140" height="90" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="90" y="48" text-anchor="middle" fill="white" font-size="10" font-weight="600">🔍 Pregunta</text>
+      <text x="90" y="66" text-anchor="middle" fill="#94A3B8" font-size="8">"Ejercicios para</text>
+      <text x="90" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">mejorar visión</text>
+      <text x="90" y="94" text-anchor="middle" fill="#94A3B8" font-size="8">en sub-15"</text>
+
+      <text x="172" y="67" fill="#818CF8" font-size="16">→</text>
+
+      <rect x="190" y="20" width="140" height="90" rx="10" fill="#7F1D1D" stroke="#EF4444" stroke-width="2"/>
+      <text x="260" y="48" text-anchor="middle" fill="white" font-size="10" font-weight="600">🛡️ Sanitizer</text>
+      <text x="260" y="66" text-anchor="middle" fill="#94A3B8" font-size="8">30+ patrones</text>
+      <text x="260" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">anti-inyección</text>
+      <text x="260" y="94" text-anchor="middle" fill="#94A3B8" font-size="8">EN + ES</text>
+
+      <text x="342" y="67" fill="#EF4444" font-size="16">→</text>
+
+      <rect x="360" y="20" width="140" height="90" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="430" y="48" text-anchor="middle" fill="white" font-size="10" font-weight="600">🧮 Embedding</text>
+      <text x="430" y="66" text-anchor="middle" fill="#94A3B8" font-size="8">Búsqueda semántica</text>
+      <text x="430" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">+ FTS fallback</text>
+      <text x="430" y="94" text-anchor="middle" fill="#94A3B8" font-size="8">Top-K resultados</text>
+
+      <text x="512" y="67" fill="#06B6D4" font-size="16">→</text>
+
+      <rect x="530" y="20" width="140" height="90" rx="10" fill="#4C1D95" stroke="#A855F7" stroke-width="2"/>
+      <text x="600" y="48" text-anchor="middle" fill="white" font-size="10" font-weight="600">📦 Envelope XML</text>
+      <text x="600" y="66" text-anchor="middle" fill="#94A3B8" font-size="8">"Esto es DATOS,</text>
+      <text x="600" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">NO comandos"</text>
+      <text x="600" y="94" text-anchor="middle" fill="#94A3B8" font-size="8">Protección IA</text>
+
+      <text x="682" y="67" fill="#A855F7" font-size="16">→</text>
+
+      <rect x="700" y="20" width="140" height="90" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="770" y="48" text-anchor="middle" fill="white" font-size="10" font-weight="600">✅ Respuesta</text>
+      <text x="770" y="66" text-anchor="middle" fill="#94A3B8" font-size="8">Ejercicios relevantes</text>
+      <text x="770" y="80" text-anchor="middle" fill="#94A3B8" font-size="8">con detalles</text>
+      <text x="770" y="94" text-anchor="middle" fill="#94A3B8" font-size="8">y progresiones</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 9. GESTION DE EQUIPOS ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2>Área: Gestión de Equipos</h2>
+  </div>
+
+  <p>El <strong>Plan Club (€79/mes)</strong> desbloquea la gestión multi-usuario con roles jerárquicos, invitaciones por email, dashboards de dirección y análisis colectivo.</p>
+
+  <h3>Jerarquía de Roles</h3>
+  <div class="diagram">
+    <div class="diagram-title">Estructura organizacional y permisos</div>
+    <svg viewBox="0 0 700 280" style="max-width:100%;">
+      <!-- Owner -->
+      <rect x="250" y="10" width="200" height="50" rx="12" fill="#312E81" stroke="#FFD700" stroke-width="2"/>
+      <text x="350" y="32" text-anchor="middle" fill="#FFD700" font-size="12" font-weight="700">👑 Propietario</text>
+      <text x="350" y="48" text-anchor="middle" fill="#94A3B8" font-size="8">Todo + facturación + equipo</text>
+
+      <line x1="300" y1="60" x2="200" y2="90" stroke="#475569" stroke-width="1.5"/>
+      <line x1="400" y1="60" x2="500" y2="90" stroke="#475569" stroke-width="1.5"/>
+
+      <!-- Manager -->
+      <rect x="70" y="90" width="200" height="50" rx="12" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="170" y="112" text-anchor="middle" fill="#06B6D4" font-size="12" font-weight="700">📋 Director</text>
+      <text x="170" y="128" text-anchor="middle" fill="#94A3B8" font-size="8">Jugadores + análisis + reportes</text>
+
+      <!-- Coach -->
+      <rect x="430" y="90" width="200" height="50" rx="12" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="530" y="112" text-anchor="middle" fill="#22C55E" font-size="12" font-weight="700">🏋️ Entrenador</text>
+      <text x="530" y="128" text-anchor="middle" fill="#94A3B8" font-size="8">Análisis + ejercicios + tracking</text>
+
+      <line x1="170" y1="140" x2="170" y2="170" stroke="#475569" stroke-width="1.5"/>
+      <line x1="530" y1="140" x2="530" y2="170" stroke="#475569" stroke-width="1.5"/>
+
+      <!-- Analyst -->
+      <rect x="70" y="170" width="200" height="50" rx="12" fill="#451A03" stroke="#F59E0B" stroke-width="2"/>
+      <text x="170" y="192" text-anchor="middle" fill="#F59E0B" font-size="12" font-weight="700">📊 Analista</text>
+      <text x="170" y="208" text-anchor="middle" fill="#94A3B8" font-size="8">Lectura + ejecutar análisis</text>
+
+      <!-- Viewer -->
+      <rect x="430" y="170" width="200" height="50" rx="12" fill="#1E293B" stroke="#475569" stroke-width="2"/>
+      <text x="530" y="192" text-anchor="middle" fill="#94A3B8" font-size="12" font-weight="700">👁️ Visualizador</text>
+      <text x="530" y="208" text-anchor="middle" fill="#94A3B8" font-size="8">Solo consultar información</text>
+
+      <!-- Invitation flow -->
+      <rect x="180" y="240" width="340" height="35" rx="8" fill="rgba(79,70,229,0.1)" stroke="#818CF8" stroke-width="1" stroke-dasharray="3"/>
+      <text x="350" y="262" text-anchor="middle" fill="#818CF8" font-size="10">📧 Invitación por email → Token → Acepta → Rol asignado</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 10. VISUALIZACIONES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Área: Visualizaciones y Dashboards</h2>
+  </div>
+
+  <h3>Tipos de Gráficas</h3>
+  <div class="card-grid">
+    <div class="card" style="border-top: 3px solid #818CF8;">
+      <h4 style="color:#818CF8;">📐 Radar de 6 Ejes</h4>
+      <p>Hexágono interactivo con las 6 métricas del jugador. Disponible en perfil, comparación y VITAS Card exportable.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #06B6D4;">
+      <h4 style="color:#06B6D4;">📈 Evolución VSI</h4>
+      <p>Gráfica de área temporal mostrando cómo cambia el VSI en el tiempo. Colores por tendencia (verde subida, rojo bajada).</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #22C55E;">
+      <h4 style="color:#22C55E;">🎯 Gauge Circular VSI</h4>
+      <p>Indicador semi-circular animado con código de color por nivel (elite/alto/medio/desarrollo). 3 tamaños disponibles.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #EF4444;">
+      <h4 style="color:#EF4444;">🔥 Heatmap de Campo</h4>
+      <p>Mapa de calor sobre campo FIFA 105×68m. Grilla de 21×14 celdas. Gradiente verde→amarillo→rojo por intensidad.</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #A855F7;">
+      <h4 style="color:#A855F7;">🔷 Voronoi en Vivo</h4>
+      <p>Polígonos de control territorial superpuestos sobre el video en tiempo real. Coloreados por jugador con área en m².</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #F59E0B;">
+      <h4 style="color:#F59E0B;">⏱️ Timeline de Análisis</h4>
+      <p>Historial cronológico vertical de todos los análisis realizados con badges de nivel y métricas rápidas.</p>
+    </div>
+  </div>
+
+  <h3>Dashboards</h3>
+  <div class="card-grid">
+    <div class="card">
+      <h4>📊 Pulse (Principal)</h4>
+      <p>4 stats cards (jugadores activos, drills completados, VSI promedio, talentos ocultos), partidos en vivo via Football-Data.org, jugadores trending.</p>
+    </div>
+    <div class="card">
+      <h4>🧠 Master Dashboard</h4>
+      <p>Tabla completa de jugadores con alertas de sesgo (RAE + PHV), distribución por tier VSI, distribución por posición, búsqueda y ordenamiento.</p>
+    </div>
+    <div class="card">
+      <h4>🎯 Director Dashboard</h4>
+      <p>Vista ejecutiva exclusiva del Plan Club. Contadores de uso, barras de progreso, alertas de límites, métricas de actividad del equipo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 11. PLANES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">11</div>
+    <h2>Área: Planes y Facturación</h2>
+  </div>
+
+  <div class="plan-grid">
+    <div class="plan-card">
+      <div class="plan-name" style="color:var(--accent);">Free</div>
+      <div class="plan-price" style="color:var(--text);">€0<span>/mes</span></div>
+      <p style="font-size:0.85em; color:var(--text-muted);">Para probar la plataforma</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> 5 jugadores</li>
+        <li><span class="check">✓</span> 3 análisis IA / mes</li>
+        <li><span class="check">✓</span> Tracking de video</li>
+        <li><span class="check">✓</span> Métricas + VSI</li>
+        <li><span class="check">✓</span> Rankings</li>
+        <li><span class="check">✓</span> Comparación con pros</li>
+        <li><span class="cross">✗</span> VAEP</li>
+        <li><span class="cross">✗</span> Export PDF</li>
+        <li><span class="cross">✗</span> Notificaciones push</li>
+        <li><span class="cross">✗</span> Gestión de equipo</li>
+      </ul>
+    </div>
+
+    <div class="plan-card featured">
+      <div class="plan-name" style="color:var(--primary-light);">Pro</div>
+      <div class="plan-price" style="color:var(--text);">€19<span>/mes</span></div>
+      <p style="font-size:0.85em; color:var(--text-muted);">Para scouts y entrenadores</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> 25 jugadores</li>
+        <li><span class="check">✓</span> 20 análisis IA / mes</li>
+        <li><span class="check">✓</span> Todo lo del Free</li>
+        <li><span class="check">✓</span> VAEP (valoración acciones)</li>
+        <li><span class="check">✓</span> Export PDF</li>
+        <li><span class="check">✓</span> Notificaciones push</li>
+        <li><span class="cross">✗</span> Multi-usuario</li>
+        <li><span class="cross">✗</span> Role profiles</li>
+        <li><span class="cross">✗</span> Dashboard Director</li>
+      </ul>
+    </div>
+
+    <div class="plan-card">
+      <div class="plan-name" style="color:var(--gold);">Club</div>
+      <div class="plan-price" style="color:var(--text);">€79<span>/mes</span></div>
+      <p style="font-size:0.85em; color:var(--text-muted);">Para academias y clubes</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span> Jugadores ilimitados</li>
+        <li><span class="check">✓</span> Análisis ilimitados</li>
+        <li><span class="check">✓</span> Todo lo del Pro</li>
+        <li><span class="check">✓</span> Multi-usuario con roles</li>
+        <li><span class="check">✓</span> Role Profiles tácticos</li>
+        <li><span class="check">✓</span> Dashboard Director</li>
+        <li><span class="check">✓</span> Análisis de equipo</li>
+        <li><span class="check">✓</span> Invitaciones por email</li>
+        <li><span class="check">✓</span> Master Dashboard</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Flujo de Pago</h3>
+  <div class="diagram">
+    <div class="diagram-title">Proceso de suscripción via Stripe</div>
+    <svg viewBox="0 0 800 80" style="max-width:100%;">
+      <rect x="10" y="10" width="120" height="55" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="70" y="35" text-anchor="middle" fill="white" font-size="9" font-weight="600">Billing Page</text>
+      <text x="70" y="50" text-anchor="middle" fill="#94A3B8" font-size="7">Click "Upgrade"</text>
+
+      <text x="140" y="40" fill="#818CF8" font-size="14">→</text>
+
+      <rect x="155" y="10" width="120" height="55" rx="8" fill="#164E63" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="215" y="35" text-anchor="middle" fill="white" font-size="9" font-weight="600">Stripe Checkout</text>
+      <text x="215" y="50" text-anchor="middle" fill="#94A3B8" font-size="7">Pago seguro</text>
+
+      <text x="285" y="40" fill="#06B6D4" font-size="14">→</text>
+
+      <rect x="300" y="10" width="120" height="55" rx="8" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="360" y="35" text-anchor="middle" fill="white" font-size="9" font-weight="600">Webhook</text>
+      <text x="360" y="50" text-anchor="middle" fill="#94A3B8" font-size="7">Activa plan en DB</text>
+
+      <text x="430" y="40" fill="#22C55E" font-size="14">→</text>
+
+      <rect x="445" y="10" width="120" height="55" rx="8" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="505" y="35" text-anchor="middle" fill="white" font-size="9" font-weight="600">usePlan()</text>
+      <text x="505" y="50" text-anchor="middle" fill="#94A3B8" font-size="7">Detecta plan activo</text>
+
+      <text x="575" y="40" fill="#F59E0B" font-size="14">→</text>
+
+      <rect x="590" y="10" width="120" height="55" rx="8" fill="#4C1D95" stroke="#A855F7" stroke-width="1.5"/>
+      <text x="650" y="35" text-anchor="middle" fill="white" font-size="9" font-weight="600">Features ON</text>
+      <text x="650" y="50" text-anchor="middle" fill="#94A3B8" font-size="7">Límites actualizados</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 12. SEGURIDAD ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">12</div>
+    <h2>Área: Seguridad y Estabilidad</h2>
+  </div>
+
+  <p>VITAS implementa múltiples capas de protección para garantizar la integridad de datos, la disponibilidad del servicio y la seguridad contra ataques.</p>
+
+  <h3>Capas de Protección</h3>
+  <div class="diagram">
+    <div class="diagram-title">Arquitectura de seguridad y estabilidad</div>
+    <svg viewBox="0 0 800 340" style="max-width:100%;">
+      <!-- Outer ring -->
+      <rect x="20" y="10" width="760" height="320" rx="16" fill="rgba(79,70,229,0.03)" stroke="#818CF8" stroke-width="1" stroke-dasharray="4"/>
+      <text x="40" y="35" fill="#818CF8" font-size="11" font-weight="700">CAPA 1: VALIDACIÓN DE ENTRADA</text>
+
+      <rect x="40" y="45" width="720" height="270" rx="14" fill="rgba(6,182,212,0.03)" stroke="#06B6D4" stroke-width="1" stroke-dasharray="4"/>
+      <text x="60" y="68" fill="#06B6D4" font-size="11" font-weight="700">CAPA 2: RESILIENCIA DE AGENTES</text>
+
+      <rect x="60" y="80" width="680" height="220" rx="12" fill="rgba(34,197,94,0.03)" stroke="#22C55E" stroke-width="1" stroke-dasharray="4"/>
+      <text x="80" y="103" fill="#22C55E" font-size="11" font-weight="700">CAPA 3: INTEGRIDAD DE DATOS</text>
+
+      <rect x="80" y="115" width="640" height="170" rx="10" fill="rgba(245,158,11,0.03)" stroke="#F59E0B" stroke-width="1" stroke-dasharray="4"/>
+      <text x="100" y="138" fill="#F59E0B" font-size="11" font-weight="700">CAPA 4: RECUPERACIÓN</text>
+
+      <!-- Content boxes -->
+      <rect x="100" y="150" width="180" height="55" rx="8" fill="#1E293B" stroke="#818CF8"/>
+      <text x="190" y="172" text-anchor="middle" fill="white" font-size="9" font-weight="600">Zod schemas</text>
+      <text x="190" y="188" text-anchor="middle" fill="#94A3B8" font-size="8">5 endpoints validados</text>
+
+      <rect x="290" y="150" width="180" height="55" rx="8" fill="#1E293B" stroke="#06B6D4"/>
+      <text x="380" y="172" text-anchor="middle" fill="white" font-size="9" font-weight="600">Circuit Breaker</text>
+      <text x="380" y="188" text-anchor="middle" fill="#94A3B8" font-size="8">8 agentes protegidos</text>
+
+      <rect x="480" y="150" width="180" height="55" rx="8" fill="#1E293B" stroke="#22C55E"/>
+      <text x="570" y="172" text-anchor="middle" fill="white" font-size="9" font-weight="600">Health Check</text>
+      <text x="570" y="188" text-anchor="middle" fill="#94A3B8" font-size="8">5 diagnósticos auto</text>
+
+      <rect x="100" y="215" width="180" height="55" rx="8" fill="#1E293B" stroke="#F59E0B"/>
+      <text x="190" y="237" text-anchor="middle" fill="white" font-size="9" font-weight="600">Backup / Export</text>
+      <text x="190" y="253" text-anchor="middle" fill="#94A3B8" font-size="8">JSON + validación Zod</text>
+
+      <rect x="290" y="215" width="180" height="55" rx="8" fill="#1E293B" stroke="#EF4444"/>
+      <text x="380" y="237" text-anchor="middle" fill="white" font-size="9" font-weight="600">RAG Sanitizer</text>
+      <text x="380" y="253" text-anchor="middle" fill="#94A3B8" font-size="8">30+ patrones EN + ES</text>
+
+      <rect x="480" y="215" width="180" height="55" rx="8" fill="#1E293B" stroke="#A855F7"/>
+      <text x="570" y="237" text-anchor="middle" fill="white" font-size="9" font-weight="600">77 Tests Unitarios</text>
+      <text x="570" y="253" text-anchor="middle" fill="#94A3B8" font-size="8">Vitest + jsdom</text>
+    </svg>
+  </div>
+
+  <h3>Modo Offline</h3>
+  <div class="highlight-box">
+    <p style="margin:0;"><strong>Cola de sincronización inteligente:</strong> Cuando no hay conexión, todos los cambios se guardan localmente en una cola FIFO con deduplicación. Al reconectar, se sincronizan con reintentos exponenciales (1s → 2s → 4s → 8s). El indicador en la barra de navegación muestra el estado en tiempo real: ✅ OK · 🔄 Sincronizando · ⏳ Pendientes · 🔴 Sin conexión.</p>
+  </div>
+</div>
+
+<!-- ==================== 13. NOTIFICACIONES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">13</div>
+    <h2>Área: Notificaciones Push</h2>
+  </div>
+
+  <p>Los usuarios con <strong>Plan Pro o Club</strong> reciben alertas directamente en su dispositivo:</p>
+
+  <div class="card-grid">
+    <div class="card" style="border-left: 4px solid #EF4444;">
+      <h4>📉 Rendimiento Bajo</h4>
+      <p>Cuando el VSI de un jugador cae por debajo de 50. Alerta para intervención del entrenador.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #F59E0B;">
+      <h4>⏰ Inactividad</h4>
+      <p>Jugador sin actualización por más de 30 días. Recordatorio para reevaluar.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #818CF8;">
+      <h4>📊 Análisis Completado</h4>
+      <p>Cuando un análisis de video termina de procesarse y el reporte está listo.</p>
+    </div>
+    <div class="card" style="border-left: 4px solid #A855F7;">
+      <h4>⚠️ Límite de Plan</h4>
+      <p>Cuando te acercas al máximo de jugadores o análisis mensuales permitidos.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 14. MAPA COMPLETO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">14</div>
+    <h2>Mapa Completo de la Plataforma</h2>
+  </div>
+
+  <p>Todas las páginas y rutas de VITAS organizadas por área funcional:</p>
+
+  <div class="diagram">
+    <div class="diagram-title">33 rutas · 30 páginas · 5 áreas funcionales</div>
+    <svg viewBox="0 0 860 560" style="max-width:100%;">
+      <!-- Auth -->
+      <text x="20" y="25" fill="#475569" font-size="11" font-weight="700">AUTENTICACIÓN (Público)</text>
+      <rect x="20" y="35" width="100" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="70" y="55" text-anchor="middle" fill="#94A3B8" font-size="8">Login</text>
+      <rect x="130" y="35" width="100" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="180" y="55" text-anchor="middle" fill="#94A3B8" font-size="8">Registro</text>
+      <rect x="240" y="35" width="130" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="305" y="55" text-anchor="middle" fill="#94A3B8" font-size="8">Recuperar contraseña</text>
+      <rect x="380" y="35" width="130" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="445" y="55" text-anchor="middle" fill="#94A3B8" font-size="8">Reset contraseña</text>
+      <rect x="520" y="35" width="130" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="585" y="55" text-anchor="middle" fill="#94A3B8" font-size="8">Aceptar invitación</text>
+
+      <!-- Core Navigation -->
+      <text x="20" y="100" fill="#818CF8" font-size="11" font-weight="700">NAVEGACIÓN PRINCIPAL (Bottom Nav)</text>
+      <rect x="20" y="110" width="120" height="45" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="80" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="600">📊 Pulse</text>
+      <text x="80" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">Dashboard</text>
+
+      <rect x="150" y="110" width="120" height="45" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="210" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="600">🎥 Vídeos</text>
+      <text x="210" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">Reports</text>
+
+      <rect x="280" y="110" width="120" height="45" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="340" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="600">🔍 Scout</text>
+      <text x="340" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">Feed</text>
+
+      <rect x="410" y="110" width="120" height="45" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="470" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="600">🔬 Lab</text>
+      <text x="470" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">VITAS Lab (BETA)</text>
+
+      <rect x="540" y="110" width="120" height="45" rx="8" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="600" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="600">🏆 Rank</text>
+      <text x="600" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">Rankings</text>
+
+      <rect x="670" y="110" width="120" height="45" rx="8" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="730" y="130" text-anchor="middle" fill="#F59E0B" font-size="9" font-weight="600">👥 Equipo</text>
+      <text x="730" y="145" text-anchor="middle" fill="#94A3B8" font-size="7">Plan Club</text>
+
+      <!-- Player Management -->
+      <text x="20" y="195" fill="#06B6D4" font-size="11" font-weight="700">GESTIÓN DE JUGADORES</text>
+      <rect x="20" y="205" width="100" height="40" rx="6" fill="#164E63" stroke="#06B6D4"/><text x="70" y="222" text-anchor="middle" fill="#67E8F9" font-size="8">Nuevo</text><text x="70" y="235" text-anchor="middle" fill="#94A3B8" font-size="7">/players/new</text>
+      <rect x="130" y="205" width="100" height="40" rx="6" fill="#164E63" stroke="#06B6D4"/><text x="180" y="222" text-anchor="middle" fill="#67E8F9" font-size="8">Editar</text><text x="180" y="235" text-anchor="middle" fill="#94A3B8" font-size="7">/players/:id/edit</text>
+      <rect x="240" y="205" width="100" height="40" rx="6" fill="#164E63" stroke="#06B6D4"/><text x="290" y="222" text-anchor="middle" fill="#67E8F9" font-size="8">Perfil</text><text x="290" y="235" text-anchor="middle" fill="#94A3B8" font-size="7">/player/:id</text>
+      <rect x="350" y="205" width="100" height="40" rx="6" fill="#164E63" stroke="#06B6D4"/><text x="400" y="222" text-anchor="middle" fill="#67E8F9" font-size="8">Intelligence</text><text x="400" y="235" text-anchor="middle" fill="#94A3B8" font-size="7">/intelligence</text>
+      <rect x="460" y="205" width="100" height="40" rx="6" fill="#164E63" stroke="#06B6D4"/><text x="510" y="222" text-anchor="middle" fill="#67E8F9" font-size="8">Comparar</text><text x="510" y="235" text-anchor="middle" fill="#94A3B8" font-size="7">/compare</text>
+
+      <!-- Role Profiles -->
+      <text x="20" y="280" fill="#A855F7" font-size="11" font-weight="700">PERFILES DE ROL</text>
+      <rect x="20" y="290" width="130" height="40" rx="6" fill="#4C1D95" stroke="#A855F7"/><text x="85" y="307" text-anchor="middle" fill="#C084FC" font-size="8">Role Profile</text><text x="85" y="320" text-anchor="middle" fill="#94A3B8" font-size="7">/role-profile</text>
+      <rect x="160" y="290" width="130" height="40" rx="6" fill="#4C1D95" stroke="#A855F7"/><text x="225" y="307" text-anchor="middle" fill="#C084FC" font-size="8">Comparar Roles</text><text x="225" y="320" text-anchor="middle" fill="#94A3B8" font-size="7">/compare</text>
+      <rect x="300" y="290" width="130" height="40" rx="6" fill="#4C1D95" stroke="#A855F7"/><text x="365" y="307" text-anchor="middle" fill="#C084FC" font-size="8">Auditoría</text><text x="365" y="320" text-anchor="middle" fill="#94A3B8" font-size="7">/audit</text>
+
+      <!-- Reports -->
+      <text x="20" y="370" fill="#22C55E" font-size="11" font-weight="700">REPORTES E IMPRESIÓN</text>
+      <rect x="20" y="380" width="150" height="40" rx="6" fill="#14532D" stroke="#22C55E"/><text x="95" y="397" text-anchor="middle" fill="#86EFAC" font-size="8">Reporte Jugador</text><text x="95" y="410" text-anchor="middle" fill="#94A3B8" font-size="7">/report/:id</text>
+      <rect x="180" y="380" width="150" height="40" rx="6" fill="#14532D" stroke="#22C55E"/><text x="255" y="397" text-anchor="middle" fill="#86EFAC" font-size="8">Reporte Análisis</text><text x="255" y="410" text-anchor="middle" fill="#94A3B8" font-size="7">/analysis-report/:id</text>
+      <rect x="340" y="380" width="150" height="40" rx="6" fill="#14532D" stroke="#22C55E"/><text x="415" y="397" text-anchor="middle" fill="#86EFAC" font-size="8">Solo Drill</text><text x="415" y="410" text-anchor="middle" fill="#94A3B8" font-size="7">/drill</text>
+
+      <!-- Team (Club) -->
+      <text x="20" y="460" fill="#F59E0B" font-size="11" font-weight="700">EQUIPO (Plan Club)</text>
+      <rect x="20" y="470" width="130" height="40" rx="6" fill="#451A03" stroke="#F59E0B"/><text x="85" y="487" text-anchor="middle" fill="#FCD34D" font-size="8">Team Page</text><text x="85" y="500" text-anchor="middle" fill="#94A3B8" font-size="7">/equipo</text>
+      <rect x="160" y="470" width="130" height="40" rx="6" fill="#451A03" stroke="#F59E0B"/><text x="225" y="487" text-anchor="middle" fill="#FCD34D" font-size="8">Team Analysis</text><text x="225" y="500" text-anchor="middle" fill="#94A3B8" font-size="7">/team-analysis</text>
+      <rect x="300" y="470" width="130" height="40" rx="6" fill="#451A03" stroke="#F59E0B"/><text x="365" y="487" text-anchor="middle" fill="#FCD34D" font-size="8">Director</text><text x="365" y="500" text-anchor="middle" fill="#94A3B8" font-size="7">/director</text>
+      <rect x="440" y="470" width="130" height="40" rx="6" fill="#451A03" stroke="#F59E0B"/><text x="505" y="487" text-anchor="middle" fill="#FCD34D" font-size="8">Master</text><text x="505" y="500" text-anchor="middle" fill="#94A3B8" font-size="7">/master</text>
+
+      <!-- Settings -->
+      <text x="20" y="545" fill="#94A3B8" font-size="11" font-weight="700">CONFIGURACIÓN</text>
+      <rect x="20" y="548" width="100" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="70" y="568" text-anchor="middle" fill="#94A3B8" font-size="8">Settings</text>
+      <rect x="130" y="548" width="100" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="180" y="568" text-anchor="middle" fill="#94A3B8" font-size="8">Billing</text>
+      <rect x="240" y="548" width="100" height="30" rx="6" fill="#1E293B" stroke="#475569"/><text x="290" y="568" text-anchor="middle" fill="#94A3B8" font-size="8">Onboarding</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== 15. KPIs Y PROYECCIONES ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">15</div>
+    <h2>Área: KPIs, Proyecciones y Métricas Avanzadas</h2>
+  </div>
+
+  <p>Más allá del VSI base, VITAS genera un ecosistema completo de <strong>90+ puntos de datos por jugador</strong>. Estas son todas las métricas avanzadas que el sistema calcula.</p>
+
+  <h3>Proyecciones de VSI a Futuro</h3>
+  <div class="diagram">
+    <div class="diagram-title">Proyección de desarrollo del jugador</div>
+    <svg viewBox="0 0 860 280" style="max-width:100%;">
+      <!-- Timeline -->
+      <line x1="80" y1="200" x2="780" y2="200" stroke="#475569" stroke-width="2"/>
+
+      <!-- Age markers -->
+      <circle cx="150" cy="200" r="5" fill="#F59E0B"/>
+      <text x="150" y="230" text-anchor="middle" fill="#94A3B8" font-size="10">Edad actual</text>
+      <text x="150" y="245" text-anchor="middle" fill="#F59E0B" font-size="9" font-weight="600">Ej: 14 años</text>
+
+      <circle cx="400" cy="200" r="5" fill="#818CF8"/>
+      <text x="400" y="230" text-anchor="middle" fill="#94A3B8" font-size="10">18 años</text>
+
+      <circle cx="600" cy="200" r="5" fill="#22C55E"/>
+      <text x="600" y="230" text-anchor="middle" fill="#94A3B8" font-size="10">21 años</text>
+
+      <circle cx="750" cy="200" r="5" fill="#FFD700"/>
+      <text x="750" y="230" text-anchor="middle" fill="#94A3B8" font-size="10">Pico (25-30)</text>
+
+      <!-- Current VSI -->
+      <rect x="100" y="120" width="100" height="65" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="150" y="142" text-anchor="middle" fill="#F59E0B" font-size="10" font-weight="600">VSI Actual</text>
+      <text x="150" y="162" text-anchor="middle" fill="white" font-size="18" font-weight="800">62</text>
+      <text x="150" y="178" text-anchor="middle" fill="#94A3B8" font-size="8">Confianza: 60%</text>
+
+      <!-- VSI @18 -->
+      <rect x="330" y="60" width="140" height="125" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="400" y="82" text-anchor="middle" fill="#818CF8" font-size="10" font-weight="600">VSI @18</text>
+      <text x="400" y="108" text-anchor="middle" fill="white" font-size="20" font-weight="800">74</text>
+      <text x="400" y="126" text-anchor="middle" fill="#94A3B8" font-size="9">Rango: 63 - 85</text>
+      <text x="400" y="142" text-anchor="middle" fill="#94A3B8" font-size="8">Margen: ±15%</text>
+      <text x="400" y="158" text-anchor="middle" fill="#94A3B8" font-size="8">Si edad ≤13: ±20%</text>
+      <text x="400" y="174" text-anchor="middle" fill="#94A3B8" font-size="8">Si edad ≥17: ±10%</text>
+
+      <!-- VSI @21 -->
+      <rect x="530" y="40" width="140" height="145" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="600" y="62" text-anchor="middle" fill="#22C55E" font-size="10" font-weight="600">VSI @21</text>
+      <text x="600" y="88" text-anchor="middle" fill="white" font-size="20" font-weight="800">81</text>
+      <text x="600" y="106" text-anchor="middle" fill="#94A3B8" font-size="9">Rango: 69 - 93</text>
+      <text x="600" y="126" text-anchor="middle" fill="#86EFAC" font-size="9" font-weight="600">% del Pico: 78%</text>
+      <text x="600" y="142" text-anchor="middle" fill="#94A3B8" font-size="8">Ventaja madurativa:</text>
+      <text x="600" y="158" text-anchor="middle" fill="#94A3B8" font-size="8">+3.2 pts (tardío)</text>
+      <text x="600" y="174" text-anchor="middle" fill="#94A3B8" font-size="8">Edad equiv. pro: 16.4</text>
+
+      <!-- Arrows -->
+      <path d="M 200 150 Q 265 80 330 130" fill="none" stroke="#818CF8" stroke-width="1.5" stroke-dasharray="4"/>
+      <path d="M 470 120 Q 500 80 530 100" fill="none" stroke="#22C55E" stroke-width="1.5" stroke-dasharray="4"/>
+    </svg>
+  </div>
+
+  <h3>Métricas Avanzadas: RAE + UBI + TruthFilter</h3>
+  <div class="diagram">
+    <div class="diagram-title">Sistema de corrección de sesgos madurativos</div>
+    <svg viewBox="0 0 860 220" style="max-width:100%;">
+      <!-- RAE -->
+      <rect x="20" y="20" width="200" height="180" rx="12" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
+      <text x="120" y="48" text-anchor="middle" fill="#EF4444" font-size="12" font-weight="700">RAE</text>
+      <text x="120" y="65" text-anchor="middle" fill="#94A3B8" font-size="8">Relative Age Effect</text>
+      <text x="30" y="88" fill="#94A3B8" font-size="9">Cuartil de nacimiento: Q1-Q4</text>
+      <text x="30" y="106" fill="#94A3B8" font-size="9">Ventaja en meses: 0-11</text>
+      <text x="30" y="124" fill="#94A3B8" font-size="9">Factor de sesgo: 1.0-1.22</text>
+      <text x="30" y="142" fill="#94A3B8" font-size="9">Clasificación:</text>
+      <text x="30" y="158" fill="#67E8F9" font-size="8">early_cohort | mid_early</text>
+      <text x="30" y="172" fill="#67E8F9" font-size="8">mid_late | late_cohort</text>
+      <text x="30" y="190" fill="#EF4444" font-size="8" font-weight="600">Q1 = más ventaja por edad</text>
+
+      <!-- Arrow -->
+      <text x="232" y="110" fill="#475569" font-size="18">→</text>
+
+      <!-- UBI -->
+      <rect x="260" y="20" width="220" height="180" rx="12" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
+      <text x="370" y="48" text-anchor="middle" fill="#A855F7" font-size="12" font-weight="700">UBI</text>
+      <text x="370" y="65" text-anchor="middle" fill="#94A3B8" font-size="8">Unified Bias Index (0-1)</text>
+      <text x="270" y="88" fill="#94A3B8" font-size="9">Fórmula:</text>
+      <text x="270" y="106" fill="#C084FC" font-size="9" font-weight="600">0.55 × RAE + 0.45 × PHV</text>
+      <text x="270" y="128" fill="#94A3B8" font-size="9">Componente RAE: (Q-1)/3</text>
+      <text x="270" y="146" fill="#94A3B8" font-size="9">Componente PHV:</text>
+      <text x="270" y="162" fill="#94A3B8" font-size="8"> Tardío: min(1, -offset/2)</text>
+      <text x="270" y="176" fill="#94A3B8" font-size="8"> Precoz: min(0.5, offset/2)</text>
+      <text x="270" y="194" fill="#A855F7" font-size="9" font-weight="600">Corrección VSI: × (1 + UBI×0.12)</text>
+
+      <!-- Arrow -->
+      <text x="492" y="110" fill="#475569" font-size="18">→</text>
+
+      <!-- TruthFilter -->
+      <rect x="520" y="20" width="320" height="180" rx="12" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="680" y="48" text-anchor="middle" fill="#22C55E" font-size="12" font-weight="700">TruthFilter (4 Casos)</text>
+      <text x="680" y="65" text-anchor="middle" fill="#94A3B8" font-size="8">Corrección final del VSI</text>
+
+      <rect x="535" y="78" width="140" height="24" rx="6" fill="rgba(239,68,68,0.1)" stroke="#EF4444"/>
+      <text x="605" y="95" text-anchor="middle" fill="#EF4444" font-size="8">Precoz: VSI -3 a -8 pts</text>
+
+      <rect x="535" y="108" width="140" height="24" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/>
+      <text x="605" y="125" text-anchor="middle" fill="#22C55E" font-size="8">Tardío: VSI +3 a +10 pts</text>
+
+      <rect x="690" y="78" width="140" height="24" rx="6" fill="rgba(245,158,11,0.1)" stroke="#F59E0B"/>
+      <text x="760" y="95" text-anchor="middle" fill="#F59E0B" font-size="8">Normal+RAE alto: -1 a -3</text>
+
+      <rect x="690" y="108" width="140" height="24" rx="6" fill="rgba(6,182,212,0.1)" stroke="#06B6D4"/>
+      <text x="760" y="125" text-anchor="middle" fill="#06B6D4" font-size="8">Normal+RAE bajo: +1 a +4</text>
+
+      <text x="535" y="155" fill="#94A3B8" font-size="9">Confianza: 0.60 - 0.88</text>
+      <text x="535" y="172" fill="#94A3B8" font-size="9">Resultado: VSI corregido por</text>
+      <text x="535" y="186" fill="#22C55E" font-size="9" font-weight="600">sesgos de maduración + edad relativa</text>
+    </svg>
+  </div>
+
+  <h3>VAEP — Valoración de Acciones</h3>
+  <p>Cada acción del jugador tiene un peso según su impacto en la probabilidad de marcar gol:</p>
+  <table>
+    <tr><th>Acción</th><th>Éxito</th><th>Fallo</th><th>Nota</th></tr>
+    <tr><td><strong>Disparo</strong></td><td style="color:#22C55E;">+0.15</td><td style="color:#EF4444;">-0.03</td><td>Mayor impacto positivo</td></tr>
+    <tr><td><strong>Centro</strong></td><td style="color:#22C55E;">+0.08</td><td style="color:#EF4444;">-0.02</td><td>Alta recompensa si conecta</td></tr>
+    <tr><td><strong>Regate</strong></td><td style="color:#22C55E;">+0.06</td><td style="color:#EF4444;">-0.02</td><td>Riesgo-recompensa equilibrado</td></tr>
+    <tr><td><strong>Cabeceo</strong></td><td style="color:#22C55E;">+0.05</td><td style="color:#EF4444;">-0.01</td><td>Acción de área</td></tr>
+    <tr><td><strong>Entrada</strong></td><td style="color:#22C55E;">+0.04</td><td style="color:#EF4444;">-0.015</td><td>Defensa activa</td></tr>
+    <tr><td><strong>Pase (zona ofensiva)</strong></td><td style="color:#22C55E;">+0.03</td><td style="color:#EF4444;">-0.015</td><td>Pase en última tercera</td></tr>
+    <tr><td><strong>Pressing</strong></td><td style="color:#22C55E;">+0.025</td><td style="color:#EF4444;">-0.005</td><td>Bajo riesgo, valor constante</td></tr>
+    <tr><td><strong>Pase (zona defensiva)</strong></td><td style="color:#22C55E;">+0.005</td><td style="color:#EF4444;">-0.015</td><td>Menor impacto ofensivo</td></tr>
+  </table>
+  <p><strong>VAEP-90</strong> = (Suma total de valores de acciones / minutos jugados) × 90</p>
+
+  <h3>Análisis de Características Dominantes</h3>
+  <div class="two-col">
+    <div class="card" style="border-left:4px solid #22C55E;">
+      <h4 style="color:#22C55E;">Top 3 Fortalezas</h4>
+      <p>Las 3 métricas donde el jugador supera la media de su grupo. Incluye valor crudo, z-score (desviaciones sobre la media), y etiqueta.</p>
+    </div>
+    <div class="card" style="border-left:4px solid #EF4444;">
+      <h4 style="color:#EF4444;">2 Áreas de Desarrollo</h4>
+      <p>Las 2 métricas más débiles con la brecha respecto a la media del grupo y etiqueta descriptiva.</p>
+    </div>
+  </div>
+
+  <h3>Clasificación de Estilo de Juego</h3>
+  <table>
+    <tr><th>Estilo</th><th>Condición</th></tr>
+    <tr><td><strong style="color:#EF4444;">Ofensivo</strong></td><td>Promedio ofensivo > 72 y supera al defensivo por +10</td></tr>
+    <tr><td><strong style="color:#06B6D4;">Defensivo</strong></td><td>Promedio defensivo > 72 y supera al ofensivo por +10</td></tr>
+    <tr><td><strong style="color:#A855F7;">Técnico</strong></td><td>Técnica > 72 y Visión > 68</td></tr>
+    <tr><td><strong style="color:#F59E0B;">Físico</strong></td><td>Promedio físico > 72</td></tr>
+    <tr><td><strong style="color:#818CF8;">Equilibrado</strong></td><td>Ninguna condición anterior se cumple</td></tr>
+  </table>
+
+  <p><strong>Índice de Especialización</strong> (0-1): Mide qué tan especializado (1) vs generalista (0) es el jugador. Se calcula con la varianza de z-scores de sus métricas.</p>
+
+  <h3>Todas las Métricas — Inventario Completo (90+)</h3>
+  <div class="highlight-box">
+    <p style="margin:0;">VITAS genera <strong>más de 90 puntos de datos únicos</strong> por cada jugador analizado, distribuidos en 12 categorías: VSI Core (4), Métricas Base (6), RAE (4), UBI (4), TruthFilter (4), VAEP (3), Dominantes (4), Tracking Físico (8), Zonas de Intensidad (4), Proyecciones (8), Similitud (5), Perfil de Rol (40+).</p>
+  </div>
+</div>
+
+<!-- ==================== 16. VIDEO INTELLIGENCE COMPLETO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">16</div>
+    <h2>Área: Reporte Completo de Video Intelligence</h2>
+  </div>
+
+  <p>Cuando un video se analiza completamente, los agentes IA generan un reporte con <strong>36+ campos estructurados</strong>. Este es el desglose completo de lo que produce el análisis de video por jugador individual.</p>
+
+  <h3>6 Dimensiones Observadas (0-10)</h3>
+  <div class="diagram">
+    <div class="diagram-title">Evaluación dimensional del jugador desde video</div>
+    <svg viewBox="0 0 860 180" style="max-width:100%;">
+      <!-- Bars -->
+      <rect x="20" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="82" y="38" text-anchor="middle" fill="#818CF8" font-size="9" font-weight="700">⚡ Velocidad</text>
+      <text x="82" y="52" text-anchor="middle" fill="#818CF8" font-size="9" font-weight="700">de Decisión</text>
+      <text x="82" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">7.5</text>
+      <text x="82" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <rect x="155" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#06B6D4" stroke-width="1.5"/>
+      <text x="217" y="38" text-anchor="middle" fill="#06B6D4" font-size="9" font-weight="700">🎯 Técnica</text>
+      <text x="217" y="52" text-anchor="middle" fill="#06B6D4" font-size="9" font-weight="700">con Balón</text>
+      <text x="217" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">8.2</text>
+      <text x="217" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <rect x="290" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="352" y="38" text-anchor="middle" fill="#22C55E" font-size="9" font-weight="700">🧠 Inteligencia</text>
+      <text x="352" y="52" text-anchor="middle" fill="#22C55E" font-size="9" font-weight="700">Táctica</text>
+      <text x="352" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">6.8</text>
+      <text x="352" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <rect x="425" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#F59E0B" stroke-width="1.5"/>
+      <text x="487" y="38" text-anchor="middle" fill="#F59E0B" font-size="9" font-weight="700">🏃 Capacidad</text>
+      <text x="487" y="52" text-anchor="middle" fill="#F59E0B" font-size="9" font-weight="700">Física</text>
+      <text x="487" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">7.1</text>
+      <text x="487" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <rect x="560" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#EF4444" stroke-width="1.5"/>
+      <text x="622" y="38" text-anchor="middle" fill="#EF4444" font-size="9" font-weight="700">👑 Liderazgo</text>
+      <text x="622" y="52" text-anchor="middle" fill="#EF4444" font-size="9" font-weight="700">y Presencia</text>
+      <text x="622" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">5.9</text>
+      <text x="622" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <rect x="695" y="15" width="125" height="70" rx="10" fill="#1E293B" stroke="#A855F7" stroke-width="1.5"/>
+      <text x="757" y="38" text-anchor="middle" fill="#A855F7" font-size="9" font-weight="700">🏆 Eficacia</text>
+      <text x="757" y="52" text-anchor="middle" fill="#A855F7" font-size="9" font-weight="700">Competitiva</text>
+      <text x="757" y="72" text-anchor="middle" fill="white" font-size="16" font-weight="800">7.8</text>
+      <text x="757" y="82" text-anchor="middle" fill="#94A3B8" font-size="7">/10</text>
+
+      <text x="430" y="120" text-anchor="middle" fill="#94A3B8" font-size="10">Cada dimensión incluye una <tspan fill="white" font-weight="600">observación textual</tspan> del agente que explica la puntuación</text>
+      <text x="430" y="140" text-anchor="middle" fill="#94A3B8" font-size="10">+ Ajuste VSI por video: <tspan fill="#22C55E" font-weight="600">-15 a +15 puntos</tspan> sobre el VSI base</text>
+    </svg>
+  </div>
+
+  <h3>ADN Futbolístico</h3>
+  <div class="card-grid">
+    <div class="card"><h4 style="color:#818CF8;">Estilo de Juego</h4><p>Descripción narrativa del estilo predominante (max 200 caracteres)</p></div>
+    <div class="card"><h4 style="color:#06B6D4;">Arquetipo Táctico</h4><p>Clasificación tipo "mediapunta creativo" o "interior box-to-box" (max 100 chars)</p></div>
+    <div class="card"><h4 style="color:#22C55E;">Patrones de Juego</h4><p>Cada patrón con nombre, frecuencia (alto/medio/bajo) y descripción detallada</p></div>
+    <div class="card"><h4 style="color:#F59E0B;">Mentalidad</h4><p>Análisis del temperamento competitivo y actitud en el campo (max 200 chars)</p></div>
+  </div>
+
+  <h3>Proyección de Carrera (desde video)</h3>
+  <div class="two-col">
+    <div class="card" style="border-left:4px solid #22C55E;">
+      <h4 style="color:#22C55E;">Escenario Optimista</h4>
+      <p>Nivel proyectado, tipo de club, edad pico estimada, descripción narrativa (max 300 chars)</p>
+    </div>
+    <div class="card" style="border-left:4px solid #06B6D4;">
+      <h4 style="color:#06B6D4;">Escenario Realista</h4>
+      <p>Nivel proyectado, tipo de club, factores clave (max 4), riesgos identificados (max 3)</p>
+    </div>
+  </div>
+
+  <h3>Plan de Desarrollo</h3>
+  <table>
+    <tr><th>Campo</th><th>Descripción</th></tr>
+    <tr><td><strong>Objetivo a 6 meses</strong></td><td>Meta concreta a corto plazo</td></tr>
+    <tr><td><strong>Objetivo a 18 meses</strong></td><td>Meta a mediano plazo</td></tr>
+    <tr><td><strong>Pilares de trabajo</strong></td><td>Hasta 4 pilares, cada uno con acciones (max 3) y prioridad (crítica/alta/media)</td></tr>
+    <tr><td><strong>Recomendación al entrenador</strong></td><td>Consejo específico para el cuerpo técnico</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 17. ANÁLISIS DE EQUIPO COMPLETO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">17</div>
+    <h2>Área: Análisis de Equipo — Detalle Completo</h2>
+  </div>
+
+  <p>El análisis de equipo genera un reporte táctico exhaustivo con métricas colectivas, desglose por jugador y recomendaciones para el cuerpo técnico.</p>
+
+  <h3>Métricas Colectivas del Equipo</h3>
+  <div class="diagram">
+    <div class="diagram-title">9 métricas tácticas colectivas</div>
+    <svg viewBox="0 0 860 250" style="max-width:100%;">
+      <!-- Row 1: Formation -->
+      <rect x="20" y="20" width="260" height="90" rx="12" fill="#1E293B" stroke="#818CF8" stroke-width="2"/>
+      <text x="150" y="48" text-anchor="middle" fill="#818CF8" font-size="12" font-weight="700">Formación</text>
+      <text x="40" y="70" fill="#94A3B8" font-size="9">Sistema: "4-3-3"</text>
+      <text x="40" y="86" fill="#94A3B8" font-size="9">Variantes: hasta 3 (ej: "3-4-3 en ataque")</text>
+      <text x="40" y="102" fill="#94A3B8" font-size="9">Rigidez: 1-10 (10 = muy rígida)</text>
+
+      <!-- Possession -->
+      <rect x="300" y="20" width="260" height="90" rx="12" fill="#1E293B" stroke="#06B6D4" stroke-width="2"/>
+      <text x="430" y="48" text-anchor="middle" fill="#06B6D4" font-size="12" font-weight="700">Posesión</text>
+      <text x="320" y="70" fill="#94A3B8" font-size="9">Porcentaje: 0-100%</text>
+      <text x="320" y="86" fill="#94A3B8" font-size="9">Estilo de circulación (max 200 chars)</text>
+      <text x="320" y="102" fill="#94A3B8" font-size="9">Zonas dominadas: hasta 4</text>
+
+      <!-- Pressing -->
+      <rect x="580" y="20" width="260" height="90" rx="12" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
+      <text x="710" y="48" text-anchor="middle" fill="#EF4444" font-size="12" font-weight="700">Pressing</text>
+      <text x="600" y="70" fill="#94A3B8" font-size="9">Tipo: descripción del pressing</text>
+      <text x="600" y="86" fill="#94A3B8" font-size="9">Altura línea: alta | media | baja</text>
+      <text x="600" y="102" fill="#94A3B8" font-size="9">Intensidad: 1-10</text>
+
+      <!-- Row 2 -->
+      <rect x="20" y="130" width="195" height="100" rx="12" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
+      <text x="117" y="155" text-anchor="middle" fill="#22C55E" font-size="11" font-weight="700">Métricas Colectivas</text>
+      <text x="35" y="175" fill="#94A3B8" font-size="9">Compacidad: 1-10</text>
+      <text x="35" y="191" fill="#94A3B8" font-size="9">Amplitud: 1-10</text>
+      <text x="35" y="207" fill="#94A3B8" font-size="9">Sincronización: 1-10</text>
+      <text x="35" y="223" fill="#94A3B8" font-size="9">Línea defensiva: alta/media/baja</text>
+
+      <rect x="235" y="130" width="195" height="100" rx="12" fill="#1E293B" stroke="#F59E0B" stroke-width="2"/>
+      <text x="332" y="155" text-anchor="middle" fill="#F59E0B" font-size="11" font-weight="700">Transición Ofensiva</text>
+      <text x="250" y="175" fill="#94A3B8" font-size="9">Velocidad: clasificación</text>
+      <text x="250" y="191" fill="#94A3B8" font-size="9">Patrón: descripción</text>
+      <text x="250" y="207" fill="#94A3B8" font-size="9">Descripción: max 200 chars</text>
+
+      <rect x="450" y="130" width="195" height="100" rx="12" fill="#1E293B" stroke="#A855F7" stroke-width="2"/>
+      <text x="547" y="155" text-anchor="middle" fill="#A855F7" font-size="11" font-weight="700">Transición Defensiva</text>
+      <text x="465" y="175" fill="#94A3B8" font-size="9">Velocidad: clasificación</text>
+      <text x="465" y="191" fill="#94A3B8" font-size="9">Patrón: descripción</text>
+      <text x="465" y="207" fill="#94A3B8" font-size="9">Descripción: max 200 chars</text>
+
+      <rect x="665" y="130" width="175" height="100" rx="12" fill="#1E293B" stroke="#FFD700" stroke-width="2"/>
+      <text x="752" y="155" text-anchor="middle" fill="#FFD700" font-size="11" font-weight="700">Evaluación</text>
+      <text x="680" y="175" fill="#94A3B8" font-size="9">Fortalezas: max 4</text>
+      <text x="680" y="191" fill="#94A3B8" font-size="9">Áreas a trabajar: max 3</text>
+      <text x="680" y="207" fill="#94A3B8" font-size="9">Recomendaciones: max 3</text>
+    </svg>
+  </div>
+
+  <h3>Desglose por Jugador (dentro del análisis de equipo)</h3>
+  <table>
+    <tr><th>Campo</th><th>Descripción</th><th>Tipo</th></tr>
+    <tr><td><strong>Dorsal estimado</strong></td><td>Número de camiseta detectado</td><td>Número o null</td></tr>
+    <tr><td><strong>Posición</strong></td><td>Posición en el campo</td><td>Texto</td></tr>
+    <tr><td><strong>Rol táctico</strong></td><td>Función específica (ej: "desborde por banda")</td><td>Max 100 chars</td></tr>
+    <tr><td><strong>Rendimiento</strong></td><td>Evaluación global</td><td>destacado | bueno | regular | bajo</td></tr>
+    <tr><td><strong>Velocidad máxima</strong></td><td>Desde tracking YOLO</td><td>km/h</td></tr>
+    <tr><td><strong>Distancia recorrida</strong></td><td>Desde tracking YOLO</td><td>metros</td></tr>
+    <tr><td><strong>Pases completados/fallados</strong></td><td>Conteo de pases</td><td>Números</td></tr>
+    <tr><td><strong>Duelos ganados/perdidos</strong></td><td>Conteo de duelos</td><td>Números</td></tr>
+    <tr><td><strong>Recuperaciones</strong></td><td>Balones recuperados</td><td>Número</td></tr>
+    <tr><td><strong>Heatmap individual</strong></td><td>Coordenadas normalizadas (0-1)</td><td>Array {fx, fy}</td></tr>
+    <tr><td><strong>Resumen</strong></td><td>Evaluación en texto</td><td>Max 150 chars</td></tr>
+  </table>
+
+  <h3>Momentos Colectivos</h3>
+  <p>El agente identifica hasta <strong>6 momentos clave</strong> del partido con timestamp, clasificación (positivo/negativo) y descripción detallada de cada situación.</p>
+</div>
+
+<!-- ==================== 18. ROLE PROFILE COMPLETO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">18</div>
+    <h2>Área: Perfil de Rol Táctico — Detalle Completo</h2>
+  </div>
+
+  <p>El agente de Role Profile genera el análisis táctico más profundo de VITAS, con <strong>40+ campos</strong> incluyendo identidad, posiciones, arquetipos, capacidades y proyecciones.</p>
+
+  <h3>20 Arquetipos Tácticos Reconocidos</h3>
+  <div class="diagram">
+    <div class="diagram-title">Arquetipos que VITAS puede asignar a un jugador</div>
+    <svg viewBox="0 0 860 200" style="max-width:100%;">
+      <!-- Defensive -->
+      <text x="20" y="25" fill="#EF4444" font-size="10" font-weight="700">DEFENSIVOS</text>
+      <rect x="20" y="32" width="85" height="26" rx="6" fill="rgba(239,68,68,0.1)" stroke="#EF4444"/><text x="62" y="50" text-anchor="middle" fill="#FCA5A5" font-size="8">Recuperador</text>
+      <rect x="112" y="32" width="85" height="26" rx="6" fill="rgba(239,68,68,0.1)" stroke="#EF4444"/><text x="154" y="50" text-anchor="middle" fill="#FCA5A5" font-size="8">Interceptor</text>
+      <rect x="204" y="32" width="60" height="26" rx="6" fill="rgba(239,68,68,0.1)" stroke="#EF4444"/><text x="234" y="50" text-anchor="middle" fill="#FCA5A5" font-size="8">Ancla</text>
+      <rect x="271" y="32" width="60" height="26" rx="6" fill="rgba(239,68,68,0.1)" stroke="#EF4444"/><text x="301" y="50" text-anchor="middle" fill="#FCA5A5" font-size="8">Salvador</text>
+
+      <!-- Creative -->
+      <text x="370" y="25" fill="#818CF8" font-size="10" font-weight="700">CREATIVOS</text>
+      <rect x="370" y="32" width="85" height="26" rx="6" fill="rgba(129,140,248,0.1)" stroke="#818CF8"/><text x="412" y="50" text-anchor="middle" fill="#C7D2FE" font-size="8">Organizador</text>
+      <rect x="462" y="32" width="85" height="26" rx="6" fill="rgba(129,140,248,0.1)" stroke="#818CF8"/><text x="504" y="50" text-anchor="middle" fill="#C7D2FE" font-size="8">Distribuidor</text>
+      <rect x="554" y="32" width="70" height="26" rx="6" fill="rgba(129,140,248,0.1)" stroke="#818CF8"/><text x="589" y="50" text-anchor="middle" fill="#C7D2FE" font-size="8">Asociativo</text>
+      <rect x="631" y="32" width="85" height="26" rx="6" fill="rgba(129,140,248,0.1)" stroke="#818CF8"/><text x="673" y="50" text-anchor="middle" fill="#C7D2FE" font-size="8">Constructor</text>
+      <rect x="723" y="32" width="85" height="26" rx="6" fill="rgba(129,140,248,0.1)" stroke="#818CF8"/><text x="765" y="50" text-anchor="middle" fill="#C7D2FE" font-size="8">Mediapunta</text>
+
+      <!-- Offensive -->
+      <text x="20" y="85" fill="#22C55E" font-size="10" font-weight="700">OFENSIVOS</text>
+      <rect x="20" y="92" width="85" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="62" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Finalizador</text>
+      <rect x="112" y="92" width="85" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="154" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Rematador</text>
+      <rect x="204" y="92" width="85" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="246" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Regateador</text>
+      <rect x="296" y="92" width="110" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="351" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Desequilibrante</text>
+      <rect x="413" y="92" width="100" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="463" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Extremo puro</text>
+      <rect x="520" y="92" width="100" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="570" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Del. centro</text>
+      <rect x="627" y="92" width="70" height="26" rx="6" fill="rgba(34,197,94,0.1)" stroke="#22C55E"/><text x="662" y="110" text-anchor="middle" fill="#86EFAC" font-size="8">Falso 9</text>
+
+      <!-- Hybrid -->
+      <text x="20" y="148" fill="#F59E0B" font-size="10" font-weight="700">HÍBRIDOS</text>
+      <rect x="20" y="155" width="85" height="26" rx="6" fill="rgba(245,158,11,0.1)" stroke="#F59E0B"/><text x="62" y="173" text-anchor="middle" fill="#FCD34D" font-size="8">Pressing</text>
+      <rect x="112" y="155" width="85" height="26" rx="6" fill="rgba(245,158,11,0.1)" stroke="#F59E0B"/><text x="154" y="173" text-anchor="middle" fill="#FCD34D" font-size="8">Box-to-box</text>
+      <rect x="204" y="155" width="85" height="26" rx="6" fill="rgba(245,158,11,0.1)" stroke="#F59E0B"/><text x="246" y="173" text-anchor="middle" fill="#FCD34D" font-size="8">Carrilero</text>
+      <rect x="296" y="155" width="70" height="26" rx="6" fill="rgba(245,158,11,0.1)" stroke="#F59E0B"/><text x="331" y="173" text-anchor="middle" fill="#FCD34D" font-size="8">Interior</text>
+    </svg>
+  </div>
+
+  <h3>Estabilidad del Arquetipo</h3>
+  <div class="card-grid">
+    <div class="card" style="border-top:3px solid #F59E0B;"><h4 style="color:#F59E0B;">Emergente</h4><p>Perfil aún no definido. Datos insuficientes para establecer un arquetipo claro.</p></div>
+    <div class="card" style="border-top:3px solid #06B6D4;"><h4 style="color:#06B6D4;">En Desarrollo</h4><p>Tendencias visibles pero no consolidadas. El jugador muestra señales de un perfil.</p></div>
+    <div class="card" style="border-top:3px solid #22C55E;"><h4 style="color:#22C55E;">Estable</h4><p>Perfil consistente en múltiples análisis. Patrón de juego predecible.</p></div>
+    <div class="card" style="border-top:3px solid #FFD700;"><h4 style="color:#FFD700;">Consolidado</h4><p>Identidad táctica completamente establecida. Datos de alta confianza.</p></div>
+  </div>
+
+  <h3>Niveles de Muestra (Sample Tier)</h3>
+  <table>
+    <tr><th>Tier</th><th>Minutos jugados</th><th>Confiabilidad</th></tr>
+    <tr><td style="color:#CD7F32;"><strong>Bronce</strong></td><td>&lt; 360 min (4 partidos)</td><td>Baja — perfil preliminar</td></tr>
+    <tr><td style="color:#C0C0C0;"><strong>Plata</strong></td><td>360-899 min (4-10 partidos)</td><td>Media — tendencias visibles</td></tr>
+    <tr><td style="color:#FFD700;"><strong>Oro</strong></td><td>900-1799 min (10-20 partidos)</td><td>Alta — perfil confiable</td></tr>
+    <tr><td style="color:#E5E4E2;"><strong>Platino</strong></td><td>≥ 1800 min (20+ partidos)</td><td>Máxima — datos consolidados</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 19. DETECCIÓN Y TRACKING DETALLADO ==================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num">19</div>
+    <h2>Área: Modelos de Detección y Tracking — Detalle Técnico</h2>
+  </div>
+
+  <h3>Pipeline Completo de Tracking</h3>
+  <div class="diagram">
+    <div class="diagram-title">Desde el frame de video hasta las métricas del jugador</div>
+    <svg viewBox="0 0 860 320" style="max-width:100%;">
+      <!-- Step 1 -->
+      <rect x="20" y="20" width="160" height="75" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="100" y="42" text-anchor="middle" fill="#818CF8" font-size="10" font-weight="700">1. Frame Extractor</text>
+      <text x="100" y="58" text-anchor="middle" fill="#94A3B8" font-size="8">requestAnimationFrame</text>
+      <text x="100" y="72" text-anchor="middle" fill="#94A3B8" font-size="8">Canvas 2D → ImageData</text>
+      <text x="100" y="86" text-anchor="middle" fill="#67E8F9" font-size="8">8 FPS target</text>
+
+      <text x="192" y="60" fill="#818CF8" font-size="16">→</text>
+
+      <!-- Step 2 -->
+      <rect x="210" y="20" width="160" height="75" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="290" y="42" text-anchor="middle" fill="#06B6D4" font-size="10" font-weight="700">2. YOLO Inference</text>
+      <text x="290" y="58" text-anchor="middle" fill="#94A3B8" font-size="8">Web Worker (WASM+SIMD)</text>
+      <text x="290" y="72" text-anchor="middle" fill="#94A3B8" font-size="8">640×640 tensor input</text>
+      <text x="290" y="86" text-anchor="middle" fill="#67E8F9" font-size="8">[1,56,8400] output</text>
+
+      <text x="382" y="60" fill="#06B6D4" font-size="16">→</text>
+
+      <!-- Step 3 -->
+      <rect x="400" y="20" width="160" height="75" rx="10" fill="#14532D" stroke="#22C55E" stroke-width="2"/>
+      <text x="480" y="42" text-anchor="middle" fill="#22C55E" font-size="10" font-weight="700">3. NMS + Decode</text>
+      <text x="480" y="58" text-anchor="middle" fill="#94A3B8" font-size="8">IOU threshold: 0.45</text>
+      <text x="480" y="72" text-anchor="middle" fill="#94A3B8" font-size="8">Conf threshold: 0.30</text>
+      <text x="480" y="86" text-anchor="middle" fill="#86EFAC" font-size="8">→ Detection[] + Keypoints[]</text>
+
+      <text x="572" y="60" fill="#22C55E" font-size="16">→</text>
+
+      <!-- Step 4 -->
+      <rect x="590" y="20" width="160" height="75" rx="10" fill="#451A03" stroke="#F59E0B" stroke-width="2"/>
+      <text x="670" y="42" text-anchor="middle" fill="#F59E0B" font-size="10" font-weight="700">4. Homografía</text>
+      <text x="670" y="58" text-anchor="middle" fill="#94A3B8" font-size="8">4-point DLT transform</text>
+      <text x="670" y="72" text-anchor="middle" fill="#94A3B8" font-size="8">Píxeles → metros campo</text>
+      <text x="670" y="86" text-anchor="middle" fill="#FCD34D" font-size="8">FIFA 105m × 68m</text>
+
+      <!-- Row 2 -->
+      <rect x="20" y="130" width="160" height="75" rx="10" fill="#4C1D95" stroke="#A855F7" stroke-width="2"/>
+      <text x="100" y="152" text-anchor="middle" fill="#A855F7" font-size="10" font-weight="700">5. IoU Tracker</text>
+      <text x="100" y="168" text-anchor="middle" fill="#94A3B8" font-size="8">Greedy IoU matching</text>
+      <text x="100" y="182" text-anchor="middle" fill="#94A3B8" font-size="8">Track ID persistence</text>
+      <text x="100" y="196" text-anchor="middle" fill="#C084FC" font-size="8">MAX_AGE: 8 frames</text>
+
+      <rect x="210" y="130" width="160" height="75" rx="10" fill="#7F1D1D" stroke="#EF4444" stroke-width="2"/>
+      <text x="290" y="152" text-anchor="middle" fill="#EF4444" font-size="10" font-weight="700">6. Velocity Engine</text>
+      <text x="290" y="168" text-anchor="middle" fill="#94A3B8" font-size="8">EMA smooth (α=0.35)</text>
+      <text x="290" y="182" text-anchor="middle" fill="#94A3B8" font-size="8">Accel: ±8.0 m/s² clamp</text>
+      <text x="290" y="196" text-anchor="middle" fill="#FCA5A5" font-size="8">Max: 12.5 m/s (45 km/h)</text>
+
+      <rect x="400" y="130" width="160" height="75" rx="10" fill="#312E81" stroke="#818CF8" stroke-width="2"/>
+      <text x="480" y="152" text-anchor="middle" fill="#818CF8" font-size="10" font-weight="700">7. Pose Analyzer</text>
+      <text x="480" y="168" text-anchor="middle" fill="#94A3B8" font-size="8">Escaneos: orejas + nariz</text>
+      <text x="480" y="182" text-anchor="middle" fill="#94A3B8" font-size="8">Duelos: proximidad &lt;1.8m</text>
+      <text x="480" y="196" text-anchor="middle" fill="#C7D2FE" font-size="8">Aéreo vs suelo: caderas</text>
+
+      <rect x="590" y="130" width="160" height="75" rx="10" fill="#164E63" stroke="#06B6D4" stroke-width="2"/>
+      <text x="670" y="152" text-anchor="middle" fill="#06B6D4" font-size="10" font-weight="700">8. Voronoi</text>
+      <text x="670" y="168" text-anchor="middle" fill="#94A3B8" font-size="8">d3-delaunay triangulation</text>
+      <text x="670" y="182" text-anchor="middle" fill="#94A3B8" font-size="8">Shoelace area (m²)</text>
+      <text x="670" y="196" text-anchor="middle" fill="#67E8F9" font-size="8">Space run: Δ &gt; 5m²</text>
+
+      <!-- Output summary -->
+      <rect x="100" y="240" width="660" height="60" rx="12" fill="rgba(34,197,94,0.05)" stroke="#22C55E" stroke-width="1.5"/>
+      <text x="430" y="265" text-anchor="middle" fill="#22C55E" font-size="11" font-weight="700">OUTPUT POR FRAME</text>
+      <text x="430" y="285" text-anchor="middle" fill="#94A3B8" font-size="9">Track[] (ID, bbox, keypoints, speed, accel, distance, sprints) + ScanEvent[] + DuelEvent[] + VoronoiRegion[] (area m²)</text>
+    </svg>
+  </div>
+
+  <h3>Validaciones de Seguridad del Tracking</h3>
+  <table>
+    <tr><th>Parámetro</th><th>Límite</th><th>Razón</th></tr>
+    <tr><td>Velocidad máxima</td><td>12.5 m/s (45 km/h)</td><td>Imposible en fútbol — filtra errores de tracking</td></tr>
+    <tr><td>Distancia por frame</td><td>5.0 m (a 8 FPS)</td><td>Salto irreal — indica pérdida de track</td></tr>
+    <tr><td>Tiempo entre frames</td><td>50ms - 2000ms</td><td>Fuera de rango invalida cálculos de velocidad</td></tr>
+    <tr><td>Límites del campo</td><td>-115m a +115m</td><td>Fuera del campo = error de homografía</td></tr>
+    <tr><td>Aceleración</td><td>±8.0 m/s²</td><td>Límite biomecánico humano</td></tr>
+    <tr><td>Duelos (confirmación)</td><td>≥3 frames consecutivos</td><td>Evita falsos positivos por cruce momentáneo</td></tr>
+    <tr><td>Escaneos (confirmación)</td><td>≥2 frames consecutivos</td><td>Confirma giro real vs ruido de detección</td></tr>
+  </table>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div style="text-align:center; margin-top:80px; padding:40px; border-top:1px solid var(--border);">
+  <div style="font-size:2em; margin-bottom:10px;">⚽</div>
+  <div style="font-size:1.4em; font-weight:800; background:linear-gradient(135deg,#818CF8,#06B6D4); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">VITAS Football Intelligence</div>
+  <p style="color:var(--text-muted); margin-top:10px;">Prophet Horizon Technology · Versión 2.1.0 · Abril 2026</p>
+  <p style="color:var(--border); font-size:0.85em; margin-top:5px;">https://futuro-club.vercel.app</p>
+</div>
+
+</div><!-- end .page -->
+</body>
+</html>

@@ -1,0 +1,1586 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — Funcionalidades Completas de la Plataforma — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · Funcionalidades Completas de la Plataforma</h1>
+<blockquote>
+<p>Inventario exhaustivo de todo lo que tiene la aplicacion VITAS Football Intelligence.
+Ultima actualizacion: Abril 2026</p>
+</blockquote>
+<hr>
+<h2>Indice</h2>
+<ol>
+<li><a href="#vision-general">Vision General</a></li>
+<li><a href="#paginas-y-rutas">Paginas y Rutas</a></li>
+<li><a href="#motor-de-analisis-de-video-vitaslab">Motor de Analisis de Video (VitasLab)</a></li>
+<li><a href="#tracking-por-vision-artificial-yolo">Tracking por Vision Artificial (YOLO)</a></li>
+<li><a href="#sistema-de-inteligencia-artificial">Sistema de Inteligencia Artificial</a></li>
+<li><a href="#metricas-y-algoritmos">Metricas y Algoritmos</a></li>
+<li><a href="#base-de-datos-de-jugadores-profesionales">Base de Datos de Jugadores Profesionales</a></li>
+<li><a href="#knowledge-base-rag">Knowledge Base (RAG)</a></li>
+<li><a href="#gestion-de-equipos">Gestion de Equipos</a></li>
+<li><a href="#sistema-de-notificaciones">Sistema de Notificaciones</a></li>
+<li><a href="#billing-y-suscripciones">Billing y Suscripciones</a></li>
+<li><a href="#sincronizacion-y-offline">Sincronizacion y Offline</a></li>
+<li><a href="#exportacion-y-reportes">Exportacion y Reportes</a></li>
+<li><a href="#partidos-en-vivo">Partidos en Vivo</a></li>
+<li><a href="#configuracion-y-preferencias">Configuracion y Preferencias</a></li>
+<li><a href="#infraestructura-tecnica">Infraestructura Tecnica</a></li>
+<li><a href="#apis-y-endpoints">APIs y Endpoints</a></li>
+<li><a href="#integraciones-externas">Integraciones Externas</a></li>
+<li><a href="#estado-de-cada-feature">Estado de Cada Feature</a></li>
+</ol>
+<hr>
+<h2>Vision General</h2>
+<p>VITAS es una <strong>PWA (Progressive Web App)</strong> de inteligencia futbolistica diseñada para scouts, entrenadores y directores de academias juveniles. Combina:</p>
+<ul>
+<li><strong>Video Analysis por IA</strong> (Claude Sonnet + Gemini Vision)</li>
+<li><strong>Tracking por vision artificial</strong> (YOLO en navegador)</li>
+<li><strong>Correccion por maduracion biologica</strong> (PHV / TruthFilter)</li>
+<li><strong>Metricas avanzadas</strong> (VAEP, UBI, VSI, Voronoi)</li>
+<li><strong>Base de datos de 290+ profesionales</strong> (EA FC25)</li>
+<li><strong>Knowledge base de ejercicios</strong> (RAG con embeddings)</li>
+<li><strong>Modo offline-first</strong> con sincronizacion automatica</li>
+</ul>
+<p><strong>Stack tecnologico:</strong></p>
+<ul>
+<li>Frontend: React 18 + Vite 8 + TypeScript + Tailwind CSS</li>
+<li>Backend: Vercel Serverless (Edge + Node)</li>
+<li>Base de datos: Supabase (PostgreSQL + Auth + RLS + Realtime)</li>
+<li>Video: Bunny Stream CDN</li>
+<li>IA: Claude Sonnet (Anthropic) + Gemini (Google)</li>
+<li>ML: ONNX Runtime Web (YOLO v8/v11)</li>
+<li>Pagos: Stripe</li>
+<li>Notificaciones: Web Push (VAPID)</li>
+</ul>
+<hr>
+<h2>Paginas y Rutas</h2>
+<h3>Autenticacion (publicas)</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Pagina</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/login</code></td>
+<td>LoginPage</td>
+<td>Email + password via Supabase Auth</td>
+</tr>
+<tr>
+<td><code>/register</code></td>
+<td>RegisterPage</td>
+<td>Registro de nuevo usuario</td>
+</tr>
+<tr>
+<td><code>/forgot-password</code></td>
+<td>ForgotPasswordPage</td>
+<td>Solicitar reset de password</td>
+</tr>
+<tr>
+<td><code>/reset-password</code></td>
+<td>ResetPasswordPage</td>
+<td>Confirmar nuevo password</td>
+</tr>
+</tbody></table>
+<h3>Principales (protegidas)</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Pagina</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/pulse</code></td>
+<td>Dashboard</td>
+<td>Hub principal: stats, matches, trending players</td>
+</tr>
+<tr>
+<td><code>/lab</code></td>
+<td>VitasLab</td>
+<td>Pipeline completo de video analysis</td>
+</tr>
+<tr>
+<td><code>/master</code></td>
+<td>MasterDashboard</td>
+<td>Vista academia: todos los jugadores, bias alerts</td>
+</tr>
+<tr>
+<td><code>/rankings</code></td>
+<td>Rankings</td>
+<td>Leaderboards por metrica</td>
+</tr>
+<tr>
+<td><code>/compare</code></td>
+<td>PlayerComparison</td>
+<td>Comparacion lado a lado de 2-4 jugadores</td>
+</tr>
+<tr>
+<td><code>/scout</code></td>
+<td>ScoutFeed</td>
+<td>Feed de observaciones de scouting</td>
+</tr>
+<tr>
+<td><code>/drill</code></td>
+<td>SoloDrill</td>
+<td>Tracking de drills individuales</td>
+</tr>
+<tr>
+<td><code>/equipo</code></td>
+<td>TeamPage</td>
+<td>Gestion de equipo (roster, posiciones)</td>
+</tr>
+<tr>
+<td><code>/team-analysis</code></td>
+<td>TeamAnalysisPage</td>
+<td>Analisis tactico de equipo</td>
+</tr>
+<tr>
+<td><code>/director</code></td>
+<td>DirectorDashboard</td>
+<td>Analytics de uso (solo plan Club)</td>
+</tr>
+<tr>
+<td><code>/billing</code></td>
+<td>BillingPage</td>
+<td>Gestion de suscripcion Stripe</td>
+</tr>
+<tr>
+<td><code>/settings</code></td>
+<td>SettingsPage</td>
+<td>Configuracion de la app</td>
+</tr>
+<tr>
+<td><code>/onboarding</code></td>
+<td>OnboardingPage</td>
+<td>Setup inicial para nuevos usuarios</td>
+</tr>
+</tbody></table>
+<h3>Jugador (protegidas)</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Pagina</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/player/:id</code></td>
+<td>PlayerProfile</td>
+<td>Perfil completo del jugador</td>
+</tr>
+<tr>
+<td><code>/players/new</code></td>
+<td>PlayerForm</td>
+<td>Crear nuevo jugador</td>
+</tr>
+<tr>
+<td><code>/players/:id/edit</code></td>
+<td>PlayerForm</td>
+<td>Editar datos del jugador</td>
+</tr>
+<tr>
+<td><code>/players/:id/intelligence</code></td>
+<td>PlayerIntelligencePage</td>
+<td>Resultados de analisis IA</td>
+</tr>
+<tr>
+<td><code>/players/:id/role-profile</code></td>
+<td>RoleProfile</td>
+<td>Perfil tactico y arquetipos</td>
+</tr>
+<tr>
+<td><code>/players/:id/role-profile/compare</code></td>
+<td>RoleProfileCompare</td>
+<td>Comparar perfiles de rol</td>
+</tr>
+<tr>
+<td><code>/players/:id/role-profile/audit</code></td>
+<td>RoleProfileAudit</td>
+<td>Historial de cambios</td>
+</tr>
+</tbody></table>
+<h3>Reportes (protegidas)</h3>
+<table>
+<thead>
+<tr>
+<th>Ruta</th>
+<th>Pagina</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/reports</code></td>
+<td>ReportsPage</td>
+<td>Gestion de reportes</td>
+</tr>
+<tr>
+<td><code>/report/:id</code></td>
+<td>PlayerReportPrint</td>
+<td>Reporte imprimible del jugador</td>
+</tr>
+<tr>
+<td><code>/analysis-report/:id</code></td>
+<td>AnalysisReportPrint</td>
+<td>Reporte imprimible de analisis</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Motor de Analisis de Video (VitasLab)</h2>
+<h3>Upload de video</h3>
+<ul>
+<li>Subida directa a Bunny Stream CDN</li>
+<li>Protocolo TUS (resumable uploads)</li>
+<li>Barra de progreso en tiempo real</li>
+<li>Polling automatico de estado de encoding</li>
+<li>Formatos soportados: MP4 (H.264 recomendado), WebM</li>
+</ul>
+<h3>Galeria de videos</h3>
+<ul>
+<li>Grid de videos guardados con thumbnails</li>
+<li>Badge con nombre del jugador vinculado</li>
+<li>Seleccion rapida para analisis</li>
+<li>Preview con VideoPlayer integrado</li>
+<li>Eliminacion de videos</li>
+</ul>
+<h3>Modos de analisis</h3>
+<table>
+<thead>
+<tr>
+<th>Modo</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>All Players</td>
+<td>Analiza a todos los jugadores visibles</td>
+</tr>
+<tr>
+<td>Click to Track</td>
+<td>Click manual para seleccionar jugador</td>
+</tr>
+<tr>
+<td>Team</td>
+<td>Comparacion de equipos (home vs away)</td>
+</tr>
+<tr>
+<td>Specific Player</td>
+<td>Filtra por numero de camiseta y posicion</td>
+</tr>
+</tbody></table>
+<h3>Calibracion de campo</h3>
+<ul>
+<li>3 presets de perspectiva: Vista Lateral, Vista Aerea, Vista Tribuna</li>
+<li>Calibracion manual: click en 4 esquinas del campo</li>
+<li>Homografia 3x3 para convertir pixels a metros</li>
+<li>Validacion: puntos deben formar cuadrilatero convexo</li>
+</ul>
+<h3>Reporte generado</h3>
+<ul>
+<li>Estado Actual (6 dimensiones con scores)</li>
+<li>ADN Futbolistico (perfil cualitativo)</li>
+<li>Jugador Referencia (comparacion con pro)</li>
+<li>Proyeccion de Carrera (3 escenarios: optimista/realista/pesimista)</li>
+<li>Plan de Desarrollo (objetivos 6m/18m + pilares + acciones)</li>
+<li>Ejercicios Recomendados (RAG knowledge base)</li>
+<li>Riesgos Identificados</li>
+<li>Metricas VAEP (si hay eventos)</li>
+</ul>
+<h3>Historial de analisis</h3>
+<ul>
+<li>Todos los analisis guardados por jugador</li>
+<li>Accesibles via boton HISTORIAL</li>
+<li>Filtro por jugador seleccionado</li>
+<li>Persistencia en Supabase + localStorage</li>
+</ul>
+<hr>
+<h2>Tracking por Vision Artificial (YOLO)</h2>
+<h3>Deteccion</h3>
+<ul>
+<li>YOLO v8/v11 corriendo en ONNX Runtime Web (navegador)</li>
+<li>Web Worker dedicado (no bloquea UI)</li>
+<li>Deteccion de: jugadores, balon, arbitros</li>
+<li>17 keypoints de pose (modelo COCO)</li>
+<li>Confianza por deteccion y keypoint</li>
+</ul>
+<h3>Tracking</h3>
+<ul>
+<li>Algoritmo Hungaro para asignacion de IDs</li>
+<li>Filtro de Kalman para suavizado de trayectorias</li>
+<li>IDs persistentes a traves de frames</li>
+<li>Manejo de oclusiones temporales</li>
+</ul>
+<h3>Metricas fisicas (tiempo real)</h3>
+<ul>
+<li>Velocidad maxima (m/s y km/h)</li>
+<li>Velocidad promedio</li>
+<li>Distancia total recorrida (metros)</li>
+<li>Numero de sprints (&gt;6.5 m/s por &gt;=1s)</li>
+<li>Distancia en sprints</li>
+<li>Aceleracion maxima</li>
+<li>Zonas de intensidad (walk/jog/run/sprint)</li>
+<li>Scan events (rotacion de cabeza = conciencia espacial)</li>
+<li>Deteccion de duelos (aereos y terrestres)</li>
+</ul>
+<h3>Visualizaciones</h3>
+<ul>
+<li><strong>TrackingMetricsPanel</strong>: Panel lateral con todas las metricas</li>
+<li><strong>PlayerHeatmap</strong>: Mapa de calor sobre el campo</li>
+<li><strong>VoronoiOverlay</strong>: Poligonos de control territorial (toggle ON/OFF)<ul>
+<li>Colores semi-transparentes alternados por jugador</li>
+<li>Labels con ID y area m2</li>
+<li>Metricas: Control Home% / Away%, area promedio</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>Sistema de Inteligencia Artificial</h2>
+<h3>Claude Sonnet (Anthropic)</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Funcion</th>
+<th>Runtime</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>video-intelligence</td>
+<td>Analisis individual de jugador</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>team-intelligence</td>
+<td>Analisis tactico de equipo</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>player-similarity</td>
+<td>Comparacion con profesionales</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>role-profile</td>
+<td>Perfil tactico y arquetipos</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>phv-calculator</td>
+<td>Calculo de maduracion biologica</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>scout-insight</td>
+<td>Insights para feed de scouting</td>
+<td>Edge</td>
+</tr>
+<tr>
+<td>tactical-label</td>
+<td>Etiquetado tactico de detecciones</td>
+<td>Edge</td>
+</tr>
+</tbody></table>
+<h3>Gemini (Google)</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Funcion</th>
+<th>Runtime</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>video-observation</td>
+<td>Observaciones detalladas de video</td>
+<td>Node</td>
+</tr>
+<tr>
+<td>team-observation</td>
+<td>Observaciones tacticas de equipo</td>
+<td>Node</td>
+</tr>
+</tbody></table>
+<h3>Pipeline IA</h3>
+<ol>
+<li>Keyframes extraidos del video (8 frames)</li>
+<li>Gemini analiza video completo (observaciones + event counts)</li>
+<li>Claude recibe: keyframes + context + Gemini observations + YOLO metrics</li>
+<li>Claude genera reporte estructurado (JSON)</li>
+<li>Streaming SSE con eventos de progreso</li>
+</ol>
+<hr>
+<h2>Metricas y Algoritmos</h2>
+<h3>Indices principales</h3>
+<table>
+<thead>
+<tr>
+<th>Indice</th>
+<th>Que hace</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>VSI</strong></td>
+<td>Score compuesto 0-100 (VITAS Scouting Index)</td>
+</tr>
+<tr>
+<td><strong>PHV</strong></td>
+<td>Maduracion biologica (formula Mirwald)</td>
+</tr>
+<tr>
+<td><strong>UBI</strong></td>
+<td>Indice de sesgo combinado (RAE + PHV)</td>
+</tr>
+<tr>
+<td><strong>TruthFilter</strong></td>
+<td>VSI ajustado eliminando sesgos</td>
+</tr>
+<tr>
+<td><strong>VAEP</strong></td>
+<td>Valor de acciones por probabilidad</td>
+</tr>
+<tr>
+<td><strong>RAE</strong></td>
+<td>Efecto de edad relativa (cuartiles)</td>
+</tr>
+</tbody></table>
+<h3>Clasificaciones</h3>
+<table>
+<thead>
+<tr>
+<th>Sistema</th>
+<th>Categorias</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VSI Tier</td>
+<td>Elite (80+), Alto (65+), Medio (50+), Desarrollo (&lt;50)</td>
+</tr>
+<tr>
+<td>PHV</td>
+<td>Precoz (&lt;-1), Normal (-1 a +1), Tardio (&gt;+1)</td>
+</tr>
+<tr>
+<td>Play Style</td>
+<td>Ofensivo, Defensivo, Tecnico, Fisico, Equilibrado</td>
+</tr>
+<tr>
+<td>Similarity</td>
+<td>Clon (92+), Muy similar (85+), Similar (75+), Referencia (60+)</td>
+</tr>
+<tr>
+<td>Sample Tier</td>
+<td>Bronze (&lt;360min), Silver, Gold, Platinum (1800+min)</td>
+</tr>
+</tbody></table>
+<h3>Radar de 6 metricas</h3>
+<p>Speed (Velocidad), Technique (Tecnica), Vision, Stamina (Resistencia), Shooting (Disparo), Defending (Defensa)</p>
+<h3>Proyecciones</h3>
+<ul>
+<li>VSI proyectado a 18 y 21 anos</li>
+<li>Curvas de desarrollo por metrica (edad 8-35)</li>
+<li>Margenes de confianza por edad (+-10% a +-20%)</li>
+<li>Edad equivalente profesional</li>
+</ul>
+<hr>
+<h2>Base de Datos de Jugadores Profesionales</h2>
+<ul>
+<li><strong>290+ jugadores</strong> con metricas EA FC25</li>
+<li>Fuente: <code>src/data/proPlayers.ts</code> (local) + tabla <code>pro_players</code> (Supabase)</li>
+<li>Metricas por jugador: pace, shooting, passing, dribbling, defending, physic (0-99)</li>
+<li>Posiciones: GK, RB, CB, LB, DM, CM, AM, RW, LW, ST</li>
+<li>Usado para: Similarity matching, referencia en reportes IA</li>
+<li>Supabase-first con fallback a datos locales</li>
+</ul>
+<hr>
+<h2>Knowledge Base (RAG)</h2>
+<h3>Contenido</h3>
+<ul>
+<li>32 drills iniciales (ejercicios de entrenamiento)</li>
+<li>Categorias: drill, methodology, scouting</li>
+<li>Embeddings vectoriales (Voyage AI / Gemini)</li>
+<li>Full-text search en espanol (fallback)</li>
+</ul>
+<h3>Busqueda</h3>
+<ul>
+<li>Widget <code>KnowledgeSearch</code> con debounce 300ms</li>
+<li>Filtro por categoria (pills)</li>
+<li>Resultados con score de similitud (barra visual)</li>
+<li>Integrado en reporte de VitasLab (&quot;Ejercicios Recomendados&quot;)</li>
+</ul>
+<h3>Ingesta</h3>
+<ul>
+<li>Endpoint <code>/api/rag/ingest</code> para agregar contenido</li>
+<li>Seed automatico con <code>/api/rag/seed</code></li>
+</ul>
+<hr>
+<h2>Gestion de Equipos</h2>
+<h3>Team Management</h3>
+<ul>
+<li>Crear/gestionar equipo</li>
+<li>Roster de jugadores</li>
+<li>Asignacion de posiciones</li>
+<li>Invitaciones por email (<code>/api/team/invite</code>)</li>
+<li>Aceptacion via link (<code>/aceptar-invitacion</code>)</li>
+</ul>
+<h3>Team Analysis</h3>
+<ul>
+<li>Analisis tactico de equipo completo</li>
+<li>Deteccion de formacion (4-2-3-1, 3-5-2, etc.)</li>
+<li>Posesion por fases</li>
+<li>Pressing colectivo</li>
+<li>Compactness y transiciones</li>
+<li>Heatmaps de equipo</li>
+</ul>
+<hr>
+<h2>Sistema de Notificaciones</h2>
+<h3>Web Push</h3>
+<ul>
+<li>Registro via VAPID keys</li>
+<li>Permiso del navegador (Notification API)</li>
+<li>Almacenado en tabla <code>push_subscriptions</code></li>
+</ul>
+<h3>Cron diario (09:00 UTC)</h3>
+<ul>
+<li>Endpoint: <code>/api/notifications/cron</code></li>
+<li>Configurado en Vercel Crons</li>
+</ul>
+<h3>Triggers automaticos</h3>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Condicion</th>
+<th>Mensaje</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Rendimiento bajo</td>
+<td>VSI &lt; 50</td>
+<td>&quot;Jugador X tiene VSI bajo&quot;</td>
+</tr>
+<tr>
+<td>Inactividad</td>
+<td>&gt;30 dias sin actualizar</td>
+<td>&quot;Jugador X lleva 30+ dias sin datos&quot;</td>
+</tr>
+<tr>
+<td>Limite de plan</td>
+<td>Uso &gt;= 90%</td>
+<td>&quot;Estas cerca del limite de tu plan&quot;</td>
+</tr>
+</tbody></table>
+<h3>Preferencias granulares</h3>
+<ul>
+<li>Toggle por tipo de notificacion en Settings</li>
+<li>Persistencia en AppSettings (localStorage)</li>
+</ul>
+<hr>
+<h2>Billing y Suscripciones</h2>
+<h3>Planes</h3>
+<table>
+<thead>
+<tr>
+<th>Caracteristica</th>
+<th>Free</th>
+<th>Pro ($19/mes)</th>
+<th>Club ($79/mes)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Jugadores</td>
+<td>5</td>
+<td>25</td>
+<td>Ilimitado</td>
+</tr>
+<tr>
+<td>Analisis/mes</td>
+<td>3</td>
+<td>20</td>
+<td>Ilimitado</td>
+</tr>
+<tr>
+<td>VAEP</td>
+<td>No</td>
+<td>Si</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>PDF Export</td>
+<td>No</td>
+<td>Si</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Role Profiles</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Push Notifications</td>
+<td>No</td>
+<td>Si</td>
+<td>Si</td>
+</tr>
+<tr>
+<td>Director Dashboard</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+</tr>
+</tbody></table>
+<h3>Integracion Stripe</h3>
+<ul>
+<li>Checkout Session para nueva suscripcion</li>
+<li>Customer Portal para gestion</li>
+<li>Webhooks para actualizacion en tiempo real</li>
+<li>PlanGuard component para gate de features</li>
+</ul>
+<hr>
+<h2>Sincronizacion y Offline</h2>
+<h3>Offline-first</h3>
+<ul>
+<li>Toda la app funciona sin internet</li>
+<li>Datos almacenados en localStorage</li>
+<li>Cola de sync para operaciones pendientes</li>
+</ul>
+<h3>SyncQueueService</h3>
+<ul>
+<li>Enqueue: Deduplicacion por entity + entityId</li>
+<li>Dequeue: Procesamiento FIFO al reconectar</li>
+<li>Pruning: Items con &gt;5 reintentos se eliminan</li>
+<li>Timestamps: Delta sync por entidad</li>
+</ul>
+<h3>Indicadores UI</h3>
+<ul>
+<li>Synced / Syncing / Offline / N pendientes</li>
+<li>Conflictos: Last-Write-Wins automatico</li>
+</ul>
+<hr>
+<h2>Exportacion y Reportes</h2>
+<h3>PDF del jugador</h3>
+<ul>
+<li><code>PlayerReportPrint.tsx</code>: Version print-friendly</li>
+<li>Incluye: datos, radar, VSI, PHV, metricas</li>
+<li>Via html2canvas o Ctrl+P nativo</li>
+</ul>
+<h3>PDF del analisis</h3>
+<ul>
+<li><code>AnalysisReportPrint.tsx</code>: Version print-friendly</li>
+<li>Incluye: 6 dimensiones, referencia pro, proyeccion, plan</li>
+</ul>
+<h3>Comparison Report</h3>
+<ul>
+<li><code>PlayerComparison.tsx</code>: Vista lado a lado</li>
+<li>Radar overlay, VSI, percentiles, tendencias</li>
+</ul>
+<hr>
+<h2>Partidos en Vivo</h2>
+<h3>LiveFixtures widget</h3>
+<ul>
+<li>Fuente: Football-Data.org API</li>
+<li>Proxy: <code>/api/fixtures/live</code></li>
+<li>Auto-refresh: cada 60s si hay partidos en juego</li>
+<li>Cards: equipo vs equipo, minuto, score, status</li>
+<li>Status: En Juego (verde pulse), Pausado, Programado, Finalizado</li>
+<li>Warning si falta FOOTBALL_DATA_API_KEY</li>
+</ul>
+<hr>
+<h2>Configuracion y Preferencias</h2>
+<h3>Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Seccion</th>
+<th>Opciones</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cuenta</td>
+<td>Email, rol (scout activo)</td>
+</tr>
+<tr>
+<td>Plan</td>
+<td>Plan actual, limites, link a billing</td>
+</tr>
+<tr>
+<td>Notificaciones</td>
+<td>Toggle push + 4 sub-toggles granulares</td>
+</tr>
+<tr>
+<td>Idioma</td>
+<td>Espanol (ES)</td>
+</tr>
+<tr>
+<td>Tema</td>
+<td>Dark Obsidian / Light Mode</td>
+</tr>
+<tr>
+<td>Seguridad</td>
+<td>Estado de autenticacion, API keys</td>
+</tr>
+<tr>
+<td>Datos</td>
+<td>Supabase PostgreSQL status</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Infraestructura Tecnica</h2>
+<h3>Frontend</h3>
+<table>
+<thead>
+<tr>
+<th>Tecnologia</th>
+<th>Version</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>React</td>
+<td>18.3.1</td>
+<td>UI framework</td>
+</tr>
+<tr>
+<td>Vite</td>
+<td>8.x</td>
+<td>Build tool + dev server</td>
+</tr>
+<tr>
+<td>TypeScript</td>
+<td>Strict</td>
+<td>Type safety</td>
+</tr>
+<tr>
+<td>Tailwind CSS</td>
+<td>3.4.17</td>
+<td>Styling</td>
+</tr>
+<tr>
+<td>Framer Motion</td>
+<td>12.38.0</td>
+<td>Animaciones</td>
+</tr>
+<tr>
+<td>React Query</td>
+<td>5.83.0</td>
+<td>Data fetching + cache</td>
+</tr>
+<tr>
+<td>React Router</td>
+<td>6.30.1</td>
+<td>Routing</td>
+</tr>
+<tr>
+<td>Radix UI</td>
+<td>Multiple</td>
+<td>Componentes accesibles</td>
+</tr>
+<tr>
+<td>Recharts</td>
+<td>2.15.4</td>
+<td>Graficos</td>
+</tr>
+<tr>
+<td>Lucide React</td>
+<td>0.462.0</td>
+<td>Iconos</td>
+</tr>
+<tr>
+<td>Sonner</td>
+<td>1.7.4</td>
+<td>Toast notifications</td>
+</tr>
+</tbody></table>
+<h3>Backend</h3>
+<table>
+<thead>
+<tr>
+<th>Tecnologia</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Vercel Serverless</td>
+<td>API endpoints (Edge + Node runtime)</td>
+</tr>
+<tr>
+<td>Supabase</td>
+<td>Auth, PostgreSQL, RLS, Realtime</td>
+</tr>
+<tr>
+<td>Bunny Stream</td>
+<td>Video hosting + transcoding + CDN</td>
+</tr>
+<tr>
+<td>Stripe</td>
+<td>Pagos + webhooks</td>
+</tr>
+<tr>
+<td>Web Push (VAPID)</td>
+<td>Notificaciones push</td>
+</tr>
+</tbody></table>
+<h3>ML / IA</h3>
+<table>
+<thead>
+<tr>
+<th>Tecnologia</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ONNX Runtime Web</td>
+<td>YOLO inference en navegador</td>
+</tr>
+<tr>
+<td>d3-delaunay</td>
+<td>Voronoi tessellation</td>
+</tr>
+<tr>
+<td>Claude Sonnet</td>
+<td>Reportes de inteligencia</td>
+</tr>
+<tr>
+<td>Gemini Vision</td>
+<td>Observaciones de video</td>
+</tr>
+<tr>
+<td>Voyage AI</td>
+<td>Embeddings para RAG</td>
+</tr>
+</tbody></table>
+<h3>PWA</h3>
+<ul>
+<li>Service Worker para cache offline</li>
+<li>Manifest para instalacion</li>
+<li>Puerto: 5200</li>
+<li>Build: <code>npm run build</code> -&gt; <code>dist/</code></li>
+</ul>
+<hr>
+<h2>APIs y Endpoints</h2>
+<h3>Video</h3>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Endpoint</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/api/upload/video-init</td>
+<td>Iniciar upload Bunny</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/videos/:id/status</td>
+<td>Estado de encoding</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/videos/list</td>
+<td>Listar videos</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/api/videos/:id/delete</td>
+<td>Eliminar video</td>
+</tr>
+</tbody></table>
+<h3>Agentes IA</h3>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Endpoint</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/api/agents/video-intelligence</td>
+<td>Analisis individual (Claude)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/video-observation</td>
+<td>Observaciones (Gemini)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/team-intelligence</td>
+<td>Analisis de equipo (Claude)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/team-observation</td>
+<td>Observaciones equipo (Gemini)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/player-similarity</td>
+<td>Similitud con pros</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/role-profile</td>
+<td>Perfil tactico</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/phv-calculator</td>
+<td>Calculo PHV</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/scout-insight</td>
+<td>Insights scouting</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/agents/tactical-label</td>
+<td>Etiquetado tactico</td>
+</tr>
+</tbody></table>
+<h3>RAG</h3>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Endpoint</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/api/rag/query</td>
+<td>Busqueda knowledge base</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/rag/ingest</td>
+<td>Ingestar contenido</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/rag/embed</td>
+<td>Generar embeddings</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/rag/seed</td>
+<td>Seed datos iniciales</td>
+</tr>
+</tbody></table>
+<h3>Billing</h3>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Endpoint</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/api/stripe/checkout</td>
+<td>Crear sesion Stripe</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/stripe/portal</td>
+<td>Portal de cliente</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/stripe/webhook</td>
+<td>Webhook de Stripe</td>
+</tr>
+</tbody></table>
+<h3>Otros</h3>
+<table>
+<thead>
+<tr>
+<th>Metodo</th>
+<th>Endpoint</th>
+<th>Funcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>POST</td>
+<td>/api/notifications/subscribe</td>
+<td>Registrar push</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/notifications/cron</td>
+<td>Cron diario</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/team/invite</td>
+<td>Invitar a equipo</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/team/accept</td>
+<td>Aceptar invitacion</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/api/fixtures/live</td>
+<td>Partidos en vivo</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/api/upload/image</td>
+<td>Subir imagen</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Integraciones Externas</h2>
+<table>
+<thead>
+<tr>
+<th>Servicio</th>
+<th>Proposito</th>
+<th>Tipo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Supabase</strong></td>
+<td>Auth + DB + RLS + Realtime</td>
+<td>Core</td>
+</tr>
+<tr>
+<td><strong>Bunny Stream</strong></td>
+<td>Video hosting + CDN + transcoding</td>
+<td>Video</td>
+</tr>
+<tr>
+<td><strong>Anthropic Claude</strong></td>
+<td>Reportes IA + Role profiles + PHV</td>
+<td>IA</td>
+</tr>
+<tr>
+<td><strong>Google Gemini</strong></td>
+<td>Video observation + embeddings</td>
+<td>IA</td>
+</tr>
+<tr>
+<td><strong>Stripe</strong></td>
+<td>Pagos + suscripciones + webhooks</td>
+<td>Billing</td>
+</tr>
+<tr>
+<td><strong>Football-Data.org</strong></td>
+<td>Fixtures en vivo</td>
+<td>Datos</td>
+</tr>
+<tr>
+<td><strong>Voyage AI</strong></td>
+<td>Embeddings vectoriales para RAG</td>
+<td>IA</td>
+</tr>
+<tr>
+<td><strong>ONNX Runtime</strong></td>
+<td>YOLO inference en navegador</td>
+<td>ML</td>
+</tr>
+<tr>
+<td><strong>d3-delaunay</strong></td>
+<td>Voronoi territorial control</td>
+<td>Geometria</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Estado de Cada Feature</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Estado</th>
+<th>Notas</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Autenticacion Supabase</td>
+<td>✅ Completo</td>
+<td>+ modo offline</td>
+</tr>
+<tr>
+<td>CRUD de Jugadores</td>
+<td>✅ Completo</td>
+<td>localStorage + Supabase sync</td>
+</tr>
+<tr>
+<td>Upload de Video (Bunny)</td>
+<td>✅ Completo</td>
+<td>TUS protocol</td>
+</tr>
+<tr>
+<td>Tracking YOLO (navegador)</td>
+<td>✅ Completo</td>
+<td>Web Worker + ONNX</td>
+</tr>
+<tr>
+<td>Calibracion Homografica</td>
+<td>✅ Completo</td>
+<td>+ 3 presets</td>
+</tr>
+<tr>
+<td>Voronoi Territorial</td>
+<td>✅ Completo</td>
+<td>Toggle + metricas</td>
+</tr>
+<tr>
+<td>Claude Intelligence</td>
+<td>✅ Completo</td>
+<td>SSE streaming</td>
+</tr>
+<tr>
+<td>Gemini Observations</td>
+<td>✅ Completo</td>
+<td>Video + team</td>
+</tr>
+<tr>
+<td>Pro Player Matching</td>
+<td>✅ Completo</td>
+<td>290+ jugadores EA FC25</td>
+</tr>
+<tr>
+<td>Role Profiles</td>
+<td>✅ Completo</td>
+<td>20 arquetipos</td>
+</tr>
+<tr>
+<td>VAEP</td>
+<td>✅ Completo</td>
+<td>Manual + Gemini events</td>
+</tr>
+<tr>
+<td>PHV / TruthFilter</td>
+<td>✅ Completo</td>
+<td>Formula Mirwald</td>
+</tr>
+<tr>
+<td>RAG Knowledge Base</td>
+<td>✅ Completo</td>
+<td>32 drills + busqueda</td>
+</tr>
+<tr>
+<td>Billing Stripe</td>
+<td>✅ Completo</td>
+<td>3 planes + webhooks</td>
+</tr>
+<tr>
+<td>Push Notifications</td>
+<td>✅ Completo</td>
+<td>Cron + 4 triggers</td>
+</tr>
+<tr>
+<td>Team Analysis</td>
+<td>✅ Completo</td>
+<td>Formacion + posesion</td>
+</tr>
+<tr>
+<td>Sync Bidireccional</td>
+<td>✅ Completo</td>
+<td>Cola offline + delta sync</td>
+</tr>
+<tr>
+<td>Video-Player Linking</td>
+<td>✅ Completo</td>
+<td>Automatico en analisis</td>
+</tr>
+<tr>
+<td>Live Fixtures</td>
+<td>✅ Completo</td>
+<td>Football-Data.org</td>
+</tr>
+<tr>
+<td>PDF Export</td>
+<td>✅ Completo</td>
+<td>html2canvas</td>
+</tr>
+<tr>
+<td>Comparacion de Jugadores</td>
+<td>✅ Completo</td>
+<td>Radar + metricas</td>
+</tr>
+<tr>
+<td>Director Dashboard</td>
+<td>✅ Completo</td>
+<td>Solo plan Club</td>
+</tr>
+<tr>
+<td>Biomechanics</td>
+<td>⚠️ Stub</td>
+<td>Requiere datos avanzados de pose</td>
+</tr>
+<tr>
+<td>GPS Real (hardware)</td>
+<td>⚠️ Stub</td>
+<td>Bridge YOLO-&gt;GPS funcional</td>
+</tr>
+<tr>
+<td>Auto-detect Campo (ML)</td>
+<td>⚠️ Presets</td>
+<td>Presets de perspectiva disponibles</td>
+</tr>
+<tr>
+<td>Colaboracion Multi-usuario</td>
+<td>❌ No implementado</td>
+<td>Futuro</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p><strong>Build:</strong> 2.1.0 | <strong>Engine:</strong> YOLOv11M | <strong>PWA:</strong> Puerto 5200
+<strong>Copyright:</strong> 2026 Prophet Horizon Technology</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

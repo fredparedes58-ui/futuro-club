@@ -39,6 +39,7 @@ import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
+import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -874,6 +875,12 @@ export default function PlayerIntelligencePage() {
 
                 {/* Plan */}
                 <PlanDesarrollo data={latestReport.planDesarrollo} />
+
+                {/* Ejercicios recomendados RAG */}
+                {latestReport.estadoActual?.areasDesarrollo &&
+                  latestReport.estadoActual.areasDesarrollo.length > 0 && (
+                  <DrillRecommendations areasDesarrollo={latestReport.estadoActual.areasDesarrollo} />
+                )}
 
                 {/* Meta + VITAS Card */}
                 <div className="glass rounded-xl p-3 flex items-center justify-between">

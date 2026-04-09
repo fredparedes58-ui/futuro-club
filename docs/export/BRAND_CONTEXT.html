@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — Brand Context Document — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · Brand Context Document</h1>
+<blockquote>
+<p>Todo el contexto necesario para crear el branding completo de VITAS Football Intelligence.
+Este documento sirve como fuente unica de verdad para diseñadores, creativos y desarrolladores.</p>
+</blockquote>
+<hr>
+<h2>1. Identidad de Marca</h2>
+<h3>Nombre</h3>
+<table>
+<thead>
+<tr>
+<th>Variante</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>VITAS</strong></td>
+<td>Nombre principal (siempre en mayusculas)</td>
+</tr>
+<tr>
+<td><strong>VITAS.</strong></td>
+<td>Con punto final — usado en headers de la app (el punto es color primary)</td>
+</tr>
+<tr>
+<td><strong>VITAS.LAB</strong></td>
+<td>Modulo de analisis de video</td>
+</tr>
+<tr>
+<td><strong>VITAS Football Intelligence</strong></td>
+<td>Nombre completo oficial</td>
+</tr>
+<tr>
+<td><strong>VITAS · Football Intelligence</strong></td>
+<td>Con separador (titulo de la PWA)</td>
+</tr>
+</tbody></table>
+<h3>Empresa</h3>
+<p><strong>Prophet Horizon Technology</strong></p>
+<ul>
+<li>Aparece en footer: &quot;© 2026 PROPHET HORIZON TECHNOLOGY&quot;</li>
+<li>Build actual: 2.1.0</li>
+</ul>
+<h3>Tagline Principal</h3>
+<blockquote>
+<p>&quot;Plataforma de inteligencia deportiva para deteccion, evaluacion y proyeccion de talento juvenil&quot;</p>
+</blockquote>
+<h3>Tagline Corto (Meta Description)</h3>
+<blockquote>
+<p>&quot;Inteligencia futbolistica con correccion de maduracion biologica. Detecta talento oculto en academias juveniles.&quot;</p>
+</blockquote>
+<h3>Claim Competitivo</h3>
+<blockquote>
+<p>&quot;La unica plataforma de inteligencia futbolistica que ve al jugador, no al cuerpo&quot;</p>
+</blockquote>
+<h3>Proposito</h3>
+<p>VITAS existe para eliminar el sesgo biologico en la deteccion de talento juvenil. Miles de jugadores talentosos son descartados cada ano porque maduraron tarde fisicamente. VITAS ve el potencial real detras del cuerpo.</p>
+<h3>Audiencia</h3>
+<table>
+<thead>
+<tr>
+<th>Segmento</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scouts</strong></td>
+<td>Profesionales de deteccion de talento en academias</td>
+</tr>
+<tr>
+<td><strong>Entrenadores</strong></td>
+<td>Tecnicos de futbol juvenil que necesitan datos de sus jugadores</td>
+</tr>
+<tr>
+<td><strong>Directores de Academia</strong></td>
+<td>Responsables de decisiones estrategicas sobre plantilla juvenil</td>
+</tr>
+<tr>
+<td><strong>Mercado geografico</strong></td>
+<td>Latinoamerica y Europa del Sur (primera fase)</td>
+</tr>
+<tr>
+<td><strong>Nivel</strong></td>
+<td>Academias juveniles de nivel medio (no elite, no grassroots puro)</td>
+</tr>
+</tbody></table>
+<h3>Tono de Comunicacion</h3>
+<ul>
+<li><strong>Idioma:</strong> Espanol (es-ES) nativo, sin anglicismos innecesarios</li>
+<li><strong>Registro:</strong> Tecnico-deportivo, profesional pero accesible</li>
+<li><strong>Energia:</strong> Dinamico, seguro, con autoridad cientifica</li>
+<li><strong>Iconografia textual:</strong> Uso de ⚡ como simbolo de marca en exports</li>
+<li><strong>Labels UI:</strong> Mayusculas con tracking extendido para etiquetas de estado</li>
+</ul>
+<p><strong>Ejemplos de tono:</strong></p>
+<ul>
+<li>&quot;Detecta talento oculto&quot; (no &quot;Find hidden talent&quot;)</li>
+<li>&quot;ADN Futbolistico&quot; (no &quot;Player DNA&quot;)</li>
+<li>&quot;Proyeccion de Carrera&quot; (no &quot;Career Projection&quot;)</li>
+<li>&quot;Centro de Inteligencia&quot; (no &quot;Intelligence Center&quot;)</li>
+<li>&quot;Madurador Tardio&quot; (no &quot;Late Bloomer&quot;)</li>
+</ul>
+<hr>
+<h2>2. Paleta de Colores</h2>
+<h3>Colores Principales</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>HSL</th>
+<th>HEX Aproximado</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Primary</strong></td>
+<td><code>210 100% 35%</code></td>
+<td><code>#0059B3</code></td>
+<td>Color principal de marca. Botones, links, acentos.</td>
+</tr>
+<tr>
+<td><strong>Primary Light</strong></td>
+<td><code>210 100% 40%</code></td>
+<td><code>#0066CC</code></td>
+<td>Neon, glows, focus rings</td>
+</tr>
+<tr>
+<td><strong>Electric</strong></td>
+<td><code>290 70% 50%</code></td>
+<td><code>#A855F7</code></td>
+<td>Acento secundario. Badges, metricas tecnicas</td>
+</tr>
+<tr>
+<td><strong>Gold</strong></td>
+<td><code>38 92% 45%</code></td>
+<td><code>#D4940A</code></td>
+<td>Tercer acento. Warnings, metricas medias, oro</td>
+</tr>
+<tr>
+<td><strong>Cyan</strong></td>
+<td><code>180 70% 28%</code></td>
+<td><code>#158585</code></td>
+<td>Cuarto acento. Code, datos, complementario</td>
+</tr>
+<tr>
+<td><strong>Hot Pink</strong></td>
+<td><code>330 80% 50%</code></td>
+<td><code>#E6197A</code></td>
+<td>Quinto acento. Decorativo, animaciones</td>
+</tr>
+</tbody></table>
+<h3>Colores Semanticos</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>HSL</th>
+<th>HEX Aprox</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Destructive</strong></td>
+<td><code>0 84% 50%</code></td>
+<td><code>#EF4444</code></td>
+<td>Errores, eliminar, peligro</td>
+</tr>
+<tr>
+<td><strong>Success</strong></td>
+<td><code>142 76% 36%</code></td>
+<td><code>#22C55E</code></td>
+<td>Exito, completado, online</td>
+</tr>
+<tr>
+<td><strong>Warning</strong></td>
+<td><code>38 92% 50%</code></td>
+<td><code>#F59E0B</code></td>
+<td>Advertencias, atencion</td>
+</tr>
+</tbody></table>
+<h3>Fondos (Light Theme — Default Root)</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>HSL</th>
+<th>HEX Aprox</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Background</strong></td>
+<td><code>210 40% 98%</code></td>
+<td><code>#F5F7FA</code></td>
+<td>Fondo principal de la app</td>
+</tr>
+<tr>
+<td><strong>Card</strong></td>
+<td><code>0 0% 100%</code></td>
+<td><code>#FFFFFF</code></td>
+<td>Fondo de tarjetas</td>
+</tr>
+<tr>
+<td><strong>Surface Glass</strong></td>
+<td><code>0 0% 100% / 0.75</code></td>
+<td>White 75% opacity</td>
+<td>Glassmorphism</td>
+</tr>
+<tr>
+<td><strong>Surface Elevated</strong></td>
+<td><code>210 40% 96%</code></td>
+<td><code>#EEF2F7</code></td>
+<td>Superficies elevadas</td>
+</tr>
+<tr>
+<td><strong>Secondary</strong></td>
+<td><code>210 40% 94%</code></td>
+<td><code>#E8EDF4</code></td>
+<td>Fondos secundarios</td>
+</tr>
+<tr>
+<td><strong>Muted</strong></td>
+<td><code>210 40% 94%</code></td>
+<td><code>#E8EDF4</code></td>
+<td>Elementos desactivados</td>
+</tr>
+</tbody></table>
+<h3>Textos</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>HSL</th>
+<th>HEX Aprox</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Foreground</strong></td>
+<td><code>222 47% 11%</code></td>
+<td><code>#0F1729</code></td>
+<td>Texto principal</td>
+</tr>
+<tr>
+<td><strong>Muted Foreground</strong></td>
+<td><code>215 25% 30%</code></td>
+<td><code>#38455A</code></td>
+<td>Texto secundario</td>
+</tr>
+<tr>
+<td><strong>Dim</strong></td>
+<td>—</td>
+<td><code>#5A6A82</code></td>
+<td>Texto terciario/meta</td>
+</tr>
+</tbody></table>
+<h3>Bordes</h3>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>HSL</th>
+<th>HEX Aprox</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Border</strong></td>
+<td><code>214 32% 88%</code></td>
+<td><code>#D8DFE9</code></td>
+</tr>
+<tr>
+<td><strong>Ring</strong></td>
+<td><code>210 100% 40%</code></td>
+<td><code>#0066CC</code></td>
+</tr>
+</tbody></table>
+<h3>Colores de VSI (Gauge y Badges)</h3>
+<table>
+<thead>
+<tr>
+<th>Rango VSI</th>
+<th>Color</th>
+<th>HSL</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>85+ (Elite)</td>
+<td>Azul electrico</td>
+<td><code>230 70% 58%</code></td>
+<td>Rendimiento excepcional</td>
+</tr>
+<tr>
+<td>70-84 (Alto)</td>
+<td>Purpura</td>
+<td><code>270 60% 55%</code></td>
+<td>Buen rendimiento</td>
+</tr>
+<tr>
+<td>50-69 (Medio)</td>
+<td>Dorado</td>
+<td><code>38 90% 55%</code></td>
+<td>Rendimiento promedio</td>
+</tr>
+<tr>
+<td>&lt;50 (Desarrollo)</td>
+<td>Rojo</td>
+<td><code>0 80% 60%</code></td>
+<td>Necesita desarrollo</td>
+</tr>
+</tbody></table>
+<h3>Dark Theme (Usado en documentos/exports)</h3>
+<table>
+<thead>
+<tr>
+<th>Elemento</th>
+<th>HEX</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Background</td>
+<td><code>#0A0E17</code></td>
+</tr>
+<tr>
+<td>Card</td>
+<td><code>#111827</code></td>
+</tr>
+<tr>
+<td>Surface</td>
+<td><code>#1A2233</code></td>
+</tr>
+<tr>
+<td>Elevated</td>
+<td><code>#1F2B3D</code></td>
+</tr>
+<tr>
+<td>Border</td>
+<td><code>#2A3548</code></td>
+</tr>
+<tr>
+<td>Text</td>
+<td><code>#E2E8F0</code></td>
+</tr>
+<tr>
+<td>Text Muted</td>
+<td><code>#8B9AB5</code></td>
+</tr>
+<tr>
+<td>Text Dim</td>
+<td><code>#5A6A82</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. Tipografia</h2>
+<h3>Familias</h3>
+<table>
+<thead>
+<tr>
+<th>Familia</th>
+<th>Tipo</th>
+<th>Pesos</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Rajdhani</strong></td>
+<td>Display/Headers</td>
+<td>400, 500, 600, <strong>700</strong></td>
+<td>Titulos, labels, badges, numeros grandes</td>
+</tr>
+<tr>
+<td><strong>Inter</strong></td>
+<td>Body/UI</td>
+<td>300, 400, 500, <strong>600</strong></td>
+<td>Texto corrido, parrafos, formularios</td>
+</tr>
+<tr>
+<td><strong>JetBrains Mono</strong></td>
+<td>Monoespaciada</td>
+<td>400, 500</td>
+<td>Bloques de codigo, valores numericos tecnicos</td>
+</tr>
+</tbody></table>
+<h3>Google Fonts URL</h3>
+<pre><code>https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;display=swap
+</code></pre>
+<h3>Escala Tipografica</h3>
+<table>
+<thead>
+<tr>
+<th>Nivel</th>
+<th>Font</th>
+<th>Tamaño</th>
+<th>Peso</th>
+<th>Tracking</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Hero</td>
+<td>Rajdhani</td>
+<td>96-128px</td>
+<td>900 (black)</td>
+<td>-0.02em (tighter)</td>
+<td>Landing page hero</td>
+</tr>
+<tr>
+<td>Display</td>
+<td>Rajdhani</td>
+<td>60px</td>
+<td>700 (bold)</td>
+<td>-0.01em (tight)</td>
+<td>Titulos de seccion principales</td>
+</tr>
+<tr>
+<td>H1</td>
+<td>Rajdhani</td>
+<td>24px</td>
+<td>700 (bold)</td>
+<td>normal</td>
+<td>Titulos de pagina</td>
+</tr>
+<tr>
+<td>H2</td>
+<td>Rajdhani</td>
+<td>14px</td>
+<td>600 (semibold)</td>
+<td>0.05em (wider)</td>
+<td>Secciones, siempre UPPERCASE</td>
+</tr>
+<tr>
+<td>H3</td>
+<td>Rajdhani</td>
+<td>14px</td>
+<td>600 (semibold)</td>
+<td>normal</td>
+<td>Sub-secciones</td>
+</tr>
+<tr>
+<td>Body</td>
+<td>Inter</td>
+<td>14px (sm)</td>
+<td>400-500</td>
+<td>normal</td>
+<td>Texto principal</td>
+</tr>
+<tr>
+<td>Label</td>
+<td>Rajdhani</td>
+<td>10-12px</td>
+<td>600 (semibold)</td>
+<td>0.05-0.1em (wider/widest)</td>
+<td>Labels UI, UPPERCASE</td>
+</tr>
+<tr>
+<td>Micro</td>
+<td>Rajdhani</td>
+<td>9-10px</td>
+<td>500-600</td>
+<td>0.05em (wider)</td>
+<td>Status, metadata, UPPERCASE</td>
+</tr>
+<tr>
+<td>Code</td>
+<td>JetBrains Mono</td>
+<td>12-13px</td>
+<td>400</td>
+<td>normal</td>
+<td>Valores tecnicos</td>
+</tr>
+</tbody></table>
+<h3>Regla de Oro</h3>
+<ul>
+<li><strong>Rajdhani</strong> para todo lo que sea identidad visual: headers, labels, badges, numeros destacados</li>
+<li><strong>Inter</strong> para todo lo que sea lectura: parrafos, descripciones, formularios</li>
+<li><strong>UPPERCASE + tracking extendido</strong> para labels de estado, categorias, meta-informacion</li>
+</ul>
+<hr>
+<h2>4. Logo e Iconografia</h2>
+<h3>Logo Principal</h3>
+<ul>
+<li><strong>Archivo:</strong> <code>public/icon.svg</code></li>
+<li><strong>Dimensiones:</strong> 512x512 viewBox</li>
+<li><strong>Forma:</strong> Rectangulo redondeado (rx=80) con balon de futbol estilizado</li>
+<li><strong>Color del icono:</strong> <code>#1A6FCC</code> (primary blue) sobre fondo <code>#F0F4F8</code></li>
+<li><strong>Texto en logo:</strong> &quot;VITAS&quot; (Rajdhani-style, size 72, spacing 4) + &quot;FOOTBALL&quot; (size 24, spacing 6, <code>#4A90D9</code>)</li>
+<li><strong>Elementos:</strong> Circulo exterior (stroke 12px) + pentagono central + lineas conectoras (stroke 8px, round caps)</li>
+</ul>
+<h3>Iconos PWA</h3>
+<table>
+<thead>
+<tr>
+<th>Archivo</th>
+<th>Tamano</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>favicon.ico</code></td>
+<td>Multi-size</td>
+<td>Pestana del navegador</td>
+</tr>
+<tr>
+<td><code>pwa-64x64.png</code></td>
+<td>64x64</td>
+<td>PWA pequeno</td>
+</tr>
+<tr>
+<td><code>pwa-192x192.png</code></td>
+<td>192x192</td>
+<td>PWA Android</td>
+</tr>
+<tr>
+<td><code>pwa-512x512.png</code></td>
+<td>512x512</td>
+<td>PWA splash</td>
+</tr>
+<tr>
+<td><code>maskable-icon-512x512.png</code></td>
+<td>512x512</td>
+<td>Android adaptive icon</td>
+</tr>
+<tr>
+<td><code>apple-touch-icon-180x180.png</code></td>
+<td>180x180</td>
+<td>iOS home screen</td>
+</tr>
+</tbody></table>
+<h3>Iconos UI (Lucide React)</h3>
+<p>La app usa exclusivamente <strong>Lucide React</strong> (v0.462.0) para iconografia UI:</p>
+<ul>
+<li>Navegacion: <code>LayoutDashboard</code>, <code>Camera</code>, <code>GitCompareArrows</code>, <code>Settings</code>, <code>Trophy</code></li>
+<li>Metricas: <code>Activity</code>, <code>TrendingUp</code>, <code>Zap</code>, <code>Brain</code>, <code>Dna</code>, <code>Target</code></li>
+<li>Acciones: <code>Plus</code>, <code>Pencil</code>, <code>Trash2</code>, <code>FileDown</code>, <code>Upload</code>, <code>Play</code>, <code>Pause</code></li>
+<li>Estado: <code>Check</code>, <code>AlertCircle</code>, <code>AlertTriangle</code>, <code>Loader2</code></li>
+<li>Video: <code>Video</code>, <code>Camera</code>, <code>ScanSearch</code></li>
+<li>Social: <code>Users</code>, <code>UserCircle2</code>, <code>UserRound</code></li>
+</ul>
+<h3>Simbolo de Marca</h3>
+<ul>
+<li><strong>⚡</strong> (emoji rayo) — usado como prefijo en textos exportados y compartidos</li>
+<li>Ejemplo: <code>⚡ Pedrito | VSI 78 | Se parece a Pedri (87%) — Generado con VITAS Football Intelligence</code></li>
+</ul>
+<hr>
+<h2>5. Efectos Visuales</h2>
+<h3>Glassmorphism</h3>
+<pre><code class="language-css">.glass {
+  background: hsl(0 0% 100% / 0.75);    /* Blanco al 75% */
+  backdrop-filter: blur(16px);
+  border: 1px solid hsl(214 32% 88%);    /* Borde sutil */
+}
+
+.glass-strong {
+  background: hsl(0 0% 100% / 0.92);    /* Blanco al 92% */
+  backdrop-filter: blur(24px);
+  border: 1px solid hsl(214 32% 88%);
+}
+</code></pre>
+<p><strong>Uso:</strong> Tarjetas, paneles de navegacion, overlays. Es el efecto visual principal de toda la UI.</p>
+<h3>Neon Glow</h3>
+<pre><code class="language-css">.neon-glow {
+  box-shadow: 0 4px 24px hsl(210 100% 40% / 0.2),
+              0 1px 4px hsl(210 100% 40% / 0.1);
+}
+
+.neon-text {
+  text-shadow: 0 1px 8px hsl(210 100% 40% / 0.3);
+}
+</code></pre>
+<p><strong>Uso:</strong> Elementos interactivos en hover, indicadores de estado activo.</p>
+<h3>Gradient de Marca</h3>
+<pre><code class="language-css">/* Gradiente principal — usado en texto, bordes, decoraciones */
+background: linear-gradient(135deg,
+  hsl(210 100% 35%),    /* Primary Blue */
+  hsl(290 70% 42%),     /* Electric Purple */
+  hsl(180 70% 28%)      /* Cyan */
+);
+</code></pre>
+<p><strong>Uso:</strong> Texto gradiente (<code>.gradient-text</code>), lineas decorativas, separadores premium.</p>
+<h3>Border Glow Animado</h3>
+<pre><code class="language-css">@keyframes border-glow {
+  0%, 100% {
+    border-color: hsl(var(--primary) / 0.6);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
+  }
+  33% {
+    border-color: hsl(var(--accent) / 0.6);
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.15);
+  }
+  66% {
+    border-color: hsl(var(--cyan) / 0.6);
+    box-shadow: 0 0 20px hsl(var(--cyan) / 0.15);
+  }
+}
+</code></pre>
+<p><strong>Duracion:</strong> 4 segundos, infinite.
+<strong>Uso:</strong> Cards premium, elementos destacados. El borde cambia entre azul → purpura → cyan.</p>
+<h3>Pulse Live</h3>
+<pre><code class="language-css">@keyframes pulse-neon {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 8px hsl(210 100% 40% / 0.4),
+                0 0 20px hsl(210 100% 40% / 0.15);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 14px hsl(290 70% 50% / 0.3),
+                0 0 30px hsl(290 70% 50% / 0.1);
+  }
+}
+</code></pre>
+<p><strong>Duracion:</strong> 2 segundos, infinite.
+<strong>Uso:</strong> Indicador &quot;En Vivo&quot;, pulso de estado activo.</p>
+<h3>Card Hover</h3>
+<pre><code class="language-css">.card-hover:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 4px 32px hsl(var(--primary) / 0.2),
+              0 0 80px hsl(var(--accent) / 0.08);
+}
+</code></pre>
+<p><strong>Uso:</strong> Todas las tarjetas interactivas.</p>
+<h3>Gradientes de Fondo (Landing)</h3>
+<pre><code class="language-css">/* Orbes de luz ambiental */
+radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 40% / 0.08), transparent 55%)  /* Azul arriba-izquierda */
+radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 70% 50% / 0.06), transparent 50%)  /* Purpura abajo-derecha */
+radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 70% 35% / 0.04), transparent 40%)  /* Cyan centro */
+radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 80% 50% / 0.03), transparent 35%)  /* Pink decorativo */
+</code></pre>
+<p><strong>Uso:</strong> Background de la landing page. Crea un efecto de luces ambientales sutiles.</p>
+<hr>
+<h2>6. Componentes de UI Clave</h2>
+<h3>Border Radius</h3>
+<pre><code>--radius: 0.75rem (12px base)
+rounded-lg:  12px   → Cards, dialogos
+rounded-md:  10px   → Botones
+rounded-sm:  8px    → Inputs
+rounded-xl:  16px   → Cards grandes, panels
+rounded-full: 9999px → Badges, avatars, pills
+</code></pre>
+<h3>Botones</h3>
+<table>
+<thead>
+<tr>
+<th>Variante</th>
+<th>Fondo</th>
+<th>Texto</th>
+<th>Hover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Default</strong></td>
+<td>Primary</td>
+<td>White</td>
+<td>primary/90</td>
+</tr>
+<tr>
+<td><strong>Destructive</strong></td>
+<td>Red</td>
+<td>White</td>
+<td>red/90</td>
+</tr>
+<tr>
+<td><strong>Outline</strong></td>
+<td>Transparent + border</td>
+<td>Foreground</td>
+<td>accent bg</td>
+</tr>
+<tr>
+<td><strong>Secondary</strong></td>
+<td>Secondary</td>
+<td>Foreground</td>
+<td>secondary/80</td>
+</tr>
+<tr>
+<td><strong>Ghost</strong></td>
+<td>Transparent</td>
+<td>Foreground</td>
+<td>accent bg</td>
+</tr>
+<tr>
+<td><strong>Link</strong></td>
+<td>Transparent</td>
+<td>Primary + underline</td>
+<td>underline visible</td>
+</tr>
+</tbody></table>
+<h3>Badges/Pills</h3>
+<table>
+<thead>
+<tr>
+<th>Variante</th>
+<th>Fondo</th>
+<th>Texto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Default</strong></td>
+<td>Primary</td>
+<td>White</td>
+</tr>
+<tr>
+<td><strong>Secondary</strong></td>
+<td>Secondary</td>
+<td>Foreground</td>
+</tr>
+<tr>
+<td><strong>Destructive</strong></td>
+<td>Red</td>
+<td>White</td>
+</tr>
+<tr>
+<td><strong>Outline</strong></td>
+<td>Transparent + border</td>
+<td>Foreground</td>
+</tr>
+<tr>
+<td><strong>VSI Elite</strong></td>
+<td>primary/10</td>
+<td>Primary</td>
+</tr>
+<tr>
+<td><strong>VSI Alto</strong></td>
+<td>electric/10</td>
+<td>Electric</td>
+</tr>
+<tr>
+<td><strong>VSI Medio</strong></td>
+<td>gold/10</td>
+<td>Gold</td>
+</tr>
+</tbody></table>
+<h3>Gauge VSI</h3>
+<ul>
+<li>Circulo SVG con animacion de llenado (1.2s ease-out)</li>
+<li>Color dinamico segun valor (azul/purpura/dorado/rojo)</li>
+<li>Drop shadow glow del mismo color</li>
+<li>Fondo del anillo: <code>hsl(225, 20%, 18%)</code></li>
+<li>Tamaños: sm (48px), md (56px), lg (64px)</li>
+</ul>
+<h3>Radar Chart</h3>
+<ul>
+<li>6 vertices: Speed, Technique, Vision, Stamina, Shooting, Defending</li>
+<li>Grid: <code>hsl(225, 18%, 22%)</code></li>
+<li>Fill: azul electrico al 15% opacidad</li>
+<li>Stroke: azul electrico solido</li>
+<li>Labels: Rajdhani 11px</li>
+</ul>
+<h3>Tarjetas de Metrica</h3>
+<pre><code>glass rounded-xl p-3/4
+  → Icono (14-18px, color primary/electric/gold) + Label (Rajdhani 10px uppercase tracking-wider)
+  → Valor grande (Rajdhani bold text-xl)
+  → Sub-label (Inter 10px muted)
+</code></pre>
+<hr>
+<h2>7. Motion Design</h2>
+<h3>Framer Motion — Patrones Principales</h3>
+<p><strong>Entrada de pagina:</strong></p>
+<pre><code class="language-javascript">container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } }
+item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } }
+</code></pre>
+<p><strong>Transiciones:</strong></p>
+<ul>
+<li>Paginas: <code>opacity 0→1</code>, <code>y 20→0</code>, duracion 0.4s</li>
+<li>Stagger entre elementos: 0.06s (60ms)</li>
+<li>Barras de progreso: <code>width 0→N%</code>, 0.8s ease-out</li>
+<li>Gauge VSI: 1.2s ease-out</li>
+<li>Spring physics: stiffness 400, damping 30 (menus popup)</li>
+</ul>
+<p><strong>AnimatePresence:</strong></p>
+<ul>
+<li>Usado para entrada/salida de reportes, paneles, y sheets</li>
+<li>Exit: <code>opacity 0, scale 0.95</code></li>
+</ul>
+<hr>
+<h2>8. Imagenes y Assets de Marca</h2>
+<h3>Imagen de Login</h3>
+<ul>
+<li><strong>Archivo:</strong> <code>src/assets/login-boot-neon.jpg</code></li>
+<li><strong>Tema:</strong> Botin de futbol con estetica neon/glow</li>
+<li><strong>Uso:</strong> Background de la pantalla de login</li>
+</ul>
+<h3>Campo de Futbol</h3>
+<ul>
+<li><strong>Archivo:</strong> <code>src/assets/pitch-field.jpg</code></li>
+<li><strong>Uso:</strong> Fondo del tracking/heatmap en VitasLab</li>
+</ul>
+<h3>Placeholder</h3>
+<ul>
+<li><strong>Archivo:</strong> <code>public/placeholder.svg</code></li>
+<li><strong>Uso:</strong> Imagen placeholder generica</li>
+</ul>
+<hr>
+<h2>9. Manifiesto PWA</h2>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;VITAS · Football Intelligence&quot;,
+  &quot;short_name&quot;: &quot;VITAS&quot;,
+  &quot;description&quot;: &quot;Inteligencia futbolistica con correccion de maduracion biologica...&quot;,
+  &quot;theme_color&quot;: &quot;#f0f4f8&quot;,
+  &quot;background_color&quot;: &quot;#f0f4f8&quot;,
+  &quot;display&quot;: &quot;standalone&quot;,
+  &quot;orientation&quot;: &quot;portrait&quot;,
+  &quot;scope&quot;: &quot;/&quot;,
+  &quot;start_url&quot;: &quot;/&quot;,
+  &quot;lang&quot;: &quot;es&quot;
+}
+</code></pre>
+<h3>Meta Tags HTML</h3>
+<pre><code class="language-html">&lt;meta name=&quot;theme-color&quot; content=&quot;#f0f4f8&quot; /&gt;
+&lt;meta name=&quot;apple-mobile-web-app-capable&quot; content=&quot;yes&quot; /&gt;
+&lt;meta name=&quot;apple-mobile-web-app-status-bar-style&quot; content=&quot;black-translucent&quot; /&gt;
+&lt;meta name=&quot;apple-mobile-web-app-title&quot; content=&quot;VITAS&quot; /&gt;
+&lt;meta property=&quot;og:title&quot; content=&quot;VITAS · Football Intelligence&quot; /&gt;
+&lt;meta property=&quot;og:description&quot; content=&quot;Detecta talento oculto en academias juveniles con IA y correccion PHV.&quot; /&gt;
+&lt;meta name=&quot;twitter:card&quot; content=&quot;summary_large_image&quot; /&gt;
+</code></pre>
+<hr>
+<h2>10. Vocabulario de Marca</h2>
+<h3>Terminologia Propia de VITAS</h3>
+<table>
+<thead>
+<tr>
+<th>Termino</th>
+<th>Significado</th>
+<th>Uso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>VSI</strong></td>
+<td>VITAS Scouting Index</td>
+<td>Score principal 0-100</td>
+</tr>
+<tr>
+<td><strong>TruthFilter</strong></td>
+<td>Filtro de verdad</td>
+<td>Ajuste de VSI eliminando sesgos</td>
+</tr>
+<tr>
+<td><strong>UBI</strong></td>
+<td>Unified Bias Index</td>
+<td>Indice de sesgo combinado</td>
+</tr>
+<tr>
+<td><strong>ADN Futbolistico</strong></td>
+<td>Perfil cualitativo del jugador</td>
+<td>Seccion del reporte IA</td>
+</tr>
+<tr>
+<td><strong>Talento Oculto</strong></td>
+<td>Jugador subestimado por maduracion tardia</td>
+<td>Alerta en dashboard</td>
+</tr>
+<tr>
+<td><strong>Madurador Tardio</strong></td>
+<td>Jugador que aun no llego a su pico fisico</td>
+<td>Categoria PHV</td>
+</tr>
+<tr>
+<td><strong>Madurador Precoz</strong></td>
+<td>Jugador que ya paso su pico fisico</td>
+<td>Categoria PHV</td>
+</tr>
+<tr>
+<td><strong>Centro de Inteligencia</strong></td>
+<td>Dashboard principal</td>
+<td>Subtitulo del hub</td>
+</tr>
+<tr>
+<td><strong>VITAS.LAB</strong></td>
+<td>Laboratorio de video</td>
+<td>Modulo de analisis</td>
+</tr>
+</tbody></table>
+<h3>Modulos de la App con Color</h3>
+<table>
+<thead>
+<tr>
+<th>Modulo</th>
+<th>Color</th>
+<th>Tag</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pulse (Dashboard)</td>
+<td>Primary</td>
+<td>LIVE</td>
+</tr>
+<tr>
+<td>Master Dashboard</td>
+<td>Primary</td>
+<td>AI</td>
+</tr>
+<tr>
+<td>Scout Feed</td>
+<td>Primary</td>
+<td>NEW</td>
+</tr>
+<tr>
+<td>VITAS.LAB</td>
+<td>Primary</td>
+<td>BETA</td>
+</tr>
+<tr>
+<td>Rankings</td>
+<td>Primary</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Compare</td>
+<td>Electric</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Director</td>
+<td>Gold</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Settings</td>
+<td>Gold</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<h3>Abreviaturas de Metricas</h3>
+<table>
+<thead>
+<tr>
+<th>Abreviatura</th>
+<th>Metrica Completa</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VEL</td>
+<td>Velocidad (Speed)</td>
+</tr>
+<tr>
+<td>TEC</td>
+<td>Tecnica (Technique)</td>
+</tr>
+<tr>
+<td>VIS</td>
+<td>Vision</td>
+</tr>
+<tr>
+<td>RES</td>
+<td>Resistencia (Stamina)</td>
+</tr>
+<tr>
+<td>DIS</td>
+<td>Disparo (Shooting)</td>
+</tr>
+<tr>
+<td>DEF</td>
+<td>Defensa (Defending)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>11. Identidad Visual — Resumen Rapido</h2>
+<h3>Los 5 Principios de Diseño VITAS</h3>
+<ol>
+<li><strong>Glass First:</strong> Glassmorphism como lenguaje visual principal. Transparencia + blur.</li>
+<li><strong>Neon Accents:</strong> Glows y pulsos sutiles para comunicar actividad y datos en vivo.</li>
+<li><strong>Data Dense:</strong> Mucha informacion en poco espacio. Labels micro (9-10px), cards compactas.</li>
+<li><strong>Motion Meaning:</strong> Cada animacion comunica algo (cargando, exito, transicion, en vivo).</li>
+<li><strong>Science + Sport:</strong> Estetica que mezcla dashboard cientifico con energia deportiva.</li>
+</ol>
+<h3>La Triada de Color</h3>
+<pre><code>Primary Blue (#0059B3) → Confianza, tecnologia, profesionalismo
+Electric Purple (#A855F7) → Innovacion, IA, datos avanzados
+Gold (#D4940A) → Excelencia, talento, logros
+</code></pre>
+<h3>La Jerarquia Tipografica</h3>
+<pre><code>Rajdhani (Display) → &quot;Esto es importante, miralo&quot;
+Inter (Body) → &quot;Esto es para leer con calma&quot;
+JetBrains Mono (Code) → &quot;Esto es un dato tecnico exacto&quot;
+</code></pre>
+<h3>El Patron VITAS</h3>
+<pre><code>[Glass Card] → [Icono color + Label UPPERCASE] → [Valor grande Rajdhani] → [Sub-texto Inter muted]
+</code></pre>
+<p>Este patron se repite en toda la app: stats del dashboard, metricas de jugador, tracking panel, etc.</p>
+<hr>
+<h2>12. Assets para Diseñadores</h2>
+<h3>Archivos de referencia en el proyecto</h3>
+<pre><code>public/icon.svg                          → Logo principal
+src/assets/login-boot-neon.jpg           → Background login
+src/assets/pitch-field.jpg               → Campo de futbol
+src/index.css                            → Todos los tokens CSS
+tailwind.config.ts                       → Config de diseño
+src/components/VsiGauge.tsx              → Componente gauge circular
+src/components/RadarChart.tsx            → Radar de 6 metricas
+src/components/PlayerCard.tsx            → Card de jugador
+src/components/LiveMatchCard.tsx         → Card de partido
+src/components/TrackingMetricsPanel.tsx  → Panel de metricas fisicas
+src/components/VoronoiOverlay.tsx        → Overlay territorial
+src/pages/Dashboard.tsx                  → Layout del hub principal
+src/pages/VitasLab.tsx                   → Layout del laboratorio
+docs/export/*.html                       → HTMLs con diseño VITAS aplicado
+</code></pre>
+<h3>Colores para Figma / Adobe (Hex)</h3>
+<pre><code>Primary:     #0059B3
+Primary Lt:  #0066CC
+Electric:    #A855F7
+Electric Lt: #C084FC
+Gold:        #D4940A
+Gold Lt:     #F5B731
+Cyan:        #158585
+Hot Pink:    #E6197A
+Danger:      #EF4444
+Success:     #22C55E
+
+BG Light:    #F5F7FA
+BG Dark:     #0A0E17
+Card Light:  #FFFFFF
+Card Dark:   #111827
+Border Light:#D8DFE9
+Border Dark: #2A3548
+Text Light:  #0F1729
+Text Dark:   #E2E8F0
+Muted Light: #38455A
+Muted Dark:  #8B9AB5
+</code></pre>
+<hr>
+<blockquote>
+<p>Este documento contiene todo el contexto necesario para que un diseñador, agencia o herramienta de IA pueda crear materiales de marca consistentes con VITAS Football Intelligence.</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

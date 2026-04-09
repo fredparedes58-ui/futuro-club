@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — Ranking Competitivo en el Mercado — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · Ranking Competitivo en el Mercado</h1>
+<blockquote>
+<p>Analisis comparativo de VITAS vs las principales plataformas de scouting y analisis futbolistico.
+Ultima actualizacion: Abril 2026</p>
+</blockquote>
+<hr>
+<h2>Indice</h2>
+<ol>
+<li><a href="#resumen-ejecutivo">Resumen Ejecutivo</a></li>
+<li><a href="#competidores-analizados">Competidores Analizados</a></li>
+<li><a href="#matriz-comparativa-general">Matriz Comparativa General</a></li>
+<li><a href="#ranking-por-capacidad">Ranking por Capacidad</a></li>
+<li><a href="#analisis-detallado-por-competidor">Analisis Detallado por Competidor</a></li>
+<li><a href="#brechas-del-mercado-que-vitas-cubre">Brechas del Mercado que VITAS Cubre</a></li>
+<li><a href="#mercado-y-tendencias">Mercado y Tendencias</a></li>
+<li><a href="#posicionamiento-estrategico">Posicionamiento Estrategico</a></li>
+</ol>
+<hr>
+<h2>Resumen Ejecutivo</h2>
+<p>VITAS es la <strong>unica plataforma del mercado que combina las 6 capacidades fundamentales</strong> para scouting juvenil inteligente:</p>
+<table>
+<thead>
+<tr>
+<th>Capacidad</th>
+<th>VITAS</th>
+<th>Mejor competidor</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Video IA (analisis automatico)</td>
+<td>Si</td>
+<td>Metrica Sports / AiSCOUT</td>
+</tr>
+<tr>
+<td>Metricas fisicas (sin hardware)</td>
+<td>Si</td>
+<td>SkillCorner (solo broadcast)</td>
+</tr>
+<tr>
+<td>Base de datos de scouting</td>
+<td>Si</td>
+<td>Wyscout (solo pro)</td>
+</tr>
+<tr>
+<td>Correccion por maduracion biologica</td>
+<td><strong>Si (unico)</strong></td>
+<td>Ninguno</td>
+</tr>
+<tr>
+<td>Enfoque en futbol juvenil</td>
+<td>Si</td>
+<td>AiSCOUT / Catapult One</td>
+</tr>
+<tr>
+<td>Precio accesible para academias</td>
+<td>Si</td>
+<td>Metrica PlayBase</td>
+</tr>
+</tbody></table>
+<p><strong>Diferenciador radical:</strong> Ningun competidor ofrece correccion PHV (Peak Height Velocity) ni TruthFilter para eliminar sesgos de maduracion biologica en la evaluacion de talento juvenil.</p>
+<hr>
+<h2>Competidores Analizados</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Plataforma</th>
+<th>Mercado principal</th>
+<th>Precio entrada</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Wyscout (Hudl)</td>
+<td>Profesional</td>
+<td>$325/ano</td>
+</tr>
+<tr>
+<td>2</td>
+<td>InStat</td>
+<td>Profesional</td>
+<td>~5,000 EUR/ano</td>
+</tr>
+<tr>
+<td>3</td>
+<td>StatsBomb (Hudl)</td>
+<td>Elite profesional</td>
+<td>Decenas de miles/ano</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Metrica Sports</td>
+<td>Amateur a pro</td>
+<td>$11/mes</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Nacsport</td>
+<td>Semi-pro a pro</td>
+<td>$95/ano</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Hudl</td>
+<td>High school a pro</td>
+<td>No publicado (alto)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SciSports</td>
+<td>Profesional verificado</td>
+<td>$1,000/ano</td>
+</tr>
+<tr>
+<td>8</td>
+<td>PlayerMaker</td>
+<td>Grassroots a pro</td>
+<td>$199 + $149/ano</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Catapult</td>
+<td>Youth a elite</td>
+<td>$179/ano (One)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>STATSports</td>
+<td>Individual a elite</td>
+<td>$300 (sin suscripcion)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Opta (Stats Perform)</td>
+<td>Enterprise</td>
+<td>Seis cifras/ano</td>
+</tr>
+<tr>
+<td>12</td>
+<td>SkillCorner</td>
+<td>Profesional</td>
+<td>Enterprise</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Veo</td>
+<td>Amateur/grassroots</td>
+<td>$899 camara + $26/mes</td>
+</tr>
+<tr>
+<td>14</td>
+<td>TacticalPad</td>
+<td>Todos los niveles</td>
+<td>$24/ano</td>
+</tr>
+<tr>
+<td>15</td>
+<td>AiSCOUT (ai.io)</td>
+<td>Juvenil/grassroots</td>
+<td>Gratis (jugadores)</td>
+</tr>
+<tr>
+<td>16</td>
+<td><strong>VITAS</strong></td>
+<td><strong>Juvenil/academias</strong></td>
+<td><strong>Gratis (5 jugadores)</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Matriz Comparativa General</h2>
+<h3>Funcionalidades clave</h3>
+<table>
+<thead>
+<tr>
+<th>Plataforma</th>
+<th>Video IA</th>
+<th>GPS/Fisico</th>
+<th>Scouting DB</th>
+<th>PHV/Maduracion</th>
+<th>Youth Focus</th>
+<th>Sin Hardware</th>
+<th>Precio Accesible</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Wyscout</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>InStat</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>StatsBomb</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Metrica Sports</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Parcial</td>
+<td>Si</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>Nacsport</td>
+<td>Parcial</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Parcial</td>
+<td>Si</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>Hudl</td>
+<td>Parcial</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>SciSports</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>PlayerMaker</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>Catapult</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>STATSports</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>Opta</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>SkillCorner</td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Si</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Veo</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>TacticalPad</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>Si</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td>AiSCOUT</td>
+<td><strong>Si</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td><strong>Si</strong></td>
+<td>Si</td>
+<td><strong>Si</strong></td>
+</tr>
+<tr>
+<td><strong>VITAS</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+<td><strong>Si</strong></td>
+</tr>
+</tbody></table>
+<p><strong>VITAS es la unica que marca &quot;Si&quot; en las 7 columnas.</strong></p>
+<hr>
+<h2>Ranking por Capacidad</h2>
+<h3>1. Video IA (analisis automatico de video)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>VITAS</strong></td>
+<td>Claude Sonnet + Gemini Vision, reporte 6D, plan desarrollo, 8 keyframes</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SkillCorner</td>
+<td>Tracking 22 jugadores desde broadcast, deep learning</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Metrica Sports</td>
+<td>GameCloud AI tracking, Smart Tagging</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AiSCOUT</td>
+<td>Biomecanica 3D desde video 2D, 75 ejercicios evaluados</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Veo</td>
+<td>Seguimiento autonomo de balon, analytics basicos</td>
+</tr>
+</tbody></table>
+<h3>2. Metricas avanzadas (VAEP, xG, indices compuestos)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>StatsBomb</td>
+<td>3,400+ eventos/partido, xG mas avanzado del mercado</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>VITAS</strong></td>
+<td>VSI, VAEP, UBI, TruthFilter, PHV, RAE, 6D scores</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SciSports</td>
+<td>Prediccion 5-7 anos, ETV (transfer value)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Opta</td>
+<td>30 anos de datos historicos, modelos IA</td>
+</tr>
+<tr>
+<td>5</td>
+<td>InStat</td>
+<td>InStat Index, stats vinculadas a video</td>
+</tr>
+</tbody></table>
+<h3>3. Tracking fisico (velocidad, distancia, sprints)</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Catapult</td>
+<td>GPS profesional, LPS indoor, Vector Pro</td>
+</tr>
+<tr>
+<td>2</td>
+<td>STATSports</td>
+<td>GPS aprobado FIFA, Sonra live data</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SkillCorner</td>
+<td>Tracking completo desde broadcast</td>
+</tr>
+<tr>
+<td>4</td>
+<td>PlayerMaker</td>
+<td>Sensores en botas, 25+ metricas unicas</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>VITAS</strong></td>
+<td>Vision artificial (YOLO), sin hardware, Voronoi territorial</td>
+</tr>
+</tbody></table>
+<h3>4. Scouting y base de datos</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Wyscout</td>
+<td>600+ competiciones, la mayor DB de video del mundo</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Opta</td>
+<td>30 anos de datos, estandar de la industria</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SciSports</td>
+<td>DB global hombre/mujer, prediccion de desarrollo</td>
+</tr>
+<tr>
+<td>4</td>
+<td>InStat</td>
+<td>200,000+ perfiles, video tagging</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>VITAS</strong></td>
+<td>290+ pros EA FC25, similarity matching, RAG knowledge base</td>
+</tr>
+</tbody></table>
+<h3>5. Enfoque juvenil y maduracion biologica</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Detalle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>VITAS</strong></td>
+<td><strong>Unico con PHV, TruthFilter, RAE, UBI integrados</strong></td>
+</tr>
+<tr>
+<td>2</td>
+<td>AiSCOUT</td>
+<td>Evaluacion IA para juventud, asociacion con Chelsea</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Catapult One</td>
+<td>GPS accesible para youth/high school</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Hudl</td>
+<td>Vertical Club &amp; Youth</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Veo</td>
+<td>Grabacion autonoma para equipos amateur</td>
+</tr>
+</tbody></table>
+<h3>6. Relacion valor/precio</h3>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Plataforma</th>
+<th>Precio/mes (estimado)</th>
+<th>Funcionalidades por $</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>VITAS</strong></td>
+<td>$0-19/mes</td>
+<td>Video IA + Tracking + PHV + VAEP + RAG</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Metrica PlayBase</td>
+<td>$11-88/mes</td>
+<td>Video AI tracking</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TacticalPad</td>
+<td>$2/mes</td>
+<td>Dibujo tactico</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Nacsport</td>
+<td>$8-58/mes</td>
+<td>Video tagging personalizable</td>
+</tr>
+<tr>
+<td>5</td>
+<td>AiSCOUT</td>
+<td>Gratis (jugadores)</td>
+<td>75 ejercicios evaluados por IA</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Analisis Detallado por Competidor</h2>
+<h3>Wyscout (Hudl) — El gigante de datos profesionales</h3>
+<ul>
+<li><strong>Fortaleza:</strong> La mayor base de datos de video futbolistico del mundo (600+ competiciones)</li>
+<li><strong>Debilidad:</strong> Solo futbol profesional. Sin IA de video propia. Sin maduracion biologica</li>
+<li><strong>Precio:</strong> Desde $325/ano individual, enterprise personalizado</li>
+<li><strong>vs VITAS:</strong> Wyscout es para scouts profesionales que necesitan ver video de ligas top. VITAS es para academias que necesitan analizar a SUS jugadores con herramientas que Wyscout no ofrece (PHV, tracking, IA)</li>
+</ul>
+<h3>InStat — Stats vinculadas a video</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Cada estadistica vinculada directamente al clip de video</li>
+<li><strong>Debilidad:</strong> Pricing opaco y muy elevado. Sin tracking automatico. Sin biometria</li>
+<li><strong>Precio:</strong> 5,000-10,000+ EUR/ano</li>
+<li><strong>vs VITAS:</strong> InStat es 50-100x mas caro sin ofrecer tracking, IA generativa, ni correccion por maduracion</li>
+</ul>
+<h3>StatsBomb (Hudl) — La densidad de datos mas alta</h3>
+<ul>
+<li><strong>Fortaleza:</strong> 3,400+ eventos por partido. xG mas avanzado. Datos abiertos para investigacion</li>
+<li><strong>Debilidad:</strong> Solo profesional. Precio prohibitivo. Adquirido por Hudl</li>
+<li><strong>Precio:</strong> Decenas de miles USD/ano</li>
+<li><strong>vs VITAS:</strong> StatsBomb tiene mejores modelos de xG pero es inaccesible para academias. VITAS ofrece VAEP contextualizado por edad biologica, algo que StatsBomb no hace</li>
+</ul>
+<h3>Metrica Sports — El democratizador del tracking</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Tracking IA desde video basico (GameCloud). Pricing accesible ($11/mes)</li>
+<li><strong>Debilidad:</strong> Sin scouting DB. Sin biometria. Sin maduracion</li>
+<li><strong>Precio:</strong> $11-88/mes</li>
+<li><strong>vs VITAS:</strong> El competidor mas cercano en espiritu (democratizar tecnologia). VITAS anade PHV, VAEP, similarity matching, e intelligence reports que Metrica no tiene</li>
+</ul>
+<h3>Nacsport — El mas personalizable</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Sistema de tagging infinitamente personalizable. IA LLM integrada</li>
+<li><strong>Debilidad:</strong> Software de escritorio (no web/movil nativo). Sin tracking automatico en tiers bajos</li>
+<li><strong>Precio:</strong> $95-695/ano</li>
+<li><strong>vs VITAS:</strong> Nacsport es una herramienta de etiquetado manual. VITAS analiza automaticamente con IA</li>
+</ul>
+<h3>Hudl — El ecosistema dominante</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Ecosistema mas completo tras adquirir Wyscout + StatsBomb + InStat</li>
+<li><strong>Debilidad:</strong> Precio alto. Lock-in contractual. Sin especializacion en maduracion juvenil</li>
+<li><strong>Precio:</strong> No publicado (reportado como 2-3x competidores)</li>
+<li><strong>vs VITAS:</strong> Hudl domina el mercado profesional y de high school en EEUU. VITAS opera en el nicho de academias juveniles de nivel medio que Hudl no atiende bien</li>
+</ul>
+<h3>SciSports — El predictor de desarrollo</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Prediccion de desarrollo a 5-7 anos. ETV (valoracion de transferencia)</li>
+<li><strong>Debilidad:</strong> Solo accesible a profesionales verificados. Sin video. Sin biometria real</li>
+<li><strong>Precio:</strong> Desde $1,000/ano</li>
+<li><strong>vs VITAS:</strong> SciSports predice desarrollo pero NO usa maduracion biologica. VITAS usa PHV real para hacer predicciones mas precisas en juveniles</li>
+</ul>
+<h3>PlayerMaker — El wearable de botas</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Unico que mide interaccion con balon (toques, velocidad de disparo, equilibrio)</li>
+<li><strong>Debilidad:</strong> Solo metricas fisicas/tecnicas. Sin analisis tactico. Sin video. Requiere hardware</li>
+<li><strong>Precio:</strong> $199 hardware + $149/ano</li>
+<li><strong>vs VITAS:</strong> PlayerMaker mide cosas que VITAS no puede sin sensor (contacto con balon), pero VITAS ofrece analisis completo (video IA + tactico + maduracion) sin hardware</li>
+</ul>
+<h3>Catapult — El lider GPS</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Lider del mercado en GPS deportivo profesional. Catapult One para youth</li>
+<li><strong>Debilidad:</strong> Solo datos fisicos. Sin tecnica ni tactica. Hardware obligatorio</li>
+<li><strong>Precio:</strong> Catapult One: $179/ano por jugador</li>
+<li><strong>vs VITAS:</strong> Catapult mide datos fisicos mas precisos con GPS real, pero VITAS ofrece tracking por vision (gratis, sin hardware) + todo el stack de inteligencia</li>
+</ul>
+<h3>STATSports — GPS sin suscripcion</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Pago unico sin suscripcion ($300). Aprobado por FIFA</li>
+<li><strong>Debilidad:</strong> Solo metricas fisicas. Sin video ni analisis tactico</li>
+<li><strong>Precio:</strong> $300 (pago unico)</li>
+<li><strong>vs VITAS:</strong> STATSports es mejor para datos fisicos puros. VITAS es mejor para el analisis completo del jugador (fisico + tecnico + tactico + maduracion)</li>
+</ul>
+<h3>Opta (Stats Perform) — El estandar de la industria</h3>
+<ul>
+<li><strong>Fortaleza:</strong> 30 anos de datos historicos. Estandar global. OptaAI Studio</li>
+<li><strong>Debilidad:</strong> Precio prohibitivo (seis cifras). Solo enterprise</li>
+<li><strong>vs VITAS:</strong> Mundos diferentes. Opta es infraestructura de datos para broadcasters y casas de apuestas. VITAS es herramienta directa para academias</li>
+</ul>
+<h3>SkillCorner — Tracking desde broadcast</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Tracking completo de 22 jugadores desde una sola camara, incluyendo jugadores fuera de pantalla</li>
+<li><strong>Debilidad:</strong> Solo video broadcast profesional. Precio enterprise</li>
+<li><strong>Precio:</strong> Enterprise (recibio $60M de inversion)</li>
+<li><strong>vs VITAS:</strong> SkillCorner hace tracking mas sofisticado pero solo en video profesional. VITAS hace tracking desde cualquier video de movil</li>
+</ul>
+<h3>Veo — La camara IA para amateurs</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Camara autonoma sin operador. Lentes 180 grados. 7h bateria</li>
+<li><strong>Debilidad:</strong> Hardware necesario ($900-1,200). Analytics basicos</li>
+<li><strong>Precio:</strong> $899-1,199 camara + $26-33/mes</li>
+<li><strong>vs VITAS:</strong> Veo graba. VITAS analiza. Son complementarios. VITAS puede analizar video grabado con Veo</li>
+</ul>
+<h3>TacticalPad — El dibujo tactico</h3>
+<ul>
+<li><strong>Fortaleza:</strong> App #1 de planificacion tactica desde 2010. 1M+ descargas. Muy barato</li>
+<li><strong>Debilidad:</strong> Solo herramienta de dibujo. Sin datos reales. Sin video</li>
+<li><strong>Precio:</strong> $24-63/ano</li>
+<li><strong>vs VITAS:</strong> TacticalPad es una pizarra. VITAS es un cerebro de inteligencia</li>
+</ul>
+<h3>AiSCOUT (ai.io) — Las pruebas virtuales</h3>
+<ul>
+<li><strong>Fortaleza:</strong> Evaluaciones IA desde el movil del jugador. Asociacion con Chelsea. Gratis para jugadores</li>
+<li><strong>Debilidad:</strong> Solo ejercicios predefinidos (no partidos reales). Sin PHV. Sin seguimiento longitudinal</li>
+<li><strong>Precio:</strong> Gratis para jugadores. Licencia para clubes (variable)</li>
+<li><strong>vs VITAS:</strong> AiSCOUT evalua jugadores en drills. VITAS evalua jugadores en contexto real de partido + corrige por maduracion biologica. Son complementarios pero VITAS ofrece vision mas completa</li>
+</ul>
+<hr>
+<h2>Brechas del Mercado que VITAS Cubre</h2>
+<h3>1. Correccion por Maduracion Biologica (PHV) — BRECHA CRITICA</h3>
+<p><strong>Ningun competidor integra correccion PHV en su evaluacion de talento.</strong></p>
+<p>La investigacion cientifica demuestra que:</p>
+<ul>
+<li>El Relative Age Effect causa que los nacidos en Q1 (enero-marzo) tengan probabilidades desproporcionadas de ser seleccionados</li>
+<li>Los maduradores precoces dominan fisicamente a los 12-15 anos pero pierden esa ventaja a los 18-21</li>
+<li>Los maduradores tardios son descartados sistematicamente a pesar de tener igual o mayor potencial</li>
+</ul>
+<p>VITAS es la unica plataforma que:</p>
+<ul>
+<li>Calcula PHV con formula Mirwald</li>
+<li>Ajusta el VSI eliminando sesgos (TruthFilter)</li>
+<li>Cuantifica el sesgo combinado (UBI)</li>
+<li>Identifica &quot;talentos ocultos&quot; (late bloomers)</li>
+</ul>
+<h3>2. Plataforma integrada sin hardware</h3>
+<p>Una academia hoy necesita:</p>
+<ul>
+<li>Veo para grabar (~$1,200 + $300/ano)</li>
+<li>Metrica para analisis (~$400-1,000/ano)</li>
+<li>Catapult para GPS (~$180/jugador/ano)</li>
+<li>Wyscout para benchmarking (~$325/ano)</li>
+<li>Excel para seguimiento de maduracion</li>
+</ul>
+<p><strong>VITAS integra todo esto en una PWA sin hardware, desde $0/mes.</strong></p>
+<h3>3. Segmento desatendido</h3>
+<p>El segmento de <strong>academias juveniles de nivel medio</strong> (~50,000 globalmente):</p>
+<ul>
+<li>Demasiado pequenas para Hudl/StatsBomb enterprise</li>
+<li>Demasiado ambiciosas para solo Veo + Excel</li>
+<li>Necesitan analisis de maduracion pero no pueden pagar especialistas</li>
+</ul>
+<p>VITAS esta diseñada exactamente para este segmento.</p>
+<h3>4. VAEP contextualizado por edad biologica</h3>
+<p>StatsBomb tiene VAEP, pero no ajusta por maduracion. Un disparo de un chico de 12 que es madurador tardio vale mas (en terminos de potencial) que el mismo disparo de un precoz.</p>
+<h3>5. Knowledge base de ejercicios (RAG)</h3>
+<p>Ningun competidor ofrece busqueda semantica de ejercicios recomendados basados en las debilidades especificas del jugador.</p>
+<hr>
+<h2>Mercado y Tendencias</h2>
+<h3>Tamano del mercado</h3>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Valor (2026)</th>
+<th>Proyeccion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Sports Analytics Market</td>
+<td>$7.03B</td>
+<td>$23-32B para 2033-34</td>
+</tr>
+<tr>
+<td>Football Analytics Software</td>
+<td>$521M (2024)</td>
+<td>$1.18B para 2032</td>
+</tr>
+<tr>
+<td>CAGR</td>
+<td>12.1-24.3%</td>
+<td>Segun segmento</td>
+</tr>
+<tr>
+<td>Cuota futbol</td>
+<td>~35%</td>
+<td>Del mercado global de sports analytics</td>
+</tr>
+</tbody></table>
+<h3>Tendencias clave 2026</h3>
+<ol>
+<li><strong>Consolidacion:</strong> Hudl ha adquirido Wyscout + StatsBomb + InStat, creando un near-monopolio en datos profesionales</li>
+<li><strong>Democratizacion del tracking:</strong> Metrica y SkillCorner permiten tracking desde video basico</li>
+<li><strong>IA generativa:</strong> Nacsport integra LLMs, Metrica lanza Football GPT, OptaAI Studio</li>
+<li><strong>Mandato FIFA:</strong> Estandares minimos de monitoreo de salud en competiciones de elite</li>
+<li><strong>Inversion grassroots:</strong> Mundial 2026 impulsa inversiones en programas de base</li>
+<li><strong>Privacidad de menores:</strong> Regulaciones mas estrictas en UE y UK</li>
+</ol>
+<h3>Oportunidad</h3>
+<p>Con el mercado de sports analytics creciendo 15-24% anual y la consolidacion dejando huerfano al segmento medio de academias, VITAS tiene una ventana de oportunidad clara.</p>
+<hr>
+<h2>Posicionamiento Estrategico</h2>
+<h3>Claim</h3>
+<blockquote>
+<p>&quot;La unica plataforma de inteligencia futbolistica que ve al jugador, no al cuerpo&quot;</p>
+</blockquote>
+<h3>Mercado inicial</h3>
+<p>Academias juveniles de nivel medio (presupuesto $500-5,000/ano en tecnologia) en:</p>
+<ul>
+<li>Latinoamerica (mercado masivo, sensible a precio)</li>
+<li>Europa del Sur (España, Italia, Portugal — alta cultura futbolistica)</li>
+</ul>
+<h3>Modelo de precio</h3>
+<table>
+<thead>
+<tr>
+<th>Plan</th>
+<th>Precio</th>
+<th>Target</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Free</td>
+<td>$0</td>
+<td>Scouts individuales, prueba</td>
+</tr>
+<tr>
+<td>Pro</td>
+<td>$19/mes</td>
+<td>Academias pequeñas (5-25 jugadores)</td>
+</tr>
+<tr>
+<td>Club</td>
+<td>$79/mes</td>
+<td>Academias medianas-grandes (ilimitado)</td>
+</tr>
+</tbody></table>
+<p>Posicionado entre TacticalPad ($24/ano) y Metrica Advanced ($88/mes).</p>
+<h3>Ventaja competitiva defensible</h3>
+<p>El stack PHV + TruthFilter + UBI + VAEP contextualizado es dificil de replicar sin:</p>
+<ol>
+<li>Investigacion especifica en maduracion biologica</li>
+<li>Integracion de multiples fuentes de sesgo (RAE + PHV)</li>
+<li>Base de datos de curvas de desarrollo por posicion y metrica</li>
+</ol>
+<h3>Alianzas potenciales</h3>
+<ul>
+<li>Federaciones nacionales (combatir RAE es objetivo declarado de FIFA)</li>
+<li>Fabricantes de camaras (Veo, Pixellot) — VITAS analiza su video</li>
+<li>GPS providers (Catapult, STATSports) — VITAS añade la capa de inteligencia</li>
+</ul>
+<h3>Roadmap competitivo</h3>
+<table>
+<thead>
+<tr>
+<th>Fase</th>
+<th>Accion</th>
+<th>Efecto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ahora</td>
+<td>PHV + TruthFilter como diferenciador</td>
+<td>Nicho unico</td>
+</tr>
+<tr>
+<td>6 meses</td>
+<td>Integracion con Veo/Catapult</td>
+<td>Ampliar base</td>
+</tr>
+<tr>
+<td>12 meses</td>
+<td>App movil nativa</td>
+<td>UX superior</td>
+</tr>
+<tr>
+<td>18 meses</td>
+<td>API abierta para federaciones</td>
+<td>Escala institucional</td>
+</tr>
+<tr>
+<td>24 meses</td>
+<td>Modelo predictivo propio (vs SciSports)</td>
+<td>Competir en elite</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Conclusion</h2>
+<p>VITAS ocupa un espacio unico en el mercado:</p>
+<ul>
+<li><strong>No compite con Hudl/Wyscout</strong> (datos profesionales — otro mercado)</li>
+<li><strong>No compite con Catapult/STATSports</strong> (hardware GPS — complementarios)</li>
+<li><strong>Compite con Metrica Sports</strong> en democratizacion de tracking</li>
+<li><strong>Compite con AiSCOUT</strong> en evaluacion juvenil por IA</li>
+<li><strong>No tiene competidor directo</strong> en correccion por maduracion biologica</li>
+</ul>
+<p>La combinacion de <strong>video IA + tracking sin hardware + PHV/TruthFilter + VAEP + RAG</strong> en una PWA accesible no existe en ningun otro producto del mercado.</p>
+<hr>
+<blockquote>
+<p>Fuentes: Hudl, Wyscout, StatsBomb, Metrica Sports, Nacsport, SciSports, PlayerMaker, Catapult, STATSports, Opta, SkillCorner, Veo, AiSCOUT, TacticalPad, Fortune Business Insights, Markets &amp; Markets, Grand View Research, FIFA, FC Barcelona Innovation Hub.</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+/**
+ * VITAS · Lightweight Report Quality Check (Edge-compatible)
+ *
+ * Versión simplificada del reportValidator de src/services/real/ para usar
+ * en Edge Functions. Detecta incoherencias básicas y genera feedback
+ * para retry del agente.
+ */
+
+export interface QualityResult {
+  valid: boolean;
+  qualityScore: number;
+  issues: string[];
+  feedbackForAgent?: string;
+}
+
+/**
+ * Valida coherencia básica de un reporte de Video Intelligence.
+ */
+export function checkPlayerReportQuality(
+  report: Record<string, unknown>,
+  playerAge: number,
+): QualityResult {
+  const issues: string[] = [];
+
+  // 1. Campos requeridos top-level
+  const required = ["estadoActual", "evaluacionPsicologica", "adnFutbolistico", "planDesarrollo", "confianza"];
+  for (const key of required) {
+    if (!(key in report)) issues.push(`Campo requerido ausente: ${key}`);
+  }
+
+  // 2. estadoActual con dimensiones
+  const estado = report.estadoActual as Record<string, unknown> | undefined;
+  if (estado) {
+    if (!estado.resumenEjecutivo) issues.push("Falta resumenEjecutivo en estadoActual");
+    if (!estado.dimensiones) issues.push("Falta dimensiones en estadoActual");
+
+    const dims = estado.dimensiones as Record<string, { score?: number }> | undefined;
+    if (dims) {
+      const scores = Object.values(dims).map(d => d?.score).filter((s): s is number => typeof s === "number");
+      if (scores.length > 0) {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        // Scores should be 0-100
+        if (scores.some(s => s < 0 || s > 100)) {
+          issues.push("Scores de dimensiones fuera de rango 0-100");
+        }
+        // VSI adjustment should roughly match avg
+        const vsi = estado.ajusteVSIVideoScore as number | undefined;
+        if (vsi !== undefined && Math.abs(vsi - avg) > 25) {
+          issues.push(`ajusteVSI (${vsi}) muy alejado del promedio de dimensiones (${avg.toFixed(0)})`);
+        }
+      }
+    }
+  }
+
+  // 3. Edad vs proyección
+  const plan = report.planDesarrollo as Record<string, unknown> | undefined;
+  if (plan && playerAge < 12) {
+    const obj = (plan.objetivo18meses ?? plan.objetivo6meses ?? "") as string;
+    if (obj.toLowerCase().includes("profesional") || obj.toLowerCase().includes("primera división")) {
+      issues.push("Proyección demasiado ambiciosa para jugador < 12 años");
+    }
+  }
+
+  // 4. Confianza en rango
+  const conf = report.confianza as number | undefined;
+  if (conf !== undefined && (conf < 0 || conf > 1)) {
+    issues.push("Confianza fuera de rango 0-1");
+  }
+
+  // 5. Evaluación psicológica con valores
+  const psych = report.evaluacionPsicologica as Record<string, unknown> | undefined;
+  if (psych) {
+    const vals = Object.values(psych).filter(v => typeof v === "number") as number[];
+    if (vals.some(v => v < 0 || v > 100)) {
+      issues.push("Valores psicológicos fuera de rango 0-100");
+    }
+  }
+
+  const errorCount = issues.length;
+  const qualityScore = Math.max(0, 100 - errorCount * 15);
+  const valid = errorCount === 0;
+
+  let feedbackForAgent: string | undefined;
+  if (!valid) {
+    feedbackForAgent = `VALIDACIÓN SEMÁNTICA FALLIDA. Corrige estos errores:\n${
+      issues.map((issue, i) => `${i + 1}. ${issue}`).join("\n")
+    }\n\nRegenera el JSON corrigiendo SOLO los campos mencionados. Mantén el resto igual.`;
+  }
+
+  return { valid, qualityScore, issues, feedbackForAgent };
+}
+
+/**
+ * Valida coherencia básica de un reporte de Team Intelligence.
+ */
+export function checkTeamReportQuality(
+  report: Record<string, unknown>,
+): QualityResult {
+  const issues: string[] = [];
+
+  // 1. Campos requeridos
+  const required = ["resumenEjecutivo", "formacion", "jugadores", "evaluacionGeneral"];
+  for (const key of required) {
+    if (!(key in report)) issues.push(`Campo requerido ausente: ${key}`);
+  }
+
+  // 2. Jugadores debe ser array
+  const jugadores = report.jugadores as unknown[];
+  if (Array.isArray(jugadores)) {
+    // Speeds should be realistic (< 38 km/h)
+    for (let i = 0; i < jugadores.length; i++) {
+      const j = jugadores[i] as Record<string, unknown>;
+      const speed = j?.velocidadMaxKmh as number | undefined;
+      if (speed !== undefined && speed > 38) {
+        issues.push(`Jugador[${i}]: velocidad ${speed} km/h no es realista (máx 38)`);
+      }
+    }
+  }
+
+  // 3. Posesión realista
+  const posesion = report.posesion as Record<string, unknown> | undefined;
+  const pct = posesion?.porcentaje as number | undefined;
+  if (pct !== undefined && (pct < 20 || pct > 80)) {
+    issues.push(`Posesión ${pct}% fuera de rango realista (20-80%)`);
+  }
+
+  // 4. Confianza en rango
+  const conf = report.confianza as number | undefined;
+  if (conf !== undefined && (conf < 0 || conf > 1)) {
+    issues.push("Confianza fuera de rango 0-1");
+  }
+
+  const errorCount = issues.length;
+  const qualityScore = Math.max(0, 100 - errorCount * 15);
+  const valid = errorCount === 0;
+
+  let feedbackForAgent: string | undefined;
+  if (!valid) {
+    feedbackForAgent = `VALIDACIÓN SEMÁNTICA FALLIDA. Corrige estos errores:\n${
+      issues.map((issue, i) => `${i + 1}. ${issue}`).join("\n")
+    }\n\nRegenera el JSON corrigiendo SOLO los campos mencionados. Mantén el resto igual.`;
+  }
+
+  return { valid, qualityScore, issues, feedbackForAgent };
+}

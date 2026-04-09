@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VITAS — KPIs, Estadisticas e Indices — VITAS Football Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── VITAS Design System ─────────────────────────────── */
+    :root {
+      --bg:           #0a0e17;
+      --bg-card:      #111827;
+      --bg-surface:   #1a2233;
+      --bg-elevated:  #1f2b3d;
+      --border:       #2a3548;
+      --text:         #e2e8f0;
+      --text-muted:   #8b9ab5;
+      --text-dim:     #5a6a82;
+      --primary:      #0066b8;
+      --primary-light:#3399ff;
+      --electric:     #a855f7;
+      --electric-light:#c084fc;
+      --gold:         #d4940a;
+      --gold-light:   #f5b731;
+      --cyan:         #06b6d4;
+      --danger:       #ef4444;
+      --success:      #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 48px 80px;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    .doc-header {
+      text-align: center;
+      padding: 48px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+      position: relative;
+    }
+    .doc-header::before {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric), var(--cyan));
+      border-radius: 2px;
+    }
+    .doc-header .brand {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      margin-bottom: 12px;
+    }
+    .doc-header .brand span { color: var(--electric-light); }
+    .doc-header .subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+
+    /* ── Typography ──────────────────────────────────────── */
+    h1 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: -0.5px;
+      margin: 56px 0 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1:first-child { margin-top: 0; }
+
+    h2 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-light);
+      margin: 40px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid var(--primary);
+      letter-spacing: 0.3px;
+    }
+
+    h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 17px;
+      color: var(--electric-light);
+      margin: 28px 0 10px;
+    }
+
+    h4 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--gold-light);
+      margin: 20px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+
+    strong {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    em {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    a {
+      color: var(--primary-light);
+      text-decoration: none;
+      border-bottom: 1px solid var(--primary-light);
+      transition: all 0.2s;
+    }
+    a:hover {
+      color: var(--electric-light);
+      border-color: var(--electric-light);
+    }
+
+    /* ── Blockquote ──────────────────────────────────────── */
+    blockquote {
+      border-left: 3px solid var(--electric);
+      background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(0,102,184,0.04));
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+    blockquote p {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    /* ── Code ────────────────────────────────────────────── */
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      background: var(--bg-surface);
+      color: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      overflow-x: auto;
+      margin: 16px 0 20px;
+      position: relative;
+    }
+    pre::before {
+      content: 'CODE';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: var(--text);
+      font-size: 12.5px;
+      line-height: 1.8;
+    }
+
+    /* ── Tables ──────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 16px 0 24px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+    }
+
+    thead {
+      background: linear-gradient(135deg, var(--bg-surface), var(--bg-elevated));
+    }
+    thead th {
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--primary-light);
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      background: var(--bg-card);
+      transition: background 0.2s;
+    }
+    tbody tr:nth-child(even) {
+      background: rgba(26,34,51,0.5);
+    }
+    tbody tr:hover {
+      background: rgba(0,102,184,0.08);
+    }
+
+    tbody td {
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(42,53,72,0.5);
+      color: var(--text);
+      vertical-align: top;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Lists ───────────────────────────────────────────── */
+    ul, ol {
+      padding-left: 24px;
+      margin: 8px 0 16px;
+    }
+    li {
+      margin: 4px 0;
+      color: var(--text);
+    }
+    li::marker {
+      color: var(--primary-light);
+    }
+
+    /* ── Horizontal Rule ─────────────────────────────────── */
+    hr {
+      border: none;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), var(--primary), var(--border), transparent);
+      margin: 40px 0;
+    }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    .doc-footer {
+      text-align: center;
+      padding-top: 40px;
+      margin-top: 60px;
+      border-top: 1px solid var(--border);
+      position: relative;
+    }
+    .doc-footer::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--electric));
+      border-radius: 2px;
+    }
+    .doc-footer p {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    /* ── Print / PDF ─────────────────────────────────────── */
+    @media print {
+      body { background: #0a0e17 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .page-wrapper { padding: 24px 32px 48px; }
+      h1 { font-size: 26px; margin-top: 36px; }
+      h2 { font-size: 18px; margin-top: 28px; }
+      pre { font-size: 11px; }
+      table { font-size: 11.5px; }
+    }
+
+    /* ── Special highlights ──────────────────────────────── */
+    td:first-child, th:first-child {
+      font-weight: 500;
+    }
+
+    /* VITAS keyword highlights in tables */
+    td strong {
+      color: var(--primary-light);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <div class="doc-header">
+      <div class="brand">VITAS<span>.</span> Football Intelligence</div>
+      <div class="subtitle">Prophet Horizon Technology · Build 2.1.0 · Abril 2026</div>
+    </div>
+
+    <div class="doc-content">
+      <h1>VITAS · KPIs, Estadisticas e Indices</h1>
+<blockquote>
+<p>Documento tecnico de todas las metricas del sistema VITAS Football Intelligence.
+Ultima actualizacion: Abril 2026</p>
+</blockquote>
+<hr>
+<h2>Indice</h2>
+<ol>
+<li><a href="#1-vsi--vitas-scouting-index">VSI — VITAS Scouting Index</a></li>
+<li><a href="#2-rae--relative-age-effect">RAE — Relative Age Effect</a></li>
+<li><a href="#3-phv--peak-height-velocity">PHV — Peak Height Velocity</a></li>
+<li><a href="#4-ubi--unified-bias-index">UBI — Unified Bias Index</a></li>
+<li><a href="#5-truthfilter--ajuste-de-vsi">TruthFilter — Ajuste de VSI</a></li>
+<li><a href="#6-vaep--valor-de-acciones-por-probabilidad">VAEP — Valor de Acciones por Probabilidad</a></li>
+<li><a href="#7-dominant-features--play-style">Dominant Features / Play Style</a></li>
+<li><a href="#8-metricas-de-tracking-gpsyolo">Metricas de Tracking (GPS/YOLO)</a></li>
+<li><a href="#9-voronoi--control-territorial">Voronoi — Control Territorial</a></li>
+<li><a href="#10-similarity-score--comparacion-con-profesionales">Similarity Score — Comparacion con Profesionales</a></li>
+<li><a href="#11-proyecciones-de-desarrollo">Proyecciones de Desarrollo</a></li>
+<li><a href="#12-role-profile--perfil-tactico">Role Profile — Perfil Tactico</a></li>
+<li><a href="#13-metricas-de-eventos-de-partido">Metricas de Eventos de Partido</a></li>
+<li><a href="#14-pose-analysis--analisis-de-pose">Pose Analysis — Analisis de Pose</a></li>
+<li><a href="#15-biomechanics-score">Biomechanics Score</a></li>
+<li><a href="#16-6-dimensiones-del-reporte-ia">6 Dimensiones del Reporte IA</a></li>
+<li><a href="#17-tabla-resumen">Tabla Resumen</a></li>
+</ol>
+<hr>
+<h2>1. VSI — VITAS Scouting Index</h2>
+<p><strong>Que es:</strong> El indice principal de VITAS. Un score compuesto que resume el nivel global de un jugador juvenil en una sola cifra.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/metricsService.ts</code></p>
+<p><strong>Formula:</strong></p>
+<pre><code>VSI = (Speed x 0.18) + (Technique x 0.22) + (Vision x 0.20) +
+      (Stamina x 0.15) + (Shooting x 0.13) + (Defending x 0.12)
+</code></pre>
+<p><strong>Pesos y justificacion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Peso</th>
+<th>Razon</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Technique</td>
+<td>22%</td>
+<td>El mayor predictor de exito en futbol juvenil</td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>20%</td>
+<td>Capacidad de lectura de juego, segundo predictor</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td>18%</td>
+<td>Importante pero puede dar ventaja temporal (PHV)</td>
+</tr>
+<tr>
+<td>Stamina</td>
+<td>15%</td>
+<td>Base fisica necesaria</td>
+</tr>
+<tr>
+<td>Shooting</td>
+<td>13%</td>
+<td>Relevante pero posicion-dependiente</td>
+</tr>
+<tr>
+<td>Defending</td>
+<td>12%</td>
+<td>Menor peso en formacion juvenil general</td>
+</tr>
+</tbody></table>
+<p><strong>Rango:</strong> 0-100</p>
+<p><strong>Clasificacion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Rango</th>
+<th>Etiqueta</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>80-100</td>
+<td>Elite</td>
+<td>Top 5% de la cohorte</td>
+</tr>
+<tr>
+<td>65-79</td>
+<td>Alto</td>
+<td>Potencial para cantera profesional</td>
+</tr>
+<tr>
+<td>50-64</td>
+<td>Medio</td>
+<td>Buen nivel, necesita desarrollo</td>
+</tr>
+<tr>
+<td>0-49</td>
+<td>Desarrollo</td>
+<td>En fase formativa temprana</td>
+</tr>
+</tbody></table>
+<p><strong>Tendencia (Trend):</strong></p>
+<ul>
+<li><code>up</code>: Delta &gt; +2 puntos (en ascenso)</li>
+<li><code>down</code>: Delta &lt; -2 puntos (en descenso)</li>
+<li><code>stable</code>: entre -2 y +2</li>
+</ul>
+<p><strong>Percentil:</strong></p>
+<pre><code>percentil = (jugadores_por_debajo / total_jugadores) x 100
+</code></pre>
+<p><strong>Para que sirve:</strong> Permite comparar jugadores de distintas posiciones y edades con una metrica unica. Es el &quot;credit score&quot; del talento juvenil.</p>
+<hr>
+<h2>2. RAE — Relative Age Effect</h2>
+<p><strong>Que es:</strong> Cuantifica la ventaja/desventaja que tiene un jugador por su fecha de nacimiento dentro de la cohorte anual. Los nacidos en enero tienen hasta 11 meses de ventaja fisica sobre los nacidos en diciembre.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>Formula:</strong></p>
+<pre><code>relativeMonths = (birthMonth - cutoffMonth + 12) % 12
+</code></pre>
+<p><strong>Cuartiles:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cuartil</th>
+<th>Meses desde corte</th>
+<th>Clasificacion</th>
+<th>Factor de sesgo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Q1</td>
+<td>0-2</td>
+<td>early_cohort</td>
+<td>1.22 (maxima ventaja)</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>3-5</td>
+<td>mid_cohort_early</td>
+<td>~1.14</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>6-8</td>
+<td>mid_cohort_late</td>
+<td>~1.06</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>9-11</td>
+<td>late_cohort</td>
+<td>1.00 (sin ventaja)</td>
+</tr>
+</tbody></table>
+<p><strong>Correccion al VSI:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Cuartil</th>
+<th>Ajuste</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Q1</td>
+<td>-2 puntos (sobreestimados)</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>0 puntos</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>+2 puntos</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>+5 puntos (subestimados)</td>
+</tr>
+</tbody></table>
+<p><strong>Para que sirve:</strong> Identifica jugadores que estan siendo sobreestimados (nacidos temprano, mas grandes fisicamente) o subestimados (nacidos tarde, mas pequenos). Permite descubrir &quot;talentos ocultos&quot; en Q4.</p>
+<hr>
+<h2>3. PHV — Peak Height Velocity</h2>
+<p><strong>Que es:</strong> Calcula el momento de maxima velocidad de crecimiento de un jugador (maduracion biologica). Determina si un jugador es madurador precoz, normal o tardio respecto a su edad cronologica.</p>
+<p><strong>Archivo:</strong> <code>api/agents/phv-calculator.ts</code></p>
+<p><strong>Formula (Mirwald et al.):</strong></p>
+<pre><code>Maturity Offset = -9.236
+  + (0.0002708 x leg_length x sitting_height)
+  - (0.001663 x age x leg_length)
+  + (0.007216 x age x sitting_height)
+  + (0.02292 x (weight/height) x 100)
+</code></pre>
+<p><strong>Estimaciones si faltan datos:</strong></p>
+<pre><code>sitting_height ≈ height x 0.52
+leg_length ≈ height x 0.48
+</code></pre>
+<p><strong>Categorias:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Offset</th>
+<th>Categoria</th>
+<th>Estado</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt; -1.0</td>
+<td>Early (Precoz)</td>
+<td>pre_phv</td>
+<td>Ya paso su pico de crecimiento. Ventaja fisica actual, declinara</td>
+</tr>
+<tr>
+<td>-1.0 a +1.0</td>
+<td>On-time (Normal)</td>
+<td>during_phv</td>
+<td>Maduracion acorde a su edad</td>
+</tr>
+<tr>
+<td>&gt; +1.0</td>
+<td>Late (Tardio)</td>
+<td>post_phv</td>
+<td>Aun no llega a su pico. Desventaja actual, potencial futuro alto</td>
+</tr>
+</tbody></table>
+<p><strong>Ajuste al VSI:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Categoria</th>
+<th>Factor</th>
+<th>Efecto</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Early</td>
+<td>x1.12</td>
+<td>Se reduce VSI (sobreestimado por fisico)</td>
+</tr>
+<tr>
+<td>On-time</td>
+<td>x1.0</td>
+<td>Sin cambio</td>
+</tr>
+<tr>
+<td>Late</td>
+<td>x0.92</td>
+<td>Se aumenta VSI (subestimado por fisico)</td>
+</tr>
+</tbody></table>
+<p><strong>Confianza:</strong></p>
+<ul>
+<li>Con datos reales (sitting height + leg length): 0.92</li>
+<li>Con datos estimados: 0.74</li>
+</ul>
+<p><strong>Para que sirve:</strong> Es el diferenciador clave de VITAS. Ningun competidor ofrece correccion por maduracion biologica. Permite ver el potencial real detras de la ventaja/desventaja fisica transitoria.</p>
+<hr>
+<h2>4. UBI — Unified Bias Index</h2>
+<p><strong>Que es:</strong> Combina los sesgos de RAE y PHV en un solo indice que indica cuan sesgada esta la evaluacion de un jugador.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>Formula:</strong></p>
+<pre><code>raeComponent = (birthQuartile - 1) / 3        [0 = Q1, 1 = Q4]
+phvComponent = clamp(|phvOffset| / 2, 0, 1)   [late maturers -&gt; 1]
+UBI = (0.55 x raeComponent) + (0.45 x phvComponent)
+</code></pre>
+<p><strong>Rango:</strong> 0-1</p>
+<p><strong>Interpretacion:</strong></p>
+<table>
+<thead>
+<tr>
+<th>UBI</th>
+<th>Nivel</th>
+<th>Significado</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&gt;= 0.7</td>
+<td>Alto</td>
+<td>Jugador probablemente MUY subestimado</td>
+</tr>
+<tr>
+<td>0.4-0.7</td>
+<td>Moderado</td>
+<td>Sesgo significativo presente</td>
+</tr>
+<tr>
+<td>0.2-0.4</td>
+<td>Leve</td>
+<td>Sesgo menor</td>
+</tr>
+<tr>
+<td>&lt; 0.2</td>
+<td>Minimo</td>
+<td>Sin sesgo significativo</td>
+</tr>
+</tbody></table>
+<p><strong>Factor de correccion VSI:</strong></p>
+<pre><code>vsICorrectionFactor = 1 + (UBI x 0.12)
+Maximo: +12% sobre el VSI
+</code></pre>
+<p><strong>Para que sirve:</strong> Alerta a scouts y entrenadores sobre jugadores cuya evaluacion esta distorsionada por factores biologicos. Un UBI alto = &quot;mira mas de cerca a este jugador&quot;.</p>
+<hr>
+<h2>5. TruthFilter — Ajuste de VSI</h2>
+<p><strong>Que es:</strong> Algoritmo que ajusta el VSI eliminando los sesgos de maduracion y edad relativa. Produce el &quot;VSI verdadero&quot; que refleja habilidad pura.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>4 Casos de ajuste:</strong></p>
+<h3>Caso 1: Madurador Precoz (phvOffset &gt; +0.5)</h3>
+<pre><code>Magnitud = min(8, round(phvOffset x 4))
+Correccion: -Magnitud (reduce 3-8 puntos)
+Confianza: 0.85 (datos reales), 0.60 (estimados)
+Razon: Sobreestimado por ventaja fisica transitoria
+</code></pre>
+<h3>Caso 2: Madurador Tardio (phvOffset &lt; -0.5)</h3>
+<pre><code>Magnitud = min(10, round(|phvOffset| x 4))
+Correccion: +Magnitud (aumenta 3-10 puntos)
+Confianza: 0.88 (datos reales), 0.65 (estimados)
+Razon: Subestimado por desventaja fisica temporal
+</code></pre>
+<h3>Caso 3: Normal + RAE Alto (Q1-Q2)</h3>
+<pre><code>Magnitud = Q1 ? 3 : 1
+Correccion: -Magnitud (-1 a -3 puntos)
+Confianza: 0.70
+Razon: Ligera ventaja por RAE
+</code></pre>
+<h3>Caso 4: Normal + RAE Bajo (Q3-Q4)</h3>
+<pre><code>Magnitud = Q4 ? 4 : 1
+Correccion: +Magnitud (+1 a +4 puntos)
+Confianza: 0.72
+Razon: Ligera desventaja por RAE
+</code></pre>
+<p><strong>Para que sirve:</strong> Produce el score mas justo posible al eliminar sesgos sistematicos. Es como &quot;ver al jugador a los 21 anos&quot; desde hoy.</p>
+<hr>
+<h2>6. VAEP — Valor de Acciones por Probabilidad</h2>
+<p><strong>Que es:</strong> Mide el valor real de cada accion de un jugador (pases, disparos, duelos) en terminos de probabilidad de gol generado o evitado. Basado en Decroos et al., 2019.</p>
+<p><strong>Archivos:</strong> <code>src/services/real/advancedMetricsService.ts</code>, <code>src/lib/geminiToVaep.ts</code></p>
+<p><strong>Formula base:</strong></p>
+<pre><code>VAEP(accion) = [P(gol_despues) - P(gol_antes)] - [P(conceder_despues) - P(conceder_antes)]
+</code></pre>
+<p><strong>Pesos simplificados por evento:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Evento</th>
+<th>Exito</th>
+<th>Fallo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Disparo</td>
+<td>+0.15</td>
+<td>-0.03</td>
+</tr>
+<tr>
+<td>Pase (zona ofensiva)</td>
+<td>+0.03</td>
+<td>-0.015</td>
+</tr>
+<tr>
+<td>Pase (zona media)</td>
+<td>+0.015</td>
+<td>-0.015</td>
+</tr>
+<tr>
+<td>Pase (zona defensiva)</td>
+<td>+0.0075</td>
+<td>-0.015</td>
+</tr>
+<tr>
+<td>Regate</td>
+<td>+0.06</td>
+<td>-0.02</td>
+</tr>
+<tr>
+<td>Tackle</td>
+<td>+0.04</td>
+<td>-0.015</td>
+</tr>
+<tr>
+<td>Pressing</td>
+<td>+0.025</td>
+<td>-0.005</td>
+</tr>
+<tr>
+<td>Centro</td>
+<td>+0.08</td>
+<td>-0.02</td>
+</tr>
+<tr>
+<td>Cabezazo</td>
+<td>+0.05</td>
+<td>-0.01</td>
+</tr>
+</tbody></table>
+<p><strong>Metricas generadas:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Descripcion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>vaepTotal</code></td>
+<td>Suma de todos los deltas de acciones</td>
+</tr>
+<tr>
+<td><code>vaep90</code></td>
+<td>VAEP normalizado a 90 minutos</td>
+</tr>
+<tr>
+<td><code>topActions</code></td>
+<td>Top 5 acciones de mayor impacto</td>
+</tr>
+</tbody></table>
+<p><strong>Fuentes de datos:</strong></p>
+<ol>
+<li>Log manual de eventos (botones rapidos en PlayerProfile)</li>
+<li>Deteccion automatica via Gemini (video observation)</li>
+</ol>
+<p><strong>Para que sirve:</strong> Va mas alla de estadisticas basicas (pases completados). Muestra el IMPACTO real de cada accion en el resultado. Un jugador puede tener 90% de pases completos pero VAEP negativo si solo hace pases laterales sin riesgo.</p>
+<hr>
+<h2>7. Dominant Features / Play Style</h2>
+<p><strong>Que es:</strong> Clasifica automaticamente el estilo de juego de un jugador y detecta sus caracteristicas dominantes e infra-desarrolladas.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>Z-Score:</strong></p>
+<pre><code>zScore = (valor_metrica - media_norma) / desviacion_estandar
+</code></pre>
+<p><strong>Normas de referencia (grupo VITAS):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Media</th>
+<th>Desviacion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Speed</td>
+<td>60</td>
+<td>14</td>
+</tr>
+<tr>
+<td>Technique</td>
+<td>58</td>
+<td>13</td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>55</td>
+<td>14</td>
+</tr>
+<tr>
+<td>Stamina</td>
+<td>60</td>
+<td>13</td>
+</tr>
+<tr>
+<td>Shooting</td>
+<td>52</td>
+<td>15</td>
+</tr>
+<tr>
+<td>Defending</td>
+<td>56</td>
+<td>14</td>
+</tr>
+</tbody></table>
+<p><strong>Clasificacion de estilo:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Estilo</th>
+<th>Condicion</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Ofensivo</td>
+<td>offensive_avg &gt; 72 AND &gt; defensive_avg + 10</td>
+</tr>
+<tr>
+<td>Defensivo</td>
+<td>defensive_avg &gt; 72 AND &gt; offensive_avg + 10</td>
+</tr>
+<tr>
+<td>Tecnico</td>
+<td>technique &gt; 72 AND vision &gt; 68</td>
+</tr>
+<tr>
+<td>Fisico</td>
+<td>physical_avg &gt; 72</td>
+</tr>
+<tr>
+<td>Equilibrado</td>
+<td>Ninguna de las anteriores</td>
+</tr>
+</tbody></table>
+<p><strong>Indice de especializacion:</strong></p>
+<pre><code>varianza = sum((zScore_i - mean_zScore)^2) / 6
+indice = min(1, sqrt(varianza) / 2)
+</code></pre>
+<ul>
+<li>0 = Generalista puro</li>
+<li>1 = Altamente especializado</li>
+</ul>
+<p><strong>Para que sirve:</strong> Permite entender rapidamente el ADN de un jugador: es un tecnico puro, un motor fisico, un ofensivo nato, etc. Las areas &quot;infra-desarrolladas&quot; guian el plan de entrenamiento.</p>
+<hr>
+<h2>8. Metricas de Tracking (GPS/YOLO)</h2>
+<p><strong>Que es:</strong> Metricas fisicas de rendimiento extraidas del tracking por vision artificial (YOLO) aplicando homografia para convertir pixeles a metros reales.</p>
+<p><strong>Archivos:</strong> <code>src/lib/yolo/types.ts</code>, <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>Metricas calculadas:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Calculo</th>
+<th>Unidad</th>
+<th>Que mide</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>maxSpeedMs</td>
+<td>Velocidad instantanea pico</td>
+<td>m/s</td>
+<td>Velocidad maxima del jugador</td>
+</tr>
+<tr>
+<td>avgSpeedMs</td>
+<td>Velocidad media de sesion</td>
+<td>m/s</td>
+<td>Ritmo general de trabajo</td>
+</tr>
+<tr>
+<td>totalDistanceM</td>
+<td>Suma distancia frame-a-frame</td>
+<td>metros</td>
+<td>Distancia total recorrida</td>
+</tr>
+<tr>
+<td>sprintCount</td>
+<td>Tramos &gt;6.5 m/s por &gt;= 1s</td>
+<td>cantidad</td>
+<td>Numero de sprints</td>
+</tr>
+<tr>
+<td>sprintDistanceM</td>
+<td>Distancia acumulada en sprints</td>
+<td>metros</td>
+<td>Metros recorridos a maxima velocidad</td>
+</tr>
+<tr>
+<td>fieldCoveragePct</td>
+<td>Celdas 5x5m visitadas / 273 total</td>
+<td>%</td>
+<td>Cobertura territorial del campo</td>
+</tr>
+<tr>
+<td>maxAccelMs2</td>
+<td>Derivada de velocidad</td>
+<td>m/s2</td>
+<td>Capacidad de aceleracion</td>
+</tr>
+</tbody></table>
+<p><strong>Zonas de intensidad:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Zona</th>
+<th>Velocidad</th>
+<th>Tipo de esfuerzo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Walk</td>
+<td>0-2 m/s</td>
+<td>Caminata / recuperacion</td>
+</tr>
+<tr>
+<td>Jog</td>
+<td>2-4 m/s</td>
+<td>Trote</td>
+</tr>
+<tr>
+<td>Run</td>
+<td>4-5.83 m/s</td>
+<td>Carrera</td>
+</tr>
+<tr>
+<td>Sprint</td>
+<td>&gt;5.83 m/s (&gt;21 km/h)</td>
+<td>Sprint</td>
+</tr>
+</tbody></table>
+<p><strong>Fuente de datos:</strong></p>
+<ul>
+<li>YOLO v8/v11 detecta jugadores por frame (25 FPS)</li>
+<li>Homografia convierte bbox pixel -&gt; coordenadas reales en metros</li>
+<li>Tracker asigna IDs persistentes (filtro de Kalman)</li>
+</ul>
+<p><strong>Para que sirve:</strong> Equivale a datos GPS profesionales (Catapult, STATSports) pero SIN hardware. Solo necesitas un video.</p>
+<hr>
+<h2>9. Voronoi — Control Territorial</h2>
+<p><strong>Que es:</strong> Diagrama de Voronoi que divide el campo en zonas de influencia por jugador, mostrando quien controla cada area del terreno.</p>
+<p><strong>Archivo:</strong> <code>src/lib/yolo/voronoi.ts</code></p>
+<p><strong>Calculo:</strong></p>
+<ol>
+<li>Triangulacion de Delaunay (d3-delaunay) sobre posiciones de jugadores</li>
+<li>Voronoi tessellation genera poligonos por jugador</li>
+<li>Area calculada con formula del Shoelace</li>
+</ol>
+<p><strong>Metricas:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Descripcion</th>
+<th>Rango</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>areaM2</td>
+<td>Area del poligono Voronoi por jugador</td>
+<td>0-7140 m2</td>
+</tr>
+<tr>
+<td>Control %</td>
+<td>Porcentaje del campo controlado por equipo</td>
+<td>0-100%</td>
+</tr>
+<tr>
+<td>Space Run</td>
+<td>Deteccion de movimiento hacia espacio libre (delta area &gt; 5m2)</td>
+<td>evento</td>
+</tr>
+</tbody></table>
+<p><strong>Requisitos:</strong> Minimo 3 jugadores detectados para generar diagrama significativo.</p>
+<p><strong>Para que sirve:</strong> Visualiza en tiempo real quien domina el espacio. Entrenadores pueden ver si un jugador esta bien posicionado o deja espacios. &quot;Control territorial&quot; es una metrica tactica avanzada antes solo disponible en ligas top.</p>
+<hr>
+<h2>10. Similarity Score — Comparacion con Profesionales</h2>
+<p><strong>Que es:</strong> Compara el perfil de metricas de un jugador juvenil con 290+ jugadores profesionales (datos EA FC25) para encontrar su &quot;clon&quot; profesional.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/similarityService.ts</code></p>
+<p><strong>Formula (Cosine Similarity):</strong></p>
+<pre><code>similitud(a, b) = dot(a, b) / (||a|| x ||b||) x 100
+</code></pre>
+<p><strong>Mapeo de metricas:</strong></p>
+<table>
+<thead>
+<tr>
+<th>VSI Metrica</th>
+<th>EA FC25 Metrica</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Speed</td>
+<td>Pace (0-99)</td>
+</tr>
+<tr>
+<td>Shooting</td>
+<td>Shooting</td>
+</tr>
+<tr>
+<td>Vision</td>
+<td>Passing</td>
+</tr>
+<tr>
+<td>Technique</td>
+<td>Dribbling</td>
+</tr>
+<tr>
+<td>Defending</td>
+<td>Defending</td>
+</tr>
+<tr>
+<td>Stamina</td>
+<td>Physic</td>
+</tr>
+</tbody></table>
+<p><strong>Modos:</strong></p>
+<p><strong>Modo 1 — Age-Adjusted (recomendado):</strong></p>
+<ul>
+<li>&quot;De-envejece&quot; al profesional a la edad del juvenil usando curvas de desarrollo</li>
+<li>Estima como eran las metricas del pro a esa edad</li>
+<li>Mas justo para comparar un chico de 14 con Messi de 35</li>
+</ul>
+<p><strong>Modo 2 — Classic (directo):</strong></p>
+<ul>
+<li>Compara vectores directamente</li>
+<li>Penaliza si gap de nivel &gt; 10 puntos: <code>factor = max(0.5, 1 - (gap-10)/80)</code></li>
+</ul>
+<p><strong>Bonus de posicion:</strong></p>
+<ul>
+<li>Misma posicion: +5%</li>
+<li>Posicion no coincide: -15%</li>
+</ul>
+<p><strong>Clasificacion de similitud:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Etiqueta</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>92+</td>
+<td>Clon (perfil casi identico)</td>
+</tr>
+<tr>
+<td>85-91</td>
+<td>Muy similar</td>
+</tr>
+<tr>
+<td>75-84</td>
+<td>Similar</td>
+</tr>
+<tr>
+<td>60-74</td>
+<td>Referencia</td>
+</tr>
+<tr>
+<td>&lt;60</td>
+<td>Inspiracion</td>
+</tr>
+</tbody></table>
+<p><strong>Para que sirve:</strong> Da un referente aspiracional al jugador y su familia (&quot;tu perfil se parece al de Pedri a tu edad&quot;). Tambien ayuda a scouts a proyectar el tipo de jugador que podria ser.</p>
+<hr>
+<h2>11. Proyecciones de Desarrollo</h2>
+<p><strong>Que es:</strong> Estima el nivel futuro del jugador a diferentes edades usando curvas de desarrollo biologico-deportivo.</p>
+<p><strong>Archivo:</strong> <code>src/lib/kpiProjections.ts</code>, <code>src/data/developmentCurves.ts</code></p>
+<p><strong>Proyeccion de VSI:</strong></p>
+<pre><code>factor_actual = curvaDesarrollo(edadActual)
+factor_18 = curvaDesarrollo(18)
+factor_21 = curvaDesarrollo(21)
+VSI_proyectado_18 = VSI_actual x (factor_18 / factor_actual)
+VSI_proyectado_21 = VSI_actual x (factor_21 / factor_actual)
+</code></pre>
+<p><strong>Margenes de confianza:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Edad</th>
+<th>Margen</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&lt;= 13</td>
+<td>+-20%</td>
+</tr>
+<tr>
+<td>14-16</td>
+<td>+-15%</td>
+</tr>
+<tr>
+<td>17+</td>
+<td>+-10%</td>
+</tr>
+</tbody></table>
+<p><strong>Curvas de desarrollo por metrica:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Metrica</th>
+<th>Edad pico</th>
+<th>Nota</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pace</td>
+<td>25-26</td>
+<td>Velocidad pura, desarrollo temprano</td>
+</tr>
+<tr>
+<td>Shooting</td>
+<td>27-28</td>
+<td>Mejora con practica, pico tardio</td>
+</tr>
+<tr>
+<td>Passing</td>
+<td>28-30</td>
+<td>Pico mas tardio (experiencia)</td>
+</tr>
+<tr>
+<td>Dribbling</td>
+<td>25-27</td>
+<td>Ventana critica 10-14 anos</td>
+</tr>
+<tr>
+<td>Defending</td>
+<td>29-30</td>
+<td>El mas tardio (requiere experiencia)</td>
+</tr>
+<tr>
+<td>Physic</td>
+<td>27-29</td>
+<td>Ventana de potencia 13-17 anos</td>
+</tr>
+</tbody></table>
+<p><strong>Edad equivalente profesional:</strong></p>
+<pre><code>Busqueda inversa: &quot;el nivel de este jugador = el de un pro tipico a edad X.Y&quot;
+</code></pre>
+<p><strong>Para que sirve:</strong> Permite tomar decisiones de largo plazo. Un jugador con VSI 55 a los 13 podria proyectar VSI 78 a los 18. Sin esta informacion, se descartaria.</p>
+<hr>
+<h2>12. Role Profile — Perfil Tactico</h2>
+<p><strong>Que es:</strong> Genera un perfil tactico completo del jugador usando Claude AI, incluyendo posiciones ideales, arquetipos y proyecciones.</p>
+<p><strong>Archivos:</strong> <code>src/services/roleProfileService.ts</code>, <code>api/agents/role-profile.ts</code></p>
+<p><strong>Scores de capacidad (0-100):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Que mide</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tactical</td>
+<td>Posicionamiento, lectura de juego, gestion</td>
+</tr>
+<tr>
+<td>Technical</td>
+<td>Control, tecnica, toma de decisiones</td>
+</tr>
+<tr>
+<td>Physical</td>
+<td>Velocidad, fuerza, resistencia</td>
+</tr>
+</tbody></table>
+<p><strong>Proyecciones temporales:</strong></p>
+<ul>
+<li>Actual (ahora)</li>
+<li>+6 meses (ajuste 1-3% por PHV)</li>
+<li>+18 meses (ajuste 2.5x por PHV)</li>
+<li>+36 meses (estimacion con maduracion)</li>
+</ul>
+<p><strong>Position Fit (11 posiciones):</strong></p>
+<ul>
+<li>Por posicion: probabilidad (0-1), score (0-100), confianza (0-1)</li>
+</ul>
+<p><strong>20 Arquetipos:</strong></p>
+<ul>
+<li>recuperador, interceptor, organizador, distribuidor, finalizador, rematador, regateador, etc.</li>
+<li>Cada uno con score, confianza y estabilidad (emergente/en_desarrollo/estable/consolidado)</li>
+</ul>
+<p><strong>Sample Tier (basado en minutos jugados):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Minutos</th>
+<th>Confianza</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bronze</td>
+<td>&lt;360</td>
+<td>0.55</td>
+</tr>
+<tr>
+<td>Silver</td>
+<td>360-899</td>
+<td>0.70</td>
+</tr>
+<tr>
+<td>Gold</td>
+<td>900-1799</td>
+<td>0.85</td>
+</tr>
+<tr>
+<td>Platinum</td>
+<td>&gt;=1800</td>
+<td>0.85+</td>
+</tr>
+</tbody></table>
+<p><strong>Para que sirve:</strong> Responde &quot;donde deberia jugar este chico?&quot; y &quot;que tipo de jugador sera?&quot;. Ayuda a entrenadores a posicionar jugadores y planificar rotaciones.</p>
+<hr>
+<h2>13. Metricas de Eventos de Partido</h2>
+<p><strong>Que es:</strong> Registro de acciones individuales durante un partido con peso VAEP asociado.</p>
+<p><strong>Archivo:</strong> <code>src/services/real/matchEventsService.ts</code></p>
+<p><strong>Tipos de evento:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Tipo</th>
+<th>Exito</th>
+<th>Fallo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>pass</td>
+<td>Pase completo</td>
+<td>Pase perdido</td>
+</tr>
+<tr>
+<td>shot</td>
+<td>Disparo al marco</td>
+<td>Disparo fuera</td>
+</tr>
+<tr>
+<td>dribble</td>
+<td>Regate exitoso</td>
+<td>Regate fallado</td>
+</tr>
+<tr>
+<td>tackle</td>
+<td>Tackle limpio</td>
+<td>Falta / Superado</td>
+</tr>
+<tr>
+<td>press</td>
+<td>Recuperacion por presion</td>
+<td>Superado en pressing</td>
+</tr>
+<tr>
+<td>cross</td>
+<td>Centro que llega</td>
+<td>Centro cortado</td>
+</tr>
+<tr>
+<td>header</td>
+<td>Cabezazo efectivo</td>
+<td>Cabezazo fallido</td>
+</tr>
+</tbody></table>
+<p><strong>Zonas del campo:</strong></p>
+<ul>
+<li><code>offensive</code>: Tercio ofensivo (mayor peso VAEP)</li>
+<li><code>middle</code>: Centro del campo</li>
+<li><code>defensive</code>: Tercio defensivo (menor peso VAEP)</li>
+</ul>
+<p><strong>Fuentes:</strong></p>
+<ol>
+<li>Manual: Botones rapidos en PlayerProfile (&quot;LOG&quot;)</li>
+<li>Automatico: Deteccion por Gemini video observation</li>
+</ol>
+<p><strong>Para que sirve:</strong> Alimenta directamente el calculo VAEP. Convierte observaciones subjetivas (&quot;jugo bien&quot;) en datos cuantificables.</p>
+<hr>
+<h2>14. Pose Analysis — Analisis de Pose</h2>
+<p><strong>Que es:</strong> Analisis de keypoints corporales (17 puntos COCO) para detectar acciones tacticas y fisicas.</p>
+<p><strong>Archivo:</strong> <code>src/lib/yolo/poseAnalyzer.ts</code></p>
+<p><strong>Detecciones:</strong></p>
+<p><strong>Scan Events (Vision Periferica):</strong></p>
+<ul>
+<li>Detecta rotacion de cabeza (izquierda/derecha)</li>
+<li>Umbral: 28 grados de diferencia angular</li>
+<li>Duracion minima: 2 frames a &gt;=0.3 confianza</li>
+<li>Output: trackId, timestamp, direccion, duracion</li>
+</ul>
+<p><strong>Duel Detection:</strong></p>
+<ul>
+<li>Distancia entre jugadores &lt; 1.8 metros</li>
+<li>Duracion minima: 3 frames</li>
+<li>Tipo: aereo (salto detectado via cadera-rodilla) vs terrestre</li>
+</ul>
+<p><strong>Para que sirve:</strong> Mide aspectos invisibles en estadisticas clasicas. &quot;Scan events&quot; mide la conciencia espacial de un jugador (cuanto mira a su alrededor antes de recibir). Es un predictor de elite.</p>
+<hr>
+<h2>15. Biomechanics Score</h2>
+<p><strong>Que es:</strong> Score basado en analisis biomecanico de movimiento (actualmente stub, requiere datos de pose avanzada).</p>
+<p><strong>Archivo:</strong> <code>src/services/real/advancedMetricsService.ts</code></p>
+<p><strong>Formula:</strong></p>
+<pre><code>Si asimetria bilateral &lt; 5%:   Score = 90
+Si 5-10%:                      Score = 80
+Si 10-20%:                     Score = 65
+Si &gt; 20%:                      Score = 50
+</code></pre>
+<p><strong>Riesgo de lesion:</strong></p>
+<pre><code>injuryRisk = min(1, (asimetria / 100) x 2)
+</code></pre>
+<p><strong>Estado:</strong> Stub — requiere datos de Roboflow o pose estimation avanzada.</p>
+<p><strong>Para que sirve:</strong> Cuando este activo, detectara asimetrias de movimiento que predicen lesiones, permitiendo intervencion preventiva.</p>
+<hr>
+<h2>16. 6 Dimensiones del Reporte IA</h2>
+<p><strong>Que es:</strong> Claude AI analiza video del jugador y genera scores en 6 dimensiones cualitativas.</p>
+<p><strong>Archivo:</strong> <code>api/agents/video-intelligence.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Que evalua</th>
+<th>Score</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Velocidad de Decision</td>
+<td>Rapidez y calidad de decisiones con balon</td>
+<td>0-100</td>
+</tr>
+<tr>
+<td>Tecnica con Balon</td>
+<td>Control, primer toque, precision</td>
+<td>0-100</td>
+</tr>
+<tr>
+<td>Inteligencia Tactica</td>
+<td>Posicionamiento, lectura de juego, anticipacion</td>
+<td>0-100</td>
+</tr>
+<tr>
+<td>Capacidad Fisica</td>
+<td>Potencia, velocidad, resistencia visible</td>
+<td>0-100</td>
+</tr>
+<tr>
+<td>Liderazgo y Presencia</td>
+<td>Comunicacion, influencia en companeros</td>
+<td>0-100</td>
+</tr>
+<tr>
+<td>Eficacia Competitiva</td>
+<td>Impacto real en el juego, decisiones que cambian el partido</td>
+<td>0-100</td>
+</tr>
+</tbody></table>
+<p><strong>Ajuste Video-Score:</strong></p>
+<pre><code>ajusteVSIVideoScore: +-10 puntos sobre el VSI existente
+Basado en lo que Claude observa vs lo que dicen los numeros
+</code></pre>
+<p><strong>Para que sirve:</strong> Complementa las metricas cuantitativas con analisis cualitativo de video. Un jugador puede tener stats promedio pero demostrar liderazgo excepcional en video.</p>
+<hr>
+<h2>17. Tabla Resumen</h2>
+<table>
+<thead>
+<tr>
+<th>Metrica/Indice</th>
+<th>Rango</th>
+<th>Tipo</th>
+<th>Archivo Principal</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>VSI</td>
+<td>0-100</td>
+<td>Compuesto ponderado</td>
+<td>metricsService.ts</td>
+</tr>
+<tr>
+<td>RAE Bias Factor</td>
+<td>1.00-1.22</td>
+<td>Formula demografica</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>PHV Offset</td>
+<td>-2 a +2</td>
+<td>Formula Mirwald</td>
+<td>phv-calculator.ts</td>
+</tr>
+<tr>
+<td>UBI</td>
+<td>0-1</td>
+<td>Indice combinado</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>TruthFilter Delta</td>
+<td>-10 a +10</td>
+<td>Ajuste case-based</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>VAEP Total</td>
+<td>-inf a +inf</td>
+<td>Probabilidad de gol</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>VAEP/90</td>
+<td>Normalizado</td>
+<td>Por 90 minutos</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>Similarity Score</td>
+<td>0-100%</td>
+<td>Coseno vectorial</td>
+<td>similarityService.ts</td>
+</tr>
+<tr>
+<td>Play Style</td>
+<td>5 categorias</td>
+<td>Reglas + Z-score</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>Specialization Index</td>
+<td>0-1</td>
+<td>Varianza de Z-scores</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>Tracking (distancia)</td>
+<td>0-15000 m</td>
+<td>Suma frame-to-frame</td>
+<td>yolo/types.ts</td>
+</tr>
+<tr>
+<td>Tracking (velocidad)</td>
+<td>0-12 m/s</td>
+<td>Instantanea por frame</td>
+<td>yolo/types.ts</td>
+</tr>
+<tr>
+<td>Voronoi Area</td>
+<td>0-7140 m2</td>
+<td>Delaunay/Shoelace</td>
+<td>voronoi.ts</td>
+</tr>
+<tr>
+<td>Field Coverage</td>
+<td>0-100%</td>
+<td>Grid 5x5m visitado</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>Role Profile Score</td>
+<td>0-100</td>
+<td>IA (Claude)</td>
+<td>roleProfileService.ts</td>
+</tr>
+<tr>
+<td>Biomechanics Score</td>
+<td>0-100</td>
+<td>Asimetria bilateral</td>
+<td>advancedMetricsService.ts</td>
+</tr>
+<tr>
+<td>6D Video Scores</td>
+<td>0-100 cada</td>
+<td>IA (Claude vision)</td>
+<td>video-intelligence.ts</td>
+</tr>
+<tr>
+<td>VSI Proyectado</td>
+<td>0-120</td>
+<td>Curvas desarrollo</td>
+<td>kpiProjections.ts</td>
+</tr>
+<tr>
+<td>Percentil</td>
+<td>0-100%</td>
+<td>Rank en cohorte</td>
+<td>metricsService.ts</td>
+</tr>
+</tbody></table>
+<hr>
+<blockquote>
+<p><strong>Nota:</strong> Todas las metricas se almacenan con precision completa internamente y se redondean para display (1-2 decimales). El sistema usa calculos deterministicos para todas las metricas excepto Role Profile, PHV y 6 Dimensiones, que usan Claude API.</p>
+</blockquote>
+
+    </div>
+
+    <div class="doc-footer">
+      <p>VITAS Platform · Build 2.1.0 · &copy; 2026 Prophet Horizon Technology</p>
+    </div>
+  </div>
+</body>
+</html>

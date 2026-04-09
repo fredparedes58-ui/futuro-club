@@ -21,7 +21,41 @@ export interface VSIResult {
   label: "elite" | "high" | "medium" | "developing";
 }
 
-// Pesos por dimensión para el VSI
+/**
+ * Pesos por dimensión para el VSI (VITAS Scouting Index).
+ *
+ * Justificación científica de cada peso:
+ *
+ * technique (0.22): Más predictivo de éxito profesional a largo plazo.
+ *   Huijgen et al. 2009 demostró que la habilidad técnica en juveniles es el
+ *   predictor más fuerte de alcanzar nivel profesional. La técnica no depende
+ *   de la maduración biológica y se mantiene estable o mejora con la edad.
+ *
+ * vision (0.20): Inteligencia de juego, segundo predictor más fuerte.
+ *   Estudios de Jordet (2005) y Savelsbergh (2006) muestran correlación directa
+ *   entre frecuencia de escaneo visual y calidad de decisión. La visión/lectura
+ *   de juego diferencia consistentemente a jugadores élite de promedio.
+ *
+ * speed (0.18): Importante pero menos predictivo en juveniles por maduración.
+ *   La velocidad depende fuertemente del estado de maduración (PHV). Un jugador
+ *   "lento" pre-PHV puede ser rápido post-PHV. Peso moderado para no sobrevaluar
+ *   ventajas madurativas temporales (late maturers pierden en speed pero no en talento).
+ *
+ * stamina (0.15): Altamente entrenable, influenciado por PHV.
+ *   La resistencia aeróbica tiene ventana sensible durante PHV y es la capacidad
+ *   física más entrenable. Peso menor porque mejora con entrenamiento sistemático
+ *   independiente del talento base.
+ *
+ * shooting (0.13): Se desarrolla tarde (peak 27-28 años).
+ *   Las curvas de desarrollo muestran que el disparo tiene su pico más tarde que
+ *   otras capacidades. Un jugador juvenil con shooting bajo no es limitante si
+ *   tiene buena técnica base — la finalización mejora con madurez y experiencia.
+ *
+ * defending (0.12): Se desarrolla más tarde (peak 29-30 años).
+ *   Las capacidades defensivas (anticipación, posicionamiento, duelo) son las que
+ *   más tardan en madurar. Peso más bajo porque un jugador juvenil con defending
+ *   bajo pero buena visión/técnica tiene alto potencial de mejora defensiva.
+ */
 const VSI_WEIGHTS: Record<keyof PlayerMetrics, number> = {
   speed:     0.18,
   technique: 0.22,
