@@ -20,8 +20,22 @@ const EmbedSchema = z.object({
 });
 
 export default withHandler(
-  { schema: EmbedSchema, requireAuth: true, maxRequests: 60 },
-  async ({ body }) => {
+  { schema: EmbedSchema, optionalAuth: true, maxRequests: 60 },
+  async ({ req, body, userId }) => {
+    // Allow authenticated users OR service role (for seed/ingest chain)
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const cronSecret = process.env.CRON_SECRET;
+    const adminSecret = process.env.ADMIN_SECRET;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const isService =
+      (cronSecret && token === cronSecret) ||
+      (adminSecret && token === adminSecret) ||
+      (serviceKey && token === serviceKey);
+
+    if (!userId && !isService) {
+      return errorResponse("No autenticado", 401, "UNAUTHORIZED");
+    }
     const voyageKey = process.env.VOYAGE_API_KEY;
     const { texts, inputType } = body;
 

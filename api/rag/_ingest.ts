@@ -104,9 +104,13 @@ export default withHandler(
     let embeddings: (number[] | null)[] = texts.map(() => null);
 
     try {
+      const authHeader = req.headers.get("Authorization") ?? "";
       const embedRes = await fetch(`${baseUrl}/api/rag/embed`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader,
+        },
         body: JSON.stringify({ texts, inputType: "document" }),
       });
       if (embedRes.ok) {
