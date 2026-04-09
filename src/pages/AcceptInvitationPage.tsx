@@ -12,12 +12,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { TeamService } from "@/services/real/teamService";
 import { ROLE_LABELS, type UserRole } from "@/services/real/userProfileService";
+import { useTranslation } from "react-i18next";
 
 type PageState = "loading" | "success" | "error" | "needs-login";
 
 const PENDING_TOKEN_KEY = "vitas_pending_invite_token";
 
 export default function AcceptInvitationPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, configured } = useAuth();
@@ -30,7 +32,7 @@ export default function AcceptInvitationPage() {
   useEffect(() => {
     if (!token) {
       setState("error");
-      setErrorMsg("Token de invitación inválido");
+      setErrorMsg(t("invitation.invalidToken"));
       return;
     }
 
@@ -75,20 +77,20 @@ export default function AcceptInvitationPage() {
         {state === "loading" && (
           <div className="space-y-3">
             <Loader2 size={24} className="text-primary animate-spin mx-auto" />
-            <p className="text-sm text-muted-foreground">Procesando invitación…</p>
+            <p className="text-sm text-muted-foreground">{t("invitation.processing")}</p>
           </div>
         )}
 
         {state === "needs-login" && (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Necesitas iniciar sesión para aceptar la invitación.
+              {t("invitation.needsLogin")}
             </p>
             <Button className="w-full" onClick={() => navigate("/login")}>
-              Iniciar sesión
+              {t("invitation.login")}
             </Button>
             <Button variant="outline" className="w-full" onClick={() => navigate("/register")}>
-              Crear cuenta
+              {t("invitation.createAccount")}
             </Button>
           </div>
         )}
@@ -97,15 +99,15 @@ export default function AcceptInvitationPage() {
           <div className="space-y-4">
             <CheckCircle2 size={32} className="text-green-500 mx-auto" />
             <div>
-              <p className="font-display font-bold text-lg text-foreground">¡Invitación aceptada!</p>
+              <p className="font-display font-bold text-lg text-foreground">{t("invitation.acceptedTitle")}</p>
               {acceptedRole && (
                 <p className="text-sm text-muted-foreground mt-1">
-                  Tu rol: <span className="font-semibold text-primary">{ROLE_LABELS[acceptedRole]}</span>
+                  {t("invitation.yourRole")} <span className="font-semibold text-primary">{ROLE_LABELS[acceptedRole]}</span>
                 </p>
               )}
             </div>
             <Button className="w-full" onClick={() => navigate("/")}>
-              Ir al dashboard
+              {t("invitation.goToDashboard")}
             </Button>
           </div>
         )}
@@ -114,11 +116,11 @@ export default function AcceptInvitationPage() {
           <div className="space-y-4">
             <XCircle size={32} className="text-destructive mx-auto" />
             <div>
-              <p className="font-display font-bold text-lg text-foreground">Error</p>
+              <p className="font-display font-bold text-lg text-foreground">{t("invitation.errorTitle")}</p>
               <p className="text-sm text-muted-foreground mt-1">{errorMsg}</p>
             </div>
             <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
-              Volver al inicio
+              {t("invitation.backToHome")}
             </Button>
           </div>
         )}

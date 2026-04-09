@@ -26,6 +26,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
 import { useAuth } from "@/context/AuthContext";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { useTranslation } from "react-i18next";
 
 // ─── Schema del formulario ────────────────────────────────────────────────────
 const formSchema = z.object({
@@ -74,6 +75,7 @@ const DEFAULT_METRICS: FormValues["metrics"] = {
 
 // ─── VSI Preview en tiempo real ───────────────────────────────────────────────
 function VSIPreview({ metrics }: { metrics: FormValues["metrics"] }) {
+  const { t } = useTranslation();
   const vsi = MetricsService.calculateVSI(metrics);
   const label = MetricsService.classifyVSI(vsi);
   const labelColors: Record<string, string> = {
@@ -86,7 +88,7 @@ function VSIPreview({ metrics }: { metrics: FormValues["metrics"] }) {
     <div className="glass rounded-xl p-4 flex items-center justify-between">
       <div>
         <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-          VSI Calculado en tiempo real
+          {t("players.form.vsiRealtime")}
         </p>
         <div className="flex items-baseline gap-2 mt-0.5">
           <span className={`font-display font-bold text-3xl ${labelColors[label]}`}>{vsi}</span>
@@ -157,6 +159,7 @@ function MetricSlider({
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerForm = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
@@ -193,7 +196,7 @@ const PlayerForm = () => {
     if (!isEditMode || !id) return;
     const player = PlayerService.getById(id);
     if (!player) {
-      toast.error("Jugador no encontrado");
+      toast.error(t("toasts.playerNotFound"));
       navigate("/rankings");
       return;
     }
@@ -217,8 +220,8 @@ const PlayerForm = () => {
     // Verificar límite del plan antes de crear (solo en modo creación)
     if (!isEditMode && !canAddPlayer) {
       const limitLabel = limits.players >= 9999 ? "∞" : limits.players;
-      toast.error(`Límite alcanzado: ${playerCount}/${limitLabel} jugadores. Actualiza tu plan.`, {
-        action: { label: "Ver planes", onClick: () => navigate("/billing") },
+      toast.error(t("toasts.planLimitReached", { count: playerCount, limit: limitLabel }), {
+        action: { label: t("toasts.viewPlans"), onClick: () => navigate("/billing") },
       });
       return;
     }
@@ -248,7 +251,7 @@ const PlayerForm = () => {
             SupabasePlayerService.pushOne(user.id, players[idx]).catch(() => {});
           }
         }
-        toast.success(`${data.name} actualizado correctamente`);
+        toast.success(t("toasts.playerUpdated", { name: data.name }));
       } else {
         const input = {
           name: data.name,
@@ -268,7 +271,7 @@ const PlayerForm = () => {
         } else {
           PlayerService.create(input);
         }
-        toast.success(`${data.name} agregado al sistema`);
+        toast.success(t("toasts.playerAdded", { name: data.name }));
       }
 
       // Invalida todas las caches relevantes
@@ -282,7 +285,7 @@ const PlayerForm = () => {
 
       navigate(isEditMode ? `/player/${id}` : "/rankings");
     } catch (err) {
-      toast.error("Error al guardar el jugador");
+      toast.error(t("toasts.playerSaveError"));
       console.error(err);
     }
   };
@@ -307,10 +310,10 @@ const PlayerForm = () => {
         </button>
         <div>
           <h1 className="font-display font-bold text-2xl text-foreground">
-            {isEditMode ? "Editar Jugador" : "Nuevo Jugador"}
+            {isEditMode ? t("players.form.editTitle") : t("players.form.newTitle")}
           </h1>
           <p className="text-xs text-muted-foreground">
-            {isEditMode ? "Actualiza datos y métricas" : "Registra un nuevo jugador en VITAS"}
+            {isEditMode ? t("players.form.editSubtitle") : t("players.form.newSubtitle")}
           </p>
         </div>
       </motion.div>
@@ -320,17 +323,17 @@ const PlayerForm = () => {
         <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
           <div className="flex items-center gap-2 mb-1">
             <User size={14} className="text-primary" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Datos Básicos</h2>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.basicData")}</h2>
           </div>
 
           {/* Nombre */}
           <div className="space-y-1.5">
             <Label htmlFor="name" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-              Nombre completo
+              {t("players.form.fullName")}
             </Label>
             <Input
               id="name"
-              placeholder="Ej: Lucas Moreno García"
+              placeholder={t("players.form.fullNamePlaceholder")}
               {...register("name")}
               className={errors.name ? "border-destructive" : ""}
             />
@@ -341,7 +344,7 @@ const PlayerForm = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="age" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Edad
+                {t("common.age")}
               </Label>
               <Input
                 id="age"
@@ -355,7 +358,7 @@ const PlayerForm = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="position" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Posición
+                {t("common.position")}
               </Label>
               <select
                 id="position"
@@ -364,7 +367,7 @@ const PlayerForm = () => {
                   errors.position ? "border-destructive" : "border-input"
                 }`}
               >
-                <option value="">Seleccionar…</option>
+                <option value="">{t("common.select")}</option>
                 {POSITIONS.map((p) => (
                   <option key={p} value={p}>{p}</option>
                 ))}
@@ -376,7 +379,7 @@ const PlayerForm = () => {
           {/* Género */}
           <div className="space-y-1.5">
             <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-              Género <span className="text-[9px] normal-case">(necesario para PHV)</span>
+              {t("common.gender")} <span className="text-[9px] normal-case">{t("players.form.genderNote")}</span>
             </Label>
             <Controller
               name="gender"
@@ -384,8 +387,8 @@ const PlayerForm = () => {
               render={({ field }) => (
                 <div className="flex gap-2">
                   {[
-                    { value: "M", label: "Masculino" },
-                    { value: "F", label: "Femenino" },
+                    { value: "M", label: t("common.male") },
+                    { value: "F", label: t("common.female") },
                   ].map((opt) => (
                     <button
                       key={opt.value}
@@ -408,7 +411,7 @@ const PlayerForm = () => {
           {/* Pie dominante */}
           <div className="space-y-1.5">
             <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-              Pie dominante
+              {t("common.foot")}
             </Label>
             <Controller
               name="foot"
@@ -416,9 +419,9 @@ const PlayerForm = () => {
               render={({ field }) => (
                 <div className="flex gap-2">
                   {[
-                    { value: "right", label: "Derecho" },
-                    { value: "left", label: "Izquierdo" },
-                    { value: "both", label: "Ambos" },
+                    { value: "right", label: t("common.footRight") },
+                    { value: "left", label: t("common.footLeft") },
+                    { value: "both", label: t("common.footBoth") },
                   ].map((opt) => (
                     <button
                       key={opt.value}
@@ -443,14 +446,14 @@ const PlayerForm = () => {
         <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
           <div className="flex items-center gap-2 mb-1">
             <Ruler size={14} className="text-electric" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Datos Físicos</h2>
-            <span className="text-[10px] text-muted-foreground ml-auto">Necesarios para calcular PHV</span>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.physicalData")}</h2>
+            <span className="text-[10px] text-muted-foreground ml-auto">{t("players.form.physicalNote")}</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="height" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Altura (cm)
+                {t("players.form.heightCm")}
               </Label>
               <Input
                 id="height"
@@ -465,7 +468,7 @@ const PlayerForm = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="weight" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Peso (kg)
+                {t("players.form.weightKg")}
               </Label>
               <Input
                 id="weight"
@@ -484,7 +487,7 @@ const PlayerForm = () => {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="competitiveLevel" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Nivel
+                {t("players.form.competitiveLevel")}
               </Label>
               <select
                 id="competitiveLevel"
@@ -498,7 +501,7 @@ const PlayerForm = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="minutesPlayed" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                Minutos jugados
+                {t("players.form.minutesPlayed")}
               </Label>
               <Input
                 id="minutesPlayed"
@@ -515,7 +518,7 @@ const PlayerForm = () => {
         <motion.div variants={item} className="glass rounded-xl p-4 space-y-5">
           <div className="flex items-center gap-2 mb-1">
             <Sliders size={14} className="text-gold" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Métricas de Rendimiento</h2>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.performanceMetrics")}</h2>
             <span className="text-[10px] text-muted-foreground ml-auto">0 – 100</span>
           </div>
 
@@ -547,7 +550,7 @@ const PlayerForm = () => {
             className="flex-1"
             onClick={() => navigate(-1)}
           >
-            Cancelar
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -556,10 +559,10 @@ const PlayerForm = () => {
           >
             <Save size={16} />
             {isSubmitting
-              ? "Guardando…"
+              ? t("players.form.submitting")
               : isEditMode
-              ? "Guardar cambios"
-              : "Crear jugador"}
+              ? t("players.form.submitEdit")
+              : t("players.form.submit")}
           </Button>
         </motion.div>
       </form>

@@ -22,6 +22,7 @@ import {
 import { PlayerService } from "@/services/real/playerService";
 import { computeDashboardStats } from "@/services/real/adapters";
 import { MetricsService } from "@/services/real/metricsService";
+import { useTranslation } from "react-i18next";
 
 const sidebarItems = [
   { path: "/master", icon: LayoutDashboard, label: "Master Dashboard" },
@@ -48,6 +49,7 @@ const MasterDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
 
   // ─── Datos reales ───────────────────────────────────────────────────────────
@@ -106,7 +108,7 @@ const MasterDashboard = () => {
       .slice(0, 5)
       .map(p => ({
         name: p.name,
-        action: p.vsiHistory && p.vsiHistory.length > 1 ? "VSI actualizado" : "Jugador registrado",
+        action: p.vsiHistory && p.vsiHistory.length > 1 ? t("master.vsiUpdated") : t("master.playerRegistered"),
         vsi: p.vsi,
         time: new Date(p.updatedAt).toLocaleDateString("es-ES"),
       }));
@@ -182,7 +184,7 @@ const MasterDashboard = () => {
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Jugadores Activos
+                  {t("master.activePlayers")}
                 </p>
                 <p className="font-display font-bold text-3xl text-foreground">{stats.activePlayers}</p>
               </div>
@@ -194,7 +196,7 @@ const MasterDashboard = () => {
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Talentos Ocultos
+                  {t("master.hiddenTalents")}
                 </p>
                 <p className="font-display font-bold text-3xl text-foreground">{stats.hiddenTalents}</p>
               </div>
@@ -206,7 +208,7 @@ const MasterDashboard = () => {
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  VSI Promedio Academia
+                  {t("master.avgVsi")}
                 </p>
                 <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi}</p>
               </div>
@@ -217,7 +219,7 @@ const MasterDashboard = () => {
               {/* VSI Tier Breakdown */}
               <div className="glass rounded-xl p-4 border border-border">
                 <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Distribución VSI
+                  {t("master.vsiDistribution")}
                 </h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -242,7 +244,7 @@ const MasterDashboard = () => {
               {/* Position Distribution */}
               <div className="glass rounded-xl p-4 border border-border">
                 <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Distribución Posiciones
+                  {t("master.positionDistribution")}
                 </h3>
                 <div className="flex flex-wrap gap-1.5">
                   {positionDist.map(([pos, count]) => (
@@ -254,7 +256,7 @@ const MasterDashboard = () => {
                     </span>
                   ))}
                   {positionDist.length === 0 && (
-                    <span className="text-[10px] text-muted-foreground font-display">Sin datos</span>
+                    <span className="text-[10px] text-muted-foreground font-display">{t("master.noData")}</span>
                   )}
                 </div>
               </div>
@@ -266,14 +268,14 @@ const MasterDashboard = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <h2 className="font-display font-bold text-xl text-foreground">
-                    Active Analysis
+                    {t("master.activeAnalysis")}
                   </h2>
                 </div>
                 <button
                   onClick={() => navigate("/lab")}
                   className="px-3 py-1.5 rounded-lg border border-primary text-primary text-xs font-display font-semibold hover:bg-primary/10 transition-colors"
                 >
-                  View All Pipelines
+                  {t("master.viewAllPipelines")}
                 </button>
               </div>
               <div
@@ -286,10 +288,10 @@ const MasterDashboard = () => {
                   </div>
                   <div>
                     <h3 className="font-display font-bold text-sm text-foreground">
-                      Video Analysis Lab
+                      {t("master.videoAnalysisLab")}
                     </h3>
                     <p className="text-[10px] text-muted-foreground">
-                      Accede al laboratorio para analizar videos
+                      {t("master.videoLabDesc")}
                     </p>
                   </div>
                   <div className="ml-auto">
@@ -303,7 +305,7 @@ const MasterDashboard = () => {
             <motion.div variants={item}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display font-bold text-xl text-foreground">
-                  Squad Reports
+                  {t("master.squadReports")}
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     ({playerReports.length})
                   </span>
@@ -327,7 +329,7 @@ const MasterDashboard = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar jugador o posición..."
+                  placeholder={t("master.searchPlayerOrPosition")}
                   className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors"
                 />
               </div>
@@ -337,7 +339,7 @@ const MasterDashboard = () => {
                 {playerReports.length === 0 ? (
                   <div className="glass rounded-xl p-6 border border-border text-center">
                     <p className="text-sm text-muted-foreground font-display">
-                      No se encontraron jugadores
+                      {t("master.noPlayersFound")}
                     </p>
                   </div>
                 ) : (
@@ -393,7 +395,7 @@ const MasterDashboard = () => {
             {/* Global Talent Distribution */}
             <motion.div variants={item} className="glass rounded-xl p-5 border border-border">
               <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                Global Talent Distribution
+                {t("master.globalTalentDist")}
               </h3>
               <div className="flex justify-center mb-4">
                 <div className="relative w-32 h-32">
@@ -437,7 +439,7 @@ const MasterDashboard = () => {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-                      System Reliability
+                      {t("master.systemReliability")}
                     </span>
                     <span className="font-display font-bold text-lg text-foreground">99.8%</span>
                   </div>
@@ -462,11 +464,11 @@ const MasterDashboard = () => {
             {/* Últimas Actualizaciones — reemplaza mockLiveFeed */}
             <motion.div variants={item} className="glass rounded-xl p-5 border border-border">
               <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-                Últimas Actualizaciones
+                {t("master.lastUpdates")}
               </h3>
               <div className="space-y-4">
                 {recentActivity.length === 0 ? (
-                  <p className="text-xs text-muted-foreground font-display">Sin actividad reciente</p>
+                  <p className="text-xs text-muted-foreground font-display">{t("master.noRecentActivity")}</p>
                 ) : (
                   recentActivity.map((event, i) => (
                     <div key={i} className="flex items-start gap-3">
@@ -492,13 +494,13 @@ const MasterDashboard = () => {
             {/* Expert Desk CTA */}
             <motion.div variants={item} className="glass rounded-xl p-5 border border-border">
               <h3 className="font-display font-bold text-sm text-foreground mb-2">
-                Need specialist assistance?
+                {t("master.expertDesk")}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Our biomechanics and scouting experts are available for detailed report reviews.
+                {t("master.expertDeskDesc")}
               </p>
               <button className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:bg-primary/90 transition-colors">
-                Contact Expert Desk
+                {t("master.contactExpert")}
               </button>
             </motion.div>
           </div>

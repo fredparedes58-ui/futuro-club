@@ -15,6 +15,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { usePlan } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
 import { ROLE_LABELS } from "@/services/real/userProfileService";
+import { useTranslation } from "react-i18next";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ function UsageBar({ used, limit, label }: { used: number; limit: number; label: 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 const DirectorDashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: analytics, isLoading } = useUsageAnalytics();
   const { profile, role } = useUserProfile();
@@ -74,7 +76,7 @@ const DirectorDashboard = () => {
             Director<span className="text-primary">.</span>
           </h1>
           <p className="text-xs text-muted-foreground">
-            {profile?.organizationName ?? "Mi organización"} · {ROLE_LABELS[role]}
+            {profile?.organizationName ?? t("director.myOrg")} · {ROLE_LABELS[role]}
           </p>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-electric/10 border border-electric/20">
@@ -93,14 +95,14 @@ const DirectorDashboard = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Users size={14} className="text-primary" />
                 <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wide">
-                  Jugadores
+                  {t("director.stats.players")}
                 </span>
               </div>
               <p className="font-display font-bold text-2xl text-foreground">
                 {analytics.playerCount}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                / {analytics.playerLimit === -1 ? "∞" : analytics.playerLimit} del plan
+                {t("director.stats.playersOfPlan", { limit: analytics.playerLimit === -1 ? "∞" : analytics.playerLimit })}
               </p>
             </div>
 
@@ -108,14 +110,14 @@ const DirectorDashboard = () => {
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={14} className="text-electric" />
                 <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wide">
-                  Análisis IA
+                  {t("director.stats.analysesIA")}
                 </span>
               </div>
               <p className="font-display font-bold text-2xl text-foreground">
                 {analytics.analysesUsed}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                este mes / {analytics.analysesLimit === -1 ? "∞" : analytics.analysesLimit}
+                {t("director.stats.analysesThisMonth", { limit: analytics.analysesLimit === -1 ? "∞" : analytics.analysesLimit })}
               </p>
             </div>
 
@@ -123,43 +125,43 @@ const DirectorDashboard = () => {
               <div className="flex items-center gap-2 mb-2">
                 <Activity size={14} className="text-gold" />
                 <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wide">
-                  Drills
+                  {t("director.stats.drills")}
                 </span>
               </div>
               <p className="font-display font-bold text-2xl text-foreground">
                 {analytics.drillsCompleted}
               </p>
-              <p className="text-[10px] text-muted-foreground">completados</p>
+              <p className="text-[10px] text-muted-foreground">{t("director.stats.drillsCompleted")}</p>
             </div>
 
             <div className="glass rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp size={14} className="text-green-500" />
                 <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wide">
-                  Activos
+                  {t("director.stats.active")}
                 </span>
               </div>
               <p className="font-display font-bold text-2xl text-foreground">
                 {analytics.topPlayers.filter((p) => p.visits > 0 || p.eventsCount > 0).length}
               </p>
-              <p className="text-[10px] text-muted-foreground">jugadores con datos</p>
+              <p className="text-[10px] text-muted-foreground">{t("director.stats.activePlayersData")}</p>
             </div>
           </motion.div>
 
           {/* Uso del mes */}
           <motion.div variants={item} className="glass rounded-xl p-4 space-y-3">
             <h2 className="font-display font-semibold text-sm text-foreground flex items-center gap-2">
-              <Zap size={14} className="text-primary" /> Uso del plan
+              <Zap size={14} className="text-primary" /> {t("director.usagePlan")}
             </h2>
             <UsageBar
               used={analytics.playerCount}
               limit={analytics.playerLimit}
-              label="Jugadores"
+              label={t("director.usagePlayersLabel")}
             />
             <UsageBar
               used={analytics.analysesUsed}
               limit={analytics.analysesLimit}
-              label="Análisis IA este mes"
+              label={t("director.usageAnalysesLabel")}
             />
           </motion.div>
 
@@ -167,7 +169,7 @@ const DirectorDashboard = () => {
           {analytics.alerts.length > 0 && (
             <motion.div variants={item} className="glass rounded-xl p-4 border border-yellow-500/20 space-y-2">
               <h2 className="font-display font-semibold text-sm text-yellow-600 flex items-center gap-2">
-                <AlertTriangle size={14} /> Alertas
+                <AlertTriangle size={14} /> {t("director.alerts")}
               </h2>
               {analytics.alerts.map((alert, i) => (
                 <p key={i} className="text-xs text-muted-foreground flex items-start gap-2">
@@ -181,7 +183,7 @@ const DirectorDashboard = () => {
           {analytics.topPlayers.length > 0 && (
             <motion.div variants={item} className="space-y-2">
               <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-                Top jugadores
+                {t("director.topPlayers")}
               </h2>
               <div className="glass rounded-xl divide-y divide-border">
                 {analytics.topPlayers.map((p, i) => (
@@ -198,7 +200,7 @@ const DirectorDashboard = () => {
                         {p.playerName}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        {p.visits} visitas · {p.eventsCount} eventos
+                        {p.visits} {t("director.visits")} · {p.eventsCount} {t("director.events")}
                         {p.lastActivity && (
                           <> · {new Date(p.lastActivity).toLocaleDateString("es-ES")}</>
                         )}
@@ -218,21 +220,21 @@ const DirectorDashboard = () => {
               className="glass rounded-xl p-3 text-center hover:border-primary/30 border border-transparent transition-all"
             >
               <Zap size={18} className="text-primary mx-auto mb-1" />
-              <p className="text-xs font-display text-foreground">Gestionar plan</p>
+              <p className="text-xs font-display text-foreground">{t("director.quickLinks.managePlan")}</p>
             </button>
             <button
               onClick={() => navigate("/master")}
               className="glass rounded-xl p-3 text-center hover:border-primary/30 border border-transparent transition-all"
             >
               <Users size={18} className="text-electric mx-auto mb-1" />
-              <p className="text-xs font-display text-foreground">Base de datos</p>
+              <p className="text-xs font-display text-foreground">{t("director.quickLinks.database")}</p>
             </button>
             <button
               onClick={() => navigate("/team-analysis")}
               className="glass rounded-xl p-3 text-center hover:border-primary/30 border border-transparent transition-all"
             >
               <Activity size={18} className="text-gold mx-auto mb-1" />
-              <p className="text-xs font-display text-foreground">Análisis equipo</p>
+              <p className="text-xs font-display text-foreground">{t("director.quickLinks.teamAnalysis")}</p>
             </button>
           </motion.div>
         </>
@@ -240,7 +242,7 @@ const DirectorDashboard = () => {
 
       {isLoading && (
         <motion.div variants={item} className="text-center py-12">
-          <p className="text-sm text-muted-foreground font-display">Cargando analytics…</p>
+          <p className="text-sm text-muted-foreground font-display">{t("director.loadingAnalytics")}</p>
         </motion.div>
       )}
     </motion.div>

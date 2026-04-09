@@ -16,11 +16,13 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
 import { PlayerService } from "@/services/real/playerService";
 import type { VideoRecord } from "@/services/real/videoService";
+import { useTranslation } from "react-i18next";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 const ReportsPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
@@ -49,15 +51,15 @@ const ReportsPage = () => {
         {/* Header */}
         <motion.div variants={item} className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Centro de video</p>
-            <h2 className="font-display text-2xl font-bold">Reportes y Videos</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("reports.videoCenter")}</p>
+            <h2 className="font-display text-2xl font-bold">{t("reports.title")}</h2>
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
           >
             <Upload size={14} />
-            Subir Video
+            {t("reports.uploadVideo")}
           </button>
         </motion.div>
 
@@ -70,13 +72,13 @@ const ReportsPage = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Video size={14} className="text-primary" />
-                <h3 className="font-display font-semibold text-sm text-foreground">Subir nuevo video</h3>
+                <h3 className="font-display font-semibold text-sm text-foreground">{t("reports.uploadNew")}</h3>
               </div>
               <button
                 onClick={() => setShowUpload(false)}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Cerrar
+                {t("common.close")}
               </button>
             </div>
             <VideoUpload
@@ -94,7 +96,7 @@ const ReportsPage = () => {
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Buscar videos..."
+            placeholder={t("reports.searchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-card border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"
@@ -108,7 +110,7 @@ const ReportsPage = () => {
             <div className="glass rounded-xl p-4">
               <h3 className="font-display font-bold text-sm text-foreground mb-3 flex items-center gap-2">
                 <Video size={14} className="text-primary" />
-                {isLoading ? "Cargando..." : `Mis videos (${filteredVideos.length})`}
+                {isLoading ? t("reports.loadingVideos") : t("reports.myVideos", { count: filteredVideos.length })}
               </h3>
 
               {isLoading ? (
@@ -144,7 +146,7 @@ const ReportsPage = () => {
                               ? "bg-green-500/10 text-green-400"
                               : "bg-amber-500/10 text-amber-400"
                           }`}>
-                            {video.status === "finished" ? "Listo" : "Procesando"}
+                            {video.status === "finished" ? t("reports.statusReady") : t("reports.statusProcessing")}
                           </span>
                         </div>
                       </div>
@@ -161,13 +163,13 @@ const ReportsPage = () => {
                 <div className="text-center py-8">
                   <Video size={24} className="mx-auto mb-2 text-muted-foreground" />
                   <p className="text-xs text-muted-foreground mb-3">
-                    {searchQuery ? "Sin resultados" : "Sin videos todavía"}
+                    {searchQuery ? t("reports.noSearchResults") : t("reports.noVideos")}
                   </p>
                   <button
                     onClick={() => setShowUpload(true)}
                     className="text-xs text-primary font-display font-semibold"
                   >
-                    Subir primer video →
+                    {t("reports.uploadFirst")}
                   </button>
                 </div>
               )}
@@ -177,7 +179,7 @@ const ReportsPage = () => {
             {players.length > 0 && (
               <div className="glass rounded-xl p-4">
                 <h3 className="font-display font-bold text-sm text-foreground mb-3">
-                  Analizar por jugador
+                  {t("reports.analyzeByPlayer")}
                 </h3>
                 <div className="space-y-2">
                   {players.slice(0, 10).map((p) => (
@@ -198,7 +200,7 @@ const ReportsPage = () => {
                         <Zap size={10} className="text-primary shrink-0" />
                       </button>
                       <button
-                        onClick={() => { if (confirm(`¿Eliminar a ${p.name}?`)) deletePlayer(p.id); }}
+                        onClick={() => { if (confirm(t("reports.deleteConfirm", { name: p.name }))) deletePlayer(p.id); }}
                         className="opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-destructive transition-all"
                       >
                         <Trash2 size={11} />
@@ -220,7 +222,7 @@ const ReportsPage = () => {
                 {/* Selector de jugador */}
                 <div className="space-y-3 p-4 rounded-xl bg-secondary/40 border border-border">
                   <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-                    Jugador a analizar
+                    {t("reports.playerToAnalyze")}
                   </p>
 
                   {/* Dropdown jugador */}
@@ -230,14 +232,14 @@ const ReportsPage = () => {
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-secondary transition-colors text-left"
                     >
                       <span className={`text-sm font-display font-semibold ${selectedPlayerId ? "text-foreground" : "text-muted-foreground"}`}>
-                        {players.find(p => p.id === selectedPlayerId)?.name ?? "Seleccionar jugador…"}
+                        {players.find(p => p.id === selectedPlayerId)?.name ?? t("reports.selectPlayer")}
                       </span>
                       <ChevronDown size={14} className="text-muted-foreground" />
                     </button>
                     {showPlayerDropdown && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-background rounded-xl border border-border z-20 max-h-44 overflow-y-auto shadow-lg">
                         {players.length === 0 && (
-                          <p className="text-xs text-muted-foreground px-3 py-2">No hay jugadores</p>
+                          <p className="text-xs text-muted-foreground px-3 py-2">{t("reports.noPlayersAvailable")}</p>
                         )}
                         {players.map((p) => (
                           <button
@@ -256,48 +258,48 @@ const ReportsPage = () => {
                   {/* Nº Camiseta + Color */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Nº Camiseta</label>
+                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("reports.jerseyNumber")}</label>
                       <input
                         type="text"
                         maxLength={3}
                         value={jerseyNumber}
                         onChange={(e) => setJerseyNumber(e.target.value)}
-                        placeholder="Ej: 10"
+                        placeholder="10"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Color Uniforme</label>
+                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("reports.uniformColor")}</label>
                       <input
                         type="text"
                         value={teamColor}
                         onChange={(e) => setTeamColor(e.target.value)}
-                        placeholder="Ej: Rojo"
+                        placeholder="Rojo"
                         className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                       />
                     </div>
                   </div>
                   <p className="text-[9px] text-muted-foreground">
-                    La IA identificará al jugador por dorsal y color para el análisis individual.
+                    {t("reports.jerseyHint")}
                   </p>
                 </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      if (!selectedPlayerId) { alert("Selecciona un jugador primero"); return; }
+                      if (!selectedPlayerId) { alert(t("reports.selectPlayerFirst")); return; }
                       navigate(`/players/${selectedPlayerId}/intelligence`);
                     }}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
                   >
                     <Brain size={14} />
-                    Analizar con VITAS
+                    {t("reports.analyzeWithVitas")}
                   </button>
                   <button
                     onClick={() => navigate("/lab")}
                     className="flex-1 py-2.5 rounded-xl border border-border text-sm font-display font-semibold hover:bg-secondary transition-colors"
                   >
-                    Abrir en Lab
+                    {t("reports.openInLab")}
                   </button>
                 </div>
               </div>
@@ -307,9 +309,9 @@ const ReportsPage = () => {
                   <Play size={28} className="text-primary ml-1" />
                 </div>
                 <div>
-                  <p className="font-display font-bold text-foreground mb-1">Selecciona un video</p>
+                  <p className="font-display font-bold text-foreground mb-1">{t("reports.selectVideo")}</p>
                   <p className="text-xs text-muted-foreground">
-                    Elige un video de la lista o sube uno nuevo
+                    {t("reports.selectVideoDesc")}
                   </p>
                 </div>
                 <button
@@ -317,7 +319,7 @@ const ReportsPage = () => {
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 text-primary text-sm font-display font-semibold hover:bg-primary/20 transition-colors"
                 >
                   <Upload size={14} />
-                  Subir video
+                  {t("reports.uploadVideoBtn")}
                 </button>
               </div>
             )}

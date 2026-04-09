@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 import {
   UserProfileService,
   PROFILE_TYPE_LABELS,
@@ -49,6 +50,7 @@ const PROFILE_ROLE_MAP: Record<ProfileType, UserRole> = {
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 const OnboardingPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [step, setStep] = useState(1);
@@ -96,10 +98,10 @@ const OnboardingPage = () => {
         });
       }
 
-      toast.success("¡Perfil configurado! Bienvenido a VITAS.");
+      toast.success(t("toasts.profileConfigured"));
       navigate("/pulse", { replace: true });
     } catch (err) {
-      toast.error("Error al guardar el perfil");
+      toast.error(t("toasts.profileSaveError"));
       console.error(err);
     } finally {
       setSaving(false);
@@ -151,28 +153,22 @@ const OnboardingPage = () => {
             <motion.div key="step1" {...slide} className="space-y-6 text-center">
               <div>
                 <h1 className="font-display font-bold text-2xl text-foreground mb-2">
-                  Bienvenido a VITAS<span className="text-primary">.</span>
+                  {t("onboarding.welcome").replace(".", "")}<span className="text-primary">.</span>
                 </h1>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  La plataforma de inteligencia deportiva para scouts,
-                  entrenadores y academias de fútbol.
+                  {t("onboarding.welcomeDesc")}
                 </p>
               </div>
               <div className="glass rounded-xl p-4 text-left space-y-2">
-                {[
-                  "Análisis IA de jugadores con VSI",
-                  "VAEP · Valor por Evento real",
-                  "PHV · Peak Height Velocity",
-                  "Comparativas y role profiles",
-                ].map((feat) => (
-                  <div key={feat} className="flex items-center gap-2 text-xs font-display text-muted-foreground">
+                {(["vsiAnalysis", "vaep", "phv", "comparisons"] as const).map((key) => (
+                  <div key={key} className="flex items-center gap-2 text-xs font-display text-muted-foreground">
                     <Check size={12} className="text-primary shrink-0" />
-                    {feat}
+                    {t(`onboarding.features.${key}`)}
                   </div>
                 ))}
               </div>
               <Button className="w-full gap-2" onClick={next}>
-                Comenzar <ChevronRight size={14} />
+                {t("onboarding.start")} <ChevronRight size={14} />
               </Button>
             </motion.div>
           )}
@@ -181,10 +177,10 @@ const OnboardingPage = () => {
             <motion.div key="step2" {...slide} className="space-y-5">
               <div>
                 <h2 className="font-display font-bold text-xl text-foreground mb-1">
-                  ¿Cómo usas VITAS?
+                  {t("onboarding.howUseVitas")}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Selecciona tu perfil para personalizar la experiencia.
+                  {t("onboarding.selectProfile")}
                 </p>
               </div>
               <div className="space-y-2">
@@ -222,7 +218,7 @@ const OnboardingPage = () => {
                   <ArrowLeft size={14} />
                 </Button>
                 <Button className="flex-1 gap-2" onClick={next} disabled={!profileType}>
-                  Siguiente <ChevronRight size={14} />
+                  {t("common.next")} <ChevronRight size={14} />
                 </Button>
               </div>
             </motion.div>
@@ -232,29 +228,29 @@ const OnboardingPage = () => {
             <motion.div key="step3" {...slide} className="space-y-5">
               <div>
                 <h2 className="font-display font-bold text-xl text-foreground mb-1">
-                  {showOrgStep ? "Tu organización" : "Tu nombre"}
+                  {showOrgStep ? t("onboarding.orgStep") : t("onboarding.nameStep")}
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {showOrgStep
-                    ? "¿Cómo se llama tu academia o club?"
-                    : "¿Cómo quieres que te identifiquemos?"}
+                    ? t("onboarding.orgQuestion")
+                    : t("onboarding.nameQuestion")}
                 </p>
               </div>
 
               <div className="space-y-1.5">
                 <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                  {showOrgStep ? "Nombre de la organización" : "Tu nombre"}{" "}
-                  <span className="text-[9px] normal-case text-muted-foreground/60">(opcional)</span>
+                  {showOrgStep ? t("onboarding.orgLabel") : t("onboarding.nameLabel")}{" "}
+                  <span className="text-[9px] normal-case text-muted-foreground/60">{t("onboarding.optional")}</span>
                 </Label>
                 <Input
                   placeholder={
                     profileType === "academy"
-                      ? "Ej: Academia Fútbol Norte"
+                      ? t("onboarding.placeholders.academy")
                       : profileType === "club"
-                      ? "Ej: Club Deportivo Atlético"
+                      ? t("onboarding.placeholders.club")
                       : profileType === "scout"
-                      ? "Ej: Carlos Martínez"
-                      : "Ej: Juan García"
+                      ? t("onboarding.placeholders.scout")
+                      : t("onboarding.placeholders.parent")
                   }
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
@@ -266,7 +262,7 @@ const OnboardingPage = () => {
                   <ArrowLeft size={14} />
                 </Button>
                 <Button className="flex-1 gap-2" onClick={next}>
-                  Siguiente <ChevronRight size={14} />
+                  {t("common.next")} <ChevronRight size={14} />
                 </Button>
               </div>
             </motion.div>
@@ -276,20 +272,20 @@ const OnboardingPage = () => {
             <motion.div key="step4" {...slide} className="space-y-5">
               <div>
                 <h2 className="font-display font-bold text-xl text-foreground mb-1">
-                  Primer jugador
+                  {t("onboarding.firstPlayer")}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Registra un jugador inicial o sáltalo por ahora.
+                  {t("onboarding.firstPlayerDesc")}
                 </p>
               </div>
 
               <div className="glass rounded-xl p-4 space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                    Nombre
+                    {t("common.name")}
                   </Label>
                   <Input
-                    placeholder="Ej: Lucas Moreno"
+                    placeholder={t("onboarding.placeholders.playerName")}
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                   />
@@ -297,7 +293,7 @@ const OnboardingPage = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                      Edad
+                      {t("common.age")}
                     </Label>
                     <Input
                       type="number"
@@ -309,7 +305,7 @@ const OnboardingPage = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                      Posición
+                      {t("common.position")}
                     </Label>
                     <select
                       value={playerPosition}
@@ -336,15 +332,15 @@ const OnboardingPage = () => {
                   onClick={() => { setPlayerName(""); handleFinish(); }}
                   disabled={saving}
                 >
-                  Saltar
+                  {t("common.skip")}
                 </Button>
                 <Button
                   className="flex-1 gap-2"
                   onClick={handleFinish}
                   disabled={saving}
                 >
-                  {saving ? "Guardando…" : (
-                    <><Check size={14} /> Finalizar</>
+                  {saving ? t("common.saving") : (
+                    <><Check size={14} /> {t("common.finish")}</>
                   )}
                 </Button>
               </div>

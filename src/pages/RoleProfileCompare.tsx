@@ -11,26 +11,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function RoleProfileCompare() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
   const [selectedHorizon, setSelectedHorizon] = useState<"0_6m" | "6_18m" | "18_36m">("18_36m");
 
   useEffect(() => {
-    if (isError) toast.error(`Error al cargar comparación: ${error?.message || "Error desconocido"}`);
+    if (isError) toast.error(t("toasts.compareLoadError", { error: error?.message || t("errors.unknownError") }));
   }, [isError, error]);
 
   const horizons = [
-    { key: "0_6m" as const, label: "0–6 meses" },
-    { key: "6_18m" as const, label: "6–18 meses" },
-    { key: "18_36m" as const, label: "18–36 meses" },
+    { key: "0_6m" as const, label: t("roleProfile.compare.horizons.0_6m") },
+    { key: "6_18m" as const, label: t("roleProfile.compare.horizons.6_18m") },
+    { key: "18_36m" as const, label: t("roleProfile.compare.horizons.18_36m") },
   ];
 
   const dims = [
-    { key: "tactical" as const, label: "Táctica" },
-    { key: "technical" as const, label: "Técnica" },
-    { key: "physical" as const, label: "Física" },
+    { key: "tactical" as const, label: t("roleProfile.compare.dimensions.tactical") },
+    { key: "technical" as const, label: t("roleProfile.compare.dimensions.technical") },
+    { key: "physical" as const, label: t("roleProfile.compare.dimensions.physical") },
   ];
 
   return (
@@ -45,8 +47,8 @@ export default function RoleProfileCompare() {
               </Button>
             </Link>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Motor de Perfil</p>
-              <h2 className="font-display text-2xl font-bold">Comparador de proyección</h2>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("roleProfile.subtitle")}</p>
+              <h2 className="font-display text-2xl font-bold">{t("roleProfile.compareTitle")}</h2>
             </div>
           </div>
           <div className="flex gap-1 bg-muted rounded-md p-0.5">
@@ -76,7 +78,7 @@ export default function RoleProfileCompare() {
         )}
 
         {isError && (
-          <EmptyState type="no-data" onAction={() => refetch()} actionLabel="Reintentar" />
+          <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("common.retry")} />
         )}
 
         {data && (() => {

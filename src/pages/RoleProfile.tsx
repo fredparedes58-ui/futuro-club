@@ -16,8 +16,10 @@ import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, Po
 import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { Button } from "@/components/ui/button";
 import { FileText, GitCompare, Table2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function RoleProfile() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [mode, setMode] = useState<ViewMode>("scout");
   const [filters, setFilters] = useState<RoleProfileFilters | null>(null);
@@ -28,7 +30,7 @@ export default function RoleProfile() {
   }, []);
 
   useEffect(() => {
-    if (isError) toast.error(`No se pudo cargar el perfil: ${error?.message || "Error desconocido"}`);
+    if (isError) toast.error(t("toasts.roleProfileError", { error: error?.message || t("errors.unknownError") }));
   }, [isError, error]);
 
   return (
@@ -38,26 +40,26 @@ export default function RoleProfile() {
         {/* Top bar */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Motor de Perfil, Rol y Proyección</p>
-            <h2 className="font-display text-2xl font-bold">Perfil de rol</h2>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("roleProfile.subtitle")}</p>
+            <h2 className="font-display text-2xl font-bold">{t("roleProfile.title")}</h2>
           </div>
           <div className="flex items-center gap-3">
             <ViewModeToggle mode={mode} onChange={setMode} />
             <Link to={`/players/${id}/role-profile/compare`}>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs">
                 <GitCompare className="w-3.5 h-3.5" />
-                Comparar
+                {t("common.compare")}
               </Button>
             </Link>
             <Link to={`/players/${id}/role-profile/audit`}>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs">
                 <Table2 className="w-3.5 h-3.5" />
-                Auditoría
+                {t("common.audit")}
               </Button>
             </Link>
             <Button variant="outline" size="sm" className="gap-1.5 text-xs">
               <FileText className="w-3.5 h-3.5" />
-              Exportar
+              {t("common.export")}
             </Button>
           </div>
         </div>
@@ -82,7 +84,7 @@ export default function RoleProfile() {
 
         {/* Error / empty state */}
         {isError && (
-          <EmptyState type="no-data" onAction={() => refetch()} actionLabel="Reintentar carga" />
+          <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("roleProfile.retryLoad")} />
         )}
 
         {/* Data loaded */}
@@ -94,7 +96,7 @@ export default function RoleProfile() {
             {data.overall_confidence < 0.5 && (
               <div className="p-3 bg-gold/10 border border-gold/20 rounded-md">
                 <p className="text-sm text-gold">
-                  ⚠️ Confianza global inferior al 50%. Las recomendaciones tienen incertidumbre alta. Revisa la sección de riesgos.
+                  {t("roleProfile.lowConfidenceWarning")}
                 </p>
               </div>
             )}

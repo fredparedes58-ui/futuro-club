@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2, Building2, Search, UserRound, Users, Dumbbell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const item = {
   hidden: { opacity: 0, y: 16 },
@@ -20,19 +21,19 @@ const container = {
 };
 
 const pwRules = [
-  { label: "Mínimo 8 caracteres", test: (p: string) => p.length >= 8 },
-  { label: "Una letra mayúscula", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "Un número",           test: (p: string) => /\d/.test(p) },
+  { labelKey: "auth.register.pwRules.minChars", test: (p: string) => p.length >= 8 },
+  { labelKey: "auth.register.pwRules.uppercase", test: (p: string) => /[A-Z]/.test(p) },
+  { labelKey: "auth.register.pwRules.number",    test: (p: string) => /\d/.test(p) },
 ];
 
 type UserType = "academy" | "scout" | "coach" | "parent" | "player";
 
-const USER_TYPES: { id: UserType; label: string; sublabel: string; Icon: React.ElementType }[] = [
-  { id: "academy", label: "Academia / Club",  sublabel: "Gestiona un equipo",     Icon: Building2  },
-  { id: "scout",   label: "Scout",            sublabel: "Descubre talento",        Icon: Search     },
-  { id: "coach",   label: "Entrenador",       sublabel: "Dirige jugadores",        Icon: Dumbbell   },
-  { id: "parent",  label: "Padre / Tutor",    sublabel: "Sigue el desarrollo",     Icon: Users      },
-  { id: "player",  label: "Jugador",          sublabel: "Analiza tu rendimiento",  Icon: UserRound  },
+const USER_TYPES: { id: UserType; labelKey: string; sublabelKey: string; Icon: React.ElementType }[] = [
+  { id: "academy", labelKey: "auth.register.userTypes.academy",  sublabelKey: "auth.register.userTypes.academySub",  Icon: Building2  },
+  { id: "scout",   labelKey: "auth.register.userTypes.scout",    sublabelKey: "auth.register.userTypes.scoutSub",    Icon: Search     },
+  { id: "coach",   labelKey: "auth.register.userTypes.coach",    sublabelKey: "auth.register.userTypes.coachSub",    Icon: Dumbbell   },
+  { id: "parent",  labelKey: "auth.register.userTypes.parent",   sublabelKey: "auth.register.userTypes.parentSub",   Icon: Users      },
+  { id: "player",  labelKey: "auth.register.userTypes.player",   sublabelKey: "auth.register.userTypes.playerSub",   Icon: UserRound  },
 ];
 
 const NAME_PLACEHOLDER: Record<UserType, string> = {
@@ -46,6 +47,7 @@ const NAME_PLACEHOLDER: Record<UserType, string> = {
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp, configured } = useAuth();
+  const { t } = useTranslation();
 
   const [userType, setUserType]     = useState<UserType>("scout");
   const [displayName, setDisplayName] = useState("");
@@ -62,22 +64,22 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     if (!displayName || !email || !password) {
-      setError("Completa todos los campos");
+      setError(t("auth.register.fillAllFields"));
       return;
     }
     if (pwStrength < 3) {
-      setError("La contraseña no cumple los requisitos");
+      setError(t("auth.register.passwordNotMet"));
       return;
     }
     setLoading(true);
     const { error: authError } = await signUp(email, password, displayName, userType);
     setLoading(false);
     if (authError) {
-      setError(translateError(authError.message));
+      setError(translateError(authError.message, t));
       return;
     }
     setSuccess(true);
-    toast.success("¡Cuenta creada! Revisa tu email para confirmar.");
+    toast.success(t("toasts.accountCreated"));
   };
 
   if (success) {
@@ -91,17 +93,15 @@ export default function RegisterPage() {
           <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
             <CheckCircle2 size={28} className="text-primary" />
           </div>
-          <h2 className="font-display font-bold text-xl text-foreground">¡Cuenta creada!</h2>
+          <h2 className="font-display font-bold text-xl text-foreground">{t("auth.register.successTitle")}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Hemos enviado un email de confirmación a{" "}
-            <span className="text-primary font-semibold">{email}</span>.
-            Confirma tu cuenta para comenzar.
+            {t("auth.register.successDescription", { email })}
           </p>
           <button
             onClick={() => navigate("/login")}
             className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors"
           >
-            Ir al login
+            {t("auth.register.goToLogin")}
           </button>
         </motion.div>
       </div>
@@ -132,9 +132,9 @@ export default function RegisterPage() {
         {/* Card */}
         <motion.div variants={item} className="glass rounded-2xl p-6 space-y-4">
           <div>
-            <h2 className="font-display font-bold text-xl text-foreground">Nueva cuenta</h2>
+            <h2 className="font-display font-bold text-xl text-foreground">{t("auth.register.title")}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              ¿Cómo vas a usar VITAS?
+              {t("auth.register.subtitle")}
             </p>
           </div>
 
@@ -142,15 +142,14 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2 p-3 rounded-lg bg-gold/10 border border-gold/20">
               <AlertCircle size={14} className="text-gold shrink-0 mt-0.5" />
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Supabase no configurado. El registro requiere{" "}
-                <code className="text-gold">VITE_SUPABASE_URL</code>.
+                {t("auth.register.supabaseNotConfigured")}
               </p>
             </div>
           )}
 
           {/* Tipo de usuario */}
           <div className="grid grid-cols-2 gap-2">
-            {USER_TYPES.map(({ id, label, sublabel, Icon }) => (
+            {USER_TYPES.map(({ id, labelKey, sublabelKey, Icon }) => (
               <button
                 key={id}
                 type="button"
@@ -162,8 +161,8 @@ export default function RegisterPage() {
                 } ${id === "player" ? "col-span-2" : ""}`}
               >
                 <Icon size={14} className={userType === id ? "text-primary" : ""} />
-                <span className="text-xs font-display font-semibold leading-tight">{label}</span>
-                <span className="text-[10px] opacity-70">{sublabel}</span>
+                <span className="text-xs font-display font-semibold leading-tight">{t(labelKey)}</span>
+                <span className="text-[10px] opacity-70">{t(sublabelKey)}</span>
               </button>
             ))}
           </div>
@@ -172,7 +171,7 @@ export default function RegisterPage() {
             {/* Nombre */}
             <div className="space-y-1.5">
               <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                {userType === "academy" ? "Nombre de la academia / club" : "Tu nombre"}
+                {userType === "academy" ? t("auth.register.academyNameLabel") : t("auth.register.nameLabel")}
               </label>
               <input
                 type="text"
@@ -187,13 +186,13 @@ export default function RegisterPage() {
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                Email
+                {t("auth.register.emailLabel")}
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
+                placeholder={t("auth.register.emailPlaceholder")}
                 autoComplete="email"
                 className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
               />
@@ -202,7 +201,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="space-y-1.5">
               <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                Contraseña
+                {t("auth.register.passwordLabel")}
               </label>
               <div className="relative">
                 <input
@@ -240,10 +239,10 @@ export default function RegisterPage() {
                     {pwRules.map((rule) => {
                       const ok = rule.test(password);
                       return (
-                        <div key={rule.label} className="flex items-center gap-1.5">
+                        <div key={rule.labelKey} className="flex items-center gap-1.5">
                           <div className={`w-1 h-1 rounded-full ${ok ? "bg-primary" : "bg-muted-foreground/40"}`} />
                           <span className={`text-[10px] font-display ${ok ? "text-primary" : "text-muted-foreground"}`}>
-                            {rule.label}
+                            {t(rule.labelKey)}
                           </span>
                         </div>
                       );
@@ -273,19 +272,19 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <Loader2 size={14} className="animate-spin" />
-                  Creando cuenta…
+                  {t("auth.register.submitting")}
                 </>
               ) : (
-                "Crear cuenta"
+                t("auth.register.submit")
               )}
             </button>
           </form>
         </motion.div>
 
         <motion.p variants={item} className="text-center text-xs text-muted-foreground font-display">
-          ¿Ya tienes cuenta?{" "}
+          {t("auth.register.hasAccount")}{" "}
           <Link to="/login" className="text-primary hover:underline font-semibold">
-            Iniciar sesión
+            {t("auth.register.signIn")}
           </Link>
         </motion.p>
       </motion.div>
@@ -293,17 +292,17 @@ export default function RegisterPage() {
   );
 }
 
-function translateError(msg: string): string {
+function translateError(msg: string, t: (key: string) => string): string {
   if (msg.includes("already registered") || msg.includes("User already registered"))
-    return "Ya existe una cuenta con ese email";
+    return t("auth.errors.alreadyRegistered");
   if (msg.includes("Password should be"))
-    return "La contraseña debe tener al menos 6 caracteres";
+    return t("auth.errors.passwordTooShort");
   if (msg.includes("Invalid API key") || msg.includes("invalid api key"))
-    return "Error de configuración. Contacta al administrador.";
+    return t("auth.errors.configError");
   if (msg.includes("Invalid login credentials"))
-    return "Email o contraseña incorrectos";
+    return t("auth.errors.invalidCredentials");
   if (msg.includes("Email not confirmed"))
-    return "Confirma tu email antes de iniciar sesión";
+    return t("auth.errors.confirmEmail");
   if (msg.includes("no configurado"))
     return msg;
   return msg;

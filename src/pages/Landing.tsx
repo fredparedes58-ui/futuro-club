@@ -1,6 +1,7 @@
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Activity, Compass, Crosshair, BarChart3, LayoutDashboard,
   Camera, GitCompareArrows, Settings, ArrowRight, Zap,
@@ -39,11 +40,12 @@ function AnimatedStat({ value }: { value: number }) {
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const stats = [
-    { icon: Users, label: "Jugadores", value: 12847 },
-    { icon: Signal, label: "Sesiones live", value: 342 },
-    { icon: TrendingUp, label: "Insights hoy", value: 1893 },
+    { icon: Users, label: t("landing.stats.players"), value: 12847 },
+    { icon: Signal, label: t("landing.stats.liveSessions"), value: 342 },
+    { icon: TrendingUp, label: t("landing.stats.insightsToday"), value: 1893 },
   ];
 
   return (
@@ -104,9 +106,7 @@ const Landing = () => {
                 <span className="text-accent">.</span>
               </h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed mt-6">
-                Plataforma de inteligencia deportiva para detección,
-                evaluación y proyección de{" "}
-                <span className="text-foreground font-medium">talento juvenil</span>.
+                {t("landing.heroDescription")}
               </p>
             </motion.div>
 
@@ -140,7 +140,7 @@ const Landing = () => {
               onClick={() => navigate("/pulse")}
               className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_40px_hsl(var(--primary)/0.6),0_0_80px_hsl(var(--accent)/0.3)] transition-all duration-500"
             >
-              Entrar al sistema
+              {t("landing.enter")}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </motion.button>
           </div>
@@ -196,7 +196,7 @@ const Landing = () => {
           <div className="flex items-center gap-2 mb-5">
             <div className="h-px flex-1 bg-gradient-to-r from-border/50 to-transparent" />
             <span className="text-[9px] font-display font-bold uppercase tracking-[0.25em] text-muted-foreground/60">
-              Módulos
+              {t("common.modules")}
             </span>
             <div className="h-px flex-1 bg-gradient-to-l from-border/50 to-transparent" />
           </div>
@@ -237,7 +237,7 @@ const Landing = () => {
         >
           <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/30" />
           <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/30">
-            © 2026 VITAS Intelligence
+            {t("landing.footer")}
           </p>
           <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/30" />
         </motion.div>

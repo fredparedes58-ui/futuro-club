@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import type { SortField, SortDir } from "@/services/rankingsService";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -19,10 +20,10 @@ const rankIcons = [
 ];
 
 const PHV_FILTERS = [
-  { value: "all", label: "Todos" },
-  { value: "late", label: "Tardío ⭐" },
-  { value: "on-time", label: "Normal" },
-  { value: "early", label: "Precoz" },
+  { value: "all", key: "players.rankings.phvFilter.all" },
+  { value: "late", key: "players.rankings.phvFilter.late" },
+  { value: "on-time", key: "players.rankings.phvFilter.onTime" },
+  { value: "early", key: "players.rankings.phvFilter.early" },
 ];
 
 const POSITION_GROUPS = [
@@ -45,6 +46,7 @@ const item = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0, transit
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const Rankings = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [sortBy, setSortBy] = useState<SortField>("vsi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -56,7 +58,7 @@ const Rankings = () => {
   const { data: sortedPlayers, isLoading, isError } = useRankedPlayers(sortBy, sortDir);
 
   useEffect(() => {
-    if (isError) toast.error("No se pudo cargar el ranking");
+    if (isError) toast.error(t("toasts.rankingsError"));
   }, [isError]);
 
   // Filtros en cliente (rápido, sobre datos ya ordenados)
@@ -89,14 +91,14 @@ const Rankings = () => {
 
       {/* Header + Nuevo jugador */}
       <motion.div variants={item} className="flex items-start justify-between">
-        <PageHeader title="Rankings" subtitle="VSI ajustado por maduración biológica" />
+        <PageHeader title={t("players.rankings.title")} subtitle={t("players.rankings.subtitle")} />
         <Button
           size="sm"
           className="gap-1.5 shrink-0 mt-1"
           onClick={() => navigate("/players/new")}
         >
           <Plus size={14} />
-          Nuevo
+          {t("common.new")}
         </Button>
       </motion.div>
 
@@ -104,7 +106,7 @@ const Rankings = () => {
       <motion.div variants={item} className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar jugador…"
+          placeholder={t("players.rankings.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9 pr-9 h-9 text-sm"
@@ -122,7 +124,7 @@ const Rankings = () => {
       {/* Sort + Filtros toggle */}
       <motion.div variants={item} className="flex items-center gap-2">
         <div className="flex gap-1 bg-muted rounded-md p-0.5 flex-1">
-          {([["vsi", "VSI"], ["age", "Edad"], ["name", "Nombre"]] as [SortField, string][]).map(
+          {([["vsi", t("players.rankings.sortVsi")], ["age", t("players.rankings.sortAge")], ["name", t("players.rankings.sortName")]] as [SortField, string][]).map(
             ([field, label]) => (
               <Button
                 key={field}
@@ -143,7 +145,7 @@ const Rankings = () => {
           onClick={() => setShowFilters((v) => !v)}
         >
           <SlidersHorizontal size={12} />
-          Filtros
+          {t("common.filters")}
           {hasFilters && (
             <span className="w-4 h-4 rounded-full bg-primary-foreground text-primary text-[9px] font-bold flex items-center justify-center">
               !
@@ -163,7 +165,7 @@ const Rankings = () => {
           {/* Filtro PHV */}
           <div>
             <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-2">
-              Maduración Biológica (PHV)
+              {t("players.rankings.bioMaturation")}
             </p>
             <div className="flex gap-1.5 flex-wrap">
               {PHV_FILTERS.map((f) => (
@@ -176,7 +178,7 @@ const Rankings = () => {
                       : "bg-secondary text-muted-foreground border-border hover:border-primary/50"
                   }`}
                 >
-                  {f.label}
+                  {t(f.key)}
                 </button>
               ))}
             </div>
@@ -185,7 +187,7 @@ const Rankings = () => {
           {/* Filtro Posición */}
           <div>
             <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-2">
-              Posición
+              {t("common.position")}
             </p>
             <select
               value={posFilter}
@@ -202,7 +204,7 @@ const Rankings = () => {
           {hasFilters && (
             <Button variant="ghost" size="sm" className="w-full text-xs gap-1" onClick={clearFilters}>
               <X size={12} />
-              Limpiar todos los filtros
+              {t("common.clearFilters")}
             </Button>
           )}
         </motion.div>
@@ -212,10 +214,10 @@ const Rankings = () => {
       {isFiltered && !isLoading && (
         <motion.div variants={item} className="flex items-center justify-between text-xs text-muted-foreground px-1">
           <span>
-            {filteredPlayers.length} de {sortedPlayers?.length} jugadores
+            {t("players.rankings.ofPlayers", { filtered: filteredPlayers.length, total: sortedPlayers?.length })}
           </span>
           <button onClick={clearFilters} className="text-primary hover:underline font-display font-semibold">
-            Ver todos
+            {t("common.viewAll")}
           </button>
         </motion.div>
       )}
@@ -263,23 +265,23 @@ const Rankings = () => {
         <motion.div variants={item} className="glass rounded-xl p-8 text-center space-y-3">
           {hasFilters ? (
             <>
-              <p className="font-display font-bold text-lg">Sin resultados</p>
+              <p className="font-display font-bold text-lg">{t("players.rankings.noResults")}</p>
               <p className="text-sm text-muted-foreground">
-                Ningún jugador coincide con los filtros actuales.
+                {t("players.rankings.noResultsDesc")}
               </p>
               <Button variant="outline" size="sm" onClick={clearFilters}>
-                Limpiar filtros
+                {t("common.clearFiltersSm")}
               </Button>
             </>
           ) : (
             <>
-              <p className="font-display font-bold text-lg">Sin jugadores registrados</p>
+              <p className="font-display font-bold text-lg">{t("players.rankings.noPlayersTitle")}</p>
               <p className="text-sm text-muted-foreground">
-                Agrega tu primer jugador para comenzar.
+                {t("players.rankings.noPlayersDesc")}
               </p>
               <Button size="sm" onClick={() => navigate("/players/new")} className="gap-1.5">
                 <Plus size={14} />
-                Agregar jugador
+                {t("players.rankings.addPlayer")}
               </Button>
             </>
           )}
@@ -324,10 +326,10 @@ const Rankings = () => {
                     }
                   >
                     {player.phvCategory === "late"
-                      ? "Tardío ⭐"
+                      ? t("players.rankings.phvFilter.late")
                       : player.phvCategory === "early"
-                      ? "Precoz"
-                      : "Normal"}
+                      ? t("players.rankings.phvFilter.early")
+                      : t("players.rankings.phvFilter.onTime")}
                   </span>
                   {/* Tendencia */}
                   {player.trending === "up" && <span className="text-primary">↑</span>}

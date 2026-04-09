@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
@@ -103,6 +104,7 @@ function SectionHeader({ icon: Icon, title, subtitle }: {
 // ─── Secciones del informe ────────────────────────────────────────────────────
 
 function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] }) {
+  const { t } = useTranslation();
   if (!data) return null;
   const levelColor = LEVEL_COLORS[data.nivelActual] ?? "#3B82F6";
 
@@ -110,7 +112,7 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
     <div className="space-y-4">
       {/* Nivel y resumen */}
       <div className="glass rounded-2xl p-4">
-        <SectionHeader icon={Brain} title="Estado Actual" subtitle="Evaluación observacional del video" />
+        <SectionHeader icon={Brain} title={t("intelligence.currentState")} subtitle={t("intelligence.currentStateDesc")} />
 
         <div className="flex items-center gap-2 mb-3">
           <span className="text-xs font-display font-bold"
@@ -133,16 +135,16 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
       {/* 6 dimensiones */}
       <div className="glass rounded-2xl p-4">
         <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-4">
-          6 Dimensiones observadas
+          {t("intelligence.sixDimensions")}
         </p>
         <div className="grid grid-cols-3 gap-3 justify-items-center">
           {Object.entries({
-            "Decisión":  data.dimensiones?.velocidadDecision,
-            "Técnica":   data.dimensiones?.tecnicaConBalon,
-            "Táctica":   data.dimensiones?.inteligenciaTactica,
-            "Físico":    data.dimensiones?.capacidadFisica,
-            "Liderazgo": data.dimensiones?.liderazgoPresencia,
-            "Eficacia":  data.dimensiones?.eficaciaCompetitiva,
+            [t("intelligence.dimensions.decision")]:    data.dimensiones?.velocidadDecision,
+            [t("intelligence.dimensions.technique")]:   data.dimensiones?.tecnicaConBalon,
+            [t("intelligence.dimensions.tactics")]:     data.dimensiones?.inteligenciaTactica,
+            [t("intelligence.dimensions.physical")]:    data.dimensiones?.capacidadFisica,
+            [t("intelligence.dimensions.leadership")]:  data.dimensiones?.liderazgoPresencia,
+            [t("intelligence.dimensions.efficiency")]:  data.dimensiones?.eficaciaCompetitiva,
           }).filter(([, dim]) => dim).map(([label, dim]) => (
             <ScoreRing key={label} score={dim!.score ?? 0} label={label} />
           ))}
@@ -150,9 +152,9 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
         {/* Observaciones expandibles */}
         <div className="mt-4 space-y-2">
           {Object.entries({
-            "Velocidad de decisión":  data.dimensiones?.velocidadDecision?.observacion,
-            "Técnica con balón":      data.dimensiones?.tecnicaConBalon?.observacion,
-            "Inteligencia táctica":   data.dimensiones?.inteligenciaTactica?.observacion,
+            [t("intelligence.observations.decisionSpeed")]:  data.dimensiones?.velocidadDecision?.observacion,
+            [t("intelligence.observations.ballTechnique")]:      data.dimensiones?.tecnicaConBalon?.observacion,
+            [t("intelligence.observations.tacticalIntelligence")]:   data.dimensiones?.inteligenciaTactica?.observacion,
           }).filter(([, obs]) => obs).map(([k, obs]) => (
             <div key={k} className="text-[11px] text-muted-foreground leading-relaxed">
               <span className="font-medium text-foreground">{k}: </span>{obs}
@@ -166,7 +168,7 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
         <div className="glass rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-2">
             <CheckCircle size={11} className="text-green-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Fortalezas</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">{t("intelligence.strengths")}</span>
           </div>
           {(data.fortalezasPrimarias ?? []).map((f, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {f}</p>
@@ -175,7 +177,7 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
         <div className="glass rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-2">
             <Target size={11} className="text-amber-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">A trabajar</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">{t("intelligence.toWork")}</span>
           </div>
           {(data.areasDesarrollo ?? []).map((a, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {a}</p>
@@ -187,11 +189,12 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
 }
 
 function ADNFutbolistico({ data }: { data: VideoIntelligenceOutput["adnFutbolistico"] }) {
+  const { t } = useTranslation();
   if (!data) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Zap} title="ADN Futbolístico" subtitle="Identidad y patrones de juego" />
+      <SectionHeader icon={Zap} title={t("intelligence.footballDNA")} subtitle={t("intelligence.footballDNADesc")} />
 
       <div className="mb-3">
         <Badge className="text-xs mb-2">{data.arquetipoTactico ?? "—"}</Badge>
@@ -221,25 +224,26 @@ function ADNFutbolistico({ data }: { data: VideoIntelligenceOutput["adnFutbolist
 }
 
 function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccionCarrera"] }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
   if (!data) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={TrendingUp} title="Proyección de Carrera" subtitle="Escenarios a largo plazo" />
+      <SectionHeader icon={TrendingUp} title={t("intelligence.careerProjection")} subtitle={t("intelligence.careerProjectionDesc")} />
 
       {/* Optimista */}
       {data.escenarioOptimista && (
         <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-3 mb-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Star size={11} className="text-green-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Escenario óptimo</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">{t("intelligence.optimisticScenario")}</span>
             <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioOptimista.nivelProyecto ?? "—"}</Badge>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioOptimista.descripcion ?? ""}</p>
           {data.escenarioOptimista.edadPeak && (
-            <p className="text-[10px] text-green-400 mt-1.5">Peak proyectado: {data.escenarioOptimista.edadPeak} años</p>
+            <p className="text-[10px] text-green-400 mt-1.5">{t("intelligence.peakProjected", { age: data.escenarioOptimista.edadPeak })}</p>
           )}
         </div>
       )}
@@ -249,7 +253,7 @@ function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccion
         <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 mb-3">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Target size={11} className="text-blue-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-blue-400">Escenario realista</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-blue-400">{t("intelligence.realisticScenario")}</span>
             <Badge variant="secondary" className="text-[9px] ml-auto">{data.escenarioRealista.nivelProyecto ?? "—"}</Badge>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">{data.escenarioRealista.descripcion ?? ""}</p>
@@ -262,7 +266,7 @@ function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccion
         className="flex items-center gap-1.5 text-[10px] text-muted-foreground w-full"
       >
         {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        Factores clave y riesgos
+        {t("intelligence.keyFactorsAndRisks")}
       </button>
 
       <AnimatePresence>
@@ -275,13 +279,13 @@ function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccion
           >
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>
-                <p className="text-[10px] font-display uppercase tracking-wider text-green-400 mb-1">Factores +</p>
+                <p className="text-[10px] font-display uppercase tracking-wider text-green-400 mb-1">{t("intelligence.positiveFactors")}</p>
                 {(data.factoresClave ?? []).map((f, i) => (
                   <p key={i} className="text-[11px] text-muted-foreground leading-relaxed">• {f}</p>
                 ))}
               </div>
               <div>
-                <p className="text-[10px] font-display uppercase tracking-wider text-red-400 mb-1">Riesgos</p>
+                <p className="text-[10px] font-display uppercase tracking-wider text-red-400 mb-1">{t("intelligence.risks")}</p>
                 {(data.riesgos ?? []).map((r, i) => (
                   <p key={i} className="text-[11px] text-muted-foreground leading-relaxed">• {r}</p>
                 ))}
@@ -295,6 +299,7 @@ function ProyeccionCarrera({ data }: { data: VideoIntelligenceOutput["proyeccion
 }
 
 function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarrollo"] }) {
+  const { t } = useTranslation();
   const prioColor = (p: string) =>
     p === "crítica" ? "#EF4444" : p === "alta" ? "#F59E0B" : "#3B82F6";
 
@@ -302,7 +307,7 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={ClipboardList} title="Plan de Desarrollo" subtitle="Hoja de ruta personalizada" />
+      <SectionHeader icon={ClipboardList} title={t("intelligence.developmentPlan")} />
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="rounded-xl border border-border p-2.5">
@@ -458,6 +463,7 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function PlayerIntelligencePage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [selectedVideoId, setSelectedVideoId] = useState<string>("");
@@ -484,8 +490,8 @@ export default function PlayerIntelligencePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
         <AlertTriangle size={32} className="text-destructive" />
-        <p className="text-sm text-muted-foreground">Jugador no encontrado</p>
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Volver</Button>
+        <p className="text-sm text-muted-foreground">{t("toasts.playerNotFound")}</p>
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>{t("common.back")}</Button>
       </div>
     );
   }
@@ -523,7 +529,7 @@ export default function PlayerIntelligencePage() {
 
   const handleRunAnalysis = async () => {
     if (!selectedVideoId) {
-      toast.error("Selecciona un video primero");
+      toast.error(t("reports.selectVideoFirst", "Selecciona un video primero"));
       return;
     }
     const video = playerVideos.find(v => v.id === selectedVideoId);
@@ -543,7 +549,7 @@ export default function PlayerIntelligencePage() {
         localVideoSrc: localSrc,
         analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
-      toast.success("¡Análisis completado!");
+      toast.success(t("toasts.drillAnalyzed"));
       setActiveTab("guardado");
     } catch (err) {
       const { title, description } = getErrorDetails(err, "intelligence");

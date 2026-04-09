@@ -30,6 +30,7 @@ import {
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import type { PHVInput } from "@/agents/contracts";
 import type { VideoRecord } from "@/services/real/videoService";
 
@@ -44,21 +45,21 @@ const item = {
 };
 
 // ─── Mapa PHV ─────────────────────────────────────────────────────────────────
-const phvInfo: Record<string, { label: string; color: string; desc: string }> = {
+const phvInfo: Record<string, { labelKey: string; color: string; descKey: string }> = {
   early: {
-    label: "Madurador Precoz",
+    labelKey: "players.profile.phv.earlyLabel",
     color: "text-gold",
-    desc: "Ventaja física temporal. VSI ajustado a la baja para evitar sesgo.",
+    descKey: "players.profile.phv.earlyDesc",
   },
   "on-time": {
-    label: "Maduración Normal",
+    labelKey: "players.profile.phv.onTimeLabel",
     color: "text-electric",
-    desc: "Desarrollo acorde a su edad cronológica.",
+    descKey: "players.profile.phv.onTimeDesc",
   },
   late: {
-    label: "Madurador Tardío",
+    labelKey: "players.profile.phv.lateLabel",
     color: "text-primary",
-    desc: "Potencial oculto. VSI ajustado al alza. ⭐ Alta prioridad de seguimiento.",
+    descKey: "players.profile.phv.lateDesc",
   },
 };
 
@@ -84,6 +85,7 @@ function ProfileSkeleton() {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerProfile = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [phvInput, setPhvInput] = useState<PHVInput | null>(null);
@@ -118,7 +120,7 @@ const PlayerProfile = () => {
 
   useEffect(() => {
     if (phvResult) {
-      toast.success(`PHV calculado: ${phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal"} (offset ${phvResult.offset > 0 ? "+" : ""}${phvResult.offset})`);
+      toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal", offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
     }
   }, [phvResult]);
 
@@ -137,7 +139,7 @@ const PlayerProfile = () => {
   const handleDelete = async () => {
     if (!id) return;
     await deletePlayer.mutateAsync(id);
-    toast.success(`${player?.name ?? "Jugador"} eliminado`);
+    toast.success(t("toasts.playerDeleted", { name: player?.name ?? "Jugador" }));
     navigate("/rankings");
   };
 
@@ -150,7 +152,7 @@ const PlayerProfile = () => {
       weight: rawPlayer.weight,
       gender: (rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M",
     });
-    toast.info("Calculando PHV con IA…");
+    toast.info(t("toasts.phvCalculating"));
   };
 
   // ─── Métricas avanzadas — MUST be before early returns (Rules of Hooks) ──
@@ -166,13 +168,13 @@ const PlayerProfile = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-8 text-center">
         <AlertCircle size={40} className="text-destructive" />
-        <p className="font-display font-bold text-lg text-foreground">Jugador no encontrado</p>
+        <p className="font-display font-bold text-lg text-foreground">{t("players.profile.notFound")}</p>
         <p className="text-sm text-muted-foreground">
-          El jugador no existe o fue eliminado.
+          {t("players.profile.notFoundDesc")}
         </p>
         <Button variant="outline" onClick={() => navigate("/rankings")}>
           <ArrowLeft size={16} className="mr-2" />
-          Volver al ranking
+          {t("players.profile.backToRanking")}
         </Button>
       </div>
     );
@@ -183,9 +185,9 @@ const PlayerProfile = () => {
   const hasPHV = !!rawPlayer?.phvCategory;
 
   const trendText =
-    player.trending === "up" ? "En ascenso 📈"
-    : player.trending === "down" ? "En descenso 📉"
-    : "Estable ➡️";
+    player.trending === "up" ? t("players.profile.trendUp")
+    : player.trending === "down" ? t("players.profile.trendDown")
+    : t("players.profile.trendStable");
 
   return (
     <motion.div
@@ -201,7 +203,7 @@ const PlayerProfile = () => {
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft size={16} />
-        <span className="font-display">Volver</span>
+        <span className="font-display">{t("common.back")}</span>
       </motion.button>
 
       {/* Header del jugador */}
@@ -231,7 +233,7 @@ const PlayerProfile = () => {
               hasPHV ? phv.color : "text-muted-foreground"
             }`}
           >
-            {hasPHV ? phv.label : "PHV no calculado"}
+            {hasPHV ? t(phv.labelKey) : t("players.profile.phv.notCalculated")}
           </span>
           {hasPHV && (
             <span className="text-[10px] text-muted-foreground ml-auto">
@@ -242,7 +244,7 @@ const PlayerProfile = () => {
 
         {hasPHV ? (
           <>
-            <p className="text-xs text-muted-foreground">{phv.desc}</p>
+            <p className="text-xs text-muted-foreground">{t(phv.descKey)}</p>
             <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
               <motion.div
                 className="h-full rounded-full bg-gradient-to-r from-gold via-electric to-primary"
@@ -252,15 +254,15 @@ const PlayerProfile = () => {
               />
             </div>
             <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-              <span>Precoz (−2.0)</span>
-              <span>Normal (0)</span>
-              <span>Tardío (+2.0)</span>
+              <span>{t("players.profile.phv.scaleEarly")}</span>
+              <span>{t("players.profile.phv.scaleNormal")}</span>
+              <span>{t("players.profile.phv.scaleLate")}</span>
             </div>
           </>
         ) : (
           <div className="mt-2 flex items-center justify-between">
             <p className="text-xs text-muted-foreground">
-              Calcula la maduración biológica con IA para corregir el VSI.
+              {t("players.profile.phv.calculateDesc")}
             </p>
             <Button
               size="sm"
@@ -272,12 +274,12 @@ const PlayerProfile = () => {
               {isCalculatingPHV ? (
                 <>
                   <RefreshCw size={12} className="mr-1 animate-spin" />
-                  Calculando…
+                  {t("players.profile.phv.calculating")}
                 </>
               ) : (
                 <>
                   <Dna size={12} className="mr-1" />
-                  Calcular PHV
+                  {t("players.profile.phv.calculateBtn")}
                 </>
               )}
             </Button>
@@ -289,9 +291,9 @@ const PlayerProfile = () => {
       <motion.div variants={item} className="glass rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <Brain size={14} className="text-electric" />
-          <h2 className="font-display font-semibold text-sm text-foreground">Perfil Técnico</h2>
+          <h2 className="font-display font-semibold text-sm text-foreground">{t("players.profile.technicalProfile")}</h2>
           <span className="text-[10px] text-muted-foreground ml-auto">
-            {hasPHV ? "Ajustado por PHV" : "Sin ajuste PHV"}
+            {hasPHV ? t("players.profile.adjustedByPHV") : t("players.profile.noAdjustPHV")}
           </span>
         </div>
         <RadarChartComponent stats={player.stats} />
@@ -301,17 +303,17 @@ const PlayerProfile = () => {
       <motion.div variants={item} className="glass rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Zap size={14} className="text-primary" />
-          <h2 className="font-display font-semibold text-sm text-foreground">Métricas Detalladas</h2>
+          <h2 className="font-display font-semibold text-sm text-foreground">{t("players.profile.detailedMetrics")}</h2>
         </div>
         <div className="space-y-3">
           {Object.entries(player.stats).map(([key, value]) => {
             const labels: Record<string, string> = {
-              speed: "Velocidad",
-              technique: "Técnica",
-              vision: "Visión",
-              stamina: "Resistencia",
-              shooting: "Disparo",
-              defending: "Defensa",
+              speed: t("players.form.metrics.speed"),
+              technique: t("players.form.metrics.technique"),
+              vision: t("players.form.metrics.vision"),
+              stamina: t("players.form.metrics.stamina"),
+              shooting: t("players.form.metrics.shooting"),
+              defending: t("players.form.metrics.defending"),
             };
             const getBarColor = (v: number) => {
               if (v >= 85) return "bg-primary";
@@ -343,7 +345,7 @@ const PlayerProfile = () => {
         {/* VSI History Chart */}
         {rawPlayer?.vsiHistory && rawPlayer.vsiHistory.length >= 2 && (
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-[10px] font-display text-muted-foreground mb-2 uppercase tracking-wider">Evolución VSI</p>
+            <p className="text-[10px] font-display text-muted-foreground mb-2 uppercase tracking-wider">{t("players.profile.vsiEvolution")}</p>
             <VSIHistoryChart
               vsiHistory={rawPlayer.vsiHistory}
               currentVSI={player.vsi}
@@ -355,17 +357,17 @@ const PlayerProfile = () => {
 
       {/* Actividad */}
       <motion.div variants={item} className="glass rounded-xl p-4">
-        <h2 className="font-display font-semibold text-sm text-foreground mb-2">Actividad</h2>
+        <h2 className="font-display font-semibold text-sm text-foreground mb-2">{t("players.profile.activity")}</h2>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{player.recentDrills} drills registrados</span>
+          <span>{t("players.profile.drillsRegistered", { count: player.recentDrills })}</span>
           <span className="text-[10px]">
-            Actualizado: {new Date(player.lastActive).toLocaleDateString("es-ES")}
+            {t("players.profile.updated")}: {new Date(player.lastActive).toLocaleDateString("es-ES")}
           </span>
         </div>
         <div className="flex items-center gap-2 mt-3">
           <TrendingUp size={14} className="text-primary" />
           <span className="text-xs text-primary font-display font-medium">
-            Tendencia: {trendText}
+            {t("players.profile.trend")}: {trendText}
           </span>
         </div>
       </motion.div>
@@ -375,7 +377,7 @@ const PlayerProfile = () => {
         <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="text-gold" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Análisis Avanzado</h2>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("players.profile.advancedAnalysis")}</h2>
             <span className="ml-auto text-[9px] text-muted-foreground font-display uppercase tracking-wider">
               TruthFilter · UBI
             </span>
@@ -387,7 +389,7 @@ const PlayerProfile = () => {
               <div className="flex items-center gap-1.5">
                 <Filter size={11} className="text-primary" />
                 <span className="text-[11px] font-display font-semibold text-foreground">
-                  VSI Ajustado (TruthFilter)
+                  {t("players.profile.truthFilter")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -429,7 +431,7 @@ const PlayerProfile = () => {
           <div className="rounded-lg bg-secondary/40 border border-border p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-display font-semibold text-foreground">
-                UBI (Índice de Sesgo)
+                {t("players.profile.ubiBiasIndex")}
               </span>
               <span className={`text-sm font-display font-bold ${
                 advancedMetrics.ubi.ubi >= 0.6 ? "text-destructive" :
@@ -443,7 +445,7 @@ const PlayerProfile = () => {
               <span>RAE: {(advancedMetrics.ubi.raeComponent * 100).toFixed(0)}%</span>
               <span>PHV: {(advancedMetrics.ubi.phvComponent * 100).toFixed(0)}%</span>
               <span className="ml-auto text-primary">
-                ×{advancedMetrics.ubi.vsICorrectionFactor} factor corrección
+                x{advancedMetrics.ubi.vsICorrectionFactor} {t("players.profile.correctionFactor")}
               </span>
             </div>
           </div>
@@ -452,7 +454,7 @@ const PlayerProfile = () => {
           <div className="rounded-lg bg-secondary/40 border border-border p-3">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-display font-semibold text-foreground">
-                Características Dominantes
+                {t("players.profile.dominantFeatures")}
               </span>
               <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-electric/10 text-electric">
                 {advancedMetrics.dominantFeatures.playStyle}
@@ -478,7 +480,7 @@ const PlayerProfile = () => {
             </div>
             {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
               <div className="mt-2 pt-2 border-t border-border">
-                <span className="text-[9px] text-muted-foreground font-display">Áreas a desarrollar:</span>
+                <span className="text-[9px] text-muted-foreground font-display">{t("players.profile.areasToDevelope")}:</span>
                 <div className="flex gap-2 mt-1 flex-wrap">
                   {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => (
                     <span
@@ -501,7 +503,7 @@ const PlayerProfile = () => {
               <div className="flex items-center gap-1.5">
                 <Activity size={11} className="text-electric" />
                 <span className="text-[11px] font-display font-semibold text-foreground">
-                  VAEP · Valor por Evento
+                  {t("players.profile.vaepTitle")}
                 </span>
               </div>
               <Button size="sm" variant="outline"
@@ -533,12 +535,12 @@ const PlayerProfile = () => {
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-display font-bold text-gold">{matchEvents.length}</p>
-                  <p className="text-[9px] text-muted-foreground font-display">Eventos</p>
+                  <p className="text-[9px] text-muted-foreground font-display">{t("players.profile.events")}</p>
                 </div>
               </div>
             ) : (
               <p className="text-[10px] text-muted-foreground font-display">
-                Sin eventos aún — pulsa LOG para registrar acciones de partido.
+                {t("players.profile.vaepNoEvents")}
               </p>
             )}
 
@@ -546,7 +548,7 @@ const PlayerProfile = () => {
             {vaepFromEvents.topActions.length > 0 && (
               <div className="space-y-1">
                 <p className="text-[9px] font-display text-muted-foreground uppercase tracking-wider">
-                  Top acciones:
+                  {t("players.profile.topActions")}
                 </p>
                 {vaepFromEvents.topActions.slice(0, 5).map((action) => {
                   const evt = matchEvents.find((e) => e.id === action.actionId);
@@ -573,7 +575,7 @@ const PlayerProfile = () => {
               onClick={() => setShowLogSheet(true)}
               className="w-full text-[10px] font-display text-primary hover:underline flex items-center justify-center gap-1 pt-1"
             >
-              <ClipboardList size={10} /> Registrar Evento
+              <ClipboardList size={10} /> {t("players.profile.registerEvent")}
             </button>
           </div>
           </PlanGuard>
@@ -585,7 +587,7 @@ const PlayerProfile = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Video size={14} className="text-primary" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Videos</h2>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("players.profile.videos")}</h2>
             {playerVideos.length > 0 && (
               <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                 {playerVideos.length}
@@ -597,7 +599,7 @@ const PlayerProfile = () => {
             className="flex items-center gap-1 text-[10px] text-primary font-display font-semibold hover:underline"
           >
             {showVideoUpload ? <ChevronDown size={10} /> : <Plus size={10} />}
-            {showVideoUpload ? "Cerrar" : "Subir video"}
+            {showVideoUpload ? t("common.close") : t("players.profile.uploadVideo")}
           </button>
         </div>
 
@@ -608,7 +610,7 @@ const PlayerProfile = () => {
               playerId={id}
               onDone={(videoId) => {
                 setShowVideoUpload(false);
-                toast.success("Video subido y asociado al jugador");
+                toast.success(t("toasts.videoUploaded"));
               }}
             />
           </div>
@@ -631,7 +633,7 @@ const PlayerProfile = () => {
               onClick={() => setSelectedVideo(null)}
               className="mt-1 text-[10px] text-muted-foreground hover:text-foreground font-display transition-colors"
             >
-              Cerrar reproductor
+              {t("players.profile.closePlayer")}
             </button>
           </div>
         )}
@@ -653,13 +655,13 @@ const PlayerProfile = () => {
           <div className="text-center py-6 space-y-2">
             <Video size={24} className="text-muted-foreground mx-auto" />
             <p className="text-xs font-display text-muted-foreground">
-              Sin videos registrados para este jugador
+              {t("players.profile.noVideos")}
             </p>
             <button
               onClick={() => setShowVideoUpload(true)}
               className="text-xs text-primary font-display font-semibold hover:underline"
             >
-              Subir primer video →
+              {t("players.profile.uploadFirstVideo")}
             </button>
           </div>
         ) : null}
@@ -669,7 +671,7 @@ const PlayerProfile = () => {
             onClick={() => navigate("/reports")}
             className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground font-display flex items-center justify-center gap-1 transition-colors"
           >
-            Ver todos en Reports <ChevronRight size={12} />
+            {t("players.profile.seeAllInReports")} <ChevronRight size={12} />
           </button>
         )}
       </motion.div>
@@ -685,8 +687,8 @@ const PlayerProfile = () => {
               <Brain size={16} className="text-primary" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-display font-semibold text-foreground">Perfil de Rol Táctico</p>
-              <p className="text-[10px] text-muted-foreground">Análisis IA — arquetipos, posiciones, capacidades</p>
+              <p className="text-sm font-display font-semibold text-foreground">{t("players.profile.roleProfileTitle")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("players.profile.roleProfileDesc")}</p>
             </div>
           </div>
           <ChevronRight size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -707,10 +709,10 @@ const PlayerProfile = () => {
             </div>
             <div className="text-left">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-display font-semibold text-foreground">VITAS Intelligence</p>
+                <p className="text-sm font-display font-semibold text-foreground">{t("players.profile.intelligenceTitle")}</p>
                 <span className="text-[8px] font-display font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase tracking-wider">NEW</span>
               </div>
-              <p className="text-[10px] text-muted-foreground">Clon · Proyección · Plan de desarrollo</p>
+              <p className="text-[10px] text-muted-foreground">{t("players.profile.intelligenceDesc")}</p>
             </div>
           </div>
           <ChevronRight size={16} className="text-primary group-hover:translate-x-0.5 transition-transform" />
@@ -725,7 +727,7 @@ const PlayerProfile = () => {
           onClick={() => navigate(`/players/${player.id}/edit`)}
         >
           <Pencil size={14} />
-          Editar jugador
+          {t("players.profile.editPlayer")}
         </Button>
 
         <Button
@@ -734,31 +736,30 @@ const PlayerProfile = () => {
           onClick={() => PDFService.exportPlayerReport(id!)}
         >
           <FileDown size={14} />
-          Exportar PDF
+          {t("players.profile.exportPDF")}
         </Button>
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" className="gap-2">
               <Trash2 size={14} />
-              Eliminar
+              {t("common.delete")}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar a {player.name}?</AlertDialogTitle>
+              <AlertDialogTitle>{t("players.profile.deleteConfirmTitle", { name: player.name })}</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta acción no se puede deshacer. Se eliminarán todos los datos del jugador,
-                incluyendo su historial VSI y los análisis PHV calculados.
+                {t("players.profile.deleteConfirmDesc")}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Sí, eliminar
+                {t("players.profile.confirmDelete")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -769,13 +770,13 @@ const PlayerProfile = () => {
       <Sheet open={showLogSheet} onOpenChange={setShowLogSheet}>
         <SheetContent side="bottom" className="h-auto pb-8">
           <SheetHeader className="mb-4">
-            <SheetTitle className="font-display text-base">Registrar Evento</SheetTitle>
+            <SheetTitle className="font-display text-base">{t("players.profile.vaepLog.title")}</SheetTitle>
           </SheetHeader>
           <div className="space-y-4">
             {/* Tipo */}
             <div className="space-y-1.5">
               <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                Tipo de acción
+                {t("players.profile.vaepLog.actionType")}
               </label>
               <div className="flex flex-wrap gap-2">
                 {EVENT_TYPES.map((t) => (
@@ -795,7 +796,7 @@ const PlayerProfile = () => {
             {/* Resultado */}
             <div className="space-y-1.5">
               <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                Resultado
+                {t("players.profile.vaepLog.result")}
               </label>
               <div className="flex gap-2">
                 {(["success", "fail"] as const).map((r) => (
@@ -809,7 +810,7 @@ const PlayerProfile = () => {
                         : "bg-secondary text-foreground border-border"
                     }`}
                   >
-                    {r === "success" ? "✓ Éxito" : "✗ Fallo"}
+                    {r === "success" ? t("players.profile.vaepLog.success") : t("players.profile.vaepLog.fail")}
                   </button>
                 ))}
               </div>
@@ -817,7 +818,7 @@ const PlayerProfile = () => {
             {/* Minuto */}
             <div className="space-y-1.5">
               <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                Minuto
+                {t("players.profile.vaepLog.minute")}
               </label>
               <Input type="number" min={1} max={120} value={logForm.minute}
                 onChange={(e) => setLogForm((f) => ({ ...f, minute: Number(e.target.value) }))}
@@ -827,7 +828,7 @@ const PlayerProfile = () => {
             {/* Zona */}
             <div className="space-y-1.5">
               <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                Zona del campo
+                {t("players.profile.vaepLog.fieldZone")}
               </label>
               <div className="flex gap-2">
                 {EVENT_ZONES.map((z) => (
@@ -847,8 +848,8 @@ const PlayerProfile = () => {
             {/* Guardar */}
             <Button className="w-full mt-2" onClick={handleLogEvent} disabled={logEvent.isPending}>
               {logEvent.isPending
-                ? <><RefreshCw size={14} className="mr-2 animate-spin" /> Guardando…</>
-                : "Guardar"}
+                ? <><RefreshCw size={14} className="mr-2 animate-spin" /> {t("common.saving")}</>
+                : t("common.save")}
             </Button>
           </div>
         </SheetContent>

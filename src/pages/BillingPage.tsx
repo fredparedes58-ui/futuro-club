@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { PLAN_PRICES, PLAN_LABELS, type Plan } from "@/services/real/subscriptionService";
+import { useTranslation } from "react-i18next";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,7 @@ const FEATURES: PlanFeature[] = [
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 const BillingPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -62,10 +64,10 @@ const BillingPage = () => {
   // Manejar redirect desde Stripe
   useEffect(() => {
     if (searchParams.get("success")) {
-      toast.success("¡Plan activado! Los cambios se aplicarán en breve.");
+      toast.success(t("toasts.planActivated"));
     }
     if (searchParams.get("canceled")) {
-      toast.info("Proceso de pago cancelado.");
+      toast.info(t("toasts.paymentCanceled"));
     }
   }, [searchParams]);
 
@@ -78,7 +80,7 @@ const BillingPage = () => {
         : import.meta.env.VITE_STRIPE_CLUB_PRICE_ID;
 
     if (!priceId) {
-      toast.error("Stripe no configurado. Configura VITE_STRIPE_PRO_PRICE_ID / VITE_STRIPE_CLUB_PRICE_ID");
+      toast.error(t("toasts.stripeNotConfigured"));
       return;
     }
 
@@ -97,10 +99,10 @@ const BillingPage = () => {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error("No se pudo iniciar el checkout");
+        toast.error(t("toasts.checkoutError"));
       }
     } catch {
-      toast.error("Error al conectar con Stripe");
+      toast.error(t("toasts.stripeError"));
     } finally {
       setCheckoutLoading(null);
     }
@@ -118,7 +120,7 @@ const BillingPage = () => {
       const data = await res.json();
       if (data.url) window.location.href = data.url;
     } catch {
-      toast.error("Error al abrir el portal de facturación");
+      toast.error(t("toasts.billingPortalError"));
     } finally {
       setPortalLoading(false);
     }
@@ -166,7 +168,7 @@ const BillingPage = () => {
           <h1 className="font-display font-bold text-2xl text-foreground">
             Plan<span className="text-primary">.</span>
           </h1>
-          <p className="text-xs text-muted-foreground">Suscripción y uso</p>
+          <p className="text-xs text-muted-foreground">{t("billing.subtitle")}</p>
         </div>
       </motion.div>
 
@@ -178,7 +180,7 @@ const BillingPage = () => {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-              Plan actual
+              {t("billing.currentPlan")}
             </p>
             <div className="flex items-center gap-2 mt-0.5">
               <Zap size={16} className={PLAN_COLOR[planState.plan]} />
@@ -187,7 +189,7 @@ const BillingPage = () => {
               </span>
               {planState.plan !== "free" && planState.currentPeriodEnd && (
                 <span className="text-[10px] text-muted-foreground">
-                  · Vence {new Date(planState.currentPeriodEnd).toLocaleDateString("es-ES")}
+                  · {t("billing.expires", { date: new Date(planState.currentPeriodEnd).toLocaleDateString("es-ES") })}
                 </span>
               )}
             </div>
@@ -204,7 +206,7 @@ const BillingPage = () => {
         <div className="space-y-1.5 mb-2">
           <div className="flex items-center justify-between text-xs font-display">
             <span className="text-muted-foreground flex items-center gap-1">
-              <Users size={11} /> Jugadores
+              <Users size={11} /> {t("billing.usagePlayers")}
             </span>
             <span className="text-foreground">
               {planState.playerCount} / {planState.limits.players >= 9999 ? "∞" : planState.limits.players}
@@ -222,7 +224,7 @@ const BillingPage = () => {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs font-display">
             <span className="text-muted-foreground flex items-center gap-1">
-              <BarChart3 size={11} /> Análisis IA este mes
+              <BarChart3 size={11} /> {t("billing.usageAnalyses")}
             </span>
             <span className="text-foreground">
               {planState.analysesUsed} / {planState.limits.analyses >= 9999 ? "∞" : planState.limits.analyses}
@@ -250,7 +252,7 @@ const BillingPage = () => {
               ? <Loader2 size={14} className="animate-spin" />
               : <CreditCard size={14} />
             }
-            Gestionar suscripción
+            {t("billing.manageSubscription")}
           </Button>
         </motion.div>
       )}
@@ -260,10 +262,10 @@ const BillingPage = () => {
         <motion.div variants={item} className="glass rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/5">
           <div className="flex items-center gap-2 mb-1">
             <Shield size={14} className="text-yellow-500" />
-            <span className="font-display font-bold text-sm text-yellow-500">Stripe no configurado</span>
+            <span className="font-display font-bold text-sm text-yellow-500">{t("billing.stripeNotConfigured")}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Los pagos no están activos. Configura las claves de Stripe en las variables de entorno para habilitar suscripciones.
+            {t("billing.stripeNotConfiguredDesc")}
           </p>
         </motion.div>
       )}
@@ -271,7 +273,7 @@ const BillingPage = () => {
       {/* Comparativa de planes */}
       <motion.div variants={item} className="space-y-3">
         <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-          Comparativa de planes
+          {t("billing.comparePlans")}
         </h2>
 
         {(["free", "pro", "club"] as Plan[]).map((plan) => {
@@ -298,13 +300,13 @@ const BillingPage = () => {
                   </span>
                   {isCurrentPlan && (
                     <span className="text-[9px] font-display font-bold uppercase tracking-widest text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
-                      Activo
+                      {t("common.active")}
                     </span>
                   )}
                 </div>
                 <p className="font-display font-bold text-lg text-foreground">
-                  {price === 0 ? "Gratis" : `€${price}`}
-                  {price > 0 && <span className="text-[10px] font-normal text-muted-foreground">/mes</span>}
+                  {price === 0 ? t("common.free") : `€${price}`}
+                  {price > 0 && <span className="text-[10px] font-normal text-muted-foreground">{t("common.perMonth")}</span>}
                 </p>
               </div>
 
@@ -339,7 +341,7 @@ const BillingPage = () => {
                     ? <Loader2 size={12} className="animate-spin" />
                     : <Zap size={12} />
                   }
-                  Actualizar a {PLAN_LABELS[plan]}
+                  {t("billing.upgradeTo", { plan: PLAN_LABELS[plan] })}
                 </Button>
               )}
             </div>
@@ -350,10 +352,10 @@ const BillingPage = () => {
       {/* Footer info */}
       <motion.div variants={item} className="glass rounded-xl p-4 text-center space-y-1">
         <p className="text-[10px] font-display text-muted-foreground">
-          Pagos procesados por <span className="text-foreground">Stripe</span> · SSL cifrado
+          {t("billing.footer.stripe")}
         </p>
         <p className="text-[10px] font-display text-muted-foreground">
-          Cancela en cualquier momento · Sin permanencia
+          {t("billing.footer.cancelAnytime")}
         </p>
       </motion.div>
     </motion.div>

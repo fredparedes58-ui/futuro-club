@@ -18,6 +18,7 @@ import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -61,13 +62,13 @@ type DrillSessionState = "idle" | "uploading" | "analyzing" | "done" | "error";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORY_CONFIG: Record<DrillCategory, { label: string; icon: string; color: string; desc: string }> = {
-  tecnica:    { label: "Técnica",    icon: "⚽", color: "from-primary/20 to-primary/5 border-primary/20",         desc: "Control, pase, regate" },
-  tactica:    { label: "Táctica",    icon: "🧠", color: "from-violet-500/20 to-violet-500/5 border-violet-500/20", desc: "Posicionamiento, decisiones" },
-  fisico:     { label: "Físico",     icon: "⚡", color: "from-amber-500/20 to-amber-500/5 border-amber-500/20",   desc: "Velocidad, resistencia" },
-  disparo:    { label: "Disparo",    icon: "🎯", color: "from-red-500/20 to-red-500/5 border-red-500/20",         desc: "Potencia y precisión" },
-  pressing:   { label: "Pressing",   icon: "🔥", color: "from-orange-500/20 to-orange-500/5 border-orange-500/20", desc: "Presión y recuperación" },
-  transicion: { label: "Transición", icon: "🔄", color: "from-green-500/20 to-green-500/5 border-green-500/20",  desc: "Ataque-defensa rápida" },
+const CATEGORY_CONFIG: Record<DrillCategory, { labelKey: string; descKey: string; icon: string; color: string }> = {
+  tecnica:    { labelKey: "drill.categories.tecnica", descKey: "drill.categories.tecnicaDesc", icon: "⚽", color: "from-primary/20 to-primary/5 border-primary/20" },
+  tactica:    { labelKey: "drill.categories.tactica", descKey: "drill.categories.tacticaDesc", icon: "🧠", color: "from-violet-500/20 to-violet-500/5 border-violet-500/20" },
+  fisico:     { labelKey: "drill.categories.fisico",  descKey: "drill.categories.fisicoDesc",  icon: "⚡", color: "from-amber-500/20 to-amber-500/5 border-amber-500/20" },
+  disparo:    { labelKey: "drill.categories.disparo", descKey: "drill.categories.disparoDesc", icon: "🎯", color: "from-red-500/20 to-red-500/5 border-red-500/20" },
+  pressing:   { labelKey: "drill.categories.pressing", descKey: "drill.categories.pressingDesc", icon: "🔥", color: "from-orange-500/20 to-orange-500/5 border-orange-500/20" },
+  transicion: { labelKey: "drill.categories.transicion", descKey: "drill.categories.transicionDesc", icon: "🔄", color: "from-green-500/20 to-green-500/5 border-green-500/20" },
 };
 
 const DIFFICULTY_COLOR: Record<string, string> = {
@@ -91,6 +92,7 @@ const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transiti
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const SoloDrill = () => {
+  const { t } = useTranslation();
   const navigate  = useNavigate();
   const { user }  = useAuth();
   const { data: players = [] } = useAllPlayers();
@@ -128,7 +130,7 @@ const SoloDrill = () => {
   const handleVideoDone = async (videoId: string) => {
     setSessionVideoId(videoId);
     if (!selectedPlayerId) {
-      toast.info("Selecciona un jugador primero");
+      toast.info(t("drill.selectPlayerFirst"));
       return;
     }
     await runAnalysis(videoId, selectedPlayerId);
@@ -137,8 +139,8 @@ const SoloDrill = () => {
   // ── Run pipeline ──────────────────────────────────────────────────────────
   const runAnalysis = async (videoId: string, playerId: string) => {
     setSessionState("analyzing");
-    const toastId = toast.loading("Analizando sesión de drill…", {
-      description: "VITAS Intelligence procesando con IA",
+    const toastId = toast.loading(t("toasts.drillAnalyzing"), {
+      description: t("toasts.drillAnalyzingDesc"),
     });
 
     try {
@@ -172,7 +174,7 @@ const SoloDrill = () => {
 
       if (data.phase2Pending) {
         toast.dismiss(toastId);
-        toast.warning("Configura Bunny Stream en Vercel para análisis de video completo");
+        toast.warning(t("toasts.bunnyStreamWarning"));
         setSessionState("idle");
         return;
       }
@@ -189,14 +191,14 @@ const SoloDrill = () => {
       localStorage.setItem("vitas_drills_completed_count", String(prev + 1));
 
       toast.dismiss(toastId);
-      toast.success("¡Drill analizado!", {
-        description: `Confianza: ${Math.round((data.report.confianza ?? 0) * 100)}%`,
+      toast.success(t("toasts.drillAnalyzed"), {
+        description: `${t("common.confidence")}: ${Math.round((data.report.confianza ?? 0) * 100)}%`,
       });
     } catch (err) {
       setSessionState("error");
       toast.dismiss(toastId);
-      toast.error("Error en el análisis", {
-        description: err instanceof Error ? err.message : "Error desconocido",
+      toast.error(t("drill.analysisError"), {
+        description: err instanceof Error ? err.message : t("errors.unknownError"),
       });
     }
   };
@@ -213,7 +215,7 @@ const SoloDrill = () => {
 
       {/* Header */}
       <motion.div variants={item}>
-        <PageHeader title="Solo Drill" subtitle="Sesiones individuales de entrenamiento" />
+        <PageHeader title={t("drill.title")} subtitle={t("drill.subtitle")} />
       </motion.div>
 
       {/* Record CTA */}
@@ -229,9 +231,9 @@ const SoloDrill = () => {
             <Camera size={24} className="text-primary" />
           </div>
           <div className="flex-1">
-            <h2 className="font-display font-bold text-lg text-foreground">Grabar Nuevo Drill</h2>
+            <h2 className="font-display font-bold text-lg text-foreground">{t("drill.recordNew")}</h2>
             <p className="text-xs text-muted-foreground">
-              Sube un video · selecciona jugador · VITAS genera el informe con IA
+              {t("drill.recordDesc")}
             </p>
           </div>
           <Play size={20} className="text-primary group-hover:scale-110 transition-transform" />
@@ -241,7 +243,7 @@ const SoloDrill = () => {
       {/* Categorías de drill */}
       <motion.div variants={item}>
         <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
-          Categorías de Entrenamiento
+          {t("drill.trainingCategories")}
         </h2>
         <div className="grid grid-cols-2 gap-3">
           {(Object.entries(CATEGORY_CONFIG) as [DrillCategory, typeof CATEGORY_CONFIG[DrillCategory]][]).map(([id, cat]) => (
@@ -256,8 +258,8 @@ const SoloDrill = () => {
                     ? <ChevronUp size={14} className="text-muted-foreground" />
                     : <ChevronDown size={14} className="text-muted-foreground" />}
                 </div>
-                <h3 className="font-display font-semibold text-sm text-foreground mt-2">{cat.label}</h3>
-                <p className="text-[10px] text-muted-foreground">{cat.desc}</p>
+                <h3 className="font-display font-semibold text-sm text-foreground mt-2">{t(cat.labelKey)}</h3>
+                <p className="text-[10px] text-muted-foreground">{t(cat.descKey)}</p>
               </div>
 
               {/* Expanded drills list */}
@@ -316,7 +318,7 @@ const SoloDrill = () => {
                         onClick={() => { setSelectedCategory(id); openPanel(); }}
                         className="w-full py-2 text-xs font-display font-semibold text-primary flex items-center justify-center gap-1 hover:opacity-80 transition-opacity"
                       >
-                        <Rocket size={11} /> Grabar drill de {cat.label}
+                        <Rocket size={11} /> {t("drill.recordDrillOf", { category: t(cat.labelKey) })}
                       </button>
                     </div>
                   </motion.div>
@@ -330,13 +332,13 @@ const SoloDrill = () => {
       {/* Acciones rápidas */}
       <motion.div variants={item}>
         <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3">
-          Acciones Rápidas
+          {t("drill.quickActions")}
         </h2>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { label: "Ver Rankings",        icon: TrendingUp, onClick: () => navigate("/rankings"),  color: "text-primary" },
-            { label: "Comparar Jugadores",  icon: Target,     onClick: () => navigate("/compare"),   color: "text-violet-400" },
-            { label: "Intelligence Report", icon: Brain,      onClick: () => players[0] ? navigate(`/players/${players[0].id}/intelligence`) : navigate("/rankings"), color: "text-amber-400" },
+            { label: t("drill.actions.viewRankings"),        icon: TrendingUp, onClick: () => navigate("/rankings"),  color: "text-primary" },
+            { label: t("drill.actions.comparePlayers"),  icon: Target,     onClick: () => navigate("/compare"),   color: "text-violet-400" },
+            { label: t("drill.actions.intelligenceReport"), icon: Brain,      onClick: () => players[0] ? navigate(`/players/${players[0].id}/intelligence`) : navigate("/rankings"), color: "text-amber-400" },
             { label: "VITAS.LAB",           icon: Upload,     onClick: () => navigate("/lab"),        color: "text-green-400" },
           ].map((action) => {
             const Icon = action.icon;
@@ -360,27 +362,27 @@ const SoloDrill = () => {
           <div className="flex items-center gap-2">
             <Zap size={14} className="text-primary" />
             <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-              Mis Jugadores
+              {t("drill.myPlayers")}
             </h2>
           </div>
           <button
             onClick={() => navigate("/rankings")}
             className="text-[10px] text-primary font-display font-semibold flex items-center gap-1"
           >
-            Ver todos <ChevronRight size={10} />
+            {t("common.viewAll")} <ChevronRight size={10} />
           </button>
         </div>
 
         {players.length === 0 ? (
           <div className="glass rounded-xl p-6 text-center space-y-2">
             <Users size={24} className="text-muted-foreground mx-auto" />
-            <p className="text-sm font-display font-semibold text-foreground">Sin jugadores</p>
-            <p className="text-xs text-muted-foreground">Agrega jugadores para iniciar sesiones de drill</p>
+            <p className="text-sm font-display font-semibold text-foreground">{t("drill.noPlayers")}</p>
+            <p className="text-xs text-muted-foreground">{t("drill.noPlayersDesc")}</p>
             <button
               onClick={() => navigate("/players/new")}
               className="text-xs text-primary font-display font-semibold hover:underline"
             >
-              Agregar primer jugador →
+              {t("drill.addFirstPlayer")}
             </button>
           </div>
         ) : (
@@ -443,10 +445,10 @@ const SoloDrill = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <BookOpen size={16} className="text-primary" />
-                  <span className="font-display font-bold text-foreground">Nueva Sesión de Drill</span>
+                  <span className="font-display font-bold text-foreground">{t("drill.newSession")}</span>
                   {sessionState === "done" && (
                     <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
-                      ✓ Completado
+                      ✓ {t("drill.completed")}
                     </span>
                   )}
                 </div>
@@ -464,7 +466,7 @@ const SoloDrill = () => {
                 {/* ── Step 1: Jugador ───────────────────────────────────────── */}
                 <div>
                   <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                    1. Jugador
+                    {t("drill.stepPlayer")}
                   </p>
                   <div className="relative">
                     <button
@@ -473,7 +475,7 @@ const SoloDrill = () => {
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary transition-colors text-left disabled:opacity-50"
                     >
                       <span className={`text-sm font-display font-semibold ${selectedPlayer ? "text-foreground" : "text-muted-foreground"}`}>
-                        {selectedPlayer ? selectedPlayer.name : "Seleccionar jugador…"}
+                        {selectedPlayer ? selectedPlayer.name : t("common.select")}
                       </span>
                       <ChevronDown size={14} className="text-muted-foreground" />
                     </button>
@@ -497,7 +499,7 @@ const SoloDrill = () => {
                 {/* ── Step 2: Categoría ─────────────────────────────────────── */}
                 <div>
                   <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                    2. Tipo de Drill
+                    {t("drill.stepDrillType")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {(Object.entries(CATEGORY_CONFIG) as [DrillCategory, typeof CATEGORY_CONFIG[DrillCategory]][]).map(([id, cat]) => (
@@ -512,7 +514,7 @@ const SoloDrill = () => {
                         }`}
                       >
                         <span>{cat.icon}</span>
-                        {cat.label}
+                        {t(cat.labelKey)}
                       </button>
                     ))}
                   </div>
@@ -522,11 +524,11 @@ const SoloDrill = () => {
                 {sessionState === "idle" && (
                   <div>
                     <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                      3. Video del Drill
+                      {t("drill.stepVideo")}
                     </p>
                     {!selectedPlayerId ? (
                       <div className="glass rounded-xl p-4 text-center border border-dashed border-border">
-                        <p className="text-xs text-muted-foreground">Selecciona un jugador primero</p>
+                        <p className="text-xs text-muted-foreground">{t("drill.selectPlayerFirst")}</p>
                       </div>
                     ) : (
                       <VideoUpload
@@ -540,9 +542,9 @@ const SoloDrill = () => {
                 {sessionState === "analyzing" && (
                   <div className="glass rounded-xl p-6 flex flex-col items-center gap-3 border border-primary/20">
                     <Loader2 size={28} className="text-primary animate-spin" />
-                    <p className="font-display font-bold text-foreground text-sm">Analizando con IA…</p>
+                    <p className="font-display font-bold text-foreground text-sm">{t("drill.analyzingIA")}</p>
                     <p className="text-xs text-muted-foreground text-center">
-                      Claude Sonnet está procesando los keyframes del drill y generando el informe de desarrollo.
+                      {t("drill.analyzingDesc")}
                     </p>
                   </div>
                 )}
@@ -552,10 +554,10 @@ const SoloDrill = () => {
                   <div className="glass rounded-xl p-4 border border-destructive/20">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle size={14} className="text-destructive" />
-                      <p className="text-sm font-display font-semibold text-foreground">Error en el análisis</p>
+                      <p className="text-sm font-display font-semibold text-foreground">{t("drill.analysisError")}</p>
                     </div>
                     <button onClick={resetSession} className="text-xs text-primary font-display font-semibold hover:underline">
-                      Intentar de nuevo
+                      {t("drill.tryAgain")}
                     </button>
                   </div>
                 )}
@@ -566,16 +568,16 @@ const SoloDrill = () => {
                     <div className="flex items-center gap-2">
                       <CheckCircle2 size={16} className="text-green-500" />
                       <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-                        Resultados del Drill
+                        {t("drill.results")}
                       </p>
                       <span className="ml-auto text-[10px] font-display px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                        {Math.round(sessionReport.confianza * 100)}% confianza
+                        {Math.round(sessionReport.confianza * 100)}% {t("common.confidence")}
                       </span>
                     </div>
 
                     {/* Resumen */}
                     <div className="glass rounded-xl p-4">
-                      <p className="text-xs font-display font-semibold text-muted-foreground mb-1">Resumen</p>
+                      <p className="text-xs font-display font-semibold text-muted-foreground mb-1">{t("drill.summary")}</p>
                       <p className="text-sm text-foreground leading-relaxed">{sessionReport.estadoActual.resumenEjecutivo}</p>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -612,7 +614,7 @@ const SoloDrill = () => {
                     {/* ADN */}
                     <div className="glass rounded-xl p-4">
                       <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                        ADN Futbolístico
+                        {t("drill.footballDNA")}
                       </p>
                       <span className="text-[10px] font-display px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
                         {sessionReport.adnFutbolistico.arquetipoTactico}
@@ -626,7 +628,7 @@ const SoloDrill = () => {
                         <div className="flex items-center gap-2 mb-2">
                           <Star size={12} className="text-yellow-500" />
                           <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-                            Referencia
+                            {t("drill.reference")}
                           </p>
                         </div>
                         <div className="flex items-center justify-between">
@@ -644,7 +646,7 @@ const SoloDrill = () => {
                     {/* Plan */}
                     <div className="glass rounded-xl p-4">
                       <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                        Próximos 6 meses
+                        {t("drill.next6months")}
                       </p>
                       <p className="text-xs text-foreground">{sessionReport.planDesarrollo.objetivo6meses}</p>
                       {sessionReport.planDesarrollo.pilaresTrabajo?.slice(0, 2).map((p, i) => (
@@ -667,14 +669,14 @@ const SoloDrill = () => {
                         onClick={resetSession}
                         className="flex-1 py-3 rounded-xl border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors"
                       >
-                        Nuevo Drill
+                        {t("drill.newDrill")}
                       </button>
                       {selectedPlayerId && (
                         <button
                           onClick={() => { setShowPanel(false); navigate(`/players/${selectedPlayerId}/intelligence`); }}
                           className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-colors"
                         >
-                          Ver Intelligence
+                          {t("drill.viewIntelligence")}
                         </button>
                       )}
                     </div>

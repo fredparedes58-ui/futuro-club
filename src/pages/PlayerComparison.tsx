@@ -17,6 +17,7 @@ import TopNav from "@/components/TopNav";
 import VitasCard from "@/components/VitasCard";
 import { PlayerListSkeleton } from "@/components/shared/Skeletons";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ResponsiveContainer,
@@ -42,16 +43,17 @@ const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transiti
 
 // ─── Vacío ───────────────────────────────────────────────────────────────────
 function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-8 text-center">
       <Users size={40} className="text-muted-foreground" />
-      <p className="font-display font-bold text-lg text-foreground">Necesitas al menos 2 jugadores</p>
-      <p className="text-sm text-muted-foreground">Agrega jugadores en Rankings para comparar.</p>
+      <p className="font-display font-bold text-lg text-foreground">{t("compare.needMinPlayers")}</p>
+      <p className="text-sm text-muted-foreground">{t("compare.needMinDesc")}</p>
       <button
         onClick={() => navigate("/rankings")}
         className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold"
       >
-        Ir al Ranking
+        {t("compare.goToRanking")}
       </button>
     </div>
   );
@@ -59,11 +61,12 @@ function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
 
 // ─── Mini Clone Card ──────────────────────────────────────────────────────────
 function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | undefined; playerName: string }) {
+  const { t } = useTranslation();
   if (!similarity?.bestMatch) {
     return (
       <div className="glass rounded-xl p-3 text-center">
         <Star size={14} className="mx-auto mb-1 text-muted-foreground" />
-        <p className="text-[10px] text-muted-foreground">Calculando clon...</p>
+        <p className="text-[10px] text-muted-foreground">{t("compare.calculatingClone")}</p>
       </div>
     );
   }
@@ -75,7 +78,7 @@ function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | 
       <div className="flex items-center gap-1.5 mb-2">
         <Star size={10} className="text-gold" />
         <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-          Clon de {playerName.split(" ")[0]}
+          {t("compare.cloneOf", { name: playerName.split(" ")[0] })}
         </span>
       </div>
       <div className="flex items-center justify-between">
@@ -107,6 +110,7 @@ function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | 
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerComparison = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [playerAIndex, setPlayerAIndex] = useState(0);
   const [playerBIndex, setPlayerBIndex] = useState(1);
@@ -189,7 +193,7 @@ const PlayerComparison = () => {
 
   // PHV labels
   const phvLabel = (cat: string) =>
-    cat === "early" ? "PRECOZ" : cat === "late" ? "TARDÍO" : "NORMAL";
+    cat === "early" ? t("compare.phvEarly") : cat === "late" ? t("compare.phvLate") : t("compare.phvNormal");
 
   const phvTagA = phvLabel(playerA.phvCategory);
   const phvTagB = phvLabel(playerB.phvCategory);
@@ -198,10 +202,10 @@ const PlayerComparison = () => {
   const metrics = [
     {
       id: "vaep",
-      name: "VAEP per 90",
+      name: t("compare.vaepPer90"),
       description: eventsA.length > 0 || eventsB.length > 0
-        ? "Valor real de acciones por 90 min (eventos logueados)"
-        : "Registra eventos en el perfil para ver VAEP real",
+        ? t("compare.vaepRealDesc")
+        : t("compare.vaepRegisterDesc"),
       icon: <TrendingUp size={18} className="text-primary" />,
       getValueA: () => vaepA.vaep90 !== null ? vaepA.vaep90
         : +(((playerA.stats.technique + playerA.stats.vision) / 200) * 0.9 + 0.1).toFixed(3),
@@ -211,8 +215,8 @@ const PlayerComparison = () => {
     },
     {
       id: "sprints",
-      name: "Sprint Count",
-      description: "Acciones de alta intensidad >25km/h",
+      name: t("compare.sprintCount"),
+      description: t("compare.sprintDesc"),
       icon: <Zap size={18} className="text-gold" />,
       getValueA: () => +(playerA.stats.speed * 0.26 + 1).toFixed(1),
       getValueB: () => +(playerB.stats.speed * 0.26 + 1).toFixed(1),
@@ -220,8 +224,8 @@ const PlayerComparison = () => {
     },
     {
       id: "ubi",
-      name: "UBI Index",
-      description: "Índice de sesgo biológico corregido (RAE + PHV)",
+      name: t("compare.ubiIndex"),
+      description: t("compare.ubiDesc"),
       icon: <Target size={18} className="text-electric" />,
       getValueA: () => advA
         ? Math.round(advA.ubi.ubiScore * 100)
@@ -234,11 +238,11 @@ const PlayerComparison = () => {
 
   const getMetricLabel = (val: number, isWinner: boolean, metricId: string) => {
     if (metricId === "ubi") {
-      if (val > 80) return "TALENTO REAL";
-      if (val > 65) return "SESGO MEDIO";
-      return "SESGO ALTO";
+      if (val > 80) return t("compare.realTalent");
+      if (val > 65) return t("compare.medBias");
+      return t("compare.highBias");
     }
-    return isWinner ? "SUPERIOR" : "POR DEBAJO";
+    return isWinner ? t("compare.superior") : t("compare.below");
   };
 
   // IA winner
@@ -260,7 +264,7 @@ const PlayerComparison = () => {
               onClick={() => navigate(-1)}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
             >
-              <ArrowLeft size={14} /> Volver
+              <ArrowLeft size={14} /> {t("common.back")}
             </button>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
               Análisis Predictivo

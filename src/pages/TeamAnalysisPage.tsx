@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
 import { useTeamIntelligence, useAllTeamAnalyses } from "@/hooks/useTeamIntelligence";
@@ -84,17 +85,18 @@ function GaugeRing({ value, max, label }: { value: number; max: number; label: s
 // ─── Secciones del informe ───────────────────────────────────────
 
 function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
+  const { t } = useTranslation();
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Users} title="Resumen del Equipo" subtitle={`${report.equipoAnalizado.jugadoresDetectados} jugadores analizados`} />
+      <SectionHeader icon={Users} title={t("teamAnalysis.teamSummary")} subtitle={t("teamAnalysis.playersAnalyzed", { count: report.equipoAnalizado.jugadoresDetectados })} />
 
       <div className="flex items-center gap-2 mb-3">
         <Badge className="text-xs font-display">{report.formacion.sistema}</Badge>
         <Badge variant="secondary" className="text-[9px]">
-          Posesión {report.posesion.porcentaje}%
+          {t("teamAnalysis.possession")} {report.posesion.porcentaje}%
         </Badge>
         {report.formacion.rigidez >= 7 && (
-          <Badge variant="outline" className="text-[9px]">Rígida</Badge>
+          <Badge variant="outline" className="text-[9px]">{t("teamAnalysis.rigid")}</Badge>
         )}
       </div>
 
@@ -102,7 +104,7 @@ function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
 
       {report.formacion.variantes.length > 0 && (
         <div className="text-[11px] text-muted-foreground">
-          <span className="font-medium text-foreground">Variantes: </span>
+          <span className="font-medium text-foreground">{t("teamAnalysis.variants")}: </span>
           {report.formacion.variantes.join("; ")}
         </div>
       )}
@@ -111,17 +113,18 @@ function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
 }
 
 function FasesJuego({ data }: { data: TeamIntelligenceOutput["fasesJuego"] }) {
+  const { t } = useTranslation();
   if (!data) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Target} title="Fases de Juego" subtitle="Pressing, transiciones, posesión" />
+      <SectionHeader icon={Target} title={t("teamAnalysis.gamePhases")} subtitle={t("teamAnalysis.gamePhasesDesc")} />
 
       <div className="space-y-3">
         {/* Pressing */}
         <div className="rounded-xl border border-border p-3">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-display uppercase tracking-wider text-red-400">Pressing</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-red-400">{t("teamAnalysis.pressing")}</span>
             <div className="flex items-center gap-1.5">
               <Badge variant="outline" className="text-[8px]">{data.pressing.alturaLinea}</Badge>
               <span className="text-[9px] text-muted-foreground">{data.pressing.intensidad}/10</span>
@@ -133,12 +136,12 @@ function FasesJuego({ data }: { data: TeamIntelligenceOutput["fasesJuego"] }) {
         {/* Transiciones */}
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-green-500/30 bg-green-500/5 p-3">
-            <span className="text-[9px] font-display uppercase tracking-wider text-green-400">Trans. Ofensiva</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-green-400">{t("teamAnalysis.offensiveTransition")}</span>
             <Badge variant="secondary" className="text-[8px] ml-1">{data.transiciones.ofensiva.velocidad}</Badge>
             <p className="text-[10px] text-muted-foreground mt-1">{data.transiciones.ofensiva.descripcion}</p>
           </div>
           <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
-            <span className="text-[9px] font-display uppercase tracking-wider text-blue-400">Trans. Defensiva</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-blue-400">{t("teamAnalysis.defensiveTransition")}</span>
             <Badge variant="secondary" className="text-[8px] ml-1">{data.transiciones.defensiva.velocidad}</Badge>
             <p className="text-[10px] text-muted-foreground mt-1">{data.transiciones.defensiva.descripcion}</p>
           </div>
@@ -149,21 +152,22 @@ function FasesJuego({ data }: { data: TeamIntelligenceOutput["fasesJuego"] }) {
 }
 
 function MetricasColectivas({ data }: { data: TeamIntelligenceOutput["metricasColectivas"] }) {
+  const { t } = useTranslation();
   if (!data) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Shield} title="Métricas Colectivas" subtitle="Organización táctica del equipo" />
+      <SectionHeader icon={Shield} title={t("teamAnalysis.collectiveMetrics")} subtitle={t("teamAnalysis.collectiveMetricsDesc")} />
 
       <div className="grid grid-cols-4 gap-2 justify-items-center mb-3">
-        <GaugeRing value={data.compacidad} max={10} label="Compacidad" />
-        <GaugeRing value={data.amplitud} max={10} label="Amplitud" />
-        <GaugeRing value={data.sincronizacion} max={10} label="Sincronización" />
+        <GaugeRing value={data.compacidad} max={10} label={t("teamAnalysis.compactness")} />
+        <GaugeRing value={data.amplitud} max={10} label={t("teamAnalysis.width")} />
+        <GaugeRing value={data.sincronizacion} max={10} label={t("teamAnalysis.synchronization")} />
         <div className="flex flex-col items-center gap-1">
           <div className="w-12 h-12 rounded-full border-[3.5px] border-primary/30 flex items-center justify-center">
             <span className="text-[10px] font-display font-bold text-foreground capitalize">{data.alturaLineaDefensiva}</span>
           </div>
-          <span className="text-[8px] text-center text-muted-foreground">Línea def.</span>
+          <span className="text-[8px] text-center text-muted-foreground">{t("teamAnalysis.defensiveLine")}</span>
         </div>
       </div>
 
@@ -180,9 +184,10 @@ function JugadoresTable({ jugadores, onSelect }: {
   jugadores: PlayerRow[];
   onSelect: (j: PlayerRow) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Activity} title="Jugadores" subtitle="Toca un jugador para ver detalle y mapa de calor" />
+      <SectionHeader icon={Activity} title={t("teamAnalysis.playersTitle")} subtitle={t("teamAnalysis.playersDesc")} />
 
       <div className="space-y-1.5">
         {jugadores.map((j, i) => {
@@ -216,15 +221,15 @@ function JugadoresTable({ jugadores, onSelect }: {
               <div className="flex items-center gap-2 shrink-0">
                 <div className="text-center">
                   <span className="text-[10px] font-display font-bold text-foreground">{precPases}%</span>
-                  <p className="text-[7px] text-muted-foreground">Pases</p>
+                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.passes")}</p>
                 </div>
                 <div className="text-center">
                   <span className="text-[10px] font-display font-bold text-foreground">{j.duelos.ganados}</span>
-                  <p className="text-[7px] text-muted-foreground">Duelos</p>
+                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.duels")}</p>
                 </div>
                 <div className="text-center">
                   <span className="text-[10px] font-display font-bold text-foreground">{j.recuperaciones}</span>
-                  <p className="text-[7px] text-muted-foreground">Recup.</p>
+                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.recoveries")}</p>
                 </div>
               </div>
             </button>
@@ -238,17 +243,18 @@ function JugadoresTable({ jugadores, onSelect }: {
 // ─── Evaluación general ──────────────────────────────────────────
 
 function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionGeneral"] }) {
+  const { t } = useTranslation();
   if (!data) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={TrendingUp} title="Evaluación General" subtitle="Conclusiones y recomendaciones" />
+      <SectionHeader icon={TrendingUp} title={t("teamAnalysis.generalEvaluation")} subtitle={t("teamAnalysis.generalEvalDesc")} />
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <CheckCircle size={11} className="text-green-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">Fortalezas</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-green-400">{t("teamAnalysis.teamStrengths")}</span>
           </div>
           {data.fortalezasEquipo.map((f, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {f}</p>
@@ -257,7 +263,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
         <div>
           <div className="flex items-center gap-1.5 mb-2">
             <Target size={11} className="text-amber-400" />
-            <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">A trabajar</span>
+            <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">{t("teamAnalysis.toWork")}</span>
           </div>
           {data.areasTrabajar.map((a, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {a}</p>
@@ -267,7 +273,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
 
       <div className="border-t border-border pt-3">
         <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-2">
-          Recomendaciones para el entrenador
+          {t("teamAnalysis.coachRecommendations")}
         </p>
         {data.recomendaciones.map((r, i) => (
           <p key={i} className="text-[11px] text-foreground leading-relaxed mb-1">→ {r}</p>
@@ -280,6 +286,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
 // ─── Página principal ────────────────────────────────────────────
 
 export default function TeamAnalysisPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedVideoId, setSelectedVideoId] = useState("");
   const [activeTab, setActiveTab] = useState<"nuevo" | "informe">("nuevo");
@@ -312,11 +319,11 @@ export default function TeamAnalysisPage() {
 
   const handleRunAnalysis = async () => {
     if (!selectedVideoId) {
-      toast.error("Selecciona un video primero");
+      toast.error(t("reports.selectVideoFirst", "Selecciona un video primero"));
       return;
     }
     if (!teamColor.trim()) {
-      toast.error("Indica el color del uniforme del equipo");
+      toast.error(t("reports.selectVideoFirst", "Indica el color del uniforme del equipo"));
       return;
     }
     const video = allVideos.find(v => v.id === selectedVideoId);

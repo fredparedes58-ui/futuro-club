@@ -23,11 +23,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useTeamMembers, useTeamInvitations, useInviteMember, useRemoveMember, useCancelInvitation } from "@/hooks/useTeam";
 import { ROLE_LABELS, type UserRole } from "@/services/real/userProfileService";
 import { PlanGuard } from "@/components/PlanGuard";
+import { useTranslation } from "react-i18next";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export default function TeamPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, isDirector } = useUserProfile();
@@ -48,29 +50,29 @@ export default function TeamPage() {
     if (!inviteEmail.trim()) return;
     try {
       await inviteMutation.mutateAsync({ email: inviteEmail.trim(), role: inviteRole });
-      toast.success(`Invitación enviada a ${inviteEmail.trim()}`);
+      toast.success(t("toasts.invitationSent", { email: inviteEmail.trim() }));
       setInviteEmail("");
       setSheetOpen(false);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Error al enviar invitación");
+      toast.error(e instanceof Error ? e.message : t("toasts.invitationSendError"));
     }
   };
 
   const handleRemove = async (memberId: string, name?: string) => {
     try {
       await removeMutation.mutateAsync(memberId);
-      toast.success(`${name ?? "Miembro"} eliminado del equipo`);
+      toast.success(t("toasts.memberRemoved", { name: name ?? "Miembro" }));
     } catch {
-      toast.error("Error al eliminar miembro");
+      toast.error(t("toasts.memberRemoveError"));
     }
   };
 
   const handleCancel = async (invId: string) => {
     try {
       await cancelMutation.mutateAsync(invId);
-      toast.success("Invitación cancelada");
+      toast.success(t("toasts.invitationCanceled"));
     } catch {
-      toast.error("Error al cancelar invitación");
+      toast.error(t("toasts.invitationCancelError"));
     }
   };
 
@@ -94,31 +96,31 @@ export default function TeamPage() {
           </button>
           <div className="flex-1">
             <h1 className="font-display font-bold text-2xl text-foreground">
-              Equipo<span className="text-primary">.</span>
+              {t("team.title").replace(".", "")}<span className="text-primary">.</span>
             </h1>
             <p className="text-xs text-muted-foreground">
-              {profile?.organizationName ?? "Mi organización"}
+              {profile?.organizationName ?? t("team.myOrg")}
             </p>
           </div>
           {isDirector && (
             <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" className="gap-1.5">
-                  <Plus size={13} /> Invitar
+                  <Plus size={13} /> {t("team.invite")}
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="rounded-t-2xl pb-safe">
                 <SheetHeader className="mb-4">
-                  <SheetTitle className="font-display">Invitar miembro</SheetTitle>
+                  <SheetTitle className="font-display">{t("team.inviteMember")}</SheetTitle>
                 </SheetHeader>
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                      Email
+                      {t("team.emailLabel")}
                     </label>
                     <Input
                       type="email"
-                      placeholder="scout@ejemplo.com"
+                      placeholder={t("team.emailPlaceholder")}
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleInvite()}
@@ -126,16 +128,16 @@ export default function TeamPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-display text-muted-foreground uppercase tracking-wider">
-                      Rol
+                      {t("team.roleLabel")}
                     </label>
                     <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as UserRole)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="scout">Scout</SelectItem>
-                        <SelectItem value="coach">Coach</SelectItem>
-                        <SelectItem value="viewer">Solo lectura</SelectItem>
+                        <SelectItem value="scout">{t("team.roles.scout")}</SelectItem>
+                        <SelectItem value="coach">{t("team.roles.coach")}</SelectItem>
+                        <SelectItem value="viewer">{t("team.roles.viewer")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -144,7 +146,7 @@ export default function TeamPage() {
                     onClick={handleInvite}
                     disabled={!inviteEmail.trim() || inviteMutation.isPending}
                   >
-                    {inviteMutation.isPending ? "Enviando…" : "Enviar invitación"}
+                    {inviteMutation.isPending ? t("team.sendingInvitation") : t("team.sendInvitation")}
                   </Button>
                 </div>
               </SheetContent>
@@ -155,15 +157,15 @@ export default function TeamPage() {
         {/* Miembros activos */}
         <motion.div variants={item}>
           <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Users size={13} /> Miembros activos
+            <Users size={13} /> {t("team.activeMembers")}
           </h2>
           {membersLoading ? (
             <div className="glass rounded-xl p-4 text-center text-sm text-muted-foreground">
-              Cargando…
+              {t("team.loadingMembers")}
             </div>
           ) : members.length === 0 ? (
             <div className="glass rounded-xl p-6 text-center text-sm text-muted-foreground">
-              Aún no hay miembros en el equipo
+              {t("team.noMembers")}
             </div>
           ) : (
             <div className="glass rounded-xl divide-y divide-border">
@@ -177,7 +179,7 @@ export default function TeamPage() {
                       {m.displayName ?? m.memberId.slice(0, 8) + "…"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {ROLE_LABELS[m.role]} · desde {new Date(m.joinedAt).toLocaleDateString("es-ES")}
+                      {ROLE_LABELS[m.role]} · {t("team.since")} {new Date(m.joinedAt).toLocaleDateString("es-ES")}
                     </p>
                   </div>
                   {isDirector && m.memberId !== orgOwnerId && (
@@ -198,11 +200,11 @@ export default function TeamPage() {
         {(pendingInvitations.length > 0 || invLoading) && (
           <motion.div variants={item}>
             <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-              <Mail size={13} /> Invitaciones pendientes
+              <Mail size={13} /> {t("team.pendingInvitations")}
             </h2>
             {invLoading ? (
               <div className="glass rounded-xl p-4 text-center text-sm text-muted-foreground">
-                Cargando…
+                {t("team.loadingInvitations")}
               </div>
             ) : (
               <div className="glass rounded-xl divide-y divide-border">
@@ -218,7 +220,7 @@ export default function TeamPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-display text-foreground truncate">{inv.email}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {ROLE_LABELS[inv.role]} · expira {new Date(inv.expiresAt).toLocaleDateString("es-ES")}
+                          {ROLE_LABELS[inv.role]} · {t("team.expires")} {new Date(inv.expiresAt).toLocaleDateString("es-ES")}
                         </p>
                       </div>
                       {isDirector && (
@@ -241,7 +243,7 @@ export default function TeamPage() {
         <motion.div variants={item} className="glass rounded-xl p-4 flex items-start gap-3">
           <CheckCircle2 size={16} className="text-primary shrink-0 mt-0.5" />
           <p className="text-xs text-muted-foreground">
-            Los invitados recibirán un email con un enlace para unirse. Al aceptar podrán acceder a VITAS con el rol asignado.
+            {t("team.inviteInfo")}
           </p>
         </motion.div>
       </motion.div>

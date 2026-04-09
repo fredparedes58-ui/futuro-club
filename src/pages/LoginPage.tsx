@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Loader2, AlertCircle, Zap, Activity, TrendingUp, Shield, Star } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import bootBg  from "@/assets/login-boot-neon.jpg";
 import player1 from "@/assets/player-1.png";
 
@@ -311,6 +312,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, configured } = useAuth();
+  const { t } = useTranslation();
   const from = (location.state as { from?: Location })?.from?.pathname ?? "/pulse";
 
   const [email, setEmail]       = useState("");
@@ -322,12 +324,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email || !password) { setError("Completa todos los campos"); return; }
+    if (!email || !password) { setError(t("auth.login.fillAllFields")); return; }
     setLoading(true);
     const { error: authError } = await signIn(email, password);
     setLoading(false);
-    if (authError) { setError(translateError(authError.message)); return; }
-    toast.success("Sesión iniciada");
+    if (authError) { setError(translateError(authError.message, t)); return; }
+    toast.success(t("toasts.sessionStarted"));
     navigate(from, { replace: true });
   };
 
@@ -447,10 +449,10 @@ export default function LoginPage() {
               WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text",
               lineHeight:1.22, marginBottom:7, animation:"shimmer 3.5s linear infinite",
             }}>
-              VITAS: HOLOGRAPHIC<br/>PORTAL LOGIN
+              {t("auth.login.title")}
             </h1>
             <p style={{ color:"rgba(255,255,255,0.36)", fontSize:9.5, letterSpacing:2.5, textTransform:"uppercase", whiteSpace:"nowrap" }}>
-              Accede a tu academia de scouting
+              {t("auth.login.subtitle")}
             </p>
           </div>
 
@@ -462,17 +464,17 @@ export default function LoginPage() {
             <div style={{ display:"flex", gap:8, padding:"9px 12px", borderRadius:10,
               background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.22)", marginBottom:16 }}>
               <AlertCircle size={12} color="#fbbf24" style={{ flexShrink:0, marginTop:1 }} />
-              <p style={{ fontSize:10, color:"rgba(255,255,255,0.42)", margin:0 }}>Modo offline — configura Supabase en .env</p>
+              <p style={{ fontSize:10, color:"rgba(255,255,255,0.42)", margin:0 }}>{t("auth.login.offlineMode")}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
             {/* Email */}
             <div style={{ marginBottom:14 }}>
-              <label style={{ fontSize:9, color:"rgba(255,255,255,0.48)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, display:"block", marginBottom:7 }}>Email</label>
+              <label style={{ fontSize:9, color:"rgba(255,255,255,0.48)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, display:"block", marginBottom:7 }}>{t("auth.login.emailLabel")}</label>
               <input
                 type="email" value={email} onChange={e=>setEmail(e.target.value)}
-                placeholder="usuario@vitas.ai" autoComplete="email"
+                placeholder={t("auth.login.emailPlaceholder")} autoComplete="email"
                 style={{ width:"100%", padding:"11px 14px", borderRadius:10,
                   background:"rgba(255,255,255,0.04)", border:"1.5px solid rgba(34,211,238,0.35)",
                   color:"white", fontSize:13, outline:"none", boxSizing:"border-box", transition:"all 0.2s" }}
@@ -483,11 +485,11 @@ export default function LoginPage() {
 
             {/* Password */}
             <div style={{ marginBottom:6 }}>
-              <label style={{ fontSize:9, color:"rgba(255,255,255,0.48)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, display:"block", marginBottom:7 }}>Contraseña</label>
+              <label style={{ fontSize:9, color:"rgba(255,255,255,0.48)", letterSpacing:2, textTransform:"uppercase", fontWeight:700, display:"block", marginBottom:7 }}>{t("auth.login.passwordLabel")}</label>
               <div style={{ position:"relative" }}>
                 <input
                   type={showPw?"text":"password"} value={password} onChange={e=>setPassword(e.target.value)}
-                  placeholder="••••••" autoComplete="current-password"
+                  placeholder={t("auth.login.passwordPlaceholder")} autoComplete="current-password"
                   style={{ width:"100%", padding:"11px 40px 11px 14px", borderRadius:10,
                     background:"rgba(255,255,255,0.04)", border:"1.5px solid rgba(34,211,238,0.35)",
                     color:"white", fontSize:13, outline:"none", boxSizing:"border-box", transition:"all 0.2s" }}
@@ -502,7 +504,7 @@ export default function LoginPage() {
               </div>
               <div style={{ textAlign:"right", marginTop:7 }}>
                 <Link to="/forgot-password" style={{ fontSize:11, color:"rgba(34,211,238,0.58)", textDecoration:"none" }}>
-                  ¿Olvidaste tu contraseña?
+                  {t("auth.login.forgotPassword")}
                 </Link>
               </div>
             </div>
@@ -534,19 +536,19 @@ export default function LoginPage() {
               }}
             >
               {loading
-                ? <><Loader2 size={14} style={{ animation:"spin 1s linear infinite" }}/>Entrando…</>
-                : "ENTRAR"}
+                ? <><Loader2 size={14} style={{ animation:"spin 1s linear infinite" }}/>{t("auth.login.submitting")}</>
+                : t("auth.login.submit")}
             </motion.button>
           </form>
 
           <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:"rgba(255,255,255,0.34)" }}>
-            ¿No tienes cuenta?{" "}
-            <Link to="/register" style={{ color:"#22d3ee", textDecoration:"none", fontWeight:800 }}>Crear academia</Link>
+            {t("auth.login.noAccount")}{" "}
+            <Link to="/register" style={{ color:"#22d3ee", textDecoration:"none", fontWeight:800 }}>{t("auth.login.createAcademy")}</Link>
           </p>
         </div>
 
         <p style={{ textAlign:"center", marginTop:13, fontSize:9, color:"rgba(34,211,238,0.3)", letterSpacing:3, textTransform:"uppercase" }}>
-          VITAS V2.0 · Football Intelligence Platform
+          {t("auth.login.footer")}
         </p>
       </motion.div>
 
@@ -560,11 +562,11 @@ export default function LoginPage() {
   );
 }
 
-function translateError(msg: string): string {
-  if (msg.includes("Invalid login credentials")) return "Email o contraseña incorrectos";
-  if (msg.includes("Email not confirmed"))        return "Confirma tu email antes de entrar";
-  if (msg.includes("Too many requests"))          return "Demasiados intentos. Espera un momento";
-  if (msg.includes("User not found"))             return "No existe una cuenta con ese email";
+function translateError(msg: string, t: (key: string) => string): string {
+  if (msg.includes("Invalid login credentials")) return t("auth.errors.invalidCredentials");
+  if (msg.includes("Email not confirmed"))        return t("auth.errors.emailNotConfirmed");
+  if (msg.includes("Too many requests"))          return t("auth.errors.tooManyRequests");
+  if (msg.includes("User not found"))             return t("auth.errors.userNotFound");
   if (msg.includes("no configurado"))             return msg;
   return msg;
 }

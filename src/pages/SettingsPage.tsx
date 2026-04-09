@@ -25,6 +25,7 @@ import { useAuth } from "@/context/AuthContext";
 import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 import { BackupService } from "@/services/real/backupService";
+import { useTranslation } from "react-i18next";
 
 const SETTINGS_KEY = "settings";
 
@@ -58,8 +59,15 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 const SettingsPage = () => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
+  const currentLang = i18n.language?.startsWith("en") ? "en" : "es";
+  const toggleLanguage = () => {
+    const next = currentLang === "es" ? "en" : "es";
+    i18n.changeLanguage(next);
+    toast.success(t("toasts.settingSaved"));
+  };
   const [settings, setSettings] = useState<AppSettings>(() =>
     StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
   );
@@ -84,7 +92,7 @@ const SettingsPage = () => {
     }
     setSettings(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      toast.success("Ajuste guardado");
+      toast.success(t("toasts.settingSaved"));
       return next;
     });
   };
@@ -101,19 +109,19 @@ const SettingsPage = () => {
         if (granted) {
           await PushNotificationService.subscribe();
           setSettings(prev => ({ ...prev, notifications: true }));
-          toast.success("Notificaciones activadas");
+          toast.success(t("toasts.notifActivated"));
         } else {
-          toast.error("Permiso de notificaciones denegado");
+          toast.error(t("toasts.notifPermissionDenied"));
         }
       } else {
         // Turn OFF: unsubscribe
         await PushNotificationService.unsubscribe();
         setSettings(prev => ({ ...prev, notifications: false }));
         setPushPermission("denied");
-        toast.success("Notificaciones desactivadas");
+        toast.success(t("toasts.notifDeactivated"));
       }
     } catch (err) {
-      toast.error("Error al cambiar notificaciones");
+      toast.error(t("toasts.notifChangeError"));
       console.warn(err);
     } finally {
       setPushLoading(false);
@@ -123,7 +131,7 @@ const SettingsPage = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/login");
-    toast.success("Sesión cerrada");
+    toast.success(t("toasts.sessionClosed"));
   };
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -137,22 +145,22 @@ const SettingsPage = () => {
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft size={16} />
-        <span className="font-display">Volver</span>
+        <span className="font-display">{t("common.back")}</span>
       </motion.button>
 
       <motion.div variants={item}>
         <h1 className="font-display font-bold text-2xl text-foreground">
-          Configuración<span className="text-primary">.</span>
+          {t("settings.title").replace(".", "")}<span className="text-primary">.</span>
         </h1>
         <p className="text-xs text-muted-foreground font-display tracking-wider uppercase">
-          Ajustes de la plataforma
+          {t("settings.subtitle")}
         </p>
       </motion.div>
 
       {/* Cuenta */}
       {user && (
         <motion.div variants={item} className="space-y-2">
-          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Cuenta</h2>
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.account")}</h2>
           <div className="glass rounded-xl p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <span className="text-sm font-bold text-primary">
@@ -161,7 +169,7 @@ const SettingsPage = () => {
             </div>
             <div className="flex-1">
               <p className="font-display font-semibold text-sm text-foreground">{user.email}</p>
-              <p className="text-[10px] text-muted-foreground">Scout activo</p>
+              <p className="text-[10px] text-muted-foreground">{t("settings.activeScout")}</p>
             </div>
             <Check size={14} className="text-primary" />
           </div>
@@ -170,7 +178,7 @@ const SettingsPage = () => {
 
       {/* Plan */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Plan</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.plan")}</h2>
         <div
           className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
           onClick={() => navigate("/billing")}
@@ -194,7 +202,7 @@ const SettingsPage = () => {
 
       {/* General */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">General</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.general")}</h2>
 
         {/* Notificaciones */}
         <div
@@ -205,13 +213,13 @@ const SettingsPage = () => {
             <Bell size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Notificaciones Push</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.pushNotifications")}</p>
             <p className="text-[10px] text-muted-foreground">
               {pushPermission === "granted"
-                ? "Activas · Análisis + alertas PHV"
+                ? t("settings.pushActive")
                 : pushPermission === "denied"
-                ? "Bloqueadas en el navegador"
-                : "Toca para activar notificaciones nativas"}
+                ? t("settings.pushBlocked")
+                : t("settings.pushTapToActivate")}
             </p>
           </div>
           {settings.notifications
@@ -224,13 +232,13 @@ const SettingsPage = () => {
         {settings.notifications && pushPermission === "granted" && (
           <div className="glass rounded-xl p-4 space-y-3 ml-4 border-l-2 border-primary/20">
             <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Tipos de notificación
+              {t("settings.notifTypes")}
             </p>
             {([
-              { key: "rendimientoBajo" as const, label: "Alerta de rendimiento bajo", desc: "VSI del jugador < 50" },
-              { key: "inactividad" as const, label: "Recordatorio de inactividad", desc: "Jugador sin actualizar 30+ días" },
-              { key: "limitePlan" as const, label: "Alerta de límite de plan", desc: "Cerca del máximo de jugadores" },
-              { key: "analisisCompletado" as const, label: "Análisis completado", desc: "Notificar al terminar un análisis" },
+              { key: "rendimientoBajo" as const, label: t("settings.notifLowPerformance"), desc: t("settings.notifLowPerformanceDesc") },
+              { key: "inactividad" as const, label: t("settings.notifInactivity"), desc: t("settings.notifInactivityDesc") },
+              { key: "limitePlan" as const, label: t("settings.notifPlanLimit"), desc: t("settings.notifPlanLimitDesc") },
+              { key: "analisisCompletado" as const, label: t("settings.notifAnalysisDone"), desc: t("settings.notifAnalysisDoneDesc") },
             ]).map(({ key, label, desc }) => (
               <div
                 key={key}
@@ -254,23 +262,26 @@ const SettingsPage = () => {
         )}
 
         {/* Idioma */}
-        <div className="glass rounded-xl p-4 flex items-center gap-4">
+        <button
+          onClick={toggleLanguage}
+          className="glass rounded-xl p-4 flex items-center gap-4 w-full text-left hover:border-primary/30 border border-transparent transition-all"
+        >
           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
             <Globe size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Idioma</p>
-            <p className="text-[10px] text-muted-foreground">Español (ES)</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.language")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("settings.languageValue")}</p>
           </div>
-          <Check size={14} className="text-primary" />
-        </div>
+          <ChevronRight size={14} className="text-muted-foreground" />
+        </button>
 
         {/* Tema */}
         <button
           onClick={() => {
             const next = theme === "dark" ? "light" : "dark";
             setTheme(next);
-            toast.success(`Tema cambiado a ${next === "dark" ? "Dark Obsidian" : "Light Mode"}`);
+            toast.success(t("toasts.themeChanged", { theme: next === "dark" ? "Dark Obsidian" : "Light Mode" }));
           }}
           className="glass rounded-xl p-4 flex items-center gap-4 w-full text-left hover:border-primary/30 border border-transparent transition-all"
         >
@@ -278,7 +289,7 @@ const SettingsPage = () => {
             <Palette size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Tema Visual</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.theme")}</p>
             <p className="text-[10px] text-muted-foreground">{theme === "dark" ? "Dark Obsidian" : "Light Mode"}</p>
           </div>
           <ChevronRight size={14} className="text-muted-foreground" />
@@ -287,15 +298,15 @@ const SettingsPage = () => {
 
       {/* Seguridad */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Seguridad</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.security")}</h2>
 
         <div className="glass rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
             <Shield size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Autenticación</p>
-            <p className="text-[10px] text-muted-foreground">{user ? "Sesión activa · Supabase Auth" : "Sin sesión"}</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.authentication")}</p>
+            <p className="text-[10px] text-muted-foreground">{user ? t("settings.activeSession") : t("settings.noSession")}</p>
           </div>
           <Check size={14} className={user ? "text-primary" : "text-muted-foreground"} />
         </div>
@@ -305,7 +316,7 @@ const SettingsPage = () => {
             <Key size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">API Keys</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.apiKeys")}</p>
             <p className="text-[10px] text-muted-foreground">Supabase · Anthropic · Bunny</p>
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
@@ -314,14 +325,14 @@ const SettingsPage = () => {
 
       {/* Datos */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Datos</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.data")}</h2>
         <div className="glass rounded-xl p-4 flex items-center gap-4">
           <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
             <Database size={18} className="text-primary" />
           </div>
           <div className="flex-1">
-            <p className="font-display font-semibold text-sm text-foreground">Base de Datos</p>
-            <p className="text-[10px] text-muted-foreground">Supabase PostgreSQL · Conectado</p>
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.database")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("settings.databaseConnected")}</p>
           </div>
           <Check size={14} className="text-primary" />
         </div>
@@ -329,26 +340,26 @@ const SettingsPage = () => {
 
       {/* Backup / Restaurar */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Backup</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settings.backup")}</h2>
         <div className="glass rounded-xl p-4 space-y-3">
           <button
             onClick={() => {
               BackupService.downloadBackup();
-              toast.success("Backup descargado");
+              toast.success(t("toasts.backupDownloaded"));
             }}
             className="w-full flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
           >
             <Download size={16} className="text-primary" />
             <div className="text-left flex-1">
-              <p className="text-sm font-display font-semibold text-foreground">Exportar datos</p>
-              <p className="text-[10px] text-muted-foreground">Descarga jugadores, videos y configuraciones</p>
+              <p className="text-sm font-display font-semibold text-foreground">{t("settings.exportData")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("settings.exportDataDesc")}</p>
             </div>
           </button>
           <label className="w-full flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer">
             <Upload size={16} className="text-primary" />
             <div className="text-left flex-1">
-              <p className="text-sm font-display font-semibold text-foreground">Importar datos</p>
-              <p className="text-[10px] text-muted-foreground">Restaurar desde archivo de backup</p>
+              <p className="text-sm font-display font-semibold text-foreground">{t("settings.importData")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("settings.importDataDesc")}</p>
             </div>
             <input
               type="file"
@@ -361,15 +372,15 @@ const SettingsPage = () => {
                   const content = await BackupService.readFile(file);
                   const result = BackupService.import(content);
                   if (result.success) {
-                    toast.success(`Importado: ${result.imported.join(", ")}`);
+                    toast.success(t("toasts.importSuccess", { items: result.imported.join(", ") }));
                     if (result.errors.length > 0) {
-                      toast.warning(`Advertencias: ${result.errors.join("; ")}`);
+                      toast.warning(t("toasts.importWarning", { warnings: result.errors.join("; ") }));
                     }
                   } else {
-                    toast.error(result.errors[0] ?? "Error al importar");
+                    toast.error(result.errors[0] ?? t("toasts.importError"));
                   }
                 } catch {
-                  toast.error("Error leyendo el archivo");
+                  toast.error(t("toasts.fileReadError"));
                 }
                 e.target.value = ""; // Reset input
               }}
@@ -385,14 +396,14 @@ const SettingsPage = () => {
             onClick={handleSignOut}
             className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-display font-semibold hover:bg-destructive/10 transition-all"
           >
-            Cerrar sesión
+            {t("settings.signOut")}
           </button>
         </motion.div>
       )}
 
       <motion.div variants={item} className="glass rounded-xl p-4 text-center">
         <p className="text-[10px] font-display text-muted-foreground tracking-wider">
-          VITAS PLATFORM · BUILD 2.1.0 · © 2026 PROPHET HORIZON TECHNOLOGY
+          {t("settings.footer")}
         </p>
       </motion.div>
     </motion.div>

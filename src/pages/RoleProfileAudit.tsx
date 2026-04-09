@@ -11,8 +11,10 @@ import { PhaseOfPlay, EvidenceIndicator } from "@/lib/roleProfileData";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function RoleProfileAudit() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
 
@@ -21,14 +23,14 @@ export default function RoleProfileAudit() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (isError) toast.error(`Error al cargar auditoría: ${error?.message || "Error desconocido"}`);
+    if (isError) toast.error(t("toasts.auditLoadError", { error: error?.message || t("errors.unknownError") }));
   }, [isError, error]);
 
   const phases = [
-    { key: "all" as const, label: "Todas" },
-    { key: "in_possession" as const, label: "En posesión" },
-    { key: "out_of_possession" as const, label: "Sin posesión" },
-    { key: "transition" as const, label: "Transición" },
+    { key: "all" as const, label: t("roleProfile.audit.phases.all") },
+    { key: "in_possession" as const, label: t("roleProfile.audit.phases.inPossession") },
+    { key: "out_of_possession" as const, label: t("roleProfile.audit.phases.outOfPossession") },
+    { key: "transition" as const, label: t("roleProfile.audit.phases.transition") },
   ];
 
   const handleOpenEvidence = (indicatorKey: string) => {
@@ -51,8 +53,8 @@ export default function RoleProfileAudit() {
               </Button>
             </Link>
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Motor de Perfil</p>
-              <h2 className="font-display text-2xl font-bold">Auditoría de indicadores</h2>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">{t("roleProfile.subtitle")}</p>
+              <h2 className="font-display text-2xl font-bold">{t("roleProfile.auditTitle")}</h2>
             </div>
           </div>
           <div className="flex gap-1 bg-muted rounded-md p-0.5">
@@ -78,7 +80,7 @@ export default function RoleProfileAudit() {
         )}
 
         {isError && (
-          <EmptyState type="no-data" onAction={() => refetch()} actionLabel="Reintentar" />
+          <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("common.retry")} />
         )}
 
         {data && (

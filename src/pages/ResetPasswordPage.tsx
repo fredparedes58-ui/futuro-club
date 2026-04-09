@@ -10,12 +10,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CheckCircle2, Zap, Lock } from "lucide-react";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { useTranslation } from "react-i18next";
 
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,15 +29,15 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (!password || password.length < 6) {
-      setError("La contrasena debe tener al menos 6 caracteres");
+      setError(t("auth.resetPassword.minChars"));
       return;
     }
     if (password !== confirmPassword) {
-      setError("Las contrasenas no coinciden");
+      setError(t("auth.resetPassword.mismatch"));
       return;
     }
     if (!SUPABASE_CONFIGURED) {
-      setError("Supabase no configurado");
+      setError(t("auth.resetPassword.supabaseNotConfigured"));
       return;
     }
 
@@ -64,14 +66,14 @@ export default function ResetPasswordPage() {
             <Zap size={24} className="text-primary" />
             <h1 className="font-display font-black text-2xl tracking-tight text-foreground">VITAS.</h1>
           </div>
-          <p className="text-sm text-muted-foreground">Nueva contrasena</p>
+          <p className="text-sm text-muted-foreground">{t("auth.resetPassword.title")}</p>
         </motion.div>
 
         {success ? (
           <motion.div variants={item} className="glass rounded-xl p-6 text-center space-y-3">
             <CheckCircle2 size={40} className="text-green-500 mx-auto" />
-            <p className="font-display font-bold text-foreground">Contrasena actualizada</p>
-            <p className="text-sm text-muted-foreground">Redirigiendo al dashboard...</p>
+            <p className="font-display font-bold text-foreground">{t("auth.resetPassword.successTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("auth.resetPassword.redirecting")}</p>
           </motion.div>
         ) : (
           <motion.form variants={item} onSubmit={handleSubmit} className="glass rounded-xl p-6 space-y-4">
@@ -83,7 +85,7 @@ export default function ResetPasswordPage() {
             )}
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Nueva contrasena</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("auth.resetPassword.newPasswordLabel")}</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -91,14 +93,14 @@ export default function ResetPasswordPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
-                  placeholder="Minimo 6 caracteres"
+                  placeholder={t("auth.resetPassword.newPasswordPlaceholder")}
                   autoFocus
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Confirmar contrasena</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("auth.resetPassword.confirmLabel")}</label>
               <div className="relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -106,7 +108,7 @@ export default function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all"
-                  placeholder="Repite la contrasena"
+                  placeholder={t("auth.resetPassword.confirmPlaceholder")}
                 />
               </div>
             </div>
@@ -117,7 +119,7 @@ export default function ResetPasswordPage() {
               className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              {loading ? "Actualizando..." : "Actualizar contrasena"}
+              {loading ? t("auth.resetPassword.submitting") : t("auth.resetPassword.submit")}
             </button>
           </motion.form>
         )}

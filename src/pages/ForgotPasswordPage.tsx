@@ -7,12 +7,14 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, AlertCircle, CheckCircle2, Zap, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!email) { setError("Introduce tu email"); return; }
+    if (!email) { setError(t("auth.forgotPassword.enterEmail")); return; }
     setLoading(true);
     const { error: err } = await resetPassword(email);
     setLoading(false);
@@ -44,28 +46,28 @@ export default function ForgotPasswordPage() {
           {sent ? (
             <div className="text-center space-y-3 py-4">
               <CheckCircle2 size={32} className="text-primary mx-auto" />
-              <p className="font-display font-bold text-foreground">Email enviado</p>
+              <p className="font-display font-bold text-foreground">{t("auth.forgotPassword.sentTitle")}</p>
               <p className="text-sm text-muted-foreground">
-                Revisa <span className="text-primary">{email}</span> y sigue el enlace para resetear tu contraseña.
+                {t("auth.forgotPassword.sentDescription", { email })}
               </p>
               <Link to="/login" className="block text-xs text-primary font-display hover:underline">
-                Volver al login
+                {t("auth.forgotPassword.backToLogin")}
               </Link>
             </div>
           ) : (
             <>
               <div>
-                <h2 className="font-display font-bold text-xl text-foreground">Recuperar contraseña</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Te enviamos un enlace por email</p>
+                <h2 className="font-display font-bold text-xl text-foreground">{t("auth.forgotPassword.title")}</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("auth.forgotPassword.subtitle")}</p>
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">Email</label>
+                  <label className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider">{t("auth.forgotPassword.emailLabel")}</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tu@email.com"
+                    placeholder={t("auth.forgotPassword.emailPlaceholder")}
                     className="w-full px-3 py-2.5 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
                   />
                 </div>
@@ -80,11 +82,11 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                   className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {loading ? <><Loader2 size={14} className="animate-spin" />Enviando…</> : "Enviar enlace"}
+                  {loading ? <><Loader2 size={14} className="animate-spin" />{t("auth.forgotPassword.submitting")}</> : t("auth.forgotPassword.submit")}
                 </button>
               </form>
               <Link to="/login" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground font-display transition-colors">
-                <ArrowLeft size={12} /> Volver al login
+                <ArrowLeft size={12} /> {t("auth.forgotPassword.backToLogin")}
               </Link>
             </>
           )}

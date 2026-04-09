@@ -34,6 +34,7 @@ import VoronoiOverlay from "@/components/VoronoiOverlay";
 import { useTracking } from "@/hooks/useTracking";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import VideoUpload from "@/components/VideoUpload";
 import { useVideos } from "@/hooks/useVideos";
 import VideoCard from "@/components/VideoCard";
@@ -167,6 +168,7 @@ interface AnalysisReport {
 type AnalysisState = "idle" | "running" | "done" | "error";
 
 const VitasLab = () => {
+  const { t } = useTranslation();
   const navigate  = useNavigate();
   const { user }  = useAuth();
   const { canRunAnalysis, analysesUsed, limits } = usePlan();
@@ -324,36 +326,36 @@ const VitasLab = () => {
   const handleStartAnalysis = async () => {
     if (!canRunAnalysis) {
       const limitLabel = limits.analyses >= 9999 ? "∞" : limits.analyses;
-      toast.error(`Límite de análisis alcanzado: ${analysesUsed}/${limitLabel} este mes.`, {
-        action: { label: "Actualizar plan", onClick: () => navigate("/billing") },
+      toast.error(t("lab.analysisLimitReached", { used: analysesUsed, limit: limitLabel }), {
+        action: { label: t("lab.upgradePlan"), onClick: () => navigate("/billing") },
         duration: 5000,
       });
       return;
     }
     if (!selectedVideoId) {
-      toast.info("Selecciona un video primero", {
-        description: "Haz clic en 'SUBIR VIDEO' para cargar o seleccionar un partido.",
+      toast.info(t("lab.selectVideoFirst"), {
+        description: t("lab.selectVideoDesc"),
         duration: 4000,
       });
       return;
     }
     if (!selectedPlayerId) {
-      toast.info("Selecciona un jugador", {
-        description: "Elige el jugador a analizar en el panel derecho.",
+      toast.info(t("lab.selectPlayerFirst"), {
+        description: t("lab.selectPlayerDesc"),
         duration: 4000,
       });
       return;
     }
 
     setAnalysisState("running");
-    const toastId = toast.loading("Iniciando análisis VITAS Intelligence…", {
-      description: "Extrayendo keyframes y enviando a IA",
+    const toastId = toast.loading(t("toasts.analysisStarting"), {
+      description: t("toasts.analysisStartingDesc"),
     });
 
     try {
       const video = videos.find(v => v.id === selectedVideoId);
       const playerData = players.find(p => p.id === selectedPlayerId);
-      if (!video || !playerData) throw new Error("Video o jugador no encontrado");
+      if (!video || !playerData) throw new Error(t("errors.videoOrPlayerNotFound"));
 
       // Vincular video ↔ jugador (persistente)
       if (video.playerId !== selectedPlayerId) {
@@ -367,9 +369,9 @@ const VitasLab = () => {
 
       let keyframes: Array<{ url: string; timestamp: number; frameIndex: number }>;
       if (videoSrc) {
-        toast.loading("Extrayendo fotogramas del video…", { id: toastId });
+        toast.loading(t("toasts.extractingFrames"), { id: toastId });
         keyframes = await extractKeyframesFromVideo(videoSrc, (video.duration as number) || 90, 8);
-        if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+        if (keyframes.length === 0) throw new Error(t("errors.frameExtractError"));
       } else {
         // Bunny CDN thumbnails
         const hostname = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
@@ -386,10 +388,10 @@ const VitasLab = () => {
 
       if (videoSrc) {
         try {
-          toast.loading("Preparando video para observación IA…", { id: toastId });
+          toast.loading(t("toasts.preparingVideo"), { id: toastId });
           const videoData = await readVideoAsBase64(videoSrc, 20);
           if (videoData) {
-            toast.loading("Observando video con Gemini…", { id: toastId });
+            toast.loading(t("toasts.observingGemini"), { id: toastId });
             const geminiRes = await fetch("/api/agents/video-observation", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -426,7 +428,7 @@ const VitasLab = () => {
         }
       }
 
-      toast.loading("Analizando con IA…", { id: toastId });
+      toast.loading(t("toasts.analyzingIA"), { id: toastId });
 
       // 3. Recoger métricas YOLO si hay sesión de tracking completada o activa
       let physicalMetrics: Record<string, unknown> | undefined;
@@ -525,7 +527,7 @@ const VitasLab = () => {
       }
       reader.releaseLock();
 
-      if (!report) throw new Error("El análisis no produjo resultado");
+      if (!report) throw new Error(t("errors.analysisNoResult"));
 
       // 4. Enriquecer el reporte con métricas cuantitativas (YOLO + Gemini)
       const hasYolo = !!physicalMetrics;
@@ -591,8 +593,8 @@ const VitasLab = () => {
       }
 
       toast.dismiss(toastId);
-      toast.success("¡Análisis completado!", {
-        description: `Informe VITAS Intelligence generado. Confianza: ${Math.round((report.confianza ?? 0) * 100)}%`,
+      toast.success(t("lab.analysisComplete"), {
+        description: t("lab.analysisCompleteDesc", { confidence: Math.round((report.confianza ?? 0) * 100) }),
         duration: 5000,
       });
       setShowResultsPanel(true);
@@ -601,7 +603,7 @@ const VitasLab = () => {
       const msg = err instanceof Error ? err.message : "Error desconocido";
       setAnalysisState("error");
       toast.dismiss(toastId);
-      toast.error("Error en el análisis", { description: msg });
+      toast.error(t("lab.analysisError"), { description: msg });
     }
   };
 
@@ -672,12 +674,12 @@ const VitasLab = () => {
 
   // Dimension labels
   const dimLabels: Record<string, string> = {
-    velocidadDecision:   "Velocidad Decisión",
-    tecnicaConBalon:     "Técnica con Balón",
-    inteligenciaTactica: "Inteligencia Táctica",
-    capacidadFisica:     "Capacidad Física",
-    liderazgoPresencia:  "Liderazgo",
-    eficaciaCompetitiva: "Eficacia Competitiva",
+    velocidadDecision:   t("lab.dimensions.velocidadDecision"),
+    tecnicaConBalon:     t("lab.dimensions.tecnicaConBalon"),
+    inteligenciaTactica: t("lab.dimensions.inteligenciaTactica"),
+    capacidadFisica:     t("lab.dimensions.capacidadFisica"),
+    liderazgoPresencia:  t("lab.dimensions.liderazgoPresencia"),
+    eficaciaCompetitiva: t("lab.dimensions.eficaciaCompetitiva"),
   };
 
   return (
@@ -702,7 +704,7 @@ const VitasLab = () => {
               { label: "DASHBOARD",    action: () => navigate("/")         },
               { label: "NEW ANALYSIS", action: () => setShowUploadPanel(true) },
               { label: "ARCHIVE",      action: () => navigate("/videos")   },
-              { label: "MODELS",       action: () => toast.info("Modelos disponibles próximamente", { description: "YOLOv8n-pose entrenado con SoccerNet estará disponible en Fase 3." }) },
+              { label: "MODELS",       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
             ].map(({ label, action }, i) => (
               <button key={label} onClick={action} className={`text-xs font-display font-semibold tracking-wider transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 {label}
@@ -751,20 +753,20 @@ const VitasLab = () => {
           {/* Title + Actions */}
           <motion.div variants={item} className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="font-display font-bold text-2xl text-foreground">Pitch Homography Setup</h1>
+              <h1 className="font-display font-bold text-2xl text-foreground">{t("lab.pitchSetup")}</h1>
               <p className="text-sm text-muted-foreground">
-                Define reference points for 2D perspective mapping.
+                {t("lab.pitchSetupDesc")}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={resetPoints} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors">
                 <RotateCcw size={14} />
-                RESET POINTS
+                {t("lab.resetPoints")}
               </button>
               <div className="relative">
                 <button onClick={handleAutoDetect} className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground hover:bg-secondary transition-colors">
                   <Camera size={14} />
-                  PRESETS
+                  {t("lab.presets")}
                   <ChevronDown size={12} />
                 </button>
                 {showCalibPresets && (
@@ -775,8 +777,8 @@ const VitasLab = () => {
                         onClick={() => {
                           setPoints(preset.points);
                           setShowCalibPresets(false);
-                          toast.success(`Preset "${preset.label}" aplicado`, {
-                            description: "Ajusta los puntos si es necesario.",
+                          toast.success(t("lab.presetApplied", { name: preset.label }), {
+                            description: t("lab.presetAppliedDesc"),
                             duration: 3000,
                           });
                         }}
@@ -790,12 +792,12 @@ const VitasLab = () => {
               </div>
               <button onClick={() => setShowUploadPanel(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 border border-primary/30 text-xs font-display font-semibold text-primary hover:bg-primary/20 transition-colors">
                 <Upload size={14} />
-                SUBIR VIDEO
+                {t("lab.uploadVideo")}
               </button>
               {analysisState === "done" && (
                 <button onClick={() => setShowResultsPanel(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-xs font-display font-semibold text-green-600 hover:bg-green-500/20 transition-colors">
                   <Brain size={14} />
-                  VER INFORME
+                  {t("lab.viewReport")}
                 </button>
               )}
             </div>
@@ -835,8 +837,8 @@ const VitasLab = () => {
               <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex items-center justify-center">
                 <div className="glass rounded-2xl px-8 py-6 flex flex-col items-center gap-3">
                   <Loader2 size={32} className="text-primary animate-spin" />
-                  <p className="font-display font-bold text-foreground text-sm tracking-wider">PROCESANDO CON IA</p>
-                  <p className="text-xs text-muted-foreground">Claude Sonnet analizando keyframes…</p>
+                  <p className="font-display font-bold text-foreground text-sm tracking-wider">{t("lab.processingIA")}</p>
+                  <p className="text-xs text-muted-foreground">{t("lab.processingDesc")}</p>
                 </div>
               </div>
             )}
@@ -869,7 +871,7 @@ const VitasLab = () => {
           {/* Player Selector */}
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Jugador a Analizar
+              {t("lab.playerToAnalyze")}
             </span>
             <div className="relative mt-2">
               <button
@@ -877,14 +879,14 @@ const VitasLab = () => {
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary transition-colors text-left"
               >
                 <span className={`text-sm font-display font-semibold ${selectedPlayer ? "text-foreground" : "text-muted-foreground"}`}>
-                  {selectedPlayer ? selectedPlayer.name : "Seleccionar jugador…"}
+                  {selectedPlayer ? selectedPlayer.name : t("lab.selectPlayer")}
                 </span>
                 <ChevronDown size={14} className="text-muted-foreground" />
               </button>
               {showPlayerDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-1 glass rounded-xl border border-border z-20 max-h-48 overflow-y-auto">
                   {players.length === 0 && (
-                    <p className="text-xs text-muted-foreground px-3 py-2">No hay jugadores</p>
+                    <p className="text-xs text-muted-foreground px-3 py-2">{t("lab.noPlayers")}</p>
                   )}
                   {players.map((p) => (
                     <button
@@ -917,33 +919,33 @@ const VitasLab = () => {
           {(selectedMode === "all" || selectedMode === "team") && (
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Identificar Jugador
+              {t("lab.identifyPlayer")}
             </span>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div>
-                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Nº Camiseta</label>
+                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.jerseyNumber")}</label>
                 <input
                   type="text"
                   maxLength={3}
                   value={jerseyNumber}
                   onChange={(e) => setJerseyNumber(e.target.value)}
-                  placeholder="Ej: 10"
+                  placeholder={t("lab.jerseyPlaceholder")}
                   className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                 />
               </div>
               <div>
-                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Color Uniforme</label>
+                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.uniformColor")}</label>
                 <input
                   type="text"
                   value={teamColor}
                   onChange={(e) => setTeamColor(e.target.value)}
-                  placeholder="Ej: Rojo"
+                  placeholder={t("lab.uniformPlaceholder")}
                   className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                 />
               </div>
             </div>
             <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
-              La IA buscará ese dorsal y color para centrar el análisis en ese jugador.
+              {t("lab.jerseyHint")}
             </p>
           </div>
           )}
@@ -951,7 +953,7 @@ const VitasLab = () => {
           {/* Coordinate Realtime */}
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Coordinate Realtime
+              {t("lab.coordinateRealtime")}
             </span>
             <div className="grid grid-cols-2 gap-2 mt-2">
               <div className="glass rounded-lg p-3">
@@ -968,7 +970,7 @@ const VitasLab = () => {
           {/* Analysis Mode */}
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Modo de Análisis
+              {t("lab.analysisMode")}
             </span>
             <div className="flex flex-col gap-2 mt-3">
               {analysisModes.map((mode) => {
@@ -1340,7 +1342,7 @@ const VitasLab = () => {
                     className="flex items-center gap-1 text-[10px] font-display px-2 py-1 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <History size={12} />
-                    HISTORIAL{savedAnalyses.length > 0 ? ` (${savedAnalyses.length})` : ""}
+                    {t("lab.historial").toUpperCase()}{savedAnalyses.length > 0 ? ` (${savedAnalyses.length})` : ""}
                   </button>
                   {/* Exportar PDF */}
                   <button

@@ -6,13 +6,14 @@ import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
 import { usePlan } from "@/hooks/usePlan";
+import { useTranslation } from "react-i18next";
 
 const BASE_NAV = [
-  { path: "/pulse",    icon: Activity,      label: "Pulse" },
-  { path: "/reports",  icon: FileVideo,     label: "Vídeos" },
-  { path: "/scout",    icon: Compass,       label: "Scout" },
-  { path: "/lab",      icon: FlaskConical,  label: "Lab" },
-  { path: "/rankings", icon: BarChart3,     label: "Rank" },
+  { path: "/pulse",    icon: Activity,      label: "nav.pulse" },
+  { path: "/reports",  icon: FileVideo,     label: "nav.videos" },
+  { path: "/scout",    icon: Compass,       label: "nav.scout" },
+  { path: "/lab",      icon: FlaskConical,  label: "nav.lab" },
+  { path: "/rankings", icon: BarChart3,     label: "nav.rankings" },
 ];
 
 // Pages where bottom nav should be hidden
@@ -24,6 +25,7 @@ const BottomNav = () => {
   const { user, signOut, configured } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { isClub } = usePlan();
+  const { t } = useTranslation();
 
   // Sincroniza jugadores desde Supabase al hacer login
   const syncState = useSupabaseSync();
@@ -32,22 +34,22 @@ const BottomNav = () => {
   // Toast al reconectar
   useEffect(() => {
     if (syncState.online && !prevOnline.current) {
-      toast.success("Conexión restaurada", {
+      toast.success(t("toasts.connectionRestored"), {
         description: syncState.pending > 0
-          ? `Sincronizando ${syncState.pending} cambios pendientes...`
-          : "Todos los datos están sincronizados",
+          ? t("toasts.syncPending", { count: syncState.pending })
+          : t("toasts.syncComplete"),
       });
     }
     if (!syncState.online && prevOnline.current) {
-      toast.warning("Sin conexión", {
-        description: "Los cambios se guardarán localmente",
+      toast.warning(t("toasts.offline"), {
+        description: t("toasts.offlineDesc"),
       });
     }
     prevOnline.current = syncState.online;
   }, [syncState.online, syncState.pending]);
 
   const navItems = isClub
-    ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "Equipo" }]
+    ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "nav.team" }]
     : BASE_NAV;
 
   const shouldHide =
@@ -60,7 +62,7 @@ const BottomNav = () => {
   const handleSignOut = async () => {
     setShowUserMenu(false);
     await signOut();
-    toast.success("Sesión cerrada");
+    toast.success(t("toasts.sessionClosed"));
     navigate("/login");
   };
 
@@ -91,7 +93,7 @@ const BottomNav = () => {
                 </p>
                 <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
                 {!configured && (
-                  <p className="text-[9px] text-gold mt-0.5">Modo offline</p>
+                  <p className="text-[9px] text-gold mt-0.5">{t("auth.login.offlineMode")}</p>
                 )}
               </div>
 
@@ -102,14 +104,14 @@ const BottomNav = () => {
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
                 >
                   <Trophy size={12} />
-                  Director
+                  {t("nav.director")}
                 </button>
               )}
               <button
                 onClick={() => { setShowUserMenu(false); navigate("/settings"); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
               >
-                Configuración
+                {t("dashboard.quickAccess.config")}
               </button>
               {configured && user && (
                 <button
@@ -117,7 +119,7 @@ const BottomNav = () => {
                   className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-destructive hover:bg-destructive/10 transition-colors"
                 >
                   <LogOut size={12} />
-                  Cerrar sesión
+                  {t("settings.signOut")}
                 </button>
               )}
             </motion.div>
@@ -161,7 +163,7 @@ const BottomNav = () => {
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  {navItem.label}
+                  {t(navItem.label)}
                 </span>
               </button>
             );
@@ -170,10 +172,10 @@ const BottomNav = () => {
           {/* Sync indicator */}
           {configured && (
             <div className="flex flex-col items-center gap-0.5 px-1" title={
-              !syncState.online ? "Sin conexión" :
-              syncState.syncing ? "Sincronizando..." :
-              syncState.pending > 0 ? `${syncState.pending} pendientes` :
-              "Sincronizado"
+              !syncState.online ? t("toasts.offline") :
+              syncState.syncing ? t("toasts.syncPending", { count: syncState.pending }) :
+              syncState.pending > 0 ? `${syncState.pending} ${t("common.players")}` :
+              t("toasts.syncComplete")
             }>
               {!syncState.online ? (
                 <WifiOff size={14} className="text-red-400" />
@@ -212,7 +214,7 @@ const BottomNav = () => {
               {initials || "?"}
             </div>
             <span className="text-[9px] font-medium font-display tracking-wider uppercase text-muted-foreground">
-              Yo
+              {t("nav.me")}
             </span>
           </button>
         </div>

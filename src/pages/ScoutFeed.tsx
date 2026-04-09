@@ -8,6 +8,7 @@ import { ScoutFeedSkeleton } from "@/components/shared/Skeletons";
 import VsiGauge from "@/components/VsiGauge";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -29,9 +30,9 @@ const typeColors: Record<string, string> = {
   "phv-alert": "bg-gold/10 text-gold border-gold/20",
   "drill-record": "bg-accent/10 text-accent border-accent/20",
 };
-const typeLabels: Record<string, string> = {
-  breakout: "🔥 BREAKOUT", comparison: "🔬 COMPARATIVA",
-  "phv-alert": "⚠️ ALERTA PHV", "drill-record": "🏆 RÉCORD DRILL",
+const typeLabelKeys: Record<string, string> = {
+  breakout: "scout.insightTypes.breakout", comparison: "scout.insightTypes.comparison",
+  "phv-alert": "scout.insightTypes.phvAlert", "drill-record": "scout.insightTypes.drillRecord",
 };
 
 // ── Hook de búsqueda ───────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ function useIndexedPlayers(q: string, position: string, league: string) {
 // ── Sub-componente: lista de jugadores indexados ───────────────────────────────
 
 function IndexedPlayersTab() {
+  const { t } = useTranslation();
   const [q, setQ]               = useState("");
   const [position, setPosition] = useState("");
   const [league, setLeague]     = useState("");
@@ -88,7 +90,7 @@ function IndexedPlayersTab() {
               value={q}
               onChange={e => setQ(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSearch()}
-              placeholder="Buscar jugador..."
+              placeholder={t("scout.searchPlaceholder")}
               className="w-full pl-8 pr-3 py-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>
@@ -96,7 +98,7 @@ function IndexedPlayersTab() {
             onClick={handleSearch}
             className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-display font-semibold"
           >
-            Buscar
+            {t("scout.searchBtn")}
           </button>
         </div>
         <div className="flex gap-2">
@@ -104,14 +106,14 @@ function IndexedPlayersTab() {
             value={position} onChange={e => setPosition(e.target.value)}
             className="flex-1 py-1.5 px-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground focus:outline-none"
           >
-            <option value="">Todas las posiciones</option>
+            <option value="">{t("scout.allPositions")}</option>
             {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
           <select
             value={league} onChange={e => setLeague(e.target.value)}
             className="flex-1 py-1.5 px-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground focus:outline-none"
           >
-            <option value="">Todas las ligas</option>
+            <option value="">{t("scout.allLeagues")}</option>
             {LEAGUES.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -128,9 +130,9 @@ function IndexedPlayersTab() {
         {!isLoading && (!players || players.length === 0) && (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
             <Database size={32} className="text-muted-foreground" />
-            <p className="font-display font-bold text-foreground">Sin resultados</p>
+            <p className="font-display font-bold text-foreground">{t("scout.noIndexedResults")}</p>
             <p className="text-xs text-muted-foreground max-w-xs">
-              Prueba con otro nombre o quita los filtros. La base tiene 365+ jugadores de La Liga y más.
+              {t("scout.noIndexedDesc")}
             </p>
           </div>
         )}
@@ -173,7 +175,7 @@ function IndexedPlayersTab() {
 
             <div className="mt-2 flex justify-between items-center">
               <span className="text-[9px] text-muted-foreground font-display uppercase">
-                Fuente: {player.source}
+                {t("common.source")}: {player.source}
               </span>
               {player.nationality && (
                 <span className="text-[9px] text-muted-foreground">{player.nationality}</span>
@@ -189,6 +191,7 @@ function IndexedPlayersTab() {
 // ── Página principal ───────────────────────────────────────────────────────────
 
 const ScoutFeed = () => {
+  const { t } = useTranslation();
   const scrollRef  = useRef<HTMLDivElement>(null);
   const navigate   = useNavigate();
   const queryClient = useQueryClient();
@@ -196,12 +199,12 @@ const ScoutFeed = () => {
   const { data: insights, isLoading, isError, isFetching } = useScoutInsights();
 
   useEffect(() => {
-    if (isError) toast.error("No se pudieron cargar los insights del scout feed");
+    if (isError) toast.error(t("toasts.scoutFeedError"));
   }, [isError]);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["scout-insights"] });
-    toast.info("Regenerando insights…");
+    toast.info(t("toasts.regeneratingInsights"));
   };
 
   return (
@@ -209,8 +212,8 @@ const ScoutFeed = () => {
       {/* Header */}
       <div className="px-4 pt-4 pb-3 glass-strong">
         <PageHeader
-          title="ScoutFeed"
-          subtitle={tab === "insights" ? "Insights IA · Tiempo real" : "Base de jugadores reales"}
+          title={t("scout.title")}
+          subtitle={tab === "insights" ? t("scout.subtitleInsights") : t("scout.subtitleIndexed")}
           rightContent={
             tab === "insights" ? (
               <div className="flex items-center gap-2">
@@ -243,7 +246,7 @@ const ScoutFeed = () => {
             }`}
           >
             <Sparkles size={11} />
-            Insights IA
+            {t("scout.tabInsights")}
           </button>
           <button
             onClick={() => setTab("indexed")}
@@ -252,7 +255,7 @@ const ScoutFeed = () => {
             }`}
           >
             <Database size={11} />
-            Base Real
+            {t("scout.tabIndexed")}
           </button>
         </div>
       </div>
@@ -268,10 +271,9 @@ const ScoutFeed = () => {
             <div className="flex flex-col items-center justify-center h-full px-8 text-center gap-4 py-16">
               <Sparkles size={36} className="text-muted-foreground" />
               <div>
-                <p className="font-display font-bold text-lg text-foreground">Sin insights disponibles</p>
+                <p className="font-display font-bold text-lg text-foreground">{t("scout.noInsights")}</p>
                 <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                  Los insights se generan con IA desde los datos de tus jugadores.
-                  Necesitas ANTHROPIC_API_KEY configurada en Vercel.
+                  {t("scout.noInsightsDesc")}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -280,14 +282,14 @@ const ScoutFeed = () => {
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold"
                 >
                   <RefreshCw size={12} />
-                  Reintentar
+                  {t("scout.refresh")}
                 </button>
                 <button
                   onClick={() => navigate("/players/new")}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-xs font-display font-semibold text-foreground"
                 >
                   <Plus size={12} />
-                  Agregar jugador
+                  {t("scout.addPlayer")}
                 </button>
               </div>
             </div>
@@ -302,7 +304,7 @@ const ScoutFeed = () => {
               className="snap-start min-h-[calc(100vh-200px)] px-4 py-6 flex flex-col justify-center"
             >
               <div className={`inline-flex self-start items-center px-3 py-1 rounded-full text-[10px] font-display font-semibold uppercase tracking-wider border mb-4 ${typeColors[insight.insightType]}`}>
-                {typeLabels[insight.insightType]}
+                {t(typeLabelKeys[insight.insightType])}
               </div>
 
               <div className="flex items-center gap-3 mb-4">
