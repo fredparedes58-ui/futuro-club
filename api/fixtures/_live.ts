@@ -7,8 +7,8 @@
  * Free tier: LaLiga (PD), Premier (PL), Champions (CL), Bundesliga (BL1), Serie A (SA)
  */
 
-import { withHandler } from "../lib/withHandler";
-import { successResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
 

@@ -8,8 +8,8 @@
 
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
 

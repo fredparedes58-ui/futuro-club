@@ -6,9 +6,9 @@
  * falls back to full-text search when embeddings are unavailable.
  */
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
-import { buildSecureContext } from "../lib/ragSanitizer";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { buildSecureContext } from "../_lib/ragSanitizer";
 
 export const config = { runtime: "edge" };
 

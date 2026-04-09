@@ -1,7 +1,7 @@
 /**
  * VITAS · Notifications Router
  */
-import { errorResponse } from "../lib/apiResponse";
+import { errorResponse } from "../_lib/apiResponse";
 import subscribe from "./_subscribe";
 import cron from "./_cron";
 

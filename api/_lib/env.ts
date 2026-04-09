@@ -5,7 +5,7 @@
  * si una variable requerida no está configurada.
  *
  * Uso:
- *   import { env } from "../lib/env";
+ *   import { env } from "../_lib/env";
  *   const url = env.supabaseUrl; // string garantizado
  */
 

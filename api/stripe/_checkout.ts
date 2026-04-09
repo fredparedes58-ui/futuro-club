@@ -8,8 +8,8 @@
 
 import Stripe from "stripe";
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 const CheckoutSchema = z.object({
   priceId: z.string().min(1, "priceId es requerido"),

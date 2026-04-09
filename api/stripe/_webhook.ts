@@ -10,8 +10,8 @@
 
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 // Node.js runtime required — Stripe SDK uses Node-only APIs (Buffer, http)
 // export const config = { runtime: "edge" };

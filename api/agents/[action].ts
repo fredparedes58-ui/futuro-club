@@ -2,7 +2,7 @@
  * VITAS · Agents Router
  * Consolidates 7 Edge agent endpoints into one Vercel function.
  */
-import { errorResponse } from "../lib/apiResponse";
+import { errorResponse } from "../_lib/apiResponse";
 
 import phvCalculator from "./_phv-calculator";
 import playerSimilarity from "./_player-similarity";

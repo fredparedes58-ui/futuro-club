@@ -14,8 +14,8 @@
 // export const config = { runtime: "edge" };
 
 import webpush from "web-push";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 interface PushSub {
   user_id: string;

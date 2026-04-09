@@ -2,7 +2,7 @@
  * VITAS · Catch-all API Router
  * Handles scattered endpoints consolidated into one Vercel function.
  */
-import { errorResponse } from "./lib/apiResponse";
+import { errorResponse } from "./_lib/apiResponse";
 
 import pipelineStart from "./pipeline/_start";
 import playersSearch from "./players/_search";

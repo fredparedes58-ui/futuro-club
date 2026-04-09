@@ -7,8 +7,8 @@
  */
 
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
 

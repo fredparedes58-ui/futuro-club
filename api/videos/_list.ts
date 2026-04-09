@@ -6,8 +6,8 @@
  */
 
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 const QuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),

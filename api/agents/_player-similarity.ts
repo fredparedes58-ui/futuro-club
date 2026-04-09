@@ -7,8 +7,8 @@
  */
 
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse } from "../_lib/apiResponse";
 import { PRO_PLAYERS, type ProPlayer } from "../data/_proPlayers";
 
 // ─── Zod schema ───────────────────────────────────────────────────────────────

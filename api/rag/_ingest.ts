@@ -6,9 +6,9 @@
  * Accepts a single document or an array (batch).
  */
 import { z } from "zod";
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
-import { sanitizeForIngestion } from "../lib/ragSanitizer";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { sanitizeForIngestion } from "../_lib/ragSanitizer";
 
 export const config = { runtime: "edge" };
 

@@ -7,8 +7,8 @@
  * Retorna SSE → VideoIntelligenceOutput completo.
  */
 
-import { withHandler } from "../lib/withHandler";
-import { checkPlayerReportQuality } from "../lib/reportQualityCheck";
+import { withHandler } from "../_lib/withHandler";
+import { checkPlayerReportQuality } from "../_lib/reportQualityCheck";
 
 export const config = { runtime: "edge" };
 

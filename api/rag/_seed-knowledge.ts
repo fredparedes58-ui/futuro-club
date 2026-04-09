@@ -8,8 +8,8 @@
  */
 export const config = { runtime: "edge" };
 
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { SCOUTING_METHODOLOGY_DOCS } from "../../src/data/knowledgeBase/scoutingMethodology";
 import { YOUTH_DEVELOPMENT_DOCS } from "../../src/data/knowledgeBase/youthDevelopment";
 import { TACTICAL_SYSTEMS_DOCS } from "../../src/data/knowledgeBase/tacticalSystems";

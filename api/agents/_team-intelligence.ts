@@ -7,8 +7,8 @@
  * Retorna SSE → TeamIntelligenceOutput completo.
  */
 
-import { withHandler } from "../lib/withHandler";
-import { checkTeamReportQuality } from "../lib/reportQualityCheck";
+import { withHandler } from "../_lib/withHandler";
+import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 
 export const config = { runtime: "edge" };
 

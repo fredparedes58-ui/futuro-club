@@ -7,8 +7,8 @@
  * Retorna JSON con formación, posesión, jugadores, fases de juego.
  */
 
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 

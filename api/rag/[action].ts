@@ -2,7 +2,7 @@
  * VITAS · RAG Router
  * Consolidates 6 RAG endpoints into one Vercel function.
  */
-import { errorResponse } from "../lib/apiResponse";
+import { errorResponse } from "../_lib/apiResponse";
 
 import query from "./_query";
 import embed from "./_embed";

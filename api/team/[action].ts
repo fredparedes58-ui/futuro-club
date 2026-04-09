@@ -1,7 +1,7 @@
 /**
  * VITAS · Team Router
  */
-import { errorResponse } from "../lib/apiResponse";
+import { errorResponse } from "../_lib/apiResponse";
 import invite from "./_invite";
 import accept from "./_accept";
 

@@ -5,8 +5,8 @@
  * Env vars: BUNNY_STREAM_LIBRARY_ID, BUNNY_STREAM_API_KEY
  */
 
-import { withHandler } from "../../lib/withHandler";
-import { successResponse, errorResponse } from "../../lib/apiResponse";
+import { withHandler } from "../../_lib/withHandler";
+import { successResponse, errorResponse } from "../../_lib/apiResponse";
 
 const BUNNY_BASE = "https://video.bunnycdn.com/library";
 

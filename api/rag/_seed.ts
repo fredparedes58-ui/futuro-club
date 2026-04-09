@@ -9,8 +9,8 @@
  */
 export const config = { runtime: "edge" };
 
-import { withHandler } from "../lib/withHandler";
-import { successResponse, errorResponse } from "../lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 // Inline minimal drill types to avoid importing the src bundle in Edge runtime
 interface DrillDocument {

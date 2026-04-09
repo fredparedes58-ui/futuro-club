@@ -2,7 +2,7 @@
  * VITAS · Stripe Router
  * Consolidates 3 Stripe endpoints into one Vercel function.
  */
-import { errorResponse } from "../lib/apiResponse";
+import { errorResponse } from "../_lib/apiResponse";
 
 import checkout from "./_checkout";
 import portal from "./_portal";
