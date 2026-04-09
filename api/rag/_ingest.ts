@@ -114,7 +114,9 @@ export default withHandler(
         body: JSON.stringify({ texts, inputType: "document" }),
       });
       if (embedRes.ok) {
-        const embedData = await embedRes.json() as { embeddings?: (number[] | null)[] };
+        const raw = await embedRes.json() as { ok?: boolean; data?: { embeddings?: (number[] | null)[] }; embeddings?: (number[] | null)[] };
+        // successResponse wraps in { ok, data }, so unwrap
+        const embedData = raw.data ?? raw;
         if (embedData.embeddings?.length === texts.length) {
           embeddings = embedData.embeddings;
         }
