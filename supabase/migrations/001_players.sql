@@ -23,6 +23,7 @@ create index if not exists players_updated_at_idx on public.players(updated_at d
 alter table public.players enable row level security;
 
 -- Cada usuario solo puede ver y modificar sus propios jugadores
+drop policy if exists "Users manage own players" on public.players;
 create policy "Users manage own players"
   on public.players
   for all
@@ -38,6 +39,7 @@ begin
 end;
 $$;
 
+drop trigger if exists players_updated_at on public.players;
 create trigger players_updated_at
   before update on public.players
   for each row execute function public.update_updated_at();
@@ -63,12 +65,14 @@ create index if not exists videos_player_id_idx on public.videos(player_id);
 
 alter table public.videos enable row level security;
 
+drop policy if exists "Users manage own videos" on public.videos;
 create policy "Users manage own videos"
   on public.videos
   for all
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop trigger if exists videos_updated_at on public.videos;
 create trigger videos_updated_at
   before update on public.videos
   for each row execute function public.update_updated_at();
@@ -90,10 +94,12 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Users read own profile" on public.profiles;
 create policy "Users read own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+drop policy if exists "Users update own profile" on public.profiles;
 create policy "Users update own profile"
   on public.profiles for update
   using (auth.uid() = id)
@@ -113,6 +119,7 @@ begin
 end;
 $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();

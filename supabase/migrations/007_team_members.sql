@@ -16,15 +16,18 @@ create index if not exists team_members_member_idx on team_members (member_id);
 alter table team_members enable row level security;
 
 -- El director ve todos los miembros de su org
+drop policy if exists "Director reads own team" on team_members;
 create policy "Director reads own team"
   on team_members for select to authenticated
   using (auth.uid() = org_owner_id or auth.uid() = member_id);
 
 -- Solo el director puede gestionar el equipo
+drop policy if exists "Director manages team" on team_members;
 create policy "Director manages team"
   on team_members for all to authenticated
   using  (auth.uid() = org_owner_id)
   with check (auth.uid() = org_owner_id);
 
+drop policy if exists "Service role full access" on team_members;
 create policy "Service role full access"
   on team_members for all to service_role using (true);

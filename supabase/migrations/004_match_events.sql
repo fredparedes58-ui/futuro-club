@@ -18,10 +18,12 @@ create index if not exists match_events_user_id_idx   on match_events (user_id);
 
 alter table match_events enable row level security;
 
+drop policy if exists "Users manage their own events" on match_events;
 create policy "Users manage their own events"
   on match_events for all to authenticated
   using  (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop policy if exists "Service role full access" on match_events;
 create policy "Service role full access"
   on match_events for all to service_role using (true);

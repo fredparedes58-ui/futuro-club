@@ -43,10 +43,12 @@ CREATE INDEX IF NOT EXISTS idx_players_indexed_vsi      ON players_indexed(vsi_e
 -- RLS: lectura pública, escritura solo service_role
 ALTER TABLE players_indexed ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "public_read_indexed" ON players_indexed;
 CREATE POLICY "public_read_indexed"
   ON players_indexed FOR SELECT
   USING (true);
 
+DROP POLICY IF EXISTS "service_role_write" ON players_indexed;
 CREATE POLICY "service_role_write"
   ON players_indexed FOR ALL
   TO service_role

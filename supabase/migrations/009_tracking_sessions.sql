@@ -21,6 +21,7 @@ create index if not exists tracking_sessions_created_at_idx on tracking_sessions
 
 alter table tracking_sessions enable row level security;
 
+drop policy if exists "Users manage their own tracking sessions" on tracking_sessions;
 create policy "Users manage their own tracking sessions"
   on tracking_sessions for all
   to authenticated

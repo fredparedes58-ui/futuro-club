@@ -25,9 +25,11 @@ create index if not exists knowledge_base_content_fts
 -- RLS policies
 alter table knowledge_base enable row level security;
 
+drop policy if exists "Authenticated users can read knowledge base" on knowledge_base;
 create policy "Authenticated users can read knowledge base"
   on knowledge_base for select to authenticated using (true);
 
+drop policy if exists "Service role can manage knowledge base" on knowledge_base;
 create policy "Service role can manage knowledge base"
   on knowledge_base for all to service_role using (true);
 

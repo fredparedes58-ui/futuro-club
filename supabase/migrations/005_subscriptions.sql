@@ -18,9 +18,11 @@ create index if not exists subscriptions_stripe_customer_idx
 -- RLS
 alter table subscriptions enable row level security;
 
+drop policy if exists "Users read own subscription" on subscriptions;
 create policy "Users read own subscription"
   on subscriptions for select to authenticated
   using (auth.uid() = user_id);
 
+drop policy if exists "Service role full access" on subscriptions;
 create policy "Service role full access"
   on subscriptions for all to service_role using (true);

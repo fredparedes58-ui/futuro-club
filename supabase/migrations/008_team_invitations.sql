@@ -19,15 +19,18 @@ create index if not exists team_invitations_email_idx      on team_invitations (
 
 alter table team_invitations enable row level security;
 
+drop policy if exists "Director manages invitations" on team_invitations;
 create policy "Director manages invitations"
   on team_invitations for all to authenticated
   using  (auth.uid() = org_owner_id)
   with check (auth.uid() = org_owner_id);
 
 -- Cualquier usuario autenticado puede leer su invitación por token
+drop policy if exists "Invitee reads own invitation" on team_invitations;
 create policy "Invitee reads own invitation"
   on team_invitations for select to authenticated
   using (true);
 
+drop policy if exists "Service role full access" on team_invitations;
 create policy "Service role full access"
   on team_invitations for all to service_role using (true);

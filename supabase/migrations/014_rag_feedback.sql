@@ -23,10 +23,12 @@ CREATE INDEX IF NOT EXISTS idx_rag_feedback_created_at
 -- RLS: permitir inserts desde service role, lectura desde authenticated
 ALTER TABLE rag_feedback ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "service_role_full_access" ON rag_feedback;
 CREATE POLICY "service_role_full_access" ON rag_feedback
   FOR ALL
   USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "authenticated_insert" ON rag_feedback;
 CREATE POLICY "authenticated_insert" ON rag_feedback
   FOR INSERT
   WITH CHECK (true);

@@ -15,6 +15,7 @@ create table if not exists public.players (
 create index if not exists players_user_id_idx on public.players(user_id);
 create index if not exists players_updated_at_idx on public.players(updated_at desc);
 alter table public.players enable row level security;
+drop policy if exists "Users manage own players" on public.players;
 create policy "Users manage own players" on public.players
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -30,6 +31,7 @@ create table if not exists public.videos (
 create index if not exists videos_user_id_idx on public.videos(user_id);
 create index if not exists videos_player_id_idx on public.videos(player_id);
 alter table public.videos enable row level security;
+drop policy if exists "Users manage own videos" on public.videos;
 create policy "Users manage own videos" on public.videos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -44,8 +46,10 @@ create table if not exists public.profiles (
   updated_at      timestamptz default now()
 );
 alter table public.profiles enable row level security;
+drop policy if exists "Users read own profile" on public.profiles;
 create policy "Users read own profile" on public.profiles
   for select using (auth.uid() = id);
+drop policy if exists "Users update own profile" on public.profiles;
 create policy "Users update own profile" on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
@@ -84,6 +88,7 @@ create index if not exists pro_players_overall_idx  on public.pro_players(overal
 
 -- Lectura pública para el motor de similitud
 alter table public.pro_players enable row level security;
+drop policy if exists "Anyone can read pro players" on public.pro_players;
 create policy "Anyone can read pro players"
   on public.pro_players for select using (true);
 
@@ -101,6 +106,7 @@ create table if not exists public.player_analyses (
 create index if not exists analyses_player_id_idx on public.player_analyses(player_id);
 create index if not exists analyses_user_id_idx   on public.player_analyses(user_id);
 alter table public.player_analyses enable row level security;
+drop policy if exists "Users manage own analyses" on public.player_analyses;
 create policy "Users manage own analyses" on public.player_analyses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -109,14 +115,17 @@ create or replace function public.update_updated_at()
 returns trigger language plpgsql as $$
 begin new.updated_at = now(); return new; end; $$;
 
+drop trigger if exists players_updated_at on public.players;
 create trigger players_updated_at
   before update on public.players
   for each row execute function public.update_updated_at();
 
+drop trigger if exists videos_updated_at on public.videos;
 create trigger videos_updated_at
   before update on public.videos
   for each row execute function public.update_updated_at();
 
+drop trigger if exists profiles_updated_at on public.profiles;
 create trigger profiles_updated_at
   before update on public.profiles
   for each row execute function public.update_updated_at();

@@ -14,6 +14,7 @@ create index if not exists idx_team_analyses_video on public.team_analyses(video
 
 alter table public.team_analyses enable row level security;
 
+drop policy if exists "Users manage own team analyses" on public.team_analyses;
 create policy "Users manage own team analyses"
   on public.team_analyses for all
   using (auth.uid() = user_id)

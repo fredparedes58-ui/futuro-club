@@ -57,10 +57,12 @@ create index if not exists idx_player_history_name
 alter table development_curves enable row level security;
 alter table player_history enable row level security;
 
+drop policy if exists "development_curves_read" on development_curves;
 create policy "development_curves_read"
   on development_curves for select
   using (true);
 
+drop policy if exists "player_history_read" on player_history;
 create policy "player_history_read"
   on player_history for select
   using (true);
