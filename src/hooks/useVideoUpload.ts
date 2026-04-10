@@ -95,6 +95,16 @@ export function useVideoUpload(playerId?: string) {
           }),
         });
 
+        if (!initRes.ok) {
+          const errText = await initRes.text().catch(() => `HTTP ${initRes.status}`);
+          let errMsg = `HTTP ${initRes.status}`;
+          try {
+            const errJson = JSON.parse(errText) as { error?: string };
+            errMsg = errJson.error ?? errMsg;
+          } catch { /* not JSON */ }
+          throw new Error(`video-init: ${errMsg}`);
+        }
+
         const initData = (await initRes.json()) as {
           success: boolean;
           phase2Pending?: boolean;
@@ -376,8 +386,12 @@ export function useVideoUpload(playerId?: string) {
           queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
         }
       } catch (err) {
+        console.error("[useVideoUpload] Upload failed:", err);
         const { title, description } = getErrorDetails(err, "upload");
-        setState((prev) => ({ ...prev, phase: "error", error: `${title}. ${description}` }));
+        const rawMsg = err instanceof Error ? err.message : String(err);
+        // Show diagnostic message + raw error for debugging
+        const errorMsg = rawMsg.length > 80 ? rawMsg : `${title}. ${description}`;
+        setState((prev) => ({ ...prev, phase: "error", error: errorMsg }));
       }
     },
     [playerId, reset, queryClient, user]

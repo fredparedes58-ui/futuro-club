@@ -294,7 +294,7 @@
       "noAdjustPHV": "No PHV adjustment",
       "detailedMetrics": "Detailed Metrics",
       "activity": "Activity",
-      "drillsRegistered": "{count} drills recorded",
+      "drillsRegistered": "{{count}} drills recorded",
       "updated": "Updated",
       "trend": "Trend",
       "trendUp": "Rising 📈",
@@ -413,7 +413,7 @@
     "processingIA": "PROCESSING WITH AI",
     "processingDesc": "Claude Sonnet analyzing keyframes…",
     "analyzingCalibration": "ANALYZING… CLAUDE VISION PROCESSING",
-    "calibrationActive": "CALIBRATION ACTIVE: {count} OF 4 POINTS ASSIGNED. PERSPECTIVE SOLVED.",
+    "calibrationActive": "CALIBRATION ACTIVE: {{count}} OF 4 POINTS ASSIGNED. PERSPECTIVE SOLVED.",
     "playerToAnalyze": "Player to Analyze",
     "selectPlayer": "Select player…",
     "noPlayers": "No players",
@@ -455,7 +455,7 @@
     "analysisComplete": "Analysis completed!",
     "analysisCompleteDesc": "VITAS Intelligence report generated. Confidence: {confidence}%",
     "analysisError": "Analysis error",
-    "analysisLimitReached": "Analysis limit reached: {used}/{limit} this month.",
+    "analysisLimitReached": "Analysis limit reached: {{used}}/{{limit}} this month.",
     "upgradePlan": "Upgrade plan",
     "modelsComingSoon": "Models coming soon",
     "modelsComingSoonDesc": "YOLOv8n-pose trained with SoccerNet will be available in Phase 3.",
@@ -470,7 +470,7 @@
     "uploadVideo": "Upload Video",
     "uploadNew": "Upload new video",
     "searchPlaceholder": "Search videos...",
-    "myVideos": "My videos ({count})",
+    "myVideos": "My videos ({{count}})",
     "loadingVideos": "Loading...",
     "statusReady": "Ready",
     "statusProcessing": "Processing",
@@ -555,9 +555,9 @@
     "myOrg": "My organization",
     "stats": {
       "players": "Players",
-      "playersOfPlan": "/ {limit} in plan",
+      "playersOfPlan": "/ {{limit}} in plan",
       "analysesIA": "AI Analyses",
-      "analysesThisMonth": "this month / {limit}",
+      "analysesThisMonth": "this month / {{limit}}",
       "drills": "Drills",
       "drillsCompleted": "completed",
       "active": "Active",
@@ -805,7 +805,7 @@
 
   "teamAnalysis": {
     "teamSummary": "Team Summary",
-    "playersAnalyzed": "{count} players analyzed",
+    "playersAnalyzed": "{{count}} players analyzed",
     "possession": "Possession",
     "rigid": "Rigid",
     "variants": "Variants",
@@ -877,7 +877,7 @@
     "live": "LIVE",
     "upcoming": "Upcoming",
     "finished": "Finished",
-    "playersTracked": "{count} players tracked"
+    "playersTracked": "{{count}} players tracked"
   },
 
   "liveFixtures": {
@@ -919,7 +919,7 @@
     "playerDeleted": "{name} deleted",
     "playerNotFound": "Player not found",
     "playerSaveError": "Error saving player",
-    "planLimitReached": "Limit reached: {count}/{limit} players. Upgrade your plan.",
+    "planLimitReached": "Limit reached: {{count}}/{{limit}} players. Upgrade your plan.",
     "viewPlans": "View plans",
     "planActivated": "Plan activated! Changes will apply shortly.",
     "paymentCanceled": "Payment process canceled.",
@@ -942,7 +942,7 @@
     "notifPermissionDenied": "Notification permission denied",
     "notifChangeError": "Error changing notifications",
     "connectionRestored": "Connection restored",
-    "syncPending": "Syncing {{count}} pending changes...",
+    "syncPending": "Syncing {{{count}}} pending changes...",
     "syncComplete": "All data is synced",
     "offline": "No connection",
     "offlineDesc": "Changes will be saved locally",

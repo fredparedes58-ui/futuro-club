@@ -294,7 +294,7 @@
       "noAdjustPHV": "Sin ajuste PHV",
       "detailedMetrics": "M\u00e9tricas Detalladas",
       "activity": "Actividad",
-      "drillsRegistered": "{count} drills registrados",
+      "drillsRegistered": "{{count}} drills registrados",
       "updated": "Actualizado",
       "trend": "Tendencia",
       "trendUp": "En ascenso \ud83d\udcc8",
@@ -413,7 +413,7 @@
     "processingIA": "PROCESANDO CON IA",
     "processingDesc": "Claude Sonnet analizando keyframes\u2026",
     "analyzingCalibration": "ANALYZING\u2026 CLAUDE VISION PROCESSING",
-    "calibrationActive": "CALIBRATION ACTIVE: {count} OF 4 POINTS ASSIGNED. PERSPECTIVE SOLVED.",
+    "calibrationActive": "CALIBRATION ACTIVE: {{count}} OF 4 POINTS ASSIGNED. PERSPECTIVE SOLVED.",
     "playerToAnalyze": "Jugador a Analizar",
     "selectPlayer": "Seleccionar jugador\u2026",
     "noPlayers": "No hay jugadores",
@@ -455,7 +455,7 @@
     "analysisComplete": "\u00a1An\u00e1lisis completado!",
     "analysisCompleteDesc": "Informe VITAS Intelligence generado. Confianza: {confidence}%",
     "analysisError": "Error en el an\u00e1lisis",
-    "analysisLimitReached": "L\u00edmite de an\u00e1lisis alcanzado: {used}/{limit} este mes.",
+    "analysisLimitReached": "L\u00edmite de an\u00e1lisis alcanzado: {{used}}/{{limit}} este mes.",
     "upgradePlan": "Actualizar plan",
     "modelsComingSoon": "Modelos disponibles pr\u00f3ximamente",
     "modelsComingSoonDesc": "YOLOv8n-pose entrenado con SoccerNet estar\u00e1 disponible en Fase 3.",
@@ -470,7 +470,7 @@
     "uploadVideo": "Subir Video",
     "uploadNew": "Subir nuevo video",
     "searchPlaceholder": "Buscar videos...",
-    "myVideos": "Mis videos ({count})",
+    "myVideos": "Mis videos ({{count}})",
     "loadingVideos": "Cargando...",
     "statusReady": "Listo",
     "statusProcessing": "Procesando",
@@ -555,9 +555,9 @@
     "myOrg": "Mi organizaci\u00f3n",
     "stats": {
       "players": "Jugadores",
-      "playersOfPlan": "/ {limit} del plan",
+      "playersOfPlan": "/ {{limit}} del plan",
       "analysesIA": "An\u00e1lisis IA",
-      "analysesThisMonth": "este mes / {limit}",
+      "analysesThisMonth": "este mes / {{limit}}",
       "drills": "Drills",
       "drillsCompleted": "completados",
       "active": "Activos",
@@ -805,7 +805,7 @@
 
   "teamAnalysis": {
     "teamSummary": "Resumen del Equipo",
-    "playersAnalyzed": "{count} jugadores analizados",
+    "playersAnalyzed": "{{count}} jugadores analizados",
     "possession": "Posesi\u00f3n",
     "rigid": "R\u00edgida",
     "variants": "Variantes",
@@ -877,7 +877,7 @@
     "live": "EN VIVO",
     "upcoming": "Pr\u00f3ximo",
     "finished": "Finalizado",
-    "playersTracked": "{count} jugadores rastreados"
+    "playersTracked": "{{count}} jugadores rastreados"
   },
 
   "liveFixtures": {
@@ -919,7 +919,7 @@
     "playerDeleted": "{name} eliminado",
     "playerNotFound": "Jugador no encontrado",
     "playerSaveError": "Error al guardar el jugador",
-    "planLimitReached": "L\u00edmite alcanzado: {count}/{limit} jugadores. Actualiza tu plan.",
+    "planLimitReached": "L\u00edmite alcanzado: {{count}}/{{limit}} jugadores. Actualiza tu plan.",
     "viewPlans": "Ver planes",
     "planActivated": "\u00a1Plan activado! Los cambios se aplicar\u00e1n en breve.",
     "paymentCanceled": "Proceso de pago cancelado.",
@@ -942,7 +942,7 @@
     "notifPermissionDenied": "Permiso de notificaciones denegado",
     "notifChangeError": "Error al cambiar notificaciones",
     "connectionRestored": "Conexi\u00f3n restaurada",
-    "syncPending": "Sincronizando {{count}} cambios pendientes...",
+    "syncPending": "Sincronizando {{{count}}} cambios pendientes...",
     "syncComplete": "Todos los datos est\u00e1n sincronizados",
     "offline": "Sin conexi\u00f3n",
     "offlineDesc": "Los cambios se guardar\u00e1n localmente",
