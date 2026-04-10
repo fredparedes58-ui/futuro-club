@@ -163,7 +163,7 @@ export const SubscriptionService = {
         .select("count")
         .eq("user_id", userId)
         .eq("month", currentMonth)
-        .single();
+        .maybeSingle();
       if (data) {
         StorageService.set(ANALYSES_KEY, { month: currentMonth, count: data.count });
       }
@@ -181,7 +181,7 @@ export const SubscriptionService = {
         .from("subscriptions")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (data) {
         this.update({
           plan: data.plan as Plan,

@@ -166,7 +166,7 @@ export const UserProfileService = {
         .from("user_profiles")
         .select("*")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
       if (data) {
         StorageService.set<UserProfile>(STORAGE_KEY, {
           userId,
