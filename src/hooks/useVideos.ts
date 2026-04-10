@@ -79,7 +79,7 @@ export function useVideo(id: string | null | undefined) {
       if (local?.status === "finished") return local;
       // Fetch from API
       try {
-        const res = await fetch(`/api/videos/${id}/status`);
+        const res = await fetch(`/api/videos/status?videoId=${id}`);
         const data = (await res.json()) as {
           success: boolean;
           data?: VideoRecord;
@@ -111,7 +111,7 @@ export function useDeleteVideo() {
     mutationFn: async (videoId: string) => {
       // Delete from Bunny API
       try {
-        const res = await fetch(`/api/videos/${videoId}/delete`, { method: "DELETE" });
+        const res = await fetch(`/api/videos/delete?videoId=${videoId}`, { method: "DELETE" });
         const data = (await res.json()) as { success: boolean; phase2Pending?: boolean; error?: string };
         if (!data.success && !data.phase2Pending) throw new Error(data.error ?? "Delete failed");
       } catch (err) {

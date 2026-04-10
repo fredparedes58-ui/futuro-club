@@ -36,9 +36,7 @@ const videoStatus = withHandler(
     }
 
     const url = new URL(req.url);
-    const segments = url.pathname.split("/").filter(Boolean);
-    // /api/videos/{id}/status → segments = ["api","videos","{id}","status"]
-    const videoId = segments[segments.length - 2];
+    const videoId = url.searchParams.get("videoId");
 
     if (!videoId || videoId === "undefined") {
       return errorResponse("Missing video ID", 400);

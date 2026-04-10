@@ -270,7 +270,7 @@ export function useVideoUpload(playerId?: string) {
             }
 
             try {
-              const statusRes = await fetch(`/api/videos/${videoId}/status`, {
+              const statusRes = await fetch(`/api/videos/status?videoId=${videoId}`, {
                 headers: await authHeaders(),
               });
               const statusData = (await statusRes.json()) as {
