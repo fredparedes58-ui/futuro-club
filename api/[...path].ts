@@ -13,6 +13,7 @@ import roboflowAnalyze from "./roboflow/_analyze";
 import uploadImage from "./upload/_image";
 import uploadVideoInit from "./upload/_video-init";
 import videosList from "./videos/_list";
+import health from "./health";
 
 export const config = { runtime: "edge" };
 
@@ -27,6 +28,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   // Static routes
   const staticRoutes: Record<string, (req: Request) => Promise<Response>> = {
+    "health": health,
     "pipeline/start": pipelineStart,
     "players/search": playersSearch,
     "fixtures/live": fixturesLive,
