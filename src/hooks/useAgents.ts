@@ -34,7 +34,7 @@ export function usePHVCalculator(input: PHVInput | null) {
     },
     enabled: !!input,
     staleTime: 1000 * 60 * 60 * 24, // 24 horas
-    retry: 2,
+    retry: false, // PHV ya tiene retries internos en agentResilience — no duplicar
   });
 }
 

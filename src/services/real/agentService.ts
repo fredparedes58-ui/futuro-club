@@ -122,7 +122,7 @@ async function callAgent<TInput, TOutput>(
     },
 
     onRetry: (attempt, error) => {
-      console.warn(`[AgentService] ${endpoint} retry ${attempt}: ${error}`);
+      console.warn(`[AgentService] ${endpoint} retry ${attempt}: ${error instanceof Error ? error.message : error}`);
     },
 
     onCircuitOpen: (agentName) => {
