@@ -299,6 +299,31 @@ export const VideoIntelligenceOutputSchema = z.object({
     recomendacionEntrenador: z.string().max(300),
   }),
 
+  // Sección 5.5: Proyección Competitiva (ligas juveniles españolas)
+  proyeccionCompetitiva: z.object({
+    nivelActualRecomendado: z.string(),
+    justificacionNivel: z.string().max(300),
+    tipoJugadorProyectado: z.string().max(200),
+    roadmapPorCategoria: z.array(z.object({
+      categoria: z.enum(["prebenjamin", "benjamin", "alevin", "infantil", "cadete", "juvenil"]),
+      edadRango: z.string(),
+      nivelRecomendado: z.string(),
+      tipoJugadorEnEstaEtapa: z.string().max(150),
+      capacidadesClave: z.array(z.string()).max(4),
+      enfoqueDesarrollo: z.string().max(150),
+      probabilidadAlcanzar: z.number().min(0).max(1),
+    })).min(1).max(6),
+    techoCompetitivo: z.object({
+      nivel: z.string(),
+      probabilidad: z.number().min(0).max(1),
+      edadEstimada: z.number(),
+      requisitosParaAlcanzarlo: z.array(z.string()).max(4),
+    }),
+    factoresAscenso: z.array(z.string()).max(4),
+    factoresRiesgo: z.array(z.string()).max(3),
+    recomendacionFinal: z.string().max(400),
+  }).optional(),
+
   // Sección 6: Métricas Cuantitativas (opcionales — dependen de fuente de datos)
   metricasCuantitativas: z.object({
     fisicas: z.object({

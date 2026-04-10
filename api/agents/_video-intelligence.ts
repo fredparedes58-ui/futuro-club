@@ -312,6 +312,31 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
     "pilaresTrabajo": [{"pilar":"string","acciones":["max 3"],"prioridad":"crítica|alta|media"}],
     "recomendacionEntrenador": "string max 300"
   },
+  "proyeccionCompetitiva": {
+    "nivelActualRecomendado": "Segunda Regional|Primera Regional|Preferente|Autonómica|Nacional|División de Honor",
+    "justificacionNivel": "string max 300 — CITA acciones concretas del video",
+    "tipoJugadorProyectado": "string max 200 — perfil detallado, no solo posición",
+    "roadmapPorCategoria": [
+      {
+        "categoria": "prebenjamin|benjamin|alevin|infantil|cadete|juvenil (SOLO desde edad actual hasta juvenil)",
+        "edadRango": "12-13",
+        "nivelRecomendado": "Segunda Regional|Primera Regional|Preferente|Autonómica|Nacional|División de Honor",
+        "tipoJugadorEnEstaEtapa": "string max 150 — cómo evoluciona su perfil",
+        "capacidadesClave": ["max 4 capacidades que tendrá en esa etapa"],
+        "enfoqueDesarrollo": "string max 150 — qué trabajar en esa etapa",
+        "probabilidadAlcanzar": 0-1
+      }
+    ],
+    "techoCompetitivo": {
+      "nivel": "string — nivel máximo realista",
+      "probabilidad": 0-1,
+      "edadEstimada": 16,
+      "requisitosParaAlcanzarlo": ["max 4 requisitos específicos"]
+    },
+    "factoresAscenso": ["max 4 — basados en el video"],
+    "factoresRiesgo": ["max 3 — basados en el video"],
+    "recomendacionFinal": "string max 400 — narrativa de scout con evidencias del video"
+  },
   "confianza": 0-1,
   "modeloUsado": "claude-sonnet-4-20250514"
 }
@@ -347,6 +372,33 @@ PLAN DE DESARROLLO:
 - No "mejorar la técnica" sino "trabajo de primer toque orientado bajo presión en rondos de 6v2"
 - Cada acción debe conectar con algo observado en el video
 - La recomendación al entrenador debe sonar como la de un director de scouting escribiendo a un director técnico
+
+PROYECCIÓN COMPETITIVA (basada EXCLUSIVAMENTE en lo observado en el video):
+Evalúa en qué liga del fútbol base español debería competir este jugador y cómo evolucionará.
+
+1. NIVEL ACTUAL RECOMENDADO: ¿En qué liga debería competir AHORA?
+   Pirámide (de menor a mayor): Segunda Regional < Primera Regional < Preferente < Autonómica < Nacional < División de Honor
+   Justifica con acciones CONCRETAS del video — no genéricas
+
+2. TIPO DE JUGADOR PROYECTADO: Describe el perfil futuro completo
+   NO "delantero centro" sino "9 móvil con capacidad de asociación, lectura de espacios entre líneas y definición con ambos perfiles"
+
+3. ROADMAP POR CATEGORÍA: Solo desde la categoría ACTUAL del jugador hasta Juvenil
+   Categorías: prebenjamín(6-7), benjamín(8-9), alevín(10-11), infantil(12-13), cadete(14-15), juvenil(16-18)
+   Para CADA categoría futura (NO incluyas categorías anteriores a su edad actual):
+   - Nivel de liga recomendado
+   - Tipo de jugador que será en esa etapa (evoluciona con la edad)
+   - 4 capacidades clave que tendrá
+   - Enfoque de desarrollo prioritario para esa etapa
+   - Probabilidad realista de alcanzar ese nivel (0-1)
+
+4. TECHO COMPETITIVO: El nivel máximo realista alcanzable + requisitos para llegar
+
+5. FACTORES ASCENSO: Qué cualidades observadas en el video lo pueden impulsar (max 4)
+   FACTORES RIESGO: Qué debilidades observadas o riesgos reales lo pueden frenar (max 3)
+
+6. RECOMENDACIÓN FINAL: Narrativa de scout → "Este jugador debería estar en..."
+   OBLIGATORIO citar al menos 2 evidencias concretas del video
 
 DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimiento mostrado en ESTE video específico. Scores, proyecciones y observaciones deben variar si el rendimiento es diferente
 - Responde en español.`;
