@@ -167,7 +167,7 @@ const RULES: DiagnosticRule[] = [
       category: "video",
       title: "Video demasiado grande",
       cause: "El archivo excede el tamaño máximo permitido.",
-      action: "Usa un video de menor duración o resolución. Máximo recomendado: 500MB.",
+      action: "Usa un video de menor duración o resolución. Máximo recomendado: 2GB.",
       severity: "error",
       retryable: false,
     },

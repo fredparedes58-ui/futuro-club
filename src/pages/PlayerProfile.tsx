@@ -151,6 +151,8 @@ const PlayerProfile = () => {
       height: rawPlayer.height,
       weight: rawPlayer.weight,
       gender: (rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M",
+      ...((rawPlayer as any).sittingHeight ? { sittingHeight: (rawPlayer as any).sittingHeight } : {}),
+      ...((rawPlayer as any).legLength ? { legLength: (rawPlayer as any).legLength } : {}),
     });
     toast.info(t("toasts.phvCalculating"));
   };
@@ -718,6 +720,27 @@ const PlayerProfile = () => {
           <ChevronRight size={16} className="text-primary group-hover:translate-x-0.5 transition-transform" />
         </button>
       </motion.div>
+
+      {/* Comparar reportes de video */}
+      {playerVideos && playerVideos.length >= 2 && (
+        <motion.div variants={item}>
+          <button
+            onClick={() => navigate(`/players/${player.id}/intelligence?compare=1`)}
+            className="w-full glass rounded-xl p-4 flex items-center justify-between hover:border-electric/40 border border-electric/20 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-electric/20 flex items-center justify-center">
+                <Activity size={16} className="text-electric" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-display font-semibold text-foreground">{t("players.profile.compareReports")}</p>
+                <p className="text-[10px] text-muted-foreground">{t("players.profile.compareReportsDesc")}</p>
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-electric group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </motion.div>
+      )}
 
       {/* Acciones: Editar + PDF + Eliminar */}
       <motion.div variants={item} className="flex gap-3 pt-1">

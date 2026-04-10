@@ -21,7 +21,7 @@ interface VideoUploadProps {
 }
 
 const ACCEPTED = "video/mp4,video/quicktime,video/x-msvideo,video/webm,video/*";
-const MAX_SIZE_MB = 500;
+const MAX_SIZE_MB = 2048;
 
 const phaseLabel: Record<UploadPhase, string> = {
   idle: "",

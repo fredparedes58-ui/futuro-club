@@ -18,6 +18,8 @@ export const PlayerSchema = z.object({
   foot: z.enum(["right", "left", "both"]),
   height: z.number().min(100).max(220),
   weight: z.number().min(20).max(120),
+  sittingHeight: z.number().min(30).max(130).optional(),
+  legLength: z.number().min(30).max(130).optional(),
   competitiveLevel: z.string().default("Regional"),
   minutesPlayed: z.number().default(0),
   metrics: z.object({

@@ -12,8 +12,8 @@
  * También permite lanzar un análisis nuevo con video.
  */
 
-import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Play, Brain, Target, TrendingUp,
@@ -506,7 +506,8 @@ export default function PlayerIntelligencePage() {
 
   // Selector de análisis guardado (por video)
   const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
-  const [compareMode, setCompareMode] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [compareMode, setCompareMode] = useState(searchParams.get("compare") === "1");
   const [compareIdx, setCompareIdx] = useState<number>(1);
 
   // Informe a mostrar: el recién generado o el seleccionado del historial

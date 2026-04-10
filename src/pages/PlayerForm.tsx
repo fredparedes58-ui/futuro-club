@@ -4,7 +4,7 @@
  * Ruta /players/:id/edit → modo edición
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +12,7 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Save, User, Ruler, Weight,
-  Target, Dna, Trophy, Sliders,
+  Target, Dna, Trophy, Sliders, Info, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,8 @@ const formSchema = z.object({
   foot: z.enum(["right", "left", "both"], { required_error: "Selecciona pie dominante" }),
   height: z.number({ invalid_type_error: "Ingresa la altura" }).min(100, "Mínimo 100 cm").max(220, "Máximo 220 cm"),
   weight: z.number({ invalid_type_error: "Ingresa el peso" }).min(20, "Mínimo 20 kg").max(120, "Máximo 120 kg"),
+  sittingHeight: z.number().min(40).max(120).optional().or(z.literal(0).transform(() => undefined)),
+  legLength: z.number().min(40).max(130).optional().or(z.literal(0).transform(() => undefined)),
   competitiveLevel: z.string().min(1, "Selecciona el nivel"),
   minutesPlayed: z.number().min(0).default(0),
   metrics: z.object({
@@ -157,6 +159,55 @@ function MetricSlider({
   );
 }
 
+// ─── Guía de medición antropométrica ──────────────────────────────────────────
+function AnthropometricGuide({ t }: { t: (key: string) => string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-2 p-3 text-left"
+      >
+        <Info size={14} className="text-primary shrink-0" />
+        <div className="flex-1">
+          <span className="text-xs font-display font-semibold text-foreground">
+            {t("players.form.anthropometricGuideTitle")}
+          </span>
+          <span className="text-[10px] text-muted-foreground ml-2">
+            {t("players.form.anthropometricGuideDesc")}
+          </span>
+        </div>
+        <ChevronDown size={14} className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-2 border-t border-primary/10 pt-2">
+          <div className="flex gap-2">
+            <Ruler size={12} className="text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">{t("players.form.sittingHeight")}:</strong>{" "}
+              {t("players.form.anthropometricGuideSitting")}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Ruler size={12} className="text-electric shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">{t("players.form.legLength")}:</strong>{" "}
+              {t("players.form.anthropometricGuideLeg")}
+            </p>
+          </div>
+          <div className="flex gap-2 pt-1 border-t border-border/50">
+            <Dna size={12} className="text-gold shrink-0 mt-0.5" />
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {t("players.form.anthropometricGuideWhere")}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerForm = () => {
   const { t } = useTranslation();
@@ -185,6 +236,8 @@ const PlayerForm = () => {
       foot: "right",
       height: 165,
       weight: 58,
+      sittingHeight: 0,
+      legLength: 0,
       competitiveLevel: "Regional",
       minutesPlayed: 0,
       metrics: DEFAULT_METRICS,
@@ -208,6 +261,8 @@ const PlayerForm = () => {
       foot: player.foot,
       height: player.height,
       weight: player.weight,
+      sittingHeight: (player as any).sittingHeight ?? 0,
+      legLength: (player as any).legLength ?? 0,
       competitiveLevel: player.competitiveLevel,
       minutesPlayed: player.minutesPlayed,
       metrics: player.metrics,
@@ -241,6 +296,8 @@ const PlayerForm = () => {
             foot: data.foot,
             height: data.height,
             weight: data.weight,
+            sittingHeight: data.sittingHeight || undefined,
+            legLength: data.legLength || undefined,
             competitiveLevel: data.competitiveLevel,
             minutesPlayed: data.minutesPlayed,
             updatedAt: new Date().toISOString(),
@@ -261,6 +318,8 @@ const PlayerForm = () => {
           foot: data.foot,
           height: data.height,
           weight: data.weight,
+          sittingHeight: data.sittingHeight || undefined,
+          legLength: data.legLength || undefined,
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
           metrics: data.metrics,
@@ -480,6 +539,41 @@ const PlayerForm = () => {
                 className={errors.weight ? "border-destructive" : ""}
               />
               {errors.weight && <p className="text-[10px] text-destructive">{errors.weight.message}</p>}
+            </div>
+          </div>
+
+          {/* Antropometría avanzada (opcional) — Guía + campos */}
+          <AnthropometricGuide t={t} />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="sittingHeight" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                {t("players.form.sittingHeight")}
+              </Label>
+              <Input
+                id="sittingHeight"
+                type="number"
+                min={0}
+                max={120}
+                step={0.5}
+                placeholder={t("players.form.optional")}
+                {...register("sittingHeight", { valueAsNumber: true })}
+              />
+              <p className="text-[9px] text-muted-foreground">{t("players.form.sittingHeightHint")}</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="legLength" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                {t("players.form.legLength")}
+              </Label>
+              <Input
+                id="legLength"
+                type="number"
+                min={0}
+                max={130}
+                step={0.5}
+                placeholder={t("players.form.optional")}
+                {...register("legLength", { valueAsNumber: true })}
+              />
+              <p className="text-[9px] text-muted-foreground">{t("players.form.legLengthHint")}</p>
             </div>
           </div>
 

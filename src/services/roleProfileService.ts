@@ -89,12 +89,14 @@ const RoleProfileSchema = z.object({
  * Llama al RoleProfileAgent de Claude y mapea al formato UI.
  */
 export async function fetchRoleProfile(playerId: string): Promise<RoleProfileData> {
+  // Carga PlayerService fuera del try para que el fallback pueda usar datos reales
+  const { PlayerService } = await import("@/services/real/playerService");
+  const player = PlayerService.getById(playerId);
+
   // Intenta obtener datos reales del agente
   try {
-    const { PlayerService } = await import("@/services/real/playerService");
     const { AgentService } = await import("@/services/real/agentService");
 
-    const player = PlayerService.getById(playerId);
     if (player) {
       const res = await AgentService.buildRoleProfile({
         player: {
@@ -220,7 +222,17 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   }
 
   // Fallback al mock si el agente falla o el jugador no existe
-  const raw = { ...mockRoleProfile, player_id: playerId };
+  const raw = {
+    ...mockRoleProfile,
+    player_id: playerId,
+    ...(player ? {
+      player_name: player.name,
+      player_age: player.age,
+      dominant_foot: player.foot === "right" ? "derecho" : player.foot === "left" ? "izquierdo" : "ambidiestro",
+      minutes_played: player.minutesPlayed,
+      competitive_level: player.competitiveLevel ?? mockRoleProfile.competitive_level,
+    } : {}),
+  };
 
   const parsed = RoleProfileSchema.safeParse(raw);
   if (!parsed.success) {
