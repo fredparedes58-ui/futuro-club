@@ -83,6 +83,10 @@ export default function RoleProfileAudit() {
           <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("common.retry")} />
         )}
 
+        {!isLoading && !isError && data === null && (
+          <EmptyState type="agent-unavailable" onAction={() => window.history.back()} actionLabel={t("roleProfile.backToProfile")} />
+        )}
+
         {data && (
           <>
             <PlayerHeader data={data} />

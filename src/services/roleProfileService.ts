@@ -88,7 +88,7 @@ const RoleProfileSchema = z.object({
  * GET /api/player/:id/role-profile
  * Llama al RoleProfileAgent de Claude y mapea al formato UI.
  */
-export async function fetchRoleProfile(playerId: string): Promise<RoleProfileData> {
+export async function fetchRoleProfile(playerId: string): Promise<RoleProfileData | null> {
   // Carga PlayerService fuera del try para que el fallback pueda usar datos reales
   const { PlayerService } = await import("@/services/real/playerService");
   const player = PlayerService.getById(playerId);
@@ -221,26 +221,9 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
     // Silencia errores y cae al mock
   }
 
-  // Fallback al mock si el agente falla o el jugador no existe
-  const raw = {
-    ...mockRoleProfile,
-    player_id: playerId,
-    ...(player ? {
-      player_name: player.name,
-      player_age: player.age,
-      dominant_foot: player.foot === "right" ? "derecho" : player.foot === "left" ? "izquierdo" : "ambidiestro",
-      minutes_played: player.minutesPlayed,
-      competitive_level: player.competitiveLevel ?? mockRoleProfile.competitive_level,
-    } : {}),
-  };
-
-  const parsed = RoleProfileSchema.safeParse(raw);
-  if (!parsed.success) {
-    console.error("[roleProfileService] Validation error:", parsed.error.flatten());
-    throw new Error(`Datos de perfil inválidos: ${parsed.error.issues[0]?.message || "error de validación"}`);
-  }
-
-  return parsed.data as RoleProfileData;
+  // Sin datos del agente AI → no mostrar datos falsos
+  console.warn("[roleProfileService] Agent unavailable for player", playerId, "— returning null instead of mock data");
+  return null;
 }
 
 /**
@@ -248,7 +231,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
  */
 export async function fetchPositionFit(playerId: string): Promise<PositionFit[]> {
   const profile = await fetchRoleProfile(playerId);
-  return profile.positions;
+  return profile?.positions ?? [];
 }
 
 /**
@@ -256,7 +239,7 @@ export async function fetchPositionFit(playerId: string): Promise<PositionFit[]>
  */
 export async function fetchArchetypes(playerId: string): Promise<ArchetypeFit[]> {
   const profile = await fetchRoleProfile(playerId);
-  return profile.archetypes;
+  return profile?.archetypes ?? [];
 }
 
 /**
@@ -264,5 +247,5 @@ export async function fetchArchetypes(playerId: string): Promise<ArchetypeFit[]>
  */
 export async function fetchAuditIndicators(playerId: string, _runId?: string): Promise<EvidenceIndicator[]> {
   const profile = await fetchRoleProfile(playerId);
-  return profile.evidence;
+  return profile?.evidence ?? [];
 }

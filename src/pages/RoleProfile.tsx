@@ -87,6 +87,15 @@ export default function RoleProfile() {
           <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("roleProfile.retryLoad")} />
         )}
 
+        {/* Agent unavailable — no real AI analysis */}
+        {!isLoading && !isError && data === null && (
+          <EmptyState
+            type="agent-unavailable"
+            onAction={() => window.history.back()}
+            actionLabel={t("roleProfile.backToProfile")}
+          />
+        )}
+
         {/* Data loaded */}
         {data && (
           <>

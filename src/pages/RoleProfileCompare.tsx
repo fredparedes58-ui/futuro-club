@@ -81,6 +81,10 @@ export default function RoleProfileCompare() {
           <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("common.retry")} />
         )}
 
+        {!isLoading && !isError && data === null && (
+          <EmptyState type="agent-unavailable" onAction={() => window.history.back()} actionLabel={t("roleProfile.backToProfile")} />
+        )}
+
         {data && (() => {
           const positions = [...data.positions].sort((a, b) => b.score - a.score);
 

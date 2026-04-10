@@ -1,13 +1,19 @@
-import { FileX, AlertTriangle, Wifi } from "lucide-react";
+import { FileX, AlertTriangle, Wifi, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
-  type: "no-data" | "low-confidence" | "missing-tracking" | "missing-drill" | "phv-unavailable" | "partial-data";
+  type: "no-data" | "low-confidence" | "missing-tracking" | "missing-drill" | "phv-unavailable" | "partial-data" | "agent-unavailable";
   onAction?: () => void;
   actionLabel?: string;
 }
 
 const CONFIG: Record<Props["type"], { icon: typeof FileX; title: string; description: string; color: string }> = {
+  "agent-unavailable": {
+    icon: Video,
+    title: "Análisis no disponible",
+    description: "El perfil de rol táctico se genera mediante análisis de IA a partir de videos del jugador. Sube un video desde el perfil del jugador para generar este informe con datos reales.",
+    color: "text-primary",
+  },
   "no-data": {
     icon: FileX,
     title: "Sin datos de perfil",

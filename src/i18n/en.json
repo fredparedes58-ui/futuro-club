@@ -839,6 +839,7 @@
     "compareTitle": "Projection Comparator",
     "lowConfidenceWarning": "⚠️ Overall confidence below 50%. Recommendations have high uncertainty. Review the risks section.",
     "retryLoad": "Retry load",
+    "backToProfile": "Back to profile",
     "audit": {
       "phases": {
         "all": "All",

@@ -839,6 +839,7 @@
     "compareTitle": "Comparador de proyecci\u00f3n",
     "lowConfidenceWarning": "\u26a0\ufe0f Confianza global inferior al 50%. Las recomendaciones tienen incertidumbre alta. Revisa la secci\u00f3n de riesgos.",
     "retryLoad": "Reintentar carga",
+    "backToProfile": "Volver al perfil",
     "audit": {
       "phases": {
         "all": "Todas",
