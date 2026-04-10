@@ -970,9 +970,9 @@
     "analyzingIA": "Analizando con IA\u2026",
     "preparingVideo": "Preparando video para observaci\u00f3n IA\u2026",
     "bunnyStreamWarning": "Configura Bunny Stream en Vercel para an\u00e1lisis de video completo",
-    "roleProfileError": "No se pudo cargar el perfil: {error}",
-    "auditLoadError": "Error al cargar auditor\u00eda: {error}",
-    "compareLoadError": "Error al cargar comparaci\u00f3n: {error}"
+    "roleProfileError": "No se pudo cargar el perfil: {{error}}",
+    "auditLoadError": "Error al cargar auditor\u00eda: {{error}}",
+    "compareLoadError": "Error al cargar comparaci\u00f3n: {{error}}"
   },
 
   "errors": {

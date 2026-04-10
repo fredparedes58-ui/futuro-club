@@ -13,7 +13,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
-import type { Player } from "@/services/real/playerService";
+import { PlayerService, type Player } from "@/services/real/playerService";
 import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64, getOptimalFrameCount } from "@/lib/localVideoUtils";
 import { computeKPIs, generateMonthlyChallenges } from "@/lib/kpiProjections";
 import type { PhysicalMetrics, FieldPosition } from "@/lib/yolo/types";
@@ -200,7 +200,7 @@ export function usePlayerIntelligence(player: Player) {
         analysisFocus?:   string[]; // enfoque: ofensivas, defensivas, recuperación, duelos
   }) => {
         const { videoId, videoDuration, jerseyNumber, teamColor, localVideoSrc, physicalMetrics, trackPositions, analysisFocus } = opts;
-        setState({ step: "keyframes", progress: 10, message: "Obteniendo keyframes del video..." });
+        setState({ step: "keyframes", progress: 10, message: "Preparando video para análisis..." });
 
         try {
           const vsiMetrics = playerToVSI(player);
@@ -267,7 +267,7 @@ export function usePlayerIntelligence(player: Player) {
 
             // 2b. Si Gemini falló → extraer frames como fallback
             if (!geminiObservations) {
-              setState({ step: "keyframes", progress: 20, message: "Extrayendo fotogramas del video..." });
+              setState({ step: "keyframes", progress: 20, message: "Extrayendo 8 fotogramas clave del video..." });
               const frameCount = getOptimalFrameCount(videoDuration || 120);
               keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, frameCount);
               if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
@@ -284,7 +284,7 @@ export function usePlayerIntelligence(player: Player) {
             keyframes = getBunnyKeyframes(videoId, videoDuration);
           }
 
-          setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe con Claude..." : "Enviando a VITAS Intelligence..." });
+          setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe (video analizado por Gemini)..." : "Analizando fotogramas con Claude..." });
 
           // 3. Llamar a Claude con SSE streaming (con observaciones Gemini O con frames)
           const analysisResult = await readSSEStream(
@@ -416,6 +416,33 @@ export function usePlayerIntelligence(player: Player) {
                     similarity: similarityData,
                     savedAt,
           });
+
+          // ── Auto-update player metrics from Claude dimensions ────────────
+          // Convierte dimensiones (0-10) → métricas player (0-100)
+          const dimToMetric: Record<string, keyof Player["metrics"]> = {
+            velocidadDecision: "speed",
+            tecnicaConBalon: "technique",
+            inteligenciaTactica: "vision",
+            capacidadFisica: "stamina",
+            eficaciaCompetitiva: "shooting",
+            liderazgoPresencia: "defending",
+          };
+          const dims = analysisResult.estadoActual?.dimensiones;
+          if (dims) {
+            try {
+              const newMetrics: Player["metrics"] = { ...player.metrics };
+              for (const [dimKey, metricKey] of Object.entries(dimToMetric)) {
+                const dimScore = (dims as Record<string, { score: number }>)[dimKey]?.score;
+                if (dimScore != null) {
+                  newMetrics[metricKey] = Math.round(dimScore * 10);
+                }
+              }
+              await PlayerService.updateMetrics(player.id, newMetrics);
+              queryClient.invalidateQueries({ queryKey: ["player", player.id] });
+            } catch (metricsErr) {
+              console.warn("[Intelligence] No se pudieron actualizar métricas:", metricsErr);
+            }
+          }
 
           // Invalidar caché de análisis guardados
           queryClient.invalidateQueries({ queryKey: ["player-analyses", player.id] });

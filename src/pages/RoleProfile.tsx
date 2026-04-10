@@ -15,7 +15,8 @@ import EmptyState from "@/components/role-profile/EmptyState";
 import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, PositionFitSkeleton } from "@/components/role-profile/Skeletons";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { Button } from "@/components/ui/button";
-import { FileText, GitCompare, Table2 } from "lucide-react";
+import { FileText, GitCompare, Table2, Zap } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export default function RoleProfile() {
@@ -23,6 +24,7 @@ export default function RoleProfile() {
   const { id } = useParams();
   const [mode, setMode] = useState<ViewMode>("scout");
   const [filters, setFilters] = useState<RoleProfileFilters | null>(null);
+  const navigate = useNavigate();
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
 
   const handleFilterChange = useCallback((f: RoleProfileFilters) => {
@@ -87,13 +89,34 @@ export default function RoleProfile() {
           <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("roleProfile.retryLoad")} />
         )}
 
-        {/* Agent unavailable — no real AI analysis */}
+        {/* No analysis data — needs VITAS Intelligence report first */}
         {!isLoading && !isError && data === null && (
-          <EmptyState
-            type="agent-unavailable"
-            onAction={() => window.history.back()}
-            actionLabel={t("roleProfile.backToProfile")}
-          />
+          <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Zap className="w-7 h-7 text-primary" />
+            </div>
+            <h3 className="font-display text-lg font-bold mb-2">
+              Genera un informe VITAS Intelligence primero
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mb-4 leading-relaxed">
+              El perfil de rol se construye a partir del analisis de video con IA.
+              Sube un video y genera un informe en VITAS Intelligence para activar esta seccion.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="default"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => navigate(`/players/${id}/intelligence`)}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Generar Informe
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.history.back()}>
+                Volver
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Data loaded */}

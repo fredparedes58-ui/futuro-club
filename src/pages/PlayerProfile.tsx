@@ -14,6 +14,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { PlanGuard } from "@/components/PlanGuard";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
+import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
 import VsiGauge from "@/components/VsiGauge";
@@ -102,6 +104,10 @@ const PlayerProfile = () => {
   const { data: rawPlayer } = useRawPlayerById(id);
   // Mutación de eliminación
   const deletePlayer = useDeletePlayer();
+
+  // Análisis guardados
+  const { data: savedAnalyses } = useSavedAnalyses(id ?? "");
+  const latestAnalysis = savedAnalyses?.[0]?.report as VideoIntelligenceOutput | undefined;
 
   // Videos del jugador
   const { data: playerVideos = [] } = useVideos(id);
@@ -343,6 +349,47 @@ const PlayerProfile = () => {
             );
           })}
         </div>
+
+        {/* Último análisis IA */}
+        {latestAnalysis?.estadoActual && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Zap size={12} className="text-primary" />
+                <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">
+                  Ultimo Analisis IA
+                </span>
+              </div>
+              <span
+                className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: latestAnalysis.estadoActual.nivelActual === "elite" ? "#FFD70020" :
+                    latestAnalysis.estadoActual.nivelActual === "alto" ? "#22C55E20" :
+                    latestAnalysis.estadoActual.nivelActual === "medio_alto" ? "#3B82F620" :
+                    latestAnalysis.estadoActual.nivelActual === "medio" ? "#F59E0B20" : "#8B5CF620",
+                  color: latestAnalysis.estadoActual.nivelActual === "elite" ? "#FFD700" :
+                    latestAnalysis.estadoActual.nivelActual === "alto" ? "#22C55E" :
+                    latestAnalysis.estadoActual.nivelActual === "medio_alto" ? "#3B82F6" :
+                    latestAnalysis.estadoActual.nivelActual === "medio" ? "#F59E0B" : "#8B5CF6",
+                }}
+              >
+                Nivel: {latestAnalysis.estadoActual.nivelActual === "elite" ? "Elite" :
+                  latestAnalysis.estadoActual.nivelActual === "alto" ? "Alto" :
+                  latestAnalysis.estadoActual.nivelActual === "medio_alto" ? "Medio-Alto" :
+                  latestAnalysis.estadoActual.nivelActual === "medio" ? "Medio" : "En Desarrollo"}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mb-2">
+              {latestAnalysis.estadoActual.resumenEjecutivo}
+            </p>
+            <button
+              onClick={() => navigate(`/players/${id}/intelligence`)}
+              className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
+            >
+              Ver informe completo →
+            </button>
+          </div>
+        )}
 
         {/* VSI History Chart */}
         {rawPlayer?.vsiHistory && rawPlayer.vsiHistory.length >= 2 && (

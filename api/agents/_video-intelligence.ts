@@ -69,11 +69,16 @@ export default withHandler(
             }
           }
 
-          send("progress", { step: `Analizando ${imageBlocks.length} fotogramas con IA...`, percent: 30 });
-
           // Build the full prompt requesting VideoIntelligenceOutput format
           const ctx = playerContext;
           const hasGemini = !!geminiObservations;
+
+          send("progress", {
+            step: hasGemini
+              ? "Generando informe con Claude (video analizado por Gemini)..."
+              : `Analizando ${imageBlocks.length} fotogramas con Claude...`,
+            percent: 30,
+          });
 
           // Sección de datos del jugador (común a ambos modos)
           const playerDataBlock = `DATOS DEL JUGADOR:
@@ -408,7 +413,7 @@ DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimien
             ? [{ type: "text", text: prompt }]
             : [...imageBlocks, { type: "text", text: prompt }];
 
-          send("progress", { step: "Procesando con IA...", percent: 45 });
+          send("progress", { step: "Generando informe VITAS Intelligence...", percent: 45 });
 
           let fullText = "";
           try {

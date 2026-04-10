@@ -970,9 +970,9 @@
     "analyzingIA": "Analyzing with AI…",
     "preparingVideo": "Preparing video for AI observation…",
     "bunnyStreamWarning": "Configure Bunny Stream in Vercel for full video analysis",
-    "roleProfileError": "Could not load profile: {error}",
-    "auditLoadError": "Error loading audit: {error}",
-    "compareLoadError": "Error loading comparison: {error}"
+    "roleProfileError": "Could not load profile: {{error}}",
+    "auditLoadError": "Error loading audit: {{error}}",
+    "compareLoadError": "Error loading comparison: {{error}}"
   },
 
   "errors": {
