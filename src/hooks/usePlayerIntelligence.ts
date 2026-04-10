@@ -10,6 +10,7 @@
 
 import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
 import type { Player } from "@/services/real/playerService";
@@ -67,7 +68,7 @@ async function readSSEStream(
   ): Promise<VideoIntelligenceOutput> {
     const response = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify(body),
     });
 
@@ -232,7 +233,7 @@ export function usePlayerIntelligence(player: Player) {
                 setState({ step: "analyzing", progress: 22, message: "Analizando video completo con Gemini..." });
                 const geminiRes = await fetch("/api/agents/video-observation", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json" },
+                  headers: await getAuthHeaders(),
                   body: JSON.stringify({
                     videoBase64: videoData.base64,
                     mediaType: videoData.mediaType,

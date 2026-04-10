@@ -19,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,16 +145,7 @@ const SoloDrill = () => {
     });
 
     try {
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (user) {
-        try {
-          const stored = localStorage.getItem("sb-tloadypygzqyfefanrza-auth-token");
-          if (stored) {
-            const parsed = JSON.parse(stored) as { access_token?: string };
-            if (parsed.access_token) headers["Authorization"] = `Bearer ${parsed.access_token}`;
-          }
-        } catch { /* no token */ }
-      }
+      const headers = await getAuthHeaders();
 
       const res = await fetch("/api/pipeline/start", {
         method: "POST",

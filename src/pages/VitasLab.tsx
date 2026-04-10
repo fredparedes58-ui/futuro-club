@@ -44,6 +44,7 @@ import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
 import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64 } from "@/lib/localVideoUtils";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import { VideoService } from "@/services/real/videoService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import KnowledgeSearch from "@/components/KnowledgeSearch";
@@ -394,7 +395,7 @@ const VitasLab = () => {
             toast.loading(t("toasts.observingGemini"), { id: toastId });
             const geminiRes = await fetch("/api/agents/video-observation", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: await getAuthHeaders(),
               body: JSON.stringify({
                 videoBase64: videoData.base64,
                 mediaType: videoData.mediaType,
@@ -465,7 +466,7 @@ const VitasLab = () => {
       // 3. Llamar al agente via SSE (con métricas YOLO si disponibles)
       const res = await fetch("/api/agents/video-intelligence", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           playerId: playerData.id,
           videoId: selectedVideoId,

@@ -14,6 +14,7 @@ import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 import { isLocalSrc } from "@/lib/localVideoUtils";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
@@ -150,7 +151,7 @@ export function useRunPipeline() {
     }) => {
       const res = await fetch("/api/pipeline/start", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ videoId, playerId }),
       });
       const data = (await res.json()) as {

@@ -5,6 +5,7 @@
  * Uploads images to Bunny Storage via /api/upload/image.
  * Used for player avatars, team logos, etc.
  */
+import { supabase } from "@/lib/supabase";
 
 export interface ImageUploadResult {
   url: string;
@@ -26,9 +27,16 @@ export const ImageService = {
   ): Promise<{ success: true; data: ImageUploadResult } | { success: false; error: string; phase2Pending?: boolean }> {
     try {
       const qs = path ? `?path=${encodeURIComponent(path)}` : "";
+      const headers: Record<string, string> = { "Content-Type": file.type || "image/jpeg" };
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          headers["Authorization"] = `Bearer ${data.session.access_token}`;
+        }
+      } catch { /* no session */ }
       const res = await fetch(`/api/upload/image${qs}`, {
         method: "POST",
-        headers: { "Content-Type": file.type || "image/jpeg" },
+        headers,
         body: file,
       });
 

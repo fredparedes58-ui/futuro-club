@@ -4,6 +4,7 @@
  */
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import type { UserRole } from "./userProfileService";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ export const TeamService = {
   async invite(orgOwnerId: string, email: string, role: UserRole): Promise<void> {
     const res = await fetch("/api/team/invite", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ orgOwnerId, email, role }),
     });
     if (!res.ok) {
@@ -105,7 +106,7 @@ export const TeamService = {
   async acceptInvitation(token: string, userId: string): Promise<{ role: UserRole; orgOwnerId: string }> {
     const res = await fetch("/api/team/accept", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await getAuthHeaders(),
       body: JSON.stringify({ token, userId }),
     });
     if (!res.ok) {
@@ -122,7 +123,7 @@ export const TeamService = {
       .select("*")
       .eq("token", token)
       .eq("status", "pending")
-      .single();
+      .maybeSingle();
 
     if (error || !data) return null;
     return {

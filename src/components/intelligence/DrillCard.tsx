@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import { Badge } from "@/components/ui/badge";
 import { observability } from "@/services/real/observabilityAdapter";
 
@@ -71,11 +72,11 @@ export default function DrillCard({ content, similarity, metadata, traceId }: Dr
             onClick={() => {
               setFeedbackGiven("up");
               observability.recordFeedback(traceId, 5, "drill_useful");
-              fetch("/api/rag/feedback", {
+              getAuthHeaders().then(h => fetch("/api/rag/feedback", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: h,
                 body: JSON.stringify({ traceId, score: 5, comment: "drill_useful" }),
-              }).catch(() => {});
+              })).catch(() => {});
             }}
             disabled={feedbackGiven !== null}
             className={`p-0.5 rounded transition-colors ${
@@ -88,11 +89,11 @@ export default function DrillCard({ content, similarity, metadata, traceId }: Dr
             onClick={() => {
               setFeedbackGiven("down");
               observability.recordFeedback(traceId, 1, "drill_not_useful");
-              fetch("/api/rag/feedback", {
+              getAuthHeaders().then(h => fetch("/api/rag/feedback", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: h,
                 body: JSON.stringify({ traceId, score: 1, comment: "drill_not_useful" }),
-              }).catch(() => {});
+              })).catch(() => {});
             }}
             disabled={feedbackGiven !== null}
             className={`p-0.5 rounded transition-colors ${

@@ -13,6 +13,7 @@ import type { TeamIntelligenceOutput } from "@/agents/contracts";
 import { isLocalSrc, readVideoAsBase64, extractKeyframesFromVideo, getOptimalFrameCount } from "@/lib/localVideoUtils";
 import type { Track } from "@/lib/yolo/types";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -31,7 +32,7 @@ async function readSSEStream(
 ): Promise<TeamIntelligenceOutput> {
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -121,7 +122,7 @@ export function useTeamIntelligence() {
             setState({ step: "analyzing", progress: 22, message: "Analizando equipo con Gemini..." });
             const geminiRes = await fetch("/api/agents/team-observation", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: await getAuthHeaders(),
               body: JSON.stringify({
                 videoBase64: videoData.base64,
                 mediaType: videoData.mediaType,

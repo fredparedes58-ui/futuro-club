@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, BookOpen, Loader2, X } from "lucide-react";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 /* ── Types ───────────────────────────────────────────────── */
 
@@ -74,7 +75,7 @@ export default function KnowledgeSearch({
 
         const res = await fetch("/api/rag/query", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify(body),
           signal: controller.signal,
         });

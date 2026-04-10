@@ -106,7 +106,7 @@ export const SupabaseVideoService = {
           .from("players")
           .select("id")
           .eq("id", video.playerId)
-          .single();
+          .maybeSingle();
         safePlayerId = data ? video.playerId : null;
       }
       const { error } = await supabase

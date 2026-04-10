@@ -174,7 +174,7 @@ export default function AnalysisReportPrint() {
         .from("player_analyses")
         .select("*")
         .eq("id", id)
-        .single()
+        .maybeSingle()
         .then(({ data: row, error: err }) => {
           if (err || !row) {
             setError("Análisis no encontrado");

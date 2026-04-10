@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import { usePlan } from "@/hooks/usePlan";
 import { PLAN_PRICES, PLAN_LABELS, type Plan } from "@/services/real/subscriptionService";
 import { useTranslation } from "react-i18next";
@@ -88,7 +89,7 @@ const BillingPage = () => {
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           priceId,
           userId: user.id,
@@ -114,7 +115,7 @@ const BillingPage = () => {
     try {
       const res = await fetch("/api/stripe/portal", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ customerId: planState.stripeCustomerId }),
       });
       const data = await res.json();
