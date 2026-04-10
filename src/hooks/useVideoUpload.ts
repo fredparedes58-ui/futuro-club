@@ -299,9 +299,13 @@ export function useVideoUpload(playerId?: string) {
                 }));
 
                 if (d.isReady) {
-                  // Update local record with full data
+                  // Update local record with CDN data, clear expired blob URL
                   const local = VideoService.getById(videoId);
                   if (local) {
+                    // Revoke blob URL to free memory (it will expire on refresh anyway)
+                    if (local.localPath?.startsWith("blob:")) {
+                      URL.revokeObjectURL(local.localPath);
+                    }
                     VideoService.save({
                       ...local,
                       status: "finished",
@@ -315,6 +319,7 @@ export function useVideoUpload(playerId?: string) {
                       height: d.height,
                       fps: d.fps,
                       storageSize: d.storageSize,
+                      localPath: undefined, // CDN URLs replace blob
                     });
                   }
                   resolve();

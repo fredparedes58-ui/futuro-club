@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
 import { PlayerService, type Player } from "@/services/real/playerService";
-import { VideoService, type VideoRecord } from "@/services/real/videoService";
+import { VideoService, getBestVideoUrl, type VideoRecord } from "@/services/real/videoService";
 import { usePlayerIntelligence, useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
 import ProPlayerMatch from "@/components/ProPlayerMatch";
 import VitasCard from "@/components/VitasCard";
@@ -537,17 +537,15 @@ export default function PlayerIntelligencePage() {
     if (!video) return;
     const duration = (video.duration as number) || 34;
     try {
-      // Detectar video local (blob URL o ruta local)
-      const localSrc = video.localPath && !video.localPath.startsWith("http") ? video.localPath
-        : video.streamUrl && !video.streamUrl.startsWith("http") ? video.streamUrl
-        : undefined;
+      // Get best available video URL (prefers CDN over expired blob)
+      const videoSrc = getBestVideoUrl(video) ?? undefined;
 
       await runAnalysis({
         videoId: selectedVideoId,
         videoDuration: duration,
         jerseyNumber: jerseyNumber.trim() || undefined,
         teamColor: teamColor.trim() || undefined,
-        localVideoSrc: localSrc,
+        localVideoSrc: videoSrc,
         analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
       toast.success(t("toasts.drillAnalyzed"));

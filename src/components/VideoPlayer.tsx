@@ -9,7 +9,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Play, Loader2, AlertCircle, Film } from "lucide-react";
 import type { VideoRecord } from "@/services/real/videoService";
-import { isLocalSrc } from "@/lib/localVideoUtils";
+import { getBestVideoUrl } from "@/services/real/videoService";
 
 interface VideoPlayerProps {
   video: VideoRecord;
@@ -23,17 +23,16 @@ export default function VideoPlayer({
   className = "",
 }: VideoPlayerProps) {
   const [playing, setPlaying] = useState(autoplay);
+  const [videoError, setVideoError] = useState(false);
 
-  // Detectar video local (blob URL, ruta local, etc.)
-  const localSrc = isLocalSrc(video.localPath) ? video.localPath!
-    : isLocalSrc(video.streamUrl) ? video.streamUrl!
-    : null;
-  const isLocal = !!localSrc;
+  // Get best playable URL (prefers CDN over blob)
+  const directSrc = getBestVideoUrl(video);
+  const hasDirectSrc = !!directSrc && !videoError;
 
-  // Si hay embedUrl o es video local, está listo
-  const isReady = video.status === "finished" || isLocal || (video.status !== "error" && video.status !== "upload-failed" && !!video.embedUrl);
+  // Si hay embedUrl, directSrc, está listo
+  const isReady = video.status === "finished" || hasDirectSrc || (video.status !== "error" && video.status !== "upload-failed" && !!video.embedUrl);
   const isProcessing =
-    !isLocal && !video.embedUrl && (video.status === "processing" || video.status === "transcoding" || video.status === "created" || video.status === "uploaded");
+    !hasDirectSrc && !video.embedUrl && (video.status === "processing" || video.status === "transcoding" || video.status === "created" || video.status === "uploaded");
   const isError =
     video.status === "error" || video.status === "upload-failed";
 
@@ -95,8 +94,8 @@ export default function VideoPlayer({
     );
   }
 
-  // ── Not ready / no embed URL (skip for local videos) ────────────────────────
-  if (!isLocal && (!isReady || !embedUrl)) {
+  // ── Not ready / no embed URL (skip for direct src videos) ───────────────────
+  if (!hasDirectSrc && (!isReady || !embedUrl)) {
     return (
       <div
         className={`relative aspect-video rounded-xl overflow-hidden bg-secondary flex items-center justify-center ${className}`}
@@ -157,16 +156,17 @@ export default function VideoPlayer({
     );
   }
 
-  // ── Video playback (local native <video> or Bunny iframe) ──────────────────
-  if (isLocal && localSrc) {
+  // ── Video playback (native <video> with CDN URL, or Bunny iframe) ──────────
+  if (hasDirectSrc) {
     return (
       <div className={`relative aspect-video rounded-xl overflow-hidden bg-black ${className}`}>
         <video
-          src={localSrc}
+          src={directSrc!}
           controls
           autoPlay={autoplay}
           playsInline
           className="absolute inset-0 w-full h-full object-contain"
+          onError={() => setVideoError(true)}
         />
       </div>
     );

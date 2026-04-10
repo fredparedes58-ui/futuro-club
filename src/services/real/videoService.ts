@@ -52,6 +52,23 @@ export interface VideoAnalysis {
 
 const STORAGE_KEY = "videos";
 
+/**
+ * Returns the best playable URL for a video, prioritizing persistent CDN URLs
+ * over ephemeral blob: URLs that expire on page refresh.
+ *
+ * Priority: streamUrl (HTTP) > localPath (HTTP) > streamUrl (blob) > localPath (blob)
+ */
+export function getBestVideoUrl(video: VideoRecord): string | null {
+  const isHttp = (url?: string | null) => !!url && url.startsWith("http");
+  // Prefer persistent HTTP URLs from Bunny CDN
+  if (isHttp(video.streamUrl)) return video.streamUrl!;
+  if (isHttp(video.localPath)) return video.localPath!;
+  // Fallback to blob URLs (only work in current session)
+  if (video.streamUrl) return video.streamUrl;
+  if (video.localPath) return video.localPath;
+  return null;
+}
+
 export const VideoService = {
   // ── Read ──────────────────────────────────────────────────────────────────
   getAll(): VideoRecord[] {

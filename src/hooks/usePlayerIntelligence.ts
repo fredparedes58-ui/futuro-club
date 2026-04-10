@@ -224,7 +224,7 @@ export function usePlayerIntelligence(player: Player) {
           let geminiObservations: Record<string, unknown> | null = null;
           let keyframes: KeyframeData[] = [];
 
-          if (localVideoSrc && isLocalSrc(localVideoSrc)) {
+          if (localVideoSrc) {
             // 2a. Intentar leer video como base64 para Gemini
             setState({ step: "analyzing", progress: 18, message: "Preparando video para análisis..." });
             try {
