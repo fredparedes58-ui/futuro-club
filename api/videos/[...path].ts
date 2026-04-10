@@ -22,8 +22,8 @@ const videoStatus = withHandler(
   { method: "GET", requireAuth: true, maxRequests: 30 },
   async ({ req }) => {
     const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-    const apiKey = process.env.BUNNY_STREAM_API_KEY;
-    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
+    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME ?? process.env.VITE_BUNNY_CDN_HOSTNAME;
 
     if (!libraryId || !apiKey) {
       return errorResponse(
@@ -50,7 +50,8 @@ const videoStatus = withHandler(
       return errorResponse("Video not found", 404);
     }
     if (!res.ok) {
-      throw new Error(`Bunny status failed (${res.status})`);
+      const errText = await res.text().catch(() => "");
+      return errorResponse(`Bunny status error (${res.status}): ${errText}`, 502, "BUNNY_ERROR");
     }
 
     const v = (await res.json()) as {
@@ -110,7 +111,7 @@ const videoDelete = withHandler(
   { method: "DELETE", requireAuth: true, maxRequests: 30 },
   async ({ req }) => {
     const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-    const apiKey = process.env.BUNNY_STREAM_API_KEY;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
 
     if (!libraryId || !apiKey) {
       return errorResponse(
@@ -137,7 +138,8 @@ const videoDelete = withHandler(
       return errorResponse("Video not found", 404);
     }
     if (!res.ok) {
-      throw new Error(`Bunny delete failed (${res.status})`);
+      const errText = await res.text().catch(() => "");
+      return errorResponse(`Bunny delete error (${res.status}): ${errText}`, 502, "BUNNY_ERROR");
     }
 
     return successResponse({ deletedId: videoId });

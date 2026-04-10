@@ -26,12 +26,12 @@ export default withHandler(
   { method: "POST", schema: BodySchema, requireAuth: true, maxRequests: 10 },
   async ({ req, body }) => {
     const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-    const apiKey = process.env.BUNNY_STREAM_API_KEY;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
 
     // Graceful degradation — env vars not configured yet
     if (!libraryId || !apiKey) {
       return errorResponse(
-        "BUNNY_STREAM_LIBRARY_ID / BUNNY_STREAM_API_KEY no configuradas",
+        `Bunny CDN no configurado. LIBRARY_ID=${!!libraryId}, API_KEY=${!!apiKey}. Configura BUNNY_STREAM_LIBRARY_ID y BUNNY_STREAM_API_KEY en Vercel.`,
         503,
         "CONFIG_MISSING",
       );
@@ -53,8 +53,12 @@ export default withHandler(
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      throw new Error(`Bunny create failed (${createRes.status}): ${errText}`);
+      const errText = await createRes.text().catch(() => "");
+      return errorResponse(
+        `Bunny Stream API error (${createRes.status}): ${errText || "Unknown error"}. Verifica BUNNY_STREAM_API_KEY y BUNNY_STREAM_LIBRARY_ID.`,
+        502,
+        "BUNNY_ERROR",
+      );
     }
 
     const video = (await createRes.json()) as {
@@ -94,7 +98,7 @@ export default withHandler(
       authExpire:     expirationTime,
       title:          video.title,
       playerId:       playerId ?? null,
-      cdnHostname:    process.env.BUNNY_CDN_HOSTNAME ?? null,
+      cdnHostname:    process.env.BUNNY_CDN_HOSTNAME ?? process.env.VITE_BUNNY_CDN_HOSTNAME ?? null,
     });
   },
 );

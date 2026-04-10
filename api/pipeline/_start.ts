@@ -31,9 +31,9 @@ export default withHandler(
     const { videoId, playerId, analysisMode } = body;
 
     const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-    const bunnyApiKey    = process.env.BUNNY_STREAM_API_KEY;
+    const bunnyApiKey    = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
     const bunnyCdnHost   = process.env.BUNNY_CDN_HOSTNAME || process.env.VITE_BUNNY_CDN_HOSTNAME;
-    const supabaseUrl    = process.env.VITE_SUPABASE_URL  || process.env.SUPABASE_URL;
+    const supabaseUrl    = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     const supabaseKey    = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     const anthropicKey   = process.env.ANTHROPIC_API_KEY;
 

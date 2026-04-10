@@ -22,8 +22,8 @@ export default withHandler(
   { method: "GET", requireAuth: true, maxRequests: 30 },
   async ({ req }) => {
     const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
-    const apiKey = process.env.BUNNY_STREAM_API_KEY;
-    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME;
+    const apiKey = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
+    const cdnHostname = process.env.BUNNY_CDN_HOSTNAME ?? process.env.VITE_BUNNY_CDN_HOSTNAME;
 
     if (!libraryId || !apiKey) {
       return successResponse(

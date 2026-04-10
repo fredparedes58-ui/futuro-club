@@ -70,7 +70,7 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
   }
 
   // ── Strategy 2: Supabase REST API verification (authoritative) ──────────
-  const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (supabaseUrl && serviceKey) {
