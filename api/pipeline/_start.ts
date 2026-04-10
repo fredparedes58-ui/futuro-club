@@ -14,7 +14,7 @@ export const config = { runtime: "edge" };
 
 const PipelineSchema = z.object({
   videoId: z.string().min(1, "videoId es requerido"),
-  playerId: z.string().min(1, "playerId es requerido"),
+  playerId: z.string().optional(),
   analysisMode: z.string().optional(),
 });
 
