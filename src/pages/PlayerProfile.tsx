@@ -4,7 +4,7 @@ import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
-  Activity, ClipboardList,
+  Activity, ClipboardList, FileText,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
@@ -741,6 +741,34 @@ const PlayerProfile = () => {
           </button>
         </motion.div>
       )}
+
+      {/* Reportes + Evolución */}
+      <motion.div variants={item} className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => navigate(`/players/${player.id}/reports`)}
+          className="glass rounded-xl p-3 flex items-center gap-2.5 hover:border-primary/40 border border-border transition-colors group"
+        >
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FileText size={14} className="text-primary" />
+          </div>
+          <div className="text-left">
+            <p className="text-[11px] font-display font-semibold text-foreground">Reportes</p>
+            <p className="text-[9px] text-muted-foreground">Historial completo</p>
+          </div>
+        </button>
+        <button
+          onClick={() => navigate(`/players/${player.id}/evolution`)}
+          className="glass rounded-xl p-3 flex items-center gap-2.5 hover:border-green-500/40 border border-border transition-colors group"
+        >
+          <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <TrendingUp size={14} className="text-green-400" />
+          </div>
+          <div className="text-left">
+            <p className="text-[11px] font-display font-semibold text-foreground">Evolucion</p>
+            <p className="text-[9px] text-muted-foreground">Progreso en el tiempo</p>
+          </div>
+        </button>
+      </motion.div>
 
       {/* Acciones: Editar + PDF + Eliminar */}
       <motion.div variants={item} className="flex gap-3 pt-1">

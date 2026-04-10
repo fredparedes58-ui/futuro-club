@@ -997,6 +997,18 @@ export default function PlayerIntelligencePage() {
                         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
                           Análisis guardados ({analyses.length})
                         </span>
+                        <button
+                          onClick={() => navigate(`/players/${id}/reports`)}
+                          className="text-[9px] text-primary/70 hover:text-primary underline ml-1"
+                        >
+                          Ver todos
+                        </button>
+                        <button
+                          onClick={() => navigate(`/players/${id}/evolution`)}
+                          className="text-[9px] text-green-400/70 hover:text-green-400 underline"
+                        >
+                          Evolución
+                        </button>
                       </div>
                       <button
                         onClick={() => setCompareMode(m => !m)}

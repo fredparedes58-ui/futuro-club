@@ -43,6 +43,8 @@ import AnalysisReportPrint from "./pages/AnalysisReportPrint";
 import TeamPage from "./pages/TeamPage";
 import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
+import PlayerReportsPage from "./pages/PlayerReportsPage";
+import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
 
 // Sync hook — activa pull de Supabase al hacer login
 // Health check — diagnóstico automático al iniciar
@@ -126,6 +128,8 @@ const App = () => (
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
                 <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
+                <Route path="/players/:id/reports" element={<P><PlayerReportsPage /></P>} />
+                <Route path="/players/:id/evolution" element={<P><PlayerEvolutionPage /></P>} />
                 {/* Alias: /player/:id/intelligence → misma página (backward compat) */}
                 <Route path="/player/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<P><PlayerReportPrint /></P>} />

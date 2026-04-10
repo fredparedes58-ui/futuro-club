@@ -499,11 +499,11 @@ export function useSavedAnalyses(playerId: string) {
                     .select("*")
                     .eq("player_id", playerId)
                     .order("created_at", { ascending: false })
-                    .limit(10);
+                    .limit(50);
                   if (error) throw error;
                   return data ?? [];
           },
           enabled:   !!playerId && SUPABASE_CONFIGURED,
-          staleTime: 1000 * 60 * 5,
+          staleTime: 1000 * 60,
     });
 }
