@@ -17,7 +17,7 @@ import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
 import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import {
   generateLocalVideoId,
   extractVideoMetadata,
@@ -59,6 +59,17 @@ const INITIAL: UploadState = {
 const POLL_INTERVAL_MS = 4000;
 const POLL_MAX_ATTEMPTS = 60; // 4 min max wait
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers["Authorization"] = `Bearer ${data.session.access_token}`;
+    }
+  } catch { /* no session */ }
+  return headers;
+}
+
 export function useVideoUpload(playerId?: string) {
   const [state, setState] = useState<UploadState>(INITIAL);
   const tusRef = useRef<tus.Upload | null>(null);
@@ -84,7 +95,7 @@ export function useVideoUpload(playerId?: string) {
         // ── Step 1: Init ────────────────────────────────────────────────────
         const initRes = await fetch("/api/upload/video-init", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await authHeaders(),
           body: JSON.stringify({
             title: title ?? file.name,
             playerId,
@@ -256,7 +267,9 @@ export function useVideoUpload(playerId?: string) {
             }
 
             try {
-              const statusRes = await fetch(`/api/videos/${videoId}/status`);
+              const statusRes = await fetch(`/api/videos/${videoId}/status`, {
+                headers: await authHeaders(),
+              });
               const statusData = (await statusRes.json()) as {
                 success: boolean;
                 data?: {
@@ -331,7 +344,7 @@ export function useVideoUpload(playerId?: string) {
 
         const pipelineRes = await fetch("/api/pipeline/start", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await authHeaders(),
           body: JSON.stringify({ videoId, playerId }),
         });
 
