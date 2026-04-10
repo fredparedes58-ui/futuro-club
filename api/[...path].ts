@@ -13,6 +13,7 @@ import roboflowAnalyze from "./roboflow/_analyze";
 import uploadImage from "./upload/_image";
 import uploadVideoInit from "./upload/_video-init";
 import videosList from "./videos/_list";
+import videosRouter from "./videos/[...path]";
 import health from "./health";
 
 export const config = { runtime: "edge" };
@@ -41,6 +42,11 @@ export default async function handler(req: Request): Promise<Response> {
   };
 
   if (staticRoutes[key]) return staticRoutes[key](req);
+
+  // Dynamic routes: delegate /api/videos/* to the videos router
+  if (segments[0] === "videos" && segments.length >= 2) {
+    return videosRouter(req);
+  }
 
   return errorResponse(`Route "/api/${key}" not found`, 404);
 }
