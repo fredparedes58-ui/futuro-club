@@ -21,7 +21,7 @@ const CORS_HEADERS: Record<string, string> = {
  */
 export function successResponse(data: unknown, status = 200, extraHeaders?: Record<string, string>): Response {
   return new Response(
-    JSON.stringify({ ok: true, data }),
+    JSON.stringify({ ok: true, success: true, data }),
     {
       status,
       headers: { ...CORS_HEADERS, ...extraHeaders },
@@ -39,7 +39,7 @@ export function errorResponse(
   extraHeaders?: Record<string, string>
 ): Response {
   return new Response(
-    JSON.stringify({ ok: false, error: { message, code } }),
+    JSON.stringify({ ok: false, success: false, error: message, errorDetail: { message, code } }),
     {
       status,
       headers: { ...CORS_HEADERS, ...extraHeaders },
