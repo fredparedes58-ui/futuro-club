@@ -46,6 +46,31 @@ function percentileRank(value: number, allValues: number[]): number {
   return Math.round(((below + equal * 0.5) / allValues.length) * 100);
 }
 
+// ── Module-level cache (persists across requests in same Edge instance) ──
+type PlayerRow = {
+  id: string;
+  name: string;
+  age: number;
+  position: string;
+  positionShort: string;
+  vsi: number;
+  phvCategory: string;
+  phvOffset: number;
+  competitiveLevel: string;
+  ageGroup: string;
+  trending: "up" | "down" | "stable";
+  percentile: number;
+  percentileInAgeGroup: number;
+  updatedAt: string;
+  metrics: Record<string, number>;
+  foot: string;
+  height: number;
+  weight: number;
+};
+
+const rankingsCache = new Map<string, { data: PlayerRow[]; timestamp: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 // ── Handler ──────────────────────────────────────────────────────────────
 
 export default withHandler(
@@ -80,88 +105,84 @@ export default withHandler(
 
     // Fetch ALL players for this user (needed for percentile calculations)
     // This is intentional — percentiles require the full dataset
-    const allUrl = `${supabaseUrl}/rest/v1/players?user_id=eq.${userId}&select=id,data,updated_at`;
-    const allRes = await fetch(allUrl, { headers });
+    // Use module-level cache to avoid repeated DB fetches within the same Edge instance
+    let allPlayers: PlayerRow[];
 
-    if (!allRes.ok) {
-      const errText = await allRes.text();
-      return errorResponse(`Failed to fetch players: ${errText.slice(0, 200)}`, 500);
+    const cacheKey = `rankings:${userId}`;
+    const cached = rankingsCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      // Use cached data — skip DB fetch
+      allPlayers = cached.data;
+    } else {
+      const allUrl = `${supabaseUrl}/rest/v1/players?user_id=eq.${userId}&select=id,data,updated_at`;
+      const allRes = await fetch(allUrl, { headers });
+
+      if (!allRes.ok) {
+        const errText = await allRes.text();
+        return errorResponse(`Failed to fetch players: ${errText.slice(0, 200)}`, 500);
+      }
+
+      const allRows = (await allRes.json()) as Array<{
+        id: string;
+        data: Record<string, unknown>;
+        updated_at: string;
+      }>;
+
+      // First pass: extract all players
+      allPlayers = allRows.map((row) => {
+        const d = row.data as Record<string, unknown>;
+        const metrics = (d.metrics ?? {}) as Record<string, number>;
+        const vsi = typeof d.vsi === "number" ? d.vsi : calculateVSI(metrics);
+        const age = (d.age as number) ?? 15;
+        const vsiHistory = Array.isArray(d.vsiHistory) ? (d.vsiHistory as number[]) : [vsi];
+        const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
+        const delta = vsi - prevVSI;
+
+        return {
+          id: row.id,
+          name: (d.name as string) ?? "Sin nombre",
+          age,
+          position: (d.position as string) ?? "CM",
+          positionShort: abbreviatePosition((d.position as string) ?? "CM"),
+          vsi,
+          phvCategory: mapPhv((d.phvCategory as string) ?? "ontme"),
+          phvOffset: (d.phvOffset as number) ?? 0,
+          competitiveLevel: (d.competitiveLevel as string) ?? "Regional",
+          ageGroup: getAgeGroup(age),
+          trending: delta > 2 ? "up" : delta < -2 ? "down" : "stable",
+          percentile: 0, // calculated below
+          percentileInAgeGroup: 0, // calculated below
+          updatedAt: row.updated_at,
+          metrics,
+          foot: (d.foot as string) ?? "right",
+          height: (d.height as number) ?? 170,
+          weight: (d.weight as number) ?? 60,
+        };
+      });
+
+      // Second pass: calculate percentiles against full unfiltered dataset
+      const allVSIsForCache = allPlayers.map((p) => p.vsi);
+      const vsiByAgeGroupForCache: Record<string, number[]> = {};
+      for (const p of allPlayers) {
+        if (!vsiByAgeGroupForCache[p.ageGroup]) vsiByAgeGroupForCache[p.ageGroup] = [];
+        vsiByAgeGroupForCache[p.ageGroup].push(p.vsi);
+      }
+      for (const p of allPlayers) {
+        p.percentile = percentileRank(p.vsi, allVSIsForCache);
+        p.percentileInAgeGroup = percentileRank(
+          p.vsi,
+          vsiByAgeGroupForCache[p.ageGroup] ?? allVSIsForCache
+        );
+      }
+
+      rankingsCache.set(cacheKey, { data: allPlayers, timestamp: Date.now() });
     }
 
-    const allRows = (await allRes.json()) as Array<{
-      id: string;
-      data: Record<string, unknown>;
-      updated_at: string;
-    }>;
-
-    // Extract and enrich player data
-    type PlayerRow = {
-      id: string;
-      name: string;
-      age: number;
-      position: string;
-      positionShort: string;
-      vsi: number;
-      phvCategory: string;
-      phvOffset: number;
-      competitiveLevel: string;
-      ageGroup: string;
-      trending: "up" | "down" | "stable";
-      percentile: number;
-      percentileInAgeGroup: number;
-      updatedAt: string;
-      metrics: Record<string, number>;
-      foot: string;
-      height: number;
-      weight: number;
-    };
-
-    // First pass: extract all players
-    const allPlayers: PlayerRow[] = allRows.map((row) => {
-      const d = row.data as Record<string, unknown>;
-      const metrics = (d.metrics ?? {}) as Record<string, number>;
-      const vsi = typeof d.vsi === "number" ? d.vsi : calculateVSI(metrics);
-      const age = (d.age as number) ?? 15;
-      const vsiHistory = Array.isArray(d.vsiHistory) ? (d.vsiHistory as number[]) : [vsi];
-      const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
-      const delta = vsi - prevVSI;
-
-      return {
-        id: row.id,
-        name: (d.name as string) ?? "Sin nombre",
-        age,
-        position: (d.position as string) ?? "CM",
-        positionShort: abbreviatePosition((d.position as string) ?? "CM"),
-        vsi,
-        phvCategory: mapPhv((d.phvCategory as string) ?? "ontme"),
-        phvOffset: (d.phvOffset as number) ?? 0,
-        competitiveLevel: (d.competitiveLevel as string) ?? "Regional",
-        ageGroup: getAgeGroup(age),
-        trending: delta > 2 ? "up" : delta < -2 ? "down" : "stable",
-        percentile: 0, // calculated below
-        percentileInAgeGroup: 0, // calculated below
-        updatedAt: row.updated_at,
-        metrics,
-        foot: (d.foot as string) ?? "right",
-        height: (d.height as number) ?? 170,
-        weight: (d.weight as number) ?? 60,
-      };
-    });
-
-    // Second pass: calculate percentiles
-    const allVSIs = allPlayers.map((p) => p.vsi);
+    // Build vsiByAgeGroup from current allPlayers (cached or fresh) for stats
     const vsiByAgeGroup: Record<string, number[]> = {};
     for (const p of allPlayers) {
       if (!vsiByAgeGroup[p.ageGroup]) vsiByAgeGroup[p.ageGroup] = [];
       vsiByAgeGroup[p.ageGroup].push(p.vsi);
-    }
-
-    for (const p of allPlayers) {
-      p.percentile = percentileRank(p.vsi, allVSIs);
-      p.percentileInAgeGroup = percentileRank(
-        p.vsi,
-        vsiByAgeGroup[p.ageGroup] ?? allVSIs
-      );
     }
 
     // Apply filters

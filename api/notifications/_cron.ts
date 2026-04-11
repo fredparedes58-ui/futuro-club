@@ -76,6 +76,10 @@ export default withHandler(
     const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
     const resendKey    = process.env.RESEND_API_KEY;
 
+    if (!process.env.VAPID_PRIVATE_KEY || !process.env.VITE_VAPID_PUBLIC_KEY) {
+      console.warn("[notifications] VAPID keys not configured — push notifications disabled. Set VAPID_PRIVATE_KEY and VITE_VAPID_PUBLIC_KEY in Vercel env vars.");
+    }
+
     if (!supabaseUrl || !serviceKey) {
       return errorResponse("Supabase not configured", 500);
     }
@@ -286,8 +290,9 @@ export default withHandler(
               });
             }
           }
-        } catch {
-          // Email is best-effort, don't fail the cron
+        } catch (emailErr) {
+          console.error("[notifications] Email fallback failed:", emailErr instanceof Error ? emailErr.message : emailErr);
+          // Don't throw — push was already attempted
         }
       }
     }

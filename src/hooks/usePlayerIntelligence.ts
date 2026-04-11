@@ -286,6 +286,33 @@ export function usePlayerIntelligence(player: Player) {
 
           setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe (video analizado por Gemini)..." : "Analizando fotogramas con Claude..." });
 
+          // 3a. RAG enrichment: fetch relevant drills and methodology
+          let ragContext = "";
+          try {
+            const ragRes = await fetch("/api/rag/query", {
+              method: "POST",
+              headers: await getAuthHeaders(),
+              body: JSON.stringify({
+                query: `${player.position} ${player.age} años mejora ${
+                  Object.entries(player.metrics || {})
+                    .sort(([, a], [, b]) => (a as number) - (b as number))
+                    .slice(0, 2)
+                    .map(([k]) => k)
+                    .join(" ")
+                }`,
+                limit: 3,
+              }),
+            });
+            if (ragRes.ok) {
+              const ragData = await ragRes.json() as { data?: { results?: Array<{ content: string }> } };
+              const results = ragData.data?.results ?? [];
+              if (results.length > 0) {
+                ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" +
+                  results.map(r => r.content.slice(0, 300)).join("\n---\n");
+              }
+            }
+          } catch { /* RAG query failed — continue without */ }
+
           // 3. Llamar a Claude con SSE streaming (con observaciones Gemini O con frames)
           const analysisResult = await readSSEStream(
             "/api/agents/video-intelligence",
@@ -346,6 +373,7 @@ export function usePlayerIntelligence(player: Player) {
               } : null,
               geminiEventCounts: geminiObservations?.eventosContados ?? null,
               analysisFocus: analysisFocus ?? null,
+              ragContext: ragContext || null,
             },
             (msg) => setState((prev) => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
           );

@@ -82,13 +82,12 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Cache API player data for offline access (NetworkFirst)
-            urlPattern: /\/api\/(players\/crud|rankings\/list)/,
-            handler: "NetworkFirst",
+            // Cache API data for offline access (StaleWhileRevalidate)
+            urlPattern: /\/api\/(players\/crud|rankings\/list|scout\/insights|videos\/list)/,
+            handler: "StaleWhileRevalidate",
             options: {
-              cacheName: "vitas-api-players",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 }, // 24h
-              networkTimeoutSeconds: 5,
+              cacheName: "vitas-api-data",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 }, // 24h
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -113,6 +112,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
         ],
+        cleanupOutdatedCaches: true,
       },
       devOptions: {
         enabled: true,

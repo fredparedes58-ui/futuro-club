@@ -32,6 +32,10 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
   serviceOnly?: boolean;
   /** Si true, no parsea body como JSON (para webhooks que leen raw text). */
   rawBody?: boolean;
+  /** Required subscription plan. Returns 403 if user doesn't have it. */
+  requiredPlan?: string;
+  /** Required user role (from user_profiles.user_type). Returns 403 if mismatch. */
+  requiredRole?: string;
 }
 
 type InferBody<T> = T extends z.ZodSchema ? z.infer<T> : unknown;
@@ -107,6 +111,54 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
     } else if (options.optionalAuth) {
       const auth = await verifyAuth(req);
       userId = auth.userId; // puede ser null, y eso esta bien
+    }
+
+    // 4b. Plan & Role checks
+    if (userId && (options.requiredPlan || options.requiredRole)) {
+      const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+      const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (sbUrl && sbKey) {
+        const sbHeaders = { apikey: sbKey, Authorization: `Bearer ${sbKey}` };
+
+        if (options.requiredPlan) {
+          try {
+            const planRes = await fetch(
+              `${sbUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=plan,status`,
+              { headers: sbHeaders }
+            );
+            if (planRes.ok) {
+              const rows = await planRes.json() as Array<{ plan: string; status: string }>;
+              const active = rows.find(r => r.status === "active" || r.status === "trialing");
+              const allowed = options.requiredPlan.split(",").map(p => p.trim());
+              if (!active || !allowed.includes(active.plan)) {
+                return errorResponse(
+                  `Plan requerido: ${options.requiredPlan}`,
+                  403, "PLAN_REQUIRED", rateLimitHeaders(rl)
+                );
+              }
+            }
+          } catch { /* plan check failed — allow through to avoid blocking */ }
+        }
+
+        if (options.requiredRole) {
+          try {
+            const roleRes = await fetch(
+              `${sbUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=user_type`,
+              { headers: sbHeaders }
+            );
+            if (roleRes.ok) {
+              const rows = await roleRes.json() as Array<{ user_type: string }>;
+              const allowed = options.requiredRole.split(",").map(r => r.trim());
+              if (rows.length === 0 || !allowed.includes(rows[0].user_type)) {
+                return errorResponse(
+                  `Rol requerido: ${options.requiredRole}`,
+                  403, "ROLE_REQUIRED", rateLimitHeaders(rl)
+                );
+              }
+            }
+          } catch { /* role check failed — allow through */ }
+        }
+      }
     }
 
     // 5. Parse & validate body

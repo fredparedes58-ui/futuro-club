@@ -25,7 +25,7 @@ export default withHandler(
         try {
           send("progress", { step: "Iniciando VITAS Intelligence...", percent: 5 });
           const body = await req.json();
-          const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges, physicalMetrics, geminiEventCounts, analysisFocus } = body;
+          const { playerContext, keyframes, videoId, playerId, vsiMetrics, similarityMatches, geminiObservations, kpiReport, monthlyChallenges, physicalMetrics, geminiEventCounts, analysisFocus, ragContext } = body;
 
           if (!playerContext) {
             send("error", { message: "Faltan datos requeridos (playerContext)" });
@@ -246,10 +246,12 @@ EVENTOS CONTADOS (observación IA del video completo):
 
 Estos conteos provienen de la observación del video completo. Intégralos en tu análisis.` : "";
 
+          const ragContextBlock = ragContext ? `\n\nCONTEXTO RAG (drills y metodología relevante para este perfil):\n${ragContext}` : "";
+
           const prompt = `${introBlock}
 
 ${playerDataBlock}
-${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}${physicalBlock}${eventCountsBlock}
+${geminiContextBlock}${frameInstructionBlock}${similarityBlock}${kpiBlock}${challengesBlock}${physicalBlock}${eventCountsBlock}${ragContextBlock}
 ${analysisFocus ? `
 ENFOQUE DEL ANÁLISIS: El usuario pidió que te CONCENTRES especialmente en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
 Dedica más detalle a estas áreas en el resumen ejecutivo, observaciones por dimensión, patrones ADN, y plan de desarrollo. Los scores de las dimensiones deben reflejar con mayor precisión el rendimiento en estas áreas específicas. Las fortalezas y áreas de desarrollo deben priorizar estas acciones.` : ""}
@@ -436,6 +438,25 @@ DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimien
               const errBody = await claudeRes.text().catch(() => "");
               console.error("Claude API error:", claudeRes.status, errBody);
               send("error", { message: `Error de Claude API: ${claudeRes.status}` });
+
+              // Generate fallback report from available data
+              const fallbackReport = {
+                estadoActual: {
+                  nivelActual: "pendiente",
+                  resumenEjecutivo: `Análisis no disponible temporalmente (error ${claudeRes.status}). Los datos del jugador están registrados y se reintentará automáticamente.`,
+                  dimensiones: {
+                    velocidadDecision: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                    tecnicaConBalon: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                    inteligenciaTactica: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                    capacidadFisica: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                    liderazgoPresencia: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                    eficaciaCompetitiva: { score: 0, nivel: "pendiente", observaciones: "Análisis pendiente" },
+                  },
+                },
+                _fallback: true,
+                _error: `Claude API error: ${claudeRes.status}`,
+              };
+              send("report", fallbackReport);
               controller.close();
               return;
             }
@@ -455,8 +476,22 @@ DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimien
 
           send("progress", { step: "Procesando respuesta...", percent: 85 });
 
-          let report = null;
+          // Robust JSON extraction with fallback strategies
+          let report: Record<string, unknown> | null = null;
+
+          // Strategy 1: Find outermost JSON object
           if (fullText) {
+            try {
+              const jsonStart = fullText.indexOf("{");
+              const jsonEnd = fullText.lastIndexOf("}");
+              if (jsonStart !== -1 && jsonEnd > jsonStart) {
+                report = JSON.parse(fullText.slice(jsonStart, jsonEnd + 1));
+              }
+            } catch { /* try next strategy */ }
+          }
+
+          // Strategy 2: Regex match (original)
+          if (!report && fullText) {
             try {
               const m = fullText.match(/\{[\s\S]*\}/);
               if (m) report = JSON.parse(m[0]);

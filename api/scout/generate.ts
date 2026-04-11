@@ -56,6 +56,22 @@ interface RAGResult {
 
 type InsightContext = "breakout" | "comparison" | "phv-alert" | "drill-record" | "regression" | "milestone";
 
+async function fetchPlayerHistory(
+  supabaseUrl: string,
+  supabaseKey: string,
+  playerId: string,
+  userId: string,
+): Promise<Array<{ report: Record<string, unknown>; created_at: string }> | null> {
+  const headers = { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` };
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/player_analyses?player_id=eq.${playerId}&user_id=eq.${userId}&select=report,created_at&order=created_at.desc&limit=2`,
+    { headers },
+  );
+  if (!res.ok) return null;
+  const rows = await res.json() as Array<{ report: Record<string, unknown>; created_at: string }>;
+  return rows;
+}
+
 function detectContext(
   player: PlayerRow,
   latestAnalysis: AnalysisRow | null,
@@ -207,13 +223,54 @@ export default withHandler(
           }
         }
 
+        // Historical comparison: fetch last 2 player_analyses and compute dimension deltas
+        let historicalContext = "";
+        try {
+          const history = await fetchPlayerHistory(supabaseUrl, supabaseKey!, player.id, userId!);
+          if (history && history.length >= 2) {
+            const latest = history[0].report as any;
+            const previous = history[1].report as any;
+            const latestDims = latest?.estadoActual?.dimensiones;
+            const prevDims = previous?.estadoActual?.dimensiones;
+            const latestVSI = latest?.estadoActual?.vsi ?? player.vsi;
+            const prevVSI = previous?.estadoActual?.vsi ?? (player.vsi_history?.at(-2) ?? player.vsi);
+            if (latestDims && prevDims) {
+              const dimNames = Object.keys(latestDims);
+              const deltas = dimNames.map((d: string) => {
+                const curr = latestDims[d]?.score ?? 0;
+                const prev = prevDims[d]?.score ?? 0;
+                const delta = curr - prev;
+                return `${d}: ${prev}→${curr} (${delta > 0 ? "+" : ""}${delta})`;
+              });
+              historicalContext = `\n\nHISTORIAL DE EVOLUCIÓN (comparación últimos 2 análisis):\n${deltas.join("\n")}`;
+              historicalContext += `\nVSI previo: ${prevVSI} → VSI actual: ${latestVSI} (${latestVSI - prevVSI > 0 ? "+" : ""}${latestVSI - prevVSI})`;
+
+              // Override context detection based on real analysis deltas
+              const maxDelta = Math.max(...dimNames.map((d: string) => {
+                return (latestDims[d]?.score ?? 0) - (prevDims[d]?.score ?? 0);
+              }));
+              const vsiDelta = latestVSI - prevVSI;
+              if (maxDelta > 1.5) {
+                // 15+ points on 0-100 scale → breakout
+                historicalContext += `\n→ DETECCIÓN: Breakout (dimensión subió ${(maxDelta * 10).toFixed(0)}+ puntos)`;
+              } else if (vsiDelta < -5) {
+                historicalContext += `\n→ DETECCIÓN: Regresión (VSI cayó ${Math.abs(vsiDelta)} puntos)`;
+              } else if ((latestVSI >= 80 && prevVSI < 80) || (latestVSI >= 90 && prevVSI < 90)) {
+                historicalContext += `\n→ DETECCIÓN: Milestone (VSI cruzó umbral ${latestVSI >= 90 ? 90 : 80})`;
+              }
+            }
+          }
+        } catch {
+          // Historical query is non-blocking
+        }
+
         // Prompt for Claude
         const systemPrompt = `Eres el generador de insights de scouting de VITAS Football Intelligence.
 Analiza datos de un jugador juvenil y genera un insight accionable en español.
 
 CONTEXTO DETECTADO: ${context}
 ${ragContext ? `\nCONTEXTO RAG (base de conocimiento):\n${ragContext.slice(0, 1500)}` : ""}
-${analysisContext ? `\nHISTORIAL DE ANÁLISIS:${analysisContext}` : ""}
+${analysisContext ? `\nHISTORIAL DE ANÁLISIS:${analysisContext}` : ""}${historicalContext}
 
 REGLAS:
 - headline: máximo 80 caracteres, directo, sin emojis

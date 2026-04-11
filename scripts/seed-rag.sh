@@ -10,15 +10,25 @@
 # Prerequisites (Vercel env vars):
 #   - SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
 #   - VOYAGE_API_KEY (for embeddings)
+#   - CRON_SECRET or ADMIN_SECRET (for serviceOnly auth)
 #   - knowledge_base table created (migration 015+)
 #
 # Usage:
-#   bash scripts/seed-rag.sh                    # default: production
-#   bash scripts/seed-rag.sh https://preview.vercel.app  # preview deploy
+#   CRON_SECRET=your-secret bash scripts/seed-rag.sh
+#   CRON_SECRET=your-secret bash scripts/seed-rag.sh https://preview.vercel.app
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 BASE="${1:-https://futuro-club.vercel.app}"
+
+# Auth: serviceOnly endpoints require CRON_SECRET or ADMIN_SECRET
+SECRET="${CRON_SECRET:-${ADMIN_SECRET:-}}"
+if [ -z "$SECRET" ]; then
+  echo "ERROR: Set CRON_SECRET or ADMIN_SECRET env var to authenticate with serviceOnly endpoints."
+  echo "  Example: CRON_SECRET=your-secret bash scripts/seed-rag.sh"
+  exit 1
+fi
+AUTH_HEADER="Authorization: Bearer $SECRET"
 
 green(){ printf "\033[32m%s\033[0m\n" "$*"; }
 red(){   printf "\033[31m%s\033[0m\n" "$*"; }
@@ -35,8 +45,8 @@ echo ""
 
 # ── Step 1: Seed Drills ─────────────────────────────────────────────────────
 echo "▸ Step 1/2: Seeding drills (82 entries)..."
-DRILL_RESP=$(curl -s -w "\n%{http_code}" -X POST \
-  -H "Content-Type: application/json" \
+DRILL_RESP=$(curl -s -w "\n%{http_code}" -X GET \
+  -H "$AUTH_HEADER" \
   -m 120 \
   "${BASE}/api/rag/seed" 2>/dev/null) || true
 
@@ -56,8 +66,8 @@ echo ""
 
 # ── Step 2: Seed Knowledge Docs ─────────────────────────────────────────────
 echo "▸ Step 2/2: Seeding knowledge docs (22+ entries)..."
-KNOW_RESP=$(curl -s -w "\n%{http_code}" -X POST \
-  -H "Content-Type: application/json" \
+KNOW_RESP=$(curl -s -w "\n%{http_code}" -X GET \
+  -H "$AUTH_HEADER" \
   -m 180 \
   "${BASE}/api/rag/seed-knowledge" 2>/dev/null) || true
 
@@ -79,6 +89,7 @@ echo ""
 echo "▸ Verification: querying RAG..."
 QUERY_RESP=$(curl -s -w "\n%{http_code}" -X POST \
   -H "Content-Type: application/json" \
+  -H "$AUTH_HEADER" \
   -d '{"query":"drill for improving first touch and ball control","topK":3}' \
   -m 30 \
   "${BASE}/api/rag/query" 2>/dev/null) || true

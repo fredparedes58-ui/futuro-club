@@ -27,7 +27,14 @@ const CreatePlayerSchema = z.object({
   id: z.string().optional(), // client can provide or server generates
   name: z.string().min(2).max(80),
   age: z.number().min(8).max(21),
-  position: z.string().min(1),
+  position: z.enum([
+    "GK", "CB", "RB", "LB", "RCB", "LCB", "RWB", "LWB",
+    "CDM", "CM", "CAM", "DM", "LCM", "RCM", "RM", "LM",
+    "RW", "LW", "ST", "CF",
+    "Portero", "Defensa Central", "Lateral Derecho", "Lateral Izquierdo",
+    "Pivote", "Mediocentro", "Mediapunta", "Extremo Derecho",
+    "Extremo Izquierdo", "Delantero Centro", "Segundo Delantero",
+  ]),
   foot: z.enum(["right", "left", "both"]),
   height: z.number().min(100).max(220),
   weight: z.number().min(20).max(120),
@@ -48,7 +55,14 @@ const UpdatePlayerSchema = z.object({
   phvOffset: z.number().optional(),
   name: z.string().min(2).max(80).optional(),
   age: z.number().min(8).max(21).optional(),
-  position: z.string().min(1).optional(),
+  position: z.enum([
+    "GK", "CB", "RB", "LB", "RCB", "LCB", "RWB", "LWB",
+    "CDM", "CM", "CAM", "DM", "LCM", "RCM", "RM", "LM",
+    "RW", "LW", "ST", "CF",
+    "Portero", "Defensa Central", "Lateral Derecho", "Lateral Izquierdo",
+    "Pivote", "Mediocentro", "Mediapunta", "Extremo Derecho",
+    "Extremo Izquierdo", "Delantero Centro", "Segundo Delantero",
+  ]).optional(),
   foot: z.enum(["right", "left", "both"]).optional(),
   height: z.number().min(100).max(220).optional(),
   weight: z.number().min(20).max(120).optional(),
@@ -212,7 +226,7 @@ export default withHandler(
 
       // Fetch current player data
       const getRes = await fetch(
-        `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&select=data`,
+        `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&select=data,updated_at`,
         { headers },
       );
 
@@ -220,12 +234,13 @@ export default withHandler(
         return errorResponse("Failed to fetch player", 500);
       }
 
-      const rows = await getRes.json() as Array<{ data: Record<string, unknown> }>;
+      const rows = await getRes.json() as Array<{ data: Record<string, unknown>; updated_at: string }>;
       if (rows.length === 0) {
         return errorResponse("Player not found", 404, "NOT_FOUND");
       }
 
       const currentData = rows[0].data as Record<string, unknown>;
+      const originalUpdatedAt = rows[0].updated_at;
       const now = new Date().toISOString();
 
       // Build updated data
@@ -258,7 +273,7 @@ export default withHandler(
       updatedData.updatedAt = now;
 
       const patchRes = await fetch(
-        `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}`,
+        `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&updated_at=eq.${originalUpdatedAt}`,
         {
           method: "PATCH",
           headers: { ...headers, Prefer: "return=representation" },
@@ -271,8 +286,11 @@ export default withHandler(
         return errorResponse(`Failed to update player: ${errText.slice(0, 200)}`, 500);
       }
 
-      const [updated] = await patchRes.json() as Array<{ id: string; data: Record<string, unknown> }>;
-      return successResponse({ ...updated.data, id: updated.id });
+      const patchedRows = await patchRes.json() as Array<{ id: string; data: Record<string, unknown> }>;
+      if (patchedRows.length === 0) {
+        return errorResponse("Conflicto: el jugador fue modificado por otra sesión. Reintenta.", 409, "CONFLICT");
+      }
+      return successResponse({ ...patchedRows[0].data, id: patchedRows[0].id });
     }
 
     // ── DELETE: Remove player ────────────────────────────────────────────────

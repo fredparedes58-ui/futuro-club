@@ -102,23 +102,9 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
     }
   }
 
-  // ── Strategy 3: Decode-only (dev/fallback — no secrets configured) ──────
-  try {
-    const payload = JSON.parse(atob(parts[1]));
-    const userId = payload.sub ?? null;
-    if (!userId) return { userId: null, error: "Token sin subject" };
-
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      return { userId: null, error: "Token expirado" };
-    }
-
-    if (payload.iss && !payload.iss.includes("supabase")) {
-      return { userId: null, error: "Emisor no reconocido" };
-    }
-
-    console.warn("[auth] No JWT_SECRET or Supabase API — using decode-only (INSECURE)");
-    return { userId, error: null };
-  } catch {
-    return { userId: null, error: "Token malformado" };
-  }
+  // ── Strategy 3: No verification method available — reject ──────────────
+  // In production, SUPABASE_JWT_SECRET or SUPABASE_URL must be configured.
+  // We never accept tokens without signature verification.
+  console.error("[auth] CRITICAL: No JWT_SECRET and no Supabase API available — cannot verify tokens");
+  return { userId: null, error: "Servidor no puede verificar autenticación. Contacte al administrador." };
 }
