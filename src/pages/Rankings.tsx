@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Crown, Medal, Shield, Search, Plus, X, SlidersHorizontal } from "lucide-react";
+import { Crown, Medal, Shield, Search, Plus, X, SlidersHorizontal, BarChart3, Users } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useRankedPlayers } from "@/hooks/useRankings";
 import { RankingsPodiumSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
-import type { SortField, SortDir } from "@/services/rankingsService";
+import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsService";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const rankIcons = [
@@ -41,6 +41,8 @@ const POSITION_GROUPS = [
   "Segundo Delantero",
 ];
 
+const AGE_GROUPS = ["all", "Sub-10", "Sub-12", "Sub-14", "Sub-16", "Sub-18", "Sub-21"];
+
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, x: -20 }, show: { opacity: 1, x: 0, transition: { duration: 0.4 } } };
 
@@ -53,38 +55,46 @@ const Rankings = () => {
   const [search, setSearch] = useState("");
   const [phvFilter, setPhvFilter] = useState("all");
   const [posFilter, setPosFilter] = useState("Todos");
+  const [ageGroupFilter, setAgeGroupFilter] = useState("all");
+  const [levelFilter, setLevelFilter] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
 
-  const { data: sortedPlayers, isLoading, isError } = useRankedPlayers(sortBy, sortDir);
+  // Build filters object for API
+  const filters: RankingsFilters = useMemo(
+    () => ({
+      phv: phvFilter,
+      position: posFilter,
+      ageGroup: ageGroupFilter,
+      level: levelFilter,
+      search: search || undefined,
+    }),
+    [phvFilter, posFilter, ageGroupFilter, levelFilter, search]
+  );
 
-  useEffect(() => {
-    if (isError) toast.error(t("toasts.rankingsError"));
-  }, [isError]);
+  const { data: response, isLoading, isError } = useRankedPlayers(sortBy, sortDir, filters);
 
-  // Filtros en cliente (rápido, sobre datos ya ordenados)
-  const filteredPlayers = useMemo(() => {
-    if (!sortedPlayers) return [];
-    return sortedPlayers.filter((p) => {
-      const matchSearch = search === "" || p.name.toLowerCase().includes(search.toLowerCase());
-      const matchPHV = phvFilter === "all" || p.phvCategory === phvFilter;
-      const matchPos = posFilter === "Todos" || p.position === posFilter;
-      return matchSearch && matchPHV && matchPos;
-    });
-  }, [sortedPlayers, search, phvFilter, posFilter]);
+  const players = response?.players ?? [];
+  const totalUnfiltered = response?.totalUnfiltered ?? 0;
+  const ageGroupStats = response?.ageGroupStats ?? {};
+  const competitiveLevels = response?.competitiveLevels ?? [];
 
-  const hasFilters = search !== "" || phvFilter !== "all" || posFilter !== "Todos";
-  const isFiltered = filteredPlayers.length !== (sortedPlayers?.length ?? 0);
+  if (isError) toast.error(t("toasts.rankingsError"));
 
-  const handleSort = (field: SortField) => {
+  const hasFilters = search !== "" || phvFilter !== "all" || posFilter !== "Todos" || ageGroupFilter !== "all" || levelFilter !== "all";
+  const isFiltered = players.length !== totalUnfiltered;
+
+  const handleSort = useCallback((field: SortField) => {
     if (sortBy === field) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
     else { setSortBy(field); setSortDir("desc"); }
-  };
+  }, [sortBy]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch("");
     setPhvFilter("all");
     setPosFilter("Todos");
-  };
+    setAgeGroupFilter("all");
+    setLevelFilter("all");
+  }, []);
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-4 max-w-lg mx-auto">
@@ -124,7 +134,7 @@ const Rankings = () => {
       {/* Sort + Filtros toggle */}
       <motion.div variants={item} className="flex items-center gap-2">
         <div className="flex gap-1 bg-muted rounded-md p-0.5 flex-1">
-          {([["vsi", t("players.rankings.sortVsi")], ["age", t("players.rankings.sortAge")], ["name", t("players.rankings.sortName")]] as [SortField, string][]).map(
+          {([["vsi", t("players.rankings.sortVsi")], ["age", t("players.rankings.sortAge")], ["name", t("players.rankings.sortName")], ["percentile", t("players.rankings.sortPercentile")]] as [SortField, string][]).map(
             ([field, label]) => (
               <Button
                 key={field}
@@ -200,6 +210,47 @@ const Rankings = () => {
             </select>
           </div>
 
+          {/* Filtro Grupo de Edad */}
+          <div>
+            <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-2">
+              {t("players.rankings.ageGroup")}
+            </p>
+            <div className="flex gap-1.5 flex-wrap">
+              {AGE_GROUPS.map((ag) => (
+                <button
+                  key={ag}
+                  onClick={() => setAgeGroupFilter(ag)}
+                  className={`px-3 py-1 rounded-lg text-xs font-display font-semibold border transition-all ${
+                    ageGroupFilter === ag
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-secondary text-muted-foreground border-border hover:border-primary/50"
+                  }`}
+                >
+                  {ag === "all" ? t("players.rankings.phvFilter.all") : ag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtro Nivel Competitivo */}
+          {competitiveLevels.length > 0 && (
+            <div>
+              <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-2">
+                {t("players.rankings.competitiveLevel")}
+              </p>
+              <select
+                value={levelFilter}
+                onChange={(e) => setLevelFilter(e.target.value)}
+                className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs font-display text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">{t("players.rankings.phvFilter.all")}</option>
+                {competitiveLevels.map((lv) => (
+                  <option key={lv} value={lv}>{lv}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Limpiar filtros */}
           {hasFilters && (
             <Button variant="ghost" size="sm" className="w-full text-xs gap-1" onClick={clearFilters}>
@@ -210,11 +261,29 @@ const Rankings = () => {
         </motion.div>
       )}
 
+      {/* Age group stats banner */}
+      {ageGroupFilter !== "all" && ageGroupStats[ageGroupFilter] && (
+        <motion.div variants={item} className="glass rounded-xl p-3 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <BarChart3 size={14} className="text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-display font-semibold text-foreground">{ageGroupFilter}</p>
+            <div className="flex gap-3 text-[10px] text-muted-foreground">
+              <span><Users size={10} className="inline mr-0.5" />{ageGroupStats[ageGroupFilter].count}</span>
+              <span>Ø {ageGroupStats[ageGroupFilter].avgVsi}</span>
+              <span>{t("players.rankings.minVsi")}: {ageGroupStats[ageGroupFilter].minVsi}</span>
+              <span>{t("players.rankings.maxVsi")}: {ageGroupStats[ageGroupFilter].maxVsi}</span>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Resultado de búsqueda */}
       {isFiltered && !isLoading && (
         <motion.div variants={item} className="flex items-center justify-between text-xs text-muted-foreground px-1">
           <span>
-            {t("players.rankings.ofPlayers", { filtered: filteredPlayers.length, total: sortedPlayers?.length })}
+            {t("players.rankings.ofPlayers", { filtered: players.length, total: totalUnfiltered })}
           </span>
           <button onClick={clearFilters} className="text-primary hover:underline font-display font-semibold">
             {t("common.viewAll")}
@@ -225,9 +294,9 @@ const Rankings = () => {
       {/* Podium (solo en vista VSI sin filtros) */}
       {isLoading ? (
         <RankingsPodiumSkeleton />
-      ) : filteredPlayers.length >= 3 && sortBy === "vsi" && sortDir === "desc" && !hasFilters ? (
+      ) : players.length >= 3 && sortBy === "vsi" && sortDir === "desc" && !hasFilters ? (
         <motion.div variants={item} className="flex items-end justify-center gap-3 py-4">
-          {[filteredPlayers[1], filteredPlayers[0], filteredPlayers[2]].map((player, i) => {
+          {[players[1], players[0], players[2]].map((player, i) => {
             const heights = ["h-24", "h-32", "h-20"];
             const order = [1, 0, 2];
             return (
@@ -261,7 +330,7 @@ const Rankings = () => {
       {/* Lista de jugadores */}
       {isLoading ? (
         <PlayerListSkeleton count={6} />
-      ) : filteredPlayers.length === 0 ? (
+      ) : players.length === 0 ? (
         <motion.div variants={item} className="glass rounded-xl p-8 text-center space-y-3">
           {hasFilters ? (
             <>
@@ -288,7 +357,7 @@ const Rankings = () => {
         </motion.div>
       ) : (
         <div className="space-y-2">
-          {filteredPlayers.map((player, i) => (
+          {players.map((player, i) => (
             <motion.div
               key={player.id}
               variants={item}
@@ -304,7 +373,7 @@ const Rankings = () => {
               {/* Avatar iniciales */}
               <div className="w-9 h-9 rounded-full border border-border bg-secondary flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-display font-bold text-muted-foreground">
-                  {player.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  {player.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
                 </span>
               </div>
 
@@ -330,6 +399,10 @@ const Rankings = () => {
                       : player.phvCategory === "early"
                       ? t("players.rankings.phvFilter.early")
                       : t("players.rankings.phvFilter.onTime")}
+                  </span>
+                  {/* Percentile badge */}
+                  <span className="text-primary font-mono font-semibold">
+                    P{player.percentileInAgeGroup}
                   </span>
                   {/* Tendencia */}
                   {player.trending === "up" && <span className="text-primary">↑</span>}

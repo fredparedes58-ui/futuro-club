@@ -2,16 +2,19 @@
  * GET /api/notifications/cron
  * Cron diario (09:00 UTC) — detecta triggers y envía Web Push.
  *
+ * Improvements:
+ * 1. Respects user notification preferences (stored in notification_preferences table)
+ * 2. Deduplication: won't send same trigger type for same player within 24h
+ * 3. Logs sent notifications in notification_log for audit trail
+ * 4. Email fallback via Resend for critical alerts (VSI < 40)
+ *
  * Triggers:
- * 1. VSI bajo (< 50) — primer análisis por debajo del umbral
- * 2. Inactividad 30 días — sin análisis ni eventos
- * 3. Límite de plan al 90% — jugadores o análisis
+ * 1. Low VSI Alert: VSI < 50 → rendimientoBajo
+ * 2. Inactivity Reminder: No updates for 30+ days → inactividad
+ * 3. Plan Limit Alert: Free plan users at 4/5 players → limitePlan
  *
  * Node.js runtime required — web-push needs Node crypto for VAPID signing.
  */
-
-// Node.js runtime (NOT edge) — web-push requires crypto module
-// export const config = { runtime: "edge" };
 
 import webpush from "web-push";
 import { withHandler } from "../_lib/withHandler";
@@ -19,22 +22,48 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 interface PushSub {
   user_id: string;
-  subscription: {
-    endpoint: string;
-    keys: { p256dh: string; auth: string };
-  };
+  endpoint: string;
+  p256dh: string;
+  auth: string;
 }
 
-interface Player {
+interface PlayerRow {
   user_id: string;
-  name: string;
-  metrics: Record<string, number>;
+  data: {
+    name?: string;
+    metrics?: Record<string, number>;
+    vsi?: number;
+  };
   updated_at: string;
 }
 
 interface Subscription {
   user_id: string;
   plan: string;
+}
+
+interface NotifPreference {
+  user_id: string;
+  rendimiento_bajo: boolean;
+  inactividad: boolean;
+  limite_plan: boolean;
+  analisis_completado: boolean;
+}
+
+interface NotifLog {
+  user_id: string;
+  trigger_type: string;
+  player_id?: string;
+  sent_at: string;
+}
+
+interface Notification {
+  userId: string;
+  title: string;
+  body: string;
+  triggerType: string;
+  playerId?: string;
+  critical?: boolean;
 }
 
 export default withHandler(
@@ -45,6 +74,7 @@ export default withHandler(
     const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? "";
     const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
     const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+    const resendKey    = process.env.RESEND_API_KEY;
 
     if (!supabaseUrl || !serviceKey) {
       return errorResponse("Supabase not configured", 500);
@@ -64,103 +94,211 @@ export default withHandler(
     };
 
     const base = `${supabaseUrl}/rest/v1`;
-    const notifications: Array<{ userId: string; title: string; body: string }> = [];
+    const notifications: Notification[] = [];
 
-    // 1. Jugadores con VSI bajo
-    const playersRes = await fetch(`${base}/players?select=user_id,name,metrics,updated_at`, { headers });
-    const players: Player[] = await playersRes.json();
+    // ─── Fetch all data in parallel ─────────────────────────────────────
+    const [playersRes, subsRes, pushRes, prefsRes, logsRes] = await Promise.all([
+      fetch(`${base}/players?select=user_id,data,updated_at`, { headers }),
+      fetch(`${base}/subscriptions?select=user_id,plan`, { headers }),
+      fetch(`${base}/push_subscriptions?select=user_id,endpoint,p256dh,auth`, { headers }),
+      fetch(`${base}/notification_preferences?select=*`, { headers }),
+      // Get logs from last 24 hours for deduplication
+      fetch(`${base}/notification_log?sent_at=gte.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&select=user_id,trigger_type,player_id,sent_at`, { headers }),
+    ]);
 
-    // VSI weights must match MetricsService.calculateVSI()
+    const players: PlayerRow[] = playersRes.ok ? await playersRes.json() : [];
+    const subs: Subscription[] = subsRes.ok ? await subsRes.json() : [];
+    const pushSubs: PushSub[] = pushRes.ok ? await pushRes.json() : [];
+    const prefs: NotifPreference[] = prefsRes.ok ? await prefsRes.json() : [];
+    const recentLogs: NotifLog[] = logsRes.ok ? await logsRes.json() : [];
+
+    // Build preference lookup (default: all enabled)
+    const prefMap = new Map<string, NotifPreference>();
+    for (const p of prefs) prefMap.set(p.user_id, p);
+
+    function isEnabled(userId: string, type: string): boolean {
+      const pref = prefMap.get(userId);
+      if (!pref) return true; // Default: all enabled
+      switch (type) {
+        case "rendimientoBajo": return pref.rendimiento_bajo;
+        case "inactividad": return pref.inactividad;
+        case "limitePlan": return pref.limite_plan;
+        default: return true;
+      }
+    }
+
+    // Build dedup set: "userId:triggerType:playerId"
+    const dedupSet = new Set<string>();
+    for (const log of recentLogs) {
+      dedupSet.add(`${log.user_id}:${log.trigger_type}:${log.player_id ?? ""}`);
+    }
+
+    function isDuplicate(userId: string, type: string, playerId?: string): boolean {
+      return dedupSet.has(`${userId}:${type}:${playerId ?? ""}`);
+    }
+
+    // ─── VSI Weights (match MetricsService) ─────────────────────────────
     const VSI_WEIGHTS: Record<string, number> = {
       speed: 0.18, shooting: 0.13, vision: 0.20,
       technique: 0.22, defending: 0.12, stamina: 0.15,
     };
 
+    // ─── Trigger 1: Low VSI ─────────────────────────────────────────────
     for (const p of players) {
-      const m = p.metrics ?? {};
+      const m = p.data?.metrics ?? {};
       const keys = Object.keys(m);
       if (keys.length === 0) continue;
 
       let vsi: number;
-      const hasWeights = keys.some(k => k in VSI_WEIGHTS);
-      if (hasWeights) {
-        let sum = 0;
-        for (const [k, w] of Object.entries(VSI_WEIGHTS)) {
-          if (k in m) { sum += (m[k] as number) * w; }
-        }
-        vsi = Math.round(sum);
+      if (typeof p.data?.vsi === "number") {
+        vsi = p.data.vsi;
       } else {
-        const values = Object.values(m) as number[];
-        vsi = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+        const hasWeights = keys.some(k => k in VSI_WEIGHTS);
+        if (hasWeights) {
+          let sum = 0;
+          for (const [k, w] of Object.entries(VSI_WEIGHTS)) {
+            if (k in m) sum += (m[k] as number) * w;
+          }
+          vsi = Math.round(sum);
+        } else {
+          const values = Object.values(m) as number[];
+          vsi = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+        }
       }
 
-      if (vsi < 50) {
+      if (vsi < 50 && isEnabled(p.user_id, "rendimientoBajo") && !isDuplicate(p.user_id, "rendimientoBajo", p.data?.name)) {
         notifications.push({
           userId: p.user_id,
           title: "Alerta de rendimiento",
-          body: `${p.name} tiene un VSI de ${vsi}. Revisa su perfil.`,
+          body: `${p.data?.name ?? "Jugador"} tiene un VSI de ${vsi}. Revisa su perfil.`,
+          triggerType: "rendimientoBajo",
+          playerId: p.data?.name,
+          critical: vsi < 40,
         });
       }
     }
 
-    // 2. Jugadores inactivos (30 días sin actualizar)
+    // ─── Trigger 2: Inactivity (30 days) ─────────────────────────────────
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const inactiveRes = await fetch(
-      `${base}/players?select=user_id,name,updated_at&updated_at=lt.${thirtyDaysAgo}`,
-      { headers },
-    );
-    const inactive: Player[] = await inactiveRes.json();
-    for (const p of inactive) {
-      notifications.push({
-        userId: p.user_id,
-        title: "Jugador inactivo",
-        body: `${p.name} lleva más de 30 días sin nuevos datos.`,
-      });
+    for (const p of players) {
+      if (p.updated_at < thirtyDaysAgo && isEnabled(p.user_id, "inactividad") && !isDuplicate(p.user_id, "inactividad", p.data?.name)) {
+        notifications.push({
+          userId: p.user_id,
+          title: "Jugador inactivo",
+          body: `${p.data?.name ?? "Jugador"} lleva más de 30 días sin nuevos datos.`,
+          triggerType: "inactividad",
+          playerId: p.data?.name,
+        });
+      }
     }
 
-    // 3. Límite de plan al 90%
-    const subsRes = await fetch(`${base}/subscriptions?select=user_id,plan`, { headers });
-    const subs: Subscription[] = await subsRes.json();
-
+    // ─── Trigger 3: Plan limit (90%) ─────────────────────────────────────
     for (const sub of subs) {
       if (sub.plan === "free") {
         const playerCount = players.filter((p) => p.user_id === sub.user_id).length;
-        if (playerCount >= 4) {
+        if (playerCount >= 4 && isEnabled(sub.user_id, "limitePlan") && !isDuplicate(sub.user_id, "limitePlan")) {
           notifications.push({
             userId: sub.user_id,
             title: "Límite de jugadores",
             body: `Tienes ${playerCount}/5 jugadores. Actualiza a Pro para añadir más.`,
+            triggerType: "limitePlan",
           });
         }
       }
     }
 
-    // Obtener suscripciones push
-    const pushRes = await fetch(`${base}/push_subscriptions?select=user_id,subscription`, { headers });
-    const pushSubs: PushSub[] = await pushRes.json();
-
+    // ─── Send notifications ──────────────────────────────────────────────
     let sent = 0;
     let failed = 0;
+    const logEntries: Array<{ user_id: string; trigger_type: string; player_id: string; channel: string; sent_at: string }> = [];
+    const now = new Date().toISOString();
+
     for (const notif of notifications) {
-      const pushSub = pushSubs.find((s) => s.user_id === notif.userId);
-      if (pushSub) {
+      const userPushSubs = pushSubs.filter((s) => s.user_id === notif.userId);
+
+      for (const sub of userPushSubs) {
         try {
           await webpush.sendNotification(
-            pushSub.subscription,
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
             JSON.stringify({ title: notif.title, body: notif.body, url: "/" }),
           );
           sent++;
+          logEntries.push({
+            user_id: notif.userId,
+            trigger_type: notif.triggerType,
+            player_id: notif.playerId ?? "",
+            channel: "push",
+            sent_at: now,
+          });
         } catch (err) {
           failed++;
           const statusCode = (err as { statusCode?: number })?.statusCode;
           if (statusCode === 410) {
+            // Subscription expired — clean up
             await fetch(
-              `${base}/push_subscriptions?endpoint=eq.${encodeURIComponent(pushSub.subscription.endpoint)}`,
+              `${base}/push_subscriptions?endpoint=eq.${encodeURIComponent(sub.endpoint)}`,
               { method: "DELETE", headers },
             ).catch(() => {});
           }
         }
       }
+
+      // Email fallback for critical alerts via Resend
+      if (notif.critical && resendKey) {
+        try {
+          // Fetch user email from auth.users via service role
+          const userRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${notif.userId}`, {
+            headers: {
+              "apikey": serviceKey,
+              "Authorization": `Bearer ${serviceKey}`,
+            },
+          });
+          if (userRes.ok) {
+            const userData = await userRes.json();
+            const email = userData.email;
+            if (email) {
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${resendKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  from: "VITAS <noreply@vitas.app>",
+                  to: [email],
+                  subject: `⚠️ ${notif.title}`,
+                  html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px;">
+                    <h2 style="color:#ef4444;">${notif.title}</h2>
+                    <p>${notif.body}</p>
+                    <a href="https://futuro-club.vercel.app" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;">Ver en VITAS</a>
+                  </div>`,
+                }),
+              });
+              logEntries.push({
+                user_id: notif.userId,
+                trigger_type: notif.triggerType,
+                player_id: notif.playerId ?? "",
+                channel: "email",
+                sent_at: now,
+              });
+            }
+          }
+        } catch {
+          // Email is best-effort, don't fail the cron
+        }
+      }
+    }
+
+    // ─── Log sent notifications for deduplication ────────────────────────
+    if (logEntries.length > 0) {
+      await fetch(`${base}/notification_log`, {
+        method: "POST",
+        headers: { ...headers, "Prefer": "return=minimal" },
+        body: JSON.stringify(logEntries),
+      }).catch(() => {});
     }
 
     return successResponse({ success: true, notifications: notifications.length, sent, failed });

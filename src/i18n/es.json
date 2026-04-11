@@ -373,7 +373,13 @@
       "noResultsDesc": "Ning\u00fan jugador coincide con los filtros actuales.",
       "noPlayersTitle": "Sin jugadores registrados",
       "noPlayersDesc": "Agrega tu primer jugador para comenzar.",
-      "addPlayer": "Agregar jugador"
+      "addPlayer": "Agregar jugador",
+      "sortPercentile": "P%",
+      "ageGroup": "Grupo de Edad",
+      "competitiveLevel": "Nivel Competitivo",
+      "minVsi": "Mín",
+      "maxVsi": "Máx",
+      "percentileLabel": "Percentil en grupo"
     }
   },
 
@@ -743,7 +749,12 @@
     "medBias": "SESGO MEDIO",
     "highBias": "SESGO ALTO",
     "superior": "SUPERIOR",
-    "below": "POR DEBAJO"
+    "below": "POR DEBAJO",
+    "diversityScore": "Diversidad",
+    "confidence": "Confianza",
+    "ageAdjusted": "Ajustado por edad",
+    "positionSpecificPhv": "PHV por posición",
+    "weightedSimilarity": "Similitud ponderada"
   },
 
   "intelligence": {

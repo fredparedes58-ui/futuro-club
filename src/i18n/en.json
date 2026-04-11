@@ -373,7 +373,13 @@
       "noResultsDesc": "No player matches the current filters.",
       "noPlayersTitle": "No registered players",
       "noPlayersDesc": "Add your first player to get started.",
-      "addPlayer": "Add player"
+      "addPlayer": "Add player",
+      "sortPercentile": "P%",
+      "ageGroup": "Age Group",
+      "competitiveLevel": "Competitive Level",
+      "minVsi": "Min",
+      "maxVsi": "Max",
+      "percentileLabel": "Percentile in group"
     }
   },
 
@@ -743,7 +749,12 @@
     "medBias": "MEDIUM BIAS",
     "highBias": "HIGH BIAS",
     "superior": "SUPERIOR",
-    "below": "BELOW"
+    "below": "BELOW",
+    "diversityScore": "Diversity",
+    "confidence": "Confidence",
+    "ageAdjusted": "Age-adjusted",
+    "positionSpecificPhv": "Position-specific PHV",
+    "weightedSimilarity": "Weighted similarity"
   },
 
   "intelligence": {

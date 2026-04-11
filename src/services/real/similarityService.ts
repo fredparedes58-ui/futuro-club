@@ -5,6 +5,12 @@
  * Compara un vector VSI de jugador de academia contra la base de datos
  * de jugadores profesionales (pro_players en Supabase o fallback local).
  *
+ * Improvements:
+ * - Diversity weighting: ensures top 5 includes varied positions
+ * - Position-specific PHV adjustment curves
+ * - Better scale normalization (pro 0-99, youth 0-100)
+ * - Weighted metric importance for cosine similarity
+ *
  * Mapping de métricas:
  *   VSI speed     → pro pace
  *   VSI shooting  → pro shooting
@@ -21,6 +27,7 @@ import {
   phvAdjustment,
   ageConfidence,
   type MetricName,
+  POSITION_PEAK_OFFSET,
 } from "@/data/developmentCurves";
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
@@ -40,6 +47,7 @@ export interface SimilarityMatch {
   positionMatch:   boolean;
   ageAdjusted?:    boolean;  // true si se aplicó ajuste por edad
   proAtYouthAge?:  Record<string, number>; // métricas estimadas del pro a la edad del youth
+  confidence?:     number;   // 0-1 confidence for this specific match
 }
 
 export interface SimilarityResult {
@@ -51,7 +59,18 @@ export interface SimilarityResult {
   computedAt:      string;
   ageAdjusted:     boolean;
   confidence:      number;  // 0-1, basado en edad del youth
+  diversityScore:  number;  // 0-1, how diverse the top5 positions are
 }
+
+// ─── Metric weights for similarity (technique matters more than physic) ──────
+const METRIC_WEIGHTS = [
+  1.2,  // speed/pace — important but PHV-dependent
+  1.0,  // shooting
+  1.3,  // vision/passing — most predictive (Jordet 2005)
+  1.4,  // technique/dribbling — most predictive (Huijgen 2009)
+  0.8,  // defending — develops late
+  0.7,  // stamina/physic — highly trainable
+];
 
 // ─── Internos ─────────────────────────────────────────────────────────────────
 
@@ -77,12 +96,16 @@ function toVSIVector(m: VSIMetrics): number[] {
   ];
 }
 
-function cosineSimilarity(a: number[], b: number[]): number {
+/** Weighted cosine similarity — gives more weight to technique/vision metrics */
+function weightedCosineSimilarity(a: number[], b: number[], weights: number[]): number {
   let dot = 0, magA = 0, magB = 0;
   for (let i = 0; i < a.length; i++) {
-    dot  += a[i] * b[i];
-    magA += a[i] * a[i];
-    magB += b[i] * b[i];
+    const w = weights[i] ?? 1;
+    const wa = a[i] * w;
+    const wb = b[i] * w;
+    dot  += wa * wb;
+    magA += wa * wa;
+    magB += wb * wb;
   }
   if (magA === 0 || magB === 0) return 0;
   return dot / (Math.sqrt(magA) * Math.sqrt(magB));
@@ -110,14 +133,42 @@ function isPositionCompatible(playerPos: string, proPos: string): boolean {
   return adjacent[playerGroup]?.includes(proGroup) ?? false;
 }
 
-// ─── De-aging: estimar stats del pro a la edad del youth ─────────────────────
+// ─── Position-specific PHV adjustment ───────────────────────────────────────
 
 /**
- * Estima las métricas de un jugador profesional a una edad más joven,
- * usando las curvas de desarrollo científicas + Kaggle.
- *
- * Ejemplo: Rodri (28, passing 88) → a los 14 se estima ~47
+ * Position-specific PHV adjustment.
+ * Different positions are affected differently by maturation:
+ * - Defenders benefit more from early physical maturation
+ * - Midfielders are less affected (technique-dependent)
+ * - Attackers have moderate impact
  */
+function positionSpecificPhvAdjustment(age: number, phvOffset: number, position: string): number {
+  if (!phvOffset || age > 20 || age < 11 || age > 18) return 1.0;
+
+  const posGroup = getPositionGroup(position);
+  const baseFactor = phvAdjustment(age, phvOffset);
+
+  // Position-specific multiplier on the PHV effect
+  const posMultiplier: Record<string, number> = {
+    GK: 1.2,   // Goalkeepers benefit most from early maturation (height, reach)
+    CB: 1.15,  // Center backs benefit from physicality
+    FB: 0.9,   // Full backs need speed + technique, moderate PHV effect
+    DM: 1.0,   // Defensive mids: balanced
+    CM: 0.8,   // Central mids: technique-dependent, less PHV impact
+    AM: 0.7,   // Attacking mids: least affected by PHV
+    W:  0.85,  // Wingers: speed matters but technique dominates
+    ST: 0.95,  // Strikers: physicality helps but not deterministic
+  };
+
+  const mult = posMultiplier[posGroup] ?? 1.0;
+
+  // Scale the deviation from 1.0 by the position multiplier
+  const deviation = baseFactor - 1.0;
+  return 1.0 + deviation * mult;
+}
+
+// ─── De-aging: estimar stats del pro a la edad del youth ─────────────────────
+
 function deAgeProPlayer(
   pro: ProPlayer,
   targetAge: number
@@ -146,6 +197,44 @@ function deAgedToVector(deAged: Record<string, number>): number[] {
   ];
 }
 
+// ─── Diversity selection ─────────────────────────────────────────────────────
+
+/**
+ * Select top N with diversity: ensures no more than 2 players from same position group.
+ * Returns the best diverse set while still prioritizing score.
+ */
+function diverseTopN(scored: SimilarityMatch[], topN: number): SimilarityMatch[] {
+  if (scored.length <= topN) return scored;
+
+  const result: SimilarityMatch[] = [];
+  const groupCount: Record<string, number> = {};
+  const maxPerGroup = Math.max(2, Math.ceil(topN / 3)); // Max 2-3 per group
+
+  for (const match of scored) {
+    if (result.length >= topN) break;
+    const group = getPositionGroup(match.player.position);
+    const count = groupCount[group] ?? 0;
+
+    if (count < maxPerGroup) {
+      result.push(match);
+      groupCount[group] = count + 1;
+    }
+  }
+
+  // If we didn't fill topN due to diversity constraints, fill from remaining
+  if (result.length < topN) {
+    const resultIds = new Set(result.map(m => m.player.id));
+    for (const match of scored) {
+      if (result.length >= topN) break;
+      if (!resultIds.has(match.player.id)) {
+        result.push(match);
+      }
+    }
+  }
+
+  return result;
+}
+
 // ─── Función principal ────────────────────────────────────────────────────────
 
 /**
@@ -166,6 +255,7 @@ export async function findSimilarPlayers(
     boostSamePosition?: boolean;
     youthAge?:          number;  // Edad del jugador de academia
     phvOffset?:         number;  // PHV offset para ajuste madurativo
+    diversify?:         boolean; // Enable position diversity in results
   } = {}
 ): Promise<SimilarityResult> {
   const {
@@ -175,6 +265,7 @@ export async function findSimilarPlayers(
     boostSamePosition = true,
     youthAge,
     phvOffset         = 0,
+    diversify         = true,
   } = options;
 
   const useAgeAdjustment = youthAge !== undefined && youthAge < 21;
@@ -206,8 +297,9 @@ export async function findSimilarPlayers(
   // 2. Construir vector del jugador de academia
   const youthVec = toVSIVector(metrics);
 
-  // Ajuste PHV: modificar el vector youth si hay offset madurativo
-  const phvFactor = youthAge ? phvAdjustment(youthAge, phvOffset) : 1.0;
+  // Apply position-specific PHV adjustment to youth metrics
+  const phvFactor = youthAge ? positionSpecificPhvAdjustment(youthAge, phvOffset, position) : 1.0;
+  const adjustedYouthVec = youthVec.map(v => Math.min(1, v * phvFactor));
 
   // 3. Calcular similitud para cada pro
   const scored = proPlayers.map((pro) => {
@@ -215,21 +307,17 @@ export async function findSimilarPlayers(
     let proAtYouthAgeMetrics: Record<string, number> | undefined;
 
     if (useAgeAdjustment) {
-      // MODE: Age-adjusted — "de-age" el pro a la edad del youth
-      // En vez de comparar youth (14, ~50 OVR) vs pro (28, 89 OVR),
-      // estimamos qué métricas tenía el pro a los 14 y comparamos eso.
       const deAged = deAgeProPlayer(pro, youthAge!);
       comparisonVec = deAgedToVector(deAged);
       proAtYouthAgeMetrics = deAged;
     } else {
-      // MODE: Classic — comparar vectores directos (con penalización magnitud)
       comparisonVec = toProVector(pro);
     }
 
-    let rawSimilarity = cosineSimilarity(youthVec, comparisonVec);
+    // Use weighted cosine similarity
+    let rawSimilarity = weightedCosineSimilarity(adjustedYouthVec, comparisonVec, METRIC_WEIGHTS);
 
     // Penalización por brecha de magnitud (solo en modo clásico)
-    // En modo age-adjusted la brecha ya se reduce por el de-aging
     if (!useAgeAdjustment) {
       const youthAvg = (metrics.speed + metrics.shooting + metrics.vision +
                         metrics.technique + metrics.defending + metrics.stamina) / 6;
@@ -240,7 +328,7 @@ export async function findSimilarPlayers(
       }
     }
 
-    // Boost de 5% si comparte posición exacta (para relevancia táctica)
+    // Boost de 5% si comparte posición exacta
     const positionMatch = isPositionCompatible(position, pro.position);
     if (boostSamePosition && positionMatch) {
       rawSimilarity = Math.min(1, rawSimilarity * 1.05);
@@ -249,8 +337,12 @@ export async function findSimilarPlayers(
     // Filtro de posición
     if (positionFilter === "strict" && !positionMatch) return null;
     if (positionFilter === "flexible" && !positionMatch) {
-      rawSimilarity *= 0.85; // penalty si posición lejana
+      rawSimilarity *= 0.85;
     }
+
+    // Per-match confidence based on age and position compatibility
+    let matchConfidence = youthAge ? ageConfidence(youthAge).confidence : 0.95;
+    if (!positionMatch) matchConfidence *= 0.85;
 
     return {
       player:         pro,
@@ -258,14 +350,21 @@ export async function findSimilarPlayers(
       positionMatch,
       ageAdjusted:    useAgeAdjustment,
       proAtYouthAge:  proAtYouthAgeMetrics,
+      confidence:     Math.round(matchConfidence * 100) / 100,
     } as SimilarityMatch;
   }).filter(Boolean) as SimilarityMatch[];
 
-  // 4. Ordenar descendente y tomar top N
+  // 4. Ordenar descendente
   scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, topN);
 
-  // 5. Grupo dominante (posición más frecuente en top5)
+  // 5. Apply diversity selection or simple top N
+  const top = diversify ? diverseTopN(scored, topN) : scored.slice(0, topN);
+
+  // 6. Calculate diversity score (how varied are the positions)
+  const groupSet = new Set(top.map(m => getPositionGroup(m.player.position)));
+  const diversityScore = top.length > 0 ? Math.round((groupSet.size / top.length) * 100) / 100 : 0;
+
+  // 7. Grupo dominante
   const groupCount: Record<string, number> = {};
   top.forEach((m) => {
     const g = getPositionGroup(m.player.position);
@@ -288,6 +387,7 @@ export async function findSimilarPlayers(
     computedAt:    new Date().toISOString(),
     ageAdjusted:   useAgeAdjustment,
     confidence,
+    diversityScore,
   };
 }
 
@@ -305,7 +405,6 @@ export function scoreToBadge(score: number): { label: string; color: string } {
 /** Descripción narrativa del match */
 export function matchNarrative(match: SimilarityMatch): string {
   const { score, player } = match;
-  const badge = scoreToBadge(score);
   if (score >= 92)
     return `Perfil casi idéntico a ${player.short_name} — misma firma técnica y física.`;
   if (score >= 85)

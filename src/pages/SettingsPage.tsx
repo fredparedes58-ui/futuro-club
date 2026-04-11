@@ -26,6 +26,7 @@ import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 import { BackupService } from "@/services/real/backupService";
 import { useTranslation } from "react-i18next";
+import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 const SETTINGS_KEY = "settings";
 
@@ -75,10 +76,33 @@ const SettingsPage = () => {
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const [pushLoading, setPushLoading] = useState(false);
 
-  // Persiste al cambiar
+  // Persiste al cambiar (local + sync to API)
   useEffect(() => {
     StorageService.set(SETTINGS_KEY, settings);
   }, [settings]);
+
+  // Sync notification preferences to backend when they change
+  useEffect(() => {
+    if (!SUPABASE_CONFIGURED || !settings.notifications) return;
+    const syncPrefs = async () => {
+      try {
+        const session = await supabase.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (!token) return;
+        await fetch("/api/notifications/preferences", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rendimiento_bajo: settings.notifPrefs.rendimientoBajo,
+            inactividad: settings.notifPrefs.inactividad,
+            limite_plan: settings.notifPrefs.limitePlan,
+            analisis_completado: settings.notifPrefs.analisisCompletado,
+          }),
+        });
+      } catch { /* best effort */ }
+    };
+    syncPrefs();
+  }, [settings.notifPrefs, settings.notifications]);
 
   // Sync real push permission on mount
   useEffect(() => {

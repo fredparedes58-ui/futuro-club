@@ -1,21 +1,17 @@
 /**
- * VITAS · Notifications Router
+ * VITAS · Rankings Router
  */
 import { errorResponse } from "../_lib/apiResponse";
-import subscribe from "./_subscribe";
-import cron from "./_cron";
-import preferences from "./_preferences";
+import list from "./_list";
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
-  subscribe,
-  cron,
-  preferences,
+  list,
 };
 
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const action = url.pathname.split("/").filter(Boolean).pop() ?? "";
   const fn = routes[action];
-  if (!fn) return errorResponse(`Notification route "${action}" not found`, 404);
+  if (!fn) return errorResponse(`Rankings route "${action}" not found`, 404);
   return fn(req);
 }

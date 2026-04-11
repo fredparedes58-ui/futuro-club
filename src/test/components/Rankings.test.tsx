@@ -38,17 +38,37 @@ vi.mock("sonner", () => ({
 const mockPlayers = [
   {
     id: "p1", name: "Pablo Gavi", vsi: 88, positionShort: "CM", age: 19,
-    position: "Mediocentro", phvCategory: "ontime", trending: "up",
+    position: "Mediocentro", phvCategory: "on-time", trending: "up",
+    percentile: 80, percentileInAgeGroup: 85, ageGroup: "Sub-21",
+    competitiveLevel: "Regional", phvOffset: 0, metrics: {}, foot: "right", height: 170, weight: 68,
+    updatedAt: "2026-01-01",
   },
   {
     id: "p2", name: "Pedri Gonzalez", vsi: 91, positionShort: "AM", age: 20,
     position: "Mediapunta", phvCategory: "late", trending: "up",
+    percentile: 95, percentileInAgeGroup: 90, ageGroup: "Sub-21",
+    competitiveLevel: "Regional", phvOffset: 0, metrics: {}, foot: "right", height: 174, weight: 70,
+    updatedAt: "2026-01-01",
   },
   {
     id: "p3", name: "Lamine Yamal", vsi: 85, positionShort: "RW", age: 16,
     position: "Extremo Derecho", phvCategory: "early", trending: "up",
+    percentile: 70, percentileInAgeGroup: 95, ageGroup: "Sub-18",
+    competitiveLevel: "Regional", phvOffset: 0, metrics: {}, foot: "right", height: 180, weight: 72,
+    updatedAt: "2026-01-01",
   },
 ];
+
+const mockRankingsResponse = {
+  players: mockPlayers,
+  total: 3,
+  totalUnfiltered: 3,
+  ageGroups: ["Sub-18", "Sub-21"],
+  ageGroupStats: { "Sub-18": { count: 1, avgVsi: 85, minVsi: 85, maxVsi: 85 }, "Sub-21": { count: 2, avgVsi: 89.5, minVsi: 88, maxVsi: 91 } },
+  competitiveLevels: ["Regional"],
+  limit: 50,
+  offset: 0,
+};
 
 const mockUseRankedPlayers = vi.fn();
 vi.mock("@/hooks/useRankings", () => ({
@@ -91,7 +111,7 @@ describe("Rankings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseRankedPlayers.mockReturnValue({
-      data: mockPlayers,
+      data: mockRankingsResponse,
       isLoading: false,
       isError: false,
     });
@@ -113,7 +133,7 @@ describe("Rankings", () => {
 
   it("muestra empty state cuando no hay jugadores", () => {
     mockUseRankedPlayers.mockReturnValue({
-      data: [],
+      data: { players: [], total: 0, totalUnfiltered: 0, ageGroups: [], ageGroupStats: {}, competitiveLevels: [], limit: 50, offset: 0 },
       isLoading: false,
       isError: false,
     });
@@ -121,12 +141,13 @@ describe("Rankings", () => {
     expect(screen.getByText("players.rankings.noPlayersTitle")).toBeDefined();
   });
 
-  it("search filtra jugadores", () => {
+  it("search input actualiza filtros y llama al hook con search", () => {
     render(<Rankings />);
     const searchInput = document.querySelector('input[placeholder="players.rankings.searchPlaceholder"]')!;
     fireEvent.change(searchInput, { target: { value: "Gavi" } });
-    expect(screen.getByText("Pablo Gavi")).toBeDefined();
-    expect(screen.queryByText("Pedri Gonzalez")).toBeNull();
+    // Verify the hook is called with search filter
+    const lastCall = mockUseRankedPlayers.mock.calls[mockUseRankedPlayers.mock.calls.length - 1];
+    expect(lastCall[2]).toEqual(expect.objectContaining({ search: "Gavi" }));
   });
 
   it("botones de sort estan presentes", () => {

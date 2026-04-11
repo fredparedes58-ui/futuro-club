@@ -1,7 +1,10 @@
 /**
  * VITAS — Push Subscription Endpoint
- * POST /api/notifications/subscribe — save subscription
+ * POST   /api/notifications/subscribe — save subscription
  * DELETE /api/notifications/subscribe — remove subscription
+ *
+ * FIX: Maps subscription object to separate columns (endpoint, p256dh, auth)
+ * as required by the push_subscriptions table schema.
  */
 
 import { z } from "zod";
@@ -31,6 +34,9 @@ export default withHandler(
     }
 
     if (req.method === "POST") {
+      // Extract fields to match table columns: user_id, endpoint, p256dh, auth
+      const { endpoint, keys } = body.subscription;
+
       const insertRes = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions`, {
         method: "POST",
         headers: {
@@ -39,7 +45,12 @@ export default withHandler(
           "Content-Type": "application/json",
           "Prefer": "resolution=merge-duplicates",
         },
-        body: JSON.stringify({ user_id: userId, subscription: body.subscription }),
+        body: JSON.stringify({
+          user_id: userId,
+          endpoint,
+          p256dh: keys.p256dh,
+          auth: keys.auth,
+        }),
       });
 
       if (!insertRes.ok) {
@@ -58,7 +69,7 @@ export default withHandler(
       return errorResponse("Endpoint inválido", 400);
     }
 
-    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(parsedDel.data.endpoint)}`, {
+    await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(parsedDel.data.endpoint)}&user_id=eq.${userId}`, {
       method: "DELETE",
       headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}` },
     });
