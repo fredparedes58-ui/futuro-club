@@ -42,7 +42,7 @@ export default async function handler(req: Request): Promise<Response> {
 
       // Notifications
       VAPID_PRIVATE_KEY: check("VAPID_PRIVATE_KEY"),
-      VITE_VAPID_PUBLIC_KEY: check("VITE_VAPID_PUBLIC_KEY"),
+      VAPID_PUBLIC_KEY: check("VITE_VAPID_PUBLIC_KEY") || check("VAPID_PUBLIC_KEY"),
 
       // Rate limiting
       UPSTASH_REDIS_REST_URL: check("UPSTASH_REDIS_REST_URL"),

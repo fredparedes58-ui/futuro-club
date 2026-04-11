@@ -71,13 +71,14 @@ export default withHandler(
   async () => {
     const supabaseUrl  = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
     const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? "";
+    const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY ?? "";
     const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
-    const vapidEmail   = process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+    const vapidSubject = process.env.VAPID_SUBJECT ?? process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+    const vapidEmail   = vapidSubject.startsWith("mailto:") ? vapidSubject : `mailto:${vapidSubject}`;
     const resendKey    = process.env.RESEND_API_KEY;
 
-    if (!process.env.VAPID_PRIVATE_KEY || !process.env.VITE_VAPID_PUBLIC_KEY) {
-      console.warn("[notifications] VAPID keys not configured — push notifications disabled. Set VAPID_PRIVATE_KEY and VITE_VAPID_PUBLIC_KEY in Vercel env vars.");
+    if (!vapidPrivate || !vapidPublic) {
+      console.warn("[notifications] VAPID keys not configured — push notifications disabled. Set VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY in Vercel env vars.");
     }
 
     if (!supabaseUrl || !serviceKey) {

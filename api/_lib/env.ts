@@ -64,9 +64,9 @@ export const env = {
   get stripeClubPriceId() { return optional("STRIPE_CLUB_PRICE_ID", optional("VITE_STRIPE_CLUB_PRICE_ID")); },
 
   // ─── Notifications ───
-  get vapidPublicKey() { return optional("VITE_VAPID_PUBLIC_KEY"); },
+  get vapidPublicKey() { return optional("VITE_VAPID_PUBLIC_KEY") ?? optional("VAPID_PUBLIC_KEY"); },
   get vapidPrivateKey() { return required("VAPID_PRIVATE_KEY"); },
-  get vapidMailto() { return optional("VAPID_MAILTO", "mailto:admin@vitas.app"); },
+  get vapidMailto() { return optional("VAPID_SUBJECT") ?? optional("VAPID_MAILTO", "mailto:admin@vitas.app"); },
 
   // ─── External APIs ───
   get footballDataApiKey() { return required("FOOTBALL_DATA_API_KEY"); },
