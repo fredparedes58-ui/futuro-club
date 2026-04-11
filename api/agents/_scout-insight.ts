@@ -1,8 +1,10 @@
 /**
- * VITAS Agent API — Scout Insight Generator
+ * VITAS Agent API — Scout Insight Generator (v2: RAG-enriched)
  * POST /api/agents/scout-insight
  *
- * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
+ * Edge runtime + raw fetch a Anthropic API.
+ * Now queries RAG knowledge base for drills, benchmarks, methodology
+ * before generating insights with Claude.
  */
 
 import { z } from "zod";
@@ -25,8 +27,8 @@ const scoutSchema = z.object({
   context: z.string().optional(),
 });
 
-const SCOUT_INSIGHT_PROMPT = `
-Eres el generador de insights de scouting de VITAS Football Intelligence.
+function buildSystemPrompt(ragContext: string): string {
+  return `Eres el generador de insights de scouting de VITAS Football Intelligence.
 Tu función es analizar métricas de un jugador juvenil y generar un insight accionable en español.
 
 CONTEXTOS Y SUS REGLAS:
@@ -51,33 +53,83 @@ comparison:
   - headline: comparativa con arquetipo táctico
   - urgency: "low"
 
+regression:
+  - Úsalo cuando VSI bajó significativamente
+  - headline: alerta de regresión con datos concretos
+  - urgency: "high"
+
+milestone:
+  - Úsalo cuando el jugador cruzó un umbral importante (VSI 80, 90, etc.)
+  - headline: celebra el hito con datos
+  - urgency: "medium"
+
 general:
   - Para cualquier otro caso
   - urgency: "low"
 
+${ragContext ? `CONTEXTO DE LA BASE DE CONOCIMIENTO VITAS (RAG):
+${ragContext}
+
+Usa este contexto para:
+- Recomendar drills específicos de la biblioteca
+- Citar benchmarks de rendimiento reales
+- Aplicar metodología de scouting profesional
+` : ""}
+
 REGLAS DE ESCRITURA (obligatorias):
 - Todo en español
 - headline: máximo 80 caracteres, directo, sin emojis
-- body: máximo 300 caracteres, incluye dato numérico específico
+- body: máximo 400 caracteres, incluye dato numérico específico
 - metric: nombre corto de la métrica más destacada (ej: "VSI", "Velocidad", "Visión")
 - metricValue: valor con unidad (ej: "82.4", "+14%", "1er percentil")
 - tags: máximo 4, en minúsculas con guión (ej: "phv-early", "breakout", "lateral-derecho")
+- recommendedDrills: máximo 3 objetos {name, reason} de drills recomendados del contexto RAG
+- actionItems: máximo 3 acciones concretas para el entrenador
+- benchmark: una frase comparativa (ej: "Percentil 85 en velocidad para Sub-15")
 - timestamp: ISO 8601 actual
 
-RESPONDE ÚNICAMENTE con JSON válido con estas keys:
-{"playerId":"string","type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"timestamp":"ISO"}
+RESPONDE ÚNICAMENTE con JSON válido:
+{"playerId":"string","type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"timestamp":"ISO","recommendedDrills":[{"name":"string","reason":"string"}],"actionItems":["string"],"benchmark":"string"}
 
 No incluyas texto, explicaciones ni markdown fuera del JSON.
 `;
+}
 
 export default withHandler(
   { schema: scoutSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body }) => {
+  async ({ body, req }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return errorResponse("ANTHROPIC_API_KEY not configured", 503, "CONFIG_ERROR");
     }
 
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const baseUrl = new URL(req.url).origin;
+
+    // ── RAG enrichment ────────────────────────────────────────────────────
+    let ragContext = "";
+    try {
+      const metrics = body.player?.recentMetrics ?? {};
+      const ragQuery = `${body.player?.position ?? ""} ${body.context ?? ""} ${body.player?.age ?? ""} años métricas: velocidad ${metrics.speed ?? 0} técnica ${metrics.technique ?? 0} visión ${metrics.vision ?? 0} disparo ${metrics.shooting ?? 0} defensa ${metrics.defending ?? 0}`;
+
+      const ragRes = await fetch(`${baseUrl}/api/rag/query`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body: JSON.stringify({ query: ragQuery, limit: 5 }),
+      });
+
+      if (ragRes.ok) {
+        const ragData = await ragRes.json() as { data?: { context?: string } };
+        ragContext = ragData.data?.context ?? "";
+      }
+    } catch {
+      // RAG failure is non-blocking — proceed without enrichment
+    }
+
+    // ── Claude call ───────────────────────────────────────────────────────
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -88,8 +140,8 @@ export default withHandler(
       body: JSON.stringify({
         model:       "claude-haiku-4-5-20251001",
         max_tokens:  1024,
-        temperature: 0,
-        system:      SCOUT_INSIGHT_PROMPT,
+        temperature: 0.3,
+        system:      buildSystemPrompt(ragContext),
         messages:    [{ role: "user", content: JSON.stringify(body) }],
       }),
     });
@@ -135,6 +187,7 @@ export default withHandler(
       ...parsed,
       tokensUsed,
       agentName: "ScoutInsightAgent",
+      ragEnriched: !!ragContext,
     });
   },
 );

@@ -447,6 +447,15 @@ export function usePlayerIntelligence(player: Player) {
           // Invalidar caché de análisis guardados
           queryClient.invalidateQueries({ queryKey: ["player-analyses", player.id] });
 
+          // ── Auto-generate scout insight for this player ─────────────────
+          try {
+            const { triggerInsightForPlayer } = await import("@/services/scoutService");
+            await triggerInsightForPlayer(player.id);
+            queryClient.invalidateQueries({ queryKey: ["scout-insights"] });
+          } catch (insightErr) {
+            console.warn("[Intelligence] No se pudo generar insight automático:", insightErr);
+          }
+
           setState({ step: "done", progress: 100, message: "Análisis completado" });
 
         } catch (err) {

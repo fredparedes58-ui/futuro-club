@@ -1,61 +1,58 @@
-import { mockScoutInsights, type ScoutInsight } from "@/lib/mockData";
-import { PlayerService } from "@/services/real/playerService";
-import { AgentService } from "@/services/real/agentService";
-import { adaptInsightForUI } from "@/services/real/adapters";
-import type { ScoutInsightInput } from "@/agents/contracts";
+/**
+ * VITAS Scout Service
+ *
+ * Lightweight client-side service. The real insight generation
+ * now happens server-side via /api/scout/generate.
+ * This file is kept for backward compatibility and utility functions.
+ */
 
-export async function fetchScoutInsights(): Promise<ScoutInsight[]> {
-  PlayerService.seedIfEmpty();
-  const players = PlayerService.getAll();
+import { supabase } from "@/lib/supabase";
 
-  if (players.length === 0) return mockScoutInsights as ScoutInsight[];
-
+/**
+ * Trigger insight generation for a specific player (post-analysis).
+ * Called from usePlayerIntelligence after completing a video analysis.
+ */
+export async function triggerInsightForPlayer(playerId: string): Promise<boolean> {
   try {
-    // Genera insights en paralelo para todos los jugadores
-    const insightPromises = players.slice(0, 6).map((player) => {
-      const vsiHistory = player.vsiHistory ?? [player.vsi];
-      const prevVSI = vsiHistory.at(-2) ?? player.vsi;
-      const delta = player.vsi - prevVSI;
-      const vsiTrend: "up" | "down" | "stable" =
-        delta > 2 ? "up" : delta < -2 ? "down" : "stable";
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return false;
 
-      const context: ScoutInsightInput["context"] =
-        player.vsi > 75 && vsiTrend === "up" ? "breakout"
-        : player.phvCategory === "early" && player.metrics.speed > 75 ? "phv_alert"
-        : Math.max(...Object.values(player.metrics)) > 85 ? "drill_record"
-        : "general";
-
-      const input: ScoutInsightInput = {
-        player: {
-          id: player.id,
-          name: player.name,
-          age: player.age,
-          position: player.position,
-          vsi: player.vsi,
-          vsiTrend,
-          phvCategory: player.phvCategory ?? "ontme",
-          recentMetrics: player.metrics,
-        },
-        context,
-      };
-
-      return AgentService.generateScoutInsight(input).then((res) => {
-        if (!res.success || !res.data) return null;
-        return adaptInsightForUI(res.data, player);
-      });
+    const res = await fetch("/api/scout/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ playerId }),
     });
 
-    const results = await Promise.allSettled(insightPromises);
-    const insights = results
-      .filter((r) => r.status === "fulfilled" && r.value !== null)
-      .map((r) => (r as PromiseFulfilledResult<ReturnType<typeof adaptInsightForUI>>).value);
-
-    // Fallback a mock si la API no respondió correctamente
-    if (insights.length === 0) return mockScoutInsights as ScoutInsight[];
-    return insights as unknown as ScoutInsight[];
-
+    return res.ok;
   } catch {
-    // Si la API key no está configurada en dev, usa mock
-    return mockScoutInsights as ScoutInsight[];
+    return false;
+  }
+}
+
+/**
+ * Get the count of unread insights for badge display.
+ */
+export async function getUnreadInsightCount(): Promise<number> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) return 0;
+
+    const res = await fetch("/api/scout/insights?limit=1", {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) return 0;
+    const json = await res.json() as { data?: { unread?: number } };
+    return json.data?.unread ?? 0;
+  } catch {
+    return 0;
   }
 }

@@ -59,19 +59,25 @@ export const ScoutInsightInputSchema = z.object({
     }),
     lastDrills: z.array(z.string()).optional(),
   }),
-  context: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "general"]),
+  context: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general"]),
 });
 
 export const ScoutInsightOutputSchema = z.object({
   playerId: z.string(),
-  type: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "general"]),
+  type: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general"]),
   headline: z.string().max(80),
-  body: z.string().max(300),
+  body: z.string().max(400),
   metric: z.string(),
   metricValue: z.string(),
   urgency: z.enum(["high", "medium", "low"]),
   tags: z.array(z.string()).max(4),
   timestamp: z.string(),
+  recommendedDrills: z.array(z.object({
+    name: z.string(),
+    reason: z.string(),
+  })).max(3).optional(),
+  actionItems: z.array(z.string()).max(3).optional(),
+  benchmark: z.string().optional(),
 });
 
 export type ScoutInsightInput = z.infer<typeof ScoutInsightInputSchema>;

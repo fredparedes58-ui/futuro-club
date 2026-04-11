@@ -73,6 +73,8 @@ export function adaptInsightForUI(
     comparison: "comparison",
     phv_alert: "phv-alert",
     drill_record: "drill-record",
+    regression: "regression",
+    milestone: "milestone",
     general: "breakout", // fallback visual
   };
 

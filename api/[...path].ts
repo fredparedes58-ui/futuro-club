@@ -13,6 +13,8 @@ import roboflowAnalyze from "./roboflow/_analyze";
 import uploadImage from "./upload/_image";
 import uploadVideoInit from "./upload/_video-init";
 import health from "./health";
+import scoutGenerate from "./scout/generate";
+import scoutInsights from "./scout/insights";
 
 export const config = { runtime: "edge" };
 
@@ -36,6 +38,8 @@ export default async function handler(req: Request): Promise<Response> {
     "roboflow/analyze": roboflowAnalyze,
     "upload/image": uploadImage,
     "upload/video-init": uploadVideoInit,
+    "scout/generate": scoutGenerate,
+    "scout/insights": scoutInsights,
   };
 
   if (staticRoutes[key]) return staticRoutes[key](req);
