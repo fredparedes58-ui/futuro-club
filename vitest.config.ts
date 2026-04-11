@@ -11,10 +11,21 @@ export default defineConfig({
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
     coverage: {
       provider: "v8",
-      reporter: ["text", "json-summary"],
-      include: ["src/services/real/**", "src/services/errorDiagnosticService.ts"],
+      reporter: ["text", "json-summary", "lcov"],
+      include: [
+        "src/services/real/**",
+        "src/services/errorDiagnosticService.ts",
+        "src/hooks/**",
+      ],
+      exclude: [
+        "**/*.d.ts",
+        "**/index.ts",
+      ],
       thresholds: {
-        statements: 40,
+        statements: 50,
+        branches: 40,
+        functions: 45,
+        lines: 50,
       },
     },
   },

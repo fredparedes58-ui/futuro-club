@@ -83,7 +83,11 @@ export default withHandler(
 
     // ── PATCH: Update insight (read/archive) ────────────────────────────────
     if (req.method === "PATCH") {
-      const parsed = PatchSchema.safeParse(body);
+      let patchBody = body;
+      if (!patchBody || typeof patchBody !== "object" || !("id" in (patchBody as Record<string, unknown>))) {
+        try { patchBody = await req.json(); } catch { /* empty */ }
+      }
+      const parsed = PatchSchema.safeParse(patchBody);
       if (!parsed.success) {
         return errorResponse("Invalid body: " + parsed.error.message, 400);
       }

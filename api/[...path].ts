@@ -6,6 +6,7 @@ import { errorResponse } from "./_lib/apiResponse";
 
 import pipelineStart from "./pipeline/_start";
 import playersSearch from "./players/_search";
+import playersCrud from "./players/_crud";
 import fixturesLive from "./fixtures/_live";
 import trackingSave from "./tracking/_save";
 import audit from "./_audit";
@@ -32,6 +33,7 @@ export default async function handler(req: Request): Promise<Response> {
     "health": health,
     "pipeline/start": pipelineStart,
     "players/search": playersSearch,
+    "players/crud": playersCrud,
     "fixtures/live": fixturesLive,
     "tracking/save": trackingSave,
     "audit": audit,

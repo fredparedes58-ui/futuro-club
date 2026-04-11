@@ -5,11 +5,13 @@
 import { errorResponse } from "../_lib/apiResponse";
 
 import search from "./_search";
+import crud from "./_crud";
 
 export const config = { runtime: "edge" };
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "search": search,
+  "crud": crud,
 };
 
 export default async function handler(req: Request): Promise<Response> {

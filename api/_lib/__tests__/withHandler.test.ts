@@ -96,7 +96,7 @@ describe("withHandler", () => {
     const res = await handler(makeRequest("POST", {}));
     expect(res.status).toBe(429);
     const body = await res.json();
-    expect(body.error.code).toBe("RATE_LIMITED");
+    expect(body.errorDetail.code).toBe("RATE_LIMITED");
   });
 
   // ─── Zod validation ─────────────────────────────────
@@ -108,7 +108,7 @@ describe("withHandler", () => {
     const res = await handler(makeRequest("POST", { name: "" }));
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(body.errorDetail.code).toBe("VALIDATION_ERROR");
   });
 
   it("passes validated body to handler", async () => {
@@ -131,7 +131,7 @@ describe("withHandler", () => {
     const res = await handler(makeRequest("POST", {}));
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    expect(body.errorDetail.code).toBe("UNAUTHORIZED");
   });
 
   it("passes userId when requireAuth succeeds", async () => {
@@ -164,7 +164,7 @@ describe("withHandler", () => {
     const res = await handler(makeRequest("GET"));
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.errorDetail.code).toBe("FORBIDDEN");
   });
 
   it("allows serviceOnly with correct CRON_SECRET", async () => {
@@ -185,8 +185,8 @@ describe("withHandler", () => {
     const res = await handler(makeRequest("POST", {}));
     expect(res.status).toBe(500);
     const body = await res.json();
-    expect(body.error.code).toBe("INTERNAL_ERROR");
-    expect(body.error.message).toBe("something broke");
+    expect(body.errorDetail.code).toBe("INTERNAL_ERROR");
+    expect(body.errorDetail.message).toBe("something broke");
   });
 
   // ─── rawBody ────────────────────────────────────────
@@ -250,6 +250,6 @@ describe("withHandler", () => {
     const res = await handler(req);
     expect(res.status).toBe(400);
     const body = await res.json();
-    expect(body.error.code).toBe("PARSE_ERROR");
+    expect(body.errorDetail.code).toBe("PARSE_ERROR");
   });
 });
