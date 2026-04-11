@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
+import OfflineBanner from "@/components/OfflineBanner";
 
 // Pages — Auth
 import LoginPage from "./pages/LoginPage";
@@ -99,6 +100,7 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <SyncManager />
+            <OfflineBanner />
             <ErrorBoundary>
               <Routes>
                 {/* ── Rutas públicas (auth) ─────────────────────────── */}

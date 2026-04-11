@@ -940,6 +940,11 @@
     }
   },
 
+  "offline": {
+    "banner": "Offline — Data will sync when reconnected",
+    "reconnected": "Reconnected — Syncing data..."
+  },
+
   "toasts": {
     "sessionStarted": "Session started",
     "accountCreated": "Account created! Check your email to confirm.",

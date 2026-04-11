@@ -940,6 +940,11 @@
     }
   },
 
+  "offline": {
+    "banner": "Sin conexión — Los datos se sincronizarán al reconectar",
+    "reconnected": "Reconectado — Sincronizando datos..."
+  },
+
   "toasts": {
     "sessionStarted": "Sesi\u00f3n iniciada",
     "accountCreated": "\u00a1Cuenta creada! Revisa tu email para confirmar.",

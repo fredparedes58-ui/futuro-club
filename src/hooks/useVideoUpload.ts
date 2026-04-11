@@ -44,6 +44,8 @@ export interface UploadState {
   video: VideoRecord | null;
   analysis: VideoAnalysis | null;
   phase2Pending: boolean;
+  uploadSpeed: number;     // bytes per second
+  etaSeconds: number;      // estimated time remaining
 }
 
 const INITIAL: UploadState = {
@@ -55,6 +57,8 @@ const INITIAL: UploadState = {
   video: null,
   analysis: null,
   phase2Pending: false,
+  uploadSpeed: 0,
+  etaSeconds: 0,
 };
 
 const POLL_INTERVAL_MS = 4000;
@@ -212,6 +216,7 @@ export function useVideoUpload(playerId?: string) {
         setState((prev) => ({ ...prev, videoId, phase: "uploading" }));
 
         // ── Step 2: Upload to Bunny via TUS protocol (signed, resumable) ────
+        const uploadStartTime = Date.now();
         await new Promise<void>((resolve, reject) => {
           const tusUpload = new tus.Upload(file, {
             endpoint: "https://video.bunnycdn.com/tusupload",
@@ -231,7 +236,12 @@ export function useVideoUpload(playerId?: string) {
             },
             onProgress: (bytesUploaded, bytesTotal) => {
               const pct = Math.round((bytesUploaded / bytesTotal) * 100);
-              setState((prev) => ({ ...prev, progress: pct }));
+              const now = Date.now();
+              const elapsed = (now - uploadStartTime) / 1000; // seconds
+              const speed = elapsed > 0 ? bytesUploaded / elapsed : 0;
+              const remaining = bytesTotal - bytesUploaded;
+              const eta = speed > 0 ? Math.round(remaining / speed) : 0;
+              setState((prev) => ({ ...prev, progress: pct, uploadSpeed: speed, etaSeconds: eta }));
             },
             onSuccess: () => {
               resolve();

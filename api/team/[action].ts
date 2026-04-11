@@ -4,10 +4,12 @@
 import { errorResponse } from "../_lib/apiResponse";
 import invite from "./_invite";
 import accept from "./_accept";
+import updateRole from "./_update-role";
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "invite": invite,
   "accept": accept,
+  "update-role": updateRole,
 };
 
 export default async function handler(req: Request): Promise<Response> {

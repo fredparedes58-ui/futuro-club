@@ -159,6 +159,20 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                     transition={{ type: "spring", stiffness: 50 }}
                   />
                 </div>
+                {state.uploadSpeed > 0 && (
+                  <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>
+                      {state.uploadSpeed > 1024 * 1024
+                        ? `${(state.uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`
+                        : `${(state.uploadSpeed / 1024).toFixed(0)} KB/s`}
+                    </span>
+                    <span>
+                      {state.etaSeconds > 60
+                        ? `~${Math.ceil(state.etaSeconds / 60)} min restantes`
+                        : `~${state.etaSeconds}s restantes`}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

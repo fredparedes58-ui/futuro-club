@@ -36,6 +36,17 @@ export default withHandler(
     const orgOwnerId = userId!;
     const { email, role } = body;
 
+    // ── API-level permission check: verify caller is director ─────────
+    const { data: callerProfile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("user_id", orgOwnerId)
+      .single();
+
+    if (!callerProfile || callerProfile.role !== "director") {
+      return errorResponse("Solo directores pueden invitar miembros", 403, "FORBIDDEN");
+    }
+
     // Verificar que no exista ya una invitación pendiente para este email
     const { data: existing } = await supabase
       .from("team_invitations")
@@ -91,6 +102,15 @@ export default withHandler(
         `,
       }).catch(() => {});
     }
+
+    // ── Audit log ────────────────────────────────────────────────────
+    await supabase.from("team_audit_log").insert({
+      org_owner_id: orgOwnerId,
+      actor_id: orgOwnerId,
+      action: "invite_sent",
+      target_email: email,
+      new_role: role,
+    }).catch(() => {}); // Best effort
 
     return successResponse({ success: true });
   },
