@@ -103,6 +103,62 @@ export default withHandler(
       Prefer: "count=exact",
     };
 
+    // Try RPC first (server-side percentiles, O(n) in Postgres)
+    try {
+      const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/get_ranked_players`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          p_user_id: userId,
+          p_sort_by: sortBy,
+          p_sort_dir: sortDir,
+          p_limit: limit,
+          p_offset: offset,
+          p_search: search || null,
+          p_phv: phvFilter || null,
+          p_position: posFilter || null,
+          p_age_group: ageGroupFilter || null,
+          p_level: levelFilter || null,
+        }),
+      });
+
+      if (rpcRes.ok) {
+        const rpcData = await rpcRes.json();
+        // RPC returns the full response object directly
+        // Map player data format to match existing API contract
+        const players = (rpcData.players || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          age: p.age,
+          position: p.position,
+          vsi: Number(p.vsi),
+          phvCategory: p.phv_category === "ontme" ? "on-time" : p.phv_category,
+          competitiveLevel: p.competitive_level,
+          ageGroup: p.age_group,
+          percentile: Math.round(Number(p.percentile)),
+          percentileInAgeGroup: Math.round(Number(p.percentile_in_age_group)),
+          updatedAt: p.updated_at,
+          ...((p.data || {}) as Record<string, unknown>),
+        }));
+
+        return successResponse({
+          players,
+          total: rpcData.total || 0,
+          limit,
+          offset,
+          totalUnfiltered: rpcData.totalUnfiltered || 0,
+          ageGroups: rpcData.ageGroups || [],
+          ageGroupStats: rpcData.ageGroupStats || {},
+          competitiveLevels: rpcData.competitiveLevels || [],
+        });
+      }
+      // RPC failed — fall through to in-memory approach
+      console.warn("[rankings] RPC failed, falling back to in-memory:", rpcRes.status);
+    } catch (rpcErr) {
+      console.warn("[rankings] RPC exception, falling back to in-memory:", rpcErr);
+    }
+
+    // ── Fallback: in-memory approach ──
     // Fetch ALL players for this user (needed for percentile calculations)
     // This is intentional — percentiles require the full dataset
     // Use module-level cache to avoid repeated DB fetches within the same Edge instance

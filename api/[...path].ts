@@ -16,7 +16,9 @@ import uploadVideoInit from "./upload/_video-init";
 import health from "./health";
 import scoutGenerate from "./scout/generate";
 import scoutInsights from "./scout/insights";
+import scoutAutoGenerate from "./scout/_auto-generate";
 import rankingsList from "./rankings/_list";
+import reportsPdf from "./reports/_pdf";
 
 export const config = { runtime: "edge" };
 
@@ -43,7 +45,9 @@ export default async function handler(req: Request): Promise<Response> {
     "upload/video-init": uploadVideoInit,
     "scout/generate": scoutGenerate,
     "scout/insights": scoutInsights,
+    "scout/auto-generate": scoutAutoGenerate,
     "rankings/list": rankingsList,
+    "reports/pdf": reportsPdf,
   };
 
   if (staticRoutes[key]) return staticRoutes[key](req);

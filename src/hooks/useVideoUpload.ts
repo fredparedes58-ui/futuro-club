@@ -401,6 +401,12 @@ export function useVideoUpload(playerId?: string) {
           queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
         }
       } catch (err) {
+        // Clean up blob URLs to prevent memory leaks
+        const currentVideo = state.videoId ? VideoService.getById(state.videoId) : null;
+        if (currentVideo?.localPath?.startsWith("blob:")) {
+          URL.revokeObjectURL(currentVideo.localPath);
+        }
+
         console.error("[useVideoUpload] Upload failed:", err);
         const { title, description } = getErrorDetails(err, "upload");
         const rawMsg = err instanceof Error ? err.message : String(err);
