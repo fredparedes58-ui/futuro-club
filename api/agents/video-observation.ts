@@ -247,21 +247,79 @@ REGLAS:
       // Llamar a Gemini API directamente via REST
       // Usamos gemini-2.0-flash para video (soporta hasta 1h)
       const model = "gemini-2.0-flash";
+
+      // Determinar si usamos File API (>15MB) o inlineData (<15MB)
+      const videoSizeBytes = Buffer.from(videoBase64, "base64").length;
+      const videoSizeMB = videoSizeBytes / (1024 * 1024);
+      const useFileApi = videoSizeMB > 15;
+
+      let videoPart: Record<string, unknown>;
+
+      if (useFileApi) {
+        // Gemini File API para videos grandes (hasta 2GB)
+        console.log(`[Gemini] Video grande (${videoSizeMB.toFixed(1)}MB) — usando File API`);
+        const uploadUrl = `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`;
+        const videoBuffer = Buffer.from(videoBase64, "base64");
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": mediaType || "video/mp4",
+            "X-Goog-Upload-Protocol": "raw",
+            "X-Goog-Upload-Command": "upload, finalize",
+          },
+          body: videoBuffer,
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text().catch(() => "");
+          console.error("[Gemini] File upload error:", uploadRes.status, errText);
+          return errorResponse(`Gemini File API upload error: ${uploadRes.status}`, 502, "GEMINI_UPLOAD_ERROR");
+        }
+
+        const uploadData = await uploadRes.json() as { file?: { uri?: string; name?: string; state?: string } };
+        const fileUri = uploadData.file?.uri;
+        const fileName = uploadData.file?.name;
+
+        if (!fileUri) {
+          return errorResponse("Gemini File API no retornó URI", 502, "GEMINI_UPLOAD_NO_URI");
+        }
+
+        // Esperar a que el archivo esté procesado (ACTIVE)
+        let fileState = uploadData.file?.state || "PROCESSING";
+        let attempts = 0;
+        while (fileState === "PROCESSING" && attempts < 30) {
+          await new Promise(r => setTimeout(r, 2000));
+          const statusRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/${fileName}?key=${apiKey}`
+          );
+          if (statusRes.ok) {
+            const statusData = await statusRes.json() as { state?: string };
+            fileState = statusData.state || "PROCESSING";
+          }
+          attempts++;
+        }
+
+        if (fileState !== "ACTIVE") {
+          return errorResponse(`Video no procesado por Gemini (state: ${fileState})`, 502, "GEMINI_FILE_NOT_READY");
+        }
+
+        console.log(`[Gemini] Archivo listo: ${fileUri}`);
+        videoPart = { fileData: { mimeType: mediaType || "video/mp4", fileUri } };
+      } else {
+        // InlineData para videos pequeños (<15MB)
+        console.log(`[Gemini] Video pequeño (${videoSizeMB.toFixed(1)}MB) — usando inlineData`);
+        videoPart = { inlineData: { mimeType: mediaType || "video/mp4", data: videoBase64 } };
+      }
+
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const geminiBody = {
         contents: [
           {
             parts: [
-              {
-                inlineData: {
-                  mimeType: mediaType || "video/mp4",
-                  data: videoBase64,
-                },
-              },
-              {
-                text: prompt,
-              },
+              videoPart,
+              { text: prompt },
             ],
           },
         ],

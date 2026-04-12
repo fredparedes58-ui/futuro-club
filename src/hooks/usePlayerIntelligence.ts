@@ -14,7 +14,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { findSimilarPlayers, type VSIMetrics, type SimilarityResult } from "@/services/real/similarityService";
 import { PlayerService, type Player } from "@/services/real/playerService";
-import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64, getOptimalFrameCount } from "@/lib/localVideoUtils";
+import { extractKeyframesFromVideo, readVideoAsBase64, getOptimalFrameCount } from "@/lib/localVideoUtils";
 import { computeKPIs, generateMonthlyChallenges } from "@/lib/kpiProjections";
 import type { PhysicalMetrics, FieldPosition } from "@/lib/yolo/types";
 
@@ -294,7 +294,9 @@ export function usePlayerIntelligence(player: Player) {
 
           // 2b. SOLO si Gemini falló → extraer frames como fallback para Claude
           if (!geminiObservations) {
-            if (localVideoSrc) {
+            // Solo intentar extracción local con blob: o file: URLs (no CDN https:)
+            const isLocalBlob = localVideoSrc && !localVideoSrc.startsWith("http");
+            if (isLocalBlob) {
                 // Extraer 100 frames localmente → seleccionar 20 espaciados → enviar a Claude
                 const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
                 setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas para Claude (fallback)...` });

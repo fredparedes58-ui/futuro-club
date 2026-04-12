@@ -179,7 +179,7 @@ const VitasLab = () => {
 
   const [selectedMode, setSelectedMode]         = useState("all");
   const [isPlaying, setIsPlaying]               = useState(false);
-  const [currentTime, setCurrentTime]           = useState(862);
+  const [currentTime, setCurrentTime]           = useState(0);
   const totalTime = 5400;
   const [showUploadPanel, setShowUploadPanel]   = useState(false);
   const [showResultsPanel, setShowResultsPanel] = useState(false);
