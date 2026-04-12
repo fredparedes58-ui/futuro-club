@@ -25,11 +25,11 @@ import { MetricsService } from "@/services/real/metricsService";
 import { useTranslation } from "react-i18next";
 
 const sidebarItems = [
-  { path: "/master", icon: LayoutDashboard, label: "Master Dashboard" },
-  { path: "/lab", icon: Activity, label: "Active Analysis" },
-  { path: "/rankings", icon: Users, label: "Player Database" },
-  { path: "/scout", icon: FileText, label: "Scout Reports" },
-  { path: "/settings", icon: Settings, label: "Configuration" },
+  { path: "/master", icon: LayoutDashboard, label: "Panel Master" },
+  { path: "/lab", icon: Activity, label: "Análisis Activo" },
+  { path: "/rankings", icon: Users, label: "Base de Jugadores" },
+  { path: "/scout", icon: FileText, label: "Informes Scout" },
+  { path: "/settings", icon: Settings, label: "Configuración" },
 ];
 
 const biasColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -128,7 +128,7 @@ const MasterDashboard = () => {
       <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card p-5 justify-between">
         <div>
           <div className="mb-8">
-            <PageHeader title="VITAS" subtitle="Academy Intelligence" />
+            <PageHeader title="VITAS" subtitle="Inteligencia Deportiva" />
           </div>
           <nav className="space-y-1">
             {sidebarItems.map((navItem) => {
@@ -154,11 +154,11 @@ const MasterDashboard = () => {
         {/* User */}
         <div className="flex items-center gap-3 pt-4 border-t border-border">
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-display font-bold text-xs">
-            {(user?.email?.[0] ?? "U").toUpperCase()}
+            {user?.user_metadata?.full_name ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : (user?.email?.[0] ?? "U").toUpperCase()}
           </div>
           <div>
             <p className="text-sm font-display font-semibold text-foreground">{user?.email?.split("@")[0] ?? "Usuario"}</p>
-            <p className="text-[10px] text-muted-foreground">VITAS Intelligence</p>
+            <p className="text-[10px] text-muted-foreground">VITAS Inteligencia</p>
           </div>
         </div>
       </aside>
