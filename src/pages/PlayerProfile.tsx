@@ -518,45 +518,63 @@ const PlayerProfile = () => {
                 {advancedMetrics.dominantFeatures.playStyle}
               </span>
             </div>
-            <div className="space-y-2.5">
+            {/* Especialización */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-[9px] text-muted-foreground">Especialización:</span>
+              <div className="h-1 flex-1 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-electric/60 to-primary"
+                  style={{ width: `${Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%` }}
+                />
+              </div>
+              <span className="text-[9px] font-display font-bold text-primary">
+                {Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%
+              </span>
+            </div>
+            {/* Top 3 dominant */}
+            <div className="space-y-3">
               {advancedMetrics.dominantFeatures.dominant.map((feat) => (
                 <div key={feat.key}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-foreground font-display w-20 shrink-0">
+                    <span className="text-[10px] text-foreground font-display font-semibold w-20 shrink-0">
                       {feat.label}
                     </span>
-                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                    <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-electric to-primary"
+                        className="h-full rounded-full bg-gradient-to-r from-electric to-primary transition-all"
                         style={{ width: `${feat.value}%` }}
                       />
                     </div>
-                    <span className="text-[9px] font-display text-primary shrink-0">
+                    <span className="text-[10px] font-display font-bold text-foreground w-6 text-right">
+                      {feat.value}
+                    </span>
+                    <span className={`text-[9px] font-display shrink-0 px-1 rounded ${
+                      feat.zScore >= 1.0 ? "bg-green-500/10 text-green-600" :
+                      feat.zScore >= 0.3 ? "bg-electric/10 text-electric" :
+                      "bg-muted text-muted-foreground"
+                    }`}>
                       z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
                     </span>
                   </div>
-                  {feat.description && (
-                    <p className="text-[9px] text-muted-foreground mt-0.5 ml-[88px] leading-relaxed">
-                      {feat.description}
-                    </p>
-                  )}
+                  <p className="text-[9px] text-muted-foreground mt-0.5 ml-[88px] leading-relaxed italic">
+                    {feat.description}
+                  </p>
                 </div>
               ))}
             </div>
+            {/* Areas to develop */}
             {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-border">
-                <span className="text-[9px] text-muted-foreground font-display">{t("players.profile.areasToDevelope")}:</span>
-                <div className="space-y-1.5 mt-1.5">
+              <div className="mt-3 pt-2 border-t border-border">
+                <span className="text-[9px] text-muted-foreground font-display font-semibold">{t("players.profile.areasToDevelope")}:</span>
+                <div className="space-y-2 mt-1.5">
                   {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => (
-                    <div key={feat.key}>
-                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold">
-                        {feat.label} ({"\u2212"}{feat.gap})
+                    <div key={feat.key} className="flex items-start gap-2">
+                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold shrink-0">
+                        {feat.label} ({feat.value}) {"\u2212"}{feat.gap}
                       </span>
-                      {feat.description && (
-                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-relaxed">
-                          {feat.description}
-                        </p>
-                      )}
+                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+                        {feat.description}
+                      </p>
                     </div>
                   ))}
                 </div>
