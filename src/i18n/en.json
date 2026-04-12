@@ -484,6 +484,8 @@
     "analysisError": "Analysis error",
     "analysisLimitReached": "Analysis limit reached: {{used}}/{{limit}} this month.",
     "upgradePlan": "Upgrade plan",
+    "videoNotReady": "Video not available",
+    "videoNotReadyDesc": "This video has not been transcoded on Bunny Stream yet. Try another video or wait a few minutes.",
     "modelsComingSoon": "Models coming soon",
     "modelsComingSoonDesc": "YOLOv8n-pose trained with SoccerNet will be available in Phase 3.",
     "presetApplied": "Preset \"{name}\" applied",

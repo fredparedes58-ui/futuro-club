@@ -22,6 +22,7 @@ import {
   Star,
   TrendingUp,
   Target,
+  AlertCircle,
   AlertTriangle,
   Activity,
   FileDown,
@@ -379,8 +380,11 @@ const VitasLab = () => {
         keyframes = await extractKeyframesFromVideo(videoSrc, (video.duration as number) || 90, 8);
         if (keyframes.length === 0) throw new Error(t("errors.frameExtractError"));
       } else {
-        // Bunny CDN thumbnails
-        const hostname = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
+        // Bunny CDN thumbnails — extract hostname from streamUrl if available
+        let hostname = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
+        if (video.streamUrl) {
+          try { hostname = new URL(video.streamUrl).hostname; } catch { /* keep fallback */ }
+        }
         const duration = (video.duration as number) || 90;
         keyframes = Array.from({ length: 8 }, (_, i) => {
           const ts = Math.floor((duration / 9) * (i + 1));
@@ -395,8 +399,12 @@ const VitasLab = () => {
       {
         try {
           toast.loading(t("toasts.preparingVideo"), { id: toastId });
-          const bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
-          const bunnyVideoUrl = video.id && !video.id.startsWith("local-")
+          // Extract CDN hostname from streamUrl if available, else fallback to env/default
+          let bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
+          if (video.streamUrl) {
+            try { bunnyCdnHost = new URL(video.streamUrl).hostname; } catch { /* keep fallback */ }
+          }
+          const bunnyVideoUrl = bunnyCdnHost && video.id && !video.id.startsWith("local-")
             ? `https://${bunnyCdnHost}/${video.id}/play_720p.mp4`
             : null;
 
@@ -888,6 +896,12 @@ const VitasLab = () => {
                 preload="metadata"
                 crossOrigin="anonymous"
               />
+            ) : selectedVideo && !labVideoUrl ? (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/80">
+                <AlertCircle size={32} className="text-yellow-400" />
+                <p className="text-sm font-display text-yellow-400 font-semibold">{t("lab.videoNotReady")}</p>
+                <p className="text-xs text-muted-foreground text-center max-w-xs">{t("lab.videoNotReadyDesc")}</p>
+              </div>
             ) : (
               <img src={pitchImage} alt="Football pitch" className="w-full h-full object-cover" />
             )}

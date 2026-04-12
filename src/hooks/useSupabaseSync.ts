@@ -133,7 +133,15 @@ export function useSupabaseSync() {
       SubscriptionService.syncFromSupabase(user.id),
       UserProfileService.syncFromSupabase(user.id),
       SubscriptionService.syncAnalysesFromSupabase(user.id),
-    ]).then(() => {
+    ]).then(async () => {
+      // Purge mock/fake players AFTER sync to prevent cloud data restoring them
+      const { PlayerService } = await import("@/services/real/playerService");
+      const { purgedIds } = PlayerService.purgeMockPlayers();
+      // Also delete purged fakes from Supabase so they don't come back
+      for (const fakeId of purgedIds) {
+        SupabasePlayerService.deleteOne(user.id, fakeId).catch(() => {});
+      }
+
       const now = new Date().toISOString();
       SyncQueueService.setTimestamp("player", now);
       SyncQueueService.setTimestamp("video", now);

@@ -60,6 +60,13 @@ const STORAGE_KEY = "videos";
  */
 export function getBestVideoUrl(video: VideoRecord): string | null {
   const isHttp = (url?: string | null) => !!url && url.startsWith("http");
+
+  // If streamUrl is HLS (.m3u8), convert to direct MP4 (browsers can't play HLS natively)
+  if (isHttp(video.streamUrl) && video.streamUrl!.endsWith("/playlist.m3u8")) {
+    const base = video.streamUrl!.replace("/playlist.m3u8", "");
+    return `${base}/play_720p.mp4`;
+  }
+
   // Prefer persistent HTTP URLs from Bunny CDN
   if (isHttp(video.streamUrl)) return video.streamUrl!;
   if (isHttp(video.localPath)) return video.localPath!;

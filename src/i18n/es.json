@@ -484,6 +484,8 @@
     "analysisError": "Error en el an\u00e1lisis",
     "analysisLimitReached": "L\u00edmite de an\u00e1lisis alcanzado: {{used}}/{{limit}} este mes.",
     "upgradePlan": "Actualizar plan",
+    "videoNotReady": "Video no disponible",
+    "videoNotReadyDesc": "Este video aún no se ha transcodificado en Bunny Stream. Prueba con otro video o espera unos minutos.",
     "modelsComingSoon": "Modelos disponibles pr\u00f3ximamente",
     "modelsComingSoonDesc": "YOLOv8n-pose entrenado con SoccerNet estar\u00e1 disponible en Fase 3.",
     "presetApplied": "Preset \"{name}\" aplicado",
