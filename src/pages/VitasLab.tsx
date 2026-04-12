@@ -39,6 +39,7 @@ import VideoUpload from "@/components/VideoUpload";
 import { useVideos } from "@/hooks/useVideos";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
+import { getBestVideoUrl } from "@/services/real/videoService";
 import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
@@ -202,6 +203,9 @@ const VitasLab = () => {
   const [playerName, setPlayerName]             = useState<string>("");
   const [playerPosition, setPlayerPosition]     = useState<string>("");
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
+  const labVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [actionLog, setActionLog] = useState<Array<{ time: number; text: string; type: "positive" | "negative" | "neutral" }>>([]);
 
   // points DEBE declararse ANTES de useTracking (que lo usa en calibrationPoints)
   const [points, setPoints] = useState<CalibrationPoint[]>([
@@ -349,6 +353,7 @@ const VitasLab = () => {
     }
 
     setAnalysisState("running");
+    setActionLog([]); // Clear previous actions
     const toastId = toast.loading(t("toasts.analysisStarting"), {
       description: t("toasts.analysisStartingDesc"),
     });
@@ -383,33 +388,49 @@ const VitasLab = () => {
         });
       }
 
-      // 2. Intentar observación Gemini (video base64) — opcional, fallback a keyframes
+      // 2. Intentar observación Gemini — enviar URL del CDN (prioritario) o base64 local
       let geminiObservations: Record<string, unknown> | null = null;
       let geminiEventCounts: Record<string, number> | null = null;
 
-      if (videoSrc) {
+      {
         try {
           toast.loading(t("toasts.preparingVideo"), { id: toastId });
-          const videoData = await readVideoAsBase64(videoSrc, 20);
-          if (videoData) {
+          const bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
+          const bunnyVideoUrl = video.id && !video.id.startsWith("local-")
+            ? `https://${bunnyCdnHost}/${video.id}/play_720p.mp4`
+            : null;
+
+          const geminiPayload: Record<string, unknown> = {
+            playerContext: {
+              name: playerData.name,
+              age: playerData.age,
+              position: playerData.position,
+              foot: playerData.foot,
+              height: playerData.height,
+              weight: playerData.weight,
+              jerseyNumber: jerseyNumber.trim() || undefined,
+              teamColor: teamColor.trim() || undefined,
+            },
+          };
+
+          if (bunnyVideoUrl) {
+            geminiPayload.videoUrl = bunnyVideoUrl;
+            toast.loading("Analizando video completo con Gemini (CDN)...", { id: toastId });
+          } else if (videoSrc) {
+            const videoData = await readVideoAsBase64(videoSrc, 3);
+            if (videoData) {
+              geminiPayload.videoBase64 = videoData.base64;
+              geminiPayload.mediaType = videoData.mediaType;
+              toast.loading("Analizando video con Gemini (local)...", { id: toastId });
+            }
+          }
+
+          if (geminiPayload.videoUrl || geminiPayload.videoBase64) {
             toast.loading(t("toasts.observingGemini"), { id: toastId });
             const geminiRes = await fetch("/api/agents/video-observation", {
               method: "POST",
               headers: await getAuthHeaders(),
-              body: JSON.stringify({
-                videoBase64: videoData.base64,
-                mediaType: videoData.mediaType,
-                playerContext: {
-                  name: playerData.name,
-                  age: playerData.age,
-                  position: playerData.position,
-                  foot: playerData.foot,
-                  height: playerData.height,
-                  weight: playerData.weight,
-                  jerseyNumber: jerseyNumber.trim() || undefined,
-                  teamColor: teamColor.trim() || undefined,
-                },
-              }),
+              body: JSON.stringify(geminiPayload),
             });
             if (geminiRes.ok) {
               const geminiData = await geminiRes.json();
@@ -421,8 +442,6 @@ const VitasLab = () => {
             } else {
               console.warn("[VitasLab] Gemini respondió con HTTP", geminiRes.status, "— continuando sin observaciones");
             }
-          } else {
-            console.warn("[VitasLab] Video demasiado grande para Gemini (>20MB) — usando solo keyframes");
           }
         } catch (geminiErr) {
           console.warn("[VitasLab] Gemini falló, continuando sin observaciones:", geminiErr);
@@ -576,6 +595,28 @@ const VitasLab = () => {
       setAnalysisState("done");
       SubscriptionService.incrementAnalysisCount();
 
+      // Populate action log from Gemini timeline observations
+      if (geminiObservations) {
+        const obs = geminiObservations as { timeline?: Array<{ timestamp: string; tipo: string; descripcion: string }>; momentosDestacados?: Array<{ timestamp: string; tipo: string; descripcion: string }> };
+        const logs: typeof actionLog = [];
+        if (obs.timeline) {
+          for (const ev of obs.timeline.slice(0, 20)) {
+            const timeParts = (ev.timestamp || "0:00").split(":").map(Number);
+            const secs = timeParts.length === 3 ? timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2] : timeParts[0] * 60 + (timeParts[1] || 0);
+            logs.push({ time: secs, text: ev.descripcion.slice(0, 80), type: "neutral" });
+          }
+        }
+        if (obs.momentosDestacados) {
+          for (const m of obs.momentosDestacados) {
+            const timeParts = (m.timestamp || "0:00").split(":").map(Number);
+            const secs = timeParts.length === 3 ? timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2] : timeParts[0] * 60 + (timeParts[1] || 0);
+            logs.push({ time: secs, text: m.descripcion.slice(0, 80), type: m.tipo === "positivo" ? "positive" : "negative" });
+          }
+        }
+        logs.sort((a, b) => a.time - b.time);
+        setActionLog(logs);
+      }
+
       // 5. Persistir en Supabase (si configurado)
       if (SUPABASE_CONFIGURED && user) {
         try {
@@ -654,18 +695,50 @@ const VitasLab = () => {
     ]);
   };
 
+  // Sync play/pause with real video element
   useEffect(() => {
-    if (!isPlaying) return;
-    const interval = setInterval(() => {
-      setCurrentTime((t) => (t >= totalTime ? 0 : t + 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+    const vid = labVideoRef.current;
+    if (!vid) {
+      // Fallback: timer-based when no video element
+      if (!isPlaying) return;
+      const interval = setInterval(() => {
+        setCurrentTime((t) => (t >= (videoDuration || totalTime) ? 0 : t + 1));
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+    if (isPlaying) {
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+    }
+  }, [isPlaying, videoDuration]);
 
-  const progressPercent = (currentTime / totalTime) * 100;
+  // Update currentTime from video timeupdate events
+  useEffect(() => {
+    const vid = labVideoRef.current;
+    if (!vid) return;
+    const onTimeUpdate = () => setCurrentTime(Math.floor(vid.currentTime));
+    const onLoadedMeta = () => {
+      setVideoDuration(Math.floor(vid.duration));
+      setCurrentTime(0);
+    };
+    const onEnded = () => setIsPlaying(false);
+    vid.addEventListener("timeupdate", onTimeUpdate);
+    vid.addEventListener("loadedmetadata", onLoadedMeta);
+    vid.addEventListener("ended", onEnded);
+    return () => {
+      vid.removeEventListener("timeupdate", onTimeUpdate);
+      vid.removeEventListener("loadedmetadata", onLoadedMeta);
+      vid.removeEventListener("ended", onEnded);
+    };
+  }, [labVideoUrl]);
+
+  const effectiveDuration = videoDuration || totalTime;
+  const progressPercent = (currentTime / effectiveDuration) * 100;
 
   const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
   const selectedVideo  = videos.find((v) => v.id === selectedVideoId);
+  const labVideoUrl    = selectedVideo ? getBestVideoUrl(selectedVideo) : null;
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = {
@@ -804,12 +877,24 @@ const VitasLab = () => {
             </div>
           </motion.div>
 
-          {/* Pitch Canvas */}
-          <motion.div variants={item} ref={containerRef} className="relative flex-1 min-h-[300px] rounded-xl overflow-hidden border border-border">
-            <img src={pitchImage} alt="Football pitch" className="w-full h-full object-cover" />
+          {/* Pitch Canvas / Video Area */}
+          <motion.div variants={item} ref={containerRef} className="relative flex-1 min-h-[300px] rounded-xl overflow-hidden border border-border bg-black">
+            {labVideoUrl ? (
+              <video
+                ref={labVideoRef}
+                src={labVideoUrl}
+                className="w-full h-full object-contain"
+                playsInline
+                preload="metadata"
+                crossOrigin="anonymous"
+              />
+            ) : (
+              <img src={pitchImage} alt="Football pitch" className="w-full h-full object-cover" />
+            )}
             <canvas
               ref={canvasRef}
               className="absolute inset-0 w-full h-full cursor-crosshair"
+              style={{ pointerEvents: draggingPoint !== null || !labVideoUrl ? "auto" : "auto" }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
@@ -824,13 +909,38 @@ const VitasLab = () => {
                 focusTrackId={tracking.state.focusTrackId}
               />
             )}
+            {/* Action Log Overlay — appears during analysis & playback */}
+            {actionLog.length > 0 && (
+              <div className="absolute top-3 right-3 w-64 max-h-[200px] overflow-y-auto space-y-1 z-10 pointer-events-none">
+                <AnimatePresence>
+                  {actionLog.slice(-6).map((a, i) => (
+                    <motion.div
+                      key={`${a.time}-${i}`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className={`glass rounded-lg px-3 py-1.5 flex items-center gap-2 text-[10px] font-display ${
+                        a.type === "positive" ? "border-l-2 border-green-500 text-green-300" :
+                        a.type === "negative" ? "border-l-2 border-red-500 text-red-300" :
+                        "border-l-2 border-blue-400 text-blue-300"
+                      }`}
+                    >
+                      <span className="text-[9px] text-muted-foreground tabular-nums">{formatTime(a.time)}</span>
+                      <span>{a.text}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
             {/* Calibration Status */}
             <div className="absolute bottom-4 left-4 glass rounded-lg px-4 py-2 flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${analysisState === "running" ? "bg-yellow-400" : "bg-destructive"} animate-pulse`} />
+              <div className={`w-2 h-2 rounded-full ${analysisState === "running" ? "bg-yellow-400" : labVideoUrl ? "bg-green-400" : "bg-destructive"} animate-pulse`} />
               <span className="text-[11px] font-display font-semibold text-foreground tracking-wider">
                 {analysisState === "running"
                   ? "ANALYZING… CLAUDE VISION PROCESSING"
-                  : `CALIBRATION ACTIVE: ${points.length} OF 4 POINTS ASSIGNED. PERSPECTIVE SOLVED.`}
+                  : labVideoUrl
+                  ? `VIDEO LOADED · ${points.length} CALIBRATION POINTS · ${formatTime(videoDuration)}`
+                  : `CALIBRATION ACTIVE: ${points.length} OF 4 POINTS ASSIGNED`}
               </span>
             </div>
             {/* Analysis running overlay */}
@@ -854,14 +964,18 @@ const VitasLab = () => {
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect();
                 const pct  = (e.clientX - rect.left) / rect.width;
-                setCurrentTime(Math.round(pct * totalTime));
+                const newTime = Math.round(pct * effectiveDuration);
+                setCurrentTime(newTime);
+                if (labVideoRef.current) {
+                  labVideoRef.current.currentTime = newTime;
+                }
               }}
             >
               <div className="absolute inset-y-0 left-0 bg-primary/30 rounded-full" style={{ width: `${Math.min(progressPercent + 15, 100)}%` }} />
               <motion.div className="absolute inset-y-0 left-0 bg-primary rounded-full" style={{ width: `${progressPercent}%` }} />
             </div>
             <span className="text-xs font-display text-muted-foreground tabular-nums min-w-[120px] text-right">
-              {formatTime(currentTime)} / {formatTime(totalTime)}
+              {formatTime(currentTime)} / {formatTime(effectiveDuration)}
             </span>
           </motion.div>
         </div>
