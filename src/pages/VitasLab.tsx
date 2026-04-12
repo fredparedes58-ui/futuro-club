@@ -62,34 +62,34 @@ interface CalibrationPoint {
 }
 
 const steps = [
-  { id: 1, label: "UPLOAD", done: true },
-  { id: 2, label: "MAPPING", active: true },
-  { id: 3, label: "PROCESS", done: false },
+  { id: 1, label: "SUBIR", done: true },
+  { id: 2, label: "MAPEO", active: true },
+  { id: 3, label: "PROCESAR", done: false },
 ];
 
 const analysisModes = [
   {
     id: "all",
-    label: "All Players",
-    desc: "Global pitch coverage & team heatmaps",
+    label: "Todos los Jugadores",
+    desc: "Cobertura global del campo y mapas de calor",
     icon: Users,
   },
   {
     id: "click",
-    label: "Click-to-Track",
-    desc: "Focus on individual manual selection",
+    label: "Seguimiento Manual",
+    desc: "Enfoque en selección individual manual",
     icon: ScanSearch,
   },
   {
     id: "team",
-    label: "Full Team",
-    desc: "Compare Home vs Away tactical blocks",
+    label: "Equipo Completo",
+    desc: "Comparar bloques tácticos local vs visitante",
     icon: Swords,
   },
   {
     id: "player",
-    label: "Specific Player",
-    desc: "Filter by jersey number and position",
+    label: "Jugador Específico",
+    desc: "Filtrar por dorsal y posición",
     icon: UserRound,
   },
 ];
@@ -875,11 +875,11 @@ const VitasLab = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <span className="text-[10px] font-display text-primary uppercase tracking-wider">
-              SYSTEM_STATUS: <span className="text-primary">{analysisState === "running" ? "ANALYZING" : "ACTIVE"}</span>
+              ESTADO_SISTEMA: <span className="text-primary">{analysisState === "running" ? "ANALIZANDO" : "ACTIVO"}</span>
             </span>
             <br />
             <span className="text-[10px] font-display text-muted-foreground tracking-wider">
-              {selectedVideo ? `VIDEO: ${selectedVideo.title.slice(0, 20)}` : "NO_VIDEO_SELECTED"}
+              {selectedVideo ? `VIDEO: ${selectedVideo.title.slice(0, 20)}` : "Sin video seleccionado"}
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center">
@@ -1029,10 +1029,10 @@ const VitasLab = () => {
               <div className={`w-2 h-2 rounded-full ${analysisState === "running" ? "bg-yellow-400" : labVideoUrl ? "bg-green-400" : "bg-destructive"} animate-pulse`} />
               <span className="text-[11px] font-display font-semibold text-foreground tracking-wider">
                 {analysisState === "running"
-                  ? "ANALYZING… CLAUDE VISION PROCESSING"
+                  ? "ANALIZANDO… PROCESAMIENTO CLAUDE VISION"
                   : labVideoUrl
-                  ? `VIDEO LOADED · ${points.length} CALIBRATION POINTS · ${formatTime(videoDuration)}`
-                  : `CALIBRATION ACTIVE: ${points.length} OF 4 POINTS ASSIGNED`}
+                  ? `VIDEO CARGADO · ${points.length} PUNTOS DE CALIBRACIÓN · ${formatTime(videoDuration)}`
+                  : `CALIBRACI\u00d3N ACTIVA: ${points.length} DE 4 PUNTOS ASIGNADOS`}
               </span>
             </div>
             {/* Analysis running overlay */}
