@@ -100,14 +100,13 @@ export default withHandler(
       apikey: supabaseKey,
       Authorization: `Bearer ${supabaseKey}`,
       "Content-Type": "application/json",
-      Prefer: "count=exact",
     };
 
     // Try RPC first (server-side percentiles, O(n) in Postgres)
     try {
       const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/get_ranked_players`, {
         method: "POST",
-        headers,
+        headers: { ...headers, Prefer: "return=representation" },
         body: JSON.stringify({
           p_user_id: userId,
           p_sort_by: sortBy,
@@ -171,7 +170,7 @@ export default withHandler(
       allPlayers = cached.data;
     } else {
       const allUrl = `${supabaseUrl}/rest/v1/players?user_id=eq.${userId}&select=id,data,updated_at`;
-      const allRes = await fetch(allUrl, { headers });
+      const allRes = await fetch(allUrl, { headers: { ...headers, Prefer: "count=exact" } });
 
       if (!allRes.ok) {
         const errText = await allRes.text();

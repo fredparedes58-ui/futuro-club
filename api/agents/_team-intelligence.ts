@@ -49,7 +49,12 @@ export default withHandler(
           // Build image content blocks from keyframes (fallback mode)
           const imageBlocks: unknown[] = [];
           if (!hasGemini && Array.isArray(keyframes)) {
-            for (const kf of keyframes.slice(0, 100)) {
+            // Claude API limit: max 20 images per request
+            const maxFrames = 20;
+            const allKf = keyframes.length <= maxFrames
+              ? keyframes
+              : keyframes.filter((_: unknown, i: number) => i % Math.ceil(keyframes.length / maxFrames) === 0).slice(0, maxFrames);
+            for (const kf of allKf) {
               const url: string = typeof kf === "string" ? kf : kf?.url ?? "";
               if (url.startsWith("data:image/")) {
                 const match = url.match(/^data:(image\/\w+);base64,(.+)$/);
