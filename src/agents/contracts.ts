@@ -112,7 +112,7 @@ export const RoleProfileInputSchema = z.object({
 });
 
 export const RoleProfileOutputSchema = z.object({
-  playerId: z.string(),
+  playerId: z.string().optional(),
   dominantIdentity: z.enum(["ofensivo", "defensivo", "tecnico", "fisico", "mixto"]),
   identityDistribution: z.object({
     ofensivo: z.number(),
