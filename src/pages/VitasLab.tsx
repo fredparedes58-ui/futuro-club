@@ -228,12 +228,22 @@ const VitasLab = () => {
       ? trackingVideo.streamUrl
       : undefined;
 
+  // Extract CDN hostname from the video's streamUrl when available
+  const trackingCdnHostname = (() => {
+    const envHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME;
+    if (envHost) return envHost;
+    if (trackingVideo?.streamUrl) {
+      try { return new URL(trackingVideo.streamUrl).hostname; } catch { /* fallback */ }
+    }
+    return undefined;
+  })();
+
   const tracking = useTracking({
     videoId:           selectedVideoId ?? "",
     playerId:          selectedPlayerId ?? "",
     calibrationPoints: points.map(p => ({ x: p.x, y: p.y })),
     anchorPreset:      "full_corners",
-    cdnHostname:       import.meta.env.VITE_BUNNY_CDN_HOSTNAME,
+    cdnHostname:       trackingCdnHostname,
     localVideoSrc,
   });
 
