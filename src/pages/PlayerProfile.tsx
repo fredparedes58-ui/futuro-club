@@ -4,7 +4,7 @@ import {
   ArrowLeft, TrendingUp, Brain, Dna, Zap,
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
-  Activity, ClipboardList, FileText,
+  Activity, ClipboardList, FileText, Image, Save, Share2,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
@@ -837,51 +837,122 @@ const PlayerProfile = () => {
         </button>
       </motion.div>
 
-      {/* Acciones: Editar + PDF + Eliminar */}
-      <motion.div variants={item} className="flex gap-3 pt-1">
-        <Button
-          variant="outline"
-          className="flex-1 gap-2"
-          onClick={() => navigate(`/players/${player.id}/edit`)}
-        >
-          <Pencil size={14} />
-          {t("players.profile.editPlayer")}
-        </Button>
+      {/* Acciones: Editar + Guardar/Exportar + Eliminar */}
+      <motion.div variants={item} className="space-y-3 pt-1">
+        {/* Fila 1: Editar + Eliminar */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1 gap-2"
+            onClick={() => navigate(`/players/${player.id}/edit`)}
+          >
+            <Pencil size={14} />
+            {t("players.profile.editPlayer")}
+          </Button>
 
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={() => PDFService.exportPlayerReport(id!)}
-        >
-          <FileDown size={14} />
-          {t("players.profile.exportPDF")}
-        </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 size={14} />
+                {t("common.delete")}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("players.profile.deleteConfirmTitle", { name: player.name })}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {t("players.profile.deleteConfirmDesc")}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDelete}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {t("players.profile.confirmDelete")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" className="gap-2">
-              <Trash2 size={14} />
-              {t("common.delete")}
+        {/* Fila 2: Guardar y Exportar */}
+        <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2">
+          <p className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
+            <Save size={10} className="inline mr-1" />
+            Guardar y Exportar
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => PDFService.exportPlayerReport(id!)}
+            >
+              <FileDown size={13} />
+              Exportar PDF
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("players.profile.deleteConfirmTitle", { name: player.name })}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("players.profile.deleteConfirmDesc")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {t("players.profile.confirmDelete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => PDFService.exportAsImage(id!)}
+            >
+              <Image size={13} />
+              Exportar Imagen
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={() => {
+                const exportData = {
+                  player: { ...player, metrics: rawPlayer?.metrics },
+                  analyses: savedAnalyses?.map((a) => ({
+                    id: a.id,
+                    date: a.created_at,
+                    report: a.report,
+                  })) ?? [],
+                  exportDate: new Date().toISOString(),
+                  version: "VITAS 1.0",
+                };
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `vitas-${player.name.replace(/\s/g, "-")}-data.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+                toast.success("Datos exportados correctamente");
+              }}
+            >
+              <FileText size={13} />
+              Exportar Datos (JSON)
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-xs"
+              onClick={async () => {
+                const shareData = {
+                  title: `VITAS — ${player.name}`,
+                  text: `Perfil de ${player.name}: VSI ${player.vsi ?? "N/A"} · ${player.position} · ${player.age} años`,
+                  url: window.location.href,
+                };
+                if (navigator.share) {
+                  await navigator.share(shareData).catch(() => {});
+                } else {
+                  await navigator.clipboard.writeText(window.location.href);
+                  toast.success("Enlace copiado al portapapeles");
+                }
+              }}
+            >
+              <Share2 size={13} />
+              Compartir
+            </Button>
+          </div>
+        </div>
       </motion.div>
 
       {/* ── Sheet: Log Evento VAEP ─────────────────────────────────────────── */}
