@@ -1,6 +1,6 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -151,7 +151,15 @@ const App = () => (
                 <Route path="/team-analysis" element={<P><TeamAnalysisPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
 
-                <Route path="*" element={<NotFound />} />
+                {/* Redirects for common broken URLs */}
+              <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />
+              <Route path="/videos" element={<Navigate to="/reports" replace />} />
+              <Route path="/players" element={<Navigate to="/rankings" replace />} />
+              <Route path="/teams" element={<Navigate to="/equipo" replace />} />
+              <Route path="/scouting" element={<Navigate to="/scout" replace />} />
+              <Route path="/solo-drill" element={<Navigate to="/drill" replace />} />
+
+              <Route path="*" element={<NotFound />} />
               </Routes>
             </ErrorBoundary>
             <BottomNav />
