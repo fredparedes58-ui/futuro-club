@@ -55,8 +55,13 @@ import PrivacyPage from "./pages/PrivacyPage";
 function SyncManager() {
   useSupabaseSync();
 
-  // Health check on mount (once)
+  // Purge mock players + health check on mount (once)
   React.useEffect(() => {
+    // Remove any fake/mock players from localStorage (legacy seed data)
+    import("@/services/real/playerService").then(({ PlayerService }) => {
+      PlayerService.purgeMockPlayers();
+    });
+
     import("@/services/real/healthCheck").then(({ HealthCheckService }) => {
       const result = HealthCheckService.run();
       if (!result.healthy) {

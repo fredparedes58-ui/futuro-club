@@ -265,17 +265,27 @@ export function usePlayerIntelligence(player: Player) {
               console.warn("[Intelligence] Error con Gemini, usando fallback:", geminiErr);
             }
 
-            // 2b. Si Gemini falló → extraer frames como fallback
+            // 2b. Si Gemini falló → extraer 100 frames localmente, seleccionar 20 espaciados uniformemente
             if (!geminiObservations) {
-              const frameCount = getOptimalFrameCount(videoDuration || 120);
-              setState({ step: "keyframes", progress: 20, message: `Extrayendo ${frameCount} fotogramas clave del video...` });
-              keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, frameCount);
-              if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+              const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
+              setState({ step: "keyframes", progress: 20, message: `Extrayendo ${extractCount} fotogramas del video...` });
+              const allFrames = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, extractCount);
+              if (allFrames.length === 0) throw new Error("No se pudieron extraer frames del video");
+
+              // Claude API acepta máximo 20 imágenes — seleccionar 20 espaciados uniformemente
+              const MAX_CLAUDE_FRAMES = 20;
+              if (allFrames.length <= MAX_CLAUDE_FRAMES) {
+                keyframes = allFrames;
+              } else {
+                const step = Math.ceil(allFrames.length / MAX_CLAUDE_FRAMES);
+                keyframes = allFrames.filter((_, i) => i % step === 0).slice(0, MAX_CLAUDE_FRAMES);
+              }
+
+              setState({ step: "keyframes", progress: 28, message: `${allFrames.length} fotogramas extraídos → enviando ${keyframes.length} a Claude...` });
 
               // Verificar que el payload no exceda 4MB (límite Vercel)
-              // Si excede, reducir frames proporcionalmente pero mantener mínimo 20
               let payloadEstimate = JSON.stringify(keyframes).length;
-              while (payloadEstimate > 4_000_000 && keyframes.length > 20) {
+              while (payloadEstimate > 4_000_000 && keyframes.length > 10) {
                 console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB con ${keyframes.length} frames, reduciendo...`);
                 keyframes = keyframes.filter((_, i) => i % 2 === 0);
                 payloadEstimate = JSON.stringify(keyframes).length;

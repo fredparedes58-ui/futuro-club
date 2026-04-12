@@ -46,11 +46,11 @@ export default withHandler(
           const imageBlocks: unknown[] = [];
           if (Array.isArray(keyframes)) {
             // Claude API limit: max 20 images per request
-            // Select evenly spaced frames from the full set for best coverage
+            // Frontend should already send ≤20 frames, but enforce server-side as safety net
             const maxFrames = 20;
             const allKf = keyframes.length <= maxFrames
               ? keyframes
-              : keyframes.filter((_, i) => i % Math.ceil(keyframes.length / maxFrames) === 0).slice(0, maxFrames);
+              : keyframes.filter((_: unknown, i: number) => i % Math.ceil(keyframes.length / maxFrames) === 0).slice(0, maxFrames);
             for (const kf of allKf) {
               const url: string = typeof kf === "string" ? kf : kf?.url ?? "";
               if (url.startsWith("data:image/")) {

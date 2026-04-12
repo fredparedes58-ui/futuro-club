@@ -198,4 +198,26 @@ export const PlayerService = {
   seedIfEmpty(): void {
     // No-op — fake players removed. Real players come from user input or Supabase.
   },
+
+  /**
+   * Purge known mock/fake player IDs from localStorage.
+   * Called once on app init to ensure no fake data persists.
+   */
+  purgeMockPlayers(): number {
+    const FAKE_IDS = new Set(["p1", "p2", "p3", "p4", "p5", "p6"]);
+    const FAKE_NAMES = new Set([
+      "Lucas Moreno", "Alejandro Ruiz", "Daniel Torres",
+      "Pablo García", "Mateo Fernández", "Iker Navarro",
+    ]);
+    const all = PlayerService.getAll();
+    const clean = all.filter(
+      (p) => !FAKE_IDS.has(p.id) && !FAKE_NAMES.has(p.name)
+    );
+    const removed = all.length - clean.length;
+    if (removed > 0) {
+      StorageService.set(STORAGE_KEY, clean);
+      console.warn(`[PlayerService] Purged ${removed} mock player(s) from localStorage`);
+    }
+    return removed;
+  },
 };
