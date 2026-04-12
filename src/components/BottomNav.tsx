@@ -14,10 +14,11 @@ const BASE_NAV = [
   { path: "/scout",    icon: Compass,       label: "nav.scout" },
   { path: "/lab",      icon: FlaskConical,  label: "nav.lab" },
   { path: "/rankings", icon: BarChart3,     label: "nav.rankings" },
+  { path: "/equipo",   icon: Users,         label: "nav.equipo" },
 ];
 
 // Pages where bottom nav should be hidden
-const hiddenOnRoutes = ["/compare", "/login", "/register", "/forgot-password"];
+const hiddenOnRoutes = ["/login", "/register", "/forgot-password"];
 
 const BottomNav = () => {
   const location = useLocation();
