@@ -861,10 +861,10 @@ const VitasLab = () => {
           </div>
           <nav className="hidden md:flex items-center gap-6 ml-6">
             {[
-              { label: "DASHBOARD",    action: () => navigate("/")         },
-              { label: "NEW ANALYSIS", action: () => setShowUploadPanel(true) },
-              { label: "ARCHIVE",      action: () => navigate("/reports")  },
-              { label: "MODELS",       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
+              { label: "PANEL",    action: () => navigate("/")         },
+              { label: "NUEVO ANÁLISIS", action: () => setShowUploadPanel(true) },
+              { label: "ARCHIVO",      action: () => navigate("/reports")  },
+              { label: "MODELOS",       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
             ].map(({ label, action }, i) => (
               <button key={label} onClick={action} className={`text-xs font-display font-semibold tracking-wider transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 {label}
