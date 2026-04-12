@@ -287,9 +287,9 @@ const TermsPage = () => {
 
           <h2>13. Legislación Aplicable y Jurisdicción</h2>
           <p>
-            Estos Términos se rigen por las leyes de [jurisdicción a determinar]. Cualquier
+            Estos Términos se rigen por las leyes de los Estados Unidos Mexicanos. Cualquier
             controversia derivada de estos Términos se someterá a la jurisdicción exclusiva de los
-            tribunales competentes de [ciudad, país a determinar].
+            tribunales competentes de Ciudad de México, México.
           </p>
 
           <h2>14. Disposiciones Generales</h2>
