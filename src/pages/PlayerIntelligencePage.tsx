@@ -20,7 +20,7 @@ import {
   ClipboardList, Star, AlertTriangle, CheckCircle, Clock,
   ChevronDown, ChevronUp, RefreshCw, Loader2, GitCompare,
   ArrowUpRight, ArrowDownRight, Minus, Video, Trophy,
-  Shield, MapPin,
+  Shield, MapPin, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,7 @@ import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
+import { PDFService } from "@/services/real/pdfService";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -1149,23 +1150,97 @@ export default function PlayerIntelligencePage() {
                   <DrillRecommendations areasDesarrollo={latestReport.estadoActual.areasDesarrollo} />
                 )}
 
-                {/* Meta + VITAS Card */}
-                <div className="glass rounded-xl p-3 flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">
-                    Confianza: {Math.round((latestReport.confianza ?? 0) * 100)}%
-                  </span>
-                  <div className="flex items-center gap-3">
+                {/* Guardar y Exportar */}
+                <div className="glass rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
+                      Guardar y Exportar
+                    </p>
+                    <span className="text-[10px] text-muted-foreground">
+                      Confianza: {Math.round((latestReport.confianza ?? 0) * 100)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs"
+                      onClick={() => {
+                        if (id) PDFService.exportPlayerReport(id);
+                      }}
+                    >
+                      <FileText size={13} />
+                      Exportar PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs"
+                      onClick={() => {
+                        if (id) PDFService.exportAsImage(id);
+                      }}
+                    >
+                      <ArrowDownRight size={13} />
+                      Exportar Imagen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs"
+                      onClick={() => {
+                        const exportData = {
+                          player: player ? { id: player.id, name: player.name, age: player.age, position: player.position } : null,
+                          report: latestReport,
+                          exportDate: new Date().toISOString(),
+                          version: "VITAS 1.0",
+                        };
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = `vitas-intelligence-${player?.name?.replace(/\s/g, "-") ?? "report"}.json`;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                        toast.success("Datos exportados correctamente");
+                      }}
+                    >
+                      <ClipboardList size={13} />
+                      Exportar JSON
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs"
+                      onClick={async () => {
+                        const shareData = {
+                          title: `VITAS Intelligence — ${player?.name ?? ""}`,
+                          text: `Informe de ${player?.name ?? ""}: Nivel ${latestReport.estadoActual?.nivelActual ?? "N/A"}`,
+                          url: window.location.href,
+                        };
+                        if (navigator.share) {
+                          await navigator.share(shareData).catch(() => {});
+                        } else {
+                          await navigator.clipboard.writeText(window.location.href);
+                          toast.success("Enlace copiado al portapapeles");
+                        }
+                      }}
+                    >
+                      <Target size={13} />
+                      Compartir
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-center gap-4 pt-1">
                     <button
                       onClick={() => setShowCard(true)}
                       className="flex items-center gap-1.5 text-[10px] text-gold font-bold"
                     >
-                      <Star size={10} /> Exportar Card
+                      <Star size={10} /> VITAS Card
                     </button>
                     <button
                       onClick={() => setActiveTab("nuevo")}
                       className="flex items-center gap-1.5 text-[10px] text-primary"
                     >
-                      <RefreshCw size={10} /> Nuevo
+                      <RefreshCw size={10} /> Nuevo análisis
                     </button>
                   </div>
                 </div>
