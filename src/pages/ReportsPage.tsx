@@ -56,6 +56,7 @@ const ReportsPage = () => {
           </div>
           <button
             onClick={() => setShowUpload(!showUpload)}
+            aria-label="Subir video"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
           >
             <Upload size={14} />
@@ -76,6 +77,7 @@ const ReportsPage = () => {
               </div>
               <button
                 onClick={() => setShowUpload(false)}
+              aria-label="Cancelar subida"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 {t("common.close")}
@@ -125,6 +127,10 @@ const ReportsPage = () => {
                     <div
                       key={video.id}
                       onClick={() => setSelectedVideo(video)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Seleccionar video: ${video.title}`}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSelectedVideo(video); }}
                       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                         selectedVideo?.id === video.id
                           ? "border-primary bg-primary/5"
@@ -152,6 +158,7 @@ const ReportsPage = () => {
                       </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteVideo(video.id); }}
+                      aria-label="Eliminar video"
                         className="text-muted-foreground hover:text-destructive transition-colors p-1"
                       >
                         <Trash2 size={12} />
