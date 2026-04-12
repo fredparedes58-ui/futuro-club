@@ -508,75 +508,160 @@ const PlayerProfile = () => {
             </div>
           </div>
 
-          {/* Dominant Features */}
-          <div className="rounded-lg bg-secondary/40 border border-border p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-display font-semibold text-foreground">
+          {/* Dominant Features — Análisis Detallado */}
+          <div className="rounded-lg bg-secondary/40 border border-border p-4 space-y-4">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] font-display font-bold text-foreground">
                 {t("players.profile.dominantFeatures")}
               </span>
-              <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-electric/10 text-electric">
-                {advancedMetrics.dominantFeatures.playStyle}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] font-display px-2 py-0.5 rounded-full bg-electric/10 text-electric font-semibold">
+                  {advancedMetrics.dominantFeatures.playStyle}
+                </span>
+              </div>
             </div>
-            {/* Especialización */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-[9px] text-muted-foreground">Especialización:</span>
-              <div className="h-1 flex-1 rounded-full bg-muted overflow-hidden">
+
+            {/* Resumen descriptivo del perfil */}
+            <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/10">
+              <p className="text-[10px] text-foreground leading-relaxed">
+                {(() => {
+                  const ps = advancedMetrics.dominantFeatures.playStyle;
+                  const top = advancedMetrics.dominantFeatures.dominant[0];
+                  const specIdx = Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100);
+                  const profileDesc = ps === "ofensivo" ? "perfil claramente ofensivo, orientado a generar peligro en el tercio final"
+                    : ps === "defensivo" ? "perfil defensivo sólido, con fortalezas en recuperación y posicionamiento"
+                    : ps === "técnico" ? "perfil técnico destacado, con capacidad de manejar el balón bajo presión"
+                    : ps === "físico" ? "perfil físico dominante, con ventaja en intensidad y desplazamientos"
+                    : "perfil equilibrado sin una especialización marcada — versátil pero sin un diferencial claro";
+                  return `${player.name} muestra un ${profileDesc}. Su característica más fuerte es ${top?.label ?? "N/A"} (${top?.value ?? 0}/100). Índice de especialización: ${specIdx}% ${specIdx < 30 ? "— necesita desarrollar un diferencial claro para destacar" : specIdx < 60 ? "— perfil en desarrollo con potencial de especialización" : "— perfil bien definido con especialización clara"}.`;
+                })()}
+              </p>
+            </div>
+
+            {/* Especialización visual */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[9px] text-muted-foreground font-display font-semibold uppercase tracking-wider">Índice de Especialización</span>
+                <span className="text-[11px] font-display font-black text-primary">
+                  {Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-electric/60 to-primary"
-                  style={{ width: `${Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%` }}
+                  className="h-full rounded-full bg-gradient-to-r from-electric/60 via-primary to-green-500 transition-all"
+                  style={{ width: `${Math.max(5, Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100))}%` }}
                 />
               </div>
-              <span className="text-[9px] font-display font-bold text-primary">
-                {Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%
+              <div className="flex justify-between mt-0.5">
+                <span className="text-[8px] text-muted-foreground">Generalista</span>
+                <span className="text-[8px] text-muted-foreground">Especialista</span>
+              </div>
+            </div>
+
+            {/* Top 3 Fortalezas */}
+            <div>
+              <span className="text-[9px] font-display font-bold uppercase tracking-wider text-green-600 flex items-center gap-1 mb-2">
+                <TrendingUp size={10} /> Fortalezas Principales
               </span>
-            </div>
-            {/* Top 3 dominant */}
-            <div className="space-y-3">
-              {advancedMetrics.dominantFeatures.dominant.map((feat) => (
-                <div key={feat.key}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-foreground font-display font-semibold w-20 shrink-0">
-                      {feat.label}
-                    </span>
-                    <div className="h-2 flex-1 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-gradient-to-r from-electric to-primary transition-all"
-                        style={{ width: `${feat.value}%` }}
-                      />
-                    </div>
-                    <span className="text-[10px] font-display font-bold text-foreground w-6 text-right">
-                      {feat.value}
-                    </span>
-                    <span className={`text-[9px] font-display shrink-0 px-1 rounded ${
-                      feat.zScore >= 1.0 ? "bg-green-500/10 text-green-600" :
-                      feat.zScore >= 0.3 ? "bg-electric/10 text-electric" :
-                      "bg-muted text-muted-foreground"
-                    }`}>
-                      z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
-                    </span>
-                  </div>
-                  <p className="text-[9px] text-muted-foreground mt-0.5 ml-[88px] leading-relaxed italic">
-                    {feat.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {/* Areas to develop */}
-            {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
-              <div className="mt-3 pt-2 border-t border-border">
-                <span className="text-[9px] text-muted-foreground font-display font-semibold">{t("players.profile.areasToDevelope")}:</span>
-                <div className="space-y-2 mt-1.5">
-                  {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => (
-                    <div key={feat.key} className="flex items-start gap-2">
-                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold shrink-0">
-                        {feat.label} ({feat.value}) {"\u2212"}{feat.gap}
-                      </span>
-                      <p className="text-[9px] text-muted-foreground leading-relaxed italic">
+              <div className="space-y-3">
+                {advancedMetrics.dominantFeatures.dominant.map((feat, i) => {
+                  const normRef: Record<string, number> = { speed: 60, technique: 58, vision: 55, stamina: 60, shooting: 52, defending: 56 };
+                  const ref = normRef[feat.key] ?? 55;
+                  const diff = feat.value - ref;
+                  const pct = Math.round((diff / ref) * 100);
+                  return (
+                    <div key={feat.key} className="p-2 rounded-lg bg-card/60 border border-border/30">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-display font-bold text-foreground w-5 text-center shrink-0 rounded bg-primary/10 text-primary">
+                          #{i + 1}
+                        </span>
+                        <span className="text-[11px] text-foreground font-display font-bold flex-1">
+                          {feat.label}
+                        </span>
+                        <span className="text-[13px] font-display font-black text-foreground">
+                          {feat.value}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground">/100</span>
+                        <span className={`text-[9px] font-display font-bold px-1.5 py-0.5 rounded ${
+                          feat.zScore >= 1.0 ? "bg-green-500/15 text-green-600" :
+                          feat.zScore >= 0.3 ? "bg-electric/10 text-electric" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
+                        </span>
+                      </div>
+                      {/* Barra con referencia */}
+                      <div className="relative h-2.5 rounded-full bg-muted overflow-hidden mb-1.5">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-electric to-primary transition-all"
+                          style={{ width: `${feat.value}%` }}
+                        />
+                        {/* Línea de referencia del grupo */}
+                        <div
+                          className="absolute top-0 bottom-0 w-0.5 bg-foreground/30"
+                          style={{ left: `${ref}%` }}
+                          title={`Promedio grupo: ${ref}`}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[8px] text-muted-foreground">
+                          vs. promedio grupo ({ref}): <span className={diff >= 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                            {diff >= 0 ? "+" : ""}{diff} ({pct >= 0 ? "+" : ""}{pct}%)
+                          </span>
+                        </span>
+                      </div>
+                      <p className="text-[9px] text-muted-foreground leading-relaxed">
                         {feat.description}
                       </p>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Areas to develop */}
+            {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
+              <div>
+                <span className="text-[9px] font-display font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1 mb-2">
+                  <AlertCircle size={10} /> Áreas a Desarrollar
+                </span>
+                <div className="space-y-2.5">
+                  {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => {
+                    const normRef: Record<string, number> = { speed: 60, technique: 58, vision: 55, stamina: 60, shooting: 52, defending: 56 };
+                    const ref = normRef[feat.key] ?? 55;
+                    const diff = feat.value - ref;
+                    return (
+                      <div key={feat.key} className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/15">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[11px] font-display font-bold text-foreground flex-1">
+                            {feat.label}
+                          </span>
+                          <span className="text-[13px] font-display font-black text-amber-600">
+                            {feat.value}
+                          </span>
+                          <span className="text-[8px] text-muted-foreground">/100</span>
+                          <span className="text-[9px] font-display font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600">
+                            {"\u2212"}{feat.gap} vs grupo
+                          </span>
+                        </div>
+                        <div className="relative h-2 rounded-full bg-muted overflow-hidden mb-1.5">
+                          <div
+                            className="h-full rounded-full bg-amber-500/60"
+                            style={{ width: `${feat.value}%` }}
+                          />
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-foreground/30"
+                            style={{ left: `${ref}%` }}
+                          />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground leading-relaxed">
+                          <span className="font-semibold text-amber-700">Déficit de {Math.abs(diff)} puntos vs promedio.</span>{" "}
+                          {feat.description}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
