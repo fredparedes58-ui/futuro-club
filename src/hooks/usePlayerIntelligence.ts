@@ -220,37 +220,60 @@ export function usePlayerIntelligence(player: Player) {
             setIsSimilarityLoading(false);
           }
 
-          // 2. Intentar Gemini primero (video completo) si es video local
+          // 2. Intentar Gemini primero (video completo)
           let geminiObservations: Record<string, unknown> | null = null;
           let keyframes: KeyframeData[] = [];
 
-          if (localVideoSrc) {
-            // 2a. SIEMPRE intentar Gemini PRIMERO (video completo)
-            setState({ step: "analyzing", progress: 18, message: "🎬 Preparando video para Gemini (primera opción)..." });
-            try {
-              const videoData = await readVideoAsBase64(localVideoSrc);
-              if (videoData) {
-                const videoSizeMB = (videoData.sizeBytes / 1024 / 1024).toFixed(1);
-                setState({ step: "analyzing", progress: 22, message: `🎬 Analizando video completo con Gemini (${videoSizeMB}MB)...` });
-                console.log(`[Intelligence] Enviando video a Gemini: ${videoSizeMB}MB`);
+          // Construir URL de Bunny CDN si el video fue subido a Bunny Stream
+          const bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
+          const bunnyVideoUrl = videoId && !videoId.startsWith("local-")
+            ? `https://${bunnyCdnHost}/${videoId}/original`
+            : null;
+
+          // SIEMPRE intentar Gemini PRIMERO — enviar solo la URL, NO el base64
+          setState({ step: "analyzing", progress: 18, message: "🎬 Enviando video a Gemini (primera opción)..." });
+          try {
+              // Opción 1: Video en Bunny CDN → enviar URL al servidor (sin límite de tamaño)
+              // Opción 2: Video local → intentar enviar base64 (puede fallar si >4MB)
+              const geminiPayload: Record<string, unknown> = {
+                playerContext: {
+                  name: player.name,
+                  age: player.age,
+                  position: player.position,
+                  foot: player.foot,
+                  height: player.height,
+                  weight: player.weight,
+                  competitiveLevel: player.competitiveLevel,
+                  jerseyNumber,
+                  teamColor,
+                },
+              };
+
+              if (bunnyVideoUrl) {
+                // Video en Bunny CDN — enviar solo URL (ligero, sin límite de tamaño)
+                geminiPayload.videoUrl = bunnyVideoUrl;
+                setState({ step: "analyzing", progress: 22, message: "🎬 Analizando video completo con Gemini (Bunny CDN)..." });
+                console.log(`[Intelligence] Enviando URL de Bunny CDN a Gemini: ${bunnyVideoUrl}`);
+              } else if (localVideoSrc) {
+                // Video local — intentar base64 (funciona solo si < ~3MB)
+                const videoData = await readVideoAsBase64(localVideoSrc, 3); // Límite 3MB para caber en body de Vercel
+                if (videoData) {
+                  geminiPayload.videoBase64 = videoData.base64;
+                  geminiPayload.mediaType = videoData.mediaType;
+                  const sizeMB = (videoData.sizeBytes / 1024 / 1024).toFixed(1);
+                  setState({ step: "analyzing", progress: 22, message: `🎬 Analizando video con Gemini (${sizeMB}MB)...` });
+                  console.log(`[Intelligence] Enviando video base64 a Gemini: ${sizeMB}MB`);
+                } else {
+                  console.warn("[Intelligence] Video local demasiado grande para base64 — saltando Gemini");
+                }
+              }
+
+              // Solo llamar si tenemos video (URL o base64)
+              if (geminiPayload.videoUrl || geminiPayload.videoBase64) {
                 const geminiRes = await fetch("/api/agents/video-observation", {
                   method: "POST",
                   headers: await getAuthHeaders(),
-                  body: JSON.stringify({
-                    videoBase64: videoData.base64,
-                    mediaType: videoData.mediaType,
-                    playerContext: {
-                      name: player.name,
-                      age: player.age,
-                      position: player.position,
-                      foot: player.foot,
-                      height: player.height,
-                      weight: player.weight,
-                      competitiveLevel: player.competitiveLevel,
-                      jerseyNumber,
-                      teamColor,
-                    },
-                  }),
+                  body: JSON.stringify(geminiPayload),
                 });
 
                 if (geminiRes.ok) {
@@ -263,46 +286,42 @@ export function usePlayerIntelligence(player: Player) {
                   const errStatus = geminiRes.status;
                   const errText = await geminiRes.text().catch(() => "");
                   console.warn(`[Intelligence] ⚠️ Gemini falló (HTTP ${errStatus}): ${errText.slice(0, 200)}`);
-                  console.warn("[Intelligence] Cayendo a fallback: extracción de frames → Claude");
+                }
+              }
+          } catch (geminiErr) {
+            console.warn("[Intelligence] ⚠️ Error con Gemini:", geminiErr);
+          }
+
+          // 2b. SOLO si Gemini falló → extraer frames como fallback para Claude
+          if (!geminiObservations) {
+            if (localVideoSrc) {
+                // Extraer 100 frames localmente → seleccionar 20 espaciados → enviar a Claude
+                const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
+                setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas para Claude (fallback)...` });
+                const allFrames = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, extractCount);
+                if (allFrames.length === 0) throw new Error("No se pudieron extraer frames del video");
+
+                const MAX_CLAUDE_FRAMES = 20;
+                if (allFrames.length <= MAX_CLAUDE_FRAMES) {
+                  keyframes = allFrames;
+                } else {
+                  const step = Math.ceil(allFrames.length / MAX_CLAUDE_FRAMES);
+                  keyframes = allFrames.filter((_, i) => i % step === 0).slice(0, MAX_CLAUDE_FRAMES);
+                }
+
+                setState({ step: "keyframes", progress: 28, message: `${allFrames.length} fotogramas extraídos → enviando ${keyframes.length} a Claude...` });
+
+                let payloadEstimate = JSON.stringify(keyframes).length;
+                while (payloadEstimate > 4_000_000 && keyframes.length > 10) {
+                  console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB con ${keyframes.length} frames, reduciendo...`);
+                  keyframes = keyframes.filter((_, i) => i % 2 === 0);
+                  payloadEstimate = JSON.stringify(keyframes).length;
                 }
               } else {
-                console.warn("[Intelligence] ⚠️ Video demasiado grande o blob expirado — no se pudo leer para Gemini");
-                console.warn("[Intelligence] Cayendo a fallback: extracción de frames → Claude");
-              }
-            } catch (geminiErr) {
-              console.warn("[Intelligence] ⚠️ Error con Gemini, cayendo a fallback frames:", geminiErr);
-            }
-
-            // 2b. SOLO si Gemini falló → extraer 100 frames → seleccionar 20 → enviar a Claude
-            if (!geminiObservations) {
-              const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
-              setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas para Claude (fallback)...` });
-              const allFrames = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, extractCount);
-              if (allFrames.length === 0) throw new Error("No se pudieron extraer frames del video");
-
-              // Claude API acepta máximo 20 imágenes — seleccionar 20 espaciados uniformemente
-              const MAX_CLAUDE_FRAMES = 20;
-              if (allFrames.length <= MAX_CLAUDE_FRAMES) {
-                keyframes = allFrames;
-              } else {
-                const step = Math.ceil(allFrames.length / MAX_CLAUDE_FRAMES);
-                keyframes = allFrames.filter((_, i) => i % step === 0).slice(0, MAX_CLAUDE_FRAMES);
-              }
-
-              setState({ step: "keyframes", progress: 28, message: `${allFrames.length} fotogramas extraídos → enviando ${keyframes.length} a Claude...` });
-
-              // Verificar que el payload no exceda 4MB (límite Vercel)
-              let payloadEstimate = JSON.stringify(keyframes).length;
-              while (payloadEstimate > 4_000_000 && keyframes.length > 10) {
-                console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB con ${keyframes.length} frames, reduciendo...`);
-                keyframes = keyframes.filter((_, i) => i % 2 === 0);
-                payloadEstimate = JSON.stringify(keyframes).length;
+                // Sin video local — usar thumbnails de Bunny CDN
+                keyframes = getBunnyKeyframes(videoId, videoDuration);
               }
             }
-          } else {
-            // Bunny CDN — solo thumbnails
-            keyframes = getBunnyKeyframes(videoId, videoDuration);
-          }
 
           setState({ step: "analyzing", progress: 35, message: geminiObservations ? "✅ Video analizado por Gemini — generando informe completo..." : `⚠️ Fallback: analizando ${keyframes.length} fotogramas con Claude...` });
 

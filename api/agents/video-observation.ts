@@ -59,15 +59,45 @@ export default withHandler(
         console.error("[Gemini] Body parse error (possibly too large):", parseErr);
         return errorResponse("No se pudo leer el body — el video puede ser demasiado grande para Vercel (máx ~4MB)", 413, "BODY_TOO_LARGE");
       }
-      const { videoBase64, mediaType, playerContext } = body;
+      const { videoUrl, videoBase64: videoBase64FromBody, mediaType: mediaTypeFromBody, playerContext } = body;
 
-      if (!videoBase64 || !playerContext) {
-        return errorResponse("Faltan datos requeridos (videoBase64, playerContext)", 400);
+      if (!playerContext) {
+        return errorResponse("Faltan datos requeridos (playerContext)", 400);
+      }
+      if (!videoUrl && !videoBase64FromBody) {
+        return errorResponse("Faltan datos requeridos (videoUrl o videoBase64)", 400);
       }
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
         return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
+      }
+
+      // Obtener video como base64 — desde URL (descarga server-side) o directo
+      let videoBase64: string;
+      let mediaType: string;
+
+      if (videoUrl && typeof videoUrl === "string") {
+        // Descargar video desde Bunny CDN (sin límite de tamaño en server-side fetch)
+        console.log(`[Gemini] Descargando video desde: ${videoUrl}`);
+        try {
+          const videoRes = await fetch(videoUrl as string);
+          if (!videoRes.ok) {
+            return errorResponse(`No se pudo descargar el video desde CDN: HTTP ${videoRes.status}`, 502, "VIDEO_DOWNLOAD_FAILED");
+          }
+          const videoBuffer = await videoRes.arrayBuffer();
+          // Node.js Buffer para base64 (btoa no existe en Node)
+          videoBase64 = Buffer.from(videoBuffer).toString("base64");
+          mediaType = videoRes.headers.get("content-type") || "video/mp4";
+          const sizeMB = (videoBuffer.byteLength / 1024 / 1024).toFixed(1);
+          console.log(`[Gemini] Video descargado: ${sizeMB}MB, tipo: ${mediaType}`);
+        } catch (dlErr) {
+          console.error("[Gemini] Error descargando video:", dlErr);
+          return errorResponse(`Error descargando video: ${dlErr instanceof Error ? dlErr.message : "unknown"}`, 502, "VIDEO_DOWNLOAD_ERROR");
+        }
+      } else {
+        videoBase64 = videoBase64FromBody as string;
+        mediaType = (mediaTypeFromBody as string) || "video/mp4";
       }
 
       const ctx = playerContext;
