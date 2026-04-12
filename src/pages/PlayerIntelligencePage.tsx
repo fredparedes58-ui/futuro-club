@@ -766,6 +766,25 @@ export default function PlayerIntelligencePage() {
       // Get best available video URL (prefers CDN over expired blob)
       const videoSrc = getBestVideoUrl(video) ?? undefined;
 
+      // Verify blob URLs are still valid (they expire on page refresh)
+      if (videoSrc?.startsWith("blob:")) {
+        const { isBlobUrlValid } = await import("@/lib/localVideoUtils");
+        if (!isBlobUrlValid(videoSrc)) {
+          toast.error("El video local expiró", {
+            description: "Los videos locales se pierden al refrescar la página. Sube el video de nuevo para analizarlo.",
+            duration: 8000,
+          });
+          return;
+        }
+      }
+      if (!videoSrc) {
+        toast.error("No hay video disponible", {
+          description: "Sube un video para este jugador antes de generar el informe.",
+          duration: 6000,
+        });
+        return;
+      }
+
       await runAnalysis({
         videoId: selectedVideoId,
         videoDuration: duration,

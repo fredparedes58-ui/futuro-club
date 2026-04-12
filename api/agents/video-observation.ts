@@ -52,7 +52,13 @@ export default withHandler(
   { requireAuth: true, rawBody: true },
   async ({ req }) => {
     try {
-      const body = await req.json();
+      let body: Record<string, unknown>;
+      try {
+        body = await req.json() as Record<string, unknown>;
+      } catch (parseErr) {
+        console.error("[Gemini] Body parse error (possibly too large):", parseErr);
+        return errorResponse("No se pudo leer el body — el video puede ser demasiado grande para Vercel (máx ~4MB)", 413, "BODY_TOO_LARGE");
+      }
       const { videoBase64, mediaType, playerContext } = body;
 
       if (!videoBase64 || !playerContext) {

@@ -83,6 +83,10 @@ export default withHandler(
       return errorResponse("Supabase not configured", 503, "CONFIG_ERROR");
     }
 
+    if (!userId) {
+      return errorResponse("User ID required", 401, "UNAUTHORIZED");
+    }
+
     const url = new URL(req.url);
     const sortBy = url.searchParams.get("sort") ?? "vsi";
     const sortDir = url.searchParams.get("dir") === "asc" ? "asc" : "desc";
@@ -289,11 +293,12 @@ export default withHandler(
     // Age group summary stats
     const ageGroupStats: Record<string, { count: number; avgVsi: number; minVsi: number; maxVsi: number }> = {};
     for (const [group, vsis] of Object.entries(vsiByAgeGroup)) {
+      if (vsis.length === 0) continue;
       ageGroupStats[group] = {
         count: vsis.length,
         avgVsi: Math.round((vsis.reduce((a, b) => a + b, 0) / vsis.length) * 10) / 10,
-        minVsi: Math.min(...vsis),
-        maxVsi: Math.max(...vsis),
+        minVsi: vsis.length > 0 ? Math.min(...vsis) : 0,
+        maxVsi: vsis.length > 0 ? Math.max(...vsis) : 0,
       };
     }
 
