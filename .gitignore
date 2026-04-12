@@ -21,6 +21,10 @@ dev-dist
 # ONNX models (too large for Git — downloaded at runtime)
 *.onnx
 
+# ONNX Runtime WASM files (copied from node_modules by postinstall)
+public/ort-wasm-*.wasm
+public/ort-wasm-*.mjs
+
 # Environment variables (NEVER commit these)
 .env
 .env.local

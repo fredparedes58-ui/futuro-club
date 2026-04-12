@@ -17,8 +17,11 @@ import type { Detection, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
 
 // ─── Configuración ─────────────────────────────────────────────────────────
 
+// WASM files are copied to public/ — tell ort where to find them
+ort.env.wasm.wasmPaths  = "/";
 ort.env.wasm.numThreads = 1;   // sin SharedArrayBuffer
 ort.env.wasm.simd       = true; // SIMD acelera en CPUs modernas
+ort.env.wasm.proxy      = false; // already inside a worker, no need for proxy
 
 const MODEL_INPUT_SIZE = 640;
 const CONF_THRESH      = 0.30;

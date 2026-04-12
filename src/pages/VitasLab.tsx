@@ -22,7 +22,7 @@ import {
   Star,
   TrendingUp,
   Target,
-  AlertCircle,
+  CircleAlert,
   AlertTriangle,
   Activity,
   FileDown,
@@ -269,6 +269,65 @@ const VitasLab = () => {
     if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // ── Draw YOLO tracks (bounding boxes + keypoints) ──
+    const tracks = tracking.state.currentTracks;
+    const videoEl = trackingVideoRef.current;
+    if (tracks.length > 0 && videoEl && videoEl.videoWidth > 0) {
+      const scaleX = canvas.width  / videoEl.videoWidth;
+      const scaleY = canvas.height / videoEl.videoHeight;
+
+      for (const track of tracks) {
+        const isFocused = track.id === tracking.state.focusTrackId;
+        const color = isFocused ? "hsl(45, 100%, 60%)" : "hsl(120, 80%, 55%)";
+
+        // Bounding box
+        const [bx, by, bw, bh] = track.bbox;
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = isFocused ? 3 : 2;
+        ctx.setLineDash([]);
+        ctx.strokeRect(bx * scaleX, by * scaleY, bw * scaleX, bh * scaleY);
+
+        // Track ID label
+        ctx.fillStyle = color;
+        ctx.font      = "bold 12px Rajdhani";
+        ctx.fillText(`#${track.id}`, bx * scaleX + 2, by * scaleY - 4);
+
+        // Speed label
+        if (track.smoothSpeedMs > 0.5) {
+          const speedKmh = (track.smoothSpeedMs * 3.6).toFixed(1);
+          ctx.font = "10px Rajdhani";
+          ctx.fillText(`${speedKmh} km/h`, bx * scaleX + 2, (by + bh) * scaleY + 12);
+        }
+
+        // Keypoints skeleton (COCO-17 pairs)
+        if (track.keypoints && track.keypoints.length === 17) {
+          const kps = track.keypoints;
+          const pairs = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16]];
+          ctx.strokeStyle = isFocused ? "hsla(45, 100%, 60%, 0.6)" : "hsla(120, 80%, 55%, 0.5)";
+          ctx.lineWidth   = 1.5;
+          for (const [a, b] of pairs) {
+            if (kps[a].confidence > 0.3 && kps[b].confidence > 0.3) {
+              ctx.beginPath();
+              ctx.moveTo(kps[a].x * scaleX, kps[a].y * scaleY);
+              ctx.lineTo(kps[b].x * scaleX, kps[b].y * scaleY);
+              ctx.stroke();
+            }
+          }
+          // Keypoint dots
+          for (const kp of kps) {
+            if (kp.confidence > 0.3) {
+              ctx.fillStyle = color;
+              ctx.beginPath();
+              ctx.arc(kp.x * scaleX, kp.y * scaleY, 2.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+      }
+    }
+
+    // ── Draw calibration grid ──
     if (points.length < 2) return;
 
     ctx.strokeStyle = "hsl(180, 100%, 60%)";
@@ -303,13 +362,22 @@ const VitasLab = () => {
       const coordLabel = `${pt.label}: ${Math.round((pt.x / 100) * 1050)}, ${Math.round((pt.y / 100) * 680)}`;
       ctx.fillText(coordLabel, px - 30, py - 12);
     });
-  }, [points]);
+  }, [points, tracking.state.currentTracks, tracking.state.focusTrackId]);
 
   useEffect(() => {
     drawOverlay();
     window.addEventListener("resize", drawOverlay);
     return () => window.removeEventListener("resize", drawOverlay);
   }, [drawOverlay]);
+
+  // Redraw overlay continuously during tracking (requestAnimationFrame loop)
+  useEffect(() => {
+    if (tracking.state.status !== "tracking") return;
+    let raf: number;
+    const loop = () => { drawOverlay(); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [tracking.state.status, drawOverlay]);
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -908,7 +976,7 @@ const VitasLab = () => {
               />
             ) : selectedVideo && !labVideoUrl ? (
               <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-black/80">
-                <AlertCircle size={32} className="text-yellow-400" />
+                <CircleAlert size={32} className="text-yellow-400" />
                 <p className="text-sm font-display text-yellow-400 font-semibold">{t("lab.videoNotReady")}</p>
                 <p className="text-xs text-muted-foreground text-center max-w-xs">{t("lab.videoNotReadyDesc")}</p>
               </div>
@@ -1333,11 +1401,11 @@ const VitasLab = () => {
             <button
               onClick={() => {
                 if (!selectedVideoId) { toast.error("Selecciona un video primero"); return; }
+                if (!labVideoRef.current) { toast.error("Video no cargado"); return; }
                 setShowTracking(true);
-                // El video element se crea dinámicamente
-                const videoEl = document.createElement("video");
-                videoEl.style.display = "none";
-                document.body.appendChild(videoEl);
+                // Use the visible video element for tracking (needed for canvas overlay)
+                const videoEl = labVideoRef.current;
+                videoEl.crossOrigin = "anonymous";
                 trackingVideoRef.current = videoEl;
                 tracking.startTracking(videoEl).catch(err => {
                   toast.error("Error iniciando tracking: " + err.message);

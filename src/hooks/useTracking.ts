@@ -204,37 +204,34 @@ export function useTracking(options: UseTrackingOptions) {
       error:         null,
     }));
 
-    // Construir URL del video (local blob o Bunny CDN)
-    let streamUrl: string;
-    if (localVideoSrc) {
-      streamUrl = localVideoSrc;
-      // blob: URLs son same-origin, no necesitan crossOrigin
-    } else {
-      const hostname = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
-      streamUrl = buildBunnyCdnUrl(videoId, hostname, "mp4");
-      videoEl.crossOrigin = "anonymous";
+    // If the video is already loaded and ready, skip reload
+    const isReady = videoEl.readyState >= 2 && videoEl.src && !videoEl.error;
+    if (!isReady) {
+      // Construir URL del video (local blob o Bunny CDN)
+      let streamUrl: string;
+      if (localVideoSrc) {
+        streamUrl = localVideoSrc;
+      } else {
+        const hostname = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
+        streamUrl = buildBunnyCdnUrl(videoId, hostname, "mp4");
+        videoEl.crossOrigin = "anonymous";
+      }
+
+      videoEl.src = streamUrl;
+      videoEl.load();
+
+      await new Promise<void>((resolve, reject) => {
+        const onReady = () => { videoEl.removeEventListener("canplay", onReady); resolve(); };
+        const onError = () => reject(new Error("No se pudo cargar el video"));
+        videoEl.addEventListener("canplay", onReady);
+        videoEl.addEventListener("error",   onError);
+        setTimeout(() => reject(new Error("Timeout cargando video")), 15000);
+      });
     }
 
-    // Configurar el video element
-    videoEl.src = streamUrl;
-    videoEl.load();
-
-    // Esperar a que el video esté listo
-    await new Promise<void>((resolve, reject) => {
-      const onReady = () => { videoEl.removeEventListener("canplay", onReady); resolve(); };
-      const onError = () => reject(new Error("No se pudo cargar el video desde Bunny CDN"));
-      videoEl.addEventListener("canplay", onReady);
-      videoEl.addEventListener("error",   onError);
-      setTimeout(() => reject(new Error("Timeout cargando video")), 15000);
-    });
-
-    // Inicializar worker y cargar modelo
-    // Fallback chain: 1) Bunny CDN, 2) public/ local
+    // Inicializar worker y cargar modelo desde public/models/
     const worker = initWorker();
-    const cdnHost = cdnHostname || import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
-    const modelUrl = cdnHost
-      ? `https://${cdnHost}/models/yolov8n-pose.onnx`
-      : "/models/yolov8n-pose.onnx";
+    const modelUrl = "/models/yolov8n-pose.onnx";
 
     worker.postMessage({ type: "INIT", modelUrl });
 
