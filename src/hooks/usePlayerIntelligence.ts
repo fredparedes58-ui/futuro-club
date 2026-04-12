@@ -447,15 +447,27 @@ export function usePlayerIntelligence(player: Player) {
           // Guardar análisis en Supabase para persistencia
           if (SUPABASE_CONFIGURED) {
             try {
-              await supabase.from("player_analyses").insert({
-                player_id:  player.id,
-                video_id:   videoId,
-                report:     analysisResult,
-                similarity: similarityData,
-                created_at: savedAt,
-              });
+              // Obtener user_id del usuario autenticado (requerido por RLS)
+              const { data: { user } } = await supabase.auth.getUser();
+              if (!user) {
+                console.warn("[Intelligence] No hay usuario autenticado — no se puede guardar análisis");
+              } else {
+                const { error: insertErr } = await supabase.from("player_analyses").insert({
+                  user_id:         user.id,
+                  player_id:       player.id,
+                  video_id:        videoId,
+                  report:          analysisResult,
+                  similarity_top5: similarityData,
+                  created_at:      savedAt,
+                });
+                if (insertErr) {
+                  console.error("[Intelligence] Error guardando análisis en Supabase:", insertErr.message);
+                } else {
+                  console.log("[Intelligence] ✅ Análisis guardado en Supabase (player_analyses)");
+                }
+              }
             } catch (saveErr) {
-              console.warn("[Intelligence] No se pudo guardar en Supabase:", saveErr);
+              console.error("[Intelligence] No se pudo guardar en Supabase:", saveErr);
             }
           }
 
