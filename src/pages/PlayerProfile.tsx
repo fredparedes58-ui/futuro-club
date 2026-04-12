@@ -315,7 +315,7 @@ const PlayerProfile = () => {
           <h2 className="font-display font-semibold text-sm text-foreground">{t("players.profile.detailedMetrics")}</h2>
         </div>
         <div className="space-y-3">
-          {Object.entries(player.stats).map(([key, value]) => {
+          {Object.entries(player.stats || {}).map(([key, value]) => {
             const labels: Record<string, string> = {
               speed: t("players.form.metrics.speed"),
               technique: t("players.form.metrics.technique"),
