@@ -91,7 +91,7 @@ function auditStorage(): AuditSection {
         message:
           keys.length > 0
             ? `${keys.length} clave(s) VITAS encontradas`
-            : "No hay datos VITAS en storage — se usará seed",
+            : "No hay datos VITAS en storage — crea un jugador para comenzar",
         detail: keys.join(", ") || "ninguna",
       };
     })
@@ -107,7 +107,7 @@ function auditStorage(): AuditSection {
         message:
           count > 0
             ? `${count} jugador(es) en localStorage`
-            : "Sin jugadores — PlayerService hará seed automático",
+            : "Sin jugadores — crea uno desde el formulario o la app",
         detail: count,
       };
     })
@@ -176,16 +176,16 @@ function auditPlayerService(): AuditSection {
     })
   );
 
-  // ¿Seed data disponible?
+  // ¿Jugadores registrados?
   checks.push(
-    check("Seed data de jugadores", () => {
+    check("Jugadores registrados", () => {
       const players = PlayerService.getAll();
       return {
-        status: players.length >= 6 ? "ok" : "warning",
+        status: players.length > 0 ? "ok" : "warning",
         message:
-          players.length >= 6
-            ? "Seed data completa (≥6 jugadores)"
-            : `Solo ${players.length} jugadores — seed puede estar incompleto`,
+          players.length > 0
+            ? `${players.length} jugador(es) registrados`
+            : "Sin jugadores — crea uno para empezar",
         detail: players.length,
       };
     })

@@ -227,7 +227,7 @@ export function usePlayerIntelligence(player: Player) {
           // Construir URL de Bunny CDN si el video fue subido a Bunny Stream
           const bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net";
           const bunnyVideoUrl = videoId && !videoId.startsWith("local-")
-            ? `https://${bunnyCdnHost}/${videoId}/original`
+            ? `https://${bunnyCdnHost}/${videoId}/play_720p.mp4`
             : null;
 
           // SIEMPRE intentar Gemini PRIMERO — enviar solo la URL, NO el base64
