@@ -46,7 +46,7 @@ const BottomNav = () => {
       });
     }
     prevOnline.current = syncState.online;
-  }, [syncState.online, syncState.pending]);
+  }, [syncState.online, syncState.pending, t]);
 
   const navItems = isClub
     ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "nav.team" }]

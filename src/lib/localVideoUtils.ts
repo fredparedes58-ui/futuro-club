@@ -30,6 +30,49 @@ export function isLocalSrc(src?: string | null): boolean {
   return src.startsWith("blob:") || src.startsWith("data:") || (src.startsWith("/") && !src.startsWith("//"));
 }
 
+// ── Blob URL validation ─────────────────────────────────────────────────────
+
+/**
+ * Check if a blob: URL is still valid (not revoked / not from a previous session).
+ * Uses a synchronous HEAD fetch to test if the blob is still accessible.
+ */
+export function isBlobUrlValid(url: string): boolean {
+  if (!url.startsWith("blob:")) return true; // not a blob URL, skip check
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open("HEAD", url, false); // synchronous
+    xhr.send();
+    return xhr.status === 200;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Sanitize a video record by clearing stale blob URLs.
+ * If the video has CDN URLs (embedUrl/streamUrl starting with http), those are kept.
+ * If only blob URLs remain and they're invalid, clear them.
+ */
+export function clearStaleBlobUrls(video: import("@/services/real/videoService").VideoRecord): import("@/services/real/videoService").VideoRecord {
+  let changed = false;
+  const result = { ...video };
+
+  if (result.localPath?.startsWith("blob:") && !isBlobUrlValid(result.localPath)) {
+    result.localPath = undefined;
+    changed = true;
+  }
+  if (result.streamUrl?.startsWith("blob:") && !isBlobUrlValid(result.streamUrl)) {
+    result.streamUrl = null;
+    changed = true;
+  }
+  if (result.thumbnailUrl?.startsWith("blob:") && !isBlobUrlValid(result.thumbnailUrl)) {
+    result.thumbnailUrl = null;
+    changed = true;
+  }
+
+  return changed ? result : video;
+}
+
 // ── IDs ──────────────────────────────────────────────────────────────────────
 
 /** Genera un ID único para videos locales */

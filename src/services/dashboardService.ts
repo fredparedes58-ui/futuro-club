@@ -1,4 +1,4 @@
-import { mockMatches, type Player, type LiveMatch } from "@/lib/mockData";
+import type { Player, LiveMatch } from "@/lib/mockData";
 import { PlayerService } from "@/services/real/playerService";
 import { adaptPlayerForUI, computeDashboardStats } from "@/services/real/adapters";
 
@@ -12,13 +12,11 @@ export interface DashboardStats {
 }
 
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  PlayerService.seedIfEmpty();
   const players = PlayerService.getAll();
   return computeDashboardStats(players);
 }
 
 export async function fetchTrendingPlayers(): Promise<Player[]> {
-  PlayerService.seedIfEmpty();
   const players = PlayerService.getAll();
   const adapted = players.map(adaptPlayerForUI);
   return adapted
@@ -34,7 +32,7 @@ export async function fetchLiveMatches(): Promise<LiveMatch[]> {
       if (Array.isArray(data) && data.length > 0) return data as LiveMatch[];
     }
   } catch {
-    // fallback a mock si la API no está disponible
+    // API not available — return empty
   }
-  return mockMatches as LiveMatch[];
+  return [];
 }

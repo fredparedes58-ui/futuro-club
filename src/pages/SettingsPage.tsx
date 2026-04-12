@@ -15,6 +15,8 @@ import {
   Zap,
   Download,
   Upload,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
@@ -75,6 +77,7 @@ const SettingsPage = () => {
   const planState: PlanState = usePlan();
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const [pushLoading, setPushLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Persiste al cambiar (local + sync to API)
   useEffect(() => {
@@ -156,6 +159,37 @@ const SettingsPage = () => {
     await signOut();
     navigate("/login");
     toast.success(t("toasts.sessionClosed"));
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmation = window.prompt(t("account.deleteConfirm"));
+    if (!confirmation) return;
+    const keyword = i18n.language?.startsWith("en") ? "DELETE" : "ELIMINAR";
+    if (confirmation.trim().toUpperCase() !== keyword) {
+      toast.error(t("common.error"));
+      return;
+    }
+    setDeleteLoading(true);
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) {
+        toast.error(t("common.error"));
+        return;
+      }
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success(t("account.deleted"));
+      await signOut();
+      navigate("/");
+    } catch {
+      toast.error(t("common.error"));
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -422,6 +456,31 @@ const SettingsPage = () => {
           >
             {t("settings.signOut")}
           </button>
+        </motion.div>
+      )}
+
+      {/* Zona de peligro */}
+      {user && (
+        <motion.div variants={item} className="space-y-2">
+          <h2 className="font-display font-semibold text-sm text-destructive uppercase tracking-wider">
+            {t("account.dangerZone")}
+          </h2>
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={18} className="text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t("account.deleteWarning")}
+              </p>
+            </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleteLoading}
+              className="w-full py-3 rounded-xl bg-destructive/10 border border-destructive/40 text-destructive text-sm font-display font-semibold hover:bg-destructive/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Trash2 size={14} />
+              {deleteLoading ? t("common.loading") : t("account.delete")}
+            </button>
+          </div>
         </motion.div>
       )}
 

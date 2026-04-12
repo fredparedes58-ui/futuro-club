@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2, Building2, Search
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
 
 const item = {
   hidden: { opacity: 0, y: 16 },
@@ -57,6 +58,7 @@ export default function RegisterPage() {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
   const [success, setSuccess]       = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const pwStrength = pwRules.filter((r) => r.test(password)).length;
 
@@ -72,6 +74,16 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
+
+    // Verificar captcha si está configurado
+    const captchaOk = await verifyCaptchaToken(captchaToken);
+    if (!captchaOk) {
+      setLoading(false);
+      setError(t("auth.captchaFailed"));
+      toast.error(t("auth.captchaFailed"));
+      return;
+    }
+
     const { error: authError } = await signUp(email, password, displayName, userType);
     setLoading(false);
     if (authError) {
@@ -251,6 +263,8 @@ export default function RegisterPage() {
                 </div>
               )}
             </div>
+
+            <TurnstileWidget onVerify={setCaptchaToken} />
 
             {/* Error */}
             {error && (

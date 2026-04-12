@@ -54,7 +54,6 @@ const MasterDashboard = () => {
 
   // ─── Datos reales ───────────────────────────────────────────────────────────
   const players = useMemo(() => {
-    PlayerService.seedIfEmpty();
     return PlayerService.getAll();
   }, []);
 

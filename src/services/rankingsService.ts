@@ -102,7 +102,6 @@ function fetchLocalRankedPlayers(
   dir: SortDir,
   filters: RankingsFilters
 ): RankingsResponse {
-  PlayerService.seedIfEmpty();
   const players = PlayerService.getAll();
   const sorted = PlayerService.sort(players, sortBy === "percentile" ? "vsi" : sortBy, dir);
   const uiPlayers = sorted.map(adaptPlayerForUI);

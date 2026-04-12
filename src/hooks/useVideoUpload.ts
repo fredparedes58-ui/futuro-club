@@ -100,6 +100,9 @@ export function useVideoUpload(playerId?: string) {
         });
 
         if (!initRes.ok) {
+          if (initRes.status === 401 || initRes.status === 403) {
+            throw new Error("Sesión expirada. Por favor, cierra sesión y vuelve a iniciar sesión.");
+          }
           const errText = await initRes.text().catch(() => `HTTP ${initRes.status}`);
           let errMsg = `HTTP ${initRes.status}`;
           try {

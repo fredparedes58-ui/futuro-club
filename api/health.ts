@@ -51,6 +51,7 @@ export default async function handler(req: Request): Promise<Response> {
       ALLOWED_ORIGIN: check("ALLOWED_ORIGIN"),
       FOOTBALL_DATA_API_KEY: check("FOOTBALL_DATA_API_KEY"),
       RESEND_API_KEY: check("RESEND_API_KEY"),
+      TURNSTILE_SECRET_KEY: check("TURNSTILE_SECRET_KEY"),
     },
   };
 

@@ -126,7 +126,7 @@ export default withHandler(
         const rpcData = await rpcRes.json();
         // RPC returns the full response object directly
         // Map player data format to match existing API contract
-        const players = (rpcData.players || []).map((p: any) => ({
+        const players = (rpcData.players || []).map((p: Record<string, unknown>) => ({
           id: p.id,
           name: p.name,
           age: p.age,

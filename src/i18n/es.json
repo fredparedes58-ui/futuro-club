@@ -163,7 +163,8 @@
       "passwordTooShort": "La contrase\u00f1a debe tener al menos 6 caracteres",
       "configError": "Error de configuraci\u00f3n. Contacta al administrador.",
       "confirmEmail": "Confirma tu email antes de iniciar sesi\u00f3n"
-    }
+    },
+    "captchaFailed": "Verificaci\u00f3n de seguridad fallida. Intenta de nuevo."
   },
 
   "dashboard": {
@@ -1013,6 +1014,21 @@
     "roleProfileError": "No se pudo cargar el perfil: {{error}}",
     "auditLoadError": "Error al cargar auditor\u00eda: {{error}}",
     "compareLoadError": "Error al cargar comparaci\u00f3n: {{error}}"
+  },
+
+  "cookies": {
+    "banner": "Usamos cookies esenciales para el funcionamiento de la app y cookies anal\u00edticas para mejorar tu experiencia.",
+    "accept": "Aceptar",
+    "essential": "Solo esenciales",
+    "moreInfo": "M\u00e1s informaci\u00f3n"
+  },
+
+  "account": {
+    "dangerZone": "Zona de peligro",
+    "deleteWarning": "Esta acci\u00f3n es irreversible. Se eliminar\u00e1n todos tus datos, jugadores, an\u00e1lisis e historial de forma permanente.",
+    "delete": "Eliminar mi cuenta",
+    "deleteConfirm": "Escribe ELIMINAR para confirmar la eliminaci\u00f3n permanente de tu cuenta y todos tus datos.",
+    "deleted": "Cuenta eliminada correctamente. Hasta pronto."
   },
 
   "errors": {

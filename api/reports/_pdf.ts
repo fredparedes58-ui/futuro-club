@@ -82,7 +82,7 @@ export default withHandler(
     const analysisSection = analysis ? `
       <div class="section">
         <h2>Análisis Táctico</h2>
-        <p>${(analysis as any)?.estadoActual?.resumenEjecutivo ?? "Sin análisis disponible"}</p>
+        <p>${(analysis as Record<string, Record<string, unknown>>)?.estadoActual?.resumenEjecutivo ?? "Sin análisis disponible"}</p>
       </div>
     ` : "";
 

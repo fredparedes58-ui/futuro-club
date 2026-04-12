@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, Zap, Activity, TrendingUp, Shield, S
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
 import bootBg  from "@/assets/login-boot-neon.jpg";
 import player1 from "@/assets/player-1.png";
 
@@ -320,12 +321,23 @@ export default function LoginPage() {
   const [showPw, setShowPw]     = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!email || !password) { setError(t("auth.login.fillAllFields")); return; }
     setLoading(true);
+
+    // Verificar captcha si está configurado
+    const captchaOk = await verifyCaptchaToken(captchaToken);
+    if (!captchaOk) {
+      setLoading(false);
+      setError(t("auth.captchaFailed"));
+      toast.error(t("auth.captchaFailed"));
+      return;
+    }
+
     const { error: authError } = await signIn(email, password);
     setLoading(false);
     if (authError) { setError(translateError(authError.message, t)); return; }
@@ -508,6 +520,8 @@ export default function LoginPage() {
                 </Link>
               </div>
             </div>
+
+            <TurnstileWidget onVerify={setCaptchaToken} />
 
             <AnimatePresence>
               {error && (

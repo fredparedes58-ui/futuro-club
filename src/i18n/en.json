@@ -163,7 +163,8 @@
       "passwordTooShort": "Password must be at least 6 characters",
       "configError": "Configuration error. Contact the administrator.",
       "confirmEmail": "Confirm your email before signing in"
-    }
+    },
+    "captchaFailed": "Security verification failed. Please try again."
   },
 
   "dashboard": {
@@ -1013,6 +1014,21 @@
     "roleProfileError": "Could not load profile: {{error}}",
     "auditLoadError": "Error loading audit: {{error}}",
     "compareLoadError": "Error loading comparison: {{error}}"
+  },
+
+  "cookies": {
+    "banner": "We use essential cookies for app functionality and analytics cookies to improve your experience.",
+    "accept": "Accept",
+    "essential": "Essential only",
+    "moreInfo": "More info"
+  },
+
+  "account": {
+    "dangerZone": "Danger zone",
+    "deleteWarning": "This action is irreversible. All your data, players, analyses, and history will be permanently deleted.",
+    "delete": "Delete my account",
+    "deleteConfirm": "Type DELETE to confirm the permanent deletion of your account and all your data.",
+    "deleted": "Account deleted successfully. See you soon."
   },
 
   "errors": {

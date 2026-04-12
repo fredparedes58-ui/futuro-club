@@ -233,13 +233,30 @@ const Landing = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4 }}
-          className="py-8 flex items-center justify-center gap-3"
+          className="py-8 flex flex-col items-center gap-4"
         >
-          <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/30" />
-          <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/30">
-            {t("landing.footer")}
-          </p>
-          <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/30" />
+          <div className="flex items-center gap-3">
+            <div className="h-px w-12 bg-gradient-to-r from-transparent to-border/30" />
+            <p className="text-[9px] font-display uppercase tracking-[0.3em] text-muted-foreground/30">
+              {t("landing.footer")}
+            </p>
+            <div className="h-px w-12 bg-gradient-to-l from-transparent to-border/30" />
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/terms")}
+              className="text-[9px] font-display uppercase tracking-widest text-muted-foreground/40 hover:text-primary/70 transition-colors"
+            >
+              Términos de Servicio
+            </button>
+            <span className="text-muted-foreground/20">|</span>
+            <button
+              onClick={() => navigate("/privacy")}
+              className="text-[9px] font-display uppercase tracking-widest text-muted-foreground/40 hover:text-primary/70 transition-colors"
+            >
+              Política de Privacidad
+            </button>
+          </div>
         </motion.div>
       </div>
     </div>

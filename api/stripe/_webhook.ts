@@ -12,6 +12,8 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { sendEmail } from "../_lib/email";
+import { paymentConfirmEmail, planCancelledEmail } from "../_lib/emailTemplates";
 
 // Node.js runtime required — Stripe SDK uses Node-only APIs (Buffer, http)
 // export const config = { runtime: "edge" };
@@ -78,6 +80,19 @@ export default withHandler(
           ).toISOString(),
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
+        // Non-blocking: enviar email de confirmación de pago
+        const customerEmail = session.customer_details?.email ?? session.customer_email;
+        if (customerEmail) {
+          const amount = session.amount_total
+            ? `$${(session.amount_total / 100).toFixed(2)}`
+            : "—";
+          sendEmail({
+            to: customerEmail,
+            subject: "Pago confirmado — VITAS",
+            html: paymentConfirmEmail(plan.toUpperCase(), amount),
+          }).catch(() => {});
+        }
         break;
       }
 
@@ -107,6 +122,8 @@ export default withHandler(
         const userId = sub.metadata?.userId;
         if (!userId || !sb) break;
 
+        const previousPlan = resolvePlan(sub.items.data[0]?.price.id ?? "");
+
         await sb.from("subscriptions").upsert({
           user_id: userId,
           plan: "free",
@@ -115,6 +132,21 @@ export default withHandler(
           current_period_end: null,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
+
+        // Non-blocking: enviar email de cancelación
+        if (sub.customer && stripe) {
+          stripe.customers.retrieve(sub.customer as string)
+            .then((cust) => {
+              if (!cust.deleted && cust.email) {
+                sendEmail({
+                  to: cust.email,
+                  subject: "Suscripción cancelada — VITAS",
+                  html: planCancelledEmail(previousPlan.toUpperCase()),
+                }).catch(() => {});
+              }
+            })
+            .catch(() => {});
+        }
         break;
       }
     }

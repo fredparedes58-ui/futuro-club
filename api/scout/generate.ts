@@ -228,8 +228,8 @@ export default withHandler(
         try {
           const history = await fetchPlayerHistory(supabaseUrl, supabaseKey!, player.id, userId!);
           if (history && history.length >= 2) {
-            const latest = history[0].report as any;
-            const previous = history[1].report as any;
+            const latest = history[0].report as Record<string, Record<string, unknown>>;
+            const previous = history[1].report as Record<string, Record<string, unknown>>;
             const latestDims = latest?.estadoActual?.dimensiones;
             const prevDims = previous?.estadoActual?.dimensiones;
             const latestVSI = latest?.estadoActual?.vsi ?? player.vsi;

@@ -13,7 +13,7 @@ interface RagResult {
   id: string;
   content: string;
   category: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   similarity: number;
 }
 
@@ -85,8 +85,8 @@ export default function KnowledgeSearch({
         const data = await res.json();
         setResults(data.results ?? []);
         setSearched(true);
-      } catch (err: any) {
-        if (err.name === "AbortError") return;
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
         setError("No se pudo conectar con la base de conocimiento.");
         setResults([]);
         setSearched(true);

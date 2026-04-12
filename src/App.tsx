@@ -10,6 +10,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
 import OfflineBanner from "@/components/OfflineBanner";
+import CookieConsent from "@/components/CookieConsent";
 
 // Pages — Auth
 import LoginPage from "./pages/LoginPage";
@@ -46,6 +47,8 @@ import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 // Sync hook — activa pull de Supabase al hacer login
 // Health check — diagnóstico automático al iniciar
@@ -101,6 +104,7 @@ const App = () => (
           <AuthProvider>
             <SyncManager />
             <OfflineBanner />
+            <CookieConsent />
             <ErrorBoundary>
               <Routes>
                 {/* ── Rutas públicas (auth) ─────────────────────────── */}
@@ -108,6 +112,8 @@ const App = () => (
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />

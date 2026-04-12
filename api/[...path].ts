@@ -19,6 +19,9 @@ import scoutInsights from "./scout/insights";
 import scoutAutoGenerate from "./scout/_auto-generate";
 import rankingsList from "./rankings/_list";
 import reportsPdf from "./reports/_pdf";
+import accountDelete from "./account/_delete";
+import authWelcome from "./auth/_welcome";
+import authVerifyCaptcha from "./auth/_verify-captcha";
 
 export const config = { runtime: "edge" };
 
@@ -48,6 +51,9 @@ export default async function handler(req: Request): Promise<Response> {
     "scout/auto-generate": scoutAutoGenerate,
     "rankings/list": rankingsList,
     "reports/pdf": reportsPdf,
+    "account/delete": accountDelete,
+    "auth/welcome": authWelcome,
+    "auth/verify-captcha": authVerifyCaptcha,
   };
 
   if (staticRoutes[key]) return staticRoutes[key](req);

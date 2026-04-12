@@ -112,9 +112,9 @@ export interface VAEPResult {
 
 export interface DominantFeaturesResult {
   /** Top 3 atributos más fuertes */
-  dominant: Array<{ key: keyof PlayerMetrics; label: string; value: number; zScore: number }>;
+  dominant: Array<{ key: keyof PlayerMetrics; label: string; value: number; zScore: number; description: string }>;
   /** Top 2 áreas de mejora */
-  underdeveloped: Array<{ key: keyof PlayerMetrics; label: string; value: number; gap: number }>;
+  underdeveloped: Array<{ key: keyof PlayerMetrics; label: string; value: number; gap: number; description: string }>;
   /** Perfil de juego inferido */
   playStyle: "ofensivo" | "defensivo" | "equilibrado" | "técnico" | "físico";
   /** Índice de especialización (0=generalista, 1=muy especializado) */
@@ -622,6 +622,35 @@ export const VAEPService = {
 
 // ─── Dominant Features — desde métricas actuales ─────────────────────────────
 
+// Descripciones contextuales por metrica y nivel de z-score
+const DOMINANT_DESCRIPTIONS: Record<keyof PlayerMetrics, { high: string; veryHigh: string }> = {
+  speed:     { high: "Rapidez superior al promedio, capaz de ganar carreras largas", veryHigh: "Velocidad excepcional, desborda rivales con facilidad" },
+  technique: { high: "Buen control de balon y primer toque limpio", veryHigh: "Tecnica depurada, manejo de balon de alto nivel" },
+  vision:    { high: "Lee bien el juego y encuentra pases entre lineas", veryHigh: "Vision de juego privilegiada, genera oportunidades constantemente" },
+  stamina:   { high: "Buena capacidad fisica para mantener ritmo alto", veryHigh: "Resistencia excepcional, rinde al maximo los 90 minutos" },
+  shooting:  { high: "Disparo preciso y buena definicion", veryHigh: "Finalizacion de elite, peligroso en cualquier situacion de gol" },
+  defending: { high: "Solido en duelos defensivos y anticipacion", veryHigh: "Muro defensivo, domina duelos aereos y terrestres" },
+};
+
+const UNDERDEVELOPED_DESCRIPTIONS: Record<keyof PlayerMetrics, { low: string; veryLow: string }> = {
+  speed:     { low: "Puede mejorar transiciones rapidas y arranques cortos", veryLow: "Prioridad: trabajo de velocidad y potencia explosiva" },
+  technique: { low: "Necesita pulir control orientado y regate", veryLow: "Requiere trabajo intensivo en fundamentos tecnicos" },
+  vision:    { low: "Puede mejorar lectura de juego y toma de decisiones", veryLow: "Necesita ejercicios de situacion y juego posicional" },
+  stamina:   { low: "Puede mejorar capacidad aerobica y recuperacion", veryLow: "Prioridad: plan de acondicionamiento fisico progresivo" },
+  shooting:  { low: "Puede mejorar definicion y seleccion de disparo", veryLow: "Requiere sesiones especificas de finalizacion" },
+  defending: { low: "Puede mejorar posicionamiento defensivo y tackle", veryLow: "Necesita trabajo en principios defensivos basicos" },
+};
+
+function getDominantDescription(key: keyof PlayerMetrics, zScore: number): string {
+  const descs = DOMINANT_DESCRIPTIONS[key];
+  return zScore >= 1.5 ? descs.veryHigh : descs.high;
+}
+
+function getUnderdevelopedDescription(key: keyof PlayerMetrics, zScore: number): string {
+  const descs = UNDERDEVELOPED_DESCRIPTIONS[key];
+  return zScore <= -1.5 ? descs.veryLow : descs.low;
+}
+
 export const DominantFeaturesService = {
   /**
    * Infiere las características dominantes del jugador a partir de sus métricas.
@@ -642,10 +671,14 @@ export const DominantFeaturesService = {
 
     zScores.sort((a, b) => b.zScore - a.zScore);
 
-    const dominant   = zScores.slice(0, 3);
+    const dominant = zScores.slice(0, 3).map((item) => ({
+      ...item,
+      description: getDominantDescription(item.key, item.zScore),
+    }));
     const underdeveloped = zScores.slice(-2).map((item) => ({
       ...item,
       gap: Math.round((NORM_MEAN[item.key] - item.value) * 10) / 10,
+      description: getUnderdevelopedDescription(item.key, item.zScore),
     }));
 
     // Clasificar estilo de juego

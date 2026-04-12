@@ -80,6 +80,7 @@ export const env = {
   get cronSecret() { return optional("CRON_SECRET"); },
   get adminSecret() { return optional("ADMIN_SECRET"); },
   get allowedOrigin() { return optional("ALLOWED_ORIGIN", "https://futuro-club.vercel.app"); },
+  get turnstileSecretKey() { return optional("TURNSTILE_SECRET_KEY"); },
 
   // ─── Roboflow (legacy) ───
   get roboflowApiKey() { return optional("ROBOFLOW_API_KEY"); },

@@ -112,105 +112,10 @@ export interface RoleProfileData {
   evidence: EvidenceIndicator[];
 }
 
-// ─── Mock data ───────────────────────────────────────────────────────────
-
-export const mockRoleProfile: RoleProfileData = {
-  run_id: "rp-run-001",
-  player_id: "p1",
-  player_name: "Lucas Moreno",
-  player_age: 14,
-  dominant_foot: "derecho",
-  minutes_played: 1420,
-  competitive_level: "Liga Nacional U15",
-  sample_tier: "silver",
-  overall_confidence: 0.78,
-
-  current: {
-    tactical: 74.2,
-    technical: 81.0,
-    physical: 63.4,
-  },
-
-  identity: {
-    dominant: "tecnico",
-    distribution: {
-      ofensivo: 0.44,
-      defensivo: 0.59,
-      tecnico: 0.78,
-      fisico: 0.41,
-      mixto: 0.36,
-    },
-    explanation: "Perfil dominado por lectura técnica y capacidad de retención. Buen volumen de pase progresivo con tendencia a filtrar entre líneas. El componente defensivo es secundario pero significativo.",
-  },
-
-  positions: [
-    { code: "DM", prob: 0.34, score: 81.2, confidence: 0.82, reason: "Progresión por pase + retención bajo presión + intercepción" },
-    { code: "RCM", prob: 0.28, score: 77.5, confidence: 0.77, reason: "Volumen mixto y buena lectura en transición" },
-    { code: "LCM", prob: 0.18, score: 72.1, confidence: 0.69, reason: "Buen apoyo interior pero menor llegada al área rival" },
-    { code: "RCB", prob: 0.06, score: 58.3, confidence: 0.54, reason: "Buena salida de balón pero falta intensidad defensiva" },
-    { code: "LCB", prob: 0.05, score: 55.1, confidence: 0.51, reason: "Similar a RCB, peor lateralidad" },
-    { code: "RB", prob: 0.03, score: 48.7, confidence: 0.45, reason: "Pase largo pero baja proyección ofensiva lateral" },
-    { code: "LB", prob: 0.02, score: 44.2, confidence: 0.40, reason: "Sin ventaja en esta demarcación" },
-    { code: "RW", prob: 0.01, score: 38.0, confidence: 0.35, reason: "Sin perfil de desborde ni velocidad punta" },
-    { code: "LW", prob: 0.01, score: 36.5, confidence: 0.33, reason: "Sin perfil de extremo" },
-    { code: "ST", prob: 0.01, score: 32.0, confidence: 0.30, reason: "No es finalizador ni referencia de área" },
-    { code: "GK", prob: 0.01, score: 10.0, confidence: 0.10, reason: "N/A" },
-  ],
-
-  archetypes: [
-    { code: "filtrador", score: 84.0, confidence: 0.79, stability: "estable", positions: ["DM", "RCM", "LCM"] },
-    { code: "organizador", score: 80.0, confidence: 0.76, stability: "estable", positions: ["DM", "RCM"] },
-    { code: "recuperador", score: 77.0, confidence: 0.73, stability: "emergente", positions: ["DM"] },
-    { code: "progresor_pase", score: 74.5, confidence: 0.70, stability: "en_desarrollo", positions: ["DM", "RCM", "LCM"] },
-    { code: "pivote_posicional", score: 71.0, confidence: 0.66, stability: "emergente", positions: ["DM"] },
-    { code: "interior_creativo", score: 65.0, confidence: 0.58, stability: "emergente", positions: ["RCM", "LCM"] },
-  ],
-
-  projections: {
-    "0_6m": { tactical: 76.0, technical: 82.3, physical: 69.2 },
-    "6_18m": { tactical: 79.5, technical: 84.4, physical: 74.1 },
-    "18_36m": { tactical: 82.0, technical: 86.0, physical: 77.8 },
-  },
-
-  strengths: [
-    { label: "Pase entre líneas bajo presión", evidence: "1.92 xT_pass/90 — percentil 94 en su grupo de maduración", confidence: 0.84 },
-    { label: "Retención en zona 2/3", evidence: "Pierde balón solo 3.1 veces/90 en zona media-alta", confidence: 0.81 },
-    { label: "Lectura defensiva anticipada", evidence: "2.4 intercepciones/90 con timing pre-pase", confidence: 0.73 },
-    { label: "Orientación corporal al recibir", evidence: "78% recepciones orientadas al campo rival", confidence: 0.77 },
-  ],
-
-  risks: [
-    { code: "tracking_physical_partial", label: "Datos físicos parciales", description: "Solo 62% de los minutos tienen cobertura GPS. Las métricas físicas pueden estar subestimadas." },
-    { code: "maturity_window_sensitive", label: "Ventana de maduración sensible", description: "Jugador con PHV -0.8. Las proyecciones físicas tienen incertidumbre alta hasta completar el pico de crecimiento." },
-    { code: "sample_size_moderate", label: "Muestra moderada", description: "1420 minutos en liga nacional. Insuficiente para confirmar rendimiento en competición superior." },
-  ],
-
-  gaps: [
-    { label: "Mayor volumen de carry value (conducción progresiva)", priority: "alta", relatedPositions: ["RCM", "LCM"] },
-    { label: "Más llegadas al área rival", priority: "media", relatedPositions: ["RCM", "LCM"] },
-    { label: "Mayor volumen en acciones de alta intensidad", priority: "alta", relatedPositions: ["DM", "RCM"] },
-    { label: "Pase largo diagonal con mayor precisión", priority: "baja", relatedPositions: ["DM"] },
-  ],
-
-  consolidation_notes: [
-    "Para consolidar como DM-filtrador necesita demostrar carry value sostenido y resistencia en duelos aéreos.",
-    "La transición a RCM requiere más evidencia de llegada al área y conexión con el último tercio.",
-    "El componente físico es la mayor incógnita: sin datos de GPS completos ni actualización PHV reciente, la proyección física tiene confianza baja.",
-  ],
-
-  evidence: [
-    { indicator: "xt_pass", label: "xT por pase", raw_value: 1.92, normalized: 81, reliability: 0.84, phase_of_play: "in_possession", impact: "positivo", contribution: 0.18, positions_impacted: ["DM", "RCM", "LCM"], archetypes_impacted: ["filtrador", "organizador", "progresor_pase"], explanation: "Contribución neta por pase en zona de progresión. Percentil 94 ajustado por maduración." },
-    { indicator: "interceptions_p90", label: "Intercepciones/90", raw_value: 2.4, normalized: 74, reliability: 0.73, phase_of_play: "out_of_possession", impact: "positivo", contribution: 0.12, positions_impacted: ["DM"], archetypes_impacted: ["recuperador", "interceptor"], explanation: "Lectura anticipada fuerte en zona media. Contribuye al perfil de recuperador." },
-    { indicator: "ball_retention_z23", label: "Retención zona 2/3", raw_value: 96.9, normalized: 88, reliability: 0.81, phase_of_play: "in_possession", impact: "positivo", contribution: 0.15, positions_impacted: ["DM", "RCM", "LCM"], archetypes_impacted: ["organizador", "pivote_posicional"], explanation: "Solo 3.1 pérdidas/90 en zona media-alta. Muy por encima de la media del grupo." },
-    { indicator: "carry_value", label: "Carry value", raw_value: 0.41, normalized: 42, reliability: 0.68, phase_of_play: "in_possession", impact: "neutro", contribution: 0.06, positions_impacted: ["RCM", "LCM"], archetypes_impacted: ["progresor_conduccion", "box_to_box"], explanation: "Bajo volumen de conducción progresiva. Gap identificado para evolución a interior." },
-    { indicator: "high_intensity_runs", label: "Carreras alta intensidad", raw_value: 4.8, normalized: 38, reliability: 0.52, phase_of_play: "transition", impact: "negativo", contribution: -0.04, positions_impacted: ["RCM", "DM"], archetypes_impacted: ["box_to_box", "llegador", "presionante"], explanation: "Por debajo de la media. Dato condicionado por cobertura GPS parcial (62%)." },
-    { indicator: "aerial_duels_won", label: "Duelos aéreos ganados %", raw_value: 38.0, normalized: 31, reliability: 0.60, phase_of_play: "out_of_possession", impact: "negativo", contribution: -0.03, positions_impacted: ["DM", "RCB"], archetypes_impacted: ["recuperador", "corrector"], explanation: "Bajo para perfil defensivo puro. PHV -0.8 puede explicar parte del dato." },
-    { indicator: "progressive_passes", label: "Pases progresivos/90", raw_value: 6.7, normalized: 79, reliability: 0.80, phase_of_play: "in_possession", impact: "positivo", contribution: 0.14, positions_impacted: ["DM", "RCM", "LCM"], archetypes_impacted: ["filtrador", "progresor_pase", "organizador"], explanation: "Buen volumen de progresión vertical. Consistente en últimos 6 partidos." },
-    { indicator: "pressing_actions", label: "Acciones de presión/90", raw_value: 12.1, normalized: 55, reliability: 0.70, phase_of_play: "out_of_possession", impact: "neutro", contribution: 0.03, positions_impacted: ["DM", "RCM"], archetypes_impacted: ["presionante", "recuperador"], explanation: "Volumen medio. No destaca pero cumple. Intensidad por confirmar con GPS." },
-    { indicator: "body_orientation", label: "Orientación corporal al recibir", raw_value: 78.0, normalized: 82, reliability: 0.77, phase_of_play: "in_possession", impact: "positivo", contribution: 0.10, positions_impacted: ["DM", "RCM", "LCM"], archetypes_impacted: ["organizador", "filtrador", "pivote_posicional"], explanation: "78% recepciones orientadas al campo rival. Indicador de madurez táctica avanzada para su edad." },
-    { indicator: "final_third_entries", label: "Entradas al último tercio", raw_value: 1.2, normalized: 35, reliability: 0.65, phase_of_play: "in_possession", impact: "neutro", contribution: 0.02, positions_impacted: ["RCM", "LCM"], archetypes_impacted: ["llegador", "interior_creativo"], explanation: "Bajo. Coherente con perfil de pivote/filtrador más que de interior ofensivo." },
-  ],
-};
+// ─── Mock data REMOVED ──────────────────────────────────────────────────
+// mockRoleProfile with fake "Lucas Moreno" data has been removed.
+// The app must only show real player data from video analyses or return null.
+// Mock data for tests lives in src/test/ files only.
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 

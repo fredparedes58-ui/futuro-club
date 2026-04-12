@@ -30,7 +30,7 @@ export default function VSIHistoryChart({ vsiHistory, currentVSI, trend }: Props
   const maxVal = Math.min(100, Math.max(...vsiHistory) + 5);
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
     if (active && payload?.length) {
       return (
         <div className="glass rounded-lg px-2 py-1.5 text-[10px] font-display border border-border">

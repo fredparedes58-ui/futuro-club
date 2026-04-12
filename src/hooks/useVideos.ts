@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
-import { isLocalSrc } from "@/lib/localVideoUtils";
+import { isLocalSrc, clearStaleBlobUrls } from "@/lib/localVideoUtils";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
@@ -22,22 +22,33 @@ const STALE = 2 * 60 * 1000; // 2 minutes
 function autoHealVideoStatuses(videos: VideoRecord[]): VideoRecord[] {
   let changed = false;
   const healed = videos.map((v) => {
-    // Si tiene embedUrl válido y está reproducible pero status no es "finished"
+    // First, clear any stale blob URLs from previous sessions
+    const cleaned = clearStaleBlobUrls(v);
+    if (cleaned !== v) {
+      changed = true;
+      VideoService.save(cleaned);
+    }
+    const current = cleaned;
+
+    // Si tiene embedUrl válido (HTTP) y está reproducible pero status no es "finished"
+    // Note: only count HTTP URLs as valid sources, not blob URLs (they expire on refresh)
+    const hasValidSource =
+      (current.embedUrl && current.embedUrl.startsWith("http")) ||
+      (current.streamUrl && current.streamUrl.startsWith("http")) ||
+      (isLocalSrc(current.localPath) && !current.localPath?.startsWith("blob:"));
+
     if (
-      (
-        (v.embedUrl && v.embedUrl.startsWith("http")) ||
-        isLocalSrc(v.localPath)
-      ) &&
-      v.status !== "finished" &&
-      v.status !== "error" &&
-      v.status !== "upload-failed"
+      hasValidSource &&
+      current.status !== "finished" &&
+      current.status !== "error" &&
+      current.status !== "upload-failed"
     ) {
       changed = true;
-      const fixed = { ...v, status: "finished" as const, statusCode: 4, encodeProgress: 100 };
+      const fixed = { ...current, status: "finished" as const, statusCode: 4, encodeProgress: 100 };
       VideoService.save(fixed);
       return fixed;
     }
-    return v;
+    return current;
   });
   return changed ? healed : videos;
 }
@@ -79,7 +90,12 @@ export function useVideo(id: string | null | undefined) {
       if (local?.status === "finished") return local;
       // Fetch from API
       try {
-        const res = await fetch(`/api/videos/status?videoId=${id}`);
+        const res = await fetch(`/api/videos/status?videoId=${id}`, {
+          headers: await getAuthHeaders(),
+        });
+        if (!res.ok) {
+          throw new Error(`Status API error: ${res.status}`);
+        }
         const data = (await res.json()) as {
           success: boolean;
           data?: VideoRecord;
@@ -111,7 +127,14 @@ export function useDeleteVideo() {
     mutationFn: async (videoId: string) => {
       // Delete from Bunny API
       try {
-        const res = await fetch(`/api/videos/delete?videoId=${videoId}`, { method: "DELETE" });
+        const res = await fetch(`/api/videos/delete?videoId=${videoId}`, {
+          method: "DELETE",
+          headers: await getAuthHeaders(),
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => `HTTP ${res.status}`);
+          throw new Error(`Delete API error: ${res.status} — ${errText}`);
+        }
         const data = (await res.json()) as { success: boolean; phase2Pending?: boolean; error?: string };
         if (!data.success && !data.phase2Pending) throw new Error(data.error ?? "Delete failed");
       } catch (err) {
@@ -154,6 +177,10 @@ export function useRunPipeline() {
         headers: await getAuthHeaders(),
         body: JSON.stringify({ videoId, playerId }),
       });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => `HTTP ${res.status}`);
+        throw new Error(`Pipeline API error: ${res.status} — ${errText}`);
+      }
       const data = (await res.json()) as {
         success: boolean;
         phase2Pending?: boolean;

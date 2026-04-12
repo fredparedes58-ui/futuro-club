@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { mockRoleProfile, type RoleProfileData, type PositionFit, type ArchetypeFit, type EvidenceIndicator, type GapItem } from "@/lib/roleProfileData";
+import { type RoleProfileData, type PositionFit, type ArchetypeFit, type EvidenceIndicator, type GapItem } from "@/lib/roleProfileData";
 import type { Player } from "@/services/real/playerService";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 

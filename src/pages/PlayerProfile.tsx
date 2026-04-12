@@ -25,6 +25,7 @@ import { PDFService } from "@/services/real/pdfService";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
+import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -421,6 +422,14 @@ const PlayerProfile = () => {
         </div>
       </motion.div>
 
+      {/* ── Panel de Evolución Video-a-Video ──────────────────────────────── */}
+      <motion.div variants={item}>
+        <PlayerEvolutionPanel
+          playerId={id ?? ""}
+          analyses={savedAnalyses ?? []}
+        />
+      </motion.div>
+
       {/* ── Análisis Avanzado (TruthFilter + Dominant Features) ──────────── */}
       {advancedMetrics && (
         <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
@@ -509,35 +518,46 @@ const PlayerProfile = () => {
                 {advancedMetrics.dominantFeatures.playStyle}
               </span>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {advancedMetrics.dominantFeatures.dominant.map((feat) => (
-                <div key={feat.key} className="flex items-center gap-2">
-                  <span className="text-[10px] text-foreground font-display w-20 shrink-0">
-                    {feat.label}
-                  </span>
-                  <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-electric to-primary"
-                      style={{ width: `${feat.value}%` }}
-                    />
+                <div key={feat.key}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-foreground font-display w-20 shrink-0">
+                      {feat.label}
+                    </span>
+                    <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-electric to-primary"
+                        style={{ width: `${feat.value}%` }}
+                      />
+                    </div>
+                    <span className="text-[9px] font-display text-primary shrink-0">
+                      z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-display text-primary shrink-0">
-                    z={feat.zScore >= 0 ? "+" : ""}{feat.zScore.toFixed(1)}
-                  </span>
+                  {feat.description && (
+                    <p className="text-[9px] text-muted-foreground mt-0.5 ml-[88px] leading-relaxed">
+                      {feat.description}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
             {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
               <div className="mt-2 pt-2 border-t border-border">
                 <span className="text-[9px] text-muted-foreground font-display">{t("players.profile.areasToDevelope")}:</span>
-                <div className="flex gap-2 mt-1 flex-wrap">
+                <div className="space-y-1.5 mt-1.5">
                   {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => (
-                    <span
-                      key={feat.key}
-                      className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold"
-                    >
-                      {feat.label} (−{feat.gap})
-                    </span>
+                    <div key={feat.key}>
+                      <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-gold/10 text-gold">
+                        {feat.label} ({"\u2212"}{feat.gap})
+                      </span>
+                      {feat.description && (
+                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {feat.description}
+                        </p>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

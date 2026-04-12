@@ -125,7 +125,6 @@ export function useAllPlayers() {
         }
       }
 
-      PlayerService.seedIfEmpty();
       return PlayerService.getAll().map(adaptPlayerForUI);
     },
     staleTime: 1000 * 60 * 2,

@@ -7,7 +7,7 @@
 import { z } from "zod";
 import { StorageService } from "./storageService";
 import { MetricsService } from "./metricsService";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+
 
 // ─── Schema del jugador ───────────────────
 export const PlayerSchema = z.object({
@@ -191,46 +191,11 @@ export const PlayerService = {
   },
 
   /**
-   * Carga los jugadores mock iniciales si no hay datos.
-   * NUNCA siembra en producción (cuando Supabase está configurado).
+   * @deprecated REMOVED — Mock seed function eliminated to prevent fake data contamination.
+   * Players must only be created by the user through onboarding or the add player form.
+   * Kept as no-op to avoid breaking callers until all references are cleaned up.
    */
   seedIfEmpty(): void {
-    if (SUPABASE_CONFIGURED) return; // En producción los jugadores vienen de Supabase
-    if (PlayerService.getAll().length > 0) return;
-
-    const mockPlayers: CreatePlayerInput[] = [
-      {
-        name: "Lucas Moreno", age: 15, position: "RW", foot: "right",
-        height: 172, weight: 62, competitiveLevel: "Regional", minutesPlayed: 840,
-        metrics: { speed: 82, technique: 74, vision: 71, stamina: 76, shooting: 78, defending: 45 },
-      },
-      {
-        name: "Alejandro Ruiz", age: 14, position: "DM", foot: "right",
-        height: 168, weight: 59, competitiveLevel: "Regional", minutesPlayed: 620,
-        metrics: { speed: 65, technique: 70, vision: 78, stamina: 80, shooting: 50, defending: 82 },
-      },
-      {
-        name: "Daniel Torres", age: 16, position: "ST", foot: "left",
-        height: 178, weight: 68, competitiveLevel: "Provincial", minutesPlayed: 1050,
-        metrics: { speed: 79, technique: 76, vision: 68, stamina: 72, shooting: 85, defending: 40 },
-      },
-      {
-        name: "Pablo García", age: 15, position: "LCM", foot: "both",
-        height: 170, weight: 61, competitiveLevel: "Regional", minutesPlayed: 540,
-        metrics: { speed: 72, technique: 80, vision: 83, stamina: 74, shooting: 62, defending: 60 },
-      },
-      {
-        name: "Mateo Fernández", age: 13, position: "LB", foot: "left",
-        height: 160, weight: 52, competitiveLevel: "Regional", minutesPlayed: 380,
-        metrics: { speed: 76, technique: 66, vision: 65, stamina: 71, shooting: 44, defending: 75 },
-      },
-      {
-        name: "Iker Navarro", age: 16, position: "RCB", foot: "right",
-        height: 182, weight: 72, competitiveLevel: "Provincial", minutesPlayed: 920,
-        metrics: { speed: 68, technique: 64, vision: 70, stamina: 78, shooting: 38, defending: 88 },
-      },
-    ];
-
-    mockPlayers.forEach((p) => PlayerService.create(p));
+    // No-op — fake players removed. Real players come from user input or Supabase.
   },
 };
