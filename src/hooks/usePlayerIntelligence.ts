@@ -267,16 +267,18 @@ export function usePlayerIntelligence(player: Player) {
 
             // 2b. Si Gemini falló → extraer frames como fallback
             if (!geminiObservations) {
-              setState({ step: "keyframes", progress: 20, message: "Extrayendo 8 fotogramas clave del video..." });
               const frameCount = getOptimalFrameCount(videoDuration || 120);
+              setState({ step: "keyframes", progress: 20, message: `Extrayendo ${frameCount} fotogramas clave del video...` });
               keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, frameCount);
               if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
 
               // Verificar que el payload no exceda 4MB (límite Vercel)
-              const payloadEstimate = JSON.stringify(keyframes).length;
-              if (payloadEstimate > 4_000_000) {
-                console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB, reduciendo frames`);
+              // Si excede, reducir frames proporcionalmente pero mantener mínimo 20
+              let payloadEstimate = JSON.stringify(keyframes).length;
+              while (payloadEstimate > 4_000_000 && keyframes.length > 20) {
+                console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB con ${keyframes.length} frames, reduciendo...`);
                 keyframes = keyframes.filter((_, i) => i % 2 === 0);
+                payloadEstimate = JSON.stringify(keyframes).length;
               }
             }
           } else {

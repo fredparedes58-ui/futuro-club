@@ -45,7 +45,7 @@ export default withHandler(
           // Build image content blocks from keyframes (base64 or URL)
           const imageBlocks: unknown[] = [];
           if (Array.isArray(keyframes)) {
-            for (const kf of keyframes.slice(0, 8)) {
+            for (const kf of keyframes.slice(0, 100)) {
               const url: string = typeof kf === "string" ? kf : kf?.url ?? "";
               if (url.startsWith("data:image/")) {
                 // Base64 encoded frame from Canvas extraction

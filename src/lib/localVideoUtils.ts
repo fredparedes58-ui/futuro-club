@@ -240,11 +240,13 @@ export async function readVideoAsBase64(
 
 // ── Frame count óptimo ──────────────────────────────────────────────────────
 
-/** Calcula cuántos frames extraer según la duración del video (fallback Claude) */
-export function getOptimalFrameCount(durationSec: number): number {
-  if (durationSec < 60) return 20;       // <1min: 1 cada 3s
-  if (durationSec < 300) return 60;      // 1-5min: 1 cada 5s
-  return 100;                            // 5min+: máximo API (1 cada 6-9s)
+/**
+ * Siempre extrae el máximo de frames posible (100).
+ * Gemini analiza el video completo como primera opción.
+ * Si Gemini falla, estos 100 frames van a Claude como fallback.
+ */
+export function getOptimalFrameCount(_durationSec: number): number {
+  return 100; // Siempre máximo — no reducir nunca
 }
 
 // ── Keyframes (para Intelligence Report) ─────────────────────────────────────

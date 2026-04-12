@@ -49,7 +49,7 @@ export default withHandler(
           // Build image content blocks from keyframes (fallback mode)
           const imageBlocks: unknown[] = [];
           if (!hasGemini && Array.isArray(keyframes)) {
-            for (const kf of keyframes.slice(0, 12)) {
+            for (const kf of keyframes.slice(0, 100)) {
               const url: string = typeof kf === "string" ? kf : kf?.url ?? "";
               if (url.startsWith("data:image/")) {
                 const match = url.match(/^data:(image\/\w+);base64,(.+)$/);
