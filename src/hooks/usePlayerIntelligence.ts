@@ -225,12 +225,14 @@ export function usePlayerIntelligence(player: Player) {
           let keyframes: KeyframeData[] = [];
 
           if (localVideoSrc) {
-            // 2a. Intentar leer video como base64 para Gemini
-            setState({ step: "analyzing", progress: 18, message: "Preparando video para análisis..." });
+            // 2a. SIEMPRE intentar Gemini PRIMERO (video completo)
+            setState({ step: "analyzing", progress: 18, message: "🎬 Preparando video para Gemini (primera opción)..." });
             try {
               const videoData = await readVideoAsBase64(localVideoSrc);
               if (videoData) {
-                setState({ step: "analyzing", progress: 22, message: "Analizando video completo con Gemini..." });
+                const videoSizeMB = (videoData.sizeBytes / 1024 / 1024).toFixed(1);
+                setState({ step: "analyzing", progress: 22, message: `🎬 Analizando video completo con Gemini (${videoSizeMB}MB)...` });
+                console.log(`[Intelligence] Enviando video a Gemini: ${videoSizeMB}MB`);
                 const geminiRes = await fetch("/api/agents/video-observation", {
                   method: "POST",
                   headers: await getAuthHeaders(),
@@ -255,20 +257,26 @@ export function usePlayerIntelligence(player: Player) {
                   const geminiData = await geminiRes.json() as { observations?: Record<string, unknown> };
                   if (geminiData.observations) {
                     geminiObservations = geminiData.observations;
-                    console.log("[Intelligence] Gemini observaciones recibidas correctamente");
+                    console.log("[Intelligence] ✅ Gemini analizó el video completo exitosamente");
                   }
                 } else {
-                  console.warn("[Intelligence] Gemini no disponible, usando fallback frames");
+                  const errStatus = geminiRes.status;
+                  const errText = await geminiRes.text().catch(() => "");
+                  console.warn(`[Intelligence] ⚠️ Gemini falló (HTTP ${errStatus}): ${errText.slice(0, 200)}`);
+                  console.warn("[Intelligence] Cayendo a fallback: extracción de frames → Claude");
                 }
+              } else {
+                console.warn("[Intelligence] ⚠️ Video demasiado grande o blob expirado — no se pudo leer para Gemini");
+                console.warn("[Intelligence] Cayendo a fallback: extracción de frames → Claude");
               }
             } catch (geminiErr) {
-              console.warn("[Intelligence] Error con Gemini, usando fallback:", geminiErr);
+              console.warn("[Intelligence] ⚠️ Error con Gemini, cayendo a fallback frames:", geminiErr);
             }
 
-            // 2b. Si Gemini falló → extraer 100 frames localmente, seleccionar 20 espaciados uniformemente
+            // 2b. SOLO si Gemini falló → extraer 100 frames → seleccionar 20 → enviar a Claude
             if (!geminiObservations) {
               const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
-              setState({ step: "keyframes", progress: 20, message: `Extrayendo ${extractCount} fotogramas del video...` });
+              setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas para Claude (fallback)...` });
               const allFrames = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, extractCount);
               if (allFrames.length === 0) throw new Error("No se pudieron extraer frames del video");
 
@@ -296,7 +304,7 @@ export function usePlayerIntelligence(player: Player) {
             keyframes = getBunnyKeyframes(videoId, videoDuration);
           }
 
-          setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe (video analizado por Gemini)..." : "Analizando fotogramas con Claude..." });
+          setState({ step: "analyzing", progress: 35, message: geminiObservations ? "✅ Video analizado por Gemini — generando informe completo..." : `⚠️ Fallback: analizando ${keyframes.length} fotogramas con Claude...` });
 
           // 3a. RAG enrichment: fetch relevant drills and methodology
           let ragContext = "";
