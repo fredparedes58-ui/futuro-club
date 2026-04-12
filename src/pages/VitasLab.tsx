@@ -695,6 +695,10 @@ const VitasLab = () => {
     ]);
   };
 
+  const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
+  const selectedVideo  = videos.find((v) => v.id === selectedVideoId);
+  const labVideoUrl    = selectedVideo ? getBestVideoUrl(selectedVideo) : null;
+
   // Sync play/pause with real video element
   useEffect(() => {
     const vid = labVideoRef.current;
@@ -736,10 +740,6 @@ const VitasLab = () => {
   const effectiveDuration = videoDuration || totalTime;
   const progressPercent = (currentTime / effectiveDuration) * 100;
 
-  const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
-  const selectedVideo  = videos.find((v) => v.id === selectedVideoId);
-  const labVideoUrl    = selectedVideo ? getBestVideoUrl(selectedVideo) : null;
-
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = {
     hidden: { opacity: 0, y: 16 },
@@ -777,7 +777,7 @@ const VitasLab = () => {
             {[
               { label: "DASHBOARD",    action: () => navigate("/")         },
               { label: "NEW ANALYSIS", action: () => setShowUploadPanel(true) },
-              { label: "ARCHIVE",      action: () => navigate("/videos")   },
+              { label: "ARCHIVE",      action: () => navigate("/reports")  },
               { label: "MODELS",       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
             ].map(({ label, action }, i) => (
               <button key={label} onClick={action} className={`text-xs font-display font-semibold tracking-wider transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
