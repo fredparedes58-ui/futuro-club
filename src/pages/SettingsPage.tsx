@@ -17,6 +17,9 @@ import {
   Upload,
   Trash2,
   AlertTriangle,
+  BookOpen,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
@@ -29,6 +32,7 @@ import { PushNotificationService } from "@/services/real/pushNotificationService
 import { BackupService } from "@/services/real/backupService";
 import { useTranslation } from "react-i18next";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const SETTINGS_KEY = "settings";
 
@@ -79,6 +83,10 @@ const SettingsPage = () => {
   const [pushLoading, setPushLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // RAG Knowledge Base status
+  const [ragStats, setRagStats] = useState<{ total: number; byCategory: Record<string, number> } | null>(null);
+  const [ragLoading, setRagLoading] = useState(false);
+
   // Persiste al cambiar (local + sync to API)
   useEffect(() => {
     StorageService.set(SETTINGS_KEY, settings);
@@ -111,6 +119,35 @@ const SettingsPage = () => {
   useEffect(() => {
     PushNotificationService.getPermission().then(setPushPermission);
   }, []);
+
+  // Fetch RAG knowledge base stats
+  const fetchRagStats = async () => {
+    if (!SUPABASE_CONFIGURED) return;
+    setRagLoading(true);
+    try {
+      const res = await fetch("/api/rag/query", {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ query: "status check", limit: 1 }),
+      });
+      if (!res.ok) throw new Error("RAG unavailable");
+      // Count via Supabase direct (works because service reads from same DB)
+      const { data, count } = await supabase
+        .from("knowledge_base")
+        .select("category", { count: "exact", head: false });
+      if (data) {
+        const byCategory: Record<string, number> = {};
+        data.forEach((r: { category: string }) => { byCategory[r.category] = (byCategory[r.category] || 0) + 1; });
+        setRagStats({ total: count ?? data.length, byCategory });
+      }
+    } catch {
+      setRagStats(null);
+    } finally {
+      setRagLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchRagStats(); }, []);
 
   const toggle = (key: keyof AppSettings) => {
     if (key === "notifications") {
@@ -393,6 +430,47 @@ const SettingsPage = () => {
             <p className="text-[10px] text-muted-foreground">{t("settings.databaseConnected")}</p>
           </div>
           <Check size={14} className="text-primary" />
+        </div>
+      </motion.div>
+
+      {/* RAG Knowledge Base */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Base de Conocimiento (RAG)</h2>
+        <div className="glass rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+              <BookOpen size={18} className="text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="font-display font-semibold text-sm text-foreground">Knowledge Base</p>
+              {ragLoading ? (
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Consultando...</p>
+              ) : ragStats ? (
+                <p className="text-[10px] text-muted-foreground">{ragStats.total} documentos indexados con embeddings</p>
+              ) : (
+                <p className="text-[10px] text-destructive">No disponible</p>
+              )}
+            </div>
+            {ragStats && <Check size={14} className="text-primary" />}
+          </div>
+          {ragStats && (
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(ragStats.byCategory).map(([cat, count]) => (
+                <div key={cat} className="bg-secondary/50 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs font-display font-bold text-foreground">{count}</p>
+                  <p className="text-[9px] text-muted-foreground capitalize">{cat === "drill" ? "Ejercicios" : cat === "scouting" ? "Scouting" : cat === "methodology" ? "Metodología" : cat}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={fetchRagStats}
+            disabled={ragLoading}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={ragLoading ? "animate-spin text-primary" : "text-muted-foreground"} />
+            <span className="text-xs font-display text-muted-foreground">Actualizar estado</span>
+          </button>
         </div>
       </motion.div>
 

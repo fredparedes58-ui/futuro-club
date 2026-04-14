@@ -50,6 +50,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { VideoService } from "@/services/real/videoService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import KnowledgeSearch from "@/components/KnowledgeSearch";
+import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
 import { calculateVAEPFromGemini } from "@/lib/geminiToVaep";
@@ -568,7 +569,24 @@ const VitasLab = () => {
         }
       }
 
-      // 3. Llamar al agente via SSE (con métricas YOLO si disponibles)
+      // 3a. RAG enrichment — fetch relevant drills and methodology
+      let ragContext: string | null = null;
+      try {
+        const ragRes = await fetch("/api/rag/query", {
+          method: "POST",
+          headers: await getAuthHeaders(),
+          body: JSON.stringify({
+            query: `${playerData.position} ${playerData.age} años análisis video`,
+            limit: 3,
+          }),
+        });
+        if (ragRes.ok) {
+          const ragData = await ragRes.json() as { context?: string };
+          ragContext = ragData.context || null;
+        }
+      } catch { /* RAG failure is non-blocking */ }
+
+      // 3b. Llamar al agente via SSE (con métricas YOLO + RAG si disponibles)
       const res = await fetch("/api/agents/video-intelligence", {
         method: "POST",
         headers: await getAuthHeaders(),
@@ -592,6 +610,7 @@ const VitasLab = () => {
           physicalMetrics: physicalMetrics || undefined,
           geminiObservations: geminiObservations || undefined,
           geminiEventCounts: geminiEventCounts || undefined,
+          ragContext: ragContext || undefined,
         }),
       });
 
@@ -1910,11 +1929,16 @@ const VitasLab = () => {
                   ))}
                 </div>
 
-                {/* Ejercicios Recomendados (RAG) */}
+                {/* Ejercicios Recomendados (RAG con feedback) */}
+                {analysisReport.estadoActual.areasDesarrollo?.length > 0 && (
+                  <DrillRecommendations areasDesarrollo={analysisReport.estadoActual.areasDesarrollo} />
+                )}
+
+                {/* Búsqueda manual de ejercicios */}
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Zap size={14} className="text-electric" />
-                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Ejercicios Recomendados</p>
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Buscar Ejercicios</p>
                   </div>
                   <KnowledgeSearch
                     compact

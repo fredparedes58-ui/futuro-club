@@ -129,7 +129,30 @@ jobs:
           path: dist/
           retention-days: 3
 
-  # ── Step 4: E2E Tests (on PRs only) ───────────────────────────────────────
+  # ── Step 4: RAG Knowledge Base Seed (main branch only) ────────────────────
+  rag-seed:
+    name: RAG Seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Seed drills
+        run: |
+          curl -sf -X POST "https://futuro-club.vercel.app/api/rag/seed" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 || echo "Seed drills skipped (may already be seeded)"
+
+      - name: Seed knowledge docs
+        run: |
+          curl -sf -X POST "https://futuro-club.vercel.app/api/rag/seed-knowledge" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 || echo "Seed knowledge skipped (may already be seeded)"
+
+  # ── Step 5: E2E Tests (on PRs only) ───────────────────────────────────────
   test-e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
