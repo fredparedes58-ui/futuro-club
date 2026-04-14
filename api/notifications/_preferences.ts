@@ -17,6 +17,8 @@ const PreferencesSchema = z.object({
   inactividad: z.boolean().optional(),
   limite_plan: z.boolean().optional(),
   analisis_completado: z.boolean().optional(),
+  scout_insights: z.boolean().optional(),
+  team_updates: z.boolean().optional(),
 });
 
 const DEFAULT_PREFS = {
@@ -24,6 +26,8 @@ const DEFAULT_PREFS = {
   inactividad: true,
   limite_plan: true,
   analisis_completado: true,
+  scout_insights: true,
+  team_updates: true,
 };
 
 export default withHandler(
@@ -64,6 +68,8 @@ export default withHandler(
         inactividad: prefs.inactividad ?? true,
         limite_plan: prefs.limite_plan ?? true,
         analisis_completado: prefs.analisis_completado ?? true,
+        scout_insights: prefs.scout_insights ?? true,
+        team_updates: prefs.team_updates ?? true,
       });
     }
 

@@ -41,6 +41,8 @@ interface NotifPreferences {
   inactividad: boolean;
   limitePlan: boolean;
   analisisCompletado: boolean;
+  scoutInsights: boolean;
+  teamUpdates: boolean;
 }
 
 interface AppSettings {
@@ -55,6 +57,8 @@ const DEFAULT_NOTIF_PREFS: NotifPreferences = {
   inactividad: true,
   limitePlan: true,
   analisisCompletado: true,
+  scoutInsights: true,
+  teamUpdates: true,
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -63,6 +67,86 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   language: "es",
 };
+
+// ── Notification History Sub-component ───────────────────────────────────────
+
+interface NotifHistoryItem {
+  id: number;
+  type: string;
+  title: string;
+  body?: string;
+  created_at: string;
+  read: boolean;
+}
+
+const NOTIF_TYPE_LABELS: Record<string, string> = {
+  rendimientoBajo: "Rendimiento bajo",
+  inactividad: "Jugador inactivo",
+  limitePlan: "Límite de plan",
+  analisisCompletado: "Análisis completado",
+  scoutInsights: "Scout insight",
+  teamUpdates: "Actualización de equipo",
+};
+
+function NotificationHistory() {
+  const [items, setItems] = useState<NotifHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch("/api/notifications/history?limit=10", { headers });
+        if (res.ok) {
+          const data = await res.json() as { items?: NotifHistoryItem[] };
+          setItems(data.items ?? []);
+        }
+      } catch { /* silent */ }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-3 text-muted-foreground">
+        <Loader2 size={12} className="animate-spin" />
+        <span className="text-[10px]">Cargando historial...</span>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="py-3">
+        <p className="text-[10px] text-muted-foreground">No hay notificaciones recientes</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 pt-3 border-t border-white/5">
+      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+        Últimas notificaciones
+      </p>
+      {items.map(item => (
+        <div key={item.id} className="flex items-start gap-2 py-1">
+          <Bell size={11} className={`mt-0.5 shrink-0 ${item.read ? "text-muted-foreground/40" : "text-primary"}`} />
+          <div className="min-w-0">
+            <p className="text-[11px] text-foreground leading-tight truncate">
+              {item.title}
+            </p>
+            <p className="text-[9px] text-muted-foreground">
+              {NOTIF_TYPE_LABELS[item.type] ?? item.type} · {new Date(item.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main Settings Page ──────────────────────────────────────────────────────
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -108,6 +192,8 @@ const SettingsPage = () => {
             inactividad: settings.notifPrefs.inactividad,
             limite_plan: settings.notifPrefs.limitePlan,
             analisis_completado: settings.notifPrefs.analisisCompletado,
+            scout_insights: settings.notifPrefs.scoutInsights,
+            team_updates: settings.notifPrefs.teamUpdates,
           }),
         });
       } catch { /* best effort */ }
@@ -334,6 +420,8 @@ const SettingsPage = () => {
               { key: "inactividad" as const, label: t("settings.notifInactivity"), desc: t("settings.notifInactivityDesc") },
               { key: "limitePlan" as const, label: t("settings.notifPlanLimit"), desc: t("settings.notifPlanLimitDesc") },
               { key: "analisisCompletado" as const, label: t("settings.notifAnalysisDone"), desc: t("settings.notifAnalysisDoneDesc") },
+              { key: "scoutInsights" as const, label: "Scout Insights", desc: "Notificar nuevos insights de scouting generados" },
+              { key: "teamUpdates" as const, label: "Actualizaciones de Equipo", desc: "Invitaciones, cambios de rol y actividad del equipo" },
             ]).map(({ key, label, desc }) => (
               <div
                 key={key}
@@ -353,6 +441,9 @@ const SettingsPage = () => {
                 }
               </div>
             ))}
+
+            {/* Historial de notificaciones */}
+            <NotificationHistory />
           </div>
         )}
 

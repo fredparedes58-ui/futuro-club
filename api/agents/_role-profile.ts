@@ -9,6 +9,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
+import { roleProfileFallback } from "../_lib/agentFallbacks";
 
 export const config = { runtime: "edge" };
 
@@ -59,7 +60,7 @@ export default withHandler(
   async ({ body, userId }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
-      return errorResponse("ANTHROPIC_API_KEY not configured", 503, "CONFIG_ERROR");
+      return successResponse(roleProfileFallback(body, "no_api_key"));
     }
 
     // ── Cache check ─────────────────────────────────────────────
@@ -95,12 +96,8 @@ export default withHandler(
     });
 
     if (!claudeRes.ok) {
-      const errText = await claudeRes.text().catch(() => "");
-      return errorResponse(
-        `Claude API ${claudeRes.status}: ${errText.slice(0, 200)}`,
-        500,
-        "CLAUDE_ERROR",
-      );
+      console.warn(`[RoleProfile] Claude API ${claudeRes.status}, using fallback`);
+      return successResponse(roleProfileFallback(body, "claude_error"));
     }
 
     const claudeData = await claudeRes.json() as {
@@ -115,7 +112,8 @@ export default withHandler(
 
     const m = fullText.match(/\{[\s\S]*\}/);
     if (!m) {
-      return errorResponse("No JSON in Claude response", 500, "PARSE_ERROR");
+      console.warn("[RoleProfile] No JSON in Claude response, using fallback");
+      return successResponse(roleProfileFallback(body, "parse_error"));
     }
 
     const parsed = JSON.parse(m[0]);
