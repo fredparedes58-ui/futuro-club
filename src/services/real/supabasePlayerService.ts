@@ -80,7 +80,7 @@ export const SupabasePlayerService = {
       );
       const pendingIds = new Set(pending.map((op) => op.entityId));
 
-      let result = cloudPlayers;
+      const result = cloudPlayers;
       if (pendingIds.size > 0) {
         const localPlayers = PlayerService.getAll();
         const localPending = localPlayers.filter((p) => pendingIds.has(p.id));
