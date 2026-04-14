@@ -161,14 +161,14 @@ describe("AuditService", () => {
   });
 
   describe("runSync con PlayerService vacío", () => {
-    it("sin jugadores → seed warning", () => {
+    it("sin jugadores → registrados warning", () => {
       vi.mocked(PlayerService.getAll).mockReturnValue([]);
 
       const report = AuditService.runSync();
       const ps = report.sections.find(s => s.section.includes("PlayerService"));
-      const seedCheck = ps!.checks.find(c => c.name.includes("Seed"));
+      const registradosCheck = ps!.checks.find(c => c.name.includes("registrados"));
 
-      expect(seedCheck!.status).toBe("warning");
+      expect(registradosCheck!.status).toBe("warning");
     });
   });
 
