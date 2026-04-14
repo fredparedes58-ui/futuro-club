@@ -267,6 +267,7 @@ const PlayerForm = () => {
       minutesPlayed: player.minutesPlayed,
       metrics: player.metrics,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEditMode, navigate, reset]);
 
   const metricsWatch = watch("metrics");

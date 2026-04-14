@@ -267,7 +267,7 @@ export function useTracking(options: UseTrackingOptions) {
     });
 
     setState(s => ({ ...s, status: "tracking" }));
-  }, [videoId, cdnHostname, initWorker]);
+  }, [videoId, cdnHostname, initWorker, localVideoSrc]);
 
   // ── stopTracking ─────────────────────────────────────────────────────────────
   const stopTracking = useCallback((): PhysicalMetrics => {

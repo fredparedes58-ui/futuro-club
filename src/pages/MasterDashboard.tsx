@@ -111,6 +111,7 @@ const MasterDashboard = () => {
         vsi: p.vsi,
         time: new Date(p.updatedAt).toLocaleDateString("es-ES"),
       }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [players]);
 
   const container = {

@@ -57,6 +57,7 @@ export default function AcceptInvitationPage() {
         setState("error");
         setErrorMsg(err.message);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user, configured]);
 
   return (

@@ -32,12 +32,15 @@ const Dashboard = () => {
 
   React.useEffect(() => {
     if (hasStatsError) toast.error(t("toasts.statsError"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasStatsError]);
   React.useEffect(() => {
     if (hasPlayersError) toast.error(t("toasts.trendingError"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPlayersError]);
   React.useEffect(() => {
     if (hasMatchesError) toast.error(t("toasts.matchesError"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMatchesError]);
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };

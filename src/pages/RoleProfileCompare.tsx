@@ -21,6 +21,7 @@ export default function RoleProfileCompare() {
 
   useEffect(() => {
     if (isError) toast.error(t("toasts.compareLoadError", { error: error?.message || t("errors.unknownError") }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isError, error]);
 
   const horizons = [

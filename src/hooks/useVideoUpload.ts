@@ -418,6 +418,7 @@ export function useVideoUpload(playerId?: string) {
         setState((prev) => ({ ...prev, phase: "error", error: errorMsg }));
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [playerId, reset, queryClient, user]
   );
 

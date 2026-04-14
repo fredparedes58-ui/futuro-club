@@ -46,7 +46,7 @@ export const PushNotificationService = {
       });
 
       // Save subscription to backend (include JWT for auth)
-      let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
       try {
         const { supabase } = await import("@/lib/supabase");
         const { data } = await supabase.auth.getSession();
@@ -75,7 +75,7 @@ export const PushNotificationService = {
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await sub.unsubscribe();
-        let authHeaders: Record<string, string> = { "Content-Type": "application/json" };
+        const authHeaders: Record<string, string> = { "Content-Type": "application/json" };
         try {
           const { supabase } = await import("@/lib/supabase");
           const { data } = await supabase.auth.getSession();

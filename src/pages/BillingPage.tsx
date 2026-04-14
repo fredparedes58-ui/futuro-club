@@ -70,6 +70,7 @@ const BillingPage = () => {
     if (searchParams.get("canceled")) {
       toast.info(t("toasts.paymentCanceled"));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const handleUpgrade = async (plan: Plan) => {

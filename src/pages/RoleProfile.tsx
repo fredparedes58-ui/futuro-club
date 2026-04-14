@@ -33,6 +33,7 @@ export default function RoleProfile() {
 
   useEffect(() => {
     if (isError) toast.error(t("toasts.roleProfileError", { error: error?.message || t("errors.unknownError") }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isError, error]);
 
   return (

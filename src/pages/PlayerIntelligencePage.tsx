@@ -713,6 +713,12 @@ export default function PlayerIntelligencePage() {
     refetchSimilarity,
   } = usePlayerIntelligence(player ?? ({} as Player));
 
+  // Hooks MUST be called before any early return (Rules of Hooks)
+  const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
+  const [searchParams] = useSearchParams();
+  const [compareMode, setCompareMode] = useState(searchParams.get("compare") === "1");
+  const [compareIdx, setCompareIdx] = useState<number>(1);
+
   if (!player) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
@@ -730,12 +736,6 @@ export default function PlayerIntelligencePage() {
     // Fallback: mostrar todos los videos disponibles para análisis
     return VideoService.getAll();
   })();
-
-  // Selector de análisis guardado (por video)
-  const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
-  const [searchParams] = useSearchParams();
-  const [compareMode, setCompareMode] = useState(searchParams.get("compare") === "1");
-  const [compareIdx, setCompareIdx] = useState<number>(1);
 
   // Informe a mostrar: el recién generado o el seleccionado del historial
   const savedReport = analyses && analyses[selectedAnalysisIdx]

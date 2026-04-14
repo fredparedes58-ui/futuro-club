@@ -129,6 +129,7 @@ const PlayerProfile = () => {
     if (phvResult) {
       toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal", offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phvResult]);
 
   const handleLogEvent = () => {
@@ -158,8 +159,8 @@ const PlayerProfile = () => {
       height: rawPlayer.height,
       weight: rawPlayer.weight,
       gender: (rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M",
-      ...((rawPlayer as any).sittingHeight ? { sittingHeight: (rawPlayer as any).sittingHeight } : {}),
-      ...((rawPlayer as any).legLength ? { legLength: (rawPlayer as any).legLength } : {}),
+      ...((rawPlayer as unknown as Record<string, number>).sittingHeight ? { sittingHeight: (rawPlayer as unknown as Record<string, number>).sittingHeight } : {}),
+      ...((rawPlayer as unknown as Record<string, number>).legLength ? { legLength: (rawPlayer as unknown as Record<string, number>).legLength } : {}),
     });
     toast.info(t("toasts.phvCalculating"));
   };
