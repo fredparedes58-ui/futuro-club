@@ -6,6 +6,7 @@
 
 import { StorageService } from "./storageService";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { OrganizationService } from "./organizationService";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -146,8 +147,9 @@ export const SubscriptionService = {
     if (SUPABASE_CONFIGURED) {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (!user) return;
+        const orgId = OrganizationService.getOrgId();
         supabase.from("analyses_used").upsert(
-          { user_id: user.id, month: currentMonth, count, updated_at: new Date().toISOString() },
+          { user_id: user.id, ...(orgId ? { org_id: orgId } : {}), month: currentMonth, count, updated_at: new Date().toISOString() },
           { onConflict: "user_id,month" }
         );
       });

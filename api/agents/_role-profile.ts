@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
+import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 import { roleProfileFallback } from "../_lib/agentFallbacks";
@@ -61,6 +62,12 @@ export default withHandler(
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return successResponse(roleProfileFallback(body, "no_api_key"));
+    }
+
+    // ── Usage quota check ───────────────────────────────────────
+    if (userId) {
+      const usage = await checkUsageQuota(userId);
+      if (!usage.allowed) return usageExceededResponse(usage);
     }
 
     // ── Cache check ─────────────────────────────────────────────
@@ -133,6 +140,9 @@ export default withHandler(
         setCached(cacheKey, "role-profile", userId, playerId, null, result, tokensUsed, sbUrl, sbKey)
       ).catch(() => {});
     }
+
+    // ── Usage log (non-blocking) ────────────────────────────────
+    if (userId) incrementUsage(userId, "role-profile").catch(() => {});
 
     return successResponse(result);
   },

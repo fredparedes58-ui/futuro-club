@@ -12,10 +12,13 @@ import {
 } from "lucide-react";
 import { useUsageAnalytics } from "@/hooks/useUsageAnalytics";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { RoleGuard } from "@/components/RoleGuard";
 import { usePlan } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
 import { ROLE_LABELS } from "@/services/real/userProfileService";
 import { useTranslation } from "react-i18next";
+import UsageMeter from "@/components/UsageMeter";
+import BusinessMetricsPanel from "@/components/BusinessMetricsPanel";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,6 +60,20 @@ const DirectorDashboard = () => {
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
   return (
+    <RoleGuard
+      roles={["director"]}
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+          <div className="text-center space-y-3">
+            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="text-sm text-muted-foreground">Solo el Director Deportivo puede acceder a este panel.</p>
+            <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
+              Volver al dashboard
+            </button>
+          </div>
+        </div>
+      }
+    >
     <motion.div
       variants={container}
       initial="hidden"
@@ -213,6 +230,14 @@ const DirectorDashboard = () => {
             </motion.div>
           )}
 
+          {/* AI Usage Meter */}
+          <motion.div variants={item}>
+            <UsageMeter />
+          </motion.div>
+
+          {/* Business Metrics (Supabase data) */}
+          <BusinessMetricsPanel />
+
           {/* Quick links */}
           <motion.div variants={item} className="grid grid-cols-3 gap-3">
             <button
@@ -246,6 +271,7 @@ const DirectorDashboard = () => {
         </motion.div>
       )}
     </motion.div>
+    </RoleGuard>
   );
 };
 

@@ -32,7 +32,7 @@ describe("PlayerService", () => {
     it("crea un jugador con ID generado", () => {
       const player = PlayerService.create(samplePlayer);
       expect(player.id).toBeDefined();
-      expect(player.id).toMatch(/^p\d+$/);
+      expect(player.id).toMatch(/^p\d+(_\d+)?$/);
       expect(player.name).toBe("Test Player");
     });
 

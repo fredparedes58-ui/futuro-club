@@ -12,6 +12,7 @@ import { PlayerService, type Player, type CreatePlayerInput } from "@/services/r
 import { adaptPlayerForUI } from "@/services/real/adapters";
 import { useAuth } from "@/context/AuthContext";
 import { SUPABASE_CONFIGURED, supabase } from "@/lib/supabase";
+import { OrganizationService } from "@/services/real/organizationService";
 
 // ── API helper ──────────────────────────────────────────────────────────────
 
@@ -35,6 +36,10 @@ async function apiRequest<T>(
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   }
 
+  // Inyectar org_id en las queries para aislamiento por organización
+  const orgId = OrganizationService.getOrgId();
+  if (orgId) url.searchParams.set("org_id", orgId);
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Authorization: await getAuthHeader(),
@@ -42,7 +47,11 @@ async function apiRequest<T>(
 
   const init: RequestInit = { method, headers };
   if (body && method !== "GET") {
-    init.body = JSON.stringify(body);
+    // Inyectar org_id en el body de mutaciones
+    const enrichedBody = orgId && typeof body === "object" && body !== null
+      ? { ...body, org_id: orgId }
+      : body;
+    init.body = JSON.stringify(enrichedBody);
   }
 
   const res = await fetch(url.toString(), init);

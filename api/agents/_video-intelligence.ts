@@ -8,13 +8,20 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkPlayerReportQuality } from "../_lib/reportQualityCheck";
 
 export const config = { runtime: "edge" };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ req }) => {
+  async ({ req, userId }) => {
+    // ── Usage quota check (before stream) ──────────────────────
+    if (userId) {
+      const usage = await checkUsageQuota(userId);
+      if (!usage.allowed) return usageExceededResponse(usage);
+    }
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -425,20 +432,36 @@ DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimien
 
           let fullText = "";
           try {
-            const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-              method: "POST",
-              headers: {
-                "Content-Type":      "application/json",
-                "x-api-key":         apiKey,
-                "anthropic-version": "2023-06-01",
-              },
-              body: JSON.stringify({
-                model:      "claude-sonnet-4-20250514",
-                max_tokens: 8000,
-                temperature: 0,
-                messages:   [{ role: "user", content }],
-              }),
-            });
+            // Retry helper: retries on 5xx/429 with exponential backoff
+            const MAX_RETRIES = 2;
+            const callClaude = async (attempt: number): Promise<Response> => {
+              const res = await fetch("https://api.anthropic.com/v1/messages", {
+                method: "POST",
+                headers: {
+                  "Content-Type":      "application/json",
+                  "x-api-key":         apiKey,
+                  "anthropic-version": "2023-06-01",
+                },
+                body: JSON.stringify({
+                  model:      "claude-sonnet-4-20250514",
+                  max_tokens: 8000,
+                  temperature: 0,
+                  messages:   [{ role: "user", content }],
+                }),
+              });
+
+              // Retry on server errors (5xx) and rate limits (429)
+              if ((res.status >= 500 || res.status === 429) && attempt < MAX_RETRIES) {
+                const delayMs = Math.min(2000 * Math.pow(2, attempt), 8000); // 2s, 4s
+                console.warn(`[video-intelligence] Claude ${res.status}, retry ${attempt + 1}/${MAX_RETRIES} in ${delayMs}ms`);
+                send("progress", { step: `Reintentando análisis (${attempt + 1}/${MAX_RETRIES})...`, percent: 48 + attempt * 2 });
+                await new Promise(r => setTimeout(r, delayMs));
+                return callClaude(attempt + 1);
+              }
+              return res;
+            };
+
+            const claudeRes = await callClaude(0);
 
             if (!claudeRes.ok) {
               const errBody = await claudeRes.text().catch(() => "");
@@ -562,6 +585,9 @@ DIFERENCIACIÓN POR VIDEO: Cada análisis debe ser ÚNICO basado en el rendimien
 
           send("progress", { step: "Finalizando informe...", percent: 95 });
           send("complete", { report, videoId, timestamp: new Date().toISOString() });
+
+          // ── Usage log (non-blocking) ─────────────────────────
+          if (userId) incrementUsage(userId, "video-intelligence").catch(() => {});
         } catch (error: unknown) {
           send("error", { message: error instanceof Error ? error.message : "Error interno" });
         } finally {

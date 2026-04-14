@@ -13,6 +13,7 @@ import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/serv
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { PlanGuard } from "@/components/PlanGuard";
+import { RequirePermission } from "@/components/RequirePermission";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
 import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
@@ -945,15 +946,18 @@ const PlayerProfile = () => {
       <motion.div variants={item} className="space-y-3 pt-1">
         {/* Fila 1: Editar + Eliminar */}
         <div className="flex gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 gap-2"
-            onClick={() => navigate(`/players/${player.id}/edit`)}
-          >
-            <Pencil size={14} />
-            {t("players.profile.editPlayer")}
-          </Button>
+          <RequirePermission permission="canEditPlayers" disableInstead>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              onClick={() => navigate(`/players/${player.id}/edit`)}
+            >
+              <Pencil size={14} />
+              {t("players.profile.editPlayer")}
+            </Button>
+          </RequirePermission>
 
+          <RequirePermission permission="canDeletePlayers" fallback={null}>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="gap-2">
@@ -979,6 +983,7 @@ const PlayerProfile = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </RequirePermission>
         </div>
 
         {/* Fila 2: Guardar y Exportar */}

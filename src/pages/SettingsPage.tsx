@@ -33,6 +33,7 @@ import { BackupService } from "@/services/real/backupService";
 import { useTranslation } from "react-i18next";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { useGdprExport } from "@/hooks/useGdprExport";
 
 const SETTINGS_KEY = "settings";
 
@@ -163,6 +164,7 @@ const SettingsPage = () => {
     StorageService.get<AppSettings>(SETTINGS_KEY, DEFAULT_SETTINGS)
   );
   const planState: PlanState = usePlan();
+  const gdpr = useGdprExport();
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
   const [pushLoading, setPushLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -613,6 +615,20 @@ const SettingsPage = () => {
               }}
             />
           </label>
+          <button
+            onClick={() => {
+              gdpr.exportData();
+            }}
+            disabled={gdpr.isExporting}
+            className="w-full flex items-center gap-3 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+          >
+            <Shield size={16} className="text-emerald-500" />
+            <div className="text-left flex-1">
+              <p className="text-sm font-display font-semibold text-foreground">{t("settings.gdprExport", "Exportar todos mis datos (GDPR)")}</p>
+              <p className="text-[10px] text-muted-foreground">{t("settings.gdprExportDesc", "Descarga todos tus datos del servidor y dispositivo en un solo archivo.")}</p>
+            </div>
+            {gdpr.isExporting && <Loader2 size={14} className="animate-spin text-muted-foreground" />}
+          </button>
         </div>
       </motion.div>
 

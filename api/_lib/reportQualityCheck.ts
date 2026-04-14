@@ -39,14 +39,23 @@ export function checkPlayerReportQuality(
       const scores = Object.values(dims).map(d => d?.score).filter((s): s is number => typeof s === "number");
       if (scores.length > 0) {
         const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        // Scores should be 0-100
-        if (scores.some(s => s < 0 || s > 100)) {
-          issues.push("Scores de dimensiones fuera de rango 0-100");
+        // Dimension scores are 0-10 (as specified in Claude prompt)
+        if (scores.some(s => s < 0 || s > 10)) {
+          issues.push("Scores de dimensiones fuera de rango 0-10");
         }
-        // VSI adjustment should roughly match avg
+        // ajusteVSIVideoScore is -15 to +15 (delta, not absolute)
+        // High avg (≥7) with very negative adjustment, or low avg (<3.5) with very positive → incoherent
         const vsi = estado.ajusteVSIVideoScore as number | undefined;
-        if (vsi !== undefined && Math.abs(vsi - avg) > 25) {
-          issues.push(`ajusteVSI (${vsi}) muy alejado del promedio de dimensiones (${avg.toFixed(0)})`);
+        if (vsi !== undefined) {
+          if (vsi < -15 || vsi > 15) {
+            issues.push(`ajusteVSI (${vsi}) fuera de rango permitido (-15 a +15)`);
+          }
+          if (avg >= 7 && vsi < -10) {
+            issues.push(`ajusteVSI negativo (${vsi}) incoherente con dimensiones altas (avg=${avg.toFixed(1)})`);
+          }
+          if (avg < 3.5 && vsi > 10) {
+            issues.push(`ajusteVSI positivo (${vsi}) incoherente con dimensiones bajas (avg=${avg.toFixed(1)})`);
+          }
         }
       }
     }

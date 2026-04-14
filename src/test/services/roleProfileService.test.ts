@@ -51,7 +51,8 @@ vi.mock("@/services/real/agentService", () => ({
   },
 }));
 
-import { fetchRoleProfile, fetchPositionFit, fetchArchetypes, fetchAuditIndicators } from "@/services/roleProfileService";
+import { fetchRoleProfile, fetchPositionFit, fetchArchetypes, fetchAuditIndicators, recalculateWithPosition } from "@/services/roleProfileService";
+import type { RoleProfileData } from "@/lib/roleProfileData";
 
 // Helper: mock video analysis report from Supabase
 const makeVideoAnalysis = (overrides = {}) => ({
@@ -110,10 +111,16 @@ describe("roleProfileService", () => {
       expect(result).toBeNull();
     });
 
-    it("returns null when no video analyses exist", async () => {
+    it("returns metrics-only profile when no video analyses exist", async () => {
       setupSupabaseMock([]);
       const result = await fetchRoleProfile("p1");
-      expect(result).toBeNull();
+      // Now returns a basic profile from player metrics instead of null
+      expect(result).not.toBeNull();
+      expect(result!.sample_tier).toBe("bronze");
+      expect(result!.overall_confidence).toBeLessThanOrEqual(0.4);
+      expect(result!.risks.some(r => r.code === "NO_VIDEO_ANALYSIS")).toBe(true);
+      expect(result!.player_name).toBe("Samu");
+      expect(result!.evidence).toEqual([]); // no evidence without video
     });
 
     it("calls agent with video analysis data when analyses exist", async () => {
@@ -225,10 +232,13 @@ describe("roleProfileService", () => {
   });
 
   describe("fetchPositionFit", () => {
-    it("returns empty array when no video analyses", async () => {
+    it("returns positions from metrics-only profile when no video analyses", async () => {
       setupSupabaseMock([]);
       const result = await fetchPositionFit("p1");
-      expect(result).toEqual([]);
+      // Metrics-only profile now provides a position estimate
+      expect(result.length).toBeGreaterThan(0);
+      expect(result[0]).toHaveProperty("code");
+      expect(result[0].confidence).toBeLessThanOrEqual(0.4);
     });
 
     it("returns positions from profile when available", async () => {
@@ -243,9 +253,10 @@ describe("roleProfileService", () => {
   });
 
   describe("fetchArchetypes", () => {
-    it("returns empty array when no video analyses", async () => {
+    it("returns empty archetypes for metrics-only profile", async () => {
       setupSupabaseMock([]);
       const result = await fetchArchetypes("p1");
+      // Metrics-only profile has no archetypes (needs AI for that)
       expect(result).toEqual([]);
     });
   });
@@ -265,6 +276,172 @@ describe("roleProfileService", () => {
       setupSupabaseMock([]);
       const result = await fetchAuditIndicators("p1");
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("recalculateWithPosition", () => {
+    // Helper: build a minimal valid RoleProfileData for testing recalculate
+    function makeBaseProfile(overrides: Partial<RoleProfileData> = {}): RoleProfileData {
+      return {
+        run_id: "run_test",
+        player_id: "p1",
+        player_name: "Samu",
+        player_age: 15,
+        dominant_foot: "derecho",
+        minutes_played: 900,
+        competitive_level: "Nacional",
+        sample_tier: "bronze",
+        overall_confidence: 0.35,
+        current: { tactical: 75, technical: 80, physical: 65 },
+        projections: {
+          "0_6m": { tactical: 76, technical: 81, physical: 67 },
+          "6_18m": { tactical: 78, technical: 83, physical: 70 },
+          "18_36m": { tactical: 80, technical: 85, physical: 73 },
+        },
+        identity: {
+          dominant: "tecnico",
+          distribution: { tecnico: 0.5, ofensivo: 0.2, defensivo: 0.15, fisico: 0.15, mixto: 0 },
+          explanation: "Perfil test",
+        },
+        positions: [
+          { code: "RCM", prob: 0.5, score: 75, confidence: 0.35, reason: "Auto" },
+          { code: "DM", prob: 0.3, score: 65, confidence: 0.3, reason: "Alt" },
+        ],
+        archetypes: [],
+        strengths: [],
+        risks: [],
+        gaps: [],
+        consolidation_notes: ["Nota original"],
+        evidence: [],
+        ...overrides,
+      } as RoleProfileData;
+    }
+
+    it("moves forced position to first place", () => {
+      const base = makeBaseProfile();
+      const result = recalculateWithPosition(base, "ST");
+
+      expect(result.positions[0].code).toBe("ST");
+      expect(result.positions[0].reason).toContain("manualmente");
+    });
+
+    it("does not mutate the original profile", () => {
+      const base = makeBaseProfile();
+      const originalRunId = base.run_id;
+      const result = recalculateWithPosition(base, "GK");
+
+      expect(base.run_id).toBe(originalRunId);
+      expect(result.run_id).not.toBe(originalRunId);
+      expect(result.run_id).toContain("_pos_GK");
+    });
+
+    it("recalculates identity distribution based on position weights", () => {
+      const base = makeBaseProfile();
+      const result = recalculateWithPosition(base, "DM");
+
+      // DM has high tactical weight → defensivo should be boosted
+      const dist = result.identity.distribution;
+      const totalDist = Object.values(dist).reduce((a, b) => a + b, 0);
+      expect(totalDist).toBeCloseTo(1, 1); // sums to ~1
+    });
+
+    it("preserves existing positions (excluding forced one)", () => {
+      const base = makeBaseProfile();
+      const result = recalculateWithPosition(base, "ST");
+
+      // ST is forced first, RCM and DM should still be there
+      const codes = result.positions.map(p => p.code);
+      expect(codes).toContain("ST");
+      expect(codes).toContain("RCM");
+      expect(codes).toContain("DM");
+    });
+
+    it("removes duplicate when forcing existing position", () => {
+      const base = makeBaseProfile();
+      const result = recalculateWithPosition(base, "RCM");
+
+      // RCM should appear exactly once (forced version)
+      const rcmPositions = result.positions.filter(p => p.code === "RCM");
+      expect(rcmPositions).toHaveLength(1);
+      expect(rcmPositions[0].reason).toContain("manualmente");
+    });
+
+    it("adds consolidation note about position override", () => {
+      const base = makeBaseProfile();
+      const result = recalculateWithPosition(base, "LW");
+
+      expect(result.consolidation_notes.some(n => n.includes("LW"))).toBe(true);
+      expect(result.consolidation_notes.some(n => n.includes("Nota original"))).toBe(true);
+    });
+
+    it("boosts confidence to at least 0.5 for forced position", () => {
+      const base = makeBaseProfile({ overall_confidence: 0.3 });
+      const result = recalculateWithPosition(base, "ST");
+
+      expect(result.positions[0].confidence).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it("handles all position codes without error", () => {
+      const base = makeBaseProfile();
+      const codes = ["GK", "RB", "RCB", "LCB", "LB", "DM", "RCM", "LCM", "CAM", "RW", "LW", "ST"];
+
+      for (const code of codes) {
+        const result = recalculateWithPosition(base, code);
+        expect(result.positions[0].code).toBe(code);
+        expect(result.positions[0].score).toBeGreaterThan(0);
+        expect(result.positions[0].score).toBeLessThanOrEqual(100);
+      }
+    });
+
+    it("GK emphasizes physical, DM emphasizes tactical", () => {
+      const base = makeBaseProfile({
+        current: { tactical: 90, technical: 50, physical: 50 },
+      });
+
+      const gk = recalculateWithPosition(base, "GK");
+      const dm = recalculateWithPosition(base, "DM");
+
+      // DM with high tactical weight should score higher than GK for a tactical player
+      expect(dm.positions[0].score).toBeGreaterThan(gk.positions[0].score);
+    });
+  });
+
+  describe("metrics-only profile details", () => {
+    it("strengths come from high metrics (>= 65)", async () => {
+      setupSupabaseMock([]);
+      const result = await fetchRoleProfile("p1");
+      // mockPlayer has technique=80, vision=75, speed=70 (all >= 65)
+      expect(result!.strengths.length).toBeGreaterThan(0);
+      const labels = result!.strengths.map(s => s.label);
+      expect(labels).toContain("Técnica");
+      expect(labels).toContain("Visión de juego");
+      expect(labels).toContain("Velocidad");
+    });
+
+    it("gaps come from low metrics (< 45) — none for mockPlayer", async () => {
+      setupSupabaseMock([]);
+      const result = await fetchRoleProfile("p1");
+      // mockPlayer has no metric < 45, so gaps should be empty
+      expect(result!.gaps).toEqual([]);
+    });
+
+    it("maps Mediocentro to RCM position code", async () => {
+      setupSupabaseMock([]);
+      const result = await fetchRoleProfile("p1");
+      expect(result!.positions[0].code).toBe("RCM");
+    });
+
+    it("identity.dominant reflects highest capability area", async () => {
+      setupSupabaseMock([]);
+      const result = await fetchRoleProfile("p1");
+      // technique=80, shooting=60 → technical avg = 70
+      // speed=70, stamina=65 → physical avg = 67.5
+      // vision=75 → tactical = 75
+      // So dominant should be "defensivo" (tactical >= physical and tactical >= technical)
+      // Wait: tacticalScore=75, technicalScore=70, physicalScore=67.5→68
+      // The logic is: tech >= tac && tech >= phys ? tecnico : tac >= phys ? defensivo : fisico
+      // 70 >= 75 = false → 75 >= 68 = true → "defensivo"
+      expect(result!.identity.dominant).toBe("defensivo");
     });
   });
 });

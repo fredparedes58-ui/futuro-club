@@ -206,8 +206,11 @@ export function useTeamIntelligence() {
       const savedAt = new Date().toISOString();
       if (SUPABASE_CONFIGURED) {
         try {
+          const { OrganizationService } = await import("@/services/real/organizationService");
+          const _orgId = OrganizationService.getOrgId();
           await supabase.from("team_analyses").insert({
             video_id:   videoId,
+            ...(_orgId ? { org_id: _orgId } : {}),
             report:     analysisResult,
             created_at: savedAt,
           });

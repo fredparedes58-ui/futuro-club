@@ -103,6 +103,25 @@ vi.mock("@/components/ui/input", () => ({
   Input: (props: any) => <input {...props} />,
 }));
 
+vi.mock("@/hooks/useUserProfile", () => ({
+  useUserProfile: () => ({
+    role: "director",
+    permissions: {
+      canCreatePlayers: true, canEditPlayers: true, canDeletePlayers: true,
+      canRunAnalysis: true, canViewAllPlayers: true, canManageTeam: true,
+      canViewDirectorDashboard: true, canExportPDF: true, canViewVideoAnalysis: true,
+    },
+    isDirector: true,
+    isLoading: false,
+    profile: null,
+    isOnboardingCompleted: true,
+  }),
+}));
+
+vi.mock("@/components/FeatureHint", () => ({
+  default: () => null,
+}));
+
 import Rankings from "@/pages/Rankings";
 
 // ── Tests ────────────────────────────────────────────────────────────────────

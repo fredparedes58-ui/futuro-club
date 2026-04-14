@@ -15,17 +15,20 @@ import EmptyState from "@/components/role-profile/EmptyState";
 import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, PositionFitSkeleton } from "@/components/role-profile/Skeletons";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { Button } from "@/components/ui/button";
-import { FileText, GitCompare, Table2, Zap } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileText, GitCompare, Table2, Zap, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { POSITION_CODES, POSITION_LABELS, type PositionCode } from "@/lib/roleProfileData";
 
 export default function RoleProfile() {
   const { t } = useTranslation();
   const { id } = useParams();
   const [mode, setMode] = useState<ViewMode>("scout");
   const [filters, setFilters] = useState<RoleProfileFilters | null>(null);
+  const [positionOverride, setPositionOverride] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, refetch } = useRoleProfile(id);
+  const { data, isLoading, isError, error, refetch } = useRoleProfile(id, positionOverride);
 
   const handleFilterChange = useCallback((f: RoleProfileFilters) => {
     setFilters(f);
@@ -90,28 +93,21 @@ export default function RoleProfile() {
           <EmptyState type="no-data" onAction={() => refetch()} actionLabel={t("roleProfile.retryLoad")} />
         )}
 
-        {/* No analysis data — needs VITAS Intelligence report first */}
+        {/* No data at all (shouldn't happen with metrics-only fallback, but safety net) */}
         {!isLoading && !isError && data === null && (
           <div className="flex flex-col items-center justify-center py-16 px-8 text-center">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               <Zap className="w-7 h-7 text-primary" />
             </div>
             <h3 className="font-display text-lg font-bold mb-2">
-              Genera un informe VITAS Intelligence primero
+              No se pudo generar el perfil de rol
             </h3>
             <p className="text-sm text-muted-foreground max-w-md mb-4 leading-relaxed">
-              El perfil de rol se construye a partir del analisis de video con IA.
-              Sube un video y genera un informe en VITAS Intelligence para activar esta seccion.
+              Verifica que el jugador tiene métricas registradas.
             </p>
             <div className="flex gap-3">
-              <Button
-                variant="default"
-                size="sm"
-                className="gap-1.5"
-                onClick={() => navigate(`/players/${id}/intelligence`)}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                Generar Informe
+              <Button variant="default" size="sm" className="gap-1.5" onClick={() => refetch()}>
+                Reintentar
               </Button>
               <Button variant="outline" size="sm" onClick={() => window.history.back()}>
                 Volver
@@ -125,12 +121,78 @@ export default function RoleProfile() {
           <>
             <PlayerHeader data={data} />
 
+            {/* Confidence tier badge + Position override */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                  data.sample_tier === "platinum" ? "bg-purple-100 text-purple-700" :
+                  data.sample_tier === "gold" ? "bg-yellow-100 text-yellow-700" :
+                  data.sample_tier === "silver" ? "bg-gray-100 text-gray-700" :
+                  "bg-orange-100 text-orange-700"
+                }`}>
+                  {data.sample_tier === "platinum" ? "💎" : data.sample_tier === "gold" ? "🥇" : data.sample_tier === "silver" ? "🥈" : "🥉"}
+                  {data.sample_tier === "platinum" ? "Platino" : data.sample_tier === "gold" ? "Oro" : data.sample_tier === "silver" ? "Plata" : "Bronce"}
+                  {" · "}{Math.round(data.overall_confidence * 100)}%
+                </span>
+                {data.sample_tier === "bronze" && (
+                  <span className="text-xs text-muted-foreground">
+                    Sube un video y genera un informe IA para subir la precisión
+                  </span>
+                )}
+              </div>
+
+              {/* Position override selector */}
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{t("roleProfile.positionOverride", "Forzar posición")}:</span>
+                <Select
+                  value={positionOverride ?? "auto"}
+                  onValueChange={(val) => setPositionOverride(val === "auto" ? null : val)}
+                >
+                  <SelectTrigger className="h-7 w-[180px] text-xs">
+                    <SelectValue placeholder={t("roleProfile.autoPosition", "Automático")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">{t("roleProfile.autoPosition", "Automático")}</SelectItem>
+                    {POSITION_CODES.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {POSITION_LABELS[code]} ({code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {positionOverride && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-muted-foreground"
+                    onClick={() => setPositionOverride(null)}
+                  >
+                    ✕
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {/* Low confidence warning */}
             {data.overall_confidence < 0.5 && (
-              <div className="p-3 bg-gold/10 border border-gold/20 rounded-md">
-                <p className="text-sm text-gold">
-                  {t("roleProfile.lowConfidenceWarning")}
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-sm text-amber-700">
+                  {data.risks.some(r => r.code === "NO_VIDEO_ANALYSIS")
+                    ? "⚠ Perfil basado solo en métricas manuales. Genera un informe VITAS Intelligence para un análisis más preciso."
+                    : t("roleProfile.lowConfidenceWarning")}
                 </p>
+                {data.risks.some(r => r.code === "NO_VIDEO_ANALYSIS") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 gap-1.5 text-xs"
+                    onClick={() => navigate(`/players/${id}/intelligence`)}
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Generar Informe IA
+                  </Button>
+                )}
               </div>
             )}
 

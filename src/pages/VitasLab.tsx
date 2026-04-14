@@ -725,8 +725,11 @@ const VitasLab = () => {
       // 5. Persistir en Supabase (si configurado)
       if (SUPABASE_CONFIGURED && user) {
         try {
+          const { OrganizationService } = await import("@/services/real/organizationService");
+          const _orgId = OrganizationService.getOrgId();
           await supabase.from("player_analyses").insert({
             user_id:        user.id,
+            ...(_orgId ? { org_id: _orgId } : {}),
             player_id:      selectedPlayerId,
             video_id:       selectedVideoId,
             report:         report,

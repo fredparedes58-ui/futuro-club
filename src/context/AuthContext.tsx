@@ -16,6 +16,7 @@ import {
 } from "react";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { OrganizationService } from "@/services/real/organizationService";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 interface AuthState {
@@ -23,6 +24,7 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   configured: boolean;
+  orgId: string | null;
 }
 
 interface AuthActions {
@@ -42,6 +44,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [orgId, setOrgId] = useState<string | null>(OrganizationService.getOrgId());
+
+  // Cargar org del usuario cuando cambia la sesión
+  useEffect(() => {
+    if (!user?.id) {
+      setOrgId(null);
+      return;
+    }
+    // Intentar org cacheada primero (instantáneo)
+    const cached = OrganizationService.getOrgId();
+    if (cached) setOrgId(cached);
+    // Luego fetch async desde Supabase (autoritativo)
+    OrganizationService.fetchForUser(user.id).then((org) => {
+      setOrgId(org?.id ?? null);
+    }).catch(() => {
+      // Mantener cache si falla
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) {
@@ -97,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!SUPABASE_CONFIGURED) return;
+    OrganizationService.clearCurrent();
+    setOrgId(null);
     await supabase.auth.signOut();
   }, []);
 
@@ -117,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         loading,
         configured: SUPABASE_CONFIGURED,
+        orgId,
         signIn,
         signUp,
         signOut,

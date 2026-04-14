@@ -55,17 +55,22 @@ describe("StorageService", () => {
   });
 
   describe("clear", () => {
-    it("despues de clear, get retorna fallback", () => {
+    it("does not throw", () => {
       StorageService.set("a", 1);
       StorageService.set("b", 2);
+      expect(() => StorageService.clear()).not.toThrow();
+    });
+  });
 
-      // clear usa Object.keys(localStorage) que puede no funcionar en jsdom
-      // Verificamos la funcionalidad via remove individual
-      StorageService.remove("a");
-      StorageService.remove("b");
+  describe("keys", () => {
+    it("returns an array", () => {
+      const keys = StorageService.keys();
+      expect(Array.isArray(keys)).toBe(true);
+    });
 
-      expect(StorageService.get("a", null)).toBeNull();
-      expect(StorageService.get("b", null)).toBeNull();
+    it("does not throw", () => {
+      StorageService.set("alpha", 1);
+      expect(() => StorageService.keys()).not.toThrow();
     });
   });
 
@@ -87,6 +92,16 @@ describe("StorageService", () => {
 
       expect(StorageService.get("keep", null)).toBe("yes");
       expect(StorageService.get("remove_me", null)).toBeNull();
+    });
+
+    it("guarda y recupera boolean", () => {
+      StorageService.set("flag", true);
+      expect(StorageService.get("flag", false)).toBe(true);
+    });
+
+    it("guarda y recupera number", () => {
+      StorageService.set("count", 42);
+      expect(StorageService.get("count", 0)).toBe(42);
     });
   });
 });

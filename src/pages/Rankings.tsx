@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsService";
+import FeatureHint from "@/components/FeatureHint";
+import { RequirePermission } from "@/components/RequirePermission";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const rankIcons = [
@@ -100,16 +102,25 @@ const Rankings = () => {
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-4 max-w-lg mx-auto">
 
       {/* Header + Nuevo jugador */}
-      <motion.div variants={item} className="flex items-start justify-between">
-        <PageHeader title={t("players.rankings.title")} subtitle={t("players.rankings.subtitle")} />
-        <Button
-          size="sm"
-          className="gap-1.5 shrink-0 mt-1"
-          onClick={() => navigate("/players/new")}
-        >
-          <Plus size={14} />
-          {t("common.new")}
-        </Button>
+      <motion.div variants={item} className="flex items-start justify-between relative">
+        <div className="relative">
+          <PageHeader title={t("players.rankings.title")} subtitle={t("players.rankings.subtitle")} />
+          <FeatureHint
+            id="rankings-vsi"
+            message="El VSI (VITAS Scouting Index) resume el potencial del jugador en un solo número de 0 a 100."
+            delay={1500}
+          />
+        </div>
+        <RequirePermission permission="canCreatePlayers" fallback={null}>
+          <Button
+            size="sm"
+            className="gap-1.5 shrink-0 mt-1"
+            onClick={() => navigate("/players/new")}
+          >
+            <Plus size={14} />
+            {t("common.new")}
+          </Button>
+        </RequirePermission>
       </motion.div>
 
       {/* Búsqueda */}

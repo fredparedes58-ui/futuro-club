@@ -49,6 +49,7 @@ import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import AcceptTermsGate from "./components/AcceptTermsGate";
 
 // Health check + purge — diagnóstico automático al iniciar
 // (Sync is now handled by SyncProvider)
@@ -109,6 +110,7 @@ const App = () => (
             <SyncManager />
             <OfflineBanner />
             <CookieConsent />
+            <AcceptTermsGate>
             <ErrorBoundary>
               <Routes>
                 {/* ── Rutas públicas (auth) ─────────────────────────── */}
@@ -161,6 +163,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
               </Routes>
             </ErrorBoundary>
+            </AcceptTermsGate>
             <BottomNav />
             </SyncProvider>
           </AuthProvider>

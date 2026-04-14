@@ -42,6 +42,8 @@ import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
+import BenchmarkBadge from "@/components/intelligence/BenchmarkBadge";
+import { calculateReportBenchmark, type ReportBenchmark, DIMENSION_TO_METRIC } from "@/services/real/benchmarkService";
 import { PDFService } from "@/services/real/pdfService";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
@@ -105,7 +107,10 @@ function SectionHeader({ icon: Icon, title, subtitle }: {
 
 // ─── Secciones del informe ────────────────────────────────────────────────────
 
-function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] }) {
+function EstadoActual({ data, benchmark }: {
+  data: VideoIntelligenceOutput["estadoActual"];
+  benchmark?: ReportBenchmark | null;
+}) {
   const { t } = useTranslation();
   if (!data) return null;
   const levelColor = LEVEL_COLORS[data.nivelActual] ?? "#3B82F6";
@@ -141,16 +146,29 @@ function EstadoActual({ data }: { data: VideoIntelligenceOutput["estadoActual"] 
         </p>
         <div className="grid grid-cols-3 gap-3 justify-items-center">
           {Object.entries({
-            [t("intelligence.dimensions.decision")]:    data.dimensiones?.velocidadDecision,
-            [t("intelligence.dimensions.technique")]:   data.dimensiones?.tecnicaConBalon,
-            [t("intelligence.dimensions.tactics")]:     data.dimensiones?.inteligenciaTactica,
-            [t("intelligence.dimensions.physical")]:    data.dimensiones?.capacidadFisica,
-            [t("intelligence.dimensions.leadership")]:  data.dimensiones?.liderazgoPresencia,
-            [t("intelligence.dimensions.efficiency")]:  data.dimensiones?.eficaciaCompetitiva,
-          }).filter(([, dim]) => dim).map(([label, dim]) => (
-            <ScoreRing key={label} score={dim!.score ?? 0} label={label} />
-          ))}
+            [t("intelligence.dimensions.decision")]:    { dim: data.dimensiones?.velocidadDecision, key: "velocidadDecision" },
+            [t("intelligence.dimensions.technique")]:   { dim: data.dimensiones?.tecnicaConBalon, key: "tecnicaConBalon" },
+            [t("intelligence.dimensions.tactics")]:     { dim: data.dimensiones?.inteligenciaTactica, key: "inteligenciaTactica" },
+            [t("intelligence.dimensions.physical")]:    { dim: data.dimensiones?.capacidadFisica, key: "capacidadFisica" },
+            [t("intelligence.dimensions.leadership")]:  { dim: data.dimensiones?.liderazgoPresencia, key: "liderazgoPresencia" },
+            [t("intelligence.dimensions.efficiency")]:  { dim: data.dimensiones?.eficaciaCompetitiva, key: "eficaciaCompetitiva" },
+          }).filter(([, v]) => v.dim).map(([label, { dim, key }]) => {
+            const bench = benchmark?.dimensions.find(d => d.dimensionKey === key);
+            return (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <ScoreRing score={dim!.score ?? 0} label={label} />
+                {bench && bench.sampleSize > 0 && (
+                  <BenchmarkBadge percentile={bench.percentile} isSmallSample={bench.isSmallSample} />
+                )}
+              </div>
+            );
+          })}
         </div>
+        {benchmark && benchmark.sampleSize > 0 && (
+          <p className="text-[9px] text-muted-foreground text-center mt-2">
+            Benchmark: {benchmark.groupDescription}
+          </p>
+        )}
         {/* Observaciones expandibles */}
         <div className="mt-4 space-y-2">
           {Object.entries({
@@ -1101,7 +1119,14 @@ export default function PlayerIntelligencePage() {
                 )}
 
                 {/* Estado Actual */}
-                <EstadoActual data={latestReport.estadoActual} />
+                <EstadoActual
+                  data={latestReport.estadoActual}
+                  benchmark={
+                    player && latestReport.estadoActual?.dimensiones
+                      ? calculateReportBenchmark(player.age, player.position, latestReport.estadoActual.dimensiones)
+                      : null
+                  }
+                />
 
                 {/* Métricas Cuantitativas */}
                 {latestReport.metricasCuantitativas && (

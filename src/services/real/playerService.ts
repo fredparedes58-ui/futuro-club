@@ -8,6 +8,12 @@ import { z } from "zod";
 import { StorageService } from "./storageService";
 import { MetricsService } from "./metricsService";
 
+// ── Generador de IDs únicos (evita colisiones en llamadas rápidas) ──────────
+let _idCounter = 0;
+function uniquePlayerId(): string {
+  return `p${Date.now()}_${++_idCounter}`;
+}
+
 
 // ─── Schema del jugador ───────────────────
 export const PlayerSchema = z.object({
@@ -91,7 +97,7 @@ export const PlayerService = {
 
     const newPlayer: Player = {
       ...input,
-      id: `p${Date.now()}`,
+      id: uniquePlayerId(),
       vsi,
       vsiHistory: [vsi],
       createdAt: now,

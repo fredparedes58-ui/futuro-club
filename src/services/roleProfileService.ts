@@ -111,10 +111,10 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
     }
   }
 
-  // Sin análisis de video → no hay datos reales para generar el perfil
+  // Sin análisis de video → generar perfil básico desde métricas del jugador
   if (videoAnalyses.length === 0) {
-    console.warn("[roleProfileService] No video analyses found for player", playerId);
-    return null;
+    console.warn("[roleProfileService] No video analyses — generating metrics-based profile for", playerId);
+    return buildMetricsOnlyProfile(player);
   }
 
   // 2. Extraer datos consolidados de los análisis de video
@@ -327,6 +327,224 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
 
   console.warn("[roleProfileService] Could not build profile from video data");
   return null;
+}
+
+// ─── Metrics-only profile (no video analyses) ─────────────────────────────
+
+/**
+ * Generates a basic role profile from player metrics alone (no video analysis).
+ * Returns a valid RoleProfileData with sample_tier "bronze" and a disclaimer.
+ * This ensures the UI always shows something useful, even for new players.
+ */
+function buildMetricsOnlyProfile(player: Player): RoleProfileData | null {
+  const m = player.metrics;
+  const tacticalScore = m.vision;
+  const technicalScore = Math.round((m.technique + m.shooting) / 2);
+  const physicalScore = Math.round((m.speed + m.stamina) / 2);
+
+  const posCode = mapPositionToCode(player.position);
+  const dominantType: RoleProfileData["identity"]["dominant"] =
+    technicalScore >= tacticalScore && technicalScore >= physicalScore ? "tecnico"
+    : tacticalScore >= physicalScore ? "defensivo" : "fisico";
+
+  const profile: RoleProfileData = {
+    run_id: `run_metrics_${Date.now()}`,
+    player_id: player.id,
+    player_name: player.name,
+    player_age: player.age,
+    dominant_foot: player.foot === "right" ? "derecho" : player.foot === "left" ? "izquierdo" : "ambidiestro",
+    minutes_played: player.minutesPlayed,
+    competitive_level: player.competitiveLevel,
+    sample_tier: "bronze",
+    overall_confidence: 0.35,
+    current: { tactical: tacticalScore, technical: technicalScore, physical: physicalScore },
+    projections: {
+      "0_6m":   { tactical: Math.min(100, tacticalScore + 1), technical: Math.min(100, technicalScore + 1), physical: Math.min(100, physicalScore + 2) },
+      "6_18m":  { tactical: Math.min(100, tacticalScore + 3), technical: Math.min(100, technicalScore + 3), physical: Math.min(100, physicalScore + 5) },
+      "18_36m": { tactical: Math.min(100, tacticalScore + 5), technical: Math.min(100, technicalScore + 5), physical: Math.min(100, physicalScore + 8) },
+    },
+    identity: {
+      dominant: dominantType,
+      distribution: {
+        tecnico: technicalScore / 100,
+        ofensivo: m.shooting / 100,
+        defensivo: m.defending / 100,
+        fisico: physicalScore / 100,
+        mixto: 0,
+      },
+      explanation: "Perfil estimado a partir de métricas manuales. Sube un video para un análisis más preciso.",
+    },
+    positions: [
+      {
+        code: posCode,
+        prob: 0.4,
+        score: Math.max(tacticalScore, technicalScore, physicalScore),
+        confidence: 0.35,
+        reason: "Posición registrada — sin análisis de video disponible",
+      },
+    ],
+    archetypes: [],
+    strengths: buildStrengthsFromMetrics(m),
+    risks: [
+      {
+        code: "NO_VIDEO_ANALYSIS",
+        label: "Sin análisis de video",
+        description: "Este perfil se basa solo en métricas manuales. Genera un informe VITAS Intelligence para mayor precisión.",
+      },
+    ],
+    gaps: buildGapsFromMetrics(m),
+    consolidation_notes: [
+      "Perfil basado en métricas manuales, sin análisis de video.",
+      "Confianza: Bronce (35%). Sube un video para subir a Plata o superior.",
+    ],
+    evidence: [],
+  };
+
+  const parsed = RoleProfileSchema.safeParse(profile);
+  if (parsed.success) return parsed.data as RoleProfileData;
+
+  console.warn("[roleProfileService] Metrics-only profile validation failed");
+  return null;
+}
+
+/** Map Spanish position to position code */
+function mapPositionToCode(position: string): string {
+  const lower = position.toLowerCase();
+  if (lower.includes("portero")) return "GK";
+  if (lower.includes("central")) return "RCB";
+  if (lower.includes("lateral")) return "RB";
+  if (lower.includes("pivote")) return "DM";
+  if (lower.includes("mediocent") || lower.includes("mc")) return "RCM";
+  if (lower.includes("mediopunta") || lower.includes("cam")) return "CAM";
+  if (lower.includes("extremo")) return "RW";
+  if (lower.includes("delantero") || lower.includes("punta")) return "ST";
+  return "RCM";
+}
+
+/** Extract strengths from player metrics (top 2 metrics > 65) */
+function buildStrengthsFromMetrics(m: Player["metrics"]) {
+  const entries = [
+    { key: "speed", label: "Velocidad", value: m.speed },
+    { key: "technique", label: "Técnica", value: m.technique },
+    { key: "vision", label: "Visión de juego", value: m.vision },
+    { key: "stamina", label: "Resistencia", value: m.stamina },
+    { key: "shooting", label: "Disparo", value: m.shooting },
+    { key: "defending", label: "Defensa", value: m.defending },
+  ];
+  return entries
+    .filter(e => e.value >= 65)
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3)
+    .map(e => ({
+      label: e.label,
+      evidence: `Métrica manual: ${e.value}/100`,
+      confidence: 0.4,
+    }));
+}
+
+/** Extract gaps from player metrics (bottom 2 metrics < 45) */
+function buildGapsFromMetrics(m: Player["metrics"]): GapItem[] {
+  const entries = [
+    { key: "speed", label: "Velocidad", value: m.speed },
+    { key: "technique", label: "Técnica", value: m.technique },
+    { key: "vision", label: "Visión de juego", value: m.vision },
+    { key: "stamina", label: "Resistencia", value: m.stamina },
+    { key: "shooting", label: "Disparo", value: m.shooting },
+    { key: "defending", label: "Defensa", value: m.defending },
+  ];
+  return entries
+    .filter(e => e.value < 45)
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 2)
+    .map((e, i) => ({
+      label: e.label,
+      priority: (i === 0 ? "alta" : "media") as GapItem["priority"],
+      relatedPositions: [],
+    }));
+}
+
+// ─── Position Override ──────────────────────────────────────────────────
+
+/**
+ * Position-to-capability weight map.
+ * Each position emphasizes different capability dimensions.
+ * Weights sum to ~1.0 and modulate the profile when a user overrides the position.
+ */
+const POSITION_CAPABILITY_WEIGHTS: Record<string, { tactical: number; technical: number; physical: number }> = {
+  GK:  { tactical: 0.30, technical: 0.30, physical: 0.40 },
+  RB:  { tactical: 0.25, technical: 0.25, physical: 0.50 },
+  RCB: { tactical: 0.35, technical: 0.20, physical: 0.45 },
+  LCB: { tactical: 0.35, technical: 0.20, physical: 0.45 },
+  LB:  { tactical: 0.25, technical: 0.25, physical: 0.50 },
+  DM:  { tactical: 0.45, technical: 0.25, physical: 0.30 },
+  RCM: { tactical: 0.35, technical: 0.35, physical: 0.30 },
+  LCM: { tactical: 0.35, technical: 0.35, physical: 0.30 },
+  CAM: { tactical: 0.30, technical: 0.45, physical: 0.25 },
+  RW:  { tactical: 0.20, technical: 0.40, physical: 0.40 },
+  LW:  { tactical: 0.20, technical: 0.40, physical: 0.40 },
+  ST:  { tactical: 0.25, technical: 0.35, physical: 0.40 },
+};
+
+/**
+ * Recalculates a role profile with a user-selected position override.
+ * - Moves the chosen position to #1 with boosted score
+ * - Adjusts position fit scores relative to capability alignment
+ * - Recalculates identity distribution based on position weights
+ * - Returns a new profile object (does NOT mutate the original)
+ */
+export function recalculateWithPosition(
+  profile: RoleProfileData,
+  positionCode: string,
+): RoleProfileData {
+  const weights = POSITION_CAPABILITY_WEIGHTS[positionCode] ?? POSITION_CAPABILITY_WEIGHTS.RCM;
+  const { tactical, technical, physical } = profile.current;
+
+  // Weighted fit score for the overridden position
+  const fitScore = Math.round(
+    tactical * weights.tactical +
+    technical * weights.technical +
+    physical * weights.physical
+  );
+
+  // Build new positions array: forced position first, then existing (excluding the forced one)
+  const existingOther = profile.positions.filter(p => p.code !== positionCode);
+  const forcedPosition: PositionFit = {
+    code: positionCode as PositionFit["code"],
+    prob: Math.min(1, fitScore / 100 + 0.1),
+    score: Math.min(100, fitScore + 5),
+    confidence: Math.max(profile.overall_confidence, 0.5),
+    reason: `Posición seleccionada manualmente por el usuario`,
+  };
+
+  // Recalculate identity distribution emphasizing chosen position's weights
+  const newDistribution: Record<string, number> = {
+    tecnico: technical / 100 * (1 + weights.technical),
+    ofensivo: (technical * 0.5 + physical * 0.5) / 100 * (1 + weights.physical * 0.5),
+    defensivo: tactical / 100 * (1 + weights.tactical),
+    fisico: physical / 100 * (1 + weights.physical),
+    mixto: 0,
+  };
+  // Normalize to sum=1
+  const distSum = Object.values(newDistribution).reduce((a, b) => a + b, 0);
+  for (const k of Object.keys(newDistribution)) {
+    newDistribution[k] = Math.round((newDistribution[k] / distSum) * 100) / 100;
+  }
+  const dominant = Object.entries(newDistribution).sort((a, b) => b[1] - a[1])[0][0] as RoleProfileData["identity"]["dominant"];
+
+  return {
+    ...profile,
+    run_id: `${profile.run_id}_pos_${positionCode}`,
+    positions: [forcedPosition, ...existingOther.slice(0, 4)],
+    identity: {
+      dominant,
+      distribution: newDistribution as RoleProfileData["identity"]["distribution"],
+      explanation: `${profile.identity.explanation} (posición manual: ${positionCode})`,
+    },
+    consolidation_notes: [
+      ...profile.consolidation_notes,
+      `Perfil recalculado con posición forzada: ${positionCode}`,
+    ],
+  };
 }
 
 /**

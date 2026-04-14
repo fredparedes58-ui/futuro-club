@@ -28,6 +28,8 @@ import {
   type UserRole,
 } from "@/services/real/userProfileService";
 import { PlayerService } from "@/services/real/playerService";
+import { OrganizationService } from "@/services/real/organizationService";
+import { DemoDataService } from "@/services/real/demoDataService";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -70,6 +72,11 @@ const OnboardingPage = () => {
     if (!user || !profileType) return;
     setSaving(true);
     try {
+      // Crear organización si aplica (academy / club)
+      if (showOrgStep && orgName.trim()) {
+        await OrganizationService.create(user.id, orgName.trim());
+      }
+
       // Crear perfil de usuario
       UserProfileService.create({
         userId: user.id,
@@ -321,6 +328,41 @@ const OnboardingPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Separador con opción demo */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-background px-3 text-[10px] text-muted-foreground font-display uppercase tracking-widest">
+                    {t("common.or", "o")}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  DemoDataService.seed();
+                  setPlayerName(""); // No crear jugador manual si elige demo
+                  handleFinish();
+                }}
+                disabled={saving}
+                className="w-full glass rounded-xl p-3 flex items-center gap-3 border border-transparent hover:border-primary/30 transition-all text-left"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users size={18} className="text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-display font-semibold text-foreground">
+                    {t("onboarding.loadDemo", "Cargar datos de ejemplo")}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                    {t("onboarding.loadDemoDesc", "3 jugadores con diferentes perfiles para explorar VITAS")}
+                  </p>
+                </div>
+                <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+              </button>
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={prev} className="gap-1">

@@ -124,11 +124,12 @@ export default withHandler(
       let queryUrl = `${supabaseUrl}/rest/v1/players?user_id=eq.${userId}`;
       if (id) queryUrl += `&id=eq.${id}`;
 
-      // Sort: data->>'name' for name, data->'vsi' for vsi, updated_at for default
+      // Sort: usar columnas relacionales (024_normalize_players) — más rápido que jsonb paths
       const sortMap: Record<string, string> = {
-        name: "data->>name",
-        vsi: "data->>vsi",
-        age: "data->>age",
+        name: "name",
+        vsi: "vsi",
+        age: "age",
+        position: "position",
         updated_at: "updated_at",
       };
       const sortCol = sortMap[sortBy] ?? "updated_at";
@@ -190,6 +191,28 @@ export default withHandler(
         user_id: userId,
         data: playerData,
         updated_at: now,
+        // ── Dual-write: columnas relacionales (024_normalize_players) ──
+        name: input.name,
+        age: input.age,
+        position: input.position,
+        foot: input.foot,
+        height_cm: input.height,
+        weight_kg: input.weight,
+        sitting_height: input.sittingHeight ?? null,
+        leg_length: input.legLength ?? null,
+        competitive_level: input.competitiveLevel,
+        minutes_played: input.minutesPlayed,
+        gender: input.gender,
+        metric_speed: input.metrics.speed,
+        metric_technique: input.metrics.technique,
+        metric_vision: input.metrics.vision,
+        metric_stamina: input.metrics.stamina,
+        metric_shooting: input.metrics.shooting,
+        metric_defending: input.metrics.defending,
+        vsi,
+        vsi_history: [vsi],
+        phv_category: input.phvCategory ?? null,
+        phv_offset: input.phvOffset ?? null,
       };
 
       const res = await fetch(`${supabaseUrl}/rest/v1/players`, {
@@ -272,12 +295,41 @@ export default withHandler(
 
       updatedData.updatedAt = now;
 
+      // ── Dual-write: columnas relacionales (024_normalize_players) ──
+      const ud = updatedData as Record<string, unknown>;
+      const m = ud.metrics as Record<string, number> | undefined;
+      const patchPayload: Record<string, unknown> = {
+        data: updatedData,
+        updated_at: now,
+        name: ud.name,
+        age: ud.age,
+        position: ud.position,
+        foot: ud.foot,
+        height_cm: ud.height,
+        weight_kg: ud.weight,
+        sitting_height: ud.sittingHeight ?? null,
+        leg_length: ud.legLength ?? null,
+        competitive_level: ud.competitiveLevel,
+        minutes_played: ud.minutesPlayed,
+        gender: ud.gender ?? "M",
+        metric_speed: m?.speed ?? 0,
+        metric_technique: m?.technique ?? 0,
+        metric_vision: m?.vision ?? 0,
+        metric_stamina: m?.stamina ?? 0,
+        metric_shooting: m?.shooting ?? 0,
+        metric_defending: m?.defending ?? 0,
+        vsi: ud.vsi,
+        vsi_history: ud.vsiHistory ?? [],
+        phv_category: ud.phvCategory ?? null,
+        phv_offset: ud.phvOffset ?? null,
+      };
+
       const patchRes = await fetch(
         `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&updated_at=eq.${originalUpdatedAt}`,
         {
           method: "PATCH",
           headers: { ...headers, Prefer: "return=representation" },
-          body: JSON.stringify({ data: updatedData, updated_at: now }),
+          body: JSON.stringify(patchPayload),
         },
       );
 

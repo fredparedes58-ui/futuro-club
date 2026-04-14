@@ -18,6 +18,9 @@ const USER_TABLES = [
   "notification_log",
   "tracking_sessions",
   "team_members",
+  "legal_acceptances",
+  "usage_log",
+  "analyses_used",
   "subscriptions",
   "user_profiles",
 ] as const;

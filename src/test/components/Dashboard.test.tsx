@@ -98,6 +98,14 @@ vi.mock("@/components/ui/button", () => ({
   ),
 }));
 
+vi.mock("@/components/UsageMeter", () => ({
+  default: () => <div data-testid="usage-meter">UsageMeter</div>,
+}));
+
+vi.mock("@/components/WelcomeGuide", () => ({
+  default: () => <div data-testid="welcome-guide">WelcomeGuide</div>,
+}));
+
 import Dashboard from "@/pages/Dashboard";
 
 // ── Tests ────────────────────────────────────────────────────────────────────

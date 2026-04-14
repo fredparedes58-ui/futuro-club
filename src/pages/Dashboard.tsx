@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useTranslation } from "react-i18next";
+import WelcomeGuide from "@/components/WelcomeGuide";
+import UsageMeter from "@/components/UsageMeter";
 
 const statIcons = [Users, Zap, Activity, TrendingUp];
 const statLabelKeys = ["dashboard.stats.activePlayers", "dashboard.stats.drillsCompleted", "dashboard.stats.avgVsi", "dashboard.stats.hiddenTalents"];
@@ -87,6 +89,18 @@ const Dashboard = () => {
             })}
           </div>
         )}
+      </motion.div>
+
+      {/* Welcome Guide — visible solo para usuarios nuevos */}
+      {stats && stats.activePlayers <= 1 && (
+        <motion.div variants={item}>
+          <WelcomeGuide playerCount={stats.activePlayers} />
+        </motion.div>
+      )}
+
+      {/* AI Usage */}
+      <motion.div variants={item}>
+        <UsageMeter compact />
       </motion.div>
 
       {/* Quick Access */}

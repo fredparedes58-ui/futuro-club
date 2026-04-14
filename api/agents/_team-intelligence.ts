@@ -8,13 +8,20 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 
 export const config = { runtime: "edge" };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ req }) => {
+  async ({ req, userId }) => {
+    // ── Usage quota check (before stream) ──────────────────────
+    if (userId) {
+      const usage = await checkUsageQuota(userId);
+      if (!usage.allowed) return usageExceededResponse(usage);
+    }
+
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
@@ -391,6 +398,9 @@ RECOMENDACIONES PARA EL ENTRENADOR:
 
           send("progress", { step: "Finalizando informe táctico...", percent: 95 });
           send("complete", { report, videoId, timestamp: new Date().toISOString() });
+
+          // ── Usage log (non-blocking) ─────────────────────────
+          if (userId) incrementUsage(userId, "team-intelligence").catch(() => {});
         } catch (error: unknown) {
           send("error", { message: error instanceof Error ? error.message : "Error interno" });
         } finally {

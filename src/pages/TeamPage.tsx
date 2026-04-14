@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { RoleGuard } from "@/components/RoleGuard";
 import { useAuth } from "@/context/AuthContext";
 import { useTeamMembers, useTeamInvitations, useInviteMember, useRemoveMember, useCancelInvitation } from "@/hooks/useTeam";
 import { ROLE_LABELS, type UserRole } from "@/services/real/userProfileService";
@@ -79,6 +80,18 @@ export default function TeamPage() {
   const pendingInvitations = invitations.filter((i) => i.status === "pending");
 
   return (
+    <RoleGuard
+      roles={["director", "scout"]}
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+          <div className="text-center space-y-3">
+            <Users size={32} className="text-muted-foreground mx-auto" />
+            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="text-sm text-muted-foreground">Solo directores y scouts pueden gestionar el equipo.</p>
+          </div>
+        </div>
+      }
+    >
     <PlanGuard feature="roles">
       <motion.div
         variants={container}
@@ -248,5 +261,6 @@ export default function TeamPage() {
         </motion.div>
       </motion.div>
     </PlanGuard>
+    </RoleGuard>
   );
 }

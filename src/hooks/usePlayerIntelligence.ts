@@ -270,10 +270,13 @@ export function usePlayerIntelligence(player: Player) {
 
               // Solo llamar si tenemos video (URL o base64)
               if (geminiPayload.videoUrl || geminiPayload.videoBase64) {
+                // Timeout: 90s for Gemini video analysis
+                const geminiAbort = AbortSignal.timeout(90_000);
                 const geminiRes = await fetch("/api/agents/video-observation", {
                   method: "POST",
                   headers: await getAuthHeaders(),
                   body: JSON.stringify(geminiPayload),
+                  signal: geminiAbort,
                 });
 
                 if (geminiRes.ok) {
@@ -330,9 +333,12 @@ export function usePlayerIntelligence(player: Player) {
           // 3a. RAG enrichment: fetch relevant drills and methodology
           let ragContext = "";
           try {
+            // Timeout: 15s for RAG query (non-critical, should be fast)
+            const ragAbort = AbortSignal.timeout(15_000);
             const ragRes = await fetch("/api/rag/query", {
               method: "POST",
               headers: await getAuthHeaders(),
+              signal: ragAbort,
               body: JSON.stringify({
                 query: `${player.position} ${player.age} años mejora ${
                   Object.entries(player.metrics || {})
@@ -475,8 +481,11 @@ export function usePlayerIntelligence(player: Player) {
               if (!user) {
                 console.warn("[Intelligence] No hay usuario autenticado — no se puede guardar análisis");
               } else {
+                const { OrganizationService } = await import("@/services/real/organizationService");
+                const _orgId = OrganizationService.getOrgId();
                 const { error: insertErr } = await supabase.from("player_analyses").insert({
                   user_id:         user.id,
+                  ...(_orgId ? { org_id: _orgId } : {}),
                   player_id:       player.id,
                   video_id:        videoId,
                   report:          analysisResult,

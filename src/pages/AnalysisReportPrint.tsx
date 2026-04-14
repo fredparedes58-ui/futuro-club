@@ -7,6 +7,12 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
+} from "recharts";
+import { validatePlayerReport, type ValidationResult } from "@/services/real/reportValidator";
+import { calculateReportBenchmark, type ReportBenchmark } from "@/services/real/benchmarkService";
+import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -211,6 +217,32 @@ export default function AnalysisReportPrint() {
   const fisicas = r.metricasCuantitativas?.fisicas;
   const eventos = r.metricasCuantitativas?.eventos;
 
+  // RadarChart data from dimensions
+  const radarData = (Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => ({
+    subject: (dimensionLabels[key] ?? key).split(" ").slice(0, 2).join(" "),
+    value: dim.score,
+    fullMark: 10,
+  }));
+
+  // Quality validation (safe — read-only, no side effects)
+  let validation: ValidationResult | null = null;
+  try {
+    validation = validatePlayerReport(
+      r as unknown as VideoIntelligenceOutput,
+      { age: 14, position: playerPosition || "MC" },
+    );
+  } catch {
+    // validator may fail if report structure is partial
+  }
+
+  // Benchmark (safe — read-only)
+  let benchmark: ReportBenchmark | null = null;
+  try {
+    benchmark = calculateReportBenchmark(14, playerPosition || "MC", dims);
+  } catch {
+    // may fail if no players in storage
+  }
+
   return (
     <>
       <style>{printStyles}</style>
@@ -264,33 +296,108 @@ export default function AnalysisReportPrint() {
           </div>
         </section>
 
-        {/* ── 3. Dimensiones ─────────────────────────────────────────── */}
+        {/* ── 3. Dimensiones + RadarChart ─────────────────────────── */}
         <section className="mb-6 no-break">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Dimensiones de Rendimiento</h2>
-          <div className="space-y-2">
-            {(Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => (
-              <div key={key} className="flex items-start gap-2">
-                <span className="text-[10px] text-gray-500 w-32 shrink-0 pt-0.5">
-                  {dimensionLabels[key] ?? key}
-                </span>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${dim.score}%`, backgroundColor: scoreColor(dim.score) }}
-                      />
+          <div className="grid grid-cols-2 gap-4">
+            {/* RadarChart */}
+            <div style={{ width: "100%", height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="#e5e7eb" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 8, fill: "#6b7280" }} />
+                  <Radar
+                    name="Dimensiones"
+                    dataKey="value"
+                    stroke="#7c3aed"
+                    fill="#7c3aed"
+                    fillOpacity={0.25}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Bars + observations */}
+            <div className="space-y-2">
+              {(Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => (
+                <div key={key} className="flex items-start gap-2">
+                  <span className="text-[10px] text-gray-500 w-28 shrink-0 pt-0.5">
+                    {dimensionLabels[key] ?? key}
+                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${dim.score * 10}%`, backgroundColor: scoreColor(dim.score * 10) }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold w-6 text-right" style={{ color: scoreColor(dim.score * 10) }}>
+                        {dim.score}
+                      </span>
                     </div>
-                    <span className="text-[10px] font-bold w-6 text-right" style={{ color: scoreColor(dim.score) }}>
-                      {dim.score}
-                    </span>
+                    <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">{dim.observacion}</p>
                   </div>
-                  <p className="text-[9px] text-gray-400 mt-0.5 leading-tight">{dim.observacion}</p>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
+
+        {/* ── 3b. Benchmark vs Pares ────────────────────────────────── */}
+        {benchmark && benchmark.sampleSize > 0 && (
+          <section className="mb-6 no-break">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Benchmark vs Pares</h2>
+            <p className="text-[9px] text-gray-400 mb-2">{benchmark.groupDescription}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {benchmark.dimensions.map((d) => (
+                <div key={d.dimensionKey} className="flex items-center gap-1.5">
+                  <span className="text-[9px] text-gray-500 w-16 shrink-0">
+                    {(dimensionLabels[d.dimensionKey] ?? d.dimensionKey).split(" ")[0]}
+                  </span>
+                  <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${d.percentile}%`,
+                        backgroundColor:
+                          d.percentile >= 75 ? "#10b981" :
+                          d.percentile >= 50 ? "#7c3aed" :
+                          d.percentile >= 25 ? "#f59e0b" : "#ef4444",
+                      }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-bold text-gray-600 w-6 text-right">P{d.percentile}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── 3c. Quality Score ──────────────────────────────────────── */}
+        {validation && (
+          <section className="mb-6 no-break">
+            <div className="flex items-center gap-3 p-3 rounded-lg border"
+              style={{
+                backgroundColor: validation.qualityScore >= 80 ? "#f0fdf4" : validation.qualityScore >= 50 ? "#fefce8" : "#fef2f2",
+                borderColor: validation.qualityScore >= 80 ? "#bbf7d0" : validation.qualityScore >= 50 ? "#fef08a" : "#fecaca",
+              }}
+            >
+              <div className="text-2xl font-black" style={{
+                color: validation.qualityScore >= 80 ? "#16a34a" : validation.qualityScore >= 50 ? "#ca8a04" : "#dc2626",
+              }}>
+                {validation.qualityScore}
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-gray-700">Quality Score</div>
+                <div className="text-[9px] text-gray-500">
+                  {validation.issues.length === 0
+                    ? "Sin incoherencias detectadas"
+                    : `${validation.issues.filter(i => i.severity === "error").length} errores, ${validation.issues.filter(i => i.severity === "warning").length} advertencias`}
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* ── 4. Métricas Físicas ────────────────────────────────────── */}
         {fisicas && (

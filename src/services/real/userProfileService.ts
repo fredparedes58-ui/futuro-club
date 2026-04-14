@@ -56,6 +56,8 @@ export interface RolePermissions {
   canViewAllPlayers: boolean;
   canManageTeam: boolean;
   canViewDirectorDashboard: boolean;
+  canExportPDF: boolean;
+  canViewVideoAnalysis: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
@@ -67,6 +69,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAllPlayers: true,
     canManageTeam: true,
     canViewDirectorDashboard: true,
+    canExportPDF: true,
+    canViewVideoAnalysis: true,
   },
   scout: {
     canCreatePlayers: true,
@@ -76,6 +80,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAllPlayers: true,
     canManageTeam: false,
     canViewDirectorDashboard: false,
+    canExportPDF: true,
+    canViewVideoAnalysis: true,
   },
   coach: {
     canCreatePlayers: true,
@@ -85,6 +91,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAllPlayers: false,
     canManageTeam: false,
     canViewDirectorDashboard: false,
+    canExportPDF: false,
+    canViewVideoAnalysis: true,
   },
   viewer: {
     canCreatePlayers: false,
@@ -94,6 +102,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAllPlayers: true,
     canManageTeam: false,
     canViewDirectorDashboard: false,
+    canExportPDF: false,
+    canViewVideoAnalysis: false,
   },
 };
 

@@ -12,7 +12,9 @@ import { useEffect, useRef } from "react";
 import { DominantFeaturesService } from "@/services/real/advancedMetricsService";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
+import { calculateReportBenchmark, type ReportBenchmark } from "@/services/real/benchmarkService";
 
 // ─── VSI Gauge SVG ────────────────────────────────────────────────────────────
 
@@ -187,6 +189,56 @@ export default function PlayerReportPrint() {
         </div>
       </div>
 
+      {/* VSI Evolution */}
+      {rawPlayer.vsiHistory && rawPlayer.vsiHistory.length > 1 && (
+        <div className="mb-8">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Evolución VSI</h2>
+          <div style={{ width: "100%", height: 160 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={rawPlayer.vsiHistory.map((v: number, i: number) => ({
+                  eval: `#${i + 1}`,
+                  vsi: Math.round(v * 10) / 10,
+                }))}
+                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="eval" tick={{ fontSize: 9, fill: "#9ca3af" }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: "#9ca3af" }} width={30} />
+                <Tooltip
+                  contentStyle={{ fontSize: 11, borderRadius: 8 }}
+                  formatter={(value: number) => [`${value}`, "VSI"]}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="vsi"
+                  stroke="#7c3aed"
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: "#7c3aed" }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+            <span>
+              Tendencia:{" "}
+              <span className="font-semibold text-gray-600">
+                {(() => {
+                  const h = rawPlayer.vsiHistory;
+                  if (h.length < 2) return "—";
+                  const last = h[h.length - 1];
+                  const prev = h[h.length - 2];
+                  const delta = last - prev;
+                  return delta > 2 ? "↑ En ascenso" : delta < -2 ? "↓ En descenso" : "→ Estable";
+                })()}
+              </span>
+            </span>
+            <span>{rawPlayer.vsiHistory.length} evaluaciones</span>
+          </div>
+        </div>
+      )}
+
       {/* PHV */}
       {rawPlayer.phvCategory && (
         <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
@@ -248,6 +300,9 @@ export default function PlayerReportPrint() {
         </div>
       )}
 
+      {/* Benchmark vs Peers */}
+      <BenchmarkSection age={rawPlayer.age} position={rawPlayer.position} metrics={rawPlayer.metrics} />
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -274,6 +329,84 @@ export default function PlayerReportPrint() {
         </div>
         <div className="text-xs text-gray-400">© {new Date().getFullYear()}</div>
       </div>
+    </div>
+  );
+}
+
+// ─── Benchmark Section ────────────────────────────────────────────────────────
+
+const dimLabels: Record<string, string> = {
+  velocidadDecision: "Vel. Decisión",
+  tecnicaConBalon: "Técnica",
+  inteligenciaTactica: "Int. Táctica",
+  capacidadFisica: "Capacidad Física",
+  liderazgoPresencia: "Liderazgo",
+  eficaciaCompetitiva: "Eficacia",
+};
+
+function BenchmarkSection({
+  age,
+  position,
+  metrics,
+}: {
+  age: number;
+  position: string;
+  metrics: Record<string, number>;
+}) {
+  // Convert player metrics (0-100) to dimension-like scores (0-10) for benchmark
+  const dimensionScores: Record<string, { score: number }> = {
+    velocidadDecision: { score: metrics.speed / 10 },
+    tecnicaConBalon: { score: metrics.technique / 10 },
+    inteligenciaTactica: { score: metrics.vision / 10 },
+    capacidadFisica: { score: metrics.stamina / 10 },
+    liderazgoPresencia: { score: metrics.vision / 10 },
+    eficaciaCompetitiva: { score: metrics.shooting / 10 },
+  };
+
+  let benchmark: ReportBenchmark | null = null;
+  try {
+    benchmark = calculateReportBenchmark(age, position, dimensionScores);
+  } catch {
+    // benchmarkService may fail if no players in storage
+  }
+
+  if (!benchmark || benchmark.sampleSize === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+        Benchmark vs Pares
+      </h2>
+      <p className="text-[10px] text-gray-400 mb-2">{benchmark.groupDescription}</p>
+      <div className="space-y-1.5">
+        {benchmark.dimensions.map((d) => (
+          <div key={d.dimensionKey} className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-500 w-24 shrink-0">
+              {dimLabels[d.dimensionKey] ?? d.dimensionKey}
+            </span>
+            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden relative">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${d.percentile}%`,
+                  backgroundColor:
+                    d.percentile >= 75 ? "#10b981" :
+                    d.percentile >= 50 ? "#7c3aed" :
+                    d.percentile >= 25 ? "#f59e0b" : "#ef4444",
+                }}
+              />
+            </div>
+            <span className="text-[10px] font-bold w-8 text-right text-gray-700">
+              P{d.percentile}
+            </span>
+          </div>
+        ))}
+      </div>
+      {benchmark.sampleSize < 5 && (
+        <p className="text-[9px] text-amber-500 mt-1">
+          ⚠ Muestra pequeña ({benchmark.sampleSize} jugadores). Percentiles orientativos.
+        </p>
+      )}
     </div>
   );
 }
