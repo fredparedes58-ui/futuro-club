@@ -49,6 +49,7 @@ import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import UserGuidePage from "./pages/UserGuidePage";
 import AcceptTermsGate from "./components/AcceptTermsGate";
 
 // Health check + purge — diagnóstico automático al iniciar
@@ -151,6 +152,7 @@ const App = () => (
                 <Route path="/equipo" element={<P><TeamPage /></P>} />
                 <Route path="/team-analysis" element={<P><TeamAnalysisPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
+                <Route path="/guide" element={<P><UserGuidePage /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />

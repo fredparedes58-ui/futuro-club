@@ -632,6 +632,23 @@ const SettingsPage = () => {
         </div>
       </motion.div>
 
+      {/* Guía de usuario */}
+      <motion.div variants={item}>
+        <button
+          onClick={() => navigate("/guide")}
+          className="w-full glass rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 border border-transparent transition-all"
+        >
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <BookOpen size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">{t("settings.userGuide", "Guía de Usuario")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("settings.userGuideDesc", "Manual completo con todas las funciones · Descargable en PDF")}</p>
+          </div>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </button>
+      </motion.div>
+
       {/* Cerrar sesión */}
       {user && (
         <motion.div variants={item}>
