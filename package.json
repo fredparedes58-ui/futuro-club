@@ -23,7 +23,7 @@
     "qa": "bash scripts/qa-deploy.sh",
     "qa:prod": "bash scripts/qa-deploy.sh https://futuro-club.vercel.app",
     "prepare": "husky",
-    "postinstall": "node -e \"const fs=require('fs');const s='node_modules/onnxruntime-web/dist/';['ort-wasm-simd-threaded.wasm','ort-wasm-simd-threaded.mjs'].forEach(f=>{if(fs.existsSync(s+f))fs.copyFileSync(s+f,'public/'+f)})\""
+    "postinstall": "node -e \"const fs=require('fs');const s='node_modules/onnxruntime-web/dist/';['ort-wasm-simd-threaded.wasm','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.jsep.wasm','ort-wasm-simd-threaded.jsep.mjs','ort-wasm-simd-threaded.asyncify.wasm','ort-wasm-simd-threaded.asyncify.mjs'].forEach(f=>{if(fs.existsSync(s+f))fs.copyFileSync(s+f,'public/'+f)})\""
   },
   "lint-staged": {
     "*.{ts,tsx}": "eslint --fix --max-warnings 0"

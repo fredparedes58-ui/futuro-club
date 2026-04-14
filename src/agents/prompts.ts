@@ -533,7 +533,7 @@ No incluyas texto, explicaciones ni markdown fuera del JSON.
 // MODELO Y CONFIGURACIÓN COMPARTIDA
 // ─────────────────────────────────────────
 export const AGENT_CONFIG = {
-  model: "claude-haiku-4-5-20250714",   // Haiku: rápido y barato para agentes deterministas
+  model: "claude-haiku-4-5",   // Haiku: rápido y barato para agentes deterministas
   maxTokens: 1024,
   temperature: 0,                         // 0 = máximo determinismo para reproducibilidad
 } as const;
@@ -583,7 +583,7 @@ REGLAS DE ESCALACIÓN:
 // ─────────────────────────────────────────
 export const AGENT_REGISTRY = {
   "phv-calculator": {
-    model: "claude-haiku-4-5-20250714",
+    model: "claude-haiku-4-5",
     temperature: 0,
     maxTokens: 1024,
     timeoutMs: 10_000,
@@ -591,7 +591,7 @@ export const AGENT_REGISTRY = {
     purpose: "Cálculo determinista de maduración biológica PHV",
   },
   "scout-insight": {
-    model: "claude-haiku-4-5-20250714",
+    model: "claude-haiku-4-5",
     temperature: 0,
     maxTokens: 1024,
     timeoutMs: 10_000,
@@ -599,7 +599,7 @@ export const AGENT_REGISTRY = {
     purpose: "Generación de insights de scouting estructurados",
   },
   "role-profile": {
-    model: "claude-haiku-4-5-20250714",
+    model: "claude-haiku-4-5",
     temperature: 0,
     maxTokens: 1024,
     timeoutMs: 15_000,
@@ -607,7 +607,7 @@ export const AGENT_REGISTRY = {
     purpose: "Construcción de perfil de rol táctico completo",
   },
   "tactical-label": {
-    model: "claude-haiku-4-5-20250714",
+    model: "claude-haiku-4-5",
     temperature: 0,
     maxTokens: 1024,
     timeoutMs: 10_000,
