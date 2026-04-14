@@ -345,11 +345,13 @@ export function usePlayerIntelligence(player: Player) {
               }),
             });
             if (ragRes.ok) {
-              const ragData = await ragRes.json() as { data?: { results?: Array<{ content: string }> } };
-              const results = ragData.data?.results ?? [];
-              if (results.length > 0) {
+              const ragData = await ragRes.json() as { context?: string; results?: Array<{ content: string }> };
+              const results = ragData.results ?? [];
+              if (ragData.context) {
+                ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" + ragData.context;
+              } else if (results.length > 0) {
                 ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" +
-                  results.map(r => r.content.slice(0, 300)).join("\n---\n");
+                  results.map(r => r.content.slice(0, 500)).join("\n---\n");
               }
             }
           } catch { /* RAG query failed — continue without */ }
