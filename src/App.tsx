@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { useSupabaseSync } from "@/hooks/useSupabaseSync";
+import { SyncProvider } from "@/context/SyncContext";
 import OfflineBanner from "@/components/OfflineBanner";
 import CookieConsent from "@/components/CookieConsent";
 
@@ -50,11 +50,9 @@ import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 
-// Sync hook — activa pull de Supabase al hacer login
-// Health check — diagnóstico automático al iniciar
+// Health check + purge — diagnóstico automático al iniciar
+// (Sync is now handled by SyncProvider)
 function SyncManager() {
-  useSupabaseSync();
-
   // Purge mock players + health check on mount (once)
   React.useEffect(() => {
     // Remove any fake/mock players from localStorage (legacy seed data)
@@ -107,6 +105,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <SyncProvider>
             <SyncManager />
             <OfflineBanner />
             <CookieConsent />
@@ -163,6 +162,7 @@ const App = () => (
               </Routes>
             </ErrorBoundary>
             <BottomNav />
+            </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -11,6 +11,7 @@ import scoutInsight from "./_scout-insight";
 import tacticalLabel from "./_tactical-label";
 import videoIntelligence from "./_video-intelligence";
 import teamIntelligence from "./_team-intelligence";
+import invalidateCache from "./_invalidate-cache";
 
 export const config = { runtime: "edge" };
 
@@ -22,6 +23,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "tactical-label": tacticalLabel,
   "video-intelligence": videoIntelligence,
   "team-intelligence": teamIntelligence,
+  "invalidate-cache": invalidateCache,
 };
 
 export default async function handler(req: Request): Promise<Response> {

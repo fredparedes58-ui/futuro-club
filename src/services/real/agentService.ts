@@ -228,4 +228,38 @@ export const AgentService = {
   getTokenBudget() {
     return tokenBudget.getStatus();
   },
+
+  /**
+   * Invalidate AI cache for a player (called when player data changes).
+   */
+  async invalidateCacheForPlayer(playerId: string): Promise<void> {
+    try {
+      const { getAuthHeaders } = await import("@/lib/apiAuth");
+      const headers = await getAuthHeaders();
+      await fetch("/api/agents/invalidate-cache", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ playerId }),
+      });
+    } catch {
+      // Non-critical — cache will expire naturally
+    }
+  },
+
+  /**
+   * Invalidate AI cache for a video (called when new video is uploaded).
+   */
+  async invalidateCacheForVideo(videoId: string): Promise<void> {
+    try {
+      const { getAuthHeaders } = await import("@/lib/apiAuth");
+      const headers = await getAuthHeaders();
+      await fetch("/api/agents/invalidate-cache", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ videoId }),
+      });
+    } catch {
+      // Non-critical — cache will expire naturally
+    }
+  },
 };

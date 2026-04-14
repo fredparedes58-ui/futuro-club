@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
@@ -55,10 +56,26 @@ Todos los números con 2 decimales máximo. El summary en español, máximo 400 
 
 export default withHandler(
   { schema: roleSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body }) => {
+  async ({ body, userId }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return errorResponse("ANTHROPIC_API_KEY not configured", 503, "CONFIG_ERROR");
+    }
+
+    // ── Cache check ─────────────────────────────────────────────
+    const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const playerId = body?.player?.id ?? null;
+
+    if (sbUrl && sbKey && userId) {
+      try {
+        const cacheKey = await hashInput("role-profile", userId, body);
+        const cached = await getCached(cacheKey, sbUrl, sbKey);
+        if (cached) {
+          incrementHitCount(cacheKey, sbUrl, sbKey).catch(() => {});
+          return successResponse({ ...cached.response, _cached: true });
+        }
+      } catch { /* cache miss — proceed to Claude */ }
     }
 
     const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -110,10 +127,15 @@ export default withHandler(
       ? claudeData.usage.input_tokens + claudeData.usage.output_tokens
       : 0;
 
-    return successResponse({
-      ...parsed,
-      tokensUsed,
-      agentName: "RoleProfileAgent",
-    });
+    const result = { ...parsed, tokensUsed, agentName: "RoleProfileAgent" };
+
+    // ── Cache store ─────────────────────────────────────────────
+    if (sbUrl && sbKey && userId) {
+      hashInput("role-profile", userId, body).then(cacheKey =>
+        setCached(cacheKey, "role-profile", userId, playerId, null, result, tokensUsed, sbUrl, sbKey)
+      ).catch(() => {});
+    }
+
+    return successResponse(result);
   },
 );

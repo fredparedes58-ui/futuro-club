@@ -126,6 +126,11 @@ export const SupabasePlayerService = {
         }, { onConflict: "id" });
 
       if (error) throw error;
+
+      // Invalidate AI cache for this player (non-blocking)
+      import("@/services/real/agentService").then(({ AgentService }) =>
+        AgentService.invalidateCacheForPlayer(player.id)
+      ).catch(() => {});
     } catch (err) {
       console.warn("[SupabasePlayerService] pushOne failed:", err);
     }
@@ -143,6 +148,11 @@ export const SupabasePlayerService = {
         .eq("user_id", userId);
 
       if (error) throw error;
+
+      // Invalidate AI cache for this player (non-blocking)
+      import("@/services/real/agentService").then(({ AgentService }) =>
+        AgentService.invalidateCacheForPlayer(playerId)
+      ).catch(() => {});
     } catch (err) {
       console.warn("[SupabasePlayerService] deleteOne failed:", err);
     }
