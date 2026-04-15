@@ -20,7 +20,7 @@ import {
   ClipboardList, Star, AlertTriangle, CheckCircle, Clock,
   ChevronDown, ChevronUp, RefreshCw, Loader2, GitCompare,
   ArrowUpRight, ArrowDownRight, Minus, Video, Trophy,
-  Shield, MapPin, FileText,
+  Shield, MapPin, FileText, Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1130,11 +1130,36 @@ export default function PlayerIntelligencePage() {
                 />
 
                 {/* Panel de Estadísticas — Wyscout Premium */}
-                {latestReport.metricasCuantitativas && (
+                {latestReport.metricasCuantitativas ? (
                   <MatchStatsPanel
                     data={latestReport.metricasCuantitativas}
                     title={`Estadísticas — ${player.name}`}
                   />
+                ) : (
+                  <div className="glass rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                        <Activity size={14} className="text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-display font-bold text-foreground mb-1">
+                          Panel de Estadísticas no disponible
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mb-3">
+                          Este análisis fue generado antes de la actualización del pipeline de métricas cuantitativas (velocidad, pases, duelos, recuperaciones). Para ver los KPIs completos, genera un nuevo análisis de vídeo.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-2 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                          onClick={() => setActiveTab("nuevo")}
+                        >
+                          <Zap size={13} />
+                          Generar nuevo análisis
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Métricas Cuantitativas — vista clásica (se mantiene para compatibilidad) */}
