@@ -36,6 +36,12 @@ export interface VideoRecord {
   dateUploaded: string;
   analysisResult?: VideoAnalysis | null;
   localPath?: string; // only set during upload (blob URL)
+  /**
+   * SHA-256 hex del archivo original subido por el usuario.
+   * Usado para deduplicación (evitar re-subir + re-cobrar Bunny/IA).
+   * Opcional para backward compatibility con registros previos sin hash.
+   */
+  fileHash?: string;
 }
 
 export interface VideoAnalysis {
@@ -180,6 +186,7 @@ export const VideoService = {
     title: string;
     playerId: string | null;
     localPath?: string;
+    fileHash?: string;
   }): VideoRecord {
     const stub: VideoRecord = {
       id: params.id,
@@ -199,6 +206,7 @@ export const VideoService = {
       dateUploaded: new Date().toISOString(),
       analysisResult: null,
       localPath: params.localPath,
+      ...(params.fileHash ? { fileHash: params.fileHash } : {}),
     };
     this.save(stub);
     return stub;

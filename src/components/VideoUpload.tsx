@@ -12,7 +12,7 @@ import {
   Upload, Video, X, CheckCircle2, AlertCircle,
   Loader2, Zap, Film, RefreshCw,
 } from "lucide-react";
-import { useVideoUpload, type UploadPhase } from "@/hooks/useVideoUpload";
+import { useVideoUpload, type UploadPhase, type DuplicateInfo } from "@/hooks/useVideoUpload";
 
 interface VideoUploadProps {
   playerId?: string;
@@ -25,6 +25,7 @@ const MAX_SIZE_MB = 2048;
 
 const phaseLabel: Record<UploadPhase, string> = {
   idle: "",
+  hashing: "Verificando si ya subiste este video…",
   init: "Preparando upload…",
   uploading: "Subiendo video…",
   processing: "Procesando en Bunny Stream…",
@@ -39,17 +40,40 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   const [dragging, setDragging] = useState(false);
   const [title, setTitle] = useState("");
 
+  /**
+   * Callback para duplicados: muestra confirm nativo.
+   * "OK" → reusar video existente (ahorra Bunny + IA)
+   * "Cancel" → subir de nuevo (si el usuario quiere re-analizar)
+   */
+  const handleDuplicate = useCallback(async (dup: DuplicateInfo): Promise<"reuse" | "upload"> => {
+    const fecha = dup.dateUploaded
+      ? new Date(dup.dateUploaded).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+      : "fecha desconocida";
+    const tituloPrev = dup.title || "(sin título)";
+    const tieneAnalisis = dup.hasAnalysis ? "\n\n✅ Ese video YA tiene análisis IA generado." : "";
+    const msg =
+      `Ya subiste este mismo video anteriormente:\n\n` +
+      `📹 "${tituloPrev}"\n` +
+      `📅 ${fecha}` +
+      tieneAnalisis +
+      `\n\n¿Quieres reusarlo (ahorras costes de Bunny + IA) o subirlo de nuevo?\n\n` +
+      `Aceptar = Reusar existente\n` +
+      `Cancelar = Subir de nuevo y re-analizar`;
+    const wantsReuse = typeof window !== "undefined" && window.confirm(msg);
+    return wantsReuse ? "reuse" : "upload";
+  }, []);
+
   const handleFile = useCallback(
     (file: File) => {
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
         alert(`Archivo muy grande. Máximo ${MAX_SIZE_MB} MB.`);
         return;
       }
-      upload(file, title || file.name).then(() => {
+      upload(file, { title: title || file.name, onDuplicate: handleDuplicate }).then(() => {
         if (state.videoId && onDone) onDone(state.videoId);
       });
     },
-    [upload, title, state.videoId, onDone]
+    [upload, title, state.videoId, onDone, handleDuplicate]
   );
 
   const onDrop = useCallback(
@@ -144,6 +168,26 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                 <X size={16} />
               </button>
             </div>
+
+            {/* Hashing progress */}
+            {state.phase === "hashing" && (
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground font-display">
+                  <span>Comprobando duplicados</span>
+                  <span>{state.progress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-muted-foreground/60"
+                    animate={{ width: `${state.progress}%` }}
+                    transition={{ type: "spring", stiffness: 50 }}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Calculando hash del archivo para evitar re-subidas.
+                </p>
+              </div>
+            )}
 
             {/* Upload progress bar */}
             {(state.phase === "uploading" || state.phase === "init") && (

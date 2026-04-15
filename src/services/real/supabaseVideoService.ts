@@ -13,7 +13,7 @@ import { VideoService, type VideoRecord } from "./videoService";
 import { SyncQueueService } from "./syncQueueService";
 import { OrganizationService } from "./organizationService";
 
-// ── Helper: extraer columnas relacionales de un VideoRecord (025_normalize_videos) ─
+// ── Helper: extraer columnas relacionales de un VideoRecord (025_normalize_videos + 031_video_file_hash) ─
 function videoToColumns(v: VideoRecord) {
   return {
     title: v.title ?? null,
@@ -31,6 +31,7 @@ function videoToColumns(v: VideoRecord) {
     local_path: v.localPath ?? null,
     date_uploaded: v.dateUploaded ?? null,
     analysis_result: v.analysisResult ?? null,
+    file_hash: v.fileHash ?? null,
   };
 }
 

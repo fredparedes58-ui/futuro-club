@@ -24,16 +24,44 @@ import {
   extractVideoMetadata,
   extractThumbnailFromVideo,
 } from "@/lib/localVideoUtils";
+import { calculateFileHash } from "@/lib/fileHash";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 
 export type UploadPhase =
   | "idle"
+  | "hashing"      // computing SHA-256 for dedup check
   | "init"         // creating Bunny entry
   | "uploading"    // XHR PUT to Bunny
   | "processing"   // Bunny encoding
   | "analyzing"    // pipeline (Roboflow + Claude)
   | "done"
   | "error";
+
+/** Info sobre un duplicado encontrado en la cuenta del usuario. */
+export interface DuplicateInfo {
+  videoId: string;
+  title: string | null;
+  dateUploaded: string | null;
+  playerId: string | null;
+  hasAnalysis: boolean;
+}
+
+/**
+ * Opciones del upload. Todas son opcionales para mantener retrocompatibilidad
+ * con llamadas existentes `upload(file, title)`.
+ */
+export interface UploadOptions {
+  title?: string;
+  /**
+   * Hook opcional que se dispara cuando detectamos un duplicado.
+   * Debe devolver:
+   *   - "reuse"  → saltar upload, seleccionar video existente en la UI
+   *   - "upload" → continuar con el upload normal (el usuario quiere re-analizar)
+   * Si no se pasa callback → comportamiento seguro por defecto: "upload"
+   * (idéntico al flujo actual, nada cambia).
+   */
+  onDuplicate?: (dup: DuplicateInfo) => Promise<"reuse" | "upload"> | "reuse" | "upload";
+}
 
 export interface UploadState {
   phase: UploadPhase;
@@ -84,11 +112,88 @@ export function useVideoUpload(playerId?: string) {
   }, []);
 
   const upload = useCallback(
-    async (file: File, title?: string) => {
+    async (file: File, titleOrOptions?: string | UploadOptions) => {
       reset();
-      setPhase("init");
+
+      // Normalize args: retrocompatible con `upload(file, "título")`
+      const opts: UploadOptions =
+        typeof titleOrOptions === "string"
+          ? { title: titleOrOptions }
+          : (titleOrOptions ?? {});
+      const title = opts.title;
+      const onDuplicate = opts.onDuplicate;
 
       try {
+        // ── Step 0 (opcional): Dedup check por SHA-256 ───────────────────────
+        // Best-effort. Si cualquier paso falla, seguimos con upload normal.
+        let fileHash: string | null = null;
+        if (SUPABASE_CONFIGURED && onDuplicate) {
+          setPhase("hashing", { progress: 0 });
+          try {
+            fileHash = await calculateFileHash(file, (pct) => {
+              setState((prev) => ({ ...prev, progress: pct }));
+            });
+          } catch (hashErr) {
+            console.warn("[useVideoUpload] Falló cálculo de hash — upload continúa sin dedup:", hashErr);
+            fileHash = null;
+          }
+
+          if (fileHash) {
+            try {
+              const dupRes = await fetch("/api/videos/check-hash", {
+                method: "POST",
+                headers: await authHeaders(),
+                body: JSON.stringify({ hash: fileHash, playerId }),
+              });
+              if (dupRes.ok) {
+                const dupData = (await dupRes.json()) as {
+                  success: boolean;
+                  data?: {
+                    duplicate: boolean;
+                    videoId?: string;
+                    title?: string | null;
+                    dateUploaded?: string | null;
+                    playerId?: string | null;
+                    hasAnalysis?: boolean;
+                  };
+                };
+                if (dupData.success && dupData.data?.duplicate && dupData.data.videoId) {
+                  const dup: DuplicateInfo = {
+                    videoId: dupData.data.videoId,
+                    title: dupData.data.title ?? null,
+                    dateUploaded: dupData.data.dateUploaded ?? null,
+                    playerId: dupData.data.playerId ?? null,
+                    hasAnalysis: Boolean(dupData.data.hasAnalysis),
+                  };
+                  const decision = await Promise.resolve(onDuplicate(dup));
+                  if (decision === "reuse") {
+                    // El usuario eligió reusar el video existente → terminamos el
+                    // "upload" como done, apuntando al videoId ya existente.
+                    const existing = VideoService.getById(dup.videoId);
+                    setState({
+                      ...INITIAL,
+                      phase: "done",
+                      progress: 100,
+                      videoId: dup.videoId,
+                      video: existing ?? null,
+                    });
+                    queryClient.invalidateQueries({ queryKey: ["videos"] });
+                    if (playerId) {
+                      queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
+                    }
+                    return;
+                  }
+                  // decision === "upload" → continuar con flujo normal
+                }
+              }
+            } catch (dupErr) {
+              console.warn("[useVideoUpload] Falló check-hash — upload continúa sin dedup:", dupErr);
+            }
+          }
+        }
+
+        setPhase("init", { progress: 0 });
+
         // ── Step 1: Init ────────────────────────────────────────────────────
         const initRes = await fetch("/api/upload/video-init", {
           method: "POST",
@@ -171,6 +276,7 @@ export function useVideoUpload(playerId?: string) {
               dateUploaded: new Date().toISOString(),
               localPath: blobUrl,
               analysisResult: null,
+              ...(fileHash ? { fileHash } : {}),
             };
 
             VideoService.save(localVideo);
@@ -206,6 +312,7 @@ export function useVideoUpload(playerId?: string) {
           title: title ?? file.name,
           playerId: playerId ?? null,
           localPath: URL.createObjectURL(file),
+          ...(fileHash ? { fileHash } : {}),
         };
         if (user && SUPABASE_CONFIGURED) {
           const stub = VideoService.createStub(stubParams);
