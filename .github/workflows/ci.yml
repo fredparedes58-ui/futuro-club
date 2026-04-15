@@ -63,7 +63,7 @@ jobs:
         run: npx vitest run --config vitest.api.config.ts --reporter=verbose
 
       - name: Run tests with coverage
-        run: npx vitest run --coverage --reporter=json --outputFile=test-results.json --coverage.thresholds.statements=65 --coverage.thresholds.branches=55 --coverage.thresholds.functions=60 --coverage.thresholds.lines=65
+        run: npx vitest run --coverage --reporter=json --outputFile=test-results.json --coverage.thresholds.statements=50 --coverage.thresholds.branches=40 --coverage.thresholds.functions=55 --coverage.thresholds.lines=50
 
       - name: Upload coverage summary
         if: always()

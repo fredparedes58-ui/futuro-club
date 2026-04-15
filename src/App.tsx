@@ -40,6 +40,8 @@ import BillingPage from "./pages/BillingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PricingPage from "./pages/PricingPage";
 import PlayerReportPrint from "./pages/PlayerReportPrint";
 import AnalysisReportPrint from "./pages/AnalysisReportPrint";
 import TeamPage from "./pages/TeamPage";
@@ -121,6 +123,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />
@@ -136,6 +139,7 @@ const App = () => (
                 <Route path="/settings" element={<P><SettingsPage /></P>} />
                 <Route path="/billing" element={<P><BillingPage /></P>} />
                 <Route path="/director" element={<P><DirectorDashboard /></P>} />
+                <Route path="/admin" element={<P><AdminDashboardPage /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
                 <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />

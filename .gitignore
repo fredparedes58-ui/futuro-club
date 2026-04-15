@@ -18,6 +18,9 @@ dist-ssr
 dev-dist
 .claude
 
+# Test coverage reports
+coverage/
+
 # ONNX models (too large for Git — downloaded at runtime)
 *.onnx
 

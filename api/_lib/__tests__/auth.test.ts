@@ -53,20 +53,20 @@ describe("verifyAuth", () => {
     expect(result.userId).toBeNull();
   });
 
-  // Strategy 3 (decode-only) tests
-  describe("decode-only fallback (no secrets)", () => {
-    it("extracts userId from valid JWT payload", async () => {
+  // Strategy 3: No secrets configured — MUST reject all tokens (secure by default)
+  describe("no secrets configured (secure default)", () => {
+    it("rejects valid JWT when no JWT_SECRET and no Supabase API", async () => {
       const token = fakeJWT({
         sub: "user-abc-123",
         iss: "https://supabase.io",
         exp: Math.floor(Date.now() / 1000) + 3600,
       });
       const result = await verifyAuth(makeReq(token));
-      expect(result.userId).toBe("user-abc-123");
-      expect(result.error).toBeNull();
+      expect(result.userId).toBeNull();
+      expect(result.error).toContain("Servidor no puede verificar");
     });
 
-    it("returns error for expired token", async () => {
+    it("rejects expired token (still rejects — server cannot verify)", async () => {
       const token = fakeJWT({
         sub: "user-expired",
         iss: "https://supabase.io",
@@ -74,20 +74,20 @@ describe("verifyAuth", () => {
       });
       const result = await verifyAuth(makeReq(token));
       expect(result.userId).toBeNull();
-      expect(result.error).toBe("Token expirado");
+      expect(result.error).toBeTruthy();
     });
 
-    it("returns error when no sub claim", async () => {
+    it("rejects token without sub claim", async () => {
       const token = fakeJWT({
         iss: "https://supabase.io",
         exp: Math.floor(Date.now() / 1000) + 3600,
       });
       const result = await verifyAuth(makeReq(token));
       expect(result.userId).toBeNull();
-      expect(result.error).toBe("Token sin subject");
+      expect(result.error).toBeTruthy();
     });
 
-    it("returns error for non-supabase issuer", async () => {
+    it("rejects token with non-supabase issuer", async () => {
       const token = fakeJWT({
         sub: "user-bad-iss",
         iss: "https://evil.com",
@@ -95,16 +95,17 @@ describe("verifyAuth", () => {
       });
       const result = await verifyAuth(makeReq(token));
       expect(result.userId).toBeNull();
-      expect(result.error).toBe("Emisor no reconocido");
+      expect(result.error).toBeTruthy();
     });
 
-    it("accepts token without iss claim (permissive decode)", async () => {
+    it("rejects token without iss claim (no permissive fallback)", async () => {
       const token = fakeJWT({
         sub: "user-no-iss",
         exp: Math.floor(Date.now() / 1000) + 3600,
       });
       const result = await verifyAuth(makeReq(token));
-      expect(result.userId).toBe("user-no-iss");
+      expect(result.userId).toBeNull();
+      expect(result.error).toBeTruthy();
     });
   });
 });

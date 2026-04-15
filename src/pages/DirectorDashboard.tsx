@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, BarChart3, Users, Zap, AlertTriangle,
-  TrendingUp, Activity, Trophy, ChevronRight,
+  TrendingUp, Activity, Trophy, ChevronRight, Shield,
 } from "lucide-react";
 import { useUsageAnalytics } from "@/hooks/useUsageAnalytics";
 import { useUserProfile } from "@/hooks/useUserProfile";
@@ -260,6 +260,23 @@ const DirectorDashboard = () => {
             >
               <Activity size={18} className="text-gold mx-auto mb-1" />
               <p className="text-xs font-display text-foreground">{t("director.quickLinks.teamAnalysis")}</p>
+            </button>
+          </motion.div>
+
+          {/* Admin panel link (solo visible para admin emails) */}
+          <motion.div variants={item}>
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full glass rounded-xl p-4 flex items-center gap-3 hover:border-primary/30 border border-transparent transition-all"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Shield size={16} className="text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-display font-semibold text-sm text-foreground">Admin Dashboard</p>
+                <p className="text-[10px] text-muted-foreground">Panel completo de métricas y analíticas (solo admin)</p>
+              </div>
+              <ChevronRight size={14} className="text-muted-foreground shrink-0" />
             </button>
           </motion.div>
         </>
