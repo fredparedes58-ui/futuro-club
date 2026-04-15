@@ -1,0 +1,27 @@
+/**
+ * VITAS · Auth Router
+ * Routes /api/auth/{action} to the correct handler.
+ *
+ * Acciones soportadas:
+ *   POST /api/auth/verify-captcha → valida token de Cloudflare Turnstile
+ *   POST /api/auth/welcome        → dispara email de bienvenida tras registro
+ */
+import { errorResponse } from "../_lib/apiResponse";
+
+import verifyCaptcha from "./_verify-captcha";
+import welcome from "./_welcome";
+
+export const config = { runtime: "edge" };
+
+const routes: Record<string, (req: Request) => Promise<Response>> = {
+  "verify-captcha": verifyCaptcha,
+  "welcome": welcome,
+};
+
+export default async function handler(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const action = url.pathname.split("/").filter(Boolean).pop() ?? "";
+  const fn = routes[action];
+  if (!fn) return errorResponse(`Auth action "${action}" not found`, 404);
+  return fn(req);
+}

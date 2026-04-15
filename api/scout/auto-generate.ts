@@ -2,9 +2,13 @@
  * VITAS · Scout Auto-Generate Cron
  * GET /api/scout/auto-generate
  *
- * Runs automatically (Vercel cron) to generate insights for all players
- * that have new analyses since their last insight.
+ * Runs automatically (Vercel cron — ver vercel.json) to generate insights
+ * for all players that have new analyses since their last insight.
  * Protected: serviceOnly (CRON_SECRET).
+ *
+ * IMPORTANTE: archivo SIN prefijo `_` para que Vercel lo exponga en la ruta
+ * pública `/api/scout/auto-generate` usada por el cron schedule. Si se renombra
+ * a `_auto-generate.ts`, Vercel lo ignora y el cron falla silenciosamente (404).
  */
 export const config = { runtime: "edge" };
 
