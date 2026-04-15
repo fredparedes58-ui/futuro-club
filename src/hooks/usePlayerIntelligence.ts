@@ -41,6 +41,11 @@ interface KeyframeData {
 }
 
 function getBunnyKeyframes(videoId: string, videoDuration?: number): KeyframeData[] {
+    // ⚠️ Fallback de último recurso. El patrón /thumbnails/thumbnail_NNNN.jpg
+    // NO existe en Bunny Stream → devuelve 404. El único endpoint público
+    // estable es /thumbnail.jpg?time=<sec>. Se mantiene este helper solo por
+    // compatibilidad, pero la ruta principal SIEMPRE extrae 100 frames
+    // reales del MP4 vía canvas (extractKeyframesFromVideo).
     const bunnyBaseUrl = `https://${import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "vz-b1fc8d2f-960.b-cdn.net"}`;
     const duration = videoDuration || 120;
     const numFrames = 8;
@@ -48,7 +53,7 @@ function getBunnyKeyframes(videoId: string, videoDuration?: number): KeyframeDat
   return Array.from({ length: numFrames }, (_, i) => {
         const timestamp = Math.floor((duration / (numFrames + 1)) * (i + 1));
         return {
-                url: `${bunnyBaseUrl}/${videoId}/thumbnails/thumbnail_${String(timestamp).padStart(4, "0")}.jpg`,
+                url: `${bunnyBaseUrl}/${videoId}/thumbnail.jpg?time=${timestamp}`,
                 timestamp,
                 frameIndex: i,
         };
@@ -295,17 +300,28 @@ export function usePlayerIntelligence(player: Player) {
             console.warn("[Intelligence] ⚠️ Error con Gemini:", geminiErr);
           }
 
-          // 2b. SOLO si Gemini falló → extraer frames como fallback para Claude
+          // 2b. SOLO si Gemini falló → extraer 100 frames REALES vía canvas
+          //     (nunca usar thumbnails /thumbnails/thumbnail_NNNN.jpg: devuelven 404)
           if (!geminiObservations) {
-            // Solo intentar extracción local con blob: o file: URLs (no CDN https:)
-            const isLocalBlob = localVideoSrc && !localVideoSrc.startsWith("http");
-            if (isLocalBlob) {
-                // Extraer 100 frames localmente → seleccionar 20 espaciados → enviar a Claude
-                const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
-                setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas para Claude (fallback)...` });
-                const allFrames = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, extractCount);
-                if (allFrames.length === 0) throw new Error("No se pudieron extraer frames del video");
+            // Prioridad de fuentes para el canvas:
+            //   1º blob: local (si está disponible, es lo más rápido)
+            //   2º URL directa al MP4 de Bunny CDN (play_720p.mp4) — con CORS
+            //   3º último recurso: thumbnail.jpg?time=N (solo si no hay video accesible)
+            const videoSrcForCanvas: string | null =
+              (localVideoSrc && !localVideoSrc.startsWith("http") ? localVideoSrc : null)
+              ?? bunnyVideoUrl
+              ?? null;
 
+            if (videoSrcForCanvas) {
+              const extractCount = getOptimalFrameCount(videoDuration || 120); // siempre 100
+              const sourceLabel = videoSrcForCanvas.startsWith("blob:") ? "video local" : "Bunny CDN";
+              setState({ step: "keyframes", progress: 20, message: `⚠️ Gemini no disponible — extrayendo ${extractCount} fotogramas del ${sourceLabel} para Claude...` });
+
+              try {
+                const allFrames = await extractKeyframesFromVideo(videoSrcForCanvas, videoDuration || 120, extractCount);
+                if (allFrames.length === 0) throw new Error("extractKeyframesFromVideo devolvió 0 frames");
+
+                // Claude acepta máximo ~20 imágenes por prompt; seleccionamos espaciadas
                 const MAX_CLAUDE_FRAMES = 20;
                 if (allFrames.length <= MAX_CLAUDE_FRAMES) {
                   keyframes = allFrames;
@@ -316,17 +332,22 @@ export function usePlayerIntelligence(player: Player) {
 
                 setState({ step: "keyframes", progress: 28, message: `${allFrames.length} fotogramas extraídos → enviando ${keyframes.length} a Claude...` });
 
+                // Evitar payloads >4MB (límite de Vercel)
                 let payloadEstimate = JSON.stringify(keyframes).length;
                 while (payloadEstimate > 4_000_000 && keyframes.length > 10) {
                   console.warn(`[Intelligence] Payload ${(payloadEstimate / 1e6).toFixed(1)}MB con ${keyframes.length} frames, reduciendo...`);
                   keyframes = keyframes.filter((_, i) => i % 2 === 0);
                   payloadEstimate = JSON.stringify(keyframes).length;
                 }
-              } else {
-                // Sin video local — usar thumbnails de Bunny CDN
+              } catch (extractErr) {
+                console.warn("[Intelligence] ⚠️ Falló extracción canvas, usando thumbnails Bunny como último recurso:", extractErr);
                 keyframes = getBunnyKeyframes(videoId, videoDuration);
               }
+            } else {
+              // No hay ni blob ni URL de Bunny (videoId empieza con "local-" y sin blob) → thumbnails
+              keyframes = getBunnyKeyframes(videoId, videoDuration);
             }
+          }
 
           setState({ step: "analyzing", progress: 35, message: geminiObservations ? "✅ Video analizado por Gemini — generando informe completo..." : `⚠️ Fallback: analizando ${keyframes.length} fotogramas con Claude...` });
 
