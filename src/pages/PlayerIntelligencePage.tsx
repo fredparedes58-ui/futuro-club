@@ -38,6 +38,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type { SimilarityMatch } from "@/services/real/similarityService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
+import MatchStatsPanel from "@/components/MatchStatsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
@@ -1128,7 +1129,15 @@ export default function PlayerIntelligencePage() {
                   }
                 />
 
-                {/* Métricas Cuantitativas */}
+                {/* Panel de Estadísticas — Wyscout Premium */}
+                {latestReport.metricasCuantitativas && (
+                  <MatchStatsPanel
+                    data={latestReport.metricasCuantitativas}
+                    title={`Estadísticas — ${player.name}`}
+                  />
+                )}
+
+                {/* Métricas Cuantitativas — vista clásica (se mantiene para compatibilidad) */}
                 {latestReport.metricasCuantitativas && (
                   <QuantitativeMetricsPanel data={latestReport.metricasCuantitativas} />
                 )}

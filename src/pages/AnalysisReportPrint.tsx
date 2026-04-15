@@ -12,6 +12,13 @@ import {
 } from "recharts";
 import { validatePlayerReport, type ValidationResult } from "@/services/real/reportValidator";
 import { calculateReportBenchmark, type ReportBenchmark } from "@/services/real/benchmarkService";
+import {
+  computeMatchStats,
+  RATING_LABEL_ES,
+  RATING_COLOR,
+  KPI_RATING_LABEL_ES,
+  DUEL_RATING_LABEL_ES,
+} from "@/services/real/matchStatsService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -217,6 +224,11 @@ export default function AnalysisReportPrint() {
   const fisicas = r.metricasCuantitativas?.fisicas;
   const eventos = r.metricasCuantitativas?.eventos;
 
+  // Panel de stats clásico tipo Wyscout — calculado on-the-fly (puro)
+  const matchStats = computeMatchStats(
+    r.metricasCuantitativas as VideoIntelligenceOutput["metricasCuantitativas"],
+  );
+
   // RadarChart data from dimensions
   const radarData = (Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => ({
     subject: (dimensionLabels[key] ?? key).split(" ").slice(0, 2).join(" "),
@@ -399,7 +411,119 @@ export default function AnalysisReportPrint() {
           </section>
         )}
 
-        {/* ── 4. Métricas Físicas ────────────────────────────────────── */}
+        {/* ── 4. Panel de Estadísticas (Wyscout premium) ─────────────── */}
+        {matchStats && (
+          <section className="mb-6 no-break">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+              Panel de Estadísticas
+            </h2>
+            <div
+              className="rounded-lg p-4 border"
+              style={{
+                background: `linear-gradient(135deg, ${RATING_COLOR[matchStats.performanceLabel]}10 0%, #fafafa 100%)`,
+                borderColor: `${RATING_COLOR[matchStats.performanceLabel]}33`,
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">
+                    Rating del partido
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className="text-3xl font-black tabular-nums"
+                      style={{ color: RATING_COLOR[matchStats.performanceLabel] }}
+                    >
+                      {matchStats.performanceRating.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] text-gray-400">/ 10</span>
+                  </div>
+                </div>
+                <span
+                  className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: `${RATING_COLOR[matchStats.performanceLabel]}22`,
+                    color: RATING_COLOR[matchStats.performanceLabel],
+                  }}
+                >
+                  {RATING_LABEL_ES[matchStats.performanceLabel]}
+                </span>
+              </div>
+
+              {/* Totales agregados */}
+              <div className="grid grid-cols-3 gap-2 mb-3 pt-3 border-t border-gray-200">
+                <div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Total acciones</div>
+                  <div className="text-sm font-bold text-gray-900">{matchStats.totalAcciones}</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Ofensivas</div>
+                  <div className="text-sm font-bold text-green-700">{matchStats.totalOfensivas}</div>
+                </div>
+                <div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Defensivas</div>
+                  <div className="text-sm font-bold text-blue-700">{matchStats.totalDefensivas}</div>
+                </div>
+              </div>
+
+              {/* KPIs con barras W/L */}
+              <div className="space-y-2">
+                {matchStats.pases && matchStats.pases.total > 0 && (
+                  <PrintKpiRow
+                    label="Pases"
+                    leftValue={matchStats.pases.completados}
+                    leftLabel="Completados"
+                    rightValue={matchStats.pases.fallados}
+                    rightLabel="Fallados"
+                    percent={matchStats.pases.precision}
+                    rating={KPI_RATING_LABEL_ES[matchStats.pases.rating]}
+                    leftColor="#16a34a"
+                    rightColor="#dc2626"
+                  />
+                )}
+                {matchStats.duelos && matchStats.duelos.total > 0 && (
+                  <PrintKpiRow
+                    label="Duelos"
+                    leftValue={matchStats.duelos.ganados}
+                    leftLabel="Ganados"
+                    rightValue={matchStats.duelos.perdidos}
+                    rightLabel="Perdidos"
+                    percent={matchStats.duelos.efectividad}
+                    rating={DUEL_RATING_LABEL_ES[matchStats.duelos.rating]}
+                    leftColor="#10b981"
+                    rightColor="#f97316"
+                  />
+                )}
+                {matchStats.recuperaciones && (
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-700 font-medium">Recuperaciones</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-700 tabular-nums">{matchStats.recuperaciones.total}</span>
+                      <span className="text-[9px] text-gray-500 uppercase tracking-wider">
+                        {KPI_RATING_LABEL_ES[matchStats.recuperaciones.rating]}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {matchStats.disparos && matchStats.disparos.total > 0 && (
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-gray-700 font-medium">Disparos</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-amber-700 tabular-nums">
+                        {matchStats.disparos.alArco}/{matchStats.disparos.total}
+                      </span>
+                      <span className="text-[9px] text-gray-500 uppercase tracking-wider">
+                        {matchStats.disparos.precision}% al arco
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── 5. Métricas Físicas ────────────────────────────────────── */}
         {fisicas && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Métricas Físicas</h2>
@@ -620,6 +744,47 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub?:
       <div className="text-lg font-black text-gray-800 leading-tight">{value}</div>
       <div className="text-[9px] text-gray-500">{label}</div>
       {sub && <div className="text-[8px] text-gray-400">{sub}</div>}
+    </div>
+  );
+}
+
+function PrintKpiRow({
+  label, leftValue, leftLabel, rightValue, rightLabel,
+  percent, rating, leftColor, rightColor,
+}: {
+  label: string;
+  leftValue: number;
+  leftLabel: string;
+  rightValue: number;
+  rightLabel: string;
+  percent: number;
+  rating: string;
+  leftColor: string;
+  rightColor: string;
+}) {
+  const pctLeft = Math.max(0, Math.min(100, percent));
+  const pctRight = 100 - pctLeft;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-gray-700 font-medium">{label}</span>
+          <span className="text-[9px] text-gray-500 uppercase tracking-wider">{rating}</span>
+        </div>
+        <span className="text-[11px] font-bold text-gray-900 tabular-nums">{percent}%</span>
+      </div>
+      <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-200">
+        <div style={{ width: `${pctLeft}%`, backgroundColor: leftColor }} />
+        <div style={{ width: `${pctRight}%`, backgroundColor: rightColor }} />
+      </div>
+      <div className="flex justify-between mt-0.5 text-[9px] text-gray-500">
+        <span>
+          <span className="font-bold" style={{ color: leftColor }}>{leftValue}</span> {leftLabel}
+        </span>
+        <span>
+          {rightLabel} <span className="font-bold" style={{ color: rightColor }}>{rightValue}</span>
+        </span>
+      </div>
     </div>
   );
 }

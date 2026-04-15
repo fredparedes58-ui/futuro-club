@@ -1,0 +1,350 @@
+/**
+ * VITAS · Match Stats Service
+ *
+ * Agregador puro (determinista, sin side-effects) que transforma
+ * `metricasCuantitativas` del análisis de vídeo en un resumen tipo
+ * "panel Wyscout" con KPIs clásicos, ratios, ratings compuestos y
+ * clasificación cualitativa — todo calculado on-the-fly desde los
+ * datos que YA persisten en Supabase (`player_analyses.report`).
+ *
+ * No inventa datos. Si falta alguna sección (fisicas/eventos), la
+ * deja indefinida. Nunca devuelve NaN/Infinity.
+ *
+ * Benchmarks son orientativos (medias sub-élite → pro), documentados
+ * con fuente en el código. No pretenden ser verdad absoluta.
+ */
+
+import type { VideoIntelligenceOutput } from "@/agents/contracts";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type MetricasCuantitativas = NonNullable<VideoIntelligenceOutput["metricasCuantitativas"]>;
+
+export type KpiRating = "elite" | "excelente" | "bueno" | "aceptable" | "bajo";
+export type DuelRating = "dominante" | "competitivo" | "igualado" | "dominado";
+export type PhysicalRating = "elite" | "alto" | "medio" | "bajo";
+export type OverallLabel = "outstanding" | "excellent" | "good" | "average" | "below";
+
+export interface PassStats {
+  completados: number;
+  fallados: number;
+  total: number;
+  precision: number;           // 0–100
+  rating: KpiRating;
+}
+
+export interface DuelStats {
+  ganados: number;
+  perdidos: number;
+  total: number;
+  efectividad: number;         // 0–100 (ganados / total)
+  rating: DuelRating;
+}
+
+export interface RecoveryStats {
+  total: number;               // "anticipaciones / balones recuperados"
+  rating: KpiRating;
+}
+
+export interface ShotStats {
+  alArco: number;
+  fuera: number;
+  total: number;
+  precision: number;           // 0–100 (alArco / total)
+}
+
+export interface PhysicalStats {
+  velocidadMaxKmh: number;
+  velocidadPromKmh: number;
+  distanciaM: number;
+  sprints: number;
+  rating: PhysicalRating;
+  intensidadPct: {
+    caminar: number;
+    trotar: number;
+    correr: number;
+    sprint: number;
+  };
+}
+
+export interface MatchStatsSummary {
+  // Totales agregados
+  totalAcciones: number;
+  totalOfensivas: number;      // pases completados + disparos al arco
+  totalDefensivas: number;     // duelos ganados + recuperaciones
+
+  // KPIs principales
+  pases?: PassStats;
+  duelos?: DuelStats;
+  recuperaciones?: RecoveryStats;
+  disparos?: ShotStats;
+  fisicas?: PhysicalStats;
+
+  // Rating global (0–10) — compuesto ponderado
+  performanceRating: number;
+  performanceLabel: OverallLabel;
+
+  // Disponibilidad de secciones
+  tieneEventos: boolean;
+  tieneFisicas: boolean;
+
+  // Metadatos
+  fuente: "yolo+gemini" | "gemini_only" | "yolo_only";
+  confianza: number;           // 0–1
+}
+
+// ─── Benchmarks orientativos (sub-17 → pro) ───────────────────────────────────
+// Fuentes: medias Opta Sports / StatsBomb para ligas formativas europeas
+// Usadas SOLO para clasificación cualitativa, nunca como verdad absoluta.
+
+const BENCHMARK = {
+  // Precisión de pases (%)
+  pasesPrecision: { elite: 88, excelente: 80, bueno: 70, aceptable: 60 },
+  // Efectividad de duelos (%)
+  duelosEfectividad: { dominante: 65, competitivo: 55, igualado: 45 },
+  // Recuperaciones por análisis (clip típico de 10-20 min)
+  recuperaciones: { elite: 8, excelente: 5, bueno: 3, aceptable: 1 },
+  // Velocidad máxima (km/h)
+  velocidadMax: { elite: 32, alto: 28, medio: 24 },
+} as const;
+
+// ─── Helpers puros ────────────────────────────────────────────────────────────
+
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
+const safePct = (num: number, den: number): number =>
+  den > 0 ? Math.round((num / den) * 100) : 0;
+
+function passRating(precision: number): KpiRating {
+  if (precision >= BENCHMARK.pasesPrecision.elite) return "elite";
+  if (precision >= BENCHMARK.pasesPrecision.excelente) return "excelente";
+  if (precision >= BENCHMARK.pasesPrecision.bueno) return "bueno";
+  if (precision >= BENCHMARK.pasesPrecision.aceptable) return "aceptable";
+  return "bajo";
+}
+
+function duelRating(efectividad: number, total: number): DuelRating {
+  if (total === 0) return "igualado";
+  if (efectividad >= BENCHMARK.duelosEfectividad.dominante) return "dominante";
+  if (efectividad >= BENCHMARK.duelosEfectividad.competitivo) return "competitivo";
+  if (efectividad >= BENCHMARK.duelosEfectividad.igualado) return "igualado";
+  return "dominado";
+}
+
+function recoveryRating(total: number): KpiRating {
+  if (total >= BENCHMARK.recuperaciones.elite) return "elite";
+  if (total >= BENCHMARK.recuperaciones.excelente) return "excelente";
+  if (total >= BENCHMARK.recuperaciones.bueno) return "bueno";
+  if (total >= BENCHMARK.recuperaciones.aceptable) return "aceptable";
+  return "bajo";
+}
+
+function physicalRating(maxKmh: number): PhysicalRating {
+  if (maxKmh >= BENCHMARK.velocidadMax.elite) return "elite";
+  if (maxKmh >= BENCHMARK.velocidadMax.alto) return "alto";
+  if (maxKmh >= BENCHMARK.velocidadMax.medio) return "medio";
+  return "bajo";
+}
+
+// ─── Rating compuesto (0–10) ──────────────────────────────────────────────────
+// Pondera KPIs disponibles. Si falta una sección, redistribuye peso.
+// Nunca devuelve NaN/Infinity.
+function composeRating(
+  pass?: PassStats,
+  duel?: DuelStats,
+  rec?: RecoveryStats,
+  shot?: ShotStats,
+  phys?: PhysicalStats,
+): { rating: number; label: OverallLabel } {
+  const components: Array<{ weight: number; score: number }> = [];
+
+  if (pass && pass.total > 0) {
+    // 60% → 10.0, 100% → 10.0, <60% → escala lineal
+    components.push({ weight: 0.30, score: clamp01(pass.precision / 100) * 10 });
+  }
+  if (duel && duel.total > 0) {
+    components.push({ weight: 0.25, score: clamp01(duel.efectividad / 100) * 10 });
+  }
+  if (rec && rec.total >= 0) {
+    // 8+ recuperaciones = 10
+    components.push({ weight: 0.20, score: clamp01(rec.total / BENCHMARK.recuperaciones.elite) * 10 });
+  }
+  if (shot && shot.total > 0) {
+    components.push({ weight: 0.10, score: clamp01(shot.precision / 100) * 10 });
+  }
+  if (phys) {
+    // Velocidad 32 km/h = 10
+    components.push({ weight: 0.15, score: clamp01(phys.velocidadMaxKmh / BENCHMARK.velocidadMax.elite) * 10 });
+  }
+
+  if (components.length === 0) {
+    return { rating: 0, label: "below" };
+  }
+
+  const totalWeight = components.reduce((a, c) => a + c.weight, 0);
+  const weighted = components.reduce((a, c) => a + c.score * c.weight, 0);
+  const rating = Math.round((weighted / totalWeight) * 10) / 10; // 1 decimal
+
+  let label: OverallLabel = "below";
+  if (rating >= 8.5) label = "outstanding";
+  else if (rating >= 7.0) label = "excellent";
+  else if (rating >= 5.5) label = "good";
+  else if (rating >= 4.0) label = "average";
+
+  return { rating, label };
+}
+
+// ─── API principal ────────────────────────────────────────────────────────────
+
+/**
+ * Transforma `metricasCuantitativas` del report en un resumen rico para
+ * el `MatchStatsPanel`. Puro, sin side-effects.
+ */
+export function computeMatchStats(
+  metricas: MetricasCuantitativas | undefined | null,
+): MatchStatsSummary | null {
+  if (!metricas) return null;
+
+  const { fisicas: fis, eventos: ev, fuente, confianza } = metricas;
+
+  // ── Pases ─────
+  const pases: PassStats | undefined = ev
+    ? (() => {
+        const total = ev.pasesCompletados + ev.pasesFallados;
+        const precision = total > 0 ? ev.precisionPases : 0;
+        return {
+          completados: ev.pasesCompletados,
+          fallados: ev.pasesFallados,
+          total,
+          precision,
+          rating: passRating(precision),
+        };
+      })()
+    : undefined;
+
+  // ── Duelos ─────
+  const duelos: DuelStats | undefined = ev
+    ? (() => {
+        const total = ev.duelosGanados + ev.duelosPerdidos;
+        const efectividad = safePct(ev.duelosGanados, total);
+        return {
+          ganados: ev.duelosGanados,
+          perdidos: ev.duelosPerdidos,
+          total,
+          efectividad,
+          rating: duelRating(efectividad, total),
+        };
+      })()
+    : undefined;
+
+  // ── Recuperaciones / anticipaciones ─────
+  const recuperaciones: RecoveryStats | undefined = ev
+    ? {
+        total: ev.recuperaciones,
+        rating: recoveryRating(ev.recuperaciones),
+      }
+    : undefined;
+
+  // ── Disparos ─────
+  const disparos: ShotStats | undefined = ev
+    ? (() => {
+        const total = ev.disparosAlArco + ev.disparosFuera;
+        return {
+          alArco: ev.disparosAlArco,
+          fuera: ev.disparosFuera,
+          total,
+          precision: safePct(ev.disparosAlArco, total),
+        };
+      })()
+    : undefined;
+
+  // ── Físicas ─────
+  const fisicasOut: PhysicalStats | undefined = fis
+    ? (() => {
+        const z = fis.zonasIntensidad;
+        const totalZ = z.caminar + z.trotar + z.correr + z.sprint || 1;
+        return {
+          velocidadMaxKmh: Math.round(fis.velocidadMaxKmh * 10) / 10,
+          velocidadPromKmh: Math.round(fis.velocidadPromKmh * 10) / 10,
+          distanciaM: Math.round(fis.distanciaM),
+          sprints: fis.sprints,
+          rating: physicalRating(fis.velocidadMaxKmh),
+          intensidadPct: {
+            caminar: Math.round((z.caminar / totalZ) * 100),
+            trotar: Math.round((z.trotar / totalZ) * 100),
+            correr: Math.round((z.correr / totalZ) * 100),
+            sprint: Math.round((z.sprint / totalZ) * 100),
+          },
+        };
+      })()
+    : undefined;
+
+  // ── Totales agregados ─────
+  const totalOfensivas =
+    (pases?.completados ?? 0) + (disparos?.alArco ?? 0);
+  const totalDefensivas =
+    (duelos?.ganados ?? 0) + (recuperaciones?.total ?? 0);
+  const totalAcciones =
+    (pases?.total ?? 0) + (duelos?.total ?? 0) +
+    (recuperaciones?.total ?? 0) + (disparos?.total ?? 0);
+
+  // ── Rating compuesto ─────
+  const { rating: performanceRating, label: performanceLabel } =
+    composeRating(pases, duelos, recuperaciones, disparos, fisicasOut);
+
+  return {
+    totalAcciones,
+    totalOfensivas,
+    totalDefensivas,
+    pases,
+    duelos,
+    recuperaciones,
+    disparos,
+    fisicas: fisicasOut,
+    performanceRating,
+    performanceLabel,
+    tieneEventos: Boolean(ev),
+    tieneFisicas: Boolean(fis),
+    fuente,
+    confianza,
+  };
+}
+
+// ─── Helpers UI (string labels) ───────────────────────────────────────────────
+
+export const RATING_LABEL_ES: Record<OverallLabel, string> = {
+  outstanding: "Excepcional",
+  excellent: "Excelente",
+  good: "Bueno",
+  average: "Promedio",
+  below: "Por debajo",
+};
+
+export const RATING_COLOR: Record<OverallLabel, string> = {
+  outstanding: "#10b981", // emerald-500
+  excellent: "#22c55e",   // green-500
+  good: "#eab308",        // yellow-500
+  average: "#f97316",     // orange-500
+  below: "#ef4444",       // red-500
+};
+
+export const KPI_RATING_LABEL_ES: Record<KpiRating, string> = {
+  elite: "Élite",
+  excelente: "Excelente",
+  bueno: "Bueno",
+  aceptable: "Aceptable",
+  bajo: "Bajo",
+};
+
+export const DUEL_RATING_LABEL_ES: Record<DuelRating, string> = {
+  dominante: "Dominante",
+  competitivo: "Competitivo",
+  igualado: "Igualado",
+  dominado: "Dominado",
+};
+
+export const PHYSICAL_RATING_LABEL_ES: Record<PhysicalRating, string> = {
+  elite: "Élite",
+  alto: "Alto",
+  medio: "Medio",
+  bajo: "Bajo",
+};
