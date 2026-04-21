@@ -19,7 +19,7 @@ import { motion } from "framer-motion";
 import {
   Target, Swords, ShieldCheck, Crosshair,
   Zap, Gauge, Activity, TrendingUp, Award,
-  Flame,
+  Flame, Eye, Hand, XCircle,
 } from "lucide-react";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import {
@@ -204,6 +204,44 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
               />
             )}
           </div>
+
+          {/* Desglose defensivo: Robos + Anticipaciones (solo si vienen desglosadas) */}
+          {(stats.robos || stats.anticipaciones) && (
+            <div className="grid grid-cols-2 gap-2">
+              {stats.robos && (
+                <KpiCardSingle
+                  icon={<Hand size={12} />}
+                  title="Robos"
+                  value={stats.robos.total}
+                  sub="tackles con contacto"
+                  ratingLabel={KPI_RATING_LABEL_ES[stats.robos.rating]}
+                  ratingColor={KPI_COLOR[stats.robos.rating]}
+                />
+              )}
+              {stats.anticipaciones && (
+                <KpiCardSingle
+                  icon={<Eye size={12} />}
+                  title="Anticipaciones"
+                  value={stats.anticipaciones.total}
+                  sub="intercepciones sin contacto"
+                  ratingLabel={KPI_RATING_LABEL_ES[stats.anticipaciones.rating]}
+                  ratingColor={KPI_COLOR[stats.anticipaciones.rating]}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Pérdidas no forzadas */}
+          {stats.perdidas && (
+            <KpiCardSingle
+              icon={<XCircle size={12} />}
+              title="Pérdidas"
+              value={stats.perdidas.total}
+              sub="errores no forzados — menos es mejor"
+              ratingLabel={KPI_RATING_LABEL_ES[stats.perdidas.rating]}
+              ratingColor={KPI_COLOR[stats.perdidas.rating]}
+            />
+          )}
         </div>
       )}
 

@@ -451,6 +451,7 @@ export function usePlayerIntelligence(player: Player) {
           // Enriquecer reporte con métricas cuantitativas client-side
           const geminiEvents = geminiObservations?.eventosContados as {
             pasesCompletados?: number; pasesFallados?: number; recuperaciones?: number;
+            robos?: number; anticipaciones?: number; perdidas?: number;
             duelosGanados?: number; duelosPerdidos?: number; disparosAlArco?: number;
             disparosFuera?: number;
           } | undefined;
@@ -478,10 +479,13 @@ export function usePlayerIntelligence(player: Player) {
                 pasesFallados:    geminiEvents!.pasesFallados ?? 0,
                 precisionPases:   totalPases > 0 ? Math.round(((geminiEvents!.pasesCompletados ?? 0) / totalPases) * 100) : 0,
                 recuperaciones:   geminiEvents!.recuperaciones ?? 0,
+                robos:            geminiEvents!.robos,             // opcional — puede no venir en reportes antiguos
+                anticipaciones:   geminiEvents!.anticipaciones,    // opcional
                 duelosGanados:    geminiEvents!.duelosGanados ?? 0,
                 duelosPerdidos:   geminiEvents!.duelosPerdidos ?? 0,
                 disparosAlArco:   geminiEvents!.disparosAlArco ?? 0,
                 disparosFuera:    geminiEvents!.disparosFuera ?? 0,
+                perdidas:         geminiEvents!.perdidas,          // opcional
               } : undefined,
               fuente: hasYolo && hasGeminiEvents ? "yolo+gemini" : hasGeminiEvents ? "gemini_only" : "yolo_only",
               confianza: hasYolo && hasGeminiEvents ? 0.85 : hasGeminiEvents ? 0.7 : 0.6,

@@ -42,8 +42,26 @@ export interface DuelStats {
 }
 
 export interface RecoveryStats {
-  total: number;               // "anticipaciones / balones recuperados"
+  total: number;               // "anticipaciones + robos + otros balones recuperados"
   rating: KpiRating;
+}
+
+/** Robos (tackles): recuperación por contacto físico. Subtipo de recuperación. */
+export interface TackleStats {
+  total: number;
+  rating: KpiRating;
+}
+
+/** Anticipaciones (intercepciones): cortar línea de pase antes del contacto. Subtipo de recuperación. */
+export interface AnticipationStats {
+  total: number;
+  rating: KpiRating;
+}
+
+/** Pérdidas: errores no forzados que entregan la posesión. */
+export interface LossStats {
+  total: number;
+  rating: KpiRating;            // invertido: menos pérdidas = mejor rating
 }
 
 export interface ShotStats {
@@ -77,6 +95,9 @@ export interface MatchStatsSummary {
   pases?: PassStats;
   duelos?: DuelStats;
   recuperaciones?: RecoveryStats;
+  robos?: TackleStats;             // subtipo de recuperación (si viene desglosado)
+  anticipaciones?: AnticipationStats; // subtipo de recuperación (si viene desglosado)
+  perdidas?: LossStats;            // turnovers no forzados
   disparos?: ShotStats;
   fisicas?: PhysicalStats;
 
@@ -104,6 +125,13 @@ const BENCHMARK = {
   duelosEfectividad: { dominante: 65, competitivo: 55, igualado: 45 },
   // Recuperaciones por análisis (clip típico de 10-20 min)
   recuperaciones: { elite: 8, excelente: 5, bueno: 3, aceptable: 1 },
+  // Robos (tackles ganados) — más exigente que recuperaciones porque requiere duelo físico
+  robos:          { elite: 4, excelente: 3, bueno: 2, aceptable: 1 },
+  // Anticipaciones — valorado más alto porque evita el contacto (lectura superior)
+  anticipaciones: { elite: 4, excelente: 3, bueno: 2, aceptable: 1 },
+  // Pérdidas — UMBRAL INVERTIDO: menos pérdidas = mejor.
+  // En un clip de 10-20 min, >5 pérdidas no forzadas = señal de mala toma de decisión
+  perdidas:       { bajo: 1, aceptable: 2, bueno: 4, alto: 6 }, // nota: "alto" es MALO aquí
   // Velocidad máxima (km/h)
   velocidadMax: { elite: 32, alto: 28, medio: 24 },
 } as const;
@@ -136,6 +164,34 @@ function recoveryRating(total: number): KpiRating {
   if (total >= BENCHMARK.recuperaciones.bueno) return "bueno";
   if (total >= BENCHMARK.recuperaciones.aceptable) return "aceptable";
   return "bajo";
+}
+
+function tackleRating(total: number): KpiRating {
+  if (total >= BENCHMARK.robos.elite) return "elite";
+  if (total >= BENCHMARK.robos.excelente) return "excelente";
+  if (total >= BENCHMARK.robos.bueno) return "bueno";
+  if (total >= BENCHMARK.robos.aceptable) return "aceptable";
+  return "bajo";
+}
+
+function anticipationRating(total: number): KpiRating {
+  if (total >= BENCHMARK.anticipaciones.elite) return "elite";
+  if (total >= BENCHMARK.anticipaciones.excelente) return "excelente";
+  if (total >= BENCHMARK.anticipaciones.bueno) return "bueno";
+  if (total >= BENCHMARK.anticipaciones.aceptable) return "aceptable";
+  return "bajo";
+}
+
+/**
+ * Rating invertido: 0 pérdidas = élite, 6+ = bajo.
+ * Mejor rating cuanto MENOS balones regalas.
+ */
+function lossRating(total: number): KpiRating {
+  if (total <= BENCHMARK.perdidas.bajo) return "elite";       // 0-1 pérdidas
+  if (total <= BENCHMARK.perdidas.aceptable) return "excelente"; // 2 pérdidas
+  if (total <= BENCHMARK.perdidas.bueno) return "bueno";      // 3-4 pérdidas
+  if (total <= BENCHMARK.perdidas.alto) return "aceptable";   // 5-6 pérdidas
+  return "bajo";                                              // 7+ pérdidas
 }
 
 function physicalRating(maxKmh: number): PhysicalRating {
@@ -236,13 +292,31 @@ export function computeMatchStats(
       })()
     : undefined;
 
-  // ── Recuperaciones / anticipaciones ─────
+  // ── Recuperaciones (agregado) ─────
   const recuperaciones: RecoveryStats | undefined = ev
     ? {
         total: ev.recuperaciones,
         rating: recoveryRating(ev.recuperaciones),
       }
     : undefined;
+
+  // ── Robos (tackles) — solo si el reporte los desglosa ─────
+  const robos: TackleStats | undefined =
+    ev && typeof ev.robos === "number"
+      ? { total: ev.robos, rating: tackleRating(ev.robos) }
+      : undefined;
+
+  // ── Anticipaciones (intercepciones) — solo si el reporte las desglosa ─────
+  const anticipaciones: AnticipationStats | undefined =
+    ev && typeof ev.anticipaciones === "number"
+      ? { total: ev.anticipaciones, rating: anticipationRating(ev.anticipaciones) }
+      : undefined;
+
+  // ── Pérdidas — solo si el reporte las trae (retro-compat) ─────
+  const perdidas: LossStats | undefined =
+    ev && typeof ev.perdidas === "number"
+      ? { total: ev.perdidas, rating: lossRating(ev.perdidas) }
+      : undefined;
 
   // ── Disparos ─────
   const disparos: ShotStats | undefined = ev
@@ -298,6 +372,9 @@ export function computeMatchStats(
     pases,
     duelos,
     recuperaciones,
+    robos,
+    anticipaciones,
+    perdidas,
     disparos,
     fisicas: fisicasOut,
     performanceRating,

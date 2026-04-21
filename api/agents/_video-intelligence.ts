@@ -252,7 +252,8 @@ Estos son datos medidos por computadora, NO estimaciones. Úsalos como referenci
           const eventCountsBlock = geminiEventCounts ? `
 EVENTOS CONTADOS (observación IA del video completo):
 - Pases completados: ${geminiEventCounts.pasesCompletados ?? 0} | Fallados: ${geminiEventCounts.pasesFallados ?? 0} | Precisión: ${((geminiEventCounts.pasesCompletados ?? 0) + (geminiEventCounts.pasesFallados ?? 0)) > 0 ? Math.round(((geminiEventCounts.pasesCompletados ?? 0) / ((geminiEventCounts.pasesCompletados ?? 0) + (geminiEventCounts.pasesFallados ?? 0))) * 100) : 0}%
-- Recuperaciones: ${geminiEventCounts.recuperaciones ?? 0}
+- Recuperaciones TOTALES: ${geminiEventCounts.recuperaciones ?? 0} (Robos/tackles: ${geminiEventCounts.robos ?? 0} · Anticipaciones/intercepciones: ${geminiEventCounts.anticipaciones ?? 0})
+- Pérdidas de balón no forzadas: ${geminiEventCounts.perdidas ?? 0}
 - Duelos ganados: ${geminiEventCounts.duelosGanados ?? 0} | Perdidos: ${geminiEventCounts.duelosPerdidos ?? 0}
 - Disparos al arco: ${geminiEventCounts.disparosAlArco ?? 0} | Fuera: ${geminiEventCounts.disparosFuera ?? 0}
 - Centros: ${geminiEventCounts.centros ?? 0} | Faltas: ${geminiEventCounts.faltas ?? 0}

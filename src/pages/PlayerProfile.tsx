@@ -27,6 +27,7 @@ import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
 import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
+import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -753,6 +754,9 @@ const PlayerProfile = () => {
             </button>
           </div>
           </PlanGuard>
+
+          {/* ── Métricas avanzadas consolidadas (VAEP/Tracking/Biomechanics) ── */}
+          <AdvancedMetricsPanel metrics={advancedMetrics} />
         </motion.div>
       )}
 

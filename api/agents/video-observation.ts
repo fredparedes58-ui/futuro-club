@@ -39,6 +39,9 @@ interface GeminiObservation {
     pressingInefectivo: number;
     escaneos: number;
     recuperaciones: number;
+    robos: number;              // tackles: recuperación POR CONTACTO (entrada al cuerpo/balón)
+    anticipaciones: number;     // intercepciones: cortar línea de pase ANTES de que el rival reciba
+    perdidas: number;           // turnovers: errores no forzados que entregan posesión
     duelosGanados: number;
     duelosPerdidos: number;
     disparosAlArco: number;
@@ -184,7 +187,10 @@ METODOLOGÍA DE OBSERVACIÓN (sigue este orden):
    - Regates CON VENTAJA (generan superioridad) vs sin ventaja
    - Pressing EFECTIVO (genera recuperación o error) vs inefectivo
    - Escaneos visuales (giros de cabeza antes de recibir)
-   - Recuperaciones (robo activo vs interceptación posicional)
+   - Recuperaciones (CUALQUIER balón ganado sin importar método — suma de robos + anticipaciones + otros)
+   - Robos (tackles): SUBTIPO de recuperación — ganar balón POR CONTACTO físico (entrada al pie/cuerpo). Requiere duelo físico
+   - Anticipaciones (intercepciones): SUBTIPO de recuperación — cortar línea de pase ANTES que el rival reciba. NO hay contacto con el rival
+   - Pérdidas (turnovers): errores NO FORZADOS que entregan posesión (mal control, pase imposible, regate temerario en zona propia). NO cuentan si el rival forzó la pérdida con una gran acción defensiva
    - Duelos ganados y perdidos (1v1 ofensivo y defensivo)
    - Disparos al arco y fuera
    - Centros intentados
@@ -221,6 +227,9 @@ Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin
     "pressingInefectivo": 2,
     "escaneos": 8,
     "recuperaciones": 2,
+    "robos": 1,
+    "anticipaciones": 1,
+    "perdidas": 2,
     "duelosGanados": 3,
     "duelosPerdidos": 1,
     "disparosAlArco": 1,
@@ -242,6 +251,8 @@ REGLAS:
 - regatesConVentaja: regates exitosos que generaron espacio, superioridad o oportunidad real (no solo "pasó al rival y perdió luego")
 - pressingEfectivo: presión que resultó en recuperación directa o error forzado del rival
 - escaneos: giros de cabeza observables ANTES de recibir el balón. Es la métrica más predictiva de inteligencia de juego
+- IMPORTANTE: robos + anticipaciones DEBEN sumar ≤ recuperaciones (son subcategorías). Si el total es 2 recuperaciones (1 robo + 1 anticipación), OK. Si sobran recuperaciones sin subcategoría específica, está bien dejar robos/anticipaciones menores — preferible sub-contar que inventar
+- perdidas: NO incluyas pases fallados (esos ya están en pasesFallados). Una pérdida es cuando pierdes la posesión sin que haya habido un intento de pase — ej: mal control en área propia, regate temerario fallido, pase hacia atrás que intercepta el rival
 - Responde en español
 - Solo JSON válido, sin markdown ni backticks`;
 

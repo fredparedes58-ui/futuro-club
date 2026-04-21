@@ -349,10 +349,15 @@ export const VideoIntelligenceOutputSchema = z.object({
       pasesFallados:    z.number(),
       precisionPases:   z.number(),
       recuperaciones:   z.number(),
+      // Desglose de recuperaciones (opcional — retrocompatible con reportes previos)
+      robos:            z.number().optional(),  // tackles: ganar balón por contacto/entrada
+      anticipaciones:   z.number().optional(),  // interceptaciones: cortar línea de pase
       duelosGanados:    z.number(),
       duelosPerdidos:   z.number(),
       disparosAlArco:   z.number(),
       disparosFuera:    z.number(),
+      // Pérdidas de balón (opcional): fallo técnico que da posesión al rival
+      perdidas:         z.number().optional(),
     }).optional(),
     fuente:    z.enum(["yolo+gemini", "gemini_only", "yolo_only"]),
     confianza: z.number().min(0).max(1),
