@@ -15,7 +15,7 @@
   --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
   --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
   --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
-  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --good:#0FA968;--warn:#B5820C;--bad:#DC2626;
   --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
   --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
   --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
@@ -26,12 +26,9 @@
   --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
 }
 
-  :root{
-    --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
-    --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#0055B3; --brand-2:#9A1FB5; --accent:#D9A10F; --warn:#E61A85; --danger:#DC2626;
-    --card:#0E1838; --border:rgba(15,23,42,0.06); --border-hi:rgba(255,255,255,0.14);
-  }
+
+
+  
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   body{background:
@@ -235,6 +232,12 @@
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:0.01s!important;animation-iteration-count:1!important}
 }
+
+
+
+/* VITAS FORCE LIGHT - override final */
+html,body{background:#F4F7FB!important;color:#0F172A!important}
+body{font-family:'Inter',system-ui,sans-serif}
 
 </style>
 </head>
@@ -922,7 +925,7 @@ new ApexCharts(document.querySelector('#chart-journey'),{
   chart:{...common.chart, type:'bar', height:360},
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, distributed:true, barHeight:'60%' }},
   series:[{ data:[100, 32, 18, 9.8, 7.6, 9.1] }],
-  colors:['#9A1FB5','#4F46E5','#0055B3','#059669','#D9A10F','#E61A85'],
+  colors:['#9A1FB5','#0055B3','#0055B3','#059669','#D9A10F','#E61A85'],
   xaxis:{ categories:['Descubrimiento (visita)','Activación (signup)','First value (análisis completo)','Conversión (pago)','Retención m3','Expansión (upsell)'] },
   dataLabels:{ enabled:true, style:{colors:['#E6EDF7'],fontWeight:600}, formatter:v=>v+'%' },
   yaxis:{ labels:{ formatter:v=>v+'%'} },

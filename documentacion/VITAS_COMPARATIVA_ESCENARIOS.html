@@ -15,7 +15,7 @@
   --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
   --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
   --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
-  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --good:#0FA968;--warn:#B5820C;--bad:#DC2626;
   --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
   --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
   --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
@@ -26,13 +26,9 @@
   --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
 }
 
-  :root{
-    --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
-    --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#0055B3; --brand-2:#9A1FB5; --accent:#D9A10F; --warn:#E61A85; --cyan:#0F857A; --danger:#DC2626;
-    --card:#0E1838; --border:rgba(15,23,42,0.06); --border-hi:rgba(255,255,255,0.14);
-    --scn-cons:#D9A10F; --scn-real:#0055B3; --scn-agg:#9A1FB5;
-  }
+
+
+  
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   body{background:
@@ -139,7 +135,7 @@
   .strat .s-kpi .chip{font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(15,23,42,0.03);border:1px solid var(--border);color:var(--ink-mute);letter-spacing:0.05em;text-transform:uppercase;font-weight:600}
 
   .risk-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase}
-  .risk-low{background:rgba(16,185,129,0.12);color:#10B981;border:1px solid rgba(16,185,129,0.3)}
+  .risk-low{background:rgba(16,185,129,0.12);color:#0FA968;border:1px solid rgba(16,185,129,0.3)}
   .risk-med{background:rgba(225,162,15,0.12);color:var(--accent);border:1px solid rgba(225,162,15,0.3)}
   .risk-high{background:rgba(230,26,133,0.12);color:var(--warn);border:1px solid rgba(230,26,133,0.3)}
 
@@ -269,6 +265,12 @@
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:0.01s!important;animation-iteration-count:1!important}
 }
+
+
+
+/* VITAS FORCE LIGHT - override final */
+html,body{background:#F4F7FB!important;color:#0F172A!important}
+body{font-family:'Inter',system-ui,sans-serif}
 
 </style>
 </head>
@@ -533,7 +535,7 @@
         <tr><td style="color:var(--ink-soft)">Gross margin %</td><td class="num">78%</td><td class="num">82%</td><td class="num">85%</td></tr>
         <tr><td>— OpEx (ex-COGS)</td><td class="num">(4,710)</td><td class="num">(7,620)</td><td class="num">(12,160)</td></tr>
         <tr class="row-sum"><td>EBITDA Y5</td><td class="num cons"><strong>(1,590)</strong></td><td class="num real"><strong>254</strong></td><td class="num agg"><strong>505</strong></td></tr>
-        <tr><td style="color:var(--ink-soft)">EBITDA margin %</td><td class="num" style="color:var(--danger)">-40%</td><td class="num" style="color:#10B981">+3%</td><td class="num" style="color:#10B981">+3%</td></tr>
+        <tr><td style="color:var(--ink-soft)">EBITDA margin %</td><td class="num" style="color:var(--danger)">-40%</td><td class="num" style="color:#0FA968">+3%</td><td class="num" style="color:#0FA968">+3%</td></tr>
         <tr><td style="color:var(--ink-soft)">Rule of 40 Y5</td><td class="num">28</td><td class="num">98</td><td class="num">112</td></tr>
       </tbody>
     </table>

@@ -11,7 +11,7 @@
   --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
   --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
   --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
-  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --good:#0FA968;--warn:#B5820C;--bad:#DC2626;
   --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
   --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
   --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
@@ -22,22 +22,9 @@
   --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
 }
 
-  :root {
-    --primary: #0059B3;
-    --primary-lt: #0066CC;
-    --electric: #A855F7;
-    --gold: #D4940A;
-    --cyan: #158585;
-    --pink: #E6197A;
-    --bg: #F5F7FA;
-    --card: #FFFFFF;
-    --border: #D8DFE9;
-    --fg: #0F1729;
-    --muted: #38455A;
-    --dim: #5A6A82;
-    --success: #22C55E;
-    --danger: #EF4444;
-  }
+
+
+  
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -361,6 +348,12 @@
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:0.01s!important;animation-iteration-count:1!important}
 }
+
+
+
+/* VITAS FORCE LIGHT - override final */
+html,body{background:#F4F7FB!important;color:#0F172A!important}
+body{font-family:'Inter',system-ui,sans-serif}
 
 </style>
 </head>
@@ -762,12 +755,12 @@ Supabase persistencia → UI (Heatmap, Voronoi, Reporte PDF)</div>
     <div class="grid-3">
       <div class="swatch"><div class="box" style="background:#0059B3"></div><div class="meta"><b>Primary</b>#0059B3</div></div>
       <div class="swatch"><div class="box" style="background:#0066CC"></div><div class="meta"><b>Primary Lt</b>#0066CC</div></div>
-      <div class="swatch"><div class="box" style="background:#A855F7"></div><div class="meta"><b>Electric</b>#A855F7</div></div>
+      <div class="swatch"><div class="box" style="background:#B84FD0"></div><div class="meta"><b>Electric</b>#B84FD0</div></div>
       <div class="swatch"><div class="box" style="background:#D4940A"></div><div class="meta"><b>Gold</b>#D4940A</div></div>
       <div class="swatch"><div class="box" style="background:#158585"></div><div class="meta"><b>Cyan</b>#158585</div></div>
       <div class="swatch"><div class="box" style="background:#E6197A"></div><div class="meta"><b>Hot Pink</b>#E6197A</div></div>
-      <div class="swatch"><div class="box" style="background:#22C55E"></div><div class="meta"><b>Success</b>#22C55E</div></div>
-      <div class="swatch"><div class="box" style="background:#EF4444"></div><div class="meta"><b>Danger</b>#EF4444</div></div>
+      <div class="swatch"><div class="box" style="background:#0FA968"></div><div class="meta"><b>Success</b>#0FA968</div></div>
+      <div class="swatch"><div class="box" style="background:#DC2626"></div><div class="meta"><b>Danger</b>#DC2626</div></div>
       <div class="swatch"><div class="box" style="background:#0F1729"></div><div class="meta"><b>Text</b>#0F1729</div></div>
     </div>
 
@@ -793,7 +786,7 @@ Supabase persistencia → UI (Heatmap, Voronoi, Reporte PDF)</div>
     <h3>La tríada de color</h3>
     <div class="quote">
       <b>Primary Blue</b> (#0059B3) → Confianza, tecnología, profesionalismo<br>
-      <b>Electric Purple</b> (#A855F7) → Innovación, IA, datos avanzados<br>
+      <b>Electric Purple</b> (#B84FD0) → Innovación, IA, datos avanzados<br>
       <b>Gold</b> (#D4940A) → Excelencia, talento, logros
     </div>
   </section>

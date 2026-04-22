@@ -15,7 +15,7 @@
   --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
   --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
   --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
-  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --good:#0FA968;--warn:#B5820C;--bad:#DC2626;
   --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
   --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
   --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
@@ -25,8 +25,10 @@
   --shadow-md:0 10px 30px -12px rgba(15,23,42,0.15),0 2px 8px rgba(15,23,42,0.05);
   --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
 }
+
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;scroll-behavior:smooth}
+html,body {background:var(--bg)!important;color:var(--text)!important;color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;scroll-behavior:smooth}
 .container{max-width:1400px;margin:0 auto;padding:0 32px}
 h1,h2,h3,h4{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:-0.01em}
 .mono{font-family:'JetBrains Mono',monospace}
@@ -290,6 +292,12 @@ footer .copy{padding-top:30px;border-top:1px solid var(--line);color:#64748B;fon
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:0.01s!important;animation-iteration-count:1!important}
 }
+
+
+
+/* VITAS FORCE LIGHT - override final */
+html,body{background:#F4F7FB!important;color:#0F172A!important}
+body{font-family:'Inter',system-ui,sans-serif}
 
 </style>
 </head>

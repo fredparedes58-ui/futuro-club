@@ -677,85 +677,151 @@ const VIDEO_CSS = `
 // TRANSFORMACIONES
 // ============================================================
 function applyLightPalette(html){
-  // 1) Reemplazar el bloque :root completo (si coincide con el mío)
-  html = html.replace(
-    /:root\{[\s\S]*?--grad3?:[\s\S]*?\}/,
-    LIGHT_VARS
-  );
-  // fallback: si no matcheó, inyectar al inicio del style
-  if(!html.includes('--bg:#F4F7FB')){
-    html = html.replace(/<style>/, `<style>\n${LIGHT_VARS}\n`);
-  }
+  // 1) ELIMINAR TODOS los bloques :root{...} y :root { ... } del documento
+  html = html.replace(/:root\s*\{[\s\S]*?\}/g, '');
 
-  // 2) Fondos oscuros generales
+  // 2) Inyectar UN solo :root VITAS light justo después de <style>
+  html = html.replace(/<style>/i, `<style>\n${LIGHT_VARS}\n`);
+
+  // 3) Fondos oscuros heredados (tema dark original)
   html = html
-    .replace(/background:#05070f/g,'background:#F4F7FB')
-    .replace(/background:#0b1223/g,'background:#FFFFFF')
-    .replace(/background:#03060d/g,'background:#FFFFFF')
-    .replace(/#05070f/g,'#F4F7FB')
-    .replace(/#0b1223/g,'#FFFFFF')
-    .replace(/#03060d/g,'#FFFFFF')
-    .replace(/rgba\(255,255,255,0\.04\)/g,'rgba(15,23,42,0.03)')
-    .replace(/rgba\(255,255,255,0\.03\)/g,'rgba(15,23,42,0.02)')
-    .replace(/rgba\(255,255,255,0\.02\)/g,'rgba(15,23,42,0.015)')
-    .replace(/rgba\(255,255,255,0\.06\)/g,'rgba(15,23,42,0.04)')
-    .replace(/rgba\(255,255,255,0\.08\)/g,'rgba(15,23,42,0.06)')
-    .replace(/rgba\(255,255,255,0\.1\)/g,'rgba(15,23,42,0.08)')
-    .replace(/rgba\(11,18,35,0\.85\)/g,'rgba(246,248,252,0.9)')
-    .replace(/rgba\(11,18,35,0\.9\)/g,'rgba(246,248,252,0.95)')
-    .replace(/rgba\(11,18,35,0\.8\)/g,'rgba(246,248,252,0.85)')
-    .replace(/background:rgba\(5,7,15,0\.85\)/g,'background:rgba(246,248,252,0.9)');
+    .replace(/background:\s*#05070f/gi,'background:#F4F7FB')
+    .replace(/background:\s*#0b1223/gi,'background:#FFFFFF')
+    .replace(/background:\s*#03060d/gi,'background:#FFFFFF')
+    .replace(/background:\s*#0a0d1a/gi,'background:#FFFFFF')
+    .replace(/background:\s*#0d1117/gi,'background:#FFFFFF')
+    .replace(/#05070f/gi,'#F4F7FB')
+    .replace(/#0b1223/gi,'#FFFFFF')
+    .replace(/#03060d/gi,'#FFFFFF')
+    .replace(/#0a0d1a/gi,'#FFFFFF')
+    .replace(/#0d1117/gi,'#FFFFFF');
 
-  // 3) Colores de texto específicos
+  // 4) Paleta dark Tailwind que quedó hardcoded (HTMLs anteriores)
+  //    → migrar a paleta VITAS light
   html = html
-    .replace(/color:#e7ecf7/g,'color:#0F172A')
-    .replace(/color:#9aa5c4/g,'color:#475569')
-    .replace(/color:#7a87a6/g,'color:#64748B')
-    .replace(/color:#5c6784/g,'color:#64748B')
-    .replace(/color:#FF6B8E/g,'color:#DC2626')
-    .replace(/#7B8CFF/g,'#2B7BDE');
+    // Fondos oscuros Tailwind / slate como BACKGROUND en gradientes
+    .replace(/linear-gradient\(135deg,\s*#0F172A\s*0%,\s*#1E1B4B\s*50%,\s*#0F172A\s*100%\)/gi,
+             'linear-gradient(135deg,#F4F7FB 0%,#E8EFFA 50%,#F4F7FB 100%)')
+    .replace(/linear-gradient\(135deg,\s*#1E293B[^)]*\)/gi,
+             'linear-gradient(135deg,#FFFFFF 0%,#F4F7FB 100%)')
+    .replace(/linear-gradient\([^)]*#0F172A[^)]*#1E1B4B[^)]*\)/gi,
+             'linear-gradient(135deg,#F4F7FB 0%,#E8EFFA 100%)')
+    // Backgrounds explícitos con slate dark
+    .replace(/background:\s*#1E293B/gi,'background:#FFFFFF')
+    .replace(/background:\s*#334155/gi,'background:#F4F7FB')
+    .replace(/background:\s*#0F172A(?!\s*;?\s*(?:color|stroke|fill))/gi,'background:#F4F7FB')
+    // radial-gradient con Tailwind indigo/cyan transparentes (ajustar a VITAS)
+    .replace(/rgba\(79,\s*70,\s*229,\s*0\.15\)/gi,'rgba(0,85,179,0.12)')
+    .replace(/rgba\(79,\s*70,\s*229,\s*0\.1\)/gi,'rgba(0,85,179,0.08)')
+    .replace(/rgba\(6,\s*182,\s*212,\s*0\.1\)/gi,'rgba(15,133,122,0.08)')
+    .replace(/rgba\(6,\s*182,\s*212,\s*0\.15\)/gi,'rgba(15,133,122,0.12)');
 
-  // 4) Gradientes específicos de fondos
+  // 5) Colores hardcoded Tailwind → paleta VITAS
+  html = html
+    // Indigo/blue
+    .replace(/#4F46E5/gi,'#0055B3')
+    .replace(/#3730A3/gi,'#003E85')
+    .replace(/#818CF8/gi,'#2B7BDE')
+    .replace(/#6366F1/gi,'#0055B3')
+    // Cyan
+    .replace(/#06B6D4/gi,'#0F857A')
+    .replace(/#0891B2/gi,'#0B6D63')
+    .replace(/#22D3EE/gi,'#0F857A')
+    // Emerald/green
+    .replace(/#22C55E/gi,'#0FA968')
+    .replace(/#16A34A/gi,'#0E8F57')
+    .replace(/#10B981/gi,'#0FA968')
+    // Amber/warning
+    .replace(/#F59E0B/gi,'#D9A10F')
+    .replace(/#D97706/gi,'#B5820C')
+    .replace(/#FFD700/gi,'#D9A10F')
+    .replace(/#FBBF24/gi,'#D9A10F')
+    // Red/danger
+    .replace(/#EF4444/gi,'#DC2626')
+    .replace(/#F87171/gi,'#EF4444')
+    // Purple/magenta
+    .replace(/#9333EA/gi,'#9A1FB5')
+    .replace(/#A855F7/gi,'#B84FD0')
+    .replace(/#C084FC/gi,'#B84FD0')
+    .replace(/#D946EF/gi,'#E61A85')
+    // Slate/text oscuro → VITAS muted
+    .replace(/#F8FAFC/gi,'#FFFFFF')
+    .replace(/#94A3B8/gi,'#64748B')
+    .replace(/#475569(?=\s*[;}"'\s])/gi,'#475569') // ya es VITAS muted, conservar
+    // Paletas antiguas VITAS
+    .replace(/#0066FF/gi,'#0055B3')
+    .replace(/#C025E0/gi,'#9A1FB5')
+    .replace(/#E1A20F/gi,'#D9A10F')
+    .replace(/#00B4C6/gi,'#0F857A')
+    .replace(/#18C27A/gi,'#0FA968')
+    .replace(/#FFB020/gi,'#D97706')
+    .replace(/#FF3D71/gi,'#DC2626')
+    .replace(/#7B8CFF/gi,'#2B7BDE')
+    .replace(/#FF6B8E/gi,'#DC2626');
+
+  // 6) Texto heredado dark → texto VITAS
+  html = html
+    .replace(/color:\s*#e7ecf7/gi,'color:#0F172A')
+    .replace(/color:\s*#9aa5c4/gi,'color:#475569')
+    .replace(/color:\s*#7a87a6/gi,'color:#64748B')
+    .replace(/color:\s*#5c6784/gi,'color:#64748B')
+    .replace(/color:\s*#F8FAFC/gi,'color:#0F172A');
+
+  // 7) rgba blanco overlay sobre fondo oscuro → rgba negro sobre fondo claro
+  html = html
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.04\)/gi,'rgba(15,23,42,0.03)')
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.03\)/gi,'rgba(15,23,42,0.02)')
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.02\)/gi,'rgba(15,23,42,0.015)')
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.06\)/gi,'rgba(15,23,42,0.04)')
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.08\)/gi,'rgba(15,23,42,0.06)')
+    .replace(/rgba\(255,\s*255,\s*255,\s*0\.1\)/gi,'rgba(15,23,42,0.08)')
+    .replace(/rgba\(11,\s*18,\s*35,\s*0\.85\)/gi,'rgba(246,248,252,0.9)')
+    .replace(/rgba\(11,\s*18,\s*35,\s*0\.9\)/gi,'rgba(246,248,252,0.95)')
+    .replace(/rgba\(11,\s*18,\s*35,\s*0\.8\)/gi,'rgba(246,248,252,0.85)')
+    .replace(/background:\s*rgba\(5,\s*7,\s*15,\s*0\.85\)/gi,'background:rgba(246,248,252,0.9)');
+
+  // 8) Gradientes transparentes blancos → tonos VITAS
   html = html.replace(
-    /linear-gradient\(180deg,rgba\(255,255,255,0\.04\),rgba\(255,255,255,0\.01\)\)/g,
+    /linear-gradient\(180deg,\s*rgba\(255,\s*255,\s*255,\s*0\.04\),\s*rgba\(255,\s*255,\s*255,\s*0\.01\)\)/gi,
     'linear-gradient(180deg,#FFFFFF,#F8FAFD)'
   );
 
-  // 5) Colores vivos (migrar al tono más sobrio VITAS tema claro)
+  // 9) ApexCharts theme
   html = html
-    .replace(/#0066FF/g,'#0055B3')
-    .replace(/#C025E0/g,'#9A1FB5')
-    .replace(/#E1A20F/g,'#D9A10F')
-    .replace(/#00B4C6/g,'#0F857A')
-    .replace(/#18C27A/g,'#0FA968')
-    .replace(/#FFB020/g,'#D97706')
-    .replace(/#FF3D71/g,'#DC2626');
+    .replace(/theme:\s*'dark'/gi,"theme:'light'")
+    .replace(/theme:\s*"dark"/gi,'theme:"light"');
 
-  // 6) Cambiar theme:'dark' de ApexCharts por 'light'
-  html = html.replace(/theme:'dark'/g,"theme:'light'");
-  html = html.replace(/theme:"dark"/g,'theme:"light"');
-
-  // 7) Actualizar el objeto theme JS del <script>
+  // 10) Objeto JS de theme
   html = html.replace(
-    /const theme=\{blue:'#[^']+',purple:'#[^']+',gold:'#[^']+',pink:'#[^']+',cyan:'#[^']+'/g,
+    /const theme\s*=\s*\{[^}]*blue:\s*'#[^']+'[^}]*purple:\s*'#[^']+'[^}]*gold:\s*'#[^']+'[^}]*pink:\s*'#[^']+'[^}]*cyan:\s*'#[^']+'/g,
     "const theme={blue:'#0055B3',purple:'#9A1FB5',gold:'#D9A10F',pink:'#E61A85',cyan:'#0F857A'"
   );
+  html = html
+    .replace(/muted:\s*'#9aa5c4'/gi, "muted:'#475569'")
+    .replace(/grid:\s*'rgba\(255,\s*255,\s*255,\s*0\.08\)'/gi, "grid:'rgba(15,23,42,0.08)'")
+    .replace(/text:\s*'#e7ecf7'/gi, "text:'#0F172A'")
+    .replace(/foreColor:\s*theme\.text/gi,'foreColor:"#0F172A"')
+    .replace(/foreColor:\s*['"]#F8FAFC['"]/gi,'foreColor:"#0F172A"');
+
+  // 11) body { background:... } forzar a VITAS
   html = html.replace(
-    /muted:'#9aa5c4'/g, "muted:'#475569'"
-  );
-  html = html.replace(
-    /grid:'rgba\(255,255,255,0\.08\)'/g, "grid:'rgba(15,23,42,0.08)'"
-  );
-  html = html.replace(
-    /text:'#e7ecf7'/g, "text:'#0F172A'"
+    /body\s*\{([^}]*?)background:\s*var\(--bg\);/gi,
+    'body {$1background:var(--bg)!important;color:var(--text)!important;'
   );
 
-  // 8) ApexCharts foreColor
-  html = html.replace(/foreColor:theme\.text/g,'foreColor:"#0F172A"');
+  // 12) Asegurar fondo claro sobre html + body (override final por si acaso)
+  const OVERRIDE = `
+/* VITAS FORCE LIGHT - override final */
+html,body{background:#F4F7FB!important;color:#0F172A!important}
+body{font-family:'Inter',system-ui,sans-serif}
+`;
+  if(!html.includes('VITAS FORCE LIGHT')){
+    html = html.replace(/<\/style>/i, `\n${OVERRIDE}\n</style>`);
+  }
 
-  // 9) Añadir CSS de videos animados si no está
+  // 13) Inyectar VIDEO_CSS si no está
   if(!html.includes('.vid-hero')){
-    html = html.replace(/<\/style>/, `\n${VIDEO_CSS}\n</style>`);
+    html = html.replace(/<\/style>/i, `\n${VIDEO_CSS}\n</style>`);
   }
 
   return html;
