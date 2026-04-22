@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VITAS · Documentación institucional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#05070f;--blue:#0066FF;--purple:#C025E0;--gold:#E1A20F;--pink:#E61A85;--cyan:#00B4C6;
+  --text:#e7ecf7;--muted:#9aa5c4;--line:rgba(255,255,255,0.08);
+  --grad:linear-gradient(135deg,var(--blue) 0%,var(--purple) 60%,var(--pink) 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;min-height:100vh}
+.container{max-width:1400px;margin:0 auto;padding:60px 32px}
+h1,h2,h3{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:-0.01em}
+
+header{position:relative;padding:40px 0 60px;border-bottom:1px solid var(--line);margin-bottom:60px;overflow:hidden}
+header::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(800px 400px at 80% 20%,rgba(192,37,224,0.2),transparent 60%),
+  radial-gradient(700px 350px at 15% 80%,rgba(0,102,255,0.18),transparent 60%);z-index:0}
+.logo{position:relative;font-family:'Rajdhani';font-weight:700;font-size:28px;letter-spacing:0.05em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:20px}
+h1{position:relative;font-size:clamp(42px,6vw,88px);line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px}
+.lead{position:relative;font-size:19px;color:var(--muted);max-width:820px;margin-bottom:30px}
+.note{position:relative;display:inline-block;padding:12px 20px;border-radius:12px;background:rgba(225,162,15,0.1);border:1px solid rgba(225,162,15,0.3);color:var(--gold);font-size:14px;font-weight:500}
+
+.group{margin-bottom:60px}
+.group-title{font-size:24px;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.group-title .bar{width:4px;height:28px;border-radius:4px}
+.group-title.institucional .bar{background:var(--grad)}
+.group-title.mercado .bar{background:linear-gradient(180deg,var(--cyan),var(--blue))}
+.group-title.planning .bar{background:linear-gradient(180deg,var(--gold),var(--pink))}
+.group-desc{font-size:15px;color:var(--muted);margin-bottom:28px;margin-left:16px}
+
+.doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+
+.doc-card{display:block;padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);text-decoration:none;color:inherit;transition:transform .25s,border-color .25s,box-shadow .25s;position:relative;overflow:hidden}
+.doc-card:hover{transform:translateY(-6px);border-color:rgba(0,102,255,0.4);box-shadow:0 20px 40px -20px rgba(0,102,255,0.3)}
+.doc-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%}
+.doc-card.c1::before{background:var(--gold)}
+.doc-card.c2::before{background:var(--blue)}
+.doc-card.c3::before{background:var(--cyan)}
+.doc-card.c4::before{background:var(--pink)}
+.doc-card.c5::before{background:var(--purple)}
+.doc-card .tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;margin-bottom:14px}
+.doc-card.c1 .tag{background:rgba(225,162,15,0.15);color:var(--gold)}
+.doc-card.c2 .tag{background:rgba(0,102,255,0.15);color:var(--blue)}
+.doc-card.c3 .tag{background:rgba(0,180,198,0.15);color:var(--cyan)}
+.doc-card.c4 .tag{background:rgba(230,26,133,0.15);color:var(--pink)}
+.doc-card.c5 .tag{background:rgba(192,37,224,0.15);color:var(--purple)}
+.doc-card h3{font-size:22px;margin-bottom:8px}
+.doc-card p{font-size:14px;color:var(--muted);margin-bottom:16px}
+.doc-card .meta{display:flex;gap:14px;font-size:12px;color:var(--muted);padding-top:14px;border-top:1px solid var(--line)}
+.doc-card .meta strong{color:var(--text)}
+.doc-card .open{position:absolute;top:24px;right:24px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:18px;transition:background .2s,color .2s}
+.doc-card:hover .open{background:var(--grad);color:#fff}
+
+.instructions{margin-top:60px;padding:36px;border-radius:18px;background:linear-gradient(135deg,rgba(0,102,255,0.08),rgba(192,37,224,0.05));border:1px solid var(--line)}
+.instructions h2{font-size:26px;margin-bottom:14px}
+.instructions ol{padding-left:24px;color:var(--muted)}
+.instructions li{padding:6px 0;font-size:14.5px}
+.instructions li strong{color:var(--text)}
+.instructions code{font-family:'JetBrains Mono';background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:5px;font-size:13px;color:var(--cyan)}
+
+footer{margin-top:60px;padding:30px 0;border-top:1px solid var(--line);text-align:center;color:#7a87a6;font-size:13px}
+
+@media (max-width:960px){.doc-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="logo">VITAS · Documentación</div>
+    <h1>Kit institucional<br/>& materiales de venta</h1>
+    <p class="lead">10 documentos HTML navegables con la paleta, tipografía y gráficas premium de VITAS. Abre cualquiera, revisa el contenido y expórtalo a PDF con <code style="font-family:'JetBrains Mono';background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:5px;font-size:13px;color:var(--cyan)">Ctrl+P → Guardar como PDF</code> para enviarlo por email.</p>
+    <div class="note">💡 Documentos locales · no públicos en Vercel · listos para imprimir a PDF</div>
+  </header>
+
+  <!-- GRUPO 1 — INSTITUCIONAL -->
+  <div class="group">
+    <h2 class="group-title institucional"><span class="bar"></span>Kit institucional de venta</h2>
+    <p class="group-desc">Los 4 documentos diseñados para presentar VITAS a cualquier stakeholder (federación, club, familias).</p>
+
+    <div class="doc-grid">
+      <a href="VITAS_DOSSIER_EJECUTIVO.html" class="doc-card c2">
+        <div class="open">→</div>
+        <div class="tag">Dossier maestro</div>
+        <h3>Dossier Ejecutivo</h3>
+        <p>Documento universal con los 8 módulos, comparativa vs. competencia, 5 tiers de precios, ROI y roadmap. Para cualquier audiencia.</p>
+        <div class="meta"><span><strong>9</strong> secciones</span><span><strong>5</strong> audiencias</span><span><strong>4</strong> charts</span></div>
+      </a>
+
+      <a href="VITAS_PROPUESTA_FFCV.html" class="doc-card c1">
+        <div class="open">→</div>
+        <div class="tag">FFCV exclusivo</div>
+        <h3>Propuesta FFCV</h3>
+        <p>Master License €65K/año para la Federación Valenciana. Piloto 60 días gratis, 8 KPIs auditables, contrato 3 años con exclusividad.</p>
+        <div class="meta"><span><strong>€65K</strong>/año</span><span><strong>1,200</strong> clubes</span><span><strong>85K</strong> federados</span></div>
+      </a>
+
+      <a href="VITAS_PROPUESTA_CLUBES.html" class="doc-card c3">
+        <div class="open">→</div>
+        <div class="tag">Clubes</div>
+        <h3>Propuesta Clubes</h3>
+        <p>Para directores deportivos de 3ª RFEF a Preferente. 3 tiers (Starter/Pro/Elite), ROI 6× en Y1, onboarding 72h, caso real.</p>
+        <div class="meta"><span><strong>€2.4K-18.5K</strong></span><span><strong>6×</strong> ROI Y1</span><span><strong>72h</strong> onboarding</span></div>
+      </a>
+
+      <a href="VITAS_PROPUESTA_FAMILIAS.html" class="doc-card c4">
+        <div class="open">→</div>
+        <div class="tag">Familias B2B2C</div>
+        <h3>Propuesta Familias</h3>
+        <p>Parent Pro €9/m + Player Pro €5/m. Privacidad RGPD/LOPIVI, 9 features, testimoniales y FAQ completo para el usuario final.</p>
+        <div class="meta"><span><strong>€9/m</strong></span><span><strong>7 días</strong> gratis</span><span><strong>RGPD</strong> total</span></div>
+      </a>
+    </div>
+  </div>
+
+  <!-- GRUPO 2 — MERCADO Y COMPETENCIA -->
+  <div class="group">
+    <h2 class="group-title mercado"><span class="bar"></span>Estudios de mercado y competencia</h2>
+    <p class="group-desc">Análisis detallado del mercado objetivo, personas, tiers SAM/SOM y comparativa frente a competidores.</p>
+
+    <div class="doc-grid">
+      <a href="VITAS_ESTUDIO_MERCADO.html" class="doc-card c3">
+        <div class="open">→</div>
+        <div class="tag">Mercado</div>
+        <h3>Estudio de Mercado</h3>
+        <p>5 personas (incluye padres Elena & Pablo), tiers de pricing, matriz SAM/SOM con €2.1M SOM en segmento familias.</p>
+        <div class="meta"><span><strong>5</strong> personas</span><span><strong>6</strong> tiers</span><span><strong>€2.1M</strong> SOM padres</span></div>
+      </a>
+
+      <a href="VITAS_ANALISIS_COMPETENCIA.html" class="doc-card c4">
+        <div class="open">→</div>
+        <div class="tag">Competencia</div>
+        <h3>Análisis de Competencia</h3>
+        <p>Matriz de features vs. Wyscout, InStat, Hudl, Once Eleven. Portal familias y canal B2B2C como moats exclusivos de VITAS.</p>
+        <div class="meta"><span><strong>6</strong> competidores</span><span><strong>6</strong> moats</span><span><strong>1</strong> único PHV</span></div>
+      </a>
+
+      <a href="VITAS_CONTEXTO_CONTENIDO.html" class="doc-card c5">
+        <div class="open">→</div>
+        <div class="tag">Contexto</div>
+        <h3>Contexto y Contenido</h3>
+        <p>Contenido editorial, narrativa de producto y brand story de VITAS. Base para landing pages, pitch deck y materiales comerciales.</p>
+        <div class="meta"><span>Editorial</span><span>Brand story</span><span>Narrativa</span></div>
+      </a>
+    </div>
+  </div>
+
+  <!-- GRUPO 3 — PROYECCIONES Y ESCENARIOS -->
+  <div class="group">
+    <h2 class="group-title planning"><span class="bar"></span>Proyecciones financieras y escenarios</h2>
+    <p class="group-desc">Modelo económico, trayectorias de 5 años, 3 escenarios y estrategias implementables.</p>
+
+    <div class="doc-grid">
+      <a href="VITAS_PROYECCIONES_FINANCIERAS.html" class="doc-card c1">
+        <div class="open">→</div>
+        <div class="tag">Finanzas</div>
+        <h3>Proyecciones Financieras</h3>
+        <p>12 secciones: ARR €9.6M Y5, 19K clientes (+13.5K padres B2B2C), cohortes, runway, waterfall, sensibilidad, unit economics.</p>
+        <div class="meta"><span><strong>€9.6M</strong> ARR Y5</span><span><strong>110×</strong> vs Y1</span><span><strong>12</strong> secciones</span></div>
+      </a>
+
+      <a href="VITAS_COMPARATIVA_ESCENARIOS.html" class="doc-card c2">
+        <div class="open">→</div>
+        <div class="tag">Escenarios</div>
+        <h3>Comparativa Escenarios</h3>
+        <p>3 escenarios (Conservador/Realista/Agresivo), 6 estrategias reales, matriz decisión, roadmap 2026-2031 y recomendación ejecutiva.</p>
+        <div class="meta"><span><strong>3</strong> escenarios</span><span><strong>6</strong> estrategias</span><span><strong>4.7×</strong> ROI core</span></div>
+      </a>
+
+      <a href="VITAS_COMPLETO_NO_TECNICO.html" class="doc-card c5">
+        <div class="open">→</div>
+        <div class="tag">Overview</div>
+        <h3>Presentación No Técnica</h3>
+        <p>Documento completo en lenguaje accesible, sin jerga técnica. Pensado para directivos, inversores y stakeholders no-tech.</p>
+        <div class="meta"><span>No-tech</span><span>Directivos</span><span>Inversores</span></div>
+      </a>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h2>📄 Cómo exportar a PDF</h2>
+    <ol>
+      <li><strong>Abre</strong> el HTML que quieras exportar haciendo clic en su tarjeta.</li>
+      <li>Pulsa <code>Ctrl+P</code> (Windows/Linux) o <code>Cmd+P</code> (Mac).</li>
+      <li>En "Destino" elige <strong>"Guardar como PDF"</strong>.</li>
+      <li>Configura: Tamaño <strong>A4</strong>, Márgenes <strong>Predeterminados o Ninguno</strong>, Gráficos de fondo <strong>ACTIVADOS</strong> (para preservar colores).</li>
+      <li>Pulsa <strong>Guardar</strong> y listo — el PDF mantiene la paleta, tipografía y gráficas.</li>
+    </ol>
+    <p style="color:var(--muted);font-size:14px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)">
+      💡 <strong>Tip:</strong> Todos los documentos tienen CSS <code>@media print</code> ya optimizado — ocultan la navegación y los botones interactivos al imprimir.
+    </p>
+  </div>
+
+  <footer>
+    © 2026 VITAS · Football Intelligence · Documentación interna confidencial · pedro.paredes@kenmei.ai
+  </footer>
+
+</div>
+
+</body>
+</html>
