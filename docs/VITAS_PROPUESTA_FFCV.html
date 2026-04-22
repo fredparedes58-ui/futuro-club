@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VITAS × FFCV · Propuesta institucional exclusiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
+<style>
+:root{
+  --bg:#05070f;--bg2:#0b1223;--bg3:#0f1a33;
+  --blue:#0066FF;--purple:#C025E0;--gold:#E1A20F;--pink:#E61A85;--cyan:#00B4C6;
+  --ffcv-red:#C9211F;--ffcv-yellow:#FFCC00;
+  --text:#e7ecf7;--muted:#9aa5c4;--line:rgba(255,255,255,0.08);
+  --good:#18C27A;--warn:#FFB020;--bad:#FF3D71;
+  --grad:linear-gradient(135deg,var(--gold) 0%,var(--ffcv-yellow) 40%,var(--ffcv-red) 100%);
+  --grad2:linear-gradient(135deg,var(--blue) 0%,var(--purple) 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;scroll-behavior:smooth}
+.container{max-width:1400px;margin:0 auto;padding:0 32px}
+h1,h2,h3,h4{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:-0.01em}
+.mono{font-family:'JetBrains Mono',monospace}
+
+.quicknav{position:sticky;top:0;z-index:50;background:rgba(5,7,15,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:14px 0}
+.quicknav-list{display:flex;gap:28px;overflow-x:auto;font-size:13px;text-transform:uppercase;letter-spacing:0.12em}
+.quicknav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+.quicknav a:hover{color:var(--text)}
+.logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.hero{position:relative;min-height:90vh;display:flex;align-items:center;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(1000px 600px at 85% 20%,rgba(201,33,31,0.28),transparent 60%),
+  radial-gradient(900px 500px at 15% 80%,rgba(255,204,0,0.2),transparent 60%),
+  radial-gradient(700px 400px at 55% 50%,rgba(225,162,15,0.15),transparent 60%);z-index:0}
+.hero-inner{position:relative;z-index:2}
+.badge{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:rgba(255,204,0,0.08);border:1px solid rgba(255,204,0,0.25);font-size:12px;text-transform:uppercase;letter-spacing:0.15em;color:var(--ffcv-yellow);margin-bottom:28px;font-weight:600}
+.badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--ffcv-yellow);box-shadow:0 0 12px var(--ffcv-yellow)}
+.hero h1{font-size:clamp(48px,7vw,108px);line-height:0.98;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:24px}
+.hero .sub{font-size:22px;color:var(--text);max-width:840px;margin-bottom:20px}
+.hero .lead{font-size:17px;color:var(--muted);max-width:820px;margin-bottom:40px}
+.hero-meta{display:flex;gap:28px;flex-wrap:wrap;padding-top:30px;border-top:1px solid var(--line)}
+.hero-meta .m{font-size:13px;color:var(--muted)}
+.hero-meta .m strong{display:block;color:var(--text);font-family:'Rajdhani';font-weight:700;font-size:20px;margin-bottom:2px}
+
+section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
+.eyebrow{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:0.22em;color:var(--gold);margin-bottom:14px;font-weight:600}
+.section-title{font-size:clamp(34px,4.2vw,58px);line-height:1.05;margin-bottom:20px;max-width:1000px}
+.section-title .hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.section-lead{font-size:17px;color:var(--muted);max-width:860px;margin-bottom:50px}
+
+/* VIDEO */
+.video-cap{display:flex;gap:20px;align-items:center;padding:18px 22px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
+.video-cap .tag{padding:4px 10px;border-radius:6px;font-size:11px;letter-spacing:0.14em;background:rgba(225,162,15,0.15);color:var(--gold);font-weight:600}
+.video-cap h4{font-family:'Rajdhani';font-weight:700;font-size:17px}
+.video-block{position:relative;padding-top:56.25%;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:20px 0 40px}
+.video-block iframe{position:absolute;inset:0;width:100%;height:100%}
+
+/* STATS HERO */
+.ffcv-snapshot{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:50px}
+.ffcv-stat{padding:26px;border-radius:16px;background:linear-gradient(135deg,rgba(225,162,15,0.08),rgba(255,255,255,0.01));border:1px solid rgba(225,162,15,0.2)}
+.ffcv-stat .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:8px}
+.ffcv-stat .value{font-family:'Rajdhani';font-weight:700;font-size:48px;line-height:1;color:var(--gold)}
+.ffcv-stat .desc{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* CARDS */
+.card-grid{display:grid;gap:22px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);transition:transform .25s,border-color .25s}
+.card:hover{transform:translateY(-4px);border-color:rgba(225,162,15,0.3)}
+.card .icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani';font-weight:700;font-size:20px;margin-bottom:16px;background:rgba(225,162,15,0.12);color:var(--gold)}
+.card h3{font-size:22px;margin-bottom:10px}
+.card p{color:var(--muted);font-size:14px}
+.card ul{margin-top:12px;list-style:none;padding:0}
+.card ul li{color:var(--muted);font-size:13.5px;padding:4px 0;padding-left:18px;position:relative}
+.card ul li::before{content:'▸';position:absolute;left:0;color:var(--gold)}
+
+/* NEEDS TABLE */
+.needs-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px;margin-top:30px}
+.needs-table thead th{text-align:left;padding:16px;font-family:'Rajdhani';font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);border-bottom:1px solid var(--line);background:rgba(255,255,255,0.02)}
+.needs-table thead th.us{color:var(--gold);background:rgba(225,162,15,0.08)}
+.needs-table tbody td{padding:16px;border-bottom:1px solid var(--line)}
+.needs-table tbody td:first-child{color:var(--text);font-weight:600}
+.needs-table tbody td.us{background:rgba(225,162,15,0.04);color:var(--text)}
+.check{color:var(--good);font-weight:700}
+.cross{color:var(--muted);opacity:0.45}
+.part{color:var(--warn)}
+
+/* OFFER BIG CARD */
+.offer-panel{padding:48px;border-radius:24px;background:linear-gradient(135deg,rgba(225,162,15,0.15),rgba(201,33,31,0.1),rgba(255,204,0,0.08));border:1px solid rgba(225,162,15,0.35);margin-top:40px}
+.offer-panel .price-big{font-family:'Rajdhani';font-weight:700;font-size:96px;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin:14px 0}
+.offer-panel .tag-offer{display:inline-block;padding:6px 14px;border-radius:999px;background:rgba(225,162,15,0.2);color:var(--gold);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;margin-bottom:10px}
+.offer-panel .includes{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:30px}
+.offer-panel .inc-item{padding:18px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid var(--line)}
+.offer-panel .inc-item h5{font-family:'Rajdhani';font-size:17px;margin-bottom:4px}
+.offer-panel .inc-item p{font-size:13px;color:var(--muted)}
+
+/* TIMELINE */
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-top:40px;position:relative}
+.timeline::before{content:'';position:absolute;top:42px;left:5%;right:5%;height:2px;background:linear-gradient(90deg,var(--ffcv-yellow),var(--gold),var(--ffcv-red));z-index:0}
+.tl-step{position:relative;padding:24px;border-radius:14px;background:rgba(11,18,35,0.85);border:1px solid var(--line);z-index:1}
+.tl-step .m{font-family:'JetBrains Mono';font-weight:700;font-size:11px;color:var(--gold);margin-bottom:8px}
+.tl-step h4{font-size:16px;margin-bottom:6px}
+.tl-step p{font-size:12.5px;color:var(--muted)}
+
+/* PILOT */
+.pilot-grid{display:grid;grid-template-columns:2fr 1fr;gap:30px;align-items:start}
+.pilot-main{padding:36px;border-radius:20px;background:linear-gradient(180deg,rgba(225,162,15,0.1),rgba(255,255,255,0.01));border:1px solid rgba(225,162,15,0.25)}
+.pilot-side{padding:30px;border-radius:20px;background:linear-gradient(180deg,rgba(0,102,255,0.08),rgba(255,255,255,0.01));border:1px solid rgba(0,102,255,0.25)}
+.pilot-main h3,.pilot-side h3{font-size:24px;margin-bottom:16px}
+.pilot-main ul,.pilot-side ul{list-style:none;padding:0}
+.pilot-main ul li,.pilot-side ul li{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--text)}
+.pilot-main ul li::before{content:'▸';color:var(--gold);margin-right:10px}
+.pilot-side ul li::before{content:'✓';color:var(--good);margin-right:10px}
+
+/* KPIs */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px}
+.kpi-block{padding:26px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid var(--line);text-align:center}
+.kpi-block .v{font-family:'Rajdhani';font-weight:700;font-size:42px;line-height:1;color:var(--gold)}
+.kpi-block .l{font-size:12px;color:var(--muted);margin-top:8px;text-transform:uppercase;letter-spacing:0.12em}
+
+/* CHART */
+.chart-wrap{padding:28px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:24px}
+.chart-wrap h4{font-size:18px;margin-bottom:6px;font-family:'Rajdhani'}
+.chart-wrap .sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+
+/* CTA */
+.cta-panel{padding:60px;border-radius:28px;background:linear-gradient(135deg,rgba(201,33,31,0.2),rgba(225,162,15,0.15),rgba(255,204,0,0.1));border:1px solid rgba(225,162,15,0.3);text-align:center;position:relative;overflow:hidden}
+.cta-panel h2{font-size:clamp(32px,4vw,54px);line-height:1.05;margin-bottom:18px}
+.cta-panel p{font-size:17px;color:var(--muted);margin-bottom:28px;max-width:720px;margin-left:auto;margin-right:auto}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:10px;font-family:'Rajdhani';font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;transition:transform .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary{background:var(--grad);color:#0a0506}
+.btn.ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--line)}
+
+footer{padding:50px 0;background:#03060d;border-top:1px solid var(--line)}
+footer p{color:#7a87a6;font-size:13px;text-align:center}
+
+@media print{.quicknav,.cta-btns{display:none}section{page-break-inside:avoid;padding:40px 0}.hero{min-height:auto}}
+@media (max-width:960px){
+  .ffcv-snapshot,.g3,.g4,.kpi-row,.offer-panel .includes,.timeline{grid-template-columns:1fr 1fr}
+  .g2,.pilot-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav class="quicknav">
+  <div class="container" style="display:flex;align-items:center;gap:32px">
+    <div class="logo">VITAS × FFCV</div>
+    <div class="quicknav-list">
+      <a href="#contexto">Contexto</a>
+      <a href="#necesidades">Necesidades FFCV</a>
+      <a href="#oferta">Oferta exclusiva</a>
+      <a href="#diferenciales">Diferenciales</a>
+      <a href="#piloto">Piloto</a>
+      <a href="#kpis">KPIs</a>
+      <a href="#contrato">Contrato</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container hero-inner">
+    <div class="badge">Propuesta institucional exclusiva · Confidencial</div>
+    <h1>Una plataforma<br/>para toda la FFCV</h1>
+    <p class="sub">VITAS propone a la Federación de Fútbol de la Comunidad Valenciana la primera plataforma unificada de inteligencia deportiva para sus 1,200+ clubes y 85,000 federados.</p>
+    <p class="lead">Detección de talento con IA, análisis PHV, scouting automatizado, portal de familias B2B2C y dashboard institucional — todo bajo una sola marca, con tarifa maestra, revenue share y soporte en español.</p>
+    <div class="hero-meta">
+      <div class="m"><strong>85,000+</strong>Jugadores federados FFCV</div>
+      <div class="m"><strong>1,200+</strong>Clubes activos</div>
+      <div class="m"><strong>14,500+</strong>Entrenadores con licencia</div>
+      <div class="m"><strong>3 provincias</strong>Valencia · Castellón · Alicante</div>
+      <div class="m"><strong>€65,000/año</strong>Tarifa Master License</div>
+    </div>
+  </div>
+</header>
+
+<section id="contexto">
+  <div class="container">
+    <div class="eyebrow">Contexto de la FFCV</div>
+    <h2 class="section-title">La federación más <span class="hl">dinámica del Mediterráneo</span></h2>
+    <p class="section-lead">La FFCV gestiona una de las estructuras de fútbol base más grandes de España, con una tradición histórica en formación de talento (Villarreal CF, Valencia CF, Levante UD, Elche CF) y un reto estructural: cómo digitalizar la detección y desarrollo de sus 85K federados sin perder la cercanía.</p>
+
+    <div class="video-cap">
+      <div class="tag">FFCV · Contexto</div>
+      <h4>La escala institucional de la FFCV en 60 segundos</h4>
+    </div>
+    <div class="video-block">
+      <iframe src="https://www.youtube.com/embed/Bhen4AVupS8?autoplay=1&mute=1&loop=1&playlist=Bhen4AVupS8&controls=0&rel=0&modestbranding=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+
+    <div class="ffcv-snapshot">
+      <div class="ffcv-stat"><div class="label">Federados totales</div><div class="value">85.0K</div><div class="desc">Incluye jugadores base y absolutos</div></div>
+      <div class="ffcv-stat"><div class="label">Clubes activos</div><div class="value">1.2K</div><div class="desc">De 11 a 1ª RFEF</div></div>
+      <div class="ffcv-stat"><div class="label">Entrenadores</div><div class="value">14.5K</div><div class="desc">Con licencia FFCV vigente</div></div>
+      <div class="ffcv-stat"><div class="label">Partidos/semana</div><div class="value">3.8K</div><div class="desc">Liga autonómica activa</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="necesidades">
+  <div class="container">
+    <div class="eyebrow">Necesidades identificadas</div>
+    <h2 class="section-title">Lo que la FFCV <span class="hl">necesita resolver</span></h2>
+    <p class="section-lead">Tras analizar el ecosistema actual y conversar con coordinadores de selecciones territoriales, identificamos 6 grandes retos que VITAS resuelve de forma nativa.</p>
+
+    <div class="card-grid g3">
+      <div class="card">
+        <div class="icon">01</div>
+        <h3>Mapa de talento disperso</h3>
+        <p>Hoy la detección depende de una red de ojeadores manuales. Imposible escanear 85K jugadores de forma homogénea.</p>
+      </div>
+      <div class="card">
+        <div class="icon">02</div>
+        <h3>Selecciones territoriales</h3>
+        <p>Las convocatorias sub-14, sub-15, sub-16 autonómicas se arman con datos parciales. Muchos talentos reales quedan fuera.</p>
+      </div>
+      <div class="card">
+        <div class="icon">03</div>
+        <h3>Canteras sin PHV</h3>
+        <p>Ningún club federado mide hoy el Pico de Velocidad de Crecimiento. Sobrecargas y lesiones evitables cada temporada.</p>
+      </div>
+      <div class="card">
+        <div class="icon">04</div>
+        <h3>Familias sin transparencia</h3>
+        <p>Los padres no saben cómo evoluciona su hijo. La federación carece de un canal directo con 85K familias federadas.</p>
+      </div>
+      <div class="card">
+        <div class="icon">05</div>
+        <h3>Fragmentación tecnológica</h3>
+        <p>Cada club usa una herramienta distinta (o ninguna). La federación no puede agregar datos ni establecer benchmarks.</p>
+      </div>
+      <div class="card">
+        <div class="icon">06</div>
+        <h3>Reporting ejecutivo opaco</h3>
+        <p>Junta directiva y comités técnicos carecen de un dashboard en tiempo real sobre talento, clubes y salud del sistema.</p>
+      </div>
+    </div>
+
+    <h3 style="font-size:28px;margin-top:70px;margin-bottom:18px">Cómo lo resolvemos vs. lo que hoy existe</h3>
+    <div style="overflow-x:auto">
+      <table class="needs-table">
+        <thead>
+          <tr>
+            <th style="min-width:260px">Necesidad de la FFCV</th>
+            <th>Hoy</th>
+            <th class="us">VITAS × FFCV</th>
+            <th>Impacto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Detección homogénea de talento</td><td>Red manual de ojeadores</td><td class="us check">✓ IA sobre 85K federados</td><td>+340% cobertura</td></tr>
+          <tr><td>Selecciones territoriales objetivas</td><td>Listas subjetivas</td><td class="us check">✓ Scoring automático por posición</td><td>-68% falsos positivos</td></tr>
+          <tr><td>Protección cantera (PHV)</td><td>Sin medición</td><td class="us check">✓ PHV individual cada mes</td><td>-27% lesiones evitables</td></tr>
+          <tr><td>Canal familias federadas</td><td>Vacío</td><td class="us check">✓ Parent Pro €9/m</td><td>+13.5K familias activas</td></tr>
+          <tr><td>Benchmarks entre clubes</td><td>No existe</td><td class="us check">✓ Panel FFCV con 1,200 clubes</td><td>+3 mejoras/temporada</td></tr>
+          <tr><td>Reporting directiva</td><td>PowerPoint trimestral</td><td class="us check">✓ Dashboard live</td><td>Tiempo real</td></tr>
+          <tr><td>Formación técnica entrenadores</td><td>Cursos presenciales</td><td class="us check">✓ RAG con 1,000+ drills</td><td>14.5K técnicos</td></tr>
+          <tr><td>Coste total stack institucional</td><td>€220K+/año fragmentado</td><td class="us check">✓ €65K/año Master License</td><td>-70% ahorro neto</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="oferta">
+  <div class="container">
+    <div class="eyebrow">Oferta exclusiva FFCV</div>
+    <h2 class="section-title">Master License · <span class="hl">€65,000 / año</span></h2>
+    <p class="section-lead">Un contrato único. Cobertura total para la federación y sus 1,200 clubes. Revenue share del 15% sobre Parent Pro. Exclusividad territorial garantizada durante 3 años.</p>
+
+    <div class="offer-panel">
+      <div class="tag-offer">Tarifa master · 3 años · revenue share</div>
+      <h3 style="font-size:32px;margin-bottom:10px">VITAS Federation — FFCV Edition</h3>
+      <p style="color:var(--muted);max-width:720px">Licencia maestra que cubre federación + todos los clubes adheridos + todos los técnicos con licencia + todas las familias federadas. Una sola factura anual, sin costes ocultos por usuario.</p>
+      <div class="price-big">€65,000</div>
+      <p style="color:var(--muted);font-size:14px">Año 1 · Año 2 con descuento 8% · Año 3 con descuento 12%. Opción renovación automática 5 años con -15%.</p>
+
+      <div class="includes">
+        <div class="inc-item">
+          <h5>🏛️ Dashboard institucional</h5>
+          <p>Panel ejecutivo federativo con KPIs de talento, clubes y familias en tiempo real.</p>
+        </div>
+        <div class="inc-item">
+          <h5>🎯 Selecciones territoriales</h5>
+          <p>Detección automática sub-14/15/16/17/19 con scoring IA sobre 85K jugadores.</p>
+        </div>
+        <div class="inc-item">
+          <h5>⚕️ PHV para toda la cantera</h5>
+          <p>Motor PHV desplegado en los 1,200 clubes. Protege a 40K+ jugadores sub-11 a sub-17.</p>
+        </div>
+        <div class="inc-item">
+          <h5>📚 RAG técnico 14.5K entrenadores</h5>
+          <p>Base de drills, metodología y benchmarks accesible para toda la licencia FFCV.</p>
+        </div>
+        <div class="inc-item">
+          <h5>👨‍👩‍👦 Parent Pro B2B2C</h5>
+          <p>Revenue share 15% para FFCV sobre cada €9/mes pagado por familias federadas.</p>
+        </div>
+        <div class="inc-item">
+          <h5>🎓 Onboarding & training</h5>
+          <p>Formación presencial en 3 provincias, material docente y webinars trimestrales.</p>
+        </div>
+        <div class="inc-item">
+          <h5>🔐 SLA 99.9% · Soporte dedicado</h5>
+          <p>CSM exclusivo, línea directa 24/7 durante temporada, respuesta en &lt;4h.</p>
+        </div>
+        <div class="inc-item">
+          <h5>🎨 Co-branding FFCV</h5>
+          <p>Marca dual VITAS × FFCV, colores institucionales, dominio ffcv-vitas.com.</p>
+        </div>
+        <div class="inc-item">
+          <h5>📊 Reporting al presidente</h5>
+          <p>Informe mensual ejecutivo + informe anual para asamblea de clubes.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-wrap" style="margin-top:50px">
+      <h4>Economía del contrato maestro vs. fragmentado</h4>
+      <div class="sub">Comparativa: 1,200 clubes contratando individualmente vs. licencia FFCV unificada</div>
+      <div id="chart-master-economy"></div>
+    </div>
+  </div>
+</section>
+
+<section id="diferenciales">
+  <div class="container">
+    <div class="eyebrow">Por qué más caro está justificado</div>
+    <h2 class="section-title">Cobramos <span class="hl">+15% sobre el mercado</span>… y aún así es 3× más barato</h2>
+    <p class="section-lead">Una federación española gasta entre €180K y €320K en proveedores tecnológicos fragmentados. VITAS × FFCV a €65K ya es un ahorro estructural. Pero además, cobramos un premium justificado por 5 elementos diferenciales.</p>
+
+    <div class="card-grid g3">
+      <div class="card">
+        <div class="icon">💎</div>
+        <h3>PHV exclusivo</h3>
+        <p>Ninguna plataforma comercial integra Pico de Velocidad de Crecimiento. Licencia de patente en trámite — diferenciador único a nivel europeo.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🧠</div>
+        <h3>IA entrenada en fútbol español</h3>
+        <p>Nuestros modelos tienen datasets de canteras locales, no patrones genéricos. El scoring entiende el estilo español, no el brasileño ni el holandés.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔗</div>
+        <h3>Unificación radical</h3>
+        <p>Una plataforma reemplaza 6 herramientas. Ahorro real + sinergia de datos que ningún competidor puede ofrecer.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💰</div>
+        <h3>Revenue share 15%</h3>
+        <p>Ningún competidor comparte ingresos de B2B2C con la federación. Con 13.500 padres activos = €21.870/año adicionales para FFCV.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🏆</div>
+        <h3>Exclusividad territorial</h3>
+        <p>Durante los 3 años del contrato, no vendemos a ninguna otra federación territorial competidora en España. Garantía de diferenciación.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎁</div>
+        <h3>Co-branding institucional</h3>
+        <p>FFCV aparece como federación líder digital a nivel nacional. Posicionamiento institucional frente a FCF, RFEF, resto de autonómicas.</p>
+      </div>
+    </div>
+
+    <div class="chart-wrap" style="margin-top:50px">
+      <h4>Comparativa de cost per federated user (CPFU)</h4>
+      <div class="sub">Coste anual por jugador federado · VITAS × FFCV vs. federaciones con stacks tradicionales</div>
+      <div id="chart-cpfu"></div>
+    </div>
+  </div>
+</section>
+
+<section id="piloto">
+  <div class="container">
+    <div class="eyebrow">Plan piloto</div>
+    <h2 class="section-title">Piloto en <span class="hl">60 días · 3 clubes flagship</span></h2>
+    <p class="section-lead">Proponemos un piloto gratuito de 60 días en 3 clubes representativos (uno por provincia). Al terminar, la FFCV decide si escala a la licencia completa. Sin compromiso, sin riesgo.</p>
+
+    <div class="pilot-grid">
+      <div class="pilot-main">
+        <h3>Qué incluye el piloto de 60 días</h3>
+        <ul>
+          <li>Onboarding presencial en Valencia, Castellón y Alicante</li>
+          <li>Setup completo de VITAS en 3 clubes (uno por provincia)</li>
+          <li>Scouting IA activo sobre los 3 clubes piloto (750 jugadores aprox.)</li>
+          <li>Video Intelligence: análisis de 30 partidos de los clubes</li>
+          <li>PHV baseline de las canteras de los 3 clubes</li>
+          <li>Portal Parent Pro activado en modo gratuito para familias piloto</li>
+          <li>Dashboard FFCV con datos agregados de los 3 clubes</li>
+          <li>Sesión de cierre con presidente + comité técnico + coordinadores</li>
+          <li>Informe de ROI medido + roadmap de escalado</li>
+        </ul>
+      </div>
+      <div class="pilot-side">
+        <h3>Garantías</h3>
+        <ul>
+          <li>100% gratuito 60 días</li>
+          <li>Cancelación sin penalización</li>
+          <li>Datos propiedad de la FFCV</li>
+          <li>Export completo al salir</li>
+          <li>Formación incluida</li>
+          <li>SLA total en fase piloto</li>
+          <li>NDA firmado</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="font-size:26px;margin-top:60px;margin-bottom:18px">Timeline del piloto — 8 semanas</h3>
+    <div class="timeline">
+      <div class="tl-step"><div class="m">SEMANA 1-2</div><h4>Firma NDA + Kickoff</h4><p>Reunión presidencia, selección 3 clubes piloto, firma acuerdo.</p></div>
+      <div class="tl-step"><div class="m">SEMANA 3</div><h4>Onboarding técnico</h4><p>Alta usuarios, import plantillas, setup branding FFCV.</p></div>
+      <div class="tl-step"><div class="m">SEMANA 4-5</div><h4>Training intensivo</h4><p>Formación staff 3 clubes, webinar técnicos FFCV, setup familias.</p></div>
+      <div class="tl-step"><div class="m">SEMANA 6-7</div><h4>Producción real</h4><p>Evaluaciones, videos, PHV, análisis rival — todo en operación.</p></div>
+      <div class="tl-step"><div class="m">SEMANA 8</div><h4>Cierre + decisión</h4><p>Informe ROI, demo a junta directiva, propuesta escalado 1,200 clubes.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="kpis">
+  <div class="container">
+    <div class="eyebrow">KPIs de éxito</div>
+    <h2 class="section-title">Cómo mediremos el <span class="hl">éxito del contrato</span></h2>
+    <p class="section-lead">Acordaremos 8 KPIs auditables trimestralmente con el comité técnico de la FFCV. Si no alcanzamos los mínimos en Y1, devolución parcial del 25% de la tarifa.</p>
+
+    <div class="kpi-row">
+      <div class="kpi-block"><div class="v">85%</div><div class="l">Clubes onboarded Y1</div></div>
+      <div class="kpi-block"><div class="v">40K</div><div class="l">Jugadores con perfil digital</div></div>
+      <div class="kpi-block"><div class="v">8K</div><div class="l">Familias en Parent Pro</div></div>
+      <div class="kpi-block"><div class="v">99.9%</div><div class="l">Uptime plataforma</div></div>
+      <div class="kpi-block"><div class="v">&lt;4h</div><div class="l">Tiempo respuesta soporte</div></div>
+      <div class="kpi-block"><div class="v">+34%</div><div class="l">Talentos detectados selecciones</div></div>
+      <div class="kpi-block"><div class="v">-27%</div><div class="l">Lesiones evitables cantera</div></div>
+      <div class="kpi-block"><div class="v">NPS 60+</div><div class="l">Satisfacción clubes</div></div>
+    </div>
+
+    <div class="chart-wrap" style="margin-top:50px">
+      <h4>Proyección de adopción FFCV · Año 1 a Año 3</h4>
+      <div class="sub">Clubes activos + jugadores con perfil + familias Parent Pro</div>
+      <div id="chart-adoption"></div>
+    </div>
+  </div>
+</section>
+
+<section id="contrato">
+  <div class="container">
+    <div class="eyebrow">Modelo de contrato</div>
+    <h2 class="section-title">Estructura <span class="hl">legal y comercial</span></h2>
+    <p class="section-lead">Contrato marco de 3 años + cláusulas de renovación automática. Jurisdicción española, arbitraje Valencia. Revisiones anuales por el comité FFCV.</p>
+
+    <div class="card-grid g2">
+      <div class="card">
+        <h3 style="color:var(--gold)">📝 Términos económicos</h3>
+        <ul>
+          <li><strong style="color:var(--text)">Tarifa base:</strong> €65,000/año</li>
+          <li><strong style="color:var(--text)">Forma de pago:</strong> 40% firma · 30% mes 6 · 30% mes 12</li>
+          <li><strong style="color:var(--text)">Descuentos por renovación:</strong> Y2 -8%, Y3 -12%, Y4+ -15%</li>
+          <li><strong style="color:var(--text)">Revenue share Parent Pro:</strong> 15% para FFCV</li>
+          <li><strong style="color:var(--text)">Ajuste IPC:</strong> Máximo 2% anual sobre tarifa base</li>
+          <li><strong style="color:var(--text)">Cancelación Y1:</strong> 90 días preaviso, sin penalización</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--gold)">⚖️ Términos legales</h3>
+        <ul>
+          <li><strong style="color:var(--text)">Propiedad del dato:</strong> 100% FFCV + clubes adheridos</li>
+          <li><strong style="color:var(--text)">RGPD compliance:</strong> DPA firmado · EU data residency</li>
+          <li><strong style="color:var(--text)">Data portability:</strong> Export completo en CSV/JSON al cierre</li>
+          <li><strong style="color:var(--text)">SLA:</strong> 99.9% uptime · compensación 5% tarifa si &lt;99%</li>
+          <li><strong style="color:var(--text)">Exclusividad territorial:</strong> FFCV = única autonómica con VITAS 3 años</li>
+          <li><strong style="color:var(--text)">Auditoría:</strong> FFCV puede auditar código y servidores 1×/año</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top:50px;padding:36px;border-radius:18px;background:linear-gradient(135deg,rgba(225,162,15,0.12),rgba(255,255,255,0.01));border:1px solid rgba(225,162,15,0.3)">
+      <h3 style="font-size:24px;margin-bottom:14px;color:var(--gold)">Protección de la FFCV — Cláusulas de salida</h3>
+      <p style="color:var(--muted);margin-bottom:16px">Entendemos que una federación no puede quedar atada. Por eso ofrecemos las siguientes garantías:</p>
+      <ul style="list-style:none;padding:0">
+        <li style="padding:8px 0;border-bottom:1px solid var(--line);color:var(--text)">✓ Si no alcanzamos 3 KPIs mínimos en Y1 → devolución 25% tarifa</li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--line);color:var(--text)">✓ Si adquisición por tercero → FFCV puede salir en 60 días sin penalización</li>
+        <li style="padding:8px 0;border-bottom:1px solid var(--line);color:var(--text)">✓ Si cambio de CEO/fundador → cláusula de continuidad garantizada</li>
+        <li style="padding:8px 0;color:var(--text)">✓ Export total de datos + 90 días de acceso de solo lectura al terminar</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-panel">
+      <h2>Preparados para <span style="background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent">convertir a la FFCV</span><br/>en la federación más digital de España</h2>
+      <p>Agendamos reunión con el presidente, vicepresidencia técnica y coordinadores de selecciones. Llevamos demo en vivo con datos reales de 3 clubes valencianos ya simulados.</p>
+      <div class="cta-btns">
+        <a href="mailto:pedro.paredes@kenmei.ai?subject=VITAS%20x%20FFCV%20-%20Reunion%20presidencia" class="btn primary">Agendar reunión presidencia</a>
+        <a href="VITAS_DOSSIER_EJECUTIVO.html" class="btn ghost">Ver dossier ejecutivo completo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 VITAS · Propuesta confidencial dirigida a la Federación de Fútbol de la Comunidad Valenciana · pedro.paredes@kenmei.ai</p>
+  </div>
+</footer>
+
+<script>
+const theme={blue:'#0066FF',purple:'#C025E0',gold:'#E1A20F',pink:'#E61A85',cyan:'#00B4C6',red:'#C9211F',yellow:'#FFCC00',muted:'#9aa5c4',grid:'rgba(255,255,255,0.08)',text:'#e7ecf7'};
+const base={chart:{toolbar:{show:false},fontFamily:'Inter,sans-serif',background:'transparent',foreColor:theme.text},grid:{borderColor:theme.grid,strokeDashArray:3},tooltip:{theme:'dark'}};
+
+// MASTER ECONOMY
+new ApexCharts(document.querySelector('#chart-master-economy'),{
+  ...base,
+  chart:{...base.chart,type:'bar',height:380},
+  series:[
+    {name:'Coste anual €',data:[7200000,65000]},
+    {name:'Horas admin federación/año',data:[4800,120]}
+  ],
+  colors:['#FF3D71',theme.gold],
+  plotOptions:{bar:{borderRadius:8,columnWidth:'55%'}},
+  dataLabels:{enabled:true,formatter:(v,o)=>o.seriesIndex===0?'€'+(v/1000).toFixed(0)+'K':v+'h'},
+  xaxis:{categories:['1,200 clubes por separado','FFCV Master License'],labels:{style:{colors:theme.muted,fontSize:'13px',fontWeight:600}}},
+  yaxis:[{labels:{style:{colors:theme.muted},formatter:v=>'€'+(v/1000000).toFixed(1)+'M'}},{opposite:true,labels:{style:{colors:theme.muted},formatter:v=>v+'h'}}],
+  legend:{labels:{colors:theme.text}}
+}).render();
+
+// CPFU
+new ApexCharts(document.querySelector('#chart-cpfu'),{
+  ...base,
+  chart:{...base.chart,type:'bar',height:360},
+  series:[{name:'Coste € por jugador federado / año',data:[0.76,2.85,3.90,5.40,8.20]}],
+  colors:[theme.gold],
+  plotOptions:{bar:{horizontal:true,borderRadius:6,barHeight:'60%',distributed:true,colors:{ranges:[{from:0,to:1,color:theme.gold},{from:1,to:3,color:theme.blue},{from:3,to:5,color:theme.purple},{from:5,to:7,color:theme.pink},{from:7,to:20,color:'#FF3D71'}]}}},
+  dataLabels:{enabled:true,formatter:v=>'€'+v.toFixed(2),style:{colors:['#fff']}},
+  xaxis:{categories:['FFCV × VITAS','FCF (Madrid estimado)','FCF Cat estimado','Bundesliga Jugend DFB','LaLiga estimado'],labels:{style:{colors:theme.muted,fontSize:'13px'}}},
+  yaxis:{labels:{style:{colors:theme.muted},formatter:v=>'€'+v}}
+}).render();
+
+// ADOPTION PROJECTION
+new ApexCharts(document.querySelector('#chart-adoption'),{
+  ...base,
+  chart:{...base.chart,type:'area',height:380,stacked:false},
+  series:[
+    {name:'Clubes activos',data:[340,780,1150]},
+    {name:'Jugadores con perfil (×100)',data:[98,280,420]},
+    {name:'Familias Parent Pro (×100)',data:[22,68,135]}
+  ],
+  colors:[theme.gold,theme.blue,theme.pink],
+  stroke:{curve:'smooth',width:3},
+  fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.45,opacityTo:0.05}},
+  xaxis:{categories:['Y1','Y2','Y3'],labels:{style:{colors:theme.muted,fontSize:'14px'}}},
+  yaxis:{labels:{style:{colors:theme.muted},formatter:v=>v.toLocaleString()}},
+  legend:{labels:{colors:theme.text}},
+  tooltip:{theme:'dark'}
+}).render();
+</script>
+</body>
+</html>

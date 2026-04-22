@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VITAS Parent Pro · Para padres y jugadores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
+<style>
+:root{
+  --bg:#05070f;--bg2:#0b1223;
+  --blue:#0066FF;--purple:#C025E0;--gold:#E1A20F;--pink:#E61A85;--cyan:#00B4C6;
+  --text:#e7ecf7;--muted:#9aa5c4;--line:rgba(255,255,255,0.08);
+  --good:#18C27A;--warn:#FFB020;
+  --grad:linear-gradient(135deg,var(--pink) 0%,var(--purple) 50%,var(--cyan) 100%);
+  --gradp:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;scroll-behavior:smooth}
+.container{max-width:1400px;margin:0 auto;padding:0 32px}
+h1,h2,h3,h4{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:-0.01em}
+
+.quicknav{position:sticky;top:0;z-index:50;background:rgba(5,7,15,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:14px 0}
+.quicknav-list{display:flex;gap:28px;overflow-x:auto;font-size:13px;text-transform:uppercase;letter-spacing:0.12em}
+.quicknav a{color:var(--muted);text-decoration:none;white-space:nowrap}
+.quicknav a:hover{color:var(--text)}
+.logo{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.05em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+.hero{position:relative;min-height:86vh;display:flex;align-items:center;overflow:hidden;border-bottom:1px solid var(--line)}
+.hero::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(1000px 600px at 80% 20%,rgba(230,26,133,0.25),transparent 60%),
+  radial-gradient(900px 500px at 15% 80%,rgba(0,180,198,0.22),transparent 60%),
+  radial-gradient(700px 400px at 55% 50%,rgba(192,37,224,0.14),transparent 60%);z-index:0}
+.hero-inner{position:relative;z-index:2}
+.badge{display:inline-flex;align-items:center;gap:10px;padding:8px 16px;border-radius:999px;background:rgba(230,26,133,0.08);border:1px solid rgba(230,26,133,0.25);font-size:12px;text-transform:uppercase;letter-spacing:0.15em;color:var(--pink);margin-bottom:28px;font-weight:600}
+.badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--pink);box-shadow:0 0 12px var(--pink)}
+.hero h1{font-size:clamp(48px,6.8vw,104px);line-height:0.98;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:24px}
+.hero .sub{font-size:22px;color:var(--text);max-width:840px;margin-bottom:18px}
+.hero .lead{font-size:17px;color:var(--muted);max-width:820px;margin-bottom:40px}
+.hero-meta{display:flex;gap:28px;flex-wrap:wrap;padding-top:30px;border-top:1px solid var(--line)}
+.hero-meta .m{font-size:13px;color:var(--muted)}
+.hero-meta .m strong{display:block;color:var(--text);font-family:'Rajdhani';font-weight:700;font-size:20px;margin-bottom:2px}
+
+section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
+.eyebrow{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:0.22em;color:var(--pink);margin-bottom:14px;font-weight:600}
+.section-title{font-size:clamp(34px,4.2vw,58px);line-height:1.05;margin-bottom:20px;max-width:1000px}
+.section-title .hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.section-lead{font-size:17px;color:var(--muted);max-width:860px;margin-bottom:50px}
+
+.video-cap{display:flex;gap:20px;align-items:center;padding:18px 22px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
+.video-cap .tag{padding:4px 10px;border-radius:6px;font-size:11px;letter-spacing:0.14em;background:rgba(230,26,133,0.15);color:var(--pink);font-weight:600}
+.video-cap h4{font-family:'Rajdhani';font-weight:700;font-size:17px}
+.video-block{position:relative;padding-top:56.25%;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:20px 0 40px}
+.video-block iframe{position:absolute;inset:0;width:100%;height:100%}
+
+.card-grid{display:grid;gap:22px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);transition:transform .25s,border-color .25s}
+.card:hover{transform:translateY(-4px);border-color:rgba(230,26,133,0.3)}
+.card .icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani';font-weight:700;font-size:20px;margin-bottom:16px}
+.card h3{font-size:22px;margin-bottom:10px}
+.card p{color:var(--muted);font-size:14px}
+.card ul{margin-top:12px;list-style:none;padding:0}
+.card ul li{color:var(--muted);font-size:13.5px;padding:4px 0;padding-left:18px;position:relative}
+.card ul li::before{content:'✓';position:absolute;left:0;color:var(--good)}
+
+/* AUDIENCE SPLIT */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:30px}
+.split-card{padding:40px;border-radius:22px;position:relative;overflow:hidden}
+.split-card.parents{background:linear-gradient(135deg,rgba(230,26,133,0.14),rgba(192,37,224,0.08));border:1px solid rgba(230,26,133,0.3)}
+.split-card.players{background:linear-gradient(135deg,rgba(0,180,198,0.14),rgba(0,102,255,0.08));border:1px solid rgba(0,180,198,0.3)}
+.split-card h3{font-size:32px;margin-bottom:14px}
+.split-card .price-line{font-family:'Rajdhani';font-weight:700;font-size:56px;line-height:1;margin:20px 0 6px}
+.split-card.parents .price-line{color:var(--pink)}
+.split-card.players .price-line{color:var(--cyan)}
+.split-card .per{font-size:13px;color:var(--muted);margin-bottom:24px}
+.split-card ul{list-style:none;padding:0}
+.split-card ul li{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px;color:var(--text)}
+.split-card.parents ul li::before{content:'💖';margin-right:10px}
+.split-card.players ul li::before{content:'⚡';margin-right:10px}
+
+/* FEATURES PARENTS */
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.feat-card{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line)}
+.feat-card .emoji{font-size:36px;margin-bottom:12px}
+.feat-card h4{font-size:20px;margin-bottom:8px}
+.feat-card p{color:var(--muted);font-size:14px}
+
+/* PRIVACY PANEL */
+.privacy-panel{padding:40px;border-radius:22px;background:linear-gradient(135deg,rgba(24,194,122,0.1),rgba(0,180,198,0.05));border:1px solid rgba(24,194,122,0.3);display:grid;grid-template-columns:1fr 2fr;gap:40px;align-items:center}
+.privacy-panel .shield{font-family:'Rajdhani';font-weight:700;font-size:140px;line-height:1;background:linear-gradient(135deg,var(--good),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+.privacy-panel h3{font-size:30px;margin-bottom:18px}
+.privacy-panel ul{list-style:none;padding:0}
+.privacy-panel ul li{padding:10px 0;border-bottom:1px solid var(--line);font-size:15px}
+.privacy-panel ul li::before{content:'🔒';margin-right:10px}
+
+/* FAQ */
+.faq{padding:28px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid var(--line);margin-bottom:14px;transition:border-color .2s}
+.faq:hover{border-color:rgba(230,26,133,0.3)}
+.faq summary{font-family:'Rajdhani';font-weight:700;font-size:18px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.faq summary::after{content:'+';font-size:26px;color:var(--pink);font-weight:400;transition:transform .2s}
+.faq[open] summary::after{transform:rotate(45deg)}
+.faq p{margin-top:14px;color:var(--muted);font-size:14.5px;line-height:1.7}
+
+/* TESTIMONIAL */
+.testimonial-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+.testimonial{padding:32px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);position:relative}
+.testimonial .quote-mark{font-family:'Rajdhani';font-weight:700;font-size:64px;line-height:0.5;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:18px}
+.testimonial p.body{font-size:17px;color:var(--text);line-height:1.6;margin-bottom:20px}
+.testimonial .person{display:flex;gap:14px;align-items:center;padding-top:18px;border-top:1px solid var(--line)}
+.testimonial .avatar{width:48px;height:48px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-family:'Rajdhani';font-weight:700;font-size:20px;color:#fff}
+.testimonial .name{font-family:'Rajdhani';font-weight:700;font-size:16px}
+.testimonial .role{font-size:12px;color:var(--muted)}
+
+/* HOW TO ACCESS */
+.steps{counter-reset:step;margin-top:30px}
+.step{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:center}
+.step::before{counter-increment:step;content:counter(step);font-family:'Rajdhani';font-weight:700;font-size:48px;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
+.step h4{font-size:22px;margin-bottom:6px}
+.step p{color:var(--muted);font-size:14.5px}
+
+/* CHART */
+.chart-wrap{padding:28px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:24px}
+.chart-wrap h4{font-size:18px;margin-bottom:6px;font-family:'Rajdhani'}
+.chart-wrap .sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+
+/* CTA */
+.cta-panel{padding:60px;border-radius:28px;background:linear-gradient(135deg,rgba(230,26,133,0.2),rgba(192,37,224,0.14),rgba(0,180,198,0.12));border:1px solid rgba(230,26,133,0.3);text-align:center;position:relative}
+.cta-panel h2{font-size:clamp(32px,4vw,54px);line-height:1.05;margin-bottom:18px}
+.cta-panel p{font-size:17px;color:var(--muted);margin-bottom:28px;max-width:720px;margin-left:auto;margin-right:auto}
+.cta-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:10px;font-family:'Rajdhani';font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;transition:transform .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.primary{background:var(--grad);color:#fff}
+.btn.ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--line)}
+
+footer{padding:50px 0;background:#03060d;border-top:1px solid var(--line)}
+footer p{color:#7a87a6;font-size:13px;text-align:center}
+
+@media print{.quicknav,.cta-btns{display:none}section{page-break-inside:avoid;padding:40px 0}.hero{min-height:auto}}
+@media (max-width:960px){
+  .split,.testimonial-grid,.feat-grid,.g3,.g4{grid-template-columns:1fr}
+  .privacy-panel{grid-template-columns:1fr}
+  .step{grid-template-columns:60px 1fr;gap:16px}
+}
+</style>
+</head>
+<body>
+
+<nav class="quicknav">
+  <div class="container" style="display:flex;align-items:center;gap:32px">
+    <div class="logo">VITAS · FAMILIAS</div>
+    <div class="quicknav-list">
+      <a href="#por-que">Por qué</a>
+      <a href="#padres">Para padres</a>
+      <a href="#jugadores">Para jugadores</a>
+      <a href="#privacidad">Privacidad</a>
+      <a href="#acceso">Cómo acceder</a>
+      <a href="#opiniones">Opiniones</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="container hero-inner">
+    <div class="badge">Parent Pro & Player Pro · Desde €5/mes</div>
+    <h1>Tu hijo entrena<br/>con mejores herramientas<br/>que un profesional</h1>
+    <p class="sub">VITAS Parent Pro te da acceso transparente al desarrollo deportivo de tu hijo — evaluaciones del entrenador, evolución física, calendario, cuotas y comunicación directa con el club.</p>
+    <p class="lead">Ya no dependes del grupo de WhatsApp ni de llamar al entrenador un sábado. Tienes toda la información, en tu móvil, cuando la necesites.</p>
+    <div class="hero-meta">
+      <div class="m"><strong>€9/mes</strong>Sin permanencia · cancela cuando quieras</div>
+      <div class="m"><strong>7 días</strong>Prueba gratuita inicial</div>
+      <div class="m"><strong>iOS + Android</strong>PWA instalable</div>
+      <div class="m"><strong>100% privado</strong>RGPD · sin venta de datos</div>
+    </div>
+  </div>
+</header>
+
+<section id="por-que">
+  <div class="container">
+    <div class="eyebrow">Por qué existe Parent Pro</div>
+    <h2 class="section-title">Ser padre de un jugador <span class="hl">no debería ser adivinar</span></h2>
+    <p class="section-lead">Cada temporada los padres hacen las mismas preguntas: ¿cómo va mi hijo? ¿le convocan? ¿a qué hora juega? ¿cómo pago la cuota? ¿está creciendo bien? Hasta ahora la respuesta era "pregunta al entrenador". Ahora es abrir la app.</p>
+
+    <div class="video-cap">
+      <div class="tag">Vídeo · Parent Pro</div>
+      <h4>Cómo funciona Parent Pro en 90 segundos</h4>
+    </div>
+    <div class="video-block">
+      <iframe src="https://www.youtube.com/embed/fvxDZVTrCps?autoplay=1&mute=1&loop=1&playlist=fvxDZVTrCps&controls=0&rel=0&modestbranding=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+
+    <div class="card-grid g3" style="margin-top:40px">
+      <div class="card">
+        <div class="icon" style="background:rgba(230,26,133,0.14);color:var(--pink)">😩</div>
+        <h3>Antes de VITAS</h3>
+        <ul>
+          <li>WhatsApp con 40 padres</li>
+          <li>Nunca sabes cómo va tu hijo</li>
+          <li>Transferencias manuales de cuotas</li>
+          <li>Llamadas al entrenador</li>
+          <li>Convocatorias que llegan tarde</li>
+          <li>Fotos de partidos dispersas</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(0,180,198,0.14);color:var(--cyan)">📱</div>
+        <h3>Con VITAS Parent Pro</h3>
+        <ul>
+          <li>Una sola app para todo</li>
+          <li>Ves evaluación mensual de tu hijo</li>
+          <li>Pago automático con tarjeta</li>
+          <li>Chat directo con el staff</li>
+          <li>Convocatoria en tiempo real</li>
+          <li>Galería con fotos oficiales</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(225,162,15,0.14);color:var(--gold)">✨</div>
+        <h3>El plus único</h3>
+        <ul>
+          <li>Evolución PHV de tu hijo</li>
+          <li>Alertas de crecimiento/carga</li>
+          <li>Drills personalizados para casa</li>
+          <li>Nutrición y descanso recomendado</li>
+          <li>Portfolio para ojeadores externos</li>
+          <li>Video highlights de temporada</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="padres">
+  <div class="container">
+    <div class="eyebrow">Para padres · Parent Pro</div>
+    <h2 class="section-title">Todo lo que necesitas saber <span class="hl">sin tener que preguntar</span></h2>
+    <p class="section-lead">9 funcionalidades pensadas específicamente para familias de jugadores federados — construidas con feedback de 200+ padres de clubes valencianos.</p>
+
+    <div class="feat-grid">
+      <div class="feat-card"><div class="emoji">📊</div><h4>Evaluación mensual</h4><p>Informe simplificado de tu hijo: puntos fuertes, áreas a trabajar, progresión vs. mes anterior.</p></div>
+      <div class="feat-card"><div class="emoji">📈</div><h4>Evolución PHV</h4><p>Gráfica mensual del crecimiento físico. Te avisa cuando entra en pico o zona de riesgo.</p></div>
+      <div class="feat-card"><div class="emoji">📅</div><h4>Calendario oficial</h4><p>Partidos, entrenos, torneos — todo sincronizado con Google Calendar o Apple Calendar.</p></div>
+      <div class="feat-card"><div class="emoji">💳</div><h4>Cuotas sin estrés</h4><p>Pago mensual con tarjeta, recibo automático, histórico completo. Sin transferencias ni recibos en papel.</p></div>
+      <div class="feat-card"><div class="emoji">💬</div><h4>Chat con staff</h4><p>Canal directo con entrenador y médico del club. Sin invadir su WhatsApp personal.</p></div>
+      <div class="feat-card"><div class="emoji">🎥</div><h4>Galería oficial</h4><p>Fotos y vídeos de partidos colgados por el club. Descarga en alta resolución.</p></div>
+      <div class="feat-card"><div class="emoji">🎯</div><h4>Recomendaciones casa</h4><p>Ejercicios personalizados según las debilidades evaluadas. Que tu hijo mejore entre entrenos.</p></div>
+      <div class="feat-card"><div class="emoji">🥗</div><h4>Nutrición + descanso</h4><p>Guía básica de alimentación y descanso adaptada a su edad y categoría.</p></div>
+      <div class="feat-card"><div class="emoji">🏅</div><h4>Portfolio del jugador</h4><p>Opcional: puedes compartir con ojeadores o academias un resumen público de su progresión.</p></div>
+    </div>
+
+    <div class="split" style="margin-top:70px">
+      <div class="split-card parents">
+        <h3>Parent Pro · Para padres</h3>
+        <p style="color:var(--muted);font-size:15px">Todo lo que acabamos de ver, por hijo federado, en tu móvil.</p>
+        <div class="price-line">€9<span style="font-size:24px;color:var(--muted)">/mes</span></div>
+        <p class="per">o €99/año (ahorras €9) · sin permanencia · cancela cuando quieras</p>
+        <ul>
+          <li>Panel completo de tu hijo</li>
+          <li>Evaluación + PHV mensual</li>
+          <li>Pago de cuotas automático</li>
+          <li>Chat directo con staff</li>
+          <li>Galería + vídeo highlights</li>
+          <li>7 días prueba gratis</li>
+          <li>2º hijo con 30% descuento</li>
+        </ul>
+      </div>
+      <div class="split-card players">
+        <h3>Player Pro · Para jugadores +14</h3>
+        <p style="color:var(--muted);font-size:15px">Modo atleta para que tu hijo mayor de 14 tome las riendas.</p>
+        <div class="price-line">€5<span style="font-size:24px;color:var(--muted)">/mes</span></div>
+        <p class="per">requiere consentimiento parental · se activa desde el club</p>
+        <ul>
+          <li>Su propia evaluación</li>
+          <li>Drills personalizados</li>
+          <li>Objetivos gamificados</li>
+          <li>Wellness + nutrición</li>
+          <li>Portfolio compartible</li>
+          <li>Video highlights propio</li>
+          <li>Integrado con Parent Pro</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="jugadores">
+  <div class="container">
+    <div class="eyebrow">Para jugadores · +14 años</div>
+    <h2 class="section-title">Entrena como un <span class="hl">profesional</span></h2>
+    <p class="section-lead">Si tu hijo tiene más de 14 años y quiere llegar más lejos, Player Pro le da las mismas herramientas que usa un sub-19 de un club profesional — adaptadas a su nivel y consentimiento parental incluido.</p>
+
+    <div class="card-grid g3">
+      <div class="card">
+        <div class="icon" style="background:rgba(0,180,198,0.14);color:var(--cyan)">🎯</div>
+        <h3>Sus debilidades · sus drills</h3>
+        <p>El sistema IA detecta qué debe mejorar (control orientado, perfil débil, finalización en carrera…) y le propone 3 drills semanales para trabajar solo.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(0,102,255,0.14);color:var(--blue)">🏆</div>
+        <h3>Objetivos mensuales</h3>
+        <p>Gamificación seria: cada mes desbloquea logros por cumplir objetivos técnicos y físicos. Rankings anónimos entre jugadores de su club.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(192,37,224,0.14);color:var(--purple)">📸</div>
+        <h3>Portfolio compartible</h3>
+        <p>Página pública (si activa) con sus highlights, evaluación y atributos. Puede compartirla con academias y ojeadores externos.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(225,162,15,0.14);color:var(--gold)">💪</div>
+        <h3>Wellness y descanso</h3>
+        <p>Diario de entrenamiento, seguimiento del sueño, nutrición básica. Todo integrado con las recomendaciones del preparador físico.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(230,26,133,0.14);color:var(--pink)">📚</div>
+        <h3>Biblioteca RAG</h3>
+        <p>Acceso a vídeos técnicos, explicaciones de juego, estudio del rival. Mejora táctica como un profesional desde casa.</p>
+      </div>
+      <div class="card">
+        <div class="icon" style="background:rgba(0,180,198,0.14);color:var(--cyan)">🎥</div>
+        <h3>Highlights propios</h3>
+        <p>Sistema automático de compilación: sus mejores acciones de temporada editadas y listas para compartir en redes sociales.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="privacidad">
+  <div class="container">
+    <div class="eyebrow">Privacidad y seguridad</div>
+    <h2 class="section-title">Tu hijo es <span class="hl">menor de edad</span>. Nosotros lo tomamos en serio.</h2>
+    <p class="section-lead">VITAS cumple con el Reglamento General de Protección de Datos y con las leyes españolas específicas sobre menores. Sin ventas de datos, sin perfilado comercial, sin anuncios.</p>
+
+    <div class="privacy-panel">
+      <div class="shield">🛡️</div>
+      <div>
+        <h3>Lo que garantizamos por contrato</h3>
+        <ul>
+          <li>Cumplimiento total RGPD + LOPDGDD + LOPIVI (protección menores)</li>
+          <li>Datos alojados en servidores europeos (Supabase EU region)</li>
+          <li>Nunca vendemos ni cedemos datos a terceros con fines publicitarios</li>
+          <li>Chat cifrado punto a punto con el staff del club</li>
+          <li>Derecho al olvido activable en 1 clic desde tu app</li>
+          <li>Consentimiento parental explícito antes de activar a menor +14</li>
+          <li>Fotos y vídeos con opt-in específico por partido/evento</li>
+          <li>Sin trackers publicitarios · sin anuncios dentro de la app</li>
+          <li>Auditoría de seguridad externa anual · reporte público</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="acceso">
+  <div class="container">
+    <div class="eyebrow">Cómo empezar</div>
+    <h2 class="section-title">De interés a primera evaluación en <span class="hl">5 pasos</span></h2>
+    <p class="section-lead">Si el club de tu hijo ya trabaja con VITAS (lo sabrás por email o por el entrenador), activar Parent Pro es cuestión de minutos.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div></div>
+        <div>
+          <h4>Recibes invitación del club</h4>
+          <p>Cuando el club de tu hijo activa VITAS, te llega un email con enlace personalizado y código de invitación único.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div></div>
+        <div>
+          <h4>Creas tu cuenta en 60 segundos</h4>
+          <p>Solo email + contraseña. O login con Google/Apple. Tu cuenta queda vinculada automáticamente al perfil de tu hijo en el club.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div></div>
+        <div>
+          <h4>Disfrutas 7 días gratis</h4>
+          <p>Sin introducir tarjeta. Exploras todas las funcionalidades. Si no te convence, simplemente no continúas.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div></div>
+        <div>
+          <h4>Activas suscripción Parent Pro</h4>
+          <p>€9/mes con tarjeta (Visa, Mastercard, Bizum). Puedes cancelar en cualquier momento desde la app. Sin llamar a nadie.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div></div>
+        <div>
+          <h4>Invitas a los abuelos (gratis)</h4>
+          <p>Tu suscripción incluye 2 accesos adicionales de solo lectura. Los abuelos también quieren ver cómo juega el nieto.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-wrap" style="margin-top:50px">
+      <h4>El valor real de Parent Pro · qué llevas por tu €9/mes</h4>
+      <div class="sub">Valoración económica de las funcionalidades si se contrataran por separado</div>
+      <div id="chart-value"></div>
+    </div>
+  </div>
+</section>
+
+<section id="opiniones">
+  <div class="container">
+    <div class="eyebrow">Lo que dicen familias piloto</div>
+    <h2 class="section-title">Así lo viven <span class="hl">200+ familias valencianas</span></h2>
+    <p class="section-lead">Programa piloto 2025-26 · 4 clubes · 200 familias activas · NPS de +72.</p>
+
+    <div class="testimonial-grid">
+      <div class="testimonial">
+        <div class="quote-mark">"</div>
+        <p class="body">Antes no entendía por qué mi hijo no jugaba tanto. Ahora veo que su PHV está en pico y el preparador físico le está cuidando. Eso me da una tranquilidad enorme.</p>
+        <div class="person">
+          <div class="avatar">M</div>
+          <div><div class="name">María · madre de sub-14</div><div class="role">Club 3ª RFEF Valencia · 5 meses Parent Pro</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="quote-mark">"</div>
+        <p class="body">Los drills que le mandan los hace solo en el parque con su amigo. Le motivan porque tiene rankings con otros jugadores. Mi hijo entrena más, y por su cuenta.</p>
+        <div class="person">
+          <div class="avatar">P</div>
+          <div><div class="name">Pablo · padre de jugador Player Pro</div><div class="role">Club Preferente Alicante · 7 meses</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="quote-mark">"</div>
+        <p class="body">La cuota ahora se paga sola y nunca se me pasa. Además puedo ver en cualquier momento si llegó bien al entreno sin molestar al entrenador por WhatsApp.</p>
+        <div class="person">
+          <div class="avatar">S</div>
+          <div><div class="name">Silvia · madre de 2 hijos</div><div class="role">Club base Castellón · 4 meses · 2 Parent Pro</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <div class="quote-mark">"</div>
+        <p class="body">Mi hija ya mayor se toma más en serio el fútbol desde que tiene su portfolio. Mandó el enlace a una academia de Murcia y la llamaron para una prueba.</p>
+        <div class="person">
+          <div class="avatar">J</div>
+          <div><div class="name">Jesús · padre de jugadora sub-16</div><div class="role">Club fútbol femenino Valencia · 8 meses</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="container">
+    <div class="eyebrow">Preguntas frecuentes</div>
+    <h2 class="section-title">Lo que <span class="hl">siempre nos preguntan</span></h2>
+    <p class="section-lead">Respuestas claras y cortas. Si tienes una duda diferente, escríbenos por email y respondemos en menos de 24h.</p>
+
+    <details class="faq">
+      <summary>¿Qué pasa si el club de mi hijo no usa VITAS todavía?</summary>
+      <p>Puedes recomendar VITAS a tu club desde la propia app — les enviamos una demo directa. Si el club no adopta VITAS, no puedes activar Parent Pro porque necesitamos los datos del staff para que tenga sentido.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Puedo probar sin introducir tarjeta?</summary>
+      <p>Sí. Los primeros 7 días son gratis y no pedimos tarjeta. Solo cuando decides continuar tras la prueba introduces el método de pago.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Qué pasa con mis datos si cancelo?</summary>
+      <p>Tus datos personales se eliminan automáticamente 90 días después de cancelar. Los datos deportivos de tu hijo permanecen en el club (son propiedad del club, como cualquier ficha federativa).</p>
+    </details>
+    <details class="faq">
+      <summary>¿Cuántos hijos puedo tener en una cuenta?</summary>
+      <p>Hasta 5 hijos en una sola cuenta Parent Pro. Desde el 2º hijo tienes un 30% de descuento sobre la cuota base. El 1º a €9/m, el 2º a €6.30/m, del 3º en adelante €4.50/m.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Los abuelos pueden ver también a mi hijo?</summary>
+      <p>Sí. Tu suscripción incluye 2 accesos adicionales de solo lectura para familiares. Ellos no pueden pagar cuotas ni chatear con el staff, pero sí ver partidos, galería y evaluaciones.</p>
+    </details>
+    <details class="faq">
+      <summary>¿El PHV es realmente seguro para un menor?</summary>
+      <p>El cálculo PHV es totalmente no invasivo — se basa en mediciones antropométricas estándar (altura, peso, sentado, longitud de piernas) que el preparador físico ya toma habitualmente. No hay tests médicos adicionales ni invasivos.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Quién ve las evaluaciones de mi hijo?</summary>
+      <p>Solo tú (como padre/madre/tutor), el staff del club y tu hijo (si tiene Player Pro activado con tu consentimiento). Jamás se comparten con otros padres ni con terceros.</p>
+    </details>
+    <details class="faq">
+      <summary>¿Hay descuentos para familias numerosas o situaciones económicas?</summary>
+      <p>Sí. Si tienes título de familia numerosa puedes acreditarlo y obtener un 50% de descuento en la segunda y siguientes suscripciones. Casos especiales se revisan individualmente escribiendo a soporte.</p>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-panel">
+      <h2>Dale a tu hijo el <span style="background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent">acompañamiento que merece</span></h2>
+      <p>Activa Parent Pro si tu club ya usa VITAS, o recomiéndale VITAS al club — nosotros nos encargamos de la parte pesada. En ambos casos, empiezas con 7 días gratis.</p>
+      <div class="cta-btns">
+        <a href="mailto:pedro.paredes@kenmei.ai?subject=Parent%20Pro%20-%20Alta" class="btn primary">Empezar Parent Pro gratis</a>
+        <a href="mailto:pedro.paredes@kenmei.ai?subject=Recomendar%20VITAS%20a%20mi%20club" class="btn ghost">Recomendar VITAS al club</a>
+        <a href="VITAS_DOSSIER_EJECUTIVO.html" class="btn ghost">Dossier completo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 VITAS Parent Pro · Producto para familias de jugadores federados · Cumplimiento RGPD + LOPDGDD + LOPIVI · pedro.paredes@kenmei.ai</p>
+  </div>
+</footer>
+
+<script>
+const theme={blue:'#0066FF',purple:'#C025E0',gold:'#E1A20F',pink:'#E61A85',cyan:'#00B4C6',muted:'#9aa5c4',grid:'rgba(255,255,255,0.08)',text:'#e7ecf7',good:'#18C27A'};
+const base={chart:{toolbar:{show:false},fontFamily:'Inter,sans-serif',background:'transparent',foreColor:theme.text},grid:{borderColor:theme.grid,strokeDashArray:3},tooltip:{theme:'dark'}};
+
+// VALUE CHART — bar showing equivalent market value
+new ApexCharts(document.querySelector('#chart-value'),{
+  ...base,
+  chart:{...base.chart,type:'bar',height:420},
+  series:[{name:'Valor de mercado equivalente €/mes',data:[18,22,9,14,12,16,8,11,9]}],
+  colors:[theme.pink],
+  plotOptions:{bar:{horizontal:true,borderRadius:6,barHeight:'55%',distributed:true,colors:{ranges:[{from:0,to:10,color:theme.cyan},{from:10,to:15,color:theme.blue},{from:15,to:20,color:theme.pink},{from:20,to:30,color:theme.purple}]}}},
+  dataLabels:{enabled:true,formatter:v=>'€'+v+'/m',style:{colors:['#fff']}},
+  xaxis:{categories:[
+    'App de evaluación deportiva similar',
+    'Coach 1-on-1 videos mensual',
+    'Calendario/gestión familiar',
+    'Plataforma pago cuotas',
+    'App comunicación club',
+    'Clases de nutrición online',
+    'Galería fotos profesional',
+    'Seguimiento sueño/wellness',
+    'Portfolio deportivo online'
+  ],labels:{style:{colors:theme.muted,fontSize:'12px'}}},
+  yaxis:{labels:{style:{colors:theme.text,fontSize:'12px',fontWeight:500}}},
+  annotations:{xaxis:[{x:9,borderColor:theme.good,label:{borderColor:theme.good,style:{color:'#fff',background:theme.good,fontSize:'13px',fontWeight:700},text:'Parent Pro €9/m · TODO INCLUIDO'}}]}
+}).render();
+</script>
+</body>
+</html>
