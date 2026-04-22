@@ -9,12 +9,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
+:root{
+  --bg:#F4F7FB;--bg2:#FFFFFF;--bg3:#EEF2F8;--bg-grad:#E8EFFA;
+  --blue:#0055B3;--blue-soft:#2B7BDE;
+  --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
+  --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
+  --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
+  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
+  --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
+  --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
+  --card:rgba(255,255,255,0.8);--card-hover:rgba(255,255,255,0.96);
+  --surface:#FFFFFF;--surface-elev:#FBFCFE;
+  --shadow-sm:0 2px 8px rgba(15,23,42,0.06);
+  --shadow-md:0 10px 30px -12px rgba(15,23,42,0.15),0 2px 8px rgba(15,23,42,0.05);
+  --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
+}
+
   :root{
     --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
     --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --cyan:#00B4C6; --danger:#DC2626;
-    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
-    --scn-cons:#E1A20F; --scn-real:#0066FF; --scn-agg:#C025E0;
+    --brand:#0055B3; --brand-2:#9A1FB5; --accent:#D9A10F; --warn:#E61A85; --cyan:#0F857A; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(15,23,42,0.06); --border-hi:rgba(255,255,255,0.14);
+    --scn-cons:#D9A10F; --scn-real:#0055B3; --scn-agg:#9A1FB5;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -88,7 +105,7 @@
   /* Audience table */
   table{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace}
   th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--border);color:var(--ink-soft);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}
-  td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--ink);font-size:13px}
+  td{padding:11px 10px;border-bottom:1px solid rgba(15,23,42,0.03);color:var(--ink);font-size:13px}
   tr:last-child td{border-bottom:none}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.cons{color:var(--scn-cons);font-weight:600}
@@ -109,17 +126,17 @@
   .strat .s-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.12em;margin-bottom:6px}
   .strat h4{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-0.01em}
   .strat p.lead{font-size:13.5px;color:var(--ink-mute);margin-bottom:16px;line-height:1.55}
-  .strat .s-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--border)}
+  .strat .s-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;padding:14px;background:rgba(15,23,42,0.015);border-radius:10px;border:1px solid var(--border)}
   .strat .s-stat{text-align:center}
   .strat .s-stat .lbl{font-size:9px;color:var(--ink-soft);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px}
   .strat .s-stat .val{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--ink)}
   .strat .s-actions{list-style:none}
-  .strat .s-actions li{padding:8px 0 8px 22px;position:relative;font-size:12.5px;color:var(--ink-mute);border-bottom:1px solid rgba(255,255,255,0.04)}
+  .strat .s-actions li{padding:8px 0 8px 22px;position:relative;font-size:12.5px;color:var(--ink-mute);border-bottom:1px solid rgba(15,23,42,0.03)}
   .strat .s-actions li:last-child{border-bottom:none}
   .strat .s-actions li::before{content:'→';position:absolute;left:0;color:var(--brand);font-weight:700}
   .strat .s-actions li strong{color:var(--ink);font-weight:600}
   .strat .s-kpi{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .strat .s-kpi .chip{font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--ink-mute);letter-spacing:0.05em;text-transform:uppercase;font-weight:600}
+  .strat .s-kpi .chip{font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(15,23,42,0.03);border:1px solid var(--border);color:var(--ink-mute);letter-spacing:0.05em;text-transform:uppercase;font-weight:600}
 
   .risk-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase}
   .risk-low{background:rgba(16,185,129,0.12);color:#10B981;border:1px solid rgba(16,185,129,0.3)}
@@ -140,7 +157,7 @@
   .reco{background:linear-gradient(135deg,rgba(0,102,255,0.06),rgba(192,37,224,0.04));border:1px solid rgba(0,102,255,0.25);border-radius:20px;padding:36px;margin-top:40px;position:relative;overflow:hidden}
   .reco h3{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;margin-bottom:10px;color:var(--brand)}
   .reco p{font-size:15px;color:var(--ink);line-height:1.65;margin-bottom:14px;max-width:900px}
-  .reco .reco-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08)}
+  .reco .reco-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px;padding-top:24px;border-top:1px solid rgba(15,23,42,0.06)}
   .reco .reco-footer div{font-size:12px;color:var(--ink-soft)}
   .reco .reco-footer strong{display:block;font-family:'Rajdhani',sans-serif;font-size:22px;color:var(--ink);font-weight:700;margin-top:4px}
 
@@ -155,6 +172,104 @@
     .grid-2{grid-template-columns:1fr}
     h1{font-size:38px}
   }
+
+
+.vid-hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);margin:20px 0 40px;aspect-ratio:16/9;background:#F6F8FC;box-shadow:0 24px 48px -18px rgba(0,85,179,0.25),0 6px 16px -8px rgba(154,31,181,0.12)}
+.vid-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vid-overlay{position:absolute;inset:0;z-index:5;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;pointer-events:none;background:linear-gradient(180deg,rgba(15,23,42,0) 40%,rgba(15,23,42,0.08) 100%)}
+.vid-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.1);font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#0F172A;backdrop-filter:blur(8px)}
+.vid-dot{width:8px;height:8px;border-radius:50%;background:#0FA968;box-shadow:0 0 0 0 rgba(15,169,104,0.6);animation:vid-ping 1.8s ease-out infinite}
+@keyframes vid-ping{0%{box-shadow:0 0 0 0 rgba(15,169,104,0.6)}100%{box-shadow:0 0 0 12px rgba(15,169,104,0)}}
+.vid-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;color:#0F172A;line-height:1.15;max-width:520px;text-shadow:0 1px 12px rgba(255,255,255,0.7)}
+.vid-metrics{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.vid-m{display:inline-flex;flex-direction:column;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);backdrop-filter:blur(8px);font-family:'Inter',sans-serif}
+.vid-m b{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#0055B3;line-height:1}
+.vid-m em{font-style:normal;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#64748B;margin-top:3px}
+
+/* RADAR animations */
+.rdp{animation:rd-pulse 3s ease-out infinite;transform-origin:center;transform-box:fill-box}
+.rdp2{animation-delay:1.5s}
+@keyframes rd-pulse{0%{transform:scale(0.4);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.rd-sweep{animation:rd-rotate 6s linear infinite;transform-origin:400px 225px}
+@keyframes rd-rotate{to{transform:translate(400px,225px) rotate(360deg)}}
+.rd-dot{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s);transform-origin:center;transform-box:fill-box}
+@keyframes rd-fade{0%,10%{opacity:0;transform:scale(0.4)}15%{opacity:1;transform:scale(1.3)}40%,100%{opacity:0.85;transform:scale(1)}}
+.rd-center{animation:rd-core 2s ease-in-out infinite}
+@keyframes rd-core{0%,100%{r:6}50%{r:10}}
+.rd-label{opacity:0;animation:rd-lbl 8s ease-in-out infinite}
+.lb2{animation-delay:4s}
+@keyframes rd-lbl{0%,5%,50%,100%{opacity:0;transform:translateY(-6px)}10%,40%{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD animations */
+.db-pulse circle{animation:vid-ping 1.8s ease-out infinite}
+.db-line{stroke-dasharray:700;stroke-dashoffset:700;animation:db-draw 3s ease-out forwards infinite alternate}
+.db-area{opacity:0;animation:db-fill 3s ease-out 0.5s forwards infinite alternate}
+@keyframes db-draw{to{stroke-dashoffset:0}}
+@keyframes db-fill{to{opacity:1}}
+.db-pts circle{opacity:0;animation:db-pop 5s ease-out infinite}
+.db-pts circle:nth-child(1){animation-delay:0.2s}.db-pts circle:nth-child(2){animation-delay:0.5s}
+.db-pts circle:nth-child(3){animation-delay:0.8s}.db-pts circle:nth-child(4){animation-delay:1.1s}
+.db-pts circle:nth-child(5){animation-delay:1.4s}.db-pts circle:nth-child(6){animation-delay:1.7s}
+.db-pts circle:nth-child(7){animation-delay:2s}
+@keyframes db-pop{0%,5%{opacity:0;transform:scale(0)}10%,80%{opacity:1;transform:scale(1)}100%{opacity:0.85}}
+.db-row{opacity:0;animation:db-row-in 6s ease-out infinite;transform-origin:left}
+.r2{animation-delay:0.6s}.r3{animation-delay:1.2s}.r4{animation-delay:1.8s}
+@keyframes db-row-in{0%,5%{opacity:0;transform:translateX(-20px)}15%,90%{opacity:1;transform:translateX(0)}100%{opacity:0.9}}
+
+/* PHV */
+.phv-curve{stroke-dasharray:1200;stroke-dashoffset:1200;animation:phv-draw 4s ease-in-out infinite alternate}
+@keyframes phv-draw{to{stroke-dashoffset:0}}
+.phv-fill{opacity:0;animation:phv-fadein 4s ease-in-out 1s infinite alternate}
+@keyframes phv-fadein{to{opacity:1}}
+.phv-peak{animation:phv-peak 2s ease-in-out infinite}
+@keyframes phv-peak{0%,100%{r:7}50%{r:11;filter:drop-shadow(0 0 8px #D9A10F)}}
+.phv-marker{animation:phv-marker 4s ease-in-out infinite}
+@keyframes phv-marker{0%,20%{opacity:0;transform:translateY(10px)}30%,80%{opacity:1;transform:translateY(0)}100%{opacity:0}}
+
+/* PARENT APP */
+.pa-bubbles circle{animation:pa-float 6s ease-in-out infinite}
+.pa-b2{animation-delay:2s}.pa-b3{animation-delay:4s}
+@keyframes pa-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.pa-card{opacity:0;animation:pa-card-in 5s ease-out infinite}
+.pa-c1{animation-delay:0.3s}.pa-c2{animation-delay:0.7s}.pa-c3{animation-delay:1s}.pa-c4{animation-delay:1.3s}.pa-c5{animation-delay:1.6s}
+@keyframes pa-card-in{0%,5%{opacity:0;transform:translateY(10px)}15%,90%{opacity:1;transform:translateY(0)}100%{opacity:0.95}}
+.pa-badge{opacity:0;animation:pa-badge-in 7s ease-in-out infinite}
+.pb1{animation-delay:2s}.pb2{animation-delay:3.2s}.pb3{animation-delay:4.4s}
+@keyframes pa-badge-in{0%,10%{opacity:0;transform:translateY(20px) scale(0.9)}18%,85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-8px)}}
+
+/* MAP */
+.mp-pulse{animation:rd-pulse 3s ease-out infinite;transform-origin:575px 240px;transform-box:fill-box}
+.mp2{animation-delay:1.5s}
+.mp-d{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s)}
+.mp-line{stroke-dasharray:300;stroke-dashoffset:300;animation:mp-draw 4s ease-out infinite}
+.l2{animation-delay:0.8s}.l3{animation-delay:1.6s}.l4{animation-delay:2.4s}
+@keyframes mp-draw{0%{stroke-dashoffset:300}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0.3}}
+.mp-chip{opacity:0;animation:pa-badge-in 8s ease-in-out infinite}
+.mc1{animation-delay:1s}.mc2{animation-delay:2.5s}.mc3{animation-delay:4s}
+
+/* AI */
+.ai-node{animation:ai-pulse 2s ease-in-out infinite}
+.n2{animation-delay:0.1s}.n3{animation-delay:0.2s}.n4{animation-delay:0.3s}.n5{animation-delay:0.4s}
+.n6{animation-delay:0.5s}.n7{animation-delay:0.6s}.n8{animation-delay:0.7s}.n9{animation-delay:0.8s}
+.n10{animation-delay:0.9s}.n11{animation-delay:1s}.n12{animation-delay:1.1s}
+@keyframes ai-pulse{0%,100%{r:12;opacity:0.7}50%{r:15;opacity:1}}
+
+/* SCENARIOS */
+.sc-line{stroke-dasharray:900;stroke-dashoffset:900;animation:sc-draw 3.5s ease-out infinite alternate}
+.sc-real{animation-delay:0.3s}.sc-agg{animation-delay:0.6s}
+@keyframes sc-draw{to{stroke-dashoffset:0}}
+.sc-pt{opacity:0;animation:db-pop 4s ease-out 2s infinite}
+.sc-pt:nth-child(2){animation-delay:2.3s}.sc-pt:nth-child(3){animation-delay:2.6s}
+
+/* RIVAL */
+.rv-vitas polygon{animation:rv-scale 3s ease-out infinite alternate;transform-origin:center;transform-box:fill-box}
+@keyframes rv-scale{from{transform:scale(0.3);opacity:0.4}to{transform:scale(1);opacity:1}}
+.rv-badges .rv-b{opacity:0;animation:pa-badge-in 5s ease-in-out infinite 1.5s}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:0.01s!important;animation-iteration-count:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -179,7 +294,54 @@
   <!-- HERO VIDEO -->
   <div class="video-block">
     <div class="corner"><span class="rec"></span>Decision board · Q2 2026</div>
-    <iframe src="https://www.youtube.com/embed/sXQxhojSdZM?autoplay=1&mute=1&loop=1&playlist=sXQxhojSdZM&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS · 3 escenarios" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="scenarios">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · 3 Scenarios</div>
+    <div class="vid-title">Conservador · Realista · Agresivo · Y1→Y5</div>
+    <div class="vid-metrics">
+      <span class="vid-m" style="color:#D9A10F"><b>€4.8M</b><em>Conservador</em></span>
+      <span class="vid-m" style="color:#0055B3"><b>€9.6M</b><em>Realista</em></span>
+      <span class="vid-m" style="color:#9A1FB5"><b>€18.2M</b><em>Agresivo</em></span>
+    </div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sc-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F7FAFE"/><stop offset="100%" stop-color="#E2EAF6"/></linearGradient>
+      <linearGradient id="sc-area-agg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(154,31,181,0.25)"/><stop offset="100%" stop-color="rgba(154,31,181,0)"/></linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#sc-bg)"/>
+    <g stroke="rgba(15,23,42,0.06)" stroke-dasharray="3 4">
+      <line x1="80" y1="100" x2="760" y2="100"/><line x1="80" y1="170" x2="760" y2="170"/>
+      <line x1="80" y1="240" x2="760" y2="240"/><line x1="80" y1="310" x2="760" y2="310"/>
+    </g>
+    <g font-family="JetBrains Mono" font-size="10" fill="#64748B">
+      <text x="30" y="104">€20M</text><text x="30" y="174">€15M</text><text x="30" y="244">€10M</text><text x="30" y="314">€5M</text><text x="30" y="384">€1M</text>
+    </g>
+    <g font-family="JetBrains Mono" font-size="10" fill="#64748B" font-weight="600">
+      <text x="100" y="410">Y1</text><text x="240" y="410">Y2</text><text x="380" y="410">Y3</text><text x="520" y="410">Y4</text><text x="660" y="410">Y5</text>
+    </g>
+    <!-- Línea Agresivo -->
+    <path class="sc-line sc-agg-area" d="M100,385 L240,340 L380,250 L520,150 L660,80 L660,400 L100,400 Z" fill="url(#sc-area-agg)"/>
+    <path class="sc-line sc-agg" d="M100,385 L240,340 L380,250 L520,150 L660,80" fill="none" stroke="#9A1FB5" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- Línea Realista -->
+    <path class="sc-line sc-real" d="M100,388 L240,365 L380,305 L520,240 L660,170" fill="none" stroke="#0055B3" stroke-width="3.5" stroke-linecap="round"/>
+    <!-- Línea Conservador -->
+    <path class="sc-line sc-cons" d="M100,390 L240,380 L380,350 L520,310 L660,270" fill="none" stroke="#D9A10F" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="6 4"/>
+    <!-- Endpoints -->
+    <g class="sc-pts">
+      <circle cx="660" cy="80" r="7" fill="#9A1FB5" class="sc-pt"/>
+      <circle cx="660" cy="170" r="7" fill="#0055B3" class="sc-pt"/>
+      <circle cx="660" cy="270" r="7" fill="#D9A10F" class="sc-pt"/>
+    </g>
+    <!-- Labels -->
+    <g class="sc-lbl" font-family="Inter" font-size="11" font-weight="700">
+      <rect x="675" y="68" width="90" height="24" rx="4" fill="#9A1FB5"/><text x="720" y="85" text-anchor="middle" fill="#fff">Agresivo · 25%</text>
+      <rect x="675" y="158" width="90" height="24" rx="4" fill="#0055B3"/><text x="720" y="175" text-anchor="middle" fill="#fff">Realista · 60%</text>
+      <rect x="675" y="258" width="90" height="24" rx="4" fill="#D9A10F"/><text x="720" y="275" text-anchor="middle" fill="#fff">Cons. · 55%</text>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
       <span class="vtag">◉ 60 meses · 3 futuros · 1 elección</span>
       <h3>Conservador €4.0M · Realista €9.6M · Agresivo €14.9M</h3>
@@ -609,7 +771,7 @@ const common = {
   chart:{ background:'transparent', toolbar:{show:false}, foreColor:'#8592A8',
           animations:{enabled:true,easing:'easeout',speed:600}, fontFamily:'Inter,sans-serif'},
   theme:{ mode:'dark' },
-  tooltip:{ theme:'dark', style:{fontFamily:'Inter',fontSize:'12px'} },
+  tooltip:{ theme:'light', style:{fontFamily:'Inter',fontSize:'12px'} },
   grid:{ borderColor:'rgba(255,255,255,0.05)', strokeDashArray:3, padding:{left:8,right:8} },
   dataLabels:{ enabled:false }
 };
@@ -624,7 +786,7 @@ new ApexCharts(document.querySelector('#chart-arr-comp'),{
     { name:'Realista',    data:[87,436,1457,4027,9602,18336] },
     { name:'Agresivo',    data:[135,740,2350,6350,14900,29100] }
   ],
-  colors:['#E1A20F','#0066FF','#C025E0'],
+  colors:['#D9A10F','#0055B3','#9A1FB5'],
   stroke:{ curve:'smooth', width:[3,5,3] },
   markers:{ size:[5,7,5], strokeColors:'#030718', strokeWidth:3 },
   xaxis:{ categories:years, axisBorder:{show:false}, axisTicks:{show:false} },
@@ -633,7 +795,7 @@ new ApexCharts(document.querySelector('#chart-arr-comp'),{
   fill:{ type:['solid','gradient','solid'], gradient:{ shadeIntensity:1, opacityFrom:0.35, opacityTo:0 } },
   annotations:{
     yaxis:[
-      { y:9602, borderColor:'#0066FF', strokeDashArray:4, label:{style:{background:'#0066FF',color:'#fff'}, text:'Y5 Realista · €9.6M', offsetX:0}}
+      { y:9602, borderColor:'#0055B3', strokeDashArray:4, label:{style:{background:'#0055B3',color:'#fff'}, text:'Y5 Realista · €9.6M', offsetX:0}}
     ]
   },
   tooltip:{ ...common.tooltip, y:{ formatter:v=>'€'+v.toLocaleString()+'K' } }
@@ -641,7 +803,7 @@ new ApexCharts(document.querySelector('#chart-arr-comp'),{
 
 /* 04 - OpEx donuts per scenario */
 const opexLabels = ['Personal R&D','Personal S&M','Personal G&A','Marketing paid','Infra','AI costs','Tooling','Viajes/Legal','Contingencia'];
-const opexColors = ['#0066FF','#C025E0','#1E40AF','#E1A20F','#00B4C6','#E61A85','#8592A8','#059669','#52617C'];
+const opexColors = ['#0055B3','#9A1FB5','#1E40AF','#D9A10F','#0F857A','#E61A85','#8592A8','#059669','#52617C'];
 function makeDonut(el, data, color){
   return new ApexCharts(document.querySelector(el),{
     ...common,
@@ -671,7 +833,7 @@ new ApexCharts(document.querySelector('#chart-rev-mix'),{
     { name:'Club Enterprise', data:[7,29,36] },
     { name:'Parent Pro B2B2C', data:[3,13,16] }
   ],
-  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
+  colors:['#0055B3','#9A1FB5','#D9A10F','#E61A85','#0F857A'],
   xaxis:{ categories:['Conservador','Realista','Agresivo'] },
   yaxis:{ labels:{formatter:v=>v+'%'} },
   legend:{ position:'top', labels:{colors:'#E6EDF7'} },
@@ -687,7 +849,7 @@ new ApexCharts(document.querySelector('#chart-ebitda'),{
     { name:'Realista',    data:[-540,-980,-1080,-720,254,1820] },
     { name:'Agresivo',    data:[-820,-1380,-1120,320,505,2340] }
   ],
-  colors:['#E1A20F','#0066FF','#C025E0'],
+  colors:['#D9A10F','#0055B3','#9A1FB5'],
   stroke:{ curve:'smooth', width:3 },
   markers:{ size:5, strokeColors:'#030718', strokeWidth:2 },
   xaxis:{ categories:years },
@@ -708,7 +870,7 @@ new ApexCharts(document.querySelector('#chart-customers-comp'),{
     { name:'Realista',    data:[90,578,2240,7330,19020,34840] },
     { name:'Agresivo',    data:[145,1120,4680,15400,37672,68200] }
   ],
-  colors:['#E1A20F','#0066FF','#C025E0'],
+  colors:['#D9A10F','#0055B3','#9A1FB5'],
   xaxis:{ categories:years },
   yaxis:{ labels:{formatter:v=>v>=1000?(v/1000).toFixed(1)+'K':v} },
   legend:{ position:'top', labels:{colors:'#E6EDF7'} },
@@ -732,9 +894,9 @@ new ApexCharts(document.querySelector('#chart-matrix'),{
     colorScale:{ ranges:[
       {from:0,to:30, color:'#1E1B4B', name:'Bajo'},
       {from:31,to:55,color:'#4C1D95', name:'Medio'},
-      {from:56,to:75,color:'#C025E0', name:'Alto'},
-      {from:76,to:90,color:'#0066FF', name:'Muy alto'},
-      {from:91,to:100,color:'#E1A20F', name:'Crítico'}
+      {from:56,to:75,color:'#9A1FB5', name:'Alto'},
+      {from:76,to:90,color:'#0055B3', name:'Muy alto'},
+      {from:91,to:100,color:'#D9A10F', name:'Crítico'}
     ]}
   }},
   dataLabels:{ enabled:true, formatter:v=>v, style:{colors:['#fff'],fontWeight:600,fontFamily:'JetBrains Mono'} },

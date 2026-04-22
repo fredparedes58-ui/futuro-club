@@ -10,19 +10,27 @@
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
 :root{
-  --bg:#05070f;--bg2:#0b1223;
-  --blue:#0066FF;--purple:#C025E0;--gold:#E1A20F;--pink:#E61A85;--cyan:#00B4C6;
-  --text:#e7ecf7;--muted:#9aa5c4;--line:rgba(255,255,255,0.08);
-  --good:#18C27A;--warn:#FFB020;
-  --grad:linear-gradient(135deg,var(--pink) 0%,var(--purple) 50%,var(--cyan) 100%);
-  --gradp:linear-gradient(135deg,var(--cyan) 0%,var(--blue) 100%);
+  --bg:#F4F7FB;--bg2:#FFFFFF;--bg3:#EEF2F8;--bg-grad:#E8EFFA;
+  --blue:#0055B3;--blue-soft:#2B7BDE;
+  --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
+  --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
+  --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
+  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
+  --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
+  --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
+  --card:rgba(255,255,255,0.8);--card-hover:rgba(255,255,255,0.96);
+  --surface:#FFFFFF;--surface-elev:#FBFCFE;
+  --shadow-sm:0 2px 8px rgba(15,23,42,0.06);
+  --shadow-md:0 10px 30px -12px rgba(15,23,42,0.15),0 2px 8px rgba(15,23,42,0.05);
+  --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;line-height:1.55;scroll-behavior:smooth}
 .container{max-width:1400px;margin:0 auto;padding:0 32px}
 h1,h2,h3,h4{font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:-0.01em}
 
-.quicknav{position:sticky;top:0;z-index:50;background:rgba(5,7,15,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:14px 0}
+.quicknav{position:sticky;top:0;z-index:50;background:rgba(246,248,252,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);padding:14px 0}
 .quicknav-list{display:flex;gap:28px;overflow-x:auto;font-size:13px;text-transform:uppercase;letter-spacing:0.12em}
 .quicknav a{color:var(--muted);text-decoration:none;white-space:nowrap}
 .quicknav a:hover{color:var(--text)}
@@ -49,7 +57,7 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 .section-title .hl{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .section-lead{font-size:17px;color:var(--muted);max-width:860px;margin-bottom:50px}
 
-.video-cap{display:flex;gap:20px;align-items:center;padding:18px 22px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
+.video-cap{display:flex;gap:20px;align-items:center;padding:18px 22px;background:rgba(15,23,42,0.02);border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
 .video-cap .tag{padding:4px 10px;border-radius:6px;font-size:11px;letter-spacing:0.14em;background:rgba(230,26,133,0.15);color:var(--pink);font-weight:600}
 .video-cap h4{font-family:'Rajdhani';font-weight:700;font-size:17px}
 .video-block{position:relative;padding-top:56.25%;border-radius:18px;overflow:hidden;border:1px solid var(--line);margin:20px 0 40px}
@@ -59,7 +67,7 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 .g2{grid-template-columns:repeat(2,1fr)}
 .g3{grid-template-columns:repeat(3,1fr)}
 .g4{grid-template-columns:repeat(4,1fr)}
-.card{padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);transition:transform .25s,border-color .25s}
+.card{padding:30px;border-radius:18px;background:linear-gradient(180deg,rgba(15,23,42,0.03),rgba(255,255,255,0.01));border:1px solid var(--line);transition:transform .25s,border-color .25s}
 .card:hover{transform:translateY(-4px);border-color:rgba(230,26,133,0.3)}
 .card .icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani';font-weight:700;font-size:20px;margin-bottom:16px}
 .card h3{font-size:22px;margin-bottom:10px}
@@ -85,7 +93,7 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 
 /* FEATURES PARENTS */
 .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feat-card{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line)}
+.feat-card{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(15,23,42,0.03),rgba(255,255,255,0.01));border:1px solid var(--line)}
 .feat-card .emoji{font-size:36px;margin-bottom:12px}
 .feat-card h4{font-size:20px;margin-bottom:8px}
 .feat-card p{color:var(--muted);font-size:14px}
@@ -99,7 +107,7 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 .privacy-panel ul li::before{content:'🔒';margin-right:10px}
 
 /* FAQ */
-.faq{padding:28px;border-radius:14px;background:rgba(255,255,255,0.03);border:1px solid var(--line);margin-bottom:14px;transition:border-color .2s}
+.faq{padding:28px;border-radius:14px;background:rgba(15,23,42,0.02);border:1px solid var(--line);margin-bottom:14px;transition:border-color .2s}
 .faq:hover{border-color:rgba(230,26,133,0.3)}
 .faq summary{font-family:'Rajdhani';font-weight:700;font-size:18px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
 .faq summary::after{content:'+';font-size:26px;color:var(--pink);font-weight:400;transition:transform .2s}
@@ -108,7 +116,7 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 
 /* TESTIMONIAL */
 .testimonial-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
-.testimonial{padding:32px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);position:relative}
+.testimonial{padding:32px;border-radius:18px;background:linear-gradient(180deg,rgba(15,23,42,0.03),rgba(255,255,255,0.01));border:1px solid var(--line);position:relative}
 .testimonial .quote-mark{font-family:'Rajdhani';font-weight:700;font-size:64px;line-height:0.5;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:18px}
 .testimonial p.body{font-size:17px;color:var(--text);line-height:1.6;margin-bottom:20px}
 .testimonial .person{display:flex;gap:14px;align-items:center;padding-top:18px;border-top:1px solid var(--line)}
@@ -118,13 +126,13 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 
 /* HOW TO ACCESS */
 .steps{counter-reset:step;margin-top:30px}
-.step{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:center}
+.step{padding:28px;border-radius:16px;background:linear-gradient(180deg,rgba(15,23,42,0.03),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:14px;display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:center}
 .step::before{counter-increment:step;content:counter(step);font-family:'Rajdhani';font-weight:700;font-size:48px;line-height:1;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center}
 .step h4{font-size:22px;margin-bottom:6px}
 .step p{color:var(--muted);font-size:14.5px}
 
 /* CHART */
-.chart-wrap{padding:28px;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:24px}
+.chart-wrap{padding:28px;border-radius:18px;background:linear-gradient(180deg,rgba(15,23,42,0.03),rgba(255,255,255,0.01));border:1px solid var(--line);margin-bottom:24px}
 .chart-wrap h4{font-size:18px;margin-bottom:6px;font-family:'Rajdhani'}
 .chart-wrap .sub{font-size:13px;color:var(--muted);margin-bottom:18px}
 
@@ -136,10 +144,10 @@ section{padding:100px 0;border-bottom:1px solid var(--line);position:relative}
 .btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border-radius:10px;font-family:'Rajdhani';font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;transition:transform .2s}
 .btn:hover{transform:translateY(-2px)}
 .btn.primary{background:var(--grad);color:#fff}
-.btn.ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--line)}
+.btn.ghost{background:rgba(15,23,42,0.04);color:var(--text);border:1px solid var(--line)}
 
-footer{padding:50px 0;background:#03060d;border-top:1px solid var(--line)}
-footer p{color:#7a87a6;font-size:13px;text-align:center}
+footer{padding:50px 0;background:#FFFFFF;border-top:1px solid var(--line)}
+footer p{color:#64748B;font-size:13px;text-align:center}
 
 @media print{.quicknav,.cta-btns{display:none}section{page-break-inside:avoid;padding:40px 0}.hero{min-height:auto}}
 @media (max-width:960px){
@@ -147,6 +155,104 @@ footer p{color:#7a87a6;font-size:13px;text-align:center}
   .privacy-panel{grid-template-columns:1fr}
   .step{grid-template-columns:60px 1fr;gap:16px}
 }
+
+
+.vid-hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);margin:20px 0 40px;aspect-ratio:16/9;background:#F6F8FC;box-shadow:0 24px 48px -18px rgba(0,85,179,0.25),0 6px 16px -8px rgba(154,31,181,0.12)}
+.vid-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vid-overlay{position:absolute;inset:0;z-index:5;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;pointer-events:none;background:linear-gradient(180deg,rgba(15,23,42,0) 40%,rgba(15,23,42,0.08) 100%)}
+.vid-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.1);font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#0F172A;backdrop-filter:blur(8px)}
+.vid-dot{width:8px;height:8px;border-radius:50%;background:#0FA968;box-shadow:0 0 0 0 rgba(15,169,104,0.6);animation:vid-ping 1.8s ease-out infinite}
+@keyframes vid-ping{0%{box-shadow:0 0 0 0 rgba(15,169,104,0.6)}100%{box-shadow:0 0 0 12px rgba(15,169,104,0)}}
+.vid-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;color:#0F172A;line-height:1.15;max-width:520px;text-shadow:0 1px 12px rgba(255,255,255,0.7)}
+.vid-metrics{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.vid-m{display:inline-flex;flex-direction:column;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);backdrop-filter:blur(8px);font-family:'Inter',sans-serif}
+.vid-m b{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#0055B3;line-height:1}
+.vid-m em{font-style:normal;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#64748B;margin-top:3px}
+
+/* RADAR animations */
+.rdp{animation:rd-pulse 3s ease-out infinite;transform-origin:center;transform-box:fill-box}
+.rdp2{animation-delay:1.5s}
+@keyframes rd-pulse{0%{transform:scale(0.4);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.rd-sweep{animation:rd-rotate 6s linear infinite;transform-origin:400px 225px}
+@keyframes rd-rotate{to{transform:translate(400px,225px) rotate(360deg)}}
+.rd-dot{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s);transform-origin:center;transform-box:fill-box}
+@keyframes rd-fade{0%,10%{opacity:0;transform:scale(0.4)}15%{opacity:1;transform:scale(1.3)}40%,100%{opacity:0.85;transform:scale(1)}}
+.rd-center{animation:rd-core 2s ease-in-out infinite}
+@keyframes rd-core{0%,100%{r:6}50%{r:10}}
+.rd-label{opacity:0;animation:rd-lbl 8s ease-in-out infinite}
+.lb2{animation-delay:4s}
+@keyframes rd-lbl{0%,5%,50%,100%{opacity:0;transform:translateY(-6px)}10%,40%{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD animations */
+.db-pulse circle{animation:vid-ping 1.8s ease-out infinite}
+.db-line{stroke-dasharray:700;stroke-dashoffset:700;animation:db-draw 3s ease-out forwards infinite alternate}
+.db-area{opacity:0;animation:db-fill 3s ease-out 0.5s forwards infinite alternate}
+@keyframes db-draw{to{stroke-dashoffset:0}}
+@keyframes db-fill{to{opacity:1}}
+.db-pts circle{opacity:0;animation:db-pop 5s ease-out infinite}
+.db-pts circle:nth-child(1){animation-delay:0.2s}.db-pts circle:nth-child(2){animation-delay:0.5s}
+.db-pts circle:nth-child(3){animation-delay:0.8s}.db-pts circle:nth-child(4){animation-delay:1.1s}
+.db-pts circle:nth-child(5){animation-delay:1.4s}.db-pts circle:nth-child(6){animation-delay:1.7s}
+.db-pts circle:nth-child(7){animation-delay:2s}
+@keyframes db-pop{0%,5%{opacity:0;transform:scale(0)}10%,80%{opacity:1;transform:scale(1)}100%{opacity:0.85}}
+.db-row{opacity:0;animation:db-row-in 6s ease-out infinite;transform-origin:left}
+.r2{animation-delay:0.6s}.r3{animation-delay:1.2s}.r4{animation-delay:1.8s}
+@keyframes db-row-in{0%,5%{opacity:0;transform:translateX(-20px)}15%,90%{opacity:1;transform:translateX(0)}100%{opacity:0.9}}
+
+/* PHV */
+.phv-curve{stroke-dasharray:1200;stroke-dashoffset:1200;animation:phv-draw 4s ease-in-out infinite alternate}
+@keyframes phv-draw{to{stroke-dashoffset:0}}
+.phv-fill{opacity:0;animation:phv-fadein 4s ease-in-out 1s infinite alternate}
+@keyframes phv-fadein{to{opacity:1}}
+.phv-peak{animation:phv-peak 2s ease-in-out infinite}
+@keyframes phv-peak{0%,100%{r:7}50%{r:11;filter:drop-shadow(0 0 8px #D9A10F)}}
+.phv-marker{animation:phv-marker 4s ease-in-out infinite}
+@keyframes phv-marker{0%,20%{opacity:0;transform:translateY(10px)}30%,80%{opacity:1;transform:translateY(0)}100%{opacity:0}}
+
+/* PARENT APP */
+.pa-bubbles circle{animation:pa-float 6s ease-in-out infinite}
+.pa-b2{animation-delay:2s}.pa-b3{animation-delay:4s}
+@keyframes pa-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.pa-card{opacity:0;animation:pa-card-in 5s ease-out infinite}
+.pa-c1{animation-delay:0.3s}.pa-c2{animation-delay:0.7s}.pa-c3{animation-delay:1s}.pa-c4{animation-delay:1.3s}.pa-c5{animation-delay:1.6s}
+@keyframes pa-card-in{0%,5%{opacity:0;transform:translateY(10px)}15%,90%{opacity:1;transform:translateY(0)}100%{opacity:0.95}}
+.pa-badge{opacity:0;animation:pa-badge-in 7s ease-in-out infinite}
+.pb1{animation-delay:2s}.pb2{animation-delay:3.2s}.pb3{animation-delay:4.4s}
+@keyframes pa-badge-in{0%,10%{opacity:0;transform:translateY(20px) scale(0.9)}18%,85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-8px)}}
+
+/* MAP */
+.mp-pulse{animation:rd-pulse 3s ease-out infinite;transform-origin:575px 240px;transform-box:fill-box}
+.mp2{animation-delay:1.5s}
+.mp-d{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s)}
+.mp-line{stroke-dasharray:300;stroke-dashoffset:300;animation:mp-draw 4s ease-out infinite}
+.l2{animation-delay:0.8s}.l3{animation-delay:1.6s}.l4{animation-delay:2.4s}
+@keyframes mp-draw{0%{stroke-dashoffset:300}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0.3}}
+.mp-chip{opacity:0;animation:pa-badge-in 8s ease-in-out infinite}
+.mc1{animation-delay:1s}.mc2{animation-delay:2.5s}.mc3{animation-delay:4s}
+
+/* AI */
+.ai-node{animation:ai-pulse 2s ease-in-out infinite}
+.n2{animation-delay:0.1s}.n3{animation-delay:0.2s}.n4{animation-delay:0.3s}.n5{animation-delay:0.4s}
+.n6{animation-delay:0.5s}.n7{animation-delay:0.6s}.n8{animation-delay:0.7s}.n9{animation-delay:0.8s}
+.n10{animation-delay:0.9s}.n11{animation-delay:1s}.n12{animation-delay:1.1s}
+@keyframes ai-pulse{0%,100%{r:12;opacity:0.7}50%{r:15;opacity:1}}
+
+/* SCENARIOS */
+.sc-line{stroke-dasharray:900;stroke-dashoffset:900;animation:sc-draw 3.5s ease-out infinite alternate}
+.sc-real{animation-delay:0.3s}.sc-agg{animation-delay:0.6s}
+@keyframes sc-draw{to{stroke-dashoffset:0}}
+.sc-pt{opacity:0;animation:db-pop 4s ease-out 2s infinite}
+.sc-pt:nth-child(2){animation-delay:2.3s}.sc-pt:nth-child(3){animation-delay:2.6s}
+
+/* RIVAL */
+.rv-vitas polygon{animation:rv-scale 3s ease-out infinite alternate;transform-origin:center;transform-box:fill-box}
+@keyframes rv-scale{from{transform:scale(0.3);opacity:0.4}to{transform:scale(1);opacity:1}}
+.rv-badges .rv-b{opacity:0;animation:pa-badge-in 5s ease-in-out infinite 1.5s}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:0.01s!important;animation-iteration-count:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -191,9 +297,83 @@ footer p{color:#7a87a6;font-size:13px;text-align:center}
       <div class="tag">Vídeo · Parent Pro</div>
       <h4>Cómo funciona Parent Pro en 90 segundos</h4>
     </div>
-    <div class="video-block">
-      <iframe src="https://www.youtube.com/embed/fvxDZVTrCps?autoplay=1&mute=1&loop=1&playlist=fvxDZVTrCps&controls=0&rel=0&modestbranding=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-    </div>
+    
+<div class="vid-hero" data-type="parent">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · Parent Pro</div>
+    <div class="vid-title">Family dashboard · live evaluation feed</div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pa-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FAF4FA"/><stop offset="100%" stop-color="#F0E1EF"/></linearGradient>
+      <linearGradient id="pa-phone" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#F9F9FC"/></linearGradient>
+      <linearGradient id="pa-title" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#E61A85"/><stop offset="100%" stop-color="#9A1FB5"/></linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#pa-bg)"/>
+    <g class="pa-bubbles">
+      <circle cx="120" cy="90" r="80" fill="rgba(230,26,133,0.08)" class="pa-b1"/>
+      <circle cx="680" cy="360" r="100" fill="rgba(154,31,181,0.08)" class="pa-b2"/>
+      <circle cx="720" cy="100" r="40" fill="rgba(15,133,122,0.1)" class="pa-b3"/>
+    </g>
+    <g transform="translate(300 40)">
+      <rect x="0" y="0" width="200" height="380" rx="28" fill="url(#pa-phone)" stroke="rgba(15,23,42,0.12)" stroke-width="2" filter="drop-shadow(0 20px 40px rgba(154,31,181,0.2))"/>
+      <rect x="70" y="10" width="60" height="14" rx="6" fill="#0F172A"/>
+      <text x="20" y="55" font-family="Rajdhani,sans-serif" font-weight="700" font-size="14" fill="#0F172A">Hola, María</text>
+      <text x="20" y="72" font-family="Inter,sans-serif" font-size="10" fill="#64748B">Tu hijo · Marco · Sub-14</text>
+      <g class="pa-card pa-c1">
+        <rect x="16" y="86" width="168" height="64" rx="10" fill="url(#pa-title)"/>
+        <text x="30" y="106" font-family="Inter,sans-serif" font-size="9" fill="#fff" opacity="0.8">EVALUACIÓN MENSUAL</text>
+        <text x="30" y="128" font-family="Rajdhani,sans-serif" font-weight="700" font-size="24" fill="#fff">86.4</text>
+        <text x="90" y="128" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#fff">▲ +4.2</text>
+        <text x="30" y="144" font-family="Inter,sans-serif" font-size="9" fill="#fff" opacity="0.8">vs. mes anterior</text>
+      </g>
+      <g class="pa-card pa-c2">
+        <rect x="16" y="162" width="80" height="60" rx="8" fill="#F3F6FC" stroke="rgba(15,23,42,0.06)"/>
+        <text x="26" y="180" font-family="Inter,sans-serif" font-size="8" fill="#64748B">PHV</text>
+        <text x="26" y="200" font-family="Rajdhani,sans-serif" font-weight="700" font-size="16" fill="#0055B3">Normal</text>
+        <path d="M26,210 L40,206 L54,200 L68,195 L82,192" fill="none" stroke="#0055B3" stroke-width="1.5"/>
+      </g>
+      <g class="pa-card pa-c3">
+        <rect x="104" y="162" width="80" height="60" rx="8" fill="#F3F6FC" stroke="rgba(15,23,42,0.06)"/>
+        <text x="114" y="180" font-family="Inter,sans-serif" font-size="8" fill="#64748B">CUOTA</text>
+        <text x="114" y="200" font-family="Rajdhani,sans-serif" font-weight="700" font-size="16" fill="#0FA968">Pagada</text>
+        <text x="114" y="215" font-family="Inter,sans-serif" font-size="8" fill="#64748B">Nov 2026</text>
+      </g>
+      <g class="pa-card pa-c4">
+        <rect x="16" y="232" width="168" height="56" rx="10" fill="#FFFFFF" stroke="rgba(15,23,42,0.06)"/>
+        <circle cx="36" cy="260" r="10" fill="#D9A10F"/>
+        <text x="50" y="256" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#0F172A">Próximo partido</text>
+        <text x="50" y="270" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Sab 24 · 10:00 · Villarreal B</text>
+      </g>
+      <g class="pa-card pa-c5">
+        <rect x="16" y="298" width="168" height="56" rx="10" fill="#FFFFFF" stroke="rgba(15,23,42,0.06)"/>
+        <circle cx="36" cy="326" r="10" fill="#0F857A"/>
+        <text x="50" y="322" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#0F172A">Drill recomendado</text>
+        <text x="50" y="336" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Control orientado · 20 min</text>
+      </g>
+    </g>
+    <g class="pa-badges">
+      <g class="pa-badge pb1" transform="translate(60 200)">
+        <rect x="0" y="0" width="150" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#0FA968"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Convocatoria +1</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Titular sábado</text>
+      </g>
+      <g class="pa-badge pb2" transform="translate(570 170)">
+        <rect x="0" y="0" width="160" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#E61A85"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Chat nuevo</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Del preparador físico</text>
+      </g>
+      <g class="pa-badge pb3" transform="translate(590 280)">
+        <rect x="0" y="0" width="145" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#0055B3"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Galería +12 fotos</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Partido pasado</text>
+      </g>
+    </g>
+  </svg>
+</div>
 
     <div class="card-grid g3" style="margin-top:40px">
       <div class="card">
@@ -513,8 +693,8 @@ footer p{color:#7a87a6;font-size:13px;text-align:center}
 </footer>
 
 <script>
-const theme={blue:'#0066FF',purple:'#C025E0',gold:'#E1A20F',pink:'#E61A85',cyan:'#00B4C6',muted:'#9aa5c4',grid:'rgba(255,255,255,0.08)',text:'#e7ecf7',good:'#18C27A'};
-const base={chart:{toolbar:{show:false},fontFamily:'Inter,sans-serif',background:'transparent',foreColor:theme.text},grid:{borderColor:theme.grid,strokeDashArray:3},tooltip:{theme:'dark'}};
+const theme={blue:'#0055B3',purple:'#9A1FB5',gold:'#D9A10F',pink:'#E61A85',cyan:'#0F857A',muted:'#475569',grid:'rgba(15,23,42,0.06)',text:'#0F172A',good:'#0FA968'};
+const base={chart:{toolbar:{show:false},fontFamily:'Inter,sans-serif',background:'transparent',foreColor:"#0F172A"},grid:{borderColor:theme.grid,strokeDashArray:3},tooltip:{theme:'light'}};
 
 // VALUE CHART — bar showing equivalent market value
 new ApexCharts(document.querySelector('#chart-value'),{

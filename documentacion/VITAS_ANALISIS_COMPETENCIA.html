@@ -9,11 +9,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
+:root{
+  --bg:#F4F7FB;--bg2:#FFFFFF;--bg3:#EEF2F8;--bg-grad:#E8EFFA;
+  --blue:#0055B3;--blue-soft:#2B7BDE;
+  --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
+  --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
+  --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
+  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
+  --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
+  --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
+  --card:rgba(255,255,255,0.8);--card-hover:rgba(255,255,255,0.96);
+  --surface:#FFFFFF;--surface-elev:#FBFCFE;
+  --shadow-sm:0 2px 8px rgba(15,23,42,0.06);
+  --shadow-md:0 10px 30px -12px rgba(15,23,42,0.15),0 2px 8px rgba(15,23,42,0.05);
+  --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
+}
+
   :root{
     --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
     --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --danger:#DC2626;
-    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
+    --brand:#0055B3; --brand-2:#9A1FB5; --accent:#D9A10F; --warn:#E61A85; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(15,23,42,0.06); --border-hi:rgba(255,255,255,0.14);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -58,10 +75,10 @@
 
   /* Feature matrix */
   .matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px;font-family:'Inter',sans-serif}
-  .matrix th{text-align:center;padding:14px 10px;background:rgba(255,255,255,0.02);color:var(--ink-soft);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)}
+  .matrix th{text-align:center;padding:14px 10px;background:rgba(15,23,42,0.015);color:var(--ink-soft);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border)}
   .matrix th.first{text-align:left}
   .matrix th.vitas{background:rgba(225,162,15,0.1);color:var(--accent);font-weight:700}
-  .matrix td{text-align:center;padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--ink-mute);font-size:13px}
+  .matrix td{text-align:center;padding:11px 10px;border-bottom:1px solid rgba(15,23,42,0.03);color:var(--ink-mute);font-size:13px}
   .matrix td.first{text-align:left;color:var(--ink);font-weight:500}
   .matrix td.vitas{background:rgba(225,162,15,0.04)}
   .ok{color:var(--accent);font-weight:700}
@@ -73,9 +90,9 @@
 
   /* Positioning 2×2 */
   .positioning-map{position:relative;width:100%;height:500px;background:
-      linear-gradient(90deg,transparent 0%,transparent 49.5%,rgba(255,255,255,0.1) 49.5%,rgba(255,255,255,0.1) 50.5%,transparent 50.5%),
-      linear-gradient(180deg,transparent 0%,transparent 49.5%,rgba(255,255,255,0.1) 49.5%,rgba(255,255,255,0.1) 50.5%,transparent 50.5%);
-      background-color:rgba(255,255,255,0.02);border-radius:14px;border:1px solid var(--border);overflow:hidden}
+      linear-gradient(90deg,transparent 0%,transparent 49.5%,rgba(15,23,42,0.08) 49.5%,rgba(15,23,42,0.08) 50.5%,transparent 50.5%),
+      linear-gradient(180deg,transparent 0%,transparent 49.5%,rgba(15,23,42,0.08) 49.5%,rgba(15,23,42,0.08) 50.5%,transparent 50.5%);
+      background-color:rgba(15,23,42,0.015);border-radius:14px;border:1px solid var(--border);overflow:hidden}
   .positioning-map .axis-label{position:absolute;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.12em;font-weight:600}
   .positioning-map .dot{position:absolute;transform:translate(-50%,-50%);text-align:center}
   .positioning-map .dot .bubble{display:inline-block;padding:8px 14px;border-radius:999px;font-size:12px;font-weight:600;background:var(--card);border:1px solid var(--border-hi);color:var(--ink);box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap}
@@ -90,7 +107,7 @@
   .vs-col h5{font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px}
   .vs-col.ours h5{color:var(--accent)} .vs-col.theirs h5{color:var(--danger)}
   .vs-col ul{list-style:none}
-  .vs-col ul li{padding:10px 0 10px 22px;position:relative;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--ink)}
+  .vs-col ul li{padding:10px 0 10px 22px;position:relative;font-size:13px;border-bottom:1px solid rgba(15,23,42,0.03);color:var(--ink)}
   .vs-col ul li:last-child{border-bottom:none}
   .vs-col.ours ul li::before{content:'▲';position:absolute;left:0;color:var(--accent)}
   .vs-col.theirs ul li::before{content:'▼';position:absolute;left:0;color:var(--danger)}
@@ -115,6 +132,104 @@
     .grid-2,.grid-2-1,.grid-1-2,.vs{grid-template-columns:1fr}
     h1{font-size:36px}
   }
+
+
+.vid-hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);margin:20px 0 40px;aspect-ratio:16/9;background:#F6F8FC;box-shadow:0 24px 48px -18px rgba(0,85,179,0.25),0 6px 16px -8px rgba(154,31,181,0.12)}
+.vid-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vid-overlay{position:absolute;inset:0;z-index:5;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;pointer-events:none;background:linear-gradient(180deg,rgba(15,23,42,0) 40%,rgba(15,23,42,0.08) 100%)}
+.vid-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.1);font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#0F172A;backdrop-filter:blur(8px)}
+.vid-dot{width:8px;height:8px;border-radius:50%;background:#0FA968;box-shadow:0 0 0 0 rgba(15,169,104,0.6);animation:vid-ping 1.8s ease-out infinite}
+@keyframes vid-ping{0%{box-shadow:0 0 0 0 rgba(15,169,104,0.6)}100%{box-shadow:0 0 0 12px rgba(15,169,104,0)}}
+.vid-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;color:#0F172A;line-height:1.15;max-width:520px;text-shadow:0 1px 12px rgba(255,255,255,0.7)}
+.vid-metrics{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.vid-m{display:inline-flex;flex-direction:column;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);backdrop-filter:blur(8px);font-family:'Inter',sans-serif}
+.vid-m b{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#0055B3;line-height:1}
+.vid-m em{font-style:normal;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#64748B;margin-top:3px}
+
+/* RADAR animations */
+.rdp{animation:rd-pulse 3s ease-out infinite;transform-origin:center;transform-box:fill-box}
+.rdp2{animation-delay:1.5s}
+@keyframes rd-pulse{0%{transform:scale(0.4);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.rd-sweep{animation:rd-rotate 6s linear infinite;transform-origin:400px 225px}
+@keyframes rd-rotate{to{transform:translate(400px,225px) rotate(360deg)}}
+.rd-dot{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s);transform-origin:center;transform-box:fill-box}
+@keyframes rd-fade{0%,10%{opacity:0;transform:scale(0.4)}15%{opacity:1;transform:scale(1.3)}40%,100%{opacity:0.85;transform:scale(1)}}
+.rd-center{animation:rd-core 2s ease-in-out infinite}
+@keyframes rd-core{0%,100%{r:6}50%{r:10}}
+.rd-label{opacity:0;animation:rd-lbl 8s ease-in-out infinite}
+.lb2{animation-delay:4s}
+@keyframes rd-lbl{0%,5%,50%,100%{opacity:0;transform:translateY(-6px)}10%,40%{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD animations */
+.db-pulse circle{animation:vid-ping 1.8s ease-out infinite}
+.db-line{stroke-dasharray:700;stroke-dashoffset:700;animation:db-draw 3s ease-out forwards infinite alternate}
+.db-area{opacity:0;animation:db-fill 3s ease-out 0.5s forwards infinite alternate}
+@keyframes db-draw{to{stroke-dashoffset:0}}
+@keyframes db-fill{to{opacity:1}}
+.db-pts circle{opacity:0;animation:db-pop 5s ease-out infinite}
+.db-pts circle:nth-child(1){animation-delay:0.2s}.db-pts circle:nth-child(2){animation-delay:0.5s}
+.db-pts circle:nth-child(3){animation-delay:0.8s}.db-pts circle:nth-child(4){animation-delay:1.1s}
+.db-pts circle:nth-child(5){animation-delay:1.4s}.db-pts circle:nth-child(6){animation-delay:1.7s}
+.db-pts circle:nth-child(7){animation-delay:2s}
+@keyframes db-pop{0%,5%{opacity:0;transform:scale(0)}10%,80%{opacity:1;transform:scale(1)}100%{opacity:0.85}}
+.db-row{opacity:0;animation:db-row-in 6s ease-out infinite;transform-origin:left}
+.r2{animation-delay:0.6s}.r3{animation-delay:1.2s}.r4{animation-delay:1.8s}
+@keyframes db-row-in{0%,5%{opacity:0;transform:translateX(-20px)}15%,90%{opacity:1;transform:translateX(0)}100%{opacity:0.9}}
+
+/* PHV */
+.phv-curve{stroke-dasharray:1200;stroke-dashoffset:1200;animation:phv-draw 4s ease-in-out infinite alternate}
+@keyframes phv-draw{to{stroke-dashoffset:0}}
+.phv-fill{opacity:0;animation:phv-fadein 4s ease-in-out 1s infinite alternate}
+@keyframes phv-fadein{to{opacity:1}}
+.phv-peak{animation:phv-peak 2s ease-in-out infinite}
+@keyframes phv-peak{0%,100%{r:7}50%{r:11;filter:drop-shadow(0 0 8px #D9A10F)}}
+.phv-marker{animation:phv-marker 4s ease-in-out infinite}
+@keyframes phv-marker{0%,20%{opacity:0;transform:translateY(10px)}30%,80%{opacity:1;transform:translateY(0)}100%{opacity:0}}
+
+/* PARENT APP */
+.pa-bubbles circle{animation:pa-float 6s ease-in-out infinite}
+.pa-b2{animation-delay:2s}.pa-b3{animation-delay:4s}
+@keyframes pa-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.pa-card{opacity:0;animation:pa-card-in 5s ease-out infinite}
+.pa-c1{animation-delay:0.3s}.pa-c2{animation-delay:0.7s}.pa-c3{animation-delay:1s}.pa-c4{animation-delay:1.3s}.pa-c5{animation-delay:1.6s}
+@keyframes pa-card-in{0%,5%{opacity:0;transform:translateY(10px)}15%,90%{opacity:1;transform:translateY(0)}100%{opacity:0.95}}
+.pa-badge{opacity:0;animation:pa-badge-in 7s ease-in-out infinite}
+.pb1{animation-delay:2s}.pb2{animation-delay:3.2s}.pb3{animation-delay:4.4s}
+@keyframes pa-badge-in{0%,10%{opacity:0;transform:translateY(20px) scale(0.9)}18%,85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-8px)}}
+
+/* MAP */
+.mp-pulse{animation:rd-pulse 3s ease-out infinite;transform-origin:575px 240px;transform-box:fill-box}
+.mp2{animation-delay:1.5s}
+.mp-d{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s)}
+.mp-line{stroke-dasharray:300;stroke-dashoffset:300;animation:mp-draw 4s ease-out infinite}
+.l2{animation-delay:0.8s}.l3{animation-delay:1.6s}.l4{animation-delay:2.4s}
+@keyframes mp-draw{0%{stroke-dashoffset:300}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0.3}}
+.mp-chip{opacity:0;animation:pa-badge-in 8s ease-in-out infinite}
+.mc1{animation-delay:1s}.mc2{animation-delay:2.5s}.mc3{animation-delay:4s}
+
+/* AI */
+.ai-node{animation:ai-pulse 2s ease-in-out infinite}
+.n2{animation-delay:0.1s}.n3{animation-delay:0.2s}.n4{animation-delay:0.3s}.n5{animation-delay:0.4s}
+.n6{animation-delay:0.5s}.n7{animation-delay:0.6s}.n8{animation-delay:0.7s}.n9{animation-delay:0.8s}
+.n10{animation-delay:0.9s}.n11{animation-delay:1s}.n12{animation-delay:1.1s}
+@keyframes ai-pulse{0%,100%{r:12;opacity:0.7}50%{r:15;opacity:1}}
+
+/* SCENARIOS */
+.sc-line{stroke-dasharray:900;stroke-dashoffset:900;animation:sc-draw 3.5s ease-out infinite alternate}
+.sc-real{animation-delay:0.3s}.sc-agg{animation-delay:0.6s}
+@keyframes sc-draw{to{stroke-dashoffset:0}}
+.sc-pt{opacity:0;animation:db-pop 4s ease-out 2s infinite}
+.sc-pt:nth-child(2){animation-delay:2.3s}.sc-pt:nth-child(3){animation-delay:2.6s}
+
+/* RIVAL */
+.rv-vitas polygon{animation:rv-scale 3s ease-out infinite alternate;transform-origin:center;transform-box:fill-box}
+@keyframes rv-scale{from{transform:scale(0.3);opacity:0.4}to{transform:scale(1);opacity:1}}
+.rv-badges .rv-b{opacity:0;animation:pa-badge-in 5s ease-in-out infinite 1.5s}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:0.01s!important;animation-iteration-count:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -138,7 +253,64 @@
   <!-- ========================= HERO VIDEO — tactical analysis ========================= -->
   <div class="video-block">
     <div class="corner"><span class="rec"></span>Benchmark · mismo partido, 5 plataformas</div>
-    <iframe src="https://www.youtube.com/embed/w3WluaCNO9o?autoplay=1&mute=1&loop=1&playlist=w3WluaCNO9o&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS vs competencia · análisis táctico" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="rival">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · Competitive analysis</div>
+    <div class="vid-title">VITAS vs. Wyscout · InStat · Hudl · Once Eleven</div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="rv-bg" cx="50%" cy="50%" r="65%"><stop offset="0%" stop-color="#F9FBFE"/><stop offset="100%" stop-color="#DDE8F6"/></radialGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#rv-bg)"/>
+    <!-- Hexágono radar -->
+    <g transform="translate(400 230)" stroke="rgba(15,23,42,0.1)" fill="none">
+      <polygon points="0,-170 147,-85 147,85 0,170 -147,85 -147,-85"/>
+      <polygon points="0,-140 121,-70 121,70 0,140 -121,70 -121,-70"/>
+      <polygon points="0,-110 95,-55 95,55 0,110 -95,55 -95,-55"/>
+      <polygon points="0,-80 69,-40 69,40 0,80 -69,40 -69,-40"/>
+      <polygon points="0,-50 43,-25 43,25 0,50 -43,25 -43,-25"/>
+      <line x1="0" y1="0" x2="0" y2="-170"/><line x1="0" y1="0" x2="147" y2="-85"/><line x1="0" y1="0" x2="147" y2="85"/>
+      <line x1="0" y1="0" x2="0" y2="170"/><line x1="0" y1="0" x2="-147" y2="85"/><line x1="0" y1="0" x2="-147" y2="-85"/>
+    </g>
+    <!-- Área competidor promedio -->
+    <g transform="translate(400 230)" class="rv-comp">
+      <polygon points="0,-70 78,-45 54,31 0,56 -54,31 -78,-45" fill="rgba(100,116,139,0.25)" stroke="#64748B" stroke-width="2"/>
+    </g>
+    <!-- Área VITAS -->
+    <g transform="translate(400 230)" class="rv-vitas">
+      <polygon points="0,-160 140,-82 135,78 0,158 -138,82 -138,-80" fill="rgba(0,85,179,0.25)" stroke="#0055B3" stroke-width="3"/>
+      <circle cx="0" cy="-160" r="6" fill="#0055B3"/><circle cx="140" cy="-82" r="6" fill="#0055B3"/>
+      <circle cx="135" cy="78" r="6" fill="#0055B3"/><circle cx="0" cy="158" r="6" fill="#0055B3"/>
+      <circle cx="-138" cy="82" r="6" fill="#0055B3"/><circle cx="-138" cy="-80" r="6" fill="#0055B3"/>
+    </g>
+    <!-- Labels de ejes -->
+    <g font-family="Rajdhani" font-weight="700" font-size="13" fill="#0F172A">
+      <text x="400" y="48" text-anchor="middle">Scouting IA</text>
+      <text x="580" y="145" text-anchor="middle">Video IA</text>
+      <text x="580" y="330" text-anchor="middle">PHV</text>
+      <text x="400" y="420" text-anchor="middle">B2B2C Padres</text>
+      <text x="220" y="330" text-anchor="middle">RAG técnico</text>
+      <text x="220" y="145" text-anchor="middle">Precio/valor</text>
+    </g>
+    <!-- Legend -->
+    <g transform="translate(40 40)">
+      <rect x="0" y="0" width="180" height="60" rx="10" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+      <circle cx="16" cy="22" r="6" fill="#0055B3"/>
+      <text x="30" y="26" font-family="Inter" font-size="12" font-weight="700" fill="#0055B3">VITAS · 9.2/10</text>
+      <circle cx="16" cy="44" r="6" fill="#64748B"/>
+      <text x="30" y="48" font-family="Inter" font-size="12" font-weight="600" fill="#64748B">Competidor medio · 4.8/10</text>
+    </g>
+    <!-- Score badges animados -->
+    <g class="rv-badges" font-family="JetBrains Mono" font-size="11" font-weight="700">
+      <g class="rv-b b1" transform="translate(360 25)">
+        <rect x="0" y="0" width="80" height="24" rx="12" fill="#0FA968"/>
+        <text x="40" y="16" text-anchor="middle" fill="#fff">9.4/10</text>
+      </g>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
       <span class="vtag">◉ 4 minutos vs 48 minutos</span>
       <h3>El mismo vídeo · 5 plataformas · solo una lo entiende en 4 min</h3>
@@ -483,7 +655,53 @@
   <!-- ========================= MIDDLE VIDEO — moat PHV ========================= -->
   <div class="video-block" style="aspect-ratio:21/9;max-height:380px;box-shadow:0 30px 80px -20px rgba(225,162,15,0.2)">
     <div class="corner"><span class="rec"></span>Moat · PHV biológico</div>
-    <iframe src="https://www.youtube.com/embed/9uhjrYgcEBY?autoplay=1&mute=1&loop=1&playlist=9uhjrYgcEBY&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS PHV único" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="phv">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · PHV Engine</div>
+    <div class="vid-title">Peak Height Velocity · growth prediction</div>
+    <div class="vid-metrics">
+      <span class="vid-m"><b>13.2y</b><em>Current age</em></span>
+      <span class="vid-m"><b>+8.4 cm</b><em>Δ 12 months</em></span>
+      <span class="vid-m"><b>PEAK</b><em>Load -25%</em></span>
+    </div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="phv-bg" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#F7FAFE"/><stop offset="100%" stop-color="#E2EAF6"/></linearGradient>
+      <linearGradient id="phv-curve" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#0F857A"/><stop offset="50%" stop-color="#0055B3"/><stop offset="80%" stop-color="#D9A10F"/><stop offset="100%" stop-color="#E61A85"/></linearGradient>
+      <linearGradient id="phv-area" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(217,161,15,0.35)"/><stop offset="100%" stop-color="rgba(217,161,15,0)"/></linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#phv-bg)"/>
+    <g stroke="rgba(15,23,42,0.06)" stroke-dasharray="3 4">
+      <line x1="60" y1="90" x2="760" y2="90"/>
+      <line x1="60" y1="170" x2="760" y2="170"/>
+      <line x1="60" y1="250" x2="760" y2="250"/>
+      <line x1="60" y1="330" x2="760" y2="330"/>
+    </g>
+    <g font-family="JetBrains Mono,monospace" font-size="10" fill="#64748B">
+      <text x="20" y="94">12 cm/y</text><text x="20" y="174">9 cm/y</text><text x="20" y="254">6 cm/y</text><text x="20" y="334">3 cm/y</text>
+    </g>
+    <g font-family="JetBrains Mono,monospace" font-size="10" fill="#64748B">
+      <text x="90" y="415">9y</text><text x="205" y="415">11y</text><text x="320" y="415">13y</text><text x="435" y="415">15y</text><text x="550" y="415">17y</text><text x="665" y="415">19y</text>
+    </g>
+    <rect x="300" y="50" width="120" height="340" rx="8" fill="rgba(217,161,15,0.08)" stroke="rgba(217,161,15,0.3)" stroke-dasharray="4 4"/>
+    <text x="360" y="72" font-family="Rajdhani,sans-serif" font-weight="700" font-size="12" fill="#D9A10F" text-anchor="middle">PEAK PHV</text>
+    <path id="phv-path" class="phv-curve" d="M60,370 Q130,355 180,340 Q240,315 300,240 Q360,90 420,110 Q490,195 560,260 Q640,310 750,330"
+      fill="none" stroke="url(#phv-curve)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path class="phv-fill" d="M60,370 Q130,355 180,340 Q240,315 300,240 Q360,90 420,110 Q490,195 560,260 Q640,310 750,330 L750,400 L60,400 Z" fill="url(#phv-area)"/>
+    <g class="phv-pts">
+      <circle cx="60" cy="370" r="4" fill="#0F857A"/><circle cx="180" cy="340" r="4" fill="#0055B3"/>
+      <circle cx="360" cy="90" r="7" fill="#D9A10F" class="phv-peak"/>
+      <circle cx="420" cy="110" r="6" fill="#E61A85"/>
+      <circle cx="560" cy="260" r="4" fill="#9A1FB5"/><circle cx="750" cy="330" r="4" fill="#0F857A"/>
+    </g>
+    <g class="phv-marker" font-family="Inter,sans-serif" font-size="11" font-weight="700">
+      <rect x="310" y="25" width="100" height="22" rx="4" fill="#D9A10F"/>
+      <text x="360" y="40" text-anchor="middle" fill="#fff">+12 cm/year</text>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
       <span class="vtag" style="background:rgba(225,162,15,0.14);border-color:rgba(225,162,15,0.38);color:var(--accent)">◆ PHV · único en el mercado</span>
       <h3>Maduración biológica Mirwald · ningún competidor lo tiene embebido</h3>
@@ -592,7 +810,7 @@
 <script>
 const common = {
   chart:{ background:'transparent', toolbar:{show:false}, foreColor:'#8592A8', fontFamily:'Inter, sans-serif', animations:{enabled:true, speed:600} },
-  tooltip:{ theme:'dark' },
+  tooltip:{ theme:'light' },
   grid:{ borderColor:'rgba(255,255,255,0.05)', strokeDashArray:3, padding:{left:8,right:8} },
   dataLabels:{ enabled:false },
   theme:{ mode:'dark' }
@@ -610,7 +828,7 @@ new ApexCharts(document.querySelector('#chart-radar'),{
     { name:'Veo',           data:[72, 10, 45, 30, 90, 92, 80, 72] },
     { name:'SciSports',     data:[82, 15, 85, 78, 60, 30, 45, 35] }
   ],
-  colors:['#E1A20F','#C025E0','#0066FF','#E61A85','#DC2626'],
+  colors:['#D9A10F','#9A1FB5','#0055B3','#E61A85','#DC2626'],
   xaxis:{ categories:['Video AI','PHV/Biología','Scouting','Event data','Hardware','UX/Time-to-value','Accesibilidad (precio)','Multi-idioma ES'] },
   stroke:{ width:2 },
   fill:{ opacity:0.1 },
@@ -624,7 +842,7 @@ new ApexCharts(document.querySelector('#chart-price-bar'),{
   chart:{...common.chart, type:'bar', height:420},
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, barHeight:'60%', distributed:true }},
   series:[{ data:[588, 3588, 9588, 12000, 15000, 18000, 24000, 228] }],
-  colors:['#E1A20F','#0066FF','#C025E0','#E61A85','#DC2626','#1E40AF','#E1A20F','#64748B'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#E61A85','#DC2626','#1E40AF','#D9A10F','#64748B'],
   xaxis:{
     categories:['VITAS Scout Pro','VITAS Academy St.','Hudl Assist','Wyscout Club','InStat Pro','SciSports','StatsBomb','TruScout'],
     logarithmic:true,
@@ -640,7 +858,7 @@ new ApexCharts(document.querySelector('#chart-price-per-analysis'),{
   chart:{...common.chart, type:'bar', height:420},
   plotOptions:{ bar:{ borderRadius:6, columnWidth:'50%', distributed:true }},
   series:[{ name:'€/análisis', data:[0.82, 1.49, 18.0, 24.0, 35.0, 12.0, 1.9] }],
-  colors:['#E1A20F','#0066FF','#C025E0','#E61A85','#DC2626','#1E40AF','#E1A20F'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#E61A85','#DC2626','#1E40AF','#D9A10F'],
   xaxis:{ categories:['VITAS Pro','VITAS Acad','Hudl Assist','Wyscout','InStat','SciSports','TruScout'], labels:{rotate:-25,style:{fontSize:'10px'}} },
   yaxis:{ labels:{ formatter:v=>'€'+v.toFixed(1) } },
   dataLabels:{ enabled:true, formatter:v=>'€'+v.toFixed(1), offsetY:-22, style:{colors:['#E6EDF7'], fontWeight:600}},
@@ -653,7 +871,7 @@ new ApexCharts(document.querySelector('#chart-share-2026'),{
   chart:{...common.chart, type:'donut', height:380},
   series:[0.4, 18, 32, 24, 11, 7, 3, 4.6],
   labels:['VITAS','Wyscout/Hudl-InStat','Veo','Ninguno/Excel','Pixellot','SciSports','StatsBomb','Otros'],
-  colors:['#E1A20F','#0066FF','#C025E0','#52617C','#E61A85','#1E40AF','#DC2626','#64748B'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#52617C','#E61A85','#1E40AF','#DC2626','#64748B'],
   plotOptions:{ pie:{ donut:{ size:'68%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7',fontWeight:700,fontSize:'22px',fontFamily:'Rajdhani',formatter:v=>v+'%'}, total:{show:true, label:'Total', color:'#E6EDF7', formatter:()=>'100%'} }}}},
   dataLabels:{ enabled:false },
   legend:{ position:'right', labels:{colors:'#E6EDF7'}, fontSize:'12px' }
@@ -665,7 +883,7 @@ new ApexCharts(document.querySelector('#chart-share-2031'),{
   chart:{...common.chart, type:'donut', height:380},
   series:[7, 19, 30, 12, 13, 8, 4, 7],
   labels:['VITAS','Wyscout/Hudl-InStat','Veo','Ninguno/Excel','Pixellot','SciSports','StatsBomb','Otros'],
-  colors:['#E1A20F','#0066FF','#C025E0','#52617C','#E61A85','#1E40AF','#DC2626','#64748B'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#52617C','#E61A85','#1E40AF','#DC2626','#64748B'],
   plotOptions:{ pie:{ donut:{ size:'68%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7',fontWeight:700,fontSize:'22px',fontFamily:'Rajdhani',formatter:v=>v+'%'}, total:{show:true, label:'Total', color:'#E6EDF7', formatter:()=>'100%'} }}}},
   dataLabels:{ enabled:false },
   legend:{ position:'right', labels:{colors:'#E6EDF7'}, fontSize:'12px' }
@@ -677,7 +895,7 @@ new ApexCharts(document.querySelector('#chart-moat'),{
   chart:{...common.chart, type:'bar', height:420},
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, distributed:true, barHeight:'62%' }},
   series:[{ data:[88, 82, 79, 74, 68, 60] }],
-  colors:['#E1A20F','#0066FF','#00B4C6','#C025E0','#E61A85','#1E40AF'],
+  colors:['#D9A10F','#0055B3','#0F857A','#9A1FB5','#E61A85','#1E40AF'],
   xaxis:{ categories:[
     'PHV biológico propietario (único)',
     'Pricing 10× + UX PWA',
@@ -700,11 +918,11 @@ new ApexCharts(document.querySelector('#chart-headtohead'),{
     { name:'Wyscout', data:[48, 82, 24.0, 75, 78] },
     { name:'Veo',     data:[18, 90, 1.48, 65, 95] }
   ],
-  colors:['#E1A20F','#0066FF','#C025E0','#E61A85'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#E61A85'],
   plotOptions:{ bar:{ borderRadius:4, columnWidth:'60%' }},
   xaxis:{ categories:['Tiempo (min)','Precisión event (%)','Coste (€)','NPS onboarding','UX móvil'] },
   legend:{ position:'top' },
-  tooltip:{ theme:'dark' }
+  tooltip:{ theme:'light' }
 }).render();
 
 /* 10a · NPS */
@@ -713,7 +931,7 @@ new ApexCharts(document.querySelector('#chart-nps'),{
   chart:{...common.chart, type:'bar', height:380},
   plotOptions:{ bar:{ borderRadius:6, columnWidth:'55%', distributed:true, dataLabels:{position:'top'} }},
   series:[{ data:[71, 62, 38, 32, 28, 45, 52, 41] }],
-  colors:['#E1A20F','#E61A85','#DC2626','#EF4444','#DC2626','#C025E0','#1E40AF','#E1A20F'],
+  colors:['#D9A10F','#E61A85','#DC2626','#EF4444','#DC2626','#9A1FB5','#1E40AF','#D9A10F'],
   xaxis:{ categories:['VITAS*','Veo','Hudl','InStat','Wyscout','SciSports','StatsBomb','TruScout'], labels:{rotate:-25,style:{fontSize:'10px'}} },
   yaxis:{ labels:{formatter:v=>v} },
   dataLabels:{ enabled:true, formatter:v=>v, offsetY:-22, style:{colors:['#E6EDF7'], fontWeight:600}},
@@ -728,11 +946,11 @@ new ApexCharts(document.querySelector('#chart-reviews'),{
     { name:'Positivo',  data:[68, 52, 46, 72, 44, 68, 58] },
     { name:'Negativo',  data:[12, 24, 38, 8, 42, 22, 18] }
   ],
-  colors:['#E1A20F','#DC2626'],
+  colors:['#D9A10F','#DC2626'],
   plotOptions:{ bar:{ horizontal:true, borderRadius:4, barHeight:'65%' }},
   xaxis:{ categories:['UX / facilidad','Velocidad','Precio','IA y análisis','Setup complejo','Soporte','Integración'], labels:{formatter:v=>v+'%'} },
   legend:{ position:'top' },
-  tooltip:{ theme:'dark' }
+  tooltip:{ theme:'light' }
 }).render();
 
 /* 11 · Evolution */
@@ -747,13 +965,13 @@ new ApexCharts(document.querySelector('#chart-evolution'),{
     { name:'Pixellot',      data:[11, 12, 13, 13, 13, 13] },
     { name:'Otros',         data:[14.6, 10.2, 8.8, 8.2, 7.9, 8.8] }
   ],
-  colors:['#E1A20F','#0066FF','#C025E0','#E61A85','#1E40AF','#52617C'],
+  colors:['#D9A10F','#0055B3','#9A1FB5','#E61A85','#1E40AF','#52617C'],
   stroke:{ curve:'smooth', width:1 },
   fill:{ type:'gradient', gradient:{shadeIntensity:1, opacityFrom:0.7, opacityTo:0.1}},
   xaxis:{ categories:years },
   yaxis:{ labels:{ formatter:v=>v+'%' }, max:100 },
   legend:{ position:'top' },
-  tooltip:{ theme:'dark', y:{ formatter:v=>v+'%' } }
+  tooltip:{ theme:'light', y:{ formatter:v=>v+'%' } }
 }).render();
 
 </script>

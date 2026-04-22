@@ -9,11 +9,28 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
+:root{
+  --bg:#F4F7FB;--bg2:#FFFFFF;--bg3:#EEF2F8;--bg-grad:#E8EFFA;
+  --blue:#0055B3;--blue-soft:#2B7BDE;
+  --purple:#9A1FB5;--gold:#D9A10F;--pink:#E61A85;--cyan:#0F857A;
+  --text:#0F172A;--text2:#1E293B;--muted:#475569;--muted2:#64748B;
+  --line:rgba(15,23,42,0.10);--line2:rgba(15,23,42,0.06);
+  --good:#0FA968;--warn:#D97706;--bad:#DC2626;
+  --grad:linear-gradient(135deg,#0055B3 0%,#9A1FB5 60%,#E61A85 100%);
+  --grad2:linear-gradient(135deg,#0F857A 0%,#0055B3 100%);
+  --grad3:linear-gradient(135deg,#D9A10F 0%,#E61A85 100%);
+  --card:rgba(255,255,255,0.8);--card-hover:rgba(255,255,255,0.96);
+  --surface:#FFFFFF;--surface-elev:#FBFCFE;
+  --shadow-sm:0 2px 8px rgba(15,23,42,0.06);
+  --shadow-md:0 10px 30px -12px rgba(15,23,42,0.15),0 2px 8px rgba(15,23,42,0.05);
+  --shadow-lg:0 25px 50px -18px rgba(0,85,179,0.25),0 10px 20px -10px rgba(154,31,181,0.15);
+}
+
   :root{
     --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
     --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --danger:#DC2626;
-    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
+    --brand:#0055B3; --brand-2:#9A1FB5; --accent:#D9A10F; --warn:#E61A85; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(15,23,42,0.06); --border-hi:rgba(255,255,255,0.14);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
@@ -54,7 +71,7 @@
 
   table{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace}
   th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--border);color:var(--ink-soft);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}
-  td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--ink)}
+  td{padding:10px;border-bottom:1px solid rgba(15,23,42,0.03);color:var(--ink)}
   tr:last-child td{border-bottom:none}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.hl{color:var(--accent);font-weight:600}
@@ -81,7 +98,7 @@
   .tier .price small{font-size:13px;color:var(--ink-soft);font-weight:400}
   .tier .target{font-size:12px;color:var(--accent);margin-top:4px;margin-bottom:14px}
   .tier ul{list-style:none;font-size:12px;color:var(--ink-mute)}
-  .tier ul li{padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;gap:8px}
+  .tier ul li{padding:6px 0;border-bottom:1px solid rgba(15,23,42,0.02);display:flex;gap:8px}
   .tier ul li::before{content:'✓';color:var(--accent)}
   .tier ul li:last-child{border-bottom:none}
 
@@ -121,6 +138,104 @@
     .grid-2,.grid-3,.grid-2-1,.swot{grid-template-columns:1fr}
     h1{font-size:36px}
   }
+
+
+.vid-hero{position:relative;border-radius:18px;overflow:hidden;border:1px solid rgba(15,23,42,0.08);margin:20px 0 40px;aspect-ratio:16/9;background:#F6F8FC;box-shadow:0 24px 48px -18px rgba(0,85,179,0.25),0 6px 16px -8px rgba(154,31,181,0.12)}
+.vid-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vid-overlay{position:absolute;inset:0;z-index:5;padding:22px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;pointer-events:none;background:linear-gradient(180deg,rgba(15,23,42,0) 40%,rgba(15,23,42,0.08) 100%)}
+.vid-chip{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.1);font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#0F172A;backdrop-filter:blur(8px)}
+.vid-dot{width:8px;height:8px;border-radius:50%;background:#0FA968;box-shadow:0 0 0 0 rgba(15,169,104,0.6);animation:vid-ping 1.8s ease-out infinite}
+@keyframes vid-ping{0%{box-shadow:0 0 0 0 rgba(15,169,104,0.6)}100%{box-shadow:0 0 0 12px rgba(15,169,104,0)}}
+.vid-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:22px;color:#0F172A;line-height:1.15;max-width:520px;text-shadow:0 1px 12px rgba(255,255,255,0.7)}
+.vid-metrics{display:flex;gap:14px;flex-wrap:wrap;margin-top:4px}
+.vid-m{display:inline-flex;flex-direction:column;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,0.92);border:1px solid rgba(15,23,42,0.08);backdrop-filter:blur(8px);font-family:'Inter',sans-serif}
+.vid-m b{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:18px;color:#0055B3;line-height:1}
+.vid-m em{font-style:normal;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:#64748B;margin-top:3px}
+
+/* RADAR animations */
+.rdp{animation:rd-pulse 3s ease-out infinite;transform-origin:center;transform-box:fill-box}
+.rdp2{animation-delay:1.5s}
+@keyframes rd-pulse{0%{transform:scale(0.4);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.rd-sweep{animation:rd-rotate 6s linear infinite;transform-origin:400px 225px}
+@keyframes rd-rotate{to{transform:translate(400px,225px) rotate(360deg)}}
+.rd-dot{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s);transform-origin:center;transform-box:fill-box}
+@keyframes rd-fade{0%,10%{opacity:0;transform:scale(0.4)}15%{opacity:1;transform:scale(1.3)}40%,100%{opacity:0.85;transform:scale(1)}}
+.rd-center{animation:rd-core 2s ease-in-out infinite}
+@keyframes rd-core{0%,100%{r:6}50%{r:10}}
+.rd-label{opacity:0;animation:rd-lbl 8s ease-in-out infinite}
+.lb2{animation-delay:4s}
+@keyframes rd-lbl{0%,5%,50%,100%{opacity:0;transform:translateY(-6px)}10%,40%{opacity:1;transform:translateY(0)}}
+
+/* DASHBOARD animations */
+.db-pulse circle{animation:vid-ping 1.8s ease-out infinite}
+.db-line{stroke-dasharray:700;stroke-dashoffset:700;animation:db-draw 3s ease-out forwards infinite alternate}
+.db-area{opacity:0;animation:db-fill 3s ease-out 0.5s forwards infinite alternate}
+@keyframes db-draw{to{stroke-dashoffset:0}}
+@keyframes db-fill{to{opacity:1}}
+.db-pts circle{opacity:0;animation:db-pop 5s ease-out infinite}
+.db-pts circle:nth-child(1){animation-delay:0.2s}.db-pts circle:nth-child(2){animation-delay:0.5s}
+.db-pts circle:nth-child(3){animation-delay:0.8s}.db-pts circle:nth-child(4){animation-delay:1.1s}
+.db-pts circle:nth-child(5){animation-delay:1.4s}.db-pts circle:nth-child(6){animation-delay:1.7s}
+.db-pts circle:nth-child(7){animation-delay:2s}
+@keyframes db-pop{0%,5%{opacity:0;transform:scale(0)}10%,80%{opacity:1;transform:scale(1)}100%{opacity:0.85}}
+.db-row{opacity:0;animation:db-row-in 6s ease-out infinite;transform-origin:left}
+.r2{animation-delay:0.6s}.r3{animation-delay:1.2s}.r4{animation-delay:1.8s}
+@keyframes db-row-in{0%,5%{opacity:0;transform:translateX(-20px)}15%,90%{opacity:1;transform:translateX(0)}100%{opacity:0.9}}
+
+/* PHV */
+.phv-curve{stroke-dasharray:1200;stroke-dashoffset:1200;animation:phv-draw 4s ease-in-out infinite alternate}
+@keyframes phv-draw{to{stroke-dashoffset:0}}
+.phv-fill{opacity:0;animation:phv-fadein 4s ease-in-out 1s infinite alternate}
+@keyframes phv-fadein{to{opacity:1}}
+.phv-peak{animation:phv-peak 2s ease-in-out infinite}
+@keyframes phv-peak{0%,100%{r:7}50%{r:11;filter:drop-shadow(0 0 8px #D9A10F)}}
+.phv-marker{animation:phv-marker 4s ease-in-out infinite}
+@keyframes phv-marker{0%,20%{opacity:0;transform:translateY(10px)}30%,80%{opacity:1;transform:translateY(0)}100%{opacity:0}}
+
+/* PARENT APP */
+.pa-bubbles circle{animation:pa-float 6s ease-in-out infinite}
+.pa-b2{animation-delay:2s}.pa-b3{animation-delay:4s}
+@keyframes pa-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.pa-card{opacity:0;animation:pa-card-in 5s ease-out infinite}
+.pa-c1{animation-delay:0.3s}.pa-c2{animation-delay:0.7s}.pa-c3{animation-delay:1s}.pa-c4{animation-delay:1.3s}.pa-c5{animation-delay:1.6s}
+@keyframes pa-card-in{0%,5%{opacity:0;transform:translateY(10px)}15%,90%{opacity:1;transform:translateY(0)}100%{opacity:0.95}}
+.pa-badge{opacity:0;animation:pa-badge-in 7s ease-in-out infinite}
+.pb1{animation-delay:2s}.pb2{animation-delay:3.2s}.pb3{animation-delay:4.4s}
+@keyframes pa-badge-in{0%,10%{opacity:0;transform:translateY(20px) scale(0.9)}18%,85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-8px)}}
+
+/* MAP */
+.mp-pulse{animation:rd-pulse 3s ease-out infinite;transform-origin:575px 240px;transform-box:fill-box}
+.mp2{animation-delay:1.5s}
+.mp-d{opacity:0;animation:rd-fade 4s ease-out infinite var(--d,0s)}
+.mp-line{stroke-dasharray:300;stroke-dashoffset:300;animation:mp-draw 4s ease-out infinite}
+.l2{animation-delay:0.8s}.l3{animation-delay:1.6s}.l4{animation-delay:2.4s}
+@keyframes mp-draw{0%{stroke-dashoffset:300}60%{stroke-dashoffset:0}100%{stroke-dashoffset:0;opacity:0.3}}
+.mp-chip{opacity:0;animation:pa-badge-in 8s ease-in-out infinite}
+.mc1{animation-delay:1s}.mc2{animation-delay:2.5s}.mc3{animation-delay:4s}
+
+/* AI */
+.ai-node{animation:ai-pulse 2s ease-in-out infinite}
+.n2{animation-delay:0.1s}.n3{animation-delay:0.2s}.n4{animation-delay:0.3s}.n5{animation-delay:0.4s}
+.n6{animation-delay:0.5s}.n7{animation-delay:0.6s}.n8{animation-delay:0.7s}.n9{animation-delay:0.8s}
+.n10{animation-delay:0.9s}.n11{animation-delay:1s}.n12{animation-delay:1.1s}
+@keyframes ai-pulse{0%,100%{r:12;opacity:0.7}50%{r:15;opacity:1}}
+
+/* SCENARIOS */
+.sc-line{stroke-dasharray:900;stroke-dashoffset:900;animation:sc-draw 3.5s ease-out infinite alternate}
+.sc-real{animation-delay:0.3s}.sc-agg{animation-delay:0.6s}
+@keyframes sc-draw{to{stroke-dashoffset:0}}
+.sc-pt{opacity:0;animation:db-pop 4s ease-out 2s infinite}
+.sc-pt:nth-child(2){animation-delay:2.3s}.sc-pt:nth-child(3){animation-delay:2.6s}
+
+/* RIVAL */
+.rv-vitas polygon{animation:rv-scale 3s ease-out infinite alternate;transform-origin:center;transform-box:fill-box}
+@keyframes rv-scale{from{transform:scale(0.3);opacity:0.4}to{transform:scale(1);opacity:1}}
+.rv-badges .rv-b{opacity:0;animation:pa-badge-in 5s ease-in-out infinite 1.5s}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:0.01s!important;animation-iteration-count:1!important}
+}
+
 </style>
 </head>
 <body>
@@ -144,7 +259,68 @@
   <!-- ========================= HERO VIDEO — mercado objetivo ========================= -->
   <div class="video-block">
     <div class="corner"><span class="rec"></span>ICP · fútbol base</div>
-    <iframe src="https://www.youtube.com/embed/Bhen4AVupS8?autoplay=1&mute=1&loop=1&playlist=Bhen4AVupS8&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS mercado fútbol base" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="radar">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · VITAS · Intelligence Live</div>
+    <div class="vid-title">Scanning 85,000 federated players</div>
+    <div class="vid-metrics">
+      <span class="vid-m"><b id="rd-count">1,247</b><em>Detected</em></span>
+      <span class="vid-m"><b id="rd-conf">94.3%</b><em>Confidence</em></span>
+      <span class="vid-m"><b id="rd-speed">12 ms</b><em>Latency</em></span>
+    </div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="rg-bg" cx="50%" cy="50%" r="65%">
+        <stop offset="0%" stop-color="#FFFFFF"/>
+        <stop offset="55%" stop-color="#EEF4FC"/>
+        <stop offset="100%" stop-color="#DDE8F6"/>
+      </radialGradient>
+      <radialGradient id="rg-pulse" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="rgba(0,85,179,0.45)"/>
+        <stop offset="50%" stop-color="rgba(0,85,179,0.15)"/>
+        <stop offset="100%" stop-color="rgba(0,85,179,0)"/>
+      </radialGradient>
+      <linearGradient id="rg-sweep" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="rgba(0,85,179,0)"/>
+        <stop offset="60%" stop-color="rgba(0,85,179,0.15)"/>
+        <stop offset="100%" stop-color="rgba(154,31,181,0.55)"/>
+      </linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#rg-bg)"/>
+    <g stroke="rgba(15,23,42,0.08)" fill="none">
+      <circle cx="400" cy="225" r="180"/>
+      <circle cx="400" cy="225" r="130"/>
+      <circle cx="400" cy="225" r="80"/>
+      <circle cx="400" cy="225" r="30"/>
+      <line x1="400" y1="30" x2="400" y2="420"/>
+      <line x1="180" y1="225" x2="620" y2="225"/>
+      <line x1="245" y1="70" x2="555" y2="380"/>
+      <line x1="555" y1="70" x2="245" y2="380"/>
+    </g>
+    <circle cx="400" cy="225" r="180" fill="url(#rg-pulse)" class="rdp rdp1"/>
+    <circle cx="400" cy="225" r="130" fill="url(#rg-pulse)" class="rdp rdp2"/>
+    <g class="rd-sweep" transform="translate(400 225)">
+      <path d="M0,0 L180,0 A180,180 0 0,0 127,-127 Z" fill="url(#rg-sweep)"/>
+    </g>
+    <g class="rd-dots">
+      <circle cx="330" cy="180" r="6" fill="#0055B3" class="rd-dot" style="--d:0s"/>
+      <circle cx="470" cy="150" r="6" fill="#9A1FB5" class="rd-dot" style="--d:0.3s"/>
+      <circle cx="520" cy="260" r="6" fill="#E61A85" class="rd-dot" style="--d:0.6s"/>
+      <circle cx="440" cy="310" r="6" fill="#D9A10F" class="rd-dot" style="--d:0.9s"/>
+      <circle cx="310" cy="290" r="6" fill="#0F857A" class="rd-dot" style="--d:1.2s"/>
+      <circle cx="370" cy="110" r="6" fill="#0055B3" class="rd-dot" style="--d:1.5s"/>
+      <circle cx="560" cy="200" r="6" fill="#9A1FB5" class="rd-dot" style="--d:1.8s"/>
+      <circle cx="260" cy="220" r="6" fill="#E61A85" class="rd-dot" style="--d:2.1s"/>
+      <circle cx="420" cy="225" r="10" fill="#0055B3" class="rd-center"/>
+    </g>
+    <g class="rd-labels" font-family="Inter,sans-serif" font-size="11" font-weight="600">
+      <g class="rd-label lb1"><rect x="340" y="145" width="86" height="22" rx="4" fill="#0055B3"/><text x="383" y="160" text-anchor="middle" fill="#fff">#14 · Sub-15 · CM</text></g>
+      <g class="rd-label lb2"><rect x="480" y="115" width="94" height="22" rx="4" fill="#9A1FB5"/><text x="527" y="130" text-anchor="middle" fill="#fff">#07 · Sub-17 · LW</text></g>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
       <span class="vtag">◉ 26,400 clubes diana</span>
       <h3>Formación, cantera y scouting amateur · el mercado invisible</h3>
@@ -187,7 +363,7 @@
   <p class="section-sub">Cinco arquetipos identificados en entrevistas (n=78) con academias, clubes, scouts y padres en España y LATAM. El scout joven (persona 2) tiene el mejor CAC-fit para producto-led growth; el director técnico de cantera (persona 3) es el comprador económico principal; y los padres (persona 5) son la expansión viral natural cuando la academia ya está activa.</p>
   <div class="personas">
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#0066FF,#1E40AF)">🎯</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#0055B3,#1E40AF)">🎯</div>
       <h4>Manuel · 47 años</h4>
       <div class="role">Director deportivo cantera</div>
       <p>Dirige 280 jugadores en 12 categorías. Presupuesto limitado pero presiona resultados de formación. Compra en comité.</p>
@@ -199,7 +375,7 @@
       <div class="metric">Importancia <strong>ICP fit · 94/100</strong></div>
     </div>
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#E1A20F,#059669)">⚡</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#D9A10F,#059669)">⚡</div>
       <h4>Joaquín · 29 años</h4>
       <div class="role">Scout freelance</div>
       <p>Trabaja para 3 clubes a la vez. Necesita informes rápidos y memorables. Decide solo, paga con Stripe, pulgar hacia arriba si funciona en 5 min.</p>
@@ -211,7 +387,7 @@
       <div class="metric">Viralidad <strong>K-factor · 0.42</strong></div>
     </div>
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#C025E0,#C025E0)">🧠</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#9A1FB5,#9A1FB5)">🧠</div>
       <h4>Iván · 38 años</h4>
       <div class="role">Entrenador sub-14</div>
       <p>Busca cómo explicar a padres y jugadores por qué su hijo juega menos. El PHV + VSI son oro puro para esa conversación.</p>
@@ -236,7 +412,7 @@
     </div>
     <div class="persona" style="grid-column:span 4;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center">
       <div style="display:flex;gap:16px;align-items:center">
-        <div class="avatar" style="background:linear-gradient(135deg,#00B4C6,#EC4899);flex:0 0 56px">👨‍👩‍👦</div>
+        <div class="avatar" style="background:linear-gradient(135deg,#0F857A,#EC4899);flex:0 0 56px">👨‍👩‍👦</div>
         <div>
           <h4 style="margin:0">Elena &amp; Pablo · 41 años</h4>
           <div class="role" style="margin:0">Padres de jugador sub-12</div>
@@ -247,7 +423,7 @@
         <span class="chip">Ciclo impulsivo · 2 min</span>
         <span class="chip">€9/mes · €89 anual</span>
         <span class="chip">Viral K · 0.8 intra-academia</span>
-        <div class="metric" style="border:none;padding:0;margin:0;text-align:right">Canal B2B2C <strong style="color:#00B4C6">ARR potencial · €2.1M Y5</strong></div>
+        <div class="metric" style="border:none;padding:0;margin:0;text-align:right">Canal B2B2C <strong style="color:#0F857A">ARR potencial · €2.1M Y5</strong></div>
       </div>
     </div>
   </div>
@@ -333,7 +509,78 @@
   <!-- ========================= MIDDLE VIDEO — LATAM ========================= -->
   <div class="video-block" style="aspect-ratio:21/9;max-height:380px;box-shadow:0 30px 80px -20px rgba(230,26,133,0.2)">
     <div class="corner"><span class="rec"></span>Motor de crecimiento · LATAM</div>
-    <iframe src="https://www.youtube.com/embed/aAhp_p8e_LA?autoplay=1&mute=1&loop=1&playlist=aAhp_p8e_LA&controls=0&showinfo=0&rel=0&modestbranding=1" title="LATAM mercado" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="map">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · FFCV · Scale</div>
+    <div class="vid-title">1,200 clubes · 85,000 federados · 3 provincias</div>
+    <div class="vid-metrics">
+      <span class="vid-m"><b>Valencia</b><em>42K players</em></span>
+      <span class="vid-m"><b>Alicante</b><em>28K players</em></span>
+      <span class="vid-m"><b>Castellón</b><em>15K players</em></span>
+    </div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="mp-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#EEF4FC"/><stop offset="100%" stop-color="#DCE7F6"/></linearGradient>
+      <radialGradient id="mp-pulse" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(217,161,15,0.6)"/><stop offset="70%" stop-color="rgba(217,161,15,0.15)"/><stop offset="100%" stop-color="rgba(217,161,15,0)"/></radialGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#mp-bg)"/>
+    <!-- España silueta estilizada -->
+    <path d="M120,140 Q100,180 110,220 Q115,260 140,300 Q180,340 230,360 Q290,375 350,370 Q420,360 480,340 Q560,320 620,290 Q690,250 710,200 Q715,160 680,130 Q620,100 540,95 Q440,92 340,95 Q250,100 180,115 Q140,125 120,140 Z" fill="#FFFFFF" stroke="rgba(15,23,42,0.18)" stroke-width="1.5"/>
+    <!-- Comunidad Valenciana destacada -->
+    <path d="M575,190 Q590,200 595,220 Q600,240 595,260 Q590,280 580,295 Q565,310 555,300 Q545,285 548,260 Q552,230 560,210 Q568,195 575,190 Z" fill="rgba(217,161,15,0.18)" stroke="#D9A10F" stroke-width="2"/>
+    <!-- Pulse circles Valencia -->
+    <circle cx="575" cy="240" r="70" fill="url(#mp-pulse)" class="mp-pulse mp1"/>
+    <circle cx="575" cy="240" r="50" fill="url(#mp-pulse)" class="mp-pulse mp2"/>
+    <!-- Dots de clubes -->
+    <g class="mp-dots">
+      <circle cx="575" cy="220" r="5" fill="#D9A10F" class="mp-d" style="--d:0s"/>
+      <circle cx="580" cy="240" r="5" fill="#D9A10F" class="mp-d" style="--d:0.2s"/>
+      <circle cx="565" cy="255" r="5" fill="#0055B3" class="mp-d" style="--d:0.4s"/>
+      <circle cx="585" cy="265" r="5" fill="#9A1FB5" class="mp-d" style="--d:0.6s"/>
+      <circle cx="555" cy="270" r="5" fill="#E61A85" class="mp-d" style="--d:0.8s"/>
+      <circle cx="570" cy="285" r="5" fill="#0F857A" class="mp-d" style="--d:1s"/>
+      <circle cx="590" cy="210" r="5" fill="#D9A10F" class="mp-d" style="--d:1.2s"/>
+      <circle cx="560" cy="215" r="5" fill="#0055B3" class="mp-d" style="--d:1.4s"/>
+    </g>
+    <!-- Líneas de conexión que emanan -->
+    <g class="mp-lines" stroke="rgba(217,161,15,0.3)" fill="none" stroke-width="1.5">
+      <path class="mp-line l1" d="M575,240 Q500,150 350,120"/>
+      <path class="mp-line l2" d="M575,240 Q450,280 250,330"/>
+      <path class="mp-line l3" d="M575,240 Q640,180 700,140"/>
+      <path class="mp-line l4" d="M575,240 Q680,300 720,380"/>
+    </g>
+    <!-- Labels -->
+    <g class="mp-labels" font-family="Rajdhani,sans-serif" font-weight="700" font-size="14">
+      <g class="mp-lb lb1">
+        <rect x="535" y="195" width="100" height="60" rx="8" fill="#D9A10F"/>
+        <text x="585" y="214" text-anchor="middle" fill="#fff" font-size="11" font-weight="600" letter-spacing="1">COMUNIDAD</text>
+        <text x="585" y="230" text-anchor="middle" fill="#fff">VALENCIANA</text>
+        <text x="585" y="248" text-anchor="middle" fill="#fff" font-family="JetBrains Mono" font-size="14">85,000</text>
+      </g>
+    </g>
+    <!-- KPIs flotantes -->
+    <g class="mp-chip mc1" transform="translate(120 100)">
+      <rect x="0" y="0" width="130" height="36" rx="18" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+      <circle cx="18" cy="18" r="7" fill="#D9A10F"/>
+      <text x="32" y="16" font-family="Inter" font-size="10" font-weight="700" fill="#0F172A">Valencia</text>
+      <text x="32" y="28" font-family="Inter" font-size="9" fill="#64748B">42,000 federados</text>
+    </g>
+    <g class="mp-chip mc2" transform="translate(630 360)">
+      <rect x="0" y="0" width="130" height="36" rx="18" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+      <circle cx="18" cy="18" r="7" fill="#0055B3"/>
+      <text x="32" y="16" font-family="Inter" font-size="10" font-weight="700" fill="#0F172A">Alicante</text>
+      <text x="32" y="28" font-family="Inter" font-size="9" fill="#64748B">28,000 federados</text>
+    </g>
+    <g class="mp-chip mc3" transform="translate(120 350)">
+      <rect x="0" y="0" width="130" height="36" rx="18" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+      <circle cx="18" cy="18" r="7" fill="#9A1FB5"/>
+      <text x="32" y="16" font-family="Inter" font-size="10" font-weight="700" fill="#0F172A">Castellón</text>
+      <text x="32" y="28" font-family="Inter" font-size="9" fill="#64748B">15,000 federados</text>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
       <span class="vtag" style="background:rgba(230,26,133,0.14);border-color:rgba(230,26,133,0.38);color:var(--warn)">◆ LATAM · 400M hispanohablantes</span>
       <h3>El motor de crecimiento · 35% de la cuota Y5</h3>
@@ -358,9 +605,85 @@
   <!-- ========================= VIDEO — canal padres ========================= -->
   <div class="video-block" style="aspect-ratio:21/9;max-height:360px;box-shadow:0 30px 80px -20px rgba(0,180,198,0.22)">
     <div class="corner"><span class="rec"></span>Canal B2B2C · padres</div>
-    <iframe src="https://www.youtube.com/embed/fvxDZVTrCps?autoplay=1&mute=1&loop=1&playlist=fvxDZVTrCps&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS para padres" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    
+<div class="vid-hero" data-type="parent">
+  <div class="vid-overlay">
+    <div class="vid-chip"><span class="vid-dot"></span>LIVE · Parent Pro</div>
+    <div class="vid-title">Family dashboard · live evaluation feed</div>
+  </div>
+  <svg class="vid-svg" viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pa-bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FAF4FA"/><stop offset="100%" stop-color="#F0E1EF"/></linearGradient>
+      <linearGradient id="pa-phone" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#F9F9FC"/></linearGradient>
+      <linearGradient id="pa-title" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#E61A85"/><stop offset="100%" stop-color="#9A1FB5"/></linearGradient>
+    </defs>
+    <rect width="800" height="450" fill="url(#pa-bg)"/>
+    <g class="pa-bubbles">
+      <circle cx="120" cy="90" r="80" fill="rgba(230,26,133,0.08)" class="pa-b1"/>
+      <circle cx="680" cy="360" r="100" fill="rgba(154,31,181,0.08)" class="pa-b2"/>
+      <circle cx="720" cy="100" r="40" fill="rgba(15,133,122,0.1)" class="pa-b3"/>
+    </g>
+    <g transform="translate(300 40)">
+      <rect x="0" y="0" width="200" height="380" rx="28" fill="url(#pa-phone)" stroke="rgba(15,23,42,0.12)" stroke-width="2" filter="drop-shadow(0 20px 40px rgba(154,31,181,0.2))"/>
+      <rect x="70" y="10" width="60" height="14" rx="6" fill="#0F172A"/>
+      <text x="20" y="55" font-family="Rajdhani,sans-serif" font-weight="700" font-size="14" fill="#0F172A">Hola, María</text>
+      <text x="20" y="72" font-family="Inter,sans-serif" font-size="10" fill="#64748B">Tu hijo · Marco · Sub-14</text>
+      <g class="pa-card pa-c1">
+        <rect x="16" y="86" width="168" height="64" rx="10" fill="url(#pa-title)"/>
+        <text x="30" y="106" font-family="Inter,sans-serif" font-size="9" fill="#fff" opacity="0.8">EVALUACIÓN MENSUAL</text>
+        <text x="30" y="128" font-family="Rajdhani,sans-serif" font-weight="700" font-size="24" fill="#fff">86.4</text>
+        <text x="90" y="128" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#fff">▲ +4.2</text>
+        <text x="30" y="144" font-family="Inter,sans-serif" font-size="9" fill="#fff" opacity="0.8">vs. mes anterior</text>
+      </g>
+      <g class="pa-card pa-c2">
+        <rect x="16" y="162" width="80" height="60" rx="8" fill="#F3F6FC" stroke="rgba(15,23,42,0.06)"/>
+        <text x="26" y="180" font-family="Inter,sans-serif" font-size="8" fill="#64748B">PHV</text>
+        <text x="26" y="200" font-family="Rajdhani,sans-serif" font-weight="700" font-size="16" fill="#0055B3">Normal</text>
+        <path d="M26,210 L40,206 L54,200 L68,195 L82,192" fill="none" stroke="#0055B3" stroke-width="1.5"/>
+      </g>
+      <g class="pa-card pa-c3">
+        <rect x="104" y="162" width="80" height="60" rx="8" fill="#F3F6FC" stroke="rgba(15,23,42,0.06)"/>
+        <text x="114" y="180" font-family="Inter,sans-serif" font-size="8" fill="#64748B">CUOTA</text>
+        <text x="114" y="200" font-family="Rajdhani,sans-serif" font-weight="700" font-size="16" fill="#0FA968">Pagada</text>
+        <text x="114" y="215" font-family="Inter,sans-serif" font-size="8" fill="#64748B">Nov 2026</text>
+      </g>
+      <g class="pa-card pa-c4">
+        <rect x="16" y="232" width="168" height="56" rx="10" fill="#FFFFFF" stroke="rgba(15,23,42,0.06)"/>
+        <circle cx="36" cy="260" r="10" fill="#D9A10F"/>
+        <text x="50" y="256" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#0F172A">Próximo partido</text>
+        <text x="50" y="270" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Sab 24 · 10:00 · Villarreal B</text>
+      </g>
+      <g class="pa-card pa-c5">
+        <rect x="16" y="298" width="168" height="56" rx="10" fill="#FFFFFF" stroke="rgba(15,23,42,0.06)"/>
+        <circle cx="36" cy="326" r="10" fill="#0F857A"/>
+        <text x="50" y="322" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#0F172A">Drill recomendado</text>
+        <text x="50" y="336" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Control orientado · 20 min</text>
+      </g>
+    </g>
+    <g class="pa-badges">
+      <g class="pa-badge pb1" transform="translate(60 200)">
+        <rect x="0" y="0" width="150" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#0FA968"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Convocatoria +1</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Titular sábado</text>
+      </g>
+      <g class="pa-badge pb2" transform="translate(570 170)">
+        <rect x="0" y="0" width="160" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#E61A85"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Chat nuevo</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Del preparador físico</text>
+      </g>
+      <g class="pa-badge pb3" transform="translate(590 280)">
+        <rect x="0" y="0" width="145" height="40" rx="20" fill="#FFFFFF" stroke="rgba(15,23,42,0.1)"/>
+        <circle cx="20" cy="20" r="8" fill="#0055B3"/>
+        <text x="35" y="18" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0F172A">Galería +12 fotos</text>
+        <text x="35" y="31" font-family="Inter,sans-serif" font-size="9" fill="#64748B">Partido pasado</text>
+      </g>
+    </g>
+  </svg>
+</div>
     <div class="overlay">
-      <span class="vtag" style="background:rgba(0,180,198,0.14);border-color:rgba(0,180,198,0.4);color:#00B4C6">◆ Parent Pro · €9/mes</span>
+      <span class="vtag" style="background:rgba(0,180,198,0.14);border-color:rgba(0,180,198,0.4);color:#0F857A">◆ Parent Pro · €9/mes</span>
       <h3>Cuando la academia adopta VITAS, las familias compran solas</h3>
       <p>Cada academia activa genera ~30 padres dispuestos a pagar €9/mes por ver el PHV de su hijo, los drills caseros recomendados y las alertas de progresión. Viral coefficient K=0.8 intra-academia · CAC €28 · LTV €1,978.</p>
     </div>
@@ -498,7 +821,7 @@
 <script>
 const common = {
   chart:{ background:'transparent', toolbar:{show:false}, foreColor:'#8592A8', fontFamily:'Inter, sans-serif', animations:{enabled:true, speed:600} },
-  tooltip:{ theme:'dark' },
+  tooltip:{ theme:'light' },
   grid:{ borderColor:'rgba(255,255,255,0.05)', strokeDashArray:3, padding:{left:8,right:8} },
   dataLabels:{ enabled:false },
   theme:{ mode:'dark' }
@@ -512,7 +835,7 @@ new ApexCharts(document.querySelector('#chart-tamsam'),{
   plotOptions:{ bar:{ horizontal:true, borderRadius:10, distributed:true, barHeight:'62%', dataLabels:{position:'center'} }},
   series:[{ data:[7800, 3200, 1200, 329, 84] }],
   dataLabels:{ enabled:true, style:{colors:['#000'], fontWeight:700, fontSize:'14px'}, formatter:v=>'€'+(v>=1000? (v/1000).toFixed(1)+'B':v+'M')},
-  colors:['#E1A20F','#C025E0','#0066FF','#E61A85','#DC2626'],
+  colors:['#D9A10F','#9A1FB5','#0055B3','#E61A85','#DC2626'],
   xaxis:{ categories:['TAM global · software deportivo fútbol','TAM fútbol base + amateur','SAM Iberoamérica + EU sur','SAM directo VITAS (ICP fit)','SOM Y5 objetivo · 7% SAM'] },
   legend:{ show:false }
 }).render();
@@ -523,7 +846,7 @@ new ApexCharts(document.querySelector('#chart-geo'),{
   chart:{...common.chart, type:'donut', height:380},
   series:[310, 252, 198, 142, 108, 82, 68],
   labels:['España','México','Argentina','Brasil','Colombia','Portugal','Resto LATAM'],
-  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626','#E1A20F'],
+  colors:['#0055B3','#9A1FB5','#D9A10F','#E61A85','#1E40AF','#DC2626','#D9A10F'],
   plotOptions:{ pie:{ donut:{ size:'68%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7', fontWeight:700, fontSize:'22px', fontFamily:'Rajdhani', formatter:v=>'€'+v+'M'}, total:{show:true,label:'SAM total', color:'#E6EDF7', formatter:()=>'€1.16B'} }}}},
   dataLabels:{ enabled:false },
   legend:{ position:'right', labels:{colors:'#E6EDF7'} }
@@ -535,7 +858,7 @@ new ApexCharts(document.querySelector('#chart-clubs'),{
   chart:{...common.chart, type:'bar', height:380},
   plotOptions:{ bar:{ horizontal:true, borderRadius:4, barHeight:'65%' }},
   series:[{ name:'Clubes diana', data:[6400, 4100, 3200, 2850, 2100, 1820, 1430, 1280, 1150, 980] }],
-  colors:['#0066FF'],
+  colors:['#0055B3'],
   xaxis:{ categories:['España','México','Argentina','Brasil','Colombia','Portugal','Chile','Perú','Uruguay','Ecuador'] },
   dataLabels:{ enabled:true, style:{colors:['#E6EDF7'], fontSize:'11px', fontWeight:600}, offsetX:22 }
 }).render();
@@ -545,15 +868,15 @@ new ApexCharts(document.querySelector('#chart-penetration'),{
   ...common,
   chart:{...common.chart, type:'area', height:380},
   series:[{ name:'% SAM penetrado', data:[0.02, 0.12, 0.42, 1.2, 2.8, 5.6] }],
-  colors:['#E1A20F'],
+  colors:['#D9A10F'],
   stroke:{ curve:'smooth', width:3 },
   fill:{ type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.6, opacityTo:0.05 }},
   xaxis:{ categories:years },
   yaxis:{ labels:{ formatter:v=>v.toFixed(1)+'%' } },
   markers:{ size:6, strokeColors:'#0A1128', strokeWidth:3 },
   annotations:{ points:[
-    { x:'2028', y:0.42, marker:{size:10,fillColor:'#0066FF'}, label:{style:{background:'#0066FF', color:'#000'},text:'Inflexión'}},
-    { x:'2031', y:5.6, marker:{size:10,fillColor:'#E1A20F'}, label:{style:{background:'#E1A20F',color:'#000'},text:'SOM €84M'}}
+    { x:'2028', y:0.42, marker:{size:10,fillColor:'#0055B3'}, label:{style:{background:'#0055B3', color:'#000'},text:'Inflexión'}},
+    { x:'2031', y:5.6, marker:{size:10,fillColor:'#D9A10F'}, label:{style:{background:'#D9A10F',color:'#000'},text:'SOM €84M'}}
   ]}
 }).render();
 
@@ -563,7 +886,7 @@ new ApexCharts(document.querySelector('#chart-mix'),{
   chart:{...common.chart, type:'pie', height:380},
   series:[19, 17, 22, 29, 13],
   labels:['Scout Pro','Academy Starter','Academy Pro','Club Enterprise','Parent Pro B2B2C'],
-  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
+  colors:['#0055B3','#9A1FB5','#D9A10F','#E61A85','#0F857A'],
   legend:{ position:'bottom', labels:{colors:'#E6EDF7'} },
   dataLabels:{ style:{fontSize:'12px', fontWeight:600}, dropShadow:{enabled:false}, formatter:(val,opts)=>opts.w.config.series[opts.seriesIndex]+'%' }
 }).render();
@@ -573,7 +896,7 @@ new ApexCharts(document.querySelector('#chart-cac'),{
   ...common,
   chart:{...common.chart, type:'bar', height:380},
   series:[{ name:'CAC €', data:[42, 180, 320, 680, 1200, 2100] }],
-  colors:['#E1A20F'],
+  colors:['#D9A10F'],
   plotOptions:{ bar:{ borderRadius:6, columnWidth:'55%', distributed:true }},
   xaxis:{ categories:['Referido scout','SEO/Content','LinkedIn paid','Federación','Eventos','Outbound enterprise'], labels:{rotate:-25} },
   yaxis:{ labels:{ formatter:v=>'€'+v } },
@@ -587,9 +910,9 @@ new ApexCharts(document.querySelector('#chart-channel-mrr'),{
   chart:{...common.chart, type:'polarArea', height:380},
   series:[28, 24, 18, 12, 10, 8],
   labels:['Referidos scouts','SEO/Content','LinkedIn paid','Federaciones','Eventos','Outbound enterprise'],
-  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626'],
+  colors:['#0055B3','#9A1FB5','#D9A10F','#E61A85','#1E40AF','#DC2626'],
   fill:{ opacity:0.75 },
-  stroke:{ colors:['rgba(255,255,255,0.1)'] },
+  stroke:{ colors:['rgba(15,23,42,0.08)'] },
   legend:{ position:'right', labels:{colors:'#E6EDF7'} }
 }).render();
 
@@ -599,7 +922,7 @@ new ApexCharts(document.querySelector('#chart-journey'),{
   chart:{...common.chart, type:'bar', height:360},
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, distributed:true, barHeight:'60%' }},
   series:[{ data:[100, 32, 18, 9.8, 7.6, 9.1] }],
-  colors:['#C025E0','#4F46E5','#0066FF','#059669','#E1A20F','#E61A85'],
+  colors:['#9A1FB5','#4F46E5','#0055B3','#059669','#D9A10F','#E61A85'],
   xaxis:{ categories:['Descubrimiento (visita)','Activación (signup)','First value (análisis completo)','Conversión (pago)','Retención m3','Expansión (upsell)'] },
   dataLabels:{ enabled:true, style:{colors:['#E6EDF7'],fontWeight:600}, formatter:v=>v+'%' },
   yaxis:{ labels:{ formatter:v=>v+'%'} },
@@ -616,7 +939,7 @@ new ApexCharts(document.querySelector('#chart-icpfit'),{
     { name:'Club semiprofesional', data:[96, 55, 98, 40, 96, 85] },
     { name:'Parent Pro (B2B2C)', data:[78, 96, 72, 95, 68, 32] }
   ],
-  colors:['#0066FF','#C025E0','#E1A20F','#00B4C6'],
+  colors:['#0055B3','#9A1FB5','#D9A10F','#0F857A'],
   xaxis:{ categories:['Valor percibido','Velocidad compra','Capacidad pago','Viralidad','Expansión','Baja churn'] },
   stroke:{ width:2 },
   fill:{ opacity:0.15 },
@@ -636,11 +959,11 @@ new ApexCharts(document.querySelector('#chart-roadmap'),{
     { name:'Resto Europa', data:[0, 2, 8, 13, 18, 22] },
     { name:'Norteamérica', data:[0, 0, 4, 5, 9, 12] }
   ],
-  colors:['#0066FF','#E1A20F','#C025E0','#E61A85','#1E40AF'],
+  colors:['#0055B3','#D9A10F','#9A1FB5','#E61A85','#1E40AF'],
   xaxis:{ categories:years },
   yaxis:{ max:100, labels:{formatter:v=>v+'%'} },
   legend:{ position:'top' },
-  tooltip:{ theme:'dark', y:{ formatter:v=>v+'%' } }
+  tooltip:{ theme:'light', y:{ formatter:v=>v+'%' } }
 }).render();
 
 /* 12 · Growth drivers */
@@ -656,7 +979,7 @@ new ApexCharts(document.querySelector('#chart-drivers'),{
     { x:'SEO/Content inbound', y:560 },
     { x:'API/partnerships', y:360 }
   ]}],
-  colors:['#0066FF','#00B4C6','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626'],
+  colors:['#0055B3','#0F857A','#9A1FB5','#D9A10F','#E61A85','#1E40AF','#DC2626'],
   plotOptions:{ treemap:{ enableShades:false, distributed:true }},
   dataLabels:{ enabled:true, style:{fontFamily:'Rajdhani', fontWeight:700, fontSize:'13px'}, formatter:(val, op)=>val + ' · €'+op.value+'K' }
 }).render();
