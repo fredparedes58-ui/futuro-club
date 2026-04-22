@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VITAS · Comparativa de Escenarios y Estrategias 2026-2031</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
+<style>
+  :root{
+    --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
+    --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
+    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --cyan:#00B4C6; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
+    --scn-cons:#E1A20F; --scn-real:#0066FF; --scn-agg:#C025E0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  body{background:
+      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(225,162,15,0.08), transparent 60%),
+      radial-gradient(ellipse 1000px 500px at 50% 5%, rgba(0,102,255,0.10), transparent 60%),
+      radial-gradient(ellipse 1000px 600px at 85% 15%, rgba(192,37,224,0.10), transparent 60%),
+      linear-gradient(180deg,#030718 0%, #000 100%); min-height:100vh}
+  .wrap{max-width:1360px;margin:0 auto;padding:48px 32px 120px}
+
+  .hero{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:32px;border-bottom:1px solid var(--border);margin-bottom:40px;gap:32px}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:linear-gradient(90deg,rgba(225,162,15,0.1),rgba(0,102,255,0.1),rgba(192,37,224,0.1));border:1px solid var(--border-hi);color:var(--ink);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px}
+  h1{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:52px;line-height:1.05;letter-spacing:-0.02em;margin-bottom:14px}
+  h1 .c{background:linear-gradient(135deg,var(--scn-cons) 0%,var(--scn-real) 50%,var(--scn-agg) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--ink-mute);font-size:18px;max-width:780px}
+  .meta{text-align:right;font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace;min-width:180px}
+  .meta strong{color:var(--ink);display:block;font-size:14px;margin-bottom:4px}
+
+  h2{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:30px;letter-spacing:-0.01em;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,rgba(225,162,15,0.12),rgba(0,102,255,0.12),rgba(192,37,224,0.12));border:1px solid var(--border-hi);font-size:14px;color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:600}
+  .section-sub{color:var(--ink-mute);font-size:14.5px;margin-bottom:26px;max-width:820px}
+
+  /* Hero video */
+  .video-block{margin:28px 0 40px;border-radius:20px;overflow:hidden;position:relative;background:#000;border:1px solid var(--border-hi);aspect-ratio:16/9;max-height:460px;box-shadow:0 30px 80px -20px rgba(0,102,255,0.18)}
+  .video-block iframe{width:100%;height:100%;display:block;border:0}
+  .video-block .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,13,0.1) 0%,rgba(5,7,13,0) 30%,rgba(5,7,13,0.55) 70%,rgba(5,7,13,0.95) 100%);pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;padding:36px 40px}
+  .video-block .vtag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:10px;background:rgba(0,102,255,0.15);border:1px solid rgba(0,102,255,0.4);color:var(--brand);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;width:fit-content;font-weight:700;backdrop-filter:blur(12px)}
+  .video-block h3{font-family:'Rajdhani',sans-serif;font-size:28px;line-height:1.15;margin-bottom:8px;font-weight:700;letter-spacing:-0.01em}
+  .video-block p{font-size:14px;color:#B8C4D9;max-width:640px;line-height:1.5}
+  .video-block .corner{position:absolute;top:20px;right:20px;display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#E6EDF7;background:rgba(0,0,0,0.5);backdrop-filter:blur(12px);padding:6px 12px;border-radius:8px;border:1px solid var(--border-hi);z-index:2;align-items:center}
+  .video-block .corner .rec{width:8px;height:8px;border-radius:50%;background:#DC2626;animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+  /* Scenario comparison cards */
+  .scn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:30px}
+  .scn{background:var(--card);border:1.5px solid var(--border);border-radius:18px;padding:28px;position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s}
+  .scn:hover{transform:translateY(-2px)}
+  .scn::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .scn.cons::before{background:var(--scn-cons)}
+  .scn.real::before{background:var(--scn-real)}
+  .scn.agg::before{background:var(--scn-agg)}
+  .scn.real{border-color:rgba(0,102,255,0.4);box-shadow:0 30px 80px -20px rgba(0,102,255,0.22)}
+  .scn.real::after{content:'ESCENARIO RECOMENDADO';position:absolute;top:14px;right:14px;font-size:9px;letter-spacing:0.14em;padding:4px 10px;border-radius:6px;background:var(--scn-real);color:#fff;font-weight:700}
+  .scn h3{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:26px;margin-bottom:4px;letter-spacing:-0.01em}
+  .scn.cons h3{color:var(--scn-cons)} .scn.real h3{color:var(--scn-real)} .scn.agg h3{color:var(--scn-agg)}
+  .scn .sub-role{font-size:12px;color:var(--ink-soft);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:20px;font-weight:500}
+  .scn .metrics-list{list-style:none;margin-bottom:22px}
+  .scn .metrics-list li{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px}
+  .scn .metrics-list li span{color:var(--ink-soft)}
+  .scn .metrics-list li strong{color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:500}
+  .scn .metrics-list li.hl strong{font-size:15px;font-weight:700}
+  .scn.cons .metrics-list li.hl strong{color:var(--scn-cons)}
+  .scn.real .metrics-list li.hl strong{color:var(--scn-real)}
+  .scn.agg .metrics-list li.hl strong{color:var(--scn-agg)}
+  .scn .prob-meter{margin-top:8px;padding-top:16px;border-top:1px solid var(--border-hi)}
+  .scn .prob-label{font-size:10px;color:var(--ink-soft);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between}
+  .scn .prob-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.05);overflow:hidden;position:relative}
+  .scn .prob-fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px}
+  .scn.cons .prob-fill{background:var(--scn-cons)}
+  .scn.real .prob-fill{background:var(--scn-real)}
+  .scn.agg .prob-fill{background:var(--scn-agg)}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:24px;position:relative}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px}
+  .card-title{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.01em}
+  .card-desc{font-size:13px;color:var(--ink-mute);margin-top:4px}
+
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px}
+
+  /* Audience table */
+  table{width:100%;border-collapse:collapse;font-size:13px;font-family:'JetBrains Mono',monospace}
+  th{text-align:left;padding:12px 10px;border-bottom:1px solid var(--border);color:var(--ink-soft);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:0.08em}
+  td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--ink);font-size:13px}
+  tr:last-child td{border-bottom:none}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  td.cons{color:var(--scn-cons);font-weight:600}
+  td.real{color:var(--scn-real);font-weight:600}
+  td.agg{color:var(--scn-agg);font-weight:600}
+  .row-sum{background:rgba(0,102,255,0.03)} .row-sum td{border-top:1px solid var(--border-hi);font-weight:700}
+
+  /* Strategy cards */
+  .strat-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .strat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:26px;position:relative;overflow:hidden}
+  .strat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+  .strat.s1::before{background:var(--scn-cons)}
+  .strat.s2::before{background:var(--warn)}
+  .strat.s3::before{background:var(--scn-real)}
+  .strat.s4::before{background:var(--cyan)}
+  .strat.s5::before{background:var(--scn-agg)}
+  .strat.s6::before{background:var(--accent)}
+  .strat .s-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.12em;margin-bottom:6px}
+  .strat h4{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;margin-bottom:8px;letter-spacing:-0.01em}
+  .strat p.lead{font-size:13.5px;color:var(--ink-mute);margin-bottom:16px;line-height:1.55}
+  .strat .s-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid var(--border)}
+  .strat .s-stat{text-align:center}
+  .strat .s-stat .lbl{font-size:9px;color:var(--ink-soft);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px}
+  .strat .s-stat .val{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;color:var(--ink)}
+  .strat .s-actions{list-style:none}
+  .strat .s-actions li{padding:8px 0 8px 22px;position:relative;font-size:12.5px;color:var(--ink-mute);border-bottom:1px solid rgba(255,255,255,0.04)}
+  .strat .s-actions li:last-child{border-bottom:none}
+  .strat .s-actions li::before{content:'→';position:absolute;left:0;color:var(--brand);font-weight:700}
+  .strat .s-actions li strong{color:var(--ink);font-weight:600}
+  .strat .s-kpi{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .strat .s-kpi .chip{font-size:10px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--ink-mute);letter-spacing:0.05em;text-transform:uppercase;font-weight:600}
+
+  .risk-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase}
+  .risk-low{background:rgba(16,185,129,0.12);color:#10B981;border:1px solid rgba(16,185,129,0.3)}
+  .risk-med{background:rgba(225,162,15,0.12);color:var(--accent);border:1px solid rgba(225,162,15,0.3)}
+  .risk-high{background:rgba(230,26,133,0.12);color:var(--warn);border:1px solid rgba(230,26,133,0.3)}
+
+  /* Roadmap */
+  .roadmap{position:relative;padding-left:20px;border-left:2px solid var(--border-hi);margin-top:20px}
+  .rm-item{margin-bottom:18px;position:relative;padding-left:22px}
+  .rm-item::before{content:'';position:absolute;left:-27px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--brand);border:3px solid var(--bg0)}
+  .rm-item.cons::before{background:var(--scn-cons)}
+  .rm-item.real::before{background:var(--scn-real)}
+  .rm-item.agg::before{background:var(--scn-agg)}
+  .rm-item .q{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);letter-spacing:0.08em;margin-bottom:3px}
+  .rm-item .title{font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:600;color:var(--ink);margin-bottom:3px}
+  .rm-item .desc{font-size:12.5px;color:var(--ink-mute);line-height:1.5}
+
+  .reco{background:linear-gradient(135deg,rgba(0,102,255,0.06),rgba(192,37,224,0.04));border:1px solid rgba(0,102,255,0.25);border-radius:20px;padding:36px;margin-top:40px;position:relative;overflow:hidden}
+  .reco h3{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;margin-bottom:10px;color:var(--brand)}
+  .reco p{font-size:15px;color:var(--ink);line-height:1.65;margin-bottom:14px;max-width:900px}
+  .reco .reco-footer{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:22px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08)}
+  .reco .reco-footer div{font-size:12px;color:var(--ink-soft)}
+  .reco .reco-footer strong{display:block;font-family:'Rajdhani',sans-serif;font-size:22px;color:var(--ink);font-weight:700;margin-top:4px}
+
+  .footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);color:var(--ink-soft);font-size:12px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace}
+
+  @media print{
+    body{background:white;color:black}
+    .card,.scn,.strat{break-inside:avoid;page-break-inside:avoid}
+  }
+  @media (max-width:1100px){
+    .scn-grid,.grid-3,.strat-grid{grid-template-columns:1fr}
+    .grid-2{grid-template-columns:1fr}
+    h1{font-size:38px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <div>
+      <div class="badge">● Comparativa estratégica · 3 escenarios · 6 estrategias</div>
+      <h1>Tres futuros para <span class="c">VITAS</span><br/>una decisión de board</h1>
+      <p class="sub">Radiografía completa de los escenarios Conservador, Realista y Agresivo: público, gastos, ganancias, ruta de crecimiento y las 6 estrategias concretas que determinan a cuál de los tres llegamos en 2031.</p>
+    </div>
+    <div class="meta">
+      <strong>Futuro Club · VITAS</strong>
+      Board pack · Q2 2026<br/>
+      Versión 1.0 · 2026-04-22<br/>
+      Horizonte: 60 meses<br/>
+      Confidencial
+    </div>
+  </header>
+
+  <!-- HERO VIDEO -->
+  <div class="video-block">
+    <div class="corner"><span class="rec"></span>Decision board · Q2 2026</div>
+    <iframe src="https://www.youtube.com/embed/sXQxhojSdZM?autoplay=1&mute=1&loop=1&playlist=sXQxhojSdZM&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS · 3 escenarios" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div class="overlay">
+      <span class="vtag">◉ 60 meses · 3 futuros · 1 elección</span>
+      <h3>Conservador €4.0M · Realista €9.6M · Agresivo €14.9M</h3>
+      <p>Las decisiones de 2026 determinan en qué escenario aterrizamos en 2031. Esta comparativa pone lado a lado lo que significa cada camino en términos de usuarios, inversión, equipo, riesgo y ejecución real.</p>
+    </div>
+  </div>
+
+  <!-- ========================= 01 — SNAPSHOT 3 escenarios ========================= -->
+  <h2><span class="num">01</span> Tres escenarios lado a lado</h2>
+  <p class="section-sub">Cada escenario se sustenta en una hipótesis distinta sobre tres palancas: velocidad de adquisición de academias, conversión del canal B2B2C de padres y acceso a enterprise. Los números de Y5 están calculados con el mismo modelo P&L, solo cambian las asunciones de entrada.</p>
+  <div class="scn-grid">
+
+    <div class="scn cons">
+      <h3>Conservador</h3>
+      <div class="sub-role">Crecimiento orgánico · España + Portugal</div>
+      <ul class="metrics-list">
+        <li class="hl"><span>ARR Y5</span><strong>€4.0M</strong></li>
+        <li><span>Clientes paid</span><strong>9,480</strong></li>
+        <li><span>· padres B2B2C</span><strong>6,200</strong></li>
+        <li><span>MRR Y5</span><strong>€333K</strong></li>
+        <li><span>Gross margin</span><strong>78%</strong></li>
+        <li><span>Break-even</span><strong>Q2 2030</strong></li>
+        <li><span>Burn acumulado</span><strong>€7.8M</strong></li>
+        <li><span>Funding total</span><strong>€9.0M</strong></li>
+        <li><span>FTE Y5</span><strong>34</strong></li>
+        <li><span>LTV:CAC</span><strong>3.8×</strong></li>
+      </ul>
+      <div class="prob-meter">
+        <div class="prob-label"><span>Probabilidad sin esfuerzo extra</span><span>55%</span></div>
+        <div class="prob-bar"><div class="prob-fill" style="width:55%"></div></div>
+      </div>
+    </div>
+
+    <div class="scn real">
+      <h3>Realista</h3>
+      <div class="sub-role">Iberoamérica + padres B2B2C · plan central</div>
+      <ul class="metrics-list">
+        <li class="hl"><span>ARR Y5</span><strong>€9.6M</strong></li>
+        <li><span>Clientes paid</span><strong>19,020</strong></li>
+        <li><span>· padres B2B2C</span><strong>13,500</strong></li>
+        <li><span>MRR Y5</span><strong>€880K</strong></li>
+        <li><span>Gross margin</span><strong>82%</strong></li>
+        <li><span>Break-even</span><strong>Q3 2029</strong></li>
+        <li><span>Burn acumulado</span><strong>€6.2M</strong></li>
+        <li><span>Funding total</span><strong>€6.5M</strong></li>
+        <li><span>FTE Y5</span><strong>58</strong></li>
+        <li><span>LTV:CAC</span><strong>6.4×</strong></li>
+      </ul>
+      <div class="prob-meter">
+        <div class="prob-label"><span>Probabilidad con plan actual</span><span>60%</span></div>
+        <div class="prob-bar"><div class="prob-fill" style="width:60%"></div></div>
+      </div>
+    </div>
+
+    <div class="scn agg">
+      <h3>Agresivo</h3>
+      <div class="sub-role">Expansión global + enterprise + federaciones</div>
+      <ul class="metrics-list">
+        <li class="hl"><span>ARR Y5</span><strong>€14.9M</strong></li>
+        <li><span>Clientes paid</span><strong>38,500</strong></li>
+        <li><span>· padres B2B2C</span><strong>27,800</strong></li>
+        <li><span>MRR Y5</span><strong>€1.42M</strong></li>
+        <li><span>Gross margin</span><strong>85%</strong></li>
+        <li><span>Break-even</span><strong>Q4 2028</strong></li>
+        <li><span>Burn acumulado</span><strong>€4.8M</strong></li>
+        <li><span>Funding total</span><strong>€12.0M</strong></li>
+        <li><span>FTE Y5</span><strong>92</strong></li>
+        <li><span>LTV:CAC</span><strong>7.9×</strong></li>
+      </ul>
+      <div class="prob-meter">
+        <div class="prob-label"><span>Probabilidad con estrategias 1-6</span><span>25%</span></div>
+        <div class="prob-bar"><div class="prob-fill" style="width:25%"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================= 02 — ARR TRAYECTORIA ========================= -->
+  <h2><span class="num">02</span> Trayectorias comparadas · ARR 2026-2031</h2>
+  <p class="section-sub">Las tres líneas parten del mismo punto (€87K Y1) pero divergen rápidamente a partir de Y2. La banda sombreada entre Conservador y Agresivo muestra el rango real de ejecución; la línea azul gruesa es el plan central (Realista) hacia el que apuntan los OKRs.</p>
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">ARR por escenario (€ miles)</div><div class="card-desc">Línea gruesa = plan central · zona sombreada = rango real de ejecución</div></div></div>
+    <div id="chart-arr-comp" style="height:440px"></div>
+  </div>
+
+  <!-- ========================= 03 — USUARIOS / PUBLICO ========================= -->
+  <h2><span class="num">03</span> Público objetivo · quién usa VITAS en cada escenario</h2>
+  <p class="section-sub">El <strong>quién</strong> cambia radicalmente entre escenarios. Conservador se queda en España y scouts freelance. Realista activa el canal B2B2C padres (nuestra palanca más disruptiva). Agresivo suma enterprise, federaciones y multi-geografía. Los números son cuentas activas al final de Y5.</p>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Segmento / usuario</th>
+          <th class="num" style="color:var(--scn-cons)">Conservador</th>
+          <th class="num" style="color:var(--scn-real)">Realista</th>
+          <th class="num" style="color:var(--scn-agg)">Agresivo</th>
+          <th>Geografía dominante</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>👨‍👩‍👦 Padres (Parent Pro €9/m)</td><td class="num cons">6,200</td><td class="num real">13,500</td><td class="num agg">27,800</td><td>LATAM 45% · ES 35%</td></tr>
+        <tr><td>⚡ Scouts freelance (Pro €49/m)</td><td class="num cons">2,100</td><td class="num real">3,820</td><td class="num agg">6,400</td><td>LATAM 60% · ES 30%</td></tr>
+        <tr><td>🎯 Academias Starter (€299/m)</td><td class="num cons">720</td><td class="num real">1,260</td><td class="num agg">2,400</td><td>España 50% · LATAM 40%</td></tr>
+        <tr><td>🧠 Academias Pro (€899/m)</td><td class="num cons">240</td><td class="num real">380</td><td class="num agg">920</td><td>España 55% · LATAM 35%</td></tr>
+        <tr><td>🏟️ Clubes Enterprise (€2.5-5K/m)</td><td class="num cons">18</td><td class="num real">55</td><td class="num agg">140</td><td>Europa 50% · LATAM 30%</td></tr>
+        <tr><td>🤝 Federaciones / ligas (custom)</td><td class="num cons">2</td><td class="num real">5</td><td class="num agg">12</td><td>LATAM 70%</td></tr>
+        <tr class="row-sum"><td>Total cuentas activas</td><td class="num cons"><strong>9,280</strong></td><td class="num real"><strong>19,020</strong></td><td class="num agg"><strong>37,672</strong></td><td>—</td></tr>
+        <tr><td style="color:var(--ink-soft)">Jugadores cubiertos (acad.×jug/acad)</td><td class="num cons">168K</td><td class="num real">304K</td><td class="num agg">712K</td><td>—</td></tr>
+        <tr><td style="color:var(--ink-soft)">Videos procesados/año</td><td class="num cons">1.2M</td><td class="num real">3.4M</td><td class="num agg">9.8M</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================= 04 — GASTOS ========================= -->
+  <h2><span class="num">04</span> Estructura de gastos · Y5</h2>
+  <p class="section-sub">El desglose de OpEx muestra cómo escala el coste en cada escenario. Personal es siempre la partida mayor (55-62%), pero la ratio personal/ingresos mejora del 78% (Conservador) al 42% (Agresivo) porque el revenue crece más rápido que el headcount gracias al modelo SaaS.</p>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title" style="color:var(--scn-cons)">Conservador · OpEx €5.1M</div></div></div>
+      <div id="chart-opex-cons" style="height:300px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title" style="color:var(--scn-real)">Realista · OpEx €7.9M</div></div></div>
+      <div id="chart-opex-real" style="height:300px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title" style="color:var(--scn-agg)">Agresivo · OpEx €11.2M</div></div></div>
+      <div id="chart-opex-agg" style="height:300px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">Gastos detallados por categoría (€ miles · Y5)</div><div class="card-desc">Todas las partidas clave del P&amp;L comparadas escenario por escenario</div></div></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th class="num" style="color:var(--scn-cons)">Conservador</th>
+          <th class="num" style="color:var(--scn-real)">Realista</th>
+          <th class="num" style="color:var(--scn-agg)">Agresivo</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Personal R&amp;D (ing + AI + data)</td><td class="num cons">1,820</td><td class="num real">2,680</td><td class="num agg">3,740</td><td>45-55% de headcount total</td></tr>
+        <tr><td>Personal Sales &amp; Marketing</td><td class="num cons">1,140</td><td class="num real">1,890</td><td class="num agg">2,980</td><td>BDR + AE + CS + PMM</td></tr>
+        <tr><td>Personal G&amp;A (ops + finance + legal)</td><td class="num cons">520</td><td class="num real">720</td><td class="num agg">1,060</td><td>Opera con pocos FTE</td></tr>
+        <tr><td>Marketing paid (ads + content + eventos)</td><td class="num cons">380</td><td class="num real">780</td><td class="num agg">1,420</td><td>LinkedIn + SEO + federaciones</td></tr>
+        <tr><td>Infraestructura (Vercel + Supabase + Bunny)</td><td class="num cons">180</td><td class="num real">360</td><td class="num agg">820</td><td>Escala con # videos procesados</td></tr>
+        <tr><td>AI costs (Gemini + Claude + Voyage)</td><td class="num cons">140</td><td class="num real">320</td><td class="num agg">780</td><td>Mejora 4× Y1→Y5 por caching</td></tr>
+        <tr><td>Tooling + SaaS interno</td><td class="num cons">90</td><td class="num real">140</td><td class="num agg">220</td><td>Figma + Linear + Stripe + …</td></tr>
+        <tr><td>Viajes + partnerships + legal</td><td class="num cons">110</td><td class="num real">220</td><td class="num agg">420</td><td>Federaciones + enterprise</td></tr>
+        <tr><td>Contingencia (8%)</td><td class="num cons">330</td><td class="num real">510</td><td class="num agg">720</td><td>Amortiguador</td></tr>
+        <tr class="row-sum"><td>TOTAL OpEx Y5</td><td class="num cons"><strong>€4,710K</strong></td><td class="num real"><strong>€7,620K</strong></td><td class="num agg"><strong>€12,160K</strong></td><td>—</td></tr>
+        <tr><td style="color:var(--ink-soft)">Ratio OpEx / Revenue</td><td class="num cons">118%</td><td class="num real">79%</td><td class="num agg">82%</td><td>Realista domina</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================= 05 — GANANCIAS ========================= -->
+  <h2><span class="num">05</span> Ganancias · revenue streams por escenario</h2>
+  <p class="section-sub">Los cinco streams contribuyen de forma muy distinta. En Conservador todo se juega en Scout Pro (55%). En Realista los padres B2B2C aparecen como segundo pilar (22%). En Agresivo, Enterprise pasa al liderazgo (36%) porque abrimos pipeline con federaciones e integramos con sistemas de clubes profesionales.</p>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Revenue mix Y5 por escenario</div><div class="card-desc">Stacked bars · contribución de cada stream al ARR</div></div></div>
+      <div id="chart-rev-mix" style="height:400px"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Evolución EBITDA 2026-2031</div><div class="card-desc">Paso al verde: Agresivo Q4-28 · Realista Q3-29 · Conservador Q2-30</div></div></div>
+      <div id="chart-ebitda" style="height:400px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">P&amp;L comparativo Y5 (€ miles)</div></div></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Línea</th>
+          <th class="num" style="color:var(--scn-cons)">Conservador</th>
+          <th class="num" style="color:var(--scn-real)">Realista</th>
+          <th class="num" style="color:var(--scn-agg)">Agresivo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Revenue</td><td class="num cons">4,000</td><td class="num real">9,602</td><td class="num agg">14,900</td></tr>
+        <tr><td>— COGS (infra + AI + storage)</td><td class="num">(880)</td><td class="num">(1,728)</td><td class="num">(2,235)</td></tr>
+        <tr class="row-sum"><td>Gross profit</td><td class="num cons"><strong>3,120</strong></td><td class="num real"><strong>7,874</strong></td><td class="num agg"><strong>12,665</strong></td></tr>
+        <tr><td style="color:var(--ink-soft)">Gross margin %</td><td class="num">78%</td><td class="num">82%</td><td class="num">85%</td></tr>
+        <tr><td>— OpEx (ex-COGS)</td><td class="num">(4,710)</td><td class="num">(7,620)</td><td class="num">(12,160)</td></tr>
+        <tr class="row-sum"><td>EBITDA Y5</td><td class="num cons"><strong>(1,590)</strong></td><td class="num real"><strong>254</strong></td><td class="num agg"><strong>505</strong></td></tr>
+        <tr><td style="color:var(--ink-soft)">EBITDA margin %</td><td class="num" style="color:var(--danger)">-40%</td><td class="num" style="color:#10B981">+3%</td><td class="num" style="color:#10B981">+3%</td></tr>
+        <tr><td style="color:var(--ink-soft)">Rule of 40 Y5</td><td class="num">28</td><td class="num">98</td><td class="num">112</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========================= 06 — CRECIMIENTO ========================= -->
+  <h2><span class="num">06</span> Crecimiento · usuarios y cuentas paid por escenario</h2>
+  <p class="section-sub">La diferencia entre escenarios es más marcada en el canal B2B2C de padres, porque depende de cuántas academias activamos y de cuán agresivamente empujamos el sharing intra-academia. Una academia con 50 jugadores puede generar ~30 padres pagadores en el escenario Agresivo vs ~12 en Conservador.</p>
+  <div class="card">
+    <div class="card-head"><div><div class="card-title">Cuentas paid acumuladas · 3 escenarios × 6 años</div></div></div>
+    <div id="chart-customers-comp" style="height:420px"></div>
+  </div>
+
+  <!-- ========================= 07 — ESTRATEGIAS ========================= -->
+  <h2><span class="num">07</span> Las 6 estrategias ejecutables</h2>
+  <p class="section-sub">Cada una es accionable desde Q3 2026 con el equipo actual. Las 6 combinadas mueven el plan central de Realista hacia Agresivo. Implementar 3-4 de las 6 es lo mínimo para no caer al escenario Conservador. Cada card incluye inversión, impact, timeline, riesgo y KPIs de seguimiento.</p>
+
+  <div class="strat-grid">
+
+    <!-- STRATEGY 1 -->
+    <div class="strat s1">
+      <div class="s-num">ESTRATEGIA 01 · GTM Iberoamérica</div>
+      <h4>LATAM-first con partnerships federativos</h4>
+      <p class="lead">Activar México, Argentina, Colombia y Chile en Y2-Y3 con acuerdos de distribución con las federaciones locales. Pricing adaptado al poder adquisitivo (descuentos 30-40% en tier Academy) y un programa de <em>creator partners</em> con entrenadores influyentes en cada país.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€480K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">18 meses</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€1.8M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-med">Medio</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q3-26</strong> Contratar country lead México (ex-federación)</li>
+        <li><strong>Q4-26</strong> Acuerdos piloto con FMF y Liga MX Femenil</li>
+        <li><strong>Q2-27</strong> Launch Argentina (AFA partnership)</li>
+        <li><strong>Q4-27</strong> Programa 50 creator-partners activos</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">Countries live</span>
+        <span class="chip">Fed MOU firmados</span>
+        <span class="chip">Creator NPS</span>
+        <span class="chip">Mix LATAM % ARR</span>
+      </div>
+    </div>
+
+    <!-- STRATEGY 2 -->
+    <div class="strat s2">
+      <div class="s-num">ESTRATEGIA 02 · B2B2C VIRAL</div>
+      <h4>Loop de padres con sharing automático intra-academia</h4>
+      <p class="lead">Cuando un entrenador publica el análisis de un partido, los padres de los 22 jugadores reciben notificación push con preview del PHV + VSI de su hijo. Pueden activar Parent Pro por €9/mes en un tap. El entrenador recibe €2/mes de comisión por cada padre activado — alineamos incentivos.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€180K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">8 meses</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€2.1M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-low">Bajo</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q3-26</strong> Feature <em>Family Share</em> + push onboarding</li>
+        <li><strong>Q4-26</strong> Comisión 20% a entrenadores por conversión</li>
+        <li><strong>Q1-27</strong> A/B test precios €9 vs €12 vs €7</li>
+        <li><strong>Q2-27</strong> Parent community + drills caseros con IA</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">K-factor intra-academia</span>
+        <span class="chip">Activación 7 días</span>
+        <span class="chip">Churn padre m3</span>
+        <span class="chip">ARPU familias</span>
+      </div>
+    </div>
+
+    <!-- STRATEGY 3 -->
+    <div class="strat s3">
+      <div class="s-num">ESTRATEGIA 03 · ENTERPRISE</div>
+      <h4>Inside sales para clubes pro 2ª-3ª división</h4>
+      <p class="lead">Contratar 2 AE senior + 1 SE (sales engineer) para vender a clubes de Segunda División española, Brasileirão Série B y C, y primera/segunda argentina. Ticket promedio €38K/año con contratos multi-anuales. Playbook de 6-8 semanas desde primer demo a firma.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€420K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">12 meses</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€2.4M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-high">Alto</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q3-26</strong> Contratar Head of Enterprise + 2 AE</li>
+        <li><strong>Q4-26</strong> Pack enterprise: SSO + SLA 99.9% + onboarding</li>
+        <li><strong>Q1-27</strong> Pipeline 60 cuentas — cerrar 8-10</li>
+        <li><strong>Q3-27</strong> Expandir a Brasil con AE local</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">Pipeline €</span>
+        <span class="chip">Win rate</span>
+        <span class="chip">Ciclo ventas</span>
+        <span class="chip">Net retention</span>
+      </div>
+    </div>
+
+    <!-- STRATEGY 4 -->
+    <div class="strat s4">
+      <div class="s-num">ESTRATEGIA 04 · PLG + CONTENT</div>
+      <h4>Scout freelance PLG y SEO técnico</h4>
+      <p class="lead">Scout Pro como motor de adquisición viral. Programa de referidos (€10 al referente + €20 descuento al referido) + publicación semanal de informes-demo en LinkedIn/Twitter con el branding de VITAS. SEO técnico en consultas como <em>"PHV sub-14 cómo calcular"</em>, <em>"evaluar portero juvenil"</em>.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€220K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">Continuo</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€1.2M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-low">Bajo</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q3-26</strong> Contratar Content Lead + SEO técnico</li>
+        <li><strong>Q4-26</strong> Lanzar 40 artículos pilares (ES + PT)</li>
+        <li><strong>Q1-27</strong> Programa referidos con tracking Stripe</li>
+        <li><strong>Q2-27</strong> Serie semanal YouTube "scouting con IA"</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">CAC orgánico</span>
+        <span class="chip">K-factor scout</span>
+        <span class="chip">Top 3 keywords</span>
+        <span class="chip">Free→paid conv</span>
+      </div>
+    </div>
+
+    <!-- STRATEGY 5 -->
+    <div class="strat s5">
+      <div class="s-num">ESTRATEGIA 05 · FEDERACIONES</div>
+      <h4>Integración nativa con LaLiga, AFA y federaciones regionales</h4>
+      <p class="lead">VITAS como tool oficial de formación en convenios con LaLiga Genuine/Cantera, AFA desarrollo juvenil, FCF Colombia y FMF. Federaciones distribuyen a clubes afiliados a cambio de datos agregados anonimizados del ecosistema. Palanca de credibilidad + distribución B2G2B.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€340K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">24 meses</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€1.9M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-high">Alto</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q4-26</strong> Piloto con federación regional España</li>
+        <li><strong>Q2-27</strong> MOU con LaLiga (división cantera)</li>
+        <li><strong>Q4-27</strong> Acuerdo AFA desarrollo juvenil</li>
+        <li><strong>Q2-28</strong> 3+ federaciones LATAM activas</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">Clubes vía fed</span>
+        <span class="chip">Fed MOUs firmados</span>
+        <span class="chip">Fed revenue share</span>
+        <span class="chip">Brand NPS federativo</span>
+      </div>
+    </div>
+
+    <!-- STRATEGY 6 -->
+    <div class="strat s6">
+      <div class="s-num">ESTRATEGIA 06 · AI MOAT</div>
+      <h4>Doblar R&amp;D en PHV, VSI v2 y RAG multilingüe</h4>
+      <p class="lead">Invertir en el moat técnico: <strong>(a)</strong> PHV con calibración por población Iberoamericana (no solo Mirwald genérico); <strong>(b)</strong> VSI v2 con ajuste posicional + contextual (defensa vs extremo); <strong>(c)</strong> RAG knowledge base con 500+ drills indexados + metodologías de 10 federaciones; <strong>(d)</strong> Fine-tuning de Gemini con video real de fútbol base.</p>
+      <div class="s-stats">
+        <div class="s-stat"><div class="lbl">Inversión</div><div class="val">€680K</div></div>
+        <div class="s-stat"><div class="lbl">Timeline</div><div class="val">18 meses</div></div>
+        <div class="s-stat"><div class="lbl">Impact ARR</div><div class="val">+€1.6M</div></div>
+        <div class="s-stat"><div class="lbl">Riesgo</div><div class="val"><span class="risk-badge risk-med">Medio</span></div></div>
+      </div>
+      <ul class="s-actions">
+        <li><strong>Q3-26</strong> Contratar 2 ML engineers + 1 sport scientist</li>
+        <li><strong>Q1-27</strong> PHV v2 calibrado LATAM + publicación académica</li>
+        <li><strong>Q3-27</strong> VSI v2 con contexto posicional</li>
+        <li><strong>Q1-28</strong> RAG con 500 drills + 10 metodologías</li>
+      </ul>
+      <div class="s-kpi">
+        <span class="chip">Accuracy PHV vs sport-scientist</span>
+        <span class="chip">VSI coverage posiciones</span>
+        <span class="chip">RAG retrieval@5</span>
+        <span class="chip">Citas académicas</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================= 08 — MATRIZ ========================= -->
+  <h2><span class="num">08</span> Matriz de decisión · qué estrategias mueven a qué escenario</h2>
+  <p class="section-sub">Cada estrategia tiene un impacto diferente según el escenario objetivo. Esta matriz ayuda a priorizar: si solo podemos ejecutar 3 de 6, hacer 01 + 02 + 04 nos asegura llegar a Realista. Sumar 03 + 05 + 06 abre el camino a Agresivo.</p>
+  <div class="card">
+    <div id="chart-matrix" style="height:420px"></div>
+  </div>
+
+  <!-- ========================= 09 — ROADMAP ========================= -->
+  <h2><span class="num">09</span> Roadmap trimestral · plan central Realista</h2>
+  <p class="section-sub">Secuencia de hitos concretos por trimestre. Cada hito tiene un dueño funcional y un KPI de validación. Los hitos marcados en azul son plan central; los dorados son pivotes del escenario conservador; los púrpura son aceleradores hacia agresivo.</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">2026-2027 · fundación</div></div></div>
+      <div class="roadmap">
+        <div class="rm-item real"><div class="q">Q3 2026</div><div class="title">Activar Parent Pro (Estrategia 02)</div><div class="desc">Feature Family Share + comisión entrenador. KPI: 200 padres paid en Q4.</div></div>
+        <div class="rm-item real"><div class="q">Q4 2026</div><div class="title">Ronda Seed €1.2M</div><div class="desc">Valuación pre €6M · runway hasta Q4 2027</div></div>
+        <div class="rm-item cons"><div class="q">Q4 2026</div><div class="title">Content engine + SEO técnico (Estrategia 04)</div><div class="desc">40 artículos pilares ES+PT · primer CAC orgánico &lt;€60</div></div>
+        <div class="rm-item agg"><div class="q">Q1 2027</div><div class="title">Country lead México + MOU FMF (Estrategia 01)</div><div class="desc">Piloto 15 academias LATAM · NPS &gt;60</div></div>
+        <div class="rm-item real"><div class="q">Q2 2027</div><div class="title">Hito: 1,000 padres Parent Pro activos</div><div class="desc">Validación del canal B2B2C como 2º pilar</div></div>
+        <div class="rm-item real"><div class="q">Q3 2027</div><div class="title">Serie A €5-7M</div><div class="desc">Valuación €22-28M · runway hasta Q1 2030</div></div>
+        <div class="rm-item agg"><div class="q">Q3 2027</div><div class="title">Enterprise team: 2 AE + 1 SE (Estrategia 03)</div><div class="desc">Pipeline objetivo 60 cuentas · 8 cerradas Y1</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">2028-2031 · escala</div></div></div>
+      <div class="roadmap">
+        <div class="rm-item real"><div class="q">Q1 2028</div><div class="title">PHV v2 LATAM + paper académico (Estrategia 06)</div><div class="desc">Credibilidad institucional para federaciones</div></div>
+        <div class="rm-item agg"><div class="q">Q2 2028</div><div class="title">MOU LaLiga / AFA (Estrategia 05)</div><div class="desc">Distribución B2G2B activa · 80+ clubes nuevos vía federación</div></div>
+        <div class="rm-item real"><div class="q">Q4 2028</div><div class="title">Break-even operativo (Agresivo) · target</div><div class="desc">Si estrategias 01+03+05 ejecutadas al 100%</div></div>
+        <div class="rm-item real"><div class="q">Q3 2029</div><div class="title">Break-even operativo (Realista) · plan central</div><div class="desc">EBITDA positivo +3% · Rule of 40 = 98</div></div>
+        <div class="rm-item real"><div class="q">Q1 2030</div><div class="title">Expansión Portugal, Chile, Perú</div><div class="desc">9 países activos · &gt;3K academias totales</div></div>
+        <div class="rm-item agg"><div class="q">Q3 2030</div><div class="title">Ronda Serie B €15-20M (opcional)</div><div class="desc">Solo si ARR &gt;€7M · para jugar agresivo y Europa</div></div>
+        <div class="rm-item real"><div class="q">Q4 2031</div><div class="title">€9.6M ARR · 19K clientes paid · 304K jugadores</div><div class="desc">Plan central cumplido · EBITDA margin 14%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================= 10 — RECOMENDACIÓN ========================= -->
+  <h2><span class="num">10</span> Recomendación ejecutiva</h2>
+  <div class="reco">
+    <h3>Perseguir el escenario Realista con ejecución agresiva en 02 · 04 · 06</h3>
+    <p>El escenario <strong>Realista</strong> (€9.6M ARR, 19K clientes, break-even Q3 2029) es el que mejor balancea ambición y credibilidad de ejecución. Las tres estrategias con mejor ROI son: <strong>02 B2B2C padres</strong> (impact/inversión 12×), <strong>04 PLG + content</strong> (CAC orgánico y viralidad) y <strong>06 AI moat</strong> (defensibilidad a 3-5 años).</p>
+    <p>Las estrategias <strong>01 LATAM</strong>, <strong>03 Enterprise</strong> y <strong>05 Federaciones</strong> son aceleradores hacia Agresivo pero con mayor riesgo de ejecución y plazos más largos. Recomendación: arrancar 01 en Q1 2027 post-Serie A; arrancar 03 y 05 solo si 02 + 04 + 06 están validadas con KPIs verdes.</p>
+    <p>La decisión de board es: <strong>aprobar las 3 estrategias core (02, 04, 06)</strong> con un presupuesto combinado de €1.08M en Y2-Y3, y revisar en Q1 2027 si pasamos a las 3 aceleradoras.</p>
+    <div class="reco-footer">
+      <div>Inversión 3 core<strong>€1.08M</strong></div>
+      <div>Inversión 6 full<strong>€2.32M</strong></div>
+      <div>ARR incremental 6 estrategias<strong>+€11.0M</strong></div>
+      <div>ROI a 5 años<strong>4.7×</strong></div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>VITAS · Futuro Club SAS · Comparativa de escenarios Q2 2026 · Confidencial</span>
+    <span>v1.0 · 2026-04-22 · comparativa-escenarios.html</span>
+  </footer>
+
+</div>
+
+<script>
+const common = {
+  chart:{ background:'transparent', toolbar:{show:false}, foreColor:'#8592A8',
+          animations:{enabled:true,easing:'easeout',speed:600}, fontFamily:'Inter,sans-serif'},
+  theme:{ mode:'dark' },
+  tooltip:{ theme:'dark', style:{fontFamily:'Inter',fontSize:'12px'} },
+  grid:{ borderColor:'rgba(255,255,255,0.05)', strokeDashArray:3, padding:{left:8,right:8} },
+  dataLabels:{ enabled:false }
+};
+const years = ['2026','2027','2028','2029','2030','2031'];
+
+/* 02 - ARR comparison */
+new ApexCharts(document.querySelector('#chart-arr-comp'),{
+  ...common,
+  chart:{...common.chart, type:'line', height:440},
+  series:[
+    { name:'Conservador', data:[65,220,620,1450,2940,4000] },
+    { name:'Realista',    data:[87,436,1457,4027,9602,18336] },
+    { name:'Agresivo',    data:[135,740,2350,6350,14900,29100] }
+  ],
+  colors:['#E1A20F','#0066FF','#C025E0'],
+  stroke:{ curve:'smooth', width:[3,5,3] },
+  markers:{ size:[5,7,5], strokeColors:'#030718', strokeWidth:3 },
+  xaxis:{ categories:years, axisBorder:{show:false}, axisTicks:{show:false} },
+  yaxis:{ labels:{ formatter:v=>'€'+(v/1000).toFixed(1)+'M' } },
+  legend:{ position:'top', horizontalAlign:'right', labels:{colors:'#E6EDF7'}, markers:{radius:12} },
+  fill:{ type:['solid','gradient','solid'], gradient:{ shadeIntensity:1, opacityFrom:0.35, opacityTo:0 } },
+  annotations:{
+    yaxis:[
+      { y:9602, borderColor:'#0066FF', strokeDashArray:4, label:{style:{background:'#0066FF',color:'#fff'}, text:'Y5 Realista · €9.6M', offsetX:0}}
+    ]
+  },
+  tooltip:{ ...common.tooltip, y:{ formatter:v=>'€'+v.toLocaleString()+'K' } }
+}).render();
+
+/* 04 - OpEx donuts per scenario */
+const opexLabels = ['Personal R&D','Personal S&M','Personal G&A','Marketing paid','Infra','AI costs','Tooling','Viajes/Legal','Contingencia'];
+const opexColors = ['#0066FF','#C025E0','#1E40AF','#E1A20F','#00B4C6','#E61A85','#8592A8','#059669','#52617C'];
+function makeDonut(el, data, color){
+  return new ApexCharts(document.querySelector(el),{
+    ...common,
+    chart:{...common.chart, type:'donut', height:300},
+    series:data,
+    labels:opexLabels,
+    colors:opexColors,
+    legend:{ show:false },
+    dataLabels:{ enabled:false },
+    plotOptions:{ pie:{ donut:{ size:'68%', labels:{ show:true, name:{color:'#8592A8',fontSize:'11px'}, value:{color:'#E6EDF7',fontFamily:'Rajdhani',fontWeight:700,fontSize:'22px',formatter:v=>v+'K'}, total:{show:true,label:'OpEx Y5',fontSize:'11px',color:'#8592A8',formatter:w=>'€'+(w.globals.seriesTotals.reduce((a,b)=>a+b,0)/1000).toFixed(1)+'M'} }}}},
+    tooltip:{...common.tooltip, y:{formatter:v=>'€'+v+'K'}}
+  }).render();
+}
+makeDonut('#chart-opex-cons', [1820,1140,520,380,180,140,90,110,330]);
+makeDonut('#chart-opex-real', [2680,1890,720,780,360,320,140,220,510]);
+makeDonut('#chart-opex-agg',  [3740,2980,1060,1420,820,780,220,420,720]);
+
+/* 05a - Revenue mix stacked */
+new ApexCharts(document.querySelector('#chart-rev-mix'),{
+  ...common,
+  chart:{...common.chart, type:'bar', stacked:true, stackType:'100%', height:400},
+  plotOptions:{ bar:{ borderRadius:6, columnWidth:'45%' } },
+  series:[
+    { name:'Scout Pro', data:[55,19,15] },
+    { name:'Academy Starter', data:[20,17,15] },
+    { name:'Academy Pro', data:[15,22,18] },
+    { name:'Club Enterprise', data:[7,29,36] },
+    { name:'Parent Pro B2B2C', data:[3,13,16] }
+  ],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
+  xaxis:{ categories:['Conservador','Realista','Agresivo'] },
+  yaxis:{ labels:{formatter:v=>v+'%'} },
+  legend:{ position:'top', labels:{colors:'#E6EDF7'} },
+  tooltip:{...common.tooltip, y:{formatter:v=>v+'%'}}
+}).render();
+
+/* 05b - EBITDA evolution */
+new ApexCharts(document.querySelector('#chart-ebitda'),{
+  ...common,
+  chart:{...common.chart, type:'line', height:400},
+  series:[
+    { name:'Conservador', data:[-680,-1420,-2100,-2340,-1840,-1590] },
+    { name:'Realista',    data:[-540,-980,-1080,-720,254,1820] },
+    { name:'Agresivo',    data:[-820,-1380,-1120,320,505,2340] }
+  ],
+  colors:['#E1A20F','#0066FF','#C025E0'],
+  stroke:{ curve:'smooth', width:3 },
+  markers:{ size:5, strokeColors:'#030718', strokeWidth:2 },
+  xaxis:{ categories:years },
+  yaxis:{ labels:{formatter:v=>'€'+v+'K'} },
+  legend:{ position:'top', labels:{colors:'#E6EDF7'} },
+  annotations:{
+    yaxis:[{ y:0, borderColor:'#DC2626', strokeDashArray:4, label:{style:{background:'#DC2626',color:'#fff'}, text:'Break-even'} }]
+  }
+}).render();
+
+/* 06 - Customers comparison */
+new ApexCharts(document.querySelector('#chart-customers-comp'),{
+  ...common,
+  chart:{...common.chart, type:'bar', height:420},
+  plotOptions:{ bar:{ borderRadius:6, columnWidth:'60%' } },
+  series:[
+    { name:'Conservador', data:[65,280,920,2640,6180,9480] },
+    { name:'Realista',    data:[90,578,2240,7330,19020,34840] },
+    { name:'Agresivo',    data:[145,1120,4680,15400,37672,68200] }
+  ],
+  colors:['#E1A20F','#0066FF','#C025E0'],
+  xaxis:{ categories:years },
+  yaxis:{ labels:{formatter:v=>v>=1000?(v/1000).toFixed(1)+'K':v} },
+  legend:{ position:'top', labels:{colors:'#E6EDF7'} },
+  tooltip:{...common.tooltip, y:{formatter:v=>v.toLocaleString()+' cuentas'}}
+}).render();
+
+/* 08 - Strategy × Scenario matrix heatmap */
+new ApexCharts(document.querySelector('#chart-matrix'),{
+  ...common,
+  chart:{...common.chart, type:'heatmap', height:420},
+  series:[
+    { name:'06 AI Moat', data:[{x:'Conservador',y:35},{x:'Realista',y:78},{x:'Agresivo',y:92}] },
+    { name:'05 Federaciones', data:[{x:'Conservador',y:15},{x:'Realista',y:55},{x:'Agresivo',y:88}] },
+    { name:'04 PLG + Content', data:[{x:'Conservador',y:68},{x:'Realista',y:85},{x:'Agresivo',y:72}] },
+    { name:'03 Enterprise', data:[{x:'Conservador',y:20},{x:'Realista',y:62},{x:'Agresivo',y:94}] },
+    { name:'02 B2B2C Padres', data:[{x:'Conservador',y:55},{x:'Realista',y:92},{x:'Agresivo',y:85}] },
+    { name:'01 LATAM-first', data:[{x:'Conservador',y:25},{x:'Realista',y:72},{x:'Agresivo',y:96}] }
+  ],
+  plotOptions:{ heatmap:{
+    radius:8, enableShades:false,
+    colorScale:{ ranges:[
+      {from:0,to:30, color:'#1E1B4B', name:'Bajo'},
+      {from:31,to:55,color:'#4C1D95', name:'Medio'},
+      {from:56,to:75,color:'#C025E0', name:'Alto'},
+      {from:76,to:90,color:'#0066FF', name:'Muy alto'},
+      {from:91,to:100,color:'#E1A20F', name:'Crítico'}
+    ]}
+  }},
+  dataLabels:{ enabled:true, formatter:v=>v, style:{colors:['#fff'],fontWeight:600,fontFamily:'JetBrains Mono'} },
+  xaxis:{ title:{text:'Escenario objetivo', style:{color:'#8592A8'}} },
+  tooltip:{...common.tooltip, y:{formatter:v=>'Impact '+v+'/100'}}
+}).render();
+
+</script>
+</body>
+</html>

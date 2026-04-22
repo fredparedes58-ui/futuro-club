@@ -6,34 +6,34 @@
 <title>VITAS · Estudio de Proyecciones Financieras 2026-2031</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
   :root{
-    --bg0:#05070D; --bg1:#0B0F1A; --bg2:#111827;
+    --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
     --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#00E5FF; --brand-2:#7C3AED; --accent:#A3E635; --warn:#FB923C; --danger:#F43F5E;
-    --card:#0F1524; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
-    --glow-cy:0 0 40px rgba(0,229,255,0.15); --glow-pu:0 0 40px rgba(124,58,237,0.2);
+    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
+    --glow-cy:0 0 40px rgba(0,102,255,0.15); --glow-pu:0 0 40px rgba(192,37,224,0.2);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   body{background:
-      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(0,229,255,0.10), transparent 60%),
-      radial-gradient(ellipse 1000px 500px at 85% 10%, rgba(124,58,237,0.12), transparent 60%),
-      radial-gradient(ellipse 1400px 700px at 50% 120%, rgba(163,230,53,0.06), transparent 60%),
-      linear-gradient(180deg,#05070D 0%, #000 100%); min-height:100vh}
+      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(0,102,255,0.10), transparent 60%),
+      radial-gradient(ellipse 1000px 500px at 85% 10%, rgba(192,37,224,0.12), transparent 60%),
+      radial-gradient(ellipse 1400px 700px at 50% 120%, rgba(225,162,15,0.06), transparent 60%),
+      linear-gradient(180deg,#030718 0%, #000 100%); min-height:100vh}
   .wrap{max-width:1320px;margin:0 auto;padding:48px 32px 120px}
   .hero{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:32px;border-bottom:1px solid var(--border);margin-bottom:40px}
-  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);color:var(--brand);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px}
-  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:52px;line-height:1.05;letter-spacing:-0.02em;margin-bottom:14px}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(0,102,255,0.08);border:1px solid rgba(0,102,255,0.25);color:var(--brand);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px}
+  h1{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:52px;line-height:1.05;letter-spacing:-0.02em;margin-bottom:14px}
   h1 span{background:linear-gradient(135deg,var(--brand) 0%,var(--brand-2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
   .sub{color:var(--ink-mute);font-size:18px;max-width:720px}
   .meta{text-align:right;font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace}
   .meta strong{color:var(--ink);display:block;font-size:14px;margin-bottom:4px}
 
-  h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
-  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(0,229,255,0.15),rgba(124,58,237,0.15));border:1px solid var(--border-hi);font-size:14px;color:var(--brand);font-family:'JetBrains Mono',monospace}
+  h2{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(0,102,255,0.15),rgba(192,37,224,0.15));border:1px solid var(--border-hi);font-size:14px;color:var(--brand);font-family:'JetBrains Mono',monospace}
   .section-sub{color:var(--ink-mute);font-size:14px;margin-bottom:24px;max-width:780px}
 
   .kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:16px;margin-bottom:32px}
@@ -41,18 +41,18 @@
   .kpi:hover{border-color:var(--border-hi)}
   .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--brand),transparent);opacity:0.3}
   .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-soft);margin-bottom:10px;font-weight:500}
-  .kpi .value{font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
+  .kpi .value{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
   .kpi .delta{font-size:12px;margin-top:6px;font-family:'JetBrains Mono',monospace}
   .delta.up{color:var(--accent)} .delta.down{color:var(--danger)} .delta.neu{color:var(--ink-mute)}
 
   .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:24px;position:relative}
   .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px}
-  .card-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.01em}
+  .card-title{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.01em}
   .card-desc{font-size:13px;color:var(--ink-mute);margin-top:4px}
   .tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
-  .tag-base{background:rgba(0,229,255,0.1);color:var(--brand);border:1px solid rgba(0,229,255,0.2)}
-  .tag-cons{background:rgba(251,146,60,0.1);color:var(--warn);border:1px solid rgba(251,146,60,0.2)}
-  .tag-agg{background:rgba(163,230,53,0.1);color:var(--accent);border:1px solid rgba(163,230,53,0.2)}
+  .tag-base{background:rgba(0,102,255,0.1);color:var(--brand);border:1px solid rgba(0,102,255,0.2)}
+  .tag-cons{background:rgba(230,26,133,0.1);color:var(--warn);border:1px solid rgba(230,26,133,0.2)}
+  .tag-agg{background:rgba(225,162,15,0.1);color:var(--accent);border:1px solid rgba(225,162,15,0.2)}
 
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
   .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px}
@@ -64,7 +64,7 @@
   tr:last-child td{border-bottom:none}
   td.num{text-align:right;font-variant-numeric:tabular-nums}
   td.hl{color:var(--brand);font-weight:600}
-  .row-sum{background:rgba(0,229,255,0.03)}
+  .row-sum{background:rgba(0,102,255,0.03)}
   .row-sum td{border-top:1px solid var(--border-hi);font-weight:600}
 
   .footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);color:var(--ink-soft);font-size:12px;display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace}
@@ -75,14 +75,14 @@
   .assump-list li strong{color:var(--ink);font-weight:600}
 
   /* Video block premium */
-  .video-block{margin:28px 0 40px;border-radius:20px;overflow:hidden;position:relative;background:#000;border:1px solid var(--border-hi);aspect-ratio:16/9;max-height:460px;box-shadow:0 30px 80px -20px rgba(0,229,255,0.15)}
+  .video-block{margin:28px 0 40px;border-radius:20px;overflow:hidden;position:relative;background:#000;border:1px solid var(--border-hi);aspect-ratio:16/9;max-height:460px;box-shadow:0 30px 80px -20px rgba(0,102,255,0.15)}
   .video-block iframe,.video-block video{width:100%;height:100%;display:block;object-fit:cover;border:0}
   .video-block .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,13,0.1) 0%,rgba(5,7,13,0) 30%,rgba(5,7,13,0.55) 70%,rgba(5,7,13,0.95) 100%);pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;padding:36px 40px}
-  .video-block .vtag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:10px;background:rgba(0,229,255,0.12);border:1px solid rgba(0,229,255,0.35);color:var(--brand);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;width:fit-content;font-weight:700;backdrop-filter:blur(12px)}
-  .video-block h3{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin-bottom:8px;font-weight:700;letter-spacing:-0.01em}
+  .video-block .vtag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:10px;background:rgba(0,102,255,0.12);border:1px solid rgba(0,102,255,0.35);color:var(--brand);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;width:fit-content;font-weight:700;backdrop-filter:blur(12px)}
+  .video-block h3{font-family:'Rajdhani',sans-serif;font-size:26px;line-height:1.15;margin-bottom:8px;font-weight:700;letter-spacing:-0.01em}
   .video-block p{font-size:14px;color:#B8C4D9;max-width:620px;line-height:1.5}
   .video-block .corner{position:absolute;top:20px;right:20px;display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#E6EDF7;background:rgba(0,0,0,0.5);backdrop-filter:blur(12px);padding:6px 12px;border-radius:8px;border:1px solid var(--border-hi);z-index:2;align-items:center}
-  .video-block .corner .rec{width:8px;height:8px;border-radius:50%;background:#F43F5E;animation:pulse 1.6s ease-in-out infinite}
+  .video-block .corner .rec{width:8px;height:8px;border-radius:50%;background:#DC2626;animation:pulse 1.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
   @media print{
@@ -129,22 +129,22 @@
 
   <!-- ========================= KPI SNAPSHOT ========================= -->
   <div class="kpi-grid">
-    <div class="kpi"><div class="label">ARR · Año 5</div><div class="value">€8.4M</div><div class="delta up">▲ 96× vs Y1</div></div>
-    <div class="kpi"><div class="label">Clientes pagadores</div><div class="value">5,520</div><div class="delta up">▲ CAGR 120%</div></div>
+    <div class="kpi"><div class="label">ARR · Año 5</div><div class="value">€9.6M</div><div class="delta up">▲ 110× vs Y1</div></div>
+    <div class="kpi"><div class="label">Clientes pagadores</div><div class="value">19,020</div><div class="delta up">▲ +13.5K padres B2B2C</div></div>
     <div class="kpi"><div class="label">Gross Margin</div><div class="value">82%</div><div class="delta up">▲ +14 pts vs Y1</div></div>
-    <div class="kpi"><div class="label">LTV : CAC</div><div class="value">6.1×</div><div class="delta up">▲ benchmark &gt; 3×</div></div>
-    <div class="kpi"><div class="label">Payback CAC</div><div class="value">7.8 meses</div><div class="delta up">▲ &lt; 12 m healthy</div></div>
+    <div class="kpi"><div class="label">LTV : CAC</div><div class="value">6.4×</div><div class="delta up">▲ benchmark &gt; 3×</div></div>
+    <div class="kpi"><div class="label">Payback CAC</div><div class="value">7.2 meses</div><div class="delta up">▲ &lt; 12 m healthy</div></div>
     <div class="kpi"><div class="label">Break-even op.</div><div class="value">Q3 2029</div><div class="delta neu">Mes 42</div></div>
   </div>
 
   <!-- ========================= 1 — Revenue composition ========================= -->
   <h2><span class="num">01</span> Composición de ingresos por segmento</h2>
-  <p class="section-sub">Stack apilado de ARR anual mostrando la contribución relativa de los 5 segmentos de producto. El crecimiento está impulsado por Academies Pro y Club Enterprise en los años 3-5, con una base ancha de Scout Pro que sirve como motor de adquisición viral.</p>
+  <p class="section-sub">Stack apilado de ARR anual mostrando la contribución relativa de los 6 segmentos de producto. El crecimiento está impulsado por Academies Pro y Club Enterprise en los años 3-5, con una base ancha de Scout Pro que sirve como motor de adquisición viral y un canal B2B2C de padres que se activa a partir de Y2 gracias a la viralidad intra-academia.</p>
   <div class="card">
     <div class="card-head">
       <div>
         <div class="card-title">ARR por segmento (€ miles) · escenario REALISTA</div>
-        <div class="card-desc">5 capas: Scout Free (sin revenue), Scout Pro, Academy Starter, Academy Pro, Club Enterprise</div>
+        <div class="card-desc">6 capas: Scout Pro, Academy Starter, Academy Pro, Club Enterprise y Parent Pro B2B2C (familias)</div>
       </div>
       <span class="tag tag-base">ESCENARIO REALISTA</span>
     </div>
@@ -190,7 +190,8 @@
           <tr><td>Academy Starter</td><td class="num">€3,588</td><td class="num">1.8%/m</td><td class="num">€18,700</td><td class="num">€2,400</td><td class="num hl">7.8×</td></tr>
           <tr><td>Academy Pro</td><td class="num">€10,788</td><td class="num">1.2%/m</td><td class="num">€82,900</td><td class="num">€8,100</td><td class="num hl">10.2×</td></tr>
           <tr><td>Club Enterprise</td><td class="num">€32,000</td><td class="num">0.6%/m</td><td class="num">€492,000</td><td class="num">€38,000</td><td class="num hl">12.9×</td></tr>
-          <tr class="row-sum"><td>Blended</td><td class="num">€1,520</td><td class="num">2.4%/m</td><td class="num">€4,720</td><td class="num">€770</td><td class="num hl">6.1×</td></tr>
+          <tr><td>Parent Pro (B2B2C)</td><td class="num">€108</td><td class="num">4.5%/m</td><td class="num">€1,978</td><td class="num">€28</td><td class="num hl">70.6×</td></tr>
+          <tr class="row-sum"><td>Blended</td><td class="num">€502</td><td class="num">2.9%/m</td><td class="num">€3,120</td><td class="num">€485</td><td class="num hl">6.4×</td></tr>
         </tbody>
       </table>
     </div>
@@ -217,7 +218,7 @@
     <div class="corner"><span class="rec"></span>Pipeline de producto</div>
     <iframe src="https://www.youtube.com/embed/rlR4PJn8b8I?autoplay=1&mute=1&loop=1&playlist=rlR4PJn8b8I&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS product pipeline" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     <div class="overlay">
-      <span class="vtag" style="background:rgba(163,230,53,0.12);border-color:rgba(163,230,53,0.35);color:var(--accent)">◆ Motor del modelo</span>
+      <span class="vtag" style="background:rgba(225,162,15,0.12);border-color:rgba(225,162,15,0.35);color:var(--accent)">◆ Motor del modelo</span>
       <h3>Cada video procesado · 82% margen bruto Y5</h3>
       <p>El stack Gemini → Claude → Voyage baja de €0.42 por análisis en Y1 a €0.11 en Y5. Ese delta es el que convierte VITAS en un SaaS con unit economics premium a partir del mes 24.</p>
     </div>
@@ -278,9 +279,10 @@
         </tr>
       </thead>
       <tbody>
-        <tr><td>ARR (€K)</td><td class="num">87</td><td class="num">420</td><td class="num">1,350</td><td class="num">3,600</td><td class="num">8,400</td><td class="num hl">16,200</td></tr>
-        <tr><td>Clientes paid</td><td class="num">90</td><td class="num">398</td><td class="num">1,040</td><td class="num">2,530</td><td class="num">5,520</td><td class="num">10,840</td></tr>
-        <tr><td>MRR end-of-year (€K)</td><td class="num">12</td><td class="num">55</td><td class="num">165</td><td class="num">380</td><td class="num">780</td><td class="num">1,420</td></tr>
+        <tr><td>ARR (€K)</td><td class="num">87</td><td class="num">436</td><td class="num">1,457</td><td class="num">4,027</td><td class="num">9,602</td><td class="num hl">18,336</td></tr>
+        <tr><td>Clientes paid</td><td class="num">90</td><td class="num">578</td><td class="num">2,240</td><td class="num">7,330</td><td class="num">19,020</td><td class="num">34,840</td></tr>
+        <tr><td>· de los cuales padres</td><td class="num">0</td><td class="num">180</td><td class="num">1,200</td><td class="num">4,800</td><td class="num">13,500</td><td class="num">24,000</td></tr>
+        <tr><td>MRR end-of-year (€K)</td><td class="num">12</td><td class="num">57</td><td class="num">176</td><td class="num">412</td><td class="num">880</td><td class="num">1,600</td></tr>
         <tr><td>Gross Margin %</td><td class="num">68%</td><td class="num">73%</td><td class="num">76%</td><td class="num">79%</td><td class="num">82%</td><td class="num">84%</td></tr>
         <tr><td>EBITDA margin %</td><td class="num">-214%</td><td class="num">-92%</td><td class="num">-38%</td><td class="num">2%</td><td class="num">18%</td><td class="num">28%</td></tr>
         <tr><td>Churn mensual</td><td class="num">5.1%</td><td class="num">3.8%</td><td class="num">2.9%</td><td class="num">2.4%</td><td class="num">2.1%</td><td class="num">1.9%</td></tr>
@@ -297,7 +299,8 @@
   <h2><span class="num">12</span> Supuestos del modelo</h2>
   <div class="card">
     <ul class="assump-list">
-      <li><strong>Pricing:</strong> Scout Pro €49/m, Starter €299/m, Pro €899/m, Enterprise €2.5k-5k/m</li>
+      <li><strong>Pricing:</strong> Scout Pro €49/m, Starter €299/m, Pro €899/m, Enterprise €2.5k-5k/m, Parent Pro €9/m (€89 anual)</li>
+      <li><strong>Parent Pro B2B2C:</strong> 15% de conversión familias de academia activa · K viral 0.8</li>
       <li><strong>Conversión free→paid:</strong> 4% Y1 → 8% Y5 (mejora por onboarding IA)</li>
       <li><strong>Churn paid blended:</strong> 5.1% m Y1 → 1.9% m Y5 (mejora por NPS y stickiness)</li>
       <li><strong>CAC blended:</strong> €320 Y1 → €770 Y5 (sube con mix enterprise)</li>
@@ -356,9 +359,10 @@ new ApexCharts(document.querySelector('#chart-arr-stack'),{
     { name:'Scout Pro',        data:[47,168,540,1050,1850,2910] },
     { name:'Academy Starter',  data:[29,126,380,870,1620,2680] },
     { name:'Academy Pro',      data:[11,84,290,820,2140,4320] },
-    { name:'Club Enterprise',  data:[0,42,140,860,2790,6290] }
+    { name:'Club Enterprise',  data:[0,42,140,860,2790,6290] },
+    { name:'Parent Pro (B2B2C)', data:[0,16,107,427,1202,2136] }
   ],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
   stroke:{ curve:'smooth', width:2 },
   fill:{ type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.55, opacityTo:0.08, stops:[0,90,100] } },
   xaxis:{ categories: years, axisBorder:{show:false}, axisTicks:{show:false} },
@@ -378,12 +382,12 @@ new ApexCharts(document.querySelector('#chart-scenarios'),{
         [135,680,2100,5600,13200,25800][i]
       ]}))},
     { name:'Realista', type:'line',
-      data: years.map((y,i)=>({ x:y, y:[87,420,1350,3600,8400,16200][i] }))}
+      data: years.map((y,i)=>({ x:y, y:[87,436,1457,4027,9602,18336][i] }))}
   ],
-  colors:['#7C3AED','#00E5FF'],
+  colors:['#C025E0','#0066FF'],
   fill:{ opacity:[0.20, 1] },
   stroke:{ curve:'smooth', width:[0, 3] },
-  markers:{ size:[0, 6], colors:['#00E5FF'], strokeColors:'#0B0F1A', strokeWidth:3 },
+  markers:{ size:[0, 6], colors:['#0066FF'], strokeColors:'#0A1128', strokeWidth:3 },
   xaxis:{ axisBorder:{show:false}, axisTicks:{show:false} },
   yaxis:{ labels:{ formatter:v=>'€'+(v/1000).toFixed(1)+'M' } },
   legend:{ show:false },
@@ -394,8 +398,8 @@ new ApexCharts(document.querySelector('#chart-scenarios'),{
 new ApexCharts(document.querySelector('#chart-scenarios-bar'),{
   ...common,
   chart:{...common.chart, type:'bar', height:360},
-  series:[{ name:'ARR Y5 (€M)', data:[3.4, 8.4, 13.2] }],
-  colors:['#FB923C','#00E5FF','#A3E635'],
+  series:[{ name:'ARR Y5 (€M)', data:[4.0, 9.6, 14.9] }],
+  colors:['#E61A85','#0066FF','#E1A20F'],
   plotOptions:{ bar:{ borderRadius:10, distributed:true, columnWidth:'55%', dataLabels:{position:'top'} }},
   dataLabels:{ enabled:true, formatter:v=>'€'+v+'M', offsetY:-24, style:{colors:['#E6EDF7'],fontSize:'13px',fontWeight:700} },
   xaxis:{ categories:['Conservador','Realista','Agresivo'], labels:{style:{fontSize:'12px'}} },
@@ -412,9 +416,10 @@ new ApexCharts(document.querySelector('#chart-customers'),{
     { name:'Scout Pro',       data:[80,286,760,1810,3820,7420] },
     { name:'Academy Starter', data:[8,35,95,220,480,920] },
     { name:'Academy Pro',     data:[2,12,40,95,200,380] },
-    { name:'Club Enterprise', data:[0,1,5,15,40,90] }
+    { name:'Club Enterprise', data:[0,1,5,15,40,90] },
+    { name:'Parent Pro',      data:[0,180,1200,4800,13500,24000] }
   ],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
   xaxis:{ categories:years },
   legend:{ position:'top', horizontalAlign:'right' },
   tooltip:{ ...common.tooltip }
@@ -428,9 +433,10 @@ new ApexCharts(document.querySelector('#chart-radar'),{
     { name:'Scout Pro',       data:[60,75,95,92,72,40] },
     { name:'Academy Starter', data:[72,68,78,75,80,70] },
     { name:'Academy Pro',     data:[85,82,72,65,88,82] },
-    { name:'Club Enterprise', data:[98,95,55,35,92,95] }
+    { name:'Club Enterprise', data:[98,95,55,35,92,95] },
+    { name:'Parent Pro',      data:[42,55,88,96,78,22] }
   ],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
   xaxis:{ categories:['LTV','Retención','Velocidad','Viralidad','Margen','Expansión'] },
   stroke:{ width:2 },
   fill:{ opacity:0.15 },
@@ -452,15 +458,15 @@ new ApexCharts(document.querySelector('#chart-heatmap'),{
   ...common,
   chart:{...common.chart, type:'heatmap', height:380},
   series: cohortData.reverse(),
-  colors:['#00E5FF'],
+  colors:['#0066FF'],
   plotOptions:{ heatmap:{
     radius:6, shadeIntensity:0.6, useFillColorAsStroke:false,
     colorScale:{ ranges:[
       {from:0,to:30,color:'#1E1B4B',name:'<30%'},
       {from:31,to:50,color:'#4C1D95',name:'30-50%'},
-      {from:51,to:70,color:'#7C3AED',name:'50-70%'},
-      {from:71,to:85,color:'#3B82F6',name:'70-85%'},
-      {from:86,to:100,color:'#00E5FF',name:'>85%'}
+      {from:51,to:70,color:'#C025E0',name:'50-70%'},
+      {from:71,to:85,color:'#1E40AF',name:'70-85%'},
+      {from:86,to:100,color:'#0066FF',name:'>85%'}
     ]}
   }},
   dataLabels:{ enabled:true, style:{colors:['#fff'],fontSize:'11px',fontWeight:600}, formatter:v=>v+'%' },
@@ -476,7 +482,7 @@ new ApexCharts(document.querySelector('#chart-waterfall'),{
     { name:'Invisible', data:[0, 8400,7728,6636,5250,3150,1764,1512, 0] },
     { name:'Delta',     data:[8400,-672,-1092,-1386,-2100,-1386,-252,-252, 1512] }
   ],
-  colors:['transparent','#7C3AED'],
+  colors:['transparent','#C025E0'],
   fill:{ opacity:[0, 1] },
   xaxis:{ categories:['Revenue Y5','COGS infra','COGS AI','COGS storage','Personal R&D','Personal S&M','G&A','Finanzas','EBITDA Y5'] },
   yaxis:{ labels:{ formatter:v=>'€'+v+'K' } },
@@ -499,18 +505,18 @@ new ApexCharts(document.querySelector('#chart-runway'),{
   ...common,
   chart:{...common.chart, type:'area', height:360},
   series:[{ name:'Cash (€K)', data: runwayCash }],
-  colors:['#00E5FF'],
+  colors:['#0066FF'],
   stroke:{ curve:'smooth', width:2 },
   fill:{ type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.5, opacityTo:0.05 }},
   xaxis:{ categories:runwayMonths, labels:{ rotate:0, show:false }, tickAmount:12 },
   yaxis:{ labels:{ formatter:v=>'€'+(v/1000).toFixed(1)+'M' } },
   annotations:{
     xaxis:[
-      { x:'ene. 27', borderColor:'#7C3AED', label:{style:{color:'#fff',background:'#7C3AED'}, text:'Seed €1.2M'}},
-      { x:'oct. 27', borderColor:'#A3E635', label:{style:{color:'#000',background:'#A3E635'}, text:'Serie A €5M'}},
-      { x:'jul. 29', borderColor:'#00E5FF', label:{style:{color:'#000',background:'#00E5FF'}, text:'Break-even'}}
+      { x:'ene. 27', borderColor:'#C025E0', label:{style:{color:'#fff',background:'#C025E0'}, text:'Seed €1.2M'}},
+      { x:'oct. 27', borderColor:'#E1A20F', label:{style:{color:'#000',background:'#E1A20F'}, text:'Serie A €5M'}},
+      { x:'jul. 29', borderColor:'#0066FF', label:{style:{color:'#000',background:'#0066FF'}, text:'Break-even'}}
     ],
-    yaxis:[{ y:0, borderColor:'#F43F5E', strokeDashArray:4 }]
+    yaxis:[{ y:0, borderColor:'#DC2626', strokeDashArray:4 }]
   }
 }).render();
 
@@ -522,14 +528,14 @@ new ApexCharts(document.querySelector('#chart-breakeven'),{
     { name:'Revenue', data:[87,420,1350,3600,8400,16200] },
     { name:'OpEx',    data:[272,810,1870,3530,6890,11700] }
   ],
-  colors:['#A3E635','#F43F5E'],
+  colors:['#E1A20F','#DC2626'],
   stroke:{ curve:'smooth', width:3 },
-  markers:{ size:5, strokeWidth:2, strokeColors:'#0B0F1A' },
+  markers:{ size:5, strokeWidth:2, strokeColors:'#0A1128' },
   xaxis:{ categories:years },
   yaxis:{ labels:{ formatter:v=>'€'+(v/1000).toFixed(1)+'M' } },
   legend:{ position:'top' },
   annotations:{
-    points:[{ x:'2029', y:3600, marker:{size:8,fillColor:'#00E5FF'}, label:{style:{background:'#00E5FF',color:'#000'}, text:'Break-even' }}]
+    points:[{ x:'2029', y:3600, marker:{size:8,fillColor:'#0066FF'}, label:{style:{background:'#0066FF',color:'#000'}, text:'Break-even' }}]
   }
 }).render();
 
@@ -550,11 +556,11 @@ new ApexCharts(document.querySelector('#chart-sensitivity'),{
   plotOptions:{ heatmap:{
     radius:8, enableShades:false,
     colorScale:{ ranges:[
-      {from:0,to:4,  color:'#F43F5E', name:'<4M'},
-      {from:4.01,to:7, color:'#FB923C', name:'4-7M'},
-      {from:7.01,to:10,color:'#00E5FF', name:'7-10M'},
-      {from:10.01,to:14,color:'#7C3AED', name:'10-14M'},
-      {from:14.01,to:25,color:'#A3E635', name:'>14M'}
+      {from:0,to:4,  color:'#DC2626', name:'<4M'},
+      {from:4.01,to:7, color:'#E61A85', name:'4-7M'},
+      {from:7.01,to:10,color:'#0066FF', name:'7-10M'},
+      {from:10.01,to:14,color:'#C025E0', name:'10-14M'},
+      {from:14.01,to:25,color:'#E1A20F', name:'>14M'}
     ]}
   }},
   dataLabels:{ enabled:true, formatter:v=>'€'+v+'M', style:{colors:['#fff'], fontWeight:600} },
@@ -569,7 +575,7 @@ new ApexCharts(document.querySelector('#chart-funnel'),{
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, distributed:true, dataLabels:{position:'right'} }},
   series:[{ data:[58400, 14600, 6240, 2850, 812, 520] }],
   dataLabels:{ enabled:true, formatter:v=>v.toLocaleString(), style:{colors:['#E6EDF7'],fontWeight:600}, offsetX:10},
-  colors:['#7C3AED','#4F46E5','#3B82F6','#00E5FF','#A3E635','#FB923C'],
+  colors:['#C025E0','#4F46E5','#1E40AF','#0066FF','#E1A20F','#E61A85'],
   xaxis:{ categories:['Visitas landing','Signup free','Trial activo','Ingestan video','Trial → paid','Paid retenidos m2'] },
   legend:{ show:false }
 }).render();
@@ -580,9 +586,9 @@ new ApexCharts(document.querySelector('#chart-channels'),{
   chart:{...common.chart, type:'donut', height:400},
   series:[38, 22, 16, 12, 7, 5],
   labels:['Referidos scouts','SEO/Content','LinkedIn paid','Federaciones','Partnerships AFA','Otros'],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C','#3B82F6','#F43F5E'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626'],
   legend:{ position:'right', labels:{colors:'#E6EDF7'} },
-  plotOptions:{ pie:{ donut:{ size:'70%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7',fontFamily:'Space Grotesk',fontWeight:700,fontSize:'22px',formatter:v=>v+'%'}, total:{show:true,label:'Mix Y3', formatter:()=>'100%', color:'#E6EDF7'} }}}},
+  plotOptions:{ pie:{ donut:{ size:'70%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7',fontFamily:'Rajdhani',fontWeight:700,fontSize:'22px',formatter:v=>v+'%'}, total:{show:true,label:'Mix Y3', formatter:()=>'100%', color:'#E6EDF7'} }}}},
   dataLabels:{ enabled:false }
 }).render();
 
@@ -595,12 +601,12 @@ new ApexCharts(document.querySelector('#chart-margin'),{
     { name:'Gross margin %', type:'line', data:[68,73,76,79,82,84] },
     { name:'Coste var. análisis (€)', type:'line', data:[0.42,0.29,0.18,0.14,0.11,0.09] }
   ],
-  colors:['#00E5FF','#FB923C'],
-  markers:{ size:6, strokeColors:'#0B0F1A', strokeWidth:3 },
+  colors:['#0066FF','#E61A85'],
+  markers:{ size:6, strokeColors:'#0A1128', strokeWidth:3 },
   xaxis:{ categories:years },
   yaxis:[
-    { title:{text:'Gross margin %', style:{color:'#00E5FF'}}, labels:{formatter:v=>v+'%',style:{colors:'#00E5FF'}} },
-    { opposite:true, title:{text:'Coste variable €', style:{color:'#FB923C'}}, labels:{formatter:v=>'€'+v.toFixed(2),style:{colors:'#FB923C'}} }
+    { title:{text:'Gross margin %', style:{color:'#0066FF'}}, labels:{formatter:v=>v+'%',style:{colors:'#0066FF'}} },
+    { opposite:true, title:{text:'Coste variable €', style:{color:'#E61A85'}}, labels:{formatter:v=>'€'+v.toFixed(2),style:{colors:'#E61A85'}} }
   ],
   legend:{ position:'top' }
 }).render();

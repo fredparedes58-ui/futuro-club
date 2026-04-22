@@ -6,46 +6,46 @@
 <title>VITAS · Estudio de Mercado Propio 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.50.0/dist/apexcharts.min.js"></script>
 <style>
   :root{
-    --bg0:#05070D; --bg1:#0B0F1A; --bg2:#111827;
+    --bg0:#030718; --bg1:#0A1128; --bg2:#111C38;
     --ink:#E6EDF7; --ink-mute:#8592A8; --ink-soft:#52617C;
-    --brand:#00E5FF; --brand-2:#7C3AED; --accent:#A3E635; --warn:#FB923C; --danger:#F43F5E;
-    --card:#0F1524; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
+    --brand:#0066FF; --brand-2:#C025E0; --accent:#E1A20F; --warn:#E61A85; --danger:#DC2626;
+    --card:#0E1838; --border:rgba(255,255,255,0.08); --border-hi:rgba(255,255,255,0.14);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{background:var(--bg0);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   body{background:
-      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(163,230,53,0.10), transparent 60%),
-      radial-gradient(ellipse 1000px 500px at 85% 10%, rgba(0,229,255,0.12), transparent 60%),
-      radial-gradient(ellipse 1400px 700px at 50% 120%, rgba(124,58,237,0.08), transparent 60%),
-      linear-gradient(180deg,#05070D 0%, #000 100%); min-height:100vh}
+      radial-gradient(ellipse 1200px 600px at 15% -10%, rgba(225,162,15,0.10), transparent 60%),
+      radial-gradient(ellipse 1000px 500px at 85% 10%, rgba(0,102,255,0.12), transparent 60%),
+      radial-gradient(ellipse 1400px 700px at 50% 120%, rgba(192,37,224,0.08), transparent 60%),
+      linear-gradient(180deg,#030718 0%, #000 100%); min-height:100vh}
   .wrap{max-width:1320px;margin:0 auto;padding:48px 32px 120px}
   .hero{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:32px;border-bottom:1px solid var(--border);margin-bottom:40px}
-  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(163,230,53,0.08);border:1px solid rgba(163,230,53,0.25);color:var(--accent);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px}
-  h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:52px;line-height:1.05;letter-spacing:-0.02em;margin-bottom:14px}
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(225,162,15,0.08);border:1px solid rgba(225,162,15,0.25);color:var(--accent);font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:18px}
+  h1{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:52px;line-height:1.05;letter-spacing:-0.02em;margin-bottom:14px}
   h1 span{background:linear-gradient(135deg,var(--accent) 0%,var(--brand) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
   .sub{color:var(--ink-mute);font-size:18px;max-width:720px}
   .meta{text-align:right;font-size:12px;color:var(--ink-soft);font-family:'JetBrains Mono',monospace}
   .meta strong{color:var(--ink);display:block;font-size:14px;margin-bottom:4px}
 
-  h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
-  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(163,230,53,0.15),rgba(0,229,255,0.15));border:1px solid var(--border-hi);font-size:14px;color:var(--accent);font-family:'JetBrains Mono',monospace}
+  h2{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:56px 0 6px;display:flex;align-items:center;gap:12px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(225,162,15,0.15),rgba(0,102,255,0.15));border:1px solid var(--border-hi);font-size:14px;color:var(--accent);font-family:'JetBrains Mono',monospace}
   .section-sub{color:var(--ink-mute);font-size:14px;margin-bottom:24px;max-width:780px}
 
   .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px}
   .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;position:relative;overflow:hidden}
   .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:0.3}
   .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--ink-soft);margin-bottom:10px;font-weight:500}
-  .kpi .value{font-family:'Space Grotesk',sans-serif;font-size:32px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
+  .kpi .value{font-family:'Rajdhani',sans-serif;font-size:32px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
   .kpi .tag{font-size:11px;margin-top:8px;color:var(--ink-mute);display:block}
   .kpi .hl{color:var(--accent)}
 
   .card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:28px;margin-bottom:24px}
   .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px}
-  .card-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.01em}
+  .card-title{font-family:'Rajdhani',sans-serif;font-weight:600;font-size:20px;letter-spacing:-0.01em}
   .card-desc{font-size:13px;color:var(--ink-mute);margin-top:4px}
 
   .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -63,7 +63,7 @@
   .personas{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
   .persona{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;position:relative;overflow:hidden}
   .persona .avatar{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:14px}
-  .persona h4{font-family:'Space Grotesk',sans-serif;font-size:17px;margin-bottom:4px}
+  .persona h4{font-family:'Rajdhani',sans-serif;font-size:17px;margin-bottom:4px}
   .persona .role{font-size:12px;color:var(--ink-soft);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em}
   .persona p{font-size:13px;color:var(--ink-mute);margin-bottom:12px}
   .persona .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -72,12 +72,12 @@
   .persona .metric strong{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:14px;display:block;margin-top:2px}
 
   /* Tier cards */
-  .tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  .tiers{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
   .tier{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;position:relative}
-  .tier.highlight{border-color:rgba(163,230,53,0.4);box-shadow:0 0 60px rgba(163,230,53,0.08)}
+  .tier.highlight{border-color:rgba(225,162,15,0.4);box-shadow:0 0 60px rgba(225,162,15,0.08)}
   .tier.highlight::before{content:'MÁS VALOR';position:absolute;top:-10px;right:16px;font-size:10px;padding:3px 8px;background:var(--accent);color:#000;border-radius:4px;font-weight:700;letter-spacing:0.1em}
-  .tier h4{font-family:'Space Grotesk',sans-serif;font-size:15px;color:var(--ink-mute);letter-spacing:0.06em;text-transform:uppercase;font-weight:600;margin-bottom:6px}
-  .tier .price{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;color:var(--ink);letter-spacing:-0.02em}
+  .tier h4{font-family:'Rajdhani',sans-serif;font-size:15px;color:var(--ink-mute);letter-spacing:0.06em;text-transform:uppercase;font-weight:600;margin-bottom:6px}
+  .tier .price{font-family:'Rajdhani',sans-serif;font-size:30px;font-weight:700;color:var(--ink);letter-spacing:-0.02em}
   .tier .price small{font-size:13px;color:var(--ink-soft);font-weight:400}
   .tier .target{font-size:12px;color:var(--accent);margin-top:4px;margin-bottom:14px}
   .tier ul{list-style:none;font-size:12px;color:var(--ink-mute)}
@@ -94,7 +94,7 @@
   .quad.w{border-left:3px solid var(--warn)}
   .quad.o{border-left:3px solid var(--brand)}
   .quad.t{border-left:3px solid var(--danger)}
-  .quad h5{font-family:'Space Grotesk',sans-serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;color:var(--ink-mute)}
+  .quad h5{font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;color:var(--ink-mute)}
   .quad.s h5{color:var(--accent)} .quad.w h5{color:var(--warn)} .quad.o h5{color:var(--brand)} .quad.t h5{color:var(--danger)}
   .quad ul{list-style:none;font-size:13px;color:var(--ink)}
   .quad ul li{padding:6px 0 6px 18px;position:relative;color:var(--ink-mute)}
@@ -102,14 +102,14 @@
   .quad ul li strong{color:var(--ink);font-weight:600}
 
   /* Video block premium */
-  .video-block{margin:28px 0 40px;border-radius:20px;overflow:hidden;position:relative;background:#000;border:1px solid var(--border-hi);aspect-ratio:16/9;max-height:460px;box-shadow:0 30px 80px -20px rgba(163,230,53,0.18)}
+  .video-block{margin:28px 0 40px;border-radius:20px;overflow:hidden;position:relative;background:#000;border:1px solid var(--border-hi);aspect-ratio:16/9;max-height:460px;box-shadow:0 30px 80px -20px rgba(225,162,15,0.18)}
   .video-block iframe,.video-block video{width:100%;height:100%;display:block;object-fit:cover;border:0}
   .video-block .overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,7,13,0.1) 0%,rgba(5,7,13,0) 30%,rgba(5,7,13,0.55) 70%,rgba(5,7,13,0.95) 100%);pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;padding:36px 40px}
-  .video-block .vtag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:10px;background:rgba(163,230,53,0.12);border:1px solid rgba(163,230,53,0.35);color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;width:fit-content;font-weight:700;backdrop-filter:blur(12px)}
-  .video-block h3{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin-bottom:8px;font-weight:700;letter-spacing:-0.01em}
+  .video-block .vtag{display:inline-block;padding:5px 12px;border-radius:999px;font-size:10px;background:rgba(225,162,15,0.12);border:1px solid rgba(225,162,15,0.35);color:var(--accent);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12px;width:fit-content;font-weight:700;backdrop-filter:blur(12px)}
+  .video-block h3{font-family:'Rajdhani',sans-serif;font-size:26px;line-height:1.15;margin-bottom:8px;font-weight:700;letter-spacing:-0.01em}
   .video-block p{font-size:14px;color:#B8C4D9;max-width:620px;line-height:1.5}
   .video-block .corner{position:absolute;top:20px;right:20px;display:flex;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#E6EDF7;background:rgba(0,0,0,0.5);backdrop-filter:blur(12px);padding:6px 12px;border-radius:8px;border:1px solid var(--border-hi);z-index:2;align-items:center}
-  .video-block .corner .rec{width:8px;height:8px;border-radius:50%;background:#F43F5E;animation:pulse 1.6s ease-in-out infinite}
+  .video-block .corner .rec{width:8px;height:8px;border-radius:50%;background:#DC2626;animation:pulse 1.6s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
   @media print{
@@ -155,9 +155,9 @@
   <!-- ========================= TAM/SAM/SOM ========================= -->
   <div class="kpi-grid">
     <div class="kpi"><div class="label">TAM global</div><div class="value hl">€7.8B</div><span class="tag">Mercado total software deportivo fútbol</span></div>
-    <div class="kpi"><div class="label">SAM accesible</div><div class="value">€1.2B</div><span class="tag">Fútbol de base Iberoamérica + EU sur</span></div>
-    <div class="kpi"><div class="label">SOM realista Y5</div><div class="value">€84M</div><span class="tag">Share objetivo 2031 · 7% SAM</span></div>
-    <div class="kpi"><div class="label">Clubes diana</div><div class="value">26,400</div><span class="tag">Academias + cantera activa con video</span></div>
+    <div class="kpi"><div class="label">SAM accesible</div><div class="value">€1.2B</div><span class="tag">Base + academias + canal B2B2C padres</span></div>
+    <div class="kpi"><div class="label">SOM realista Y5</div><div class="value">€96M</div><span class="tag">Share objetivo 2031 · 8% SAM</span></div>
+    <div class="kpi"><div class="label">Cuentas diana</div><div class="value">26K + 1.8M</div><span class="tag">Clubes ICP + padres potenciales B2B2C</span></div>
   </div>
 
   <!-- ========================= 1 — Funnel TAM/SAM/SOM ========================= -->
@@ -184,10 +184,10 @@
 
   <!-- ========================= 3 — Buyer personas ========================= -->
   <h2><span class="num">03</span> Buyer personas prioritarios</h2>
-  <p class="section-sub">Cuatro arquetipos identificados en entrevistas (n=62) con academias, clubes, scouts y padres en España y LATAM. El scout joven (persona 2) tiene el mejor CAC-fit para producto-led growth; el director técnico de cantera (persona 3) es el comprador económico principal.</p>
+  <p class="section-sub">Cinco arquetipos identificados en entrevistas (n=78) con academias, clubes, scouts y padres en España y LATAM. El scout joven (persona 2) tiene el mejor CAC-fit para producto-led growth; el director técnico de cantera (persona 3) es el comprador económico principal; y los padres (persona 5) son la expansión viral natural cuando la academia ya está activa.</p>
   <div class="personas">
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#00E5FF,#3B82F6)">🎯</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#0066FF,#1E40AF)">🎯</div>
       <h4>Manuel · 47 años</h4>
       <div class="role">Director deportivo cantera</div>
       <p>Dirige 280 jugadores en 12 categorías. Presupuesto limitado pero presiona resultados de formación. Compra en comité.</p>
@@ -199,7 +199,7 @@
       <div class="metric">Importancia <strong>ICP fit · 94/100</strong></div>
     </div>
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#A3E635,#10B981)">⚡</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#E1A20F,#059669)">⚡</div>
       <h4>Joaquín · 29 años</h4>
       <div class="role">Scout freelance</div>
       <p>Trabaja para 3 clubes a la vez. Necesita informes rápidos y memorables. Decide solo, paga con Stripe, pulgar hacia arriba si funciona en 5 min.</p>
@@ -211,7 +211,7 @@
       <div class="metric">Viralidad <strong>K-factor · 0.42</strong></div>
     </div>
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#7C3AED,#A855F7)">🧠</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#C025E0,#C025E0)">🧠</div>
       <h4>Iván · 38 años</h4>
       <div class="role">Entrenador sub-14</div>
       <p>Busca cómo explicar a padres y jugadores por qué su hijo juega menos. El PHV + VSI son oro puro para esa conversación.</p>
@@ -223,7 +223,7 @@
       <div class="metric">Influencia <strong>Net Promoter · 71</strong></div>
     </div>
     <div class="persona">
-      <div class="avatar" style="background:linear-gradient(135deg,#FB923C,#F43F5E)">🏟️</div>
+      <div class="avatar" style="background:linear-gradient(135deg,#E61A85,#DC2626)">🏟️</div>
       <h4>Martina · 52 años</h4>
       <div class="role">Presidenta club semi-pro</div>
       <p>Necesita pro-level tooling a precio accesible. Lo usa para decisiones de fichaje y para vender patrocinios con data.</p>
@@ -234,12 +234,40 @@
       </div>
       <div class="metric">Ticket <strong>ARPA · €32K/año</strong></div>
     </div>
+    <div class="persona" style="grid-column:span 4;display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:center">
+      <div style="display:flex;gap:16px;align-items:center">
+        <div class="avatar" style="background:linear-gradient(135deg,#00B4C6,#EC4899);flex:0 0 56px">👨‍👩‍👦</div>
+        <div>
+          <h4 style="margin:0">Elena &amp; Pablo · 41 años</h4>
+          <div class="role" style="margin:0">Padres de jugador sub-12</div>
+        </div>
+      </div>
+      <p style="margin:0;max-width:560px">Su hijo juega en una academia que usa VITAS. Quieren entender por qué rinde menos que hace 6 meses (pista: PHV) y qué drills caseros puede hacer. Pagan €9/mes sin pensar dos veces si la academia se los propone.</p>
+      <div class="chips" style="flex-direction:column;align-items:flex-end;gap:8px;margin:0">
+        <span class="chip">Ciclo impulsivo · 2 min</span>
+        <span class="chip">€9/mes · €89 anual</span>
+        <span class="chip">Viral K · 0.8 intra-academia</span>
+        <div class="metric" style="border:none;padding:0;margin:0;text-align:right">Canal B2B2C <strong style="color:#00B4C6">ARR potencial · €2.1M Y5</strong></div>
+      </div>
+    </div>
   </div>
 
   <!-- ========================= 4 — Pricing tiers ========================= -->
   <h2><span class="num">04</span> Arquitectura de pricing</h2>
-  <p class="section-sub">Cinco tiers escalonados desde free viral hasta enterprise custom. El punto de entrada natural es <strong>Scout Pro</strong> (€49/m) por su ratio valor-percibido / punto-de-dolor. El upgrade a Academy viene del descubrimiento de la capacidad multi-jugador.</p>
+  <p class="section-sub">Seis tiers escalonados desde free viral hasta enterprise custom, incluyendo el canal B2B2C de padres. El punto de entrada natural es <strong>Scout Pro</strong> (€49/m) por su ratio valor-percibido / punto-de-dolor. El upgrade a Academy viene del descubrimiento de la capacidad multi-jugador. Los padres acceden solo cuando la academia del hijo ya es cliente.</p>
   <div class="tiers">
+    <div class="tier">
+      <h4>Parent Pro</h4>
+      <div class="price">€9<small>/mes</small></div>
+      <div class="target">familias B2B2C</div>
+      <ul>
+        <li>Reportes del hijo</li>
+        <li>PHV con predicción pico</li>
+        <li>Drills caseros</li>
+        <li>Alertas de progresión</li>
+        <li>Requiere academia activa</li>
+      </ul>
+    </div>
     <div class="tier">
       <h4>Scout Free</h4>
       <div class="price">€0</div>
@@ -303,11 +331,11 @@
   </div>
 
   <!-- ========================= MIDDLE VIDEO — LATAM ========================= -->
-  <div class="video-block" style="aspect-ratio:21/9;max-height:380px;box-shadow:0 30px 80px -20px rgba(251,146,60,0.2)">
+  <div class="video-block" style="aspect-ratio:21/9;max-height:380px;box-shadow:0 30px 80px -20px rgba(230,26,133,0.2)">
     <div class="corner"><span class="rec"></span>Motor de crecimiento · LATAM</div>
     <iframe src="https://www.youtube.com/embed/aAhp_p8e_LA?autoplay=1&mute=1&loop=1&playlist=aAhp_p8e_LA&controls=0&showinfo=0&rel=0&modestbranding=1" title="LATAM mercado" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     <div class="overlay">
-      <span class="vtag" style="background:rgba(251,146,60,0.14);border-color:rgba(251,146,60,0.38);color:var(--warn)">◆ LATAM · 400M hispanohablantes</span>
+      <span class="vtag" style="background:rgba(230,26,133,0.14);border-color:rgba(230,26,133,0.38);color:var(--warn)">◆ LATAM · 400M hispanohablantes</span>
       <h3>El motor de crecimiento · 35% de la cuota Y5</h3>
       <p>México, Argentina, Brasil, Colombia, Chile. 5 países con pasión fuera de escala por el fútbol, smartphone &gt;85% y academias digitalizadas que hoy no tienen acceso a herramientas pro. VITAS habla su idioma.</p>
     </div>
@@ -324,6 +352,17 @@
     <div class="card">
       <div class="card-head"><div><div class="card-title">Revenue mix Y5</div></div></div>
       <div id="chart-mix" style="height:380px"></div>
+    </div>
+  </div>
+
+  <!-- ========================= VIDEO — canal padres ========================= -->
+  <div class="video-block" style="aspect-ratio:21/9;max-height:360px;box-shadow:0 30px 80px -20px rgba(0,180,198,0.22)">
+    <div class="corner"><span class="rec"></span>Canal B2B2C · padres</div>
+    <iframe src="https://www.youtube.com/embed/fvxDZVTrCps?autoplay=1&mute=1&loop=1&playlist=fvxDZVTrCps&controls=0&showinfo=0&rel=0&modestbranding=1" title="VITAS para padres" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div class="overlay">
+      <span class="vtag" style="background:rgba(0,180,198,0.14);border-color:rgba(0,180,198,0.4);color:#00B4C6">◆ Parent Pro · €9/mes</span>
+      <h3>Cuando la academia adopta VITAS, las familias compran solas</h3>
+      <p>Cada academia activa genera ~30 padres dispuestos a pagar €9/mes por ver el PHV de su hijo, los drills caseros recomendados y las alertas de progresión. Viral coefficient K=0.8 intra-academia · CAC €28 · LTV €1,978.</p>
     </div>
   </div>
 
@@ -377,13 +416,13 @@
         <tr><td>Academias formativas 250-800 jug.</td><td class="num">3,800</td><td class="num">€10,788</td><td class="num">€41.0M</td><td class="num">4.1%</td><td class="num hl">€1.7M</td></tr>
         <tr><td>Clubes semiprofesionales</td><td class="num">1,850</td><td class="num">€32,000</td><td class="num">€59.2M</td><td class="num">2.2%</td><td class="num hl">€1.3M</td></tr>
         <tr><td>Federaciones / ligas regionales</td><td class="num">340</td><td class="num">€48,000</td><td class="num">€16.3M</td><td class="num">2.8%</td><td class="num hl">€0.5M</td></tr>
-        <tr><td>Padres premium (B2C directo)</td><td class="num">4,200,000</td><td class="num">€36</td><td class="num">€151M</td><td class="num">0.05%</td><td class="num hl">€0.08M</td></tr>
-        <tr style="background:rgba(163,230,53,0.05)">
+        <tr><td>Padres Parent Pro (B2B2C)</td><td class="num">1,800,000</td><td class="num">€108</td><td class="num">€194M</td><td class="num">0.75%</td><td class="num hl">€2.1M</td></tr>
+        <tr style="background:rgba(225,162,15,0.05)">
           <td><strong>TOTAL SAM/SOM</strong></td>
           <td class="num">—</td><td class="num">—</td>
-          <td class="num"><strong>€329M</strong></td>
+          <td class="num"><strong>€372M</strong></td>
           <td class="num">—</td>
-          <td class="num hl"><strong>€9.8M</strong></td>
+          <td class="num hl"><strong>€11.8M</strong></td>
         </tr>
       </tbody>
     </table>
@@ -473,7 +512,7 @@ new ApexCharts(document.querySelector('#chart-tamsam'),{
   plotOptions:{ bar:{ horizontal:true, borderRadius:10, distributed:true, barHeight:'62%', dataLabels:{position:'center'} }},
   series:[{ data:[7800, 3200, 1200, 329, 84] }],
   dataLabels:{ enabled:true, style:{colors:['#000'], fontWeight:700, fontSize:'14px'}, formatter:v=>'€'+(v>=1000? (v/1000).toFixed(1)+'B':v+'M')},
-  colors:['#A3E635','#7C3AED','#00E5FF','#FB923C','#F43F5E'],
+  colors:['#E1A20F','#C025E0','#0066FF','#E61A85','#DC2626'],
   xaxis:{ categories:['TAM global · software deportivo fútbol','TAM fútbol base + amateur','SAM Iberoamérica + EU sur','SAM directo VITAS (ICP fit)','SOM Y5 objetivo · 7% SAM'] },
   legend:{ show:false }
 }).render();
@@ -484,8 +523,8 @@ new ApexCharts(document.querySelector('#chart-geo'),{
   chart:{...common.chart, type:'donut', height:380},
   series:[310, 252, 198, 142, 108, 82, 68],
   labels:['España','México','Argentina','Brasil','Colombia','Portugal','Resto LATAM'],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C','#3B82F6','#F43F5E','#EAB308'],
-  plotOptions:{ pie:{ donut:{ size:'68%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7', fontWeight:700, fontSize:'22px', fontFamily:'Space Grotesk', formatter:v=>'€'+v+'M'}, total:{show:true,label:'SAM total', color:'#E6EDF7', formatter:()=>'€1.16B'} }}}},
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626','#E1A20F'],
+  plotOptions:{ pie:{ donut:{ size:'68%', labels:{show:true, name:{color:'#8592A8'}, value:{color:'#E6EDF7', fontWeight:700, fontSize:'22px', fontFamily:'Rajdhani', formatter:v=>'€'+v+'M'}, total:{show:true,label:'SAM total', color:'#E6EDF7', formatter:()=>'€1.16B'} }}}},
   dataLabels:{ enabled:false },
   legend:{ position:'right', labels:{colors:'#E6EDF7'} }
 }).render();
@@ -496,7 +535,7 @@ new ApexCharts(document.querySelector('#chart-clubs'),{
   chart:{...common.chart, type:'bar', height:380},
   plotOptions:{ bar:{ horizontal:true, borderRadius:4, barHeight:'65%' }},
   series:[{ name:'Clubes diana', data:[6400, 4100, 3200, 2850, 2100, 1820, 1430, 1280, 1150, 980] }],
-  colors:['#00E5FF'],
+  colors:['#0066FF'],
   xaxis:{ categories:['España','México','Argentina','Brasil','Colombia','Portugal','Chile','Perú','Uruguay','Ecuador'] },
   dataLabels:{ enabled:true, style:{colors:['#E6EDF7'], fontSize:'11px', fontWeight:600}, offsetX:22 }
 }).render();
@@ -506,15 +545,15 @@ new ApexCharts(document.querySelector('#chart-penetration'),{
   ...common,
   chart:{...common.chart, type:'area', height:380},
   series:[{ name:'% SAM penetrado', data:[0.02, 0.12, 0.42, 1.2, 2.8, 5.6] }],
-  colors:['#A3E635'],
+  colors:['#E1A20F'],
   stroke:{ curve:'smooth', width:3 },
   fill:{ type:'gradient', gradient:{ shadeIntensity:1, opacityFrom:0.6, opacityTo:0.05 }},
   xaxis:{ categories:years },
   yaxis:{ labels:{ formatter:v=>v.toFixed(1)+'%' } },
-  markers:{ size:6, strokeColors:'#0B0F1A', strokeWidth:3 },
+  markers:{ size:6, strokeColors:'#0A1128', strokeWidth:3 },
   annotations:{ points:[
-    { x:'2028', y:0.42, marker:{size:10,fillColor:'#00E5FF'}, label:{style:{background:'#00E5FF', color:'#000'},text:'Inflexión'}},
-    { x:'2031', y:5.6, marker:{size:10,fillColor:'#A3E635'}, label:{style:{background:'#A3E635',color:'#000'},text:'SOM €84M'}}
+    { x:'2028', y:0.42, marker:{size:10,fillColor:'#0066FF'}, label:{style:{background:'#0066FF', color:'#000'},text:'Inflexión'}},
+    { x:'2031', y:5.6, marker:{size:10,fillColor:'#E1A20F'}, label:{style:{background:'#E1A20F',color:'#000'},text:'SOM €84M'}}
   ]}
 }).render();
 
@@ -522,9 +561,9 @@ new ApexCharts(document.querySelector('#chart-penetration'),{
 new ApexCharts(document.querySelector('#chart-mix'),{
   ...common,
   chart:{...common.chart, type:'pie', height:380},
-  series:[22, 19, 26, 33],
-  labels:['Scout Pro','Academy Starter','Academy Pro','Club Enterprise'],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C'],
+  series:[19, 17, 22, 29, 13],
+  labels:['Scout Pro','Academy Starter','Academy Pro','Club Enterprise','Parent Pro B2B2C'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#00B4C6'],
   legend:{ position:'bottom', labels:{colors:'#E6EDF7'} },
   dataLabels:{ style:{fontSize:'12px', fontWeight:600}, dropShadow:{enabled:false}, formatter:(val,opts)=>opts.w.config.series[opts.seriesIndex]+'%' }
 }).render();
@@ -534,7 +573,7 @@ new ApexCharts(document.querySelector('#chart-cac'),{
   ...common,
   chart:{...common.chart, type:'bar', height:380},
   series:[{ name:'CAC €', data:[42, 180, 320, 680, 1200, 2100] }],
-  colors:['#A3E635'],
+  colors:['#E1A20F'],
   plotOptions:{ bar:{ borderRadius:6, columnWidth:'55%', distributed:true }},
   xaxis:{ categories:['Referido scout','SEO/Content','LinkedIn paid','Federación','Eventos','Outbound enterprise'], labels:{rotate:-25} },
   yaxis:{ labels:{ formatter:v=>'€'+v } },
@@ -548,7 +587,7 @@ new ApexCharts(document.querySelector('#chart-channel-mrr'),{
   chart:{...common.chart, type:'polarArea', height:380},
   series:[28, 24, 18, 12, 10, 8],
   labels:['Referidos scouts','SEO/Content','LinkedIn paid','Federaciones','Eventos','Outbound enterprise'],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C','#3B82F6','#F43F5E'],
+  colors:['#0066FF','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626'],
   fill:{ opacity:0.75 },
   stroke:{ colors:['rgba(255,255,255,0.1)'] },
   legend:{ position:'right', labels:{colors:'#E6EDF7'} }
@@ -560,7 +599,7 @@ new ApexCharts(document.querySelector('#chart-journey'),{
   chart:{...common.chart, type:'bar', height:360},
   plotOptions:{ bar:{ horizontal:true, borderRadius:6, distributed:true, barHeight:'60%' }},
   series:[{ data:[100, 32, 18, 9.8, 7.6, 9.1] }],
-  colors:['#7C3AED','#4F46E5','#00E5FF','#10B981','#A3E635','#FB923C'],
+  colors:['#C025E0','#4F46E5','#0066FF','#059669','#E1A20F','#E61A85'],
   xaxis:{ categories:['Descubrimiento (visita)','Activación (signup)','First value (análisis completo)','Conversión (pago)','Retención m3','Expansión (upsell)'] },
   dataLabels:{ enabled:true, style:{colors:['#E6EDF7'],fontWeight:600}, formatter:v=>v+'%' },
   yaxis:{ labels:{ formatter:v=>v+'%'} },
@@ -575,9 +614,9 @@ new ApexCharts(document.querySelector('#chart-icpfit'),{
     { name:'Scout freelance', data:[85, 98, 60, 95, 70, 30] },
     { name:'Academia formativa', data:[92, 75, 90, 65, 88, 90] },
     { name:'Club semiprofesional', data:[96, 55, 98, 40, 96, 85] },
-    { name:'Padres B2C', data:[40, 88, 35, 82, 25, 10] }
+    { name:'Parent Pro (B2B2C)', data:[78, 96, 72, 95, 68, 32] }
   ],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C'],
+  colors:['#0066FF','#C025E0','#E1A20F','#00B4C6'],
   xaxis:{ categories:['Valor percibido','Velocidad compra','Capacidad pago','Viralidad','Expansión','Baja churn'] },
   stroke:{ width:2 },
   fill:{ opacity:0.15 },
@@ -597,7 +636,7 @@ new ApexCharts(document.querySelector('#chart-roadmap'),{
     { name:'Resto Europa', data:[0, 2, 8, 13, 18, 22] },
     { name:'Norteamérica', data:[0, 0, 4, 5, 9, 12] }
   ],
-  colors:['#00E5FF','#A3E635','#7C3AED','#FB923C','#3B82F6'],
+  colors:['#0066FF','#E1A20F','#C025E0','#E61A85','#1E40AF'],
   xaxis:{ categories:years },
   yaxis:{ max:100, labels:{formatter:v=>v+'%'} },
   legend:{ position:'top' },
@@ -610,16 +649,16 @@ new ApexCharts(document.querySelector('#chart-drivers'),{
   chart:{...common.chart, type:'treemap', height:400 },
   series:[{ data:[
     { x:'Expansión LATAM', y:2850 },
+    { x:'B2B2C padres (€9/m)', y:2136 },
     { x:'Upsell Academy→Pro', y:1920 },
     { x:'Enterprise B2B2C', y:1680 },
     { x:'Federaciones/ligas', y:920 },
     { x:'SEO/Content inbound', y:560 },
-    { x:'API/partnerships', y:360 },
-    { x:'B2C padres', y:110 }
+    { x:'API/partnerships', y:360 }
   ]}],
-  colors:['#00E5FF','#7C3AED','#A3E635','#FB923C','#3B82F6','#F43F5E','#EAB308'],
+  colors:['#0066FF','#00B4C6','#C025E0','#E1A20F','#E61A85','#1E40AF','#DC2626'],
   plotOptions:{ treemap:{ enableShades:false, distributed:true }},
-  dataLabels:{ enabled:true, style:{fontFamily:'Space Grotesk', fontWeight:700, fontSize:'13px'}, formatter:(val, op)=>val + ' · €'+op.value+'K' }
+  dataLabels:{ enabled:true, style:{fontFamily:'Rajdhani', fontWeight:700, fontSize:'13px'}, formatter:(val, op)=>val + ' · €'+op.value+'K' }
 }).render();
 </script>
 </body>
