@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VITAS · Contexto Completo para Generación de Contenido</title>
+<style>
+  :root {
+    --primary: #0059B3;
+    --primary-lt: #0066CC;
+    --electric: #A855F7;
+    --gold: #D4940A;
+    --cyan: #158585;
+    --pink: #E6197A;
+    --bg: #F5F7FA;
+    --card: #FFFFFF;
+    --border: #D8DFE9;
+    --fg: #0F1729;
+    --muted: #38455A;
+    --dim: #5A6A82;
+    --success: #22C55E;
+    --danger: #EF4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background:
+      radial-gradient(ellipse 90% 70% at 15% 5%, rgba(0,102,204,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 60% at 85% 85%, rgba(168,85,247,0.06) 0%, transparent 50%),
+      linear-gradient(160deg, #F5F7FA 0%, #EEF2F7 100%);
+    color: var(--fg);
+    line-height: 1.6;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  header.hero {
+    text-align: center;
+    padding: 48px 20px 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+  header.hero h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 900;
+    font-size: clamp(48px, 10vw, 96px);
+    letter-spacing: -0.03em;
+    line-height: 0.9;
+    margin: 0;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--electric) 50%, var(--cyan) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  header.hero h1 .dot { color: var(--electric); -webkit-text-fill-color: var(--electric); }
+  header.hero .tag {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+  header.hero .sub {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 620px;
+    margin: 20px auto 0;
+  }
+  section.card {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 24px rgba(0,89,179,0.06);
+  }
+  section.card h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section.card h2 .idx {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  section.card .lead {
+    color: var(--dim);
+    font-size: 13px;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed var(--border);
+  }
+  h3 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary);
+    margin: 20px 0 8px;
+  }
+  h4 {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 16px 0 6px;
+  }
+  p, li { font-size: 14px; color: var(--fg); }
+  ul { padding-left: 20px; margin: 8px 0; }
+  li { margin-bottom: 4px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 720px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 13px; }
+  thead th {
+    background: rgba(0,89,179,0.06);
+    color: var(--primary);
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 11px;
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 2px solid var(--primary);
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr:hover { background: rgba(0,89,179,0.03); }
+
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .pill {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+  }
+  .pill.primary { background: rgba(0,89,179,0.08); color: var(--primary); border-color: rgba(0,89,179,0.2); }
+  .pill.electric { background: rgba(168,85,247,0.08); color: var(--electric); border-color: rgba(168,85,247,0.2); }
+  .pill.gold { background: rgba(212,148,10,0.08); color: var(--gold); border-color: rgba(212,148,10,0.2); }
+  .pill.cyan { background: rgba(21,133,133,0.08); color: var(--cyan); border-color: rgba(21,133,133,0.2); }
+  .pill.success { background: rgba(34,197,94,0.08); color: var(--success); border-color: rgba(34,197,94,0.2); }
+
+  .swatch { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); }
+  .swatch .box { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); }
+  .swatch .meta { font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 11px; }
+  .swatch .meta b { display: block; font-family: 'Rajdhani', sans-serif; font-size: 12px; color: var(--fg); text-transform: uppercase; }
+
+  .metric-card {
+    padding: 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0,89,179,0.05), rgba(168,85,247,0.03));
+    border: 1px solid var(--border);
+  }
+  .metric-card .label {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .metric-card .value {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--primary);
+    line-height: 1;
+    margin: 6px 0 2px;
+  }
+  .metric-card .note { font-size: 11px; color: var(--dim); }
+
+  .quote {
+    padding: 16px 20px;
+    border-left: 3px solid var(--primary);
+    background: rgba(0,89,179,0.04);
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-style: italic;
+    font-size: 15px;
+    color: var(--fg);
+  }
+
+  .code {
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    font-size: 12px;
+    background: #0F1729;
+    color: #E2E8F0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .toc {
+    background: rgba(255,255,255,0.75);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .toc h3 { margin-top: 0; }
+  .toc ol { padding-left: 22px; margin: 0; columns: 2; column-gap: 24px; }
+  .toc ol li { font-size: 13px; margin-bottom: 4px; }
+  .toc a { color: var(--primary); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  @media (max-width: 720px) { .toc ol { columns: 1; } }
+
+  footer.final {
+    text-align: center;
+    padding: 32px 0 8px;
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+    font-size: 11px;
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="tag">VITAS Intelligence · Prophet Horizon Technology</div>
+    <h1>VITAS<span class="dot">.</span></h1>
+    <p class="sub">Contexto completo del proyecto para alimentar herramientas de generación de contenido y comenzar la estrategia de visibilidad.</p>
+    <div class="pill-row" style="justify-content:center; margin-top:18px;">
+      <span class="pill primary">Build 2.1.0</span>
+      <span class="pill electric">PWA Instalable</span>
+      <span class="pill gold">IA + Video + RAG</span>
+      <span class="pill cyan">React 18 + Supabase</span>
+      <span class="pill success">Deploy Activo</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <h3>Índice</h3>
+    <ol>
+      <li><a href="#s1">Identidad de marca</a></li>
+      <li><a href="#s2">Propuesta de valor</a></li>
+      <li><a href="#s3">Público objetivo</a></li>
+      <li><a href="#s4">Funcionalidades del producto</a></li>
+      <li><a href="#s5">Agentes IA y análisis de video</a></li>
+      <li><a href="#s6">Métricas y vocabulario propio</a></li>
+      <li><a href="#s7">Planes y precios</a></li>
+      <li><a href="#s8">Diferenciadores competitivos</a></li>
+      <li><a href="#s9">Stack tecnológico</a></li>
+      <li><a href="#s10">Sistema visual (colores, tipografía)</a></li>
+      <li><a href="#s11">Tono y estilo editorial</a></li>
+      <li><a href="#s12">Hooks y ángulos de contenido</a></li>
+      <li><a href="#s13">Canales y formatos sugeridos</a></li>
+      <li><a href="#s14">Mensajes clave reutilizables</a></li>
+      <li><a href="#s15">Preguntas frecuentes (FAQ)</a></li>
+      <li><a href="#s16">Estado actual del proyecto</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1. IDENTIDAD -->
+  <section class="card" id="s1">
+    <h2><span class="idx">1</span>Identidad de marca</h2>
+    <p class="lead">Nombre, tagline, propósito y posicionamiento estratégico.</p>
+
+    <h3>Nombre y variantes</h3>
+    <table>
+      <thead><tr><th>Variante</th><th>Uso</th></tr></thead>
+      <tbody>
+        <tr><td><b>VITAS</b></td><td>Nombre principal (siempre mayúsculas)</td></tr>
+        <tr><td><b>VITAS.</b></td><td>Con punto final (headers de la app; el punto es color electric)</td></tr>
+        <tr><td><b>VITAS.LAB</b></td><td>Módulo de análisis de video</td></tr>
+        <tr><td><b>VITAS Football Intelligence</b></td><td>Nombre completo oficial</td></tr>
+        <tr><td><b>VITAS · Football Intelligence</b></td><td>Título de la PWA</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Empresa y atributos</h3>
+    <ul>
+      <li><b>Empresa:</b> Prophet Horizon Technology</li>
+      <li><b>Footer:</b> © 2026 PROPHET HORIZON TECHNOLOGY</li>
+      <li><b>Versión actual:</b> 2.1.0 · Abril 2026</li>
+      <li><b>URL producción:</b> https://futuro-club.vercel.app</li>
+      <li><b>Símbolo de marca:</b> ⚡ (usado como prefijo en exports y shares)</li>
+    </ul>
+
+    <h3>Taglines oficiales</h3>
+    <div class="quote"><b>Principal:</b> "Plataforma de inteligencia deportiva para detección, evaluación y proyección de talento juvenil."</div>
+    <div class="quote"><b>Meta description:</b> "Inteligencia futbolística con corrección de maduración biológica. Detecta talento oculto en academias juveniles."</div>
+    <div class="quote"><b>Claim competitivo:</b> "La única plataforma de inteligencia futbolística que ve al jugador, no al cuerpo."</div>
+
+    <h3>Propósito</h3>
+    <p>VITAS existe para <b>eliminar el sesgo biológico en la detección de talento juvenil</b>. Miles de jugadores talentosos son descartados cada año porque maduraron tarde físicamente. VITAS ve el potencial real detrás del cuerpo.</p>
+  </section>
+
+  <!-- 2. PROPUESTA DE VALOR -->
+  <section class="card" id="s2">
+    <h2><span class="idx">2</span>Propuesta de valor</h2>
+    <p class="lead">Qué problema resuelve y por qué importa.</p>
+
+    <h3>El problema</h3>
+    <ul>
+      <li>Las academias descartan talento por <b>maduradores tardíos</b> que aún no han alcanzado su pico físico (PHV).</li>
+      <li>Los scouts basan decisiones en impresiones de 90 minutos, sin métricas continuas ni objetivas.</li>
+      <li>El análisis de video es manual, costoso y lento; queda fuera del alcance de academias juveniles.</li>
+      <li>No hay feedback sistemático para el plan de desarrollo del jugador.</li>
+    </ul>
+
+    <h3>La solución VITAS</h3>
+    <div class="grid-3">
+      <div class="metric-card">
+        <div class="label">Corrección PHV</div>
+        <div class="value">Mirwald</div>
+        <div class="note">Ajusta evaluaciones según maduración biológica real.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Score único</div>
+        <div class="value">VSI 0–100</div>
+        <div class="note">Índice compuesto de 6 dimensiones técnicas.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Video IA</div>
+        <div class="value">YOLO + Claude + Gemini</div>
+        <div class="note">Detección, tracking y reporte táctico automáticos.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Similitud pro</div>
+        <div class="value">+300 jugadores</div>
+        <div class="note">Encuentra el "jugador clon" profesional más parecido.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">RAG biblioteca</div>
+        <div class="value">+100 drills</div>
+        <div class="note">Ejercicios personalizados según debilidades detectadas.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">Multiplataforma</div>
+        <div class="value">PWA</div>
+        <div class="note">Móvil, tablet, PC. Sin app store. Funciona offline.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. PÚBLICO -->
+  <section class="card" id="s3">
+    <h2><span class="idx">3</span>Público objetivo</h2>
+    <p class="lead">A quién le hablamos y qué buscan.</p>
+
+    <table>
+      <thead><tr><th>Segmento</th><th>Necesidad</th><th>Trigger emocional</th></tr></thead>
+      <tbody>
+        <tr><td>Scouts profesionales</td><td>Detectar talento antes que la competencia; justificar decisiones con datos.</td><td>Miedo a equivocarse · Orgullo profesional</td></tr>
+        <tr><td>Entrenadores juveniles</td><td>Objetivar el progreso de sus jugadores; planes de desarrollo medibles.</td><td>Deseo de crecimiento · Validación técnica</td></tr>
+        <tr><td>Directores deportivos</td><td>Decisiones estratégicas de plantilla; visibilidad de todos los equipos.</td><td>Control · ROI de academia</td></tr>
+        <tr><td>Padres y agentes</td><td>Entender el potencial real del jugador; evitar descartes por físico.</td><td>Esperanza · Protección del futuro</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Mercado geográfico prioritario</h3>
+    <div class="pill-row">
+      <span class="pill primary">Latinoamérica</span>
+      <span class="pill primary">España</span>
+      <span class="pill primary">Europa del Sur</span>
+      <span class="pill">Portugal</span>
+      <span class="pill">Italia</span>
+    </div>
+    <p style="font-size:12px; color:var(--dim); margin-top:10px;">Nivel objetivo: academias juveniles de <b>nivel medio</b> (no élite top-5 europeo, no grassroots puro).</p>
+  </section>
+
+  <!-- 4. FUNCIONALIDADES -->
+  <section class="card" id="s4">
+    <h2><span class="idx">4</span>Funcionalidades del producto</h2>
+    <p class="lead">Todo lo que la plataforma hace hoy, agrupado por dominio.</p>
+
+    <h3>Análisis de jugadores</h3>
+    <ul>
+      <li><b>VSI (VITAS Scouting Index):</b> puntaje 0–100 con 6 dimensiones (Velocidad, Técnica, Visión, Resistencia, Disparo, Defensa).</li>
+      <li><b>PHV (Peak Height Velocity):</b> maduración biológica con fórmula Mirwald; categoriza jugadores en precoz / normal / tardío.</li>
+      <li><b>VAEP:</b> valoración del impacto real de cada acción (pases, disparos, recuperaciones, duelos) por cada 90 min.</li>
+      <li><b>TruthFilter / UBI:</b> corrección de sesgos combinados (edad relativa, maduración, contexto de equipo).</li>
+      <li><b>Similitud con profesionales:</b> coseno en 6 dimensiones contra base de +300 jugadores de élite (Premier, La Liga, Serie A, Bundesliga, Ligue 1).</li>
+      <li><b>Ranking global:</b> con filtros por posición, edad y maduración.</li>
+      <li><b>Comparación dual:</b> dos jugadores lado a lado con radar superpuesto y percentiles.</li>
+      <li><b>Evolución temporal:</b> gráfica de área con tendencias de VSI.</li>
+    </ul>
+
+    <h3>Análisis de video (VITAS.LAB)</h3>
+    <ul>
+      <li><b>Upload:</b> Bunny Stream CDN con protocolo TUS (reanudable), hasta 2 GB por video.</li>
+      <li><b>Deduplicación automática:</b> hash SHA-256 del archivo para reusar análisis y ahorrar costes.</li>
+      <li><b>Tracking automático YOLOv8</b> ejecutado en el navegador (ONNX Runtime Web):
+        <ul>
+          <li>Posición de cada jugador en tiempo real</li>
+          <li>17 puntos corporales (pose estimation)</li>
+          <li>Velocidad, distancia, sprints frame a frame</li>
+          <li>Giros de cabeza (escaneos del entorno)</li>
+          <li>Duelos por proximidad</li>
+        </ul>
+      </li>
+      <li><b>Modos:</b> Todos los jugadores · Click-to-Track · Equipo completo (local vs visitante) · Jugador específico (por dorsal).</li>
+      <li><b>Heatmap posicional</b> sobre grilla 21×14 del campo 105×68m.</li>
+      <li><b>Voronoi:</b> polígonos de control territorial en tiempo real.</li>
+      <li><b>Reportes IA:</b> formación detectada, fase táctica, movimientos clave, intensidad, posesión.</li>
+    </ul>
+
+    <h3>Métricas físicas (post-tracking)</h3>
+    <div class="grid-3">
+      <div class="metric-card"><div class="label">Velocidad máx</div><div class="value">km/h</div></div>
+      <div class="metric-card"><div class="label">Velocidad media</div><div class="value">km/h</div></div>
+      <div class="metric-card"><div class="label">Distancia total</div><div class="value">m</div></div>
+      <div class="metric-card"><div class="label">Sprints</div><div class="value">&gt;21 km/h</div></div>
+      <div class="metric-card"><div class="label">Aceleración máx</div><div class="value">m/s²</div></div>
+      <div class="metric-card"><div class="label">Cobertura campo</div><div class="value">%</div></div>
+    </div>
+
+    <h3>Visualizaciones</h3>
+    <ul>
+      <li><b>Radar 6 ejes</b> hexagonal · <b>Gauge VSI</b> circular · <b>Evolución temporal</b> · <b>Barras de intensidad</b>.</li>
+      <li><b>VITAS Card:</b> tarjeta premium exportable (PNG) con radar, VSI, PHV y jugador clon.</li>
+      <li><b>Reporte PDF del jugador</b> imprimible con todas las métricas y gráficas.</li>
+      <li><b>Dashboards:</b> Pulse (principal), Master (tabla completa con alertas de sesgo), Director (vista ejecutiva).</li>
+    </ul>
+
+    <h3>Base de conocimiento (RAG)</h3>
+    <ul>
+      <li>+100 ejercicios/drills en 6 categorías: Técnica, Táctica, Físico, Disparo, Transición, Pressing.</li>
+      <li>Búsqueda semántica con embeddings Voyage AI (1024 dimensiones) sobre pgvector.</li>
+      <li>Recomendación automática según debilidades detectadas en el análisis del jugador.</li>
+    </ul>
+
+    <h3>Gestión de equipos (Plan Club)</h3>
+    <ul>
+      <li>Roles: Propietario · Director · Entrenador · Analista · Visualizador.</li>
+      <li>Invitaciones por email con expiración.</li>
+      <li>Dashboard Director con analytics de uso del equipo y alertas de límites.</li>
+    </ul>
+
+    <h3>Otras funcionalidades</h3>
+    <ul>
+      <li><b>Notificaciones push</b> (Web Push): rendimiento bajo, inactividad, límite de plan, análisis completado.</li>
+      <li><b>Partidos en vivo</b> desde Football-Data.org con actualización cada 60 s.</li>
+      <li><b>Modo offline</b> con sincronización al reconectar.</li>
+      <li><b>Exportar/importar JSON</b> completo de datos.</li>
+      <li><b>Internacionalización</b> (i18next) · idioma por defecto: español.</li>
+    </ul>
+  </section>
+
+  <!-- 5. AGENTES IA -->
+  <section class="card" id="s5">
+    <h2><span class="idx">5</span>Agentes IA y análisis de video</h2>
+    <p class="lead">Los 7 agentes que procesan datos para generar inteligencia accionable.</p>
+
+    <table>
+      <thead><tr><th>Agente</th><th>Modelo</th><th>Función</th></tr></thead>
+      <tbody>
+        <tr><td>PHV Calculator</td><td>Claude</td><td>Calcula maduración biológica (Mirwald)</td></tr>
+        <tr><td>Scout Insight</td><td>Claude</td><td>Genera insights cualitativos para cada métrica</td></tr>
+        <tr><td>Video Intelligence</td><td>Claude + Gemini</td><td>Análisis completo de video individual</td></tr>
+        <tr><td>Team Intelligence</td><td>Claude + Gemini</td><td>Análisis táctico de equipo</td></tr>
+        <tr><td>Role Profile</td><td>Claude</td><td>Perfil táctico del jugador</td></tr>
+        <tr><td>Tactical Label</td><td>Claude</td><td>Etiquetas tácticas para detecciones de video</td></tr>
+        <tr><td>Player Similarity</td><td>Determinista</td><td>Coseno vs jugadores profesionales</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Pipeline de análisis de video</h3>
+    <div class="code">Upload TUS → Bunny Stream (encoding) → Hash SHA-256 (dedup) →
+YOLO tracking (navegador) → Gemini observación → Claude reporte →
+Supabase persistencia → UI (Heatmap, Voronoi, Reporte PDF)</div>
+  </section>
+
+  <!-- 6. VOCABULARIO -->
+  <section class="card" id="s6">
+    <h2><span class="idx">6</span>Métricas y vocabulario propio</h2>
+    <p class="lead">Terminología que hay que usar consistentemente en todo el contenido.</p>
+
+    <table>
+      <thead><tr><th>Término</th><th>Significado</th><th>Cuándo usarlo</th></tr></thead>
+      <tbody>
+        <tr><td><b>VSI</b></td><td>VITAS Scouting Index</td><td>Siempre que hables del score principal 0–100</td></tr>
+        <tr><td><b>TruthFilter</b></td><td>Filtro de verdad</td><td>Al explicar cómo quitamos sesgos</td></tr>
+        <tr><td><b>UBI</b></td><td>Unified Bias Index</td><td>Índice combinado de sesgos</td></tr>
+        <tr><td><b>ADN Futbolístico</b></td><td>Perfil cualitativo del jugador</td><td>Sección narrativa del reporte IA</td></tr>
+        <tr><td><b>Talento Oculto</b></td><td>Jugador subestimado por maduración</td><td>En alertas del dashboard</td></tr>
+        <tr><td><b>Madurador Tardío / Precoz</b></td><td>Categorías PHV</td><td>Al clasificar por maduración</td></tr>
+        <tr><td><b>Centro de Inteligencia</b></td><td>Dashboard principal</td><td>Alternativa a "Hub" o "Dashboard"</td></tr>
+        <tr><td><b>VITAS.LAB</b></td><td>Laboratorio de video</td><td>Módulo de análisis audiovisual</td></tr>
+        <tr><td><b>Jugador Clon</b></td><td>Profesional más similar</td><td>En cards y reportes de similitud</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Abreviaturas de métricas (siempre mayúsculas)</h4>
+    <div class="pill-row">
+      <span class="pill primary">VEL · Velocidad</span>
+      <span class="pill primary">TEC · Técnica</span>
+      <span class="pill primary">VIS · Visión</span>
+      <span class="pill primary">RES · Resistencia</span>
+      <span class="pill primary">DIS · Disparo</span>
+      <span class="pill primary">DEF · Defensa</span>
+    </div>
+
+    <h4>Colores VSI (badge según rango)</h4>
+    <table>
+      <thead><tr><th>Rango</th><th>Categoría</th><th>Color</th></tr></thead>
+      <tbody>
+        <tr><td>85+</td><td>Elite</td><td><span class="pill primary">Azul eléctrico</span></td></tr>
+        <tr><td>70–84</td><td>Alto</td><td><span class="pill electric">Púrpura</span></td></tr>
+        <tr><td>50–69</td><td>Medio</td><td><span class="pill gold">Dorado</span></td></tr>
+        <tr><td>&lt;50</td><td>Desarrollo</td><td><span class="pill">Rojo</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7. PRECIOS -->
+  <section class="card" id="s7">
+    <h2><span class="idx">7</span>Planes y precios</h2>
+    <p class="lead">Tres planes con ruta de upgrade clara.</p>
+
+    <table>
+      <thead><tr><th>Característica</th><th>Free</th><th>Pro</th><th>Club</th></tr></thead>
+      <tbody>
+        <tr><td>Precio</td><td>Gratis</td><td>€19/mes</td><td>€79/mes</td></tr>
+        <tr><td>Jugadores</td><td>5</td><td>25</td><td>Sin límite</td></tr>
+        <tr><td>Análisis IA por mes</td><td>3</td><td>20</td><td>Sin límite</td></tr>
+        <tr><td>Tracking de video</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Métricas físicas</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Similitud con profesionales</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Heatmaps y Voronoi</td><td>✓</td><td>✓</td><td>✓</td></tr>
+        <tr><td>VAEP</td><td>—</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Exportar reportes PDF</td><td>—</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Notificaciones push</td><td>—</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Role Profile táctico</td><td>—</td><td>—</td><td>✓</td></tr>
+        <tr><td>Multi-usuario y roles</td><td>—</td><td>—</td><td>✓</td></tr>
+        <tr><td>Dashboard Director</td><td>—</td><td>—</td><td>✓</td></tr>
+      </tbody>
+    </table>
+
+    <h4>Para quién es cada plan</h4>
+    <ul>
+      <li><b>Free:</b> padres, scouts independientes o curiosos con hasta 5 jugadores.</li>
+      <li><b>Pro:</b> scouts profesionales, entrenadores de academia o analistas con hasta 25 jugadores y necesidad de PDFs.</li>
+      <li><b>Club:</b> clubes profesionales, academias grandes o centros de formación con usuarios ilimitados.</li>
+    </ul>
+  </section>
+
+  <!-- 8. DIFERENCIADORES -->
+  <section class="card" id="s8">
+    <h2><span class="idx">8</span>Diferenciadores competitivos</h2>
+    <p class="lead">Lo único que VITAS hace y nadie más.</p>
+
+    <div class="grid-2">
+      <div class="metric-card">
+        <div class="label">#1 · Corrección PHV nativa</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">Único con Mirwald integrado en el modelo de visión</div>
+        <div class="note">Ninguna otra plataforma corrige evaluaciones por maduración biológica.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">#2 · IA en el navegador</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">YOLOv8 vía ONNX sin servidor</div>
+        <div class="note">Tracking instantáneo sin enviar video a servidores costosos.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">#3 · Dos LLMs en paralelo</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">Claude + Gemini combinados</div>
+        <div class="note">Reporte cualitativo + observación multimodal del video.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">#4 · RAG con drills</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">Del diagnóstico al ejercicio</div>
+        <div class="note">Detecta debilidad → recomienda ejercicio específico automáticamente.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">#5 · PWA sin tienda</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">Instalable en móvil, tablet y PC</div>
+        <div class="note">Cero fricción de descarga. Actualización automática.</div>
+      </div>
+      <div class="metric-card">
+        <div class="label">#6 · Jugador clon pro</div>
+        <div class="value" style="font-size:16px; margin-top:8px;">+300 profesionales de élite</div>
+        <div class="note">Similitud matemática con estrellas mundiales en 6 dimensiones.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. STACK -->
+  <section class="card" id="s9">
+    <h2><span class="idx">9</span>Stack tecnológico</h2>
+    <p class="lead">Útil para contenido técnico o para atraer talento.</p>
+
+    <table>
+      <thead><tr><th>Capa</th><th>Tecnología</th></tr></thead>
+      <tbody>
+        <tr><td>Frontend</td><td>React 18 + TypeScript 5.8 + Vite 8</td></tr>
+        <tr><td>UI</td><td>shadcn/ui + Tailwind CSS 3 + Framer Motion</td></tr>
+        <tr><td>Estado</td><td>TanStack React Query 5</td></tr>
+        <tr><td>Backend</td><td>Vercel Edge Functions (TypeScript)</td></tr>
+        <tr><td>Base de datos</td><td>Supabase (PostgreSQL + Auth + RLS + Realtime)</td></tr>
+        <tr><td>IA reportes</td><td>Anthropic Claude</td></tr>
+        <tr><td>IA video</td><td>Google Gemini (multimodal)</td></tr>
+        <tr><td>ML en navegador</td><td>ONNX Runtime Web + YOLOv8</td></tr>
+        <tr><td>Video</td><td>Bunny Stream (CDN + encoding + TUS upload)</td></tr>
+        <tr><td>RAG</td><td>Voyage AI (1024 dims) + Supabase pgvector</td></tr>
+        <tr><td>Pagos</td><td>Stripe suscripciones</td></tr>
+        <tr><td>Monitoring</td><td>Sentry (errores + performance + replay)</td></tr>
+        <tr><td>PWA</td><td>vite-plugin-pwa + Workbox</td></tr>
+        <tr><td>Push</td><td>Web Push + VAPID</td></tr>
+        <tr><td>CI/CD</td><td>GitHub Actions + Vercel auto-deploy</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 10. SISTEMA VISUAL -->
+  <section class="card" id="s10">
+    <h2><span class="idx">10</span>Sistema visual</h2>
+    <p class="lead">Colores, tipografía y lenguaje visual para mantener coherencia en contenido gráfico.</p>
+
+    <h3>Paleta principal</h3>
+    <div class="grid-3">
+      <div class="swatch"><div class="box" style="background:#0059B3"></div><div class="meta"><b>Primary</b>#0059B3</div></div>
+      <div class="swatch"><div class="box" style="background:#0066CC"></div><div class="meta"><b>Primary Lt</b>#0066CC</div></div>
+      <div class="swatch"><div class="box" style="background:#A855F7"></div><div class="meta"><b>Electric</b>#A855F7</div></div>
+      <div class="swatch"><div class="box" style="background:#D4940A"></div><div class="meta"><b>Gold</b>#D4940A</div></div>
+      <div class="swatch"><div class="box" style="background:#158585"></div><div class="meta"><b>Cyan</b>#158585</div></div>
+      <div class="swatch"><div class="box" style="background:#E6197A"></div><div class="meta"><b>Hot Pink</b>#E6197A</div></div>
+      <div class="swatch"><div class="box" style="background:#22C55E"></div><div class="meta"><b>Success</b>#22C55E</div></div>
+      <div class="swatch"><div class="box" style="background:#EF4444"></div><div class="meta"><b>Danger</b>#EF4444</div></div>
+      <div class="swatch"><div class="box" style="background:#0F1729"></div><div class="meta"><b>Text</b>#0F1729</div></div>
+    </div>
+
+    <h3>Tipografía</h3>
+    <table>
+      <thead><tr><th>Familia</th><th>Uso</th><th>Pesos</th></tr></thead>
+      <tbody>
+        <tr><td><b>Rajdhani</b> (display)</td><td>Títulos, labels, badges, números grandes</td><td>400 / 500 / 600 / 700</td></tr>
+        <tr><td><b>Inter</b> (body)</td><td>Párrafos, formularios, texto de lectura</td><td>300 / 400 / 500 / 600</td></tr>
+        <tr><td><b>JetBrains Mono</b> (code)</td><td>Valores numéricos técnicos, código</td><td>400 / 500</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Los 5 principios de diseño VITAS</h3>
+    <ol>
+      <li><b>Glass First</b> — glassmorphism como lenguaje visual principal</li>
+      <li><b>Neon Accents</b> — glows y pulsos sutiles para comunicar actividad</li>
+      <li><b>Data Dense</b> — mucha información en poco espacio (labels de 9–10px)</li>
+      <li><b>Motion Meaning</b> — cada animación comunica algo</li>
+      <li><b>Science + Sport</b> — dashboard científico con energía deportiva</li>
+    </ol>
+
+    <h3>La tríada de color</h3>
+    <div class="quote">
+      <b>Primary Blue</b> (#0059B3) → Confianza, tecnología, profesionalismo<br>
+      <b>Electric Purple</b> (#A855F7) → Innovación, IA, datos avanzados<br>
+      <b>Gold</b> (#D4940A) → Excelencia, talento, logros
+    </div>
+  </section>
+
+  <!-- 11. TONO -->
+  <section class="card" id="s11">
+    <h2><span class="idx">11</span>Tono y estilo editorial</h2>
+    <p class="lead">Cómo habla VITAS — fundamental para generar contenido coherente.</p>
+
+    <h3>Reglas base</h3>
+    <ul>
+      <li><b>Idioma:</b> español (es-ES) nativo, sin anglicismos innecesarios.</li>
+      <li><b>Registro:</b> técnico-deportivo, profesional pero accesible.</li>
+      <li><b>Energía:</b> dinámico, seguro, con autoridad científica.</li>
+      <li><b>Labels UI:</b> mayúsculas con tracking extendido para etiquetas de estado.</li>
+      <li><b>Símbolo:</b> ⚡ como prefijo en textos exportados/compartidos.</li>
+    </ul>
+
+    <h3>Diccionario interno (usar siempre en español)</h3>
+    <table>
+      <thead><tr><th>Usar ✓</th><th>Evitar ✗</th></tr></thead>
+      <tbody>
+        <tr><td>Detecta talento oculto</td><td>Find hidden talent</td></tr>
+        <tr><td>ADN Futbolístico</td><td>Player DNA</td></tr>
+        <tr><td>Proyección de Carrera</td><td>Career Projection</td></tr>
+        <tr><td>Centro de Inteligencia</td><td>Intelligence Center / Hub</td></tr>
+        <tr><td>Madurador Tardío</td><td>Late Bloomer</td></tr>
+        <tr><td>Jugador Clon</td><td>Player Twin / Similar Player</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Qué evitar en copy</h3>
+    <ul>
+      <li>Promesas absolutas tipo "garantizado" o "infalible".</li>
+      <li>Comparaciones directas con nombres de competidores.</li>
+      <li>Emojis en textos formales (sí ⚡ como firma en exports).</li>
+      <li>Tecnicismos sin explicar (todo término propio debe llevar contexto la primera vez).</li>
+      <li>Tono condescendiente con el lector. Nunca "como tú no sabes...".</li>
+    </ul>
+
+    <h3>Estructura típica de post</h3>
+    <div class="code">1. Hook con dato o contradicción contraintuitiva (1 línea)
+2. Problema concreto del lector (2–3 líneas)
+3. Revelación: cómo VITAS lo resuelve (3–5 líneas)
+4. Prueba visual (imagen / radar / heatmap)
+5. CTA claro (probar free, agendar demo, leer reporte)</div>
+  </section>
+
+  <!-- 12. HOOKS -->
+  <section class="card" id="s12">
+    <h2><span class="idx">12</span>Hooks y ángulos de contenido</h2>
+    <p class="lead">Ideas listas para reutilizar en social, blog y video.</p>
+
+    <h3>Ángulos narrativos fuertes</h3>
+    <ul>
+      <li><b>"El sesgo del calendario"</b> — por qué los nacidos en enero dominan las selecciones y cómo VITAS lo corrige.</li>
+      <li><b>"Messi a los 12 años no habría pasado un scouting moderno"</b> — historia del talento físicamente tardío.</li>
+      <li><b>"El Ronaldinho que no fichaste"</b> — cuántos jugadores talentosos descartaste sin saberlo.</li>
+      <li><b>"No evalúes un jugador, evalúa a su versión dentro de 3 años"</b> — proyección PHV.</li>
+      <li><b>"Tu ojo de scout tiene 15 sesgos documentados"</b> — UBI y TruthFilter como solución.</li>
+      <li><b>"El radar que no miente"</b> — VSI vs opinión subjetiva del scout.</li>
+    </ul>
+
+    <h3>Formatos probados en este vertical</h3>
+    <ul>
+      <li><b>Reels/Shorts:</b> comparativa 2 jugadores del mismo equipo, uno precoz y uno tardío, con VSI ajustado.</li>
+      <li><b>Carruseles LinkedIn:</b> 10 láminas · "10 sesgos del scouting tradicional que VITAS elimina".</li>
+      <li><b>Hilos X/Twitter:</b> case study anónimo de un jugador real del Free plan que subió su VSI 15 puntos.</li>
+      <li><b>Blog long-form:</b> "Cómo aplicar la fórmula Mirwald en tu academia" con calculadora interactiva.</li>
+      <li><b>Video testimonial:</b> entrenador contando cómo rescató a un jugador de ser descartado.</li>
+      <li><b>Demo grabado:</b> 90 segundos · subes un video → aparece el reporte IA completo.</li>
+    </ul>
+
+    <h3>Keywords SEO objetivo</h3>
+    <div class="pill-row">
+      <span class="pill primary">scouting fútbol IA</span>
+      <span class="pill primary">maduración biológica fútbol</span>
+      <span class="pill primary">PHV jugadores juveniles</span>
+      <span class="pill primary">análisis video fútbol IA</span>
+      <span class="pill primary">métricas juveniles</span>
+      <span class="pill primary">VSI índice scouting</span>
+      <span class="pill primary">talento oculto academia</span>
+      <span class="pill primary">software entrenador fútbol base</span>
+    </div>
+  </section>
+
+  <!-- 13. CANALES -->
+  <section class="card" id="s13">
+    <h2><span class="idx">13</span>Canales y formatos recomendados</h2>
+    <p class="lead">Dónde publicar y con qué cadencia.</p>
+
+    <table>
+      <thead><tr><th>Canal</th><th>Formato principal</th><th>Cadencia</th><th>Objetivo</th></tr></thead>
+      <tbody>
+        <tr><td>LinkedIn</td><td>Carruseles + posts largos</td><td>3/semana</td><td>Autoridad, B2B clubs y academias</td></tr>
+        <tr><td>Instagram Reels</td><td>Video 15–30s</td><td>4/semana</td><td>Alcance orgánico, demo visual</td></tr>
+        <tr><td>TikTok</td><td>Mismo pool que Reels</td><td>4/semana</td><td>Viralidad con audiencia joven</td></tr>
+        <tr><td>X (Twitter)</td><td>Hilos + datos sueltos</td><td>Diario</td><td>Comunidad técnica scouting</td></tr>
+        <tr><td>YouTube</td><td>Demos + webinars</td><td>1/mes</td><td>SEO largo plazo, educación profunda</td></tr>
+        <tr><td>Blog propio</td><td>Posts SEO 1.500–2.500 palabras</td><td>2/mes</td><td>Tráfico orgánico sostenido</td></tr>
+        <tr><td>Email newsletter</td><td>Caso de uso + tip táctico</td><td>Quincenal</td><td>Retención y upgrade Free→Pro</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 14. MENSAJES -->
+  <section class="card" id="s14">
+    <h2><span class="idx">14</span>Mensajes clave reutilizables</h2>
+    <p class="lead">Frases ya calibradas al tono de marca — para mezclar y reciclar.</p>
+
+    <div class="quote">"Ves un jugador pequeño, lento, que no destaca. Lo que no ves es que su pico físico llega en 18 meses. VITAS sí lo ve."</div>
+    <div class="quote">"El próximo Messi no será fichado porque mida 1.58m a los 13 años. A menos que alguien corrija por maduración."</div>
+    <div class="quote">"Tu ojo de scout tiene 30 años de experiencia. También tiene 15 sesgos cognitivos documentados. VITAS trabaja con los dos."</div>
+    <div class="quote">"No te decimos quién ficha. Te decimos a quién no descartar."</div>
+    <div class="quote">"Un número no sustituye al scout. Pero un scout sin números está tomando decisiones con el 40% de la información."</div>
+    <div class="quote">"VSI 78. Jugador clon: Pedri al 87%. ADN Futbolístico: lectura de juego superior a su edad biológica. Todo esto, desde un video de 3 minutos."</div>
+    <div class="quote">"⚡ VITAS · La única plataforma que ve al jugador, no al cuerpo."</div>
+  </section>
+
+  <!-- 15. FAQ -->
+  <section class="card" id="s15">
+    <h2><span class="idx">15</span>Preguntas frecuentes</h2>
+    <p class="lead">Respuestas oficiales para contenido educativo.</p>
+
+    <h4>¿Necesito cámaras profesionales para usar VITAS?</h4>
+    <p>No. Cualquier video grabado desde móvil o cámara amateur funciona. El tracking YOLOv8 se adapta a resoluciones desde 480p.</p>
+
+    <h4>¿Reemplaza al scout humano?</h4>
+    <p>No. Lo complementa. VITAS entrega datos objetivos y continuos; el scout aporta juicio, contexto de partido y lectura emocional del jugador.</p>
+
+    <h4>¿Qué es exactamente el PHV y por qué importa?</h4>
+    <p>PHV = Peak Height Velocity, el momento de máxima velocidad de crecimiento durante la pubertad. Usamos la fórmula de Mirwald (1996) para estimar cuánto falta o ha pasado desde ese pico. Dos jugadores de 14 años pueden diferir en 3 años de maduración biológica. Compararlos sin corregir es un error estadístico grave.</p>
+
+    <h4>¿Cuántos jugadores profesionales hay en la base de comparación?</h4>
+    <p>Más de 300, de las principales ligas: Premier, La Liga, Serie A, Bundesliga, Ligue 1 y más. Más de 40 nacionalidades. Todas las posiciones.</p>
+
+    <h4>¿Funciona sin internet?</h4>
+    <p>Sí. VITAS es una PWA con modo offline. Los cambios se sincronizan al reconectar.</p>
+
+    <h4>¿Mis datos son privados?</h4>
+    <p>Sí. Row Level Security en Supabase garantiza que cada club/usuario ve sólo sus datos. Los videos se almacenan en Bunny Stream con URLs privadas firmadas.</p>
+
+    <h4>¿Puedo exportar mis datos?</h4>
+    <p>Sí. Exporta todo (jugadores, videos, configuraciones) como JSON e impórtalo en otra cuenta cuando quieras.</p>
+  </section>
+
+  <!-- 16. ESTADO -->
+  <section class="card" id="s16">
+    <h2><span class="idx">16</span>Estado actual del proyecto</h2>
+    <p class="lead">Información útil si el contenido habla de roadmap o novedades.</p>
+
+    <h3>Completado</h3>
+    <ul>
+      <li><b>Fase 1 — Persistencia real:</b> Supabase como fuente de verdad, 16+ migraciones idempotentes.</li>
+      <li><b>Fase 2 — Features avanzadas:</b> VSI history chart, PDF export, Squad Dashboard, Push Notifications.</li>
+      <li><b>Fase 3 — VITAS.LAB Intelligence Pipeline:</b> YOLO Tracker, Gemini, Event Metrics, Heatmap, VAEP Bridge.</li>
+      <li><b>Seguridad API:</b> CORS restringido, rate limiting Upstash, JWT HMAC-SHA256, validación Zod.</li>
+      <li><b>RAG:</b> 32 drills + 30 knowledge docs indexados; 4 pipelines (matching pro, plan de desarrollo, reportes acumulativos, knowledge query).</li>
+      <li><b>Deduplicación de videos:</b> hash SHA-256 client-side, evita re-uploads y re-análisis IA.</li>
+      <li><b>PWA instalable</b> en iOS, Android, desktop. Icono completo y splash screens.</li>
+      <li><b>Auto-deploy</b> Vercel en push a main.</li>
+    </ul>
+
+    <h3>Pendiente (no comunicar como "no tenemos")</h3>
+    <ul>
+      <li>Stripe productivo — el código está listo, falta configuración final.</li>
+      <li>VAPID keys productivas para push — placeholders por sustituir.</li>
+      <li>Verificación end-to-end en producción del pipeline completo de video.</li>
+    </ul>
+
+    <h3>Métricas internas de estado</h3>
+    <div class="grid-3">
+      <div class="metric-card"><div class="label">Tests pasando</div><div class="value">1147/1147</div><div class="note">0 regresiones</div></div>
+      <div class="metric-card"><div class="label">Migraciones BD</div><div class="value">16+</div><div class="note">Idempotentes</div></div>
+      <div class="metric-card"><div class="label">Endpoints API</div><div class="value">33</div><div class="note">Vercel Edge Functions</div></div>
+      <div class="metric-card"><div class="label">Drills indexados</div><div class="value">32</div><div class="note">Con embeddings Voyage</div></div>
+      <div class="metric-card"><div class="label">Jugadores pro</div><div class="value">+300</div><div class="note">Base comparativa</div></div>
+      <div class="metric-card"><div class="label">Agentes IA</div><div class="value">7</div><div class="note">Claude + Gemini + determinista</div></div>
+    </div>
+  </section>
+
+  <footer class="final">
+    © 2026 PROPHET HORIZON TECHNOLOGY · VITAS Football Intelligence · Build 2.1.0<br>
+    Documento generado para alimentación de herramientas de contenido.
+  </footer>
+
+</div>
+</body>
+</html>
