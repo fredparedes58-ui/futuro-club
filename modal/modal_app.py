@@ -57,7 +57,11 @@ MODELS_PATH = "/models"
     gpu="T4",
     volumes={MODELS_PATH: volume},
     timeout=600,  # max 10 min
-    secrets=[modal.Secret.from_name("vitas-api-key")],
+    secrets=[
+        modal.Secret.from_name("vitas-bunny"),
+        modal.Secret.from_name("vitas-anthropic"),
+        modal.Secret.from_name("vitas-voyage"),
+    ],
     memory=8192,
 )
 def analyze_video(
@@ -212,7 +216,14 @@ def _format_keypoints(kp_arr, scores):
 
 
 # ── Endpoint HTTP para que VITAS API llame a Modal ──────────────────
-@app.function(image=image, secrets=[modal.Secret.from_name("vitas-api-key")])
+@app.function(
+    image=image,
+    secrets=[
+        modal.Secret.from_name("vitas-bunny"),
+        modal.Secret.from_name("vitas-anthropic"),
+        modal.Secret.from_name("vitas-voyage"),
+    ],
+)
 @modal.web_endpoint(method="POST", label="analyze")
 def analyze_endpoint(payload: dict) -> dict:
     """
