@@ -215,7 +215,7 @@ def _format_keypoints(kp_arr, scores):
     }
 
 
-# ── Endpoint HTTP para que VITAS API llame a Modal ──────────────────
+# ── Endpoint HTTP que dispara procesamiento ASYNC con callback ────────
 @app.function(
     image=image,
     secrets=[
@@ -227,14 +227,108 @@ def _format_keypoints(kp_arr, scores):
 @modal.web_endpoint(method="POST", label="analyze")
 def analyze_endpoint(payload: dict) -> dict:
     """
-    HTTP endpoint llamado desde VITAS API.
+    HTTP endpoint llamado desde VITAS API · ASYNC con callback.
 
     Body esperado:
-      { "videoUrl": "https://...", "playerId": "..." }
+      {
+        "videoUrl": "https://...",
+        "analysisId": "uuid",
+        "playerId": "...",
+        "videoId": "...",
+        "callbackUrl": "https://vitas.app/api/webhooks/modal-callback",
+        "callbackToken": "secret"
+      }
+
+    Comportamiento:
+      1. Acepta el job (return 202)
+      2. Procesa en background (.spawn)
+      3. Cuando termina, POST a callbackUrl con el resultado
     """
     video_url = payload["videoUrl"]
+    analysis_id = payload["analysisId"]
+    callback_url = payload["callbackUrl"]
+    callback_token = payload["callbackToken"]
     target_bbox = payload.get("targetPlayerBbox")
-    return analyze_video.remote(video_url, target_bbox)
+
+    # Lanzar procesamiento en background y retornar inmediatamente
+    call = analyze_and_callback.spawn(
+        video_url=video_url,
+        analysis_id=analysis_id,
+        callback_url=callback_url,
+        callback_token=callback_token,
+        target_player_bbox=target_bbox,
+    )
+
+    return {
+        "accepted": True,
+        "analysisId": analysis_id,
+        "modalRunId": call.object_id,
+        "estimatedTime": "60-120 seconds",
+    }
+
+
+@app.function(
+    image=image,
+    gpu="T4",
+    volumes={MODELS_PATH: volume},
+    timeout=900,  # 15 min max
+    secrets=[
+        modal.Secret.from_name("vitas-bunny"),
+        modal.Secret.from_name("vitas-anthropic"),
+        modal.Secret.from_name("vitas-voyage"),
+    ],
+    memory=8192,
+)
+def analyze_and_callback(
+    video_url: str,
+    analysis_id: str,
+    callback_url: str,
+    callback_token: str,
+    target_player_bbox: dict | None = None,
+) -> dict:
+    """
+    Procesa el vídeo + hace callback a VITAS cuando termina.
+    """
+    import requests
+
+    try:
+        # Procesar vídeo (función que ya teníamos)
+        result = analyze_video.local(video_url, target_player_bbox)
+
+        # POST al callback con el resultado
+        callback_payload = {
+            "analysisId": analysis_id,
+            "callbackToken": callback_token,
+            "modalRunId": "managed-by-modal",
+            "status": "success",
+            "result": result,
+        }
+
+        cb_response = requests.post(
+            callback_url,
+            json=callback_payload,
+            timeout=30,
+        )
+        cb_response.raise_for_status()
+
+        return {"callback_sent": True, "callback_status": cb_response.status_code}
+
+    except Exception as exc:
+        # Notificar fallo a VITAS
+        try:
+            requests.post(
+                callback_url,
+                json={
+                    "analysisId": analysis_id,
+                    "callbackToken": callback_token,
+                    "status": "failed",
+                    "error": str(exc),
+                },
+                timeout=30,
+            )
+        except Exception:
+            pass
+        raise
 
 
 # ── Test local ─────────────────────────────────────────────────────
