@@ -33,19 +33,21 @@ def gpu_check() -> dict:
 
     t0 = time.time()
 
+    # Importante: castear TODO a tipos Python nativos para que Modal pueda
+    # deserializar el resultado en clientes que no tienen torch instalado.
     info = {
-        "cuda_available": torch.cuda.is_available(),
-        "device_count": torch.cuda.device_count(),
-        "device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
-        "cuda_version": torch.version.cuda,
-        "torch_version": torch.__version__,
+        "cuda_available": bool(torch.cuda.is_available()),
+        "device_count": int(torch.cuda.device_count()),
+        "device_name": str(torch.cuda.get_device_name(0)) if torch.cuda.is_available() else None,
+        "cuda_version": str(torch.version.cuda) if torch.version.cuda else None,
+        "torch_version": str(torch.__version__),
     }
 
     if torch.cuda.is_available():
         # Test de tensor en GPU
         x = torch.randn(1000, 1000).cuda()
         y = torch.randn(1000, 1000).cuda()
-        z = (x @ y).sum().item()
+        z = float((x @ y).sum().item())
         info["matrix_test_passed"] = True
         info["matrix_sum_sample"] = round(z, 2)
 
