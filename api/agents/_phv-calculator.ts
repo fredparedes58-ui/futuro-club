@@ -1,154 +1,211 @@
 /**
- * VITAS Agent API — PHV Calculator
+ * VITAS · PHV Calculator (REFACTOR DETERMINISTA · v2)
  * POST /api/agents/phv-calculator
  *
- * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
+ * IMPORTANTE: Esta versión REEMPLAZA la antigua basada en LLM.
+ * Mirwald formula es pura aritmética → no necesita Claude.
+ *
+ * Beneficios:
+ * - Coste: €0 por cálculo (antes ~€0,005)
+ * - Latencia: <5ms (antes 2-3 seg)
+ * - Determinista: misma entrada → misma salida exacta
+ * - Sin riesgo de alucinación del LLM
  */
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
-import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
-import { phvFallback } from "../_lib/agentFallbacks";
 
 export const config = { runtime: "edge" };
 
 const phvSchema = z.object({
   playerId: z.string().min(1),
   chronologicalAge: z.number().min(5).max(25),
-  height: z.number().optional(),
-  weight: z.number().optional(),
-  sitingHeight: z.number().optional(),
-  legLength: z.number().optional(),
-  currentVSI: z.number().optional(),
+  height: z.number().positive().optional(),         // cm
+  weight: z.number().positive().optional(),         // kg
+  sittingHeight: z.number().positive().optional(),  // cm
+  legLength: z.number().positive().optional(),      // cm
+  currentVSI: z.number().min(0).max(100).optional(),
+  gender: z.enum(["M", "F"]).default("M"),
 });
 
-const PHV_CALCULATOR_PROMPT = `
-Eres el motor de cálculo PHV (Peak Height Velocity) de VITAS Football Intelligence.
-Tu única función es calcular la maduración biológica de jugadores juveniles de fútbol.
+type PhvInput = z.infer<typeof phvSchema>;
 
-FÓRMULA MIRWALD (obligatoria para género M):
-Maturity Offset = -9.236 + (0.0002708 × leg_length × sitting_height)
-  - (0.001663 × age × leg_length)
-  + (0.007216 × age × sitting_height)
-  + (0.02292 × weight/height × 100)
+interface PhvResult {
+  playerId: string;
+  biologicalAge: number;
+  chronologicalAge: number;
+  offset: number;
+  category: "early" | "ontime" | "late";
+  phvStatus: "pre_phv" | "during_phv" | "post_phv";
+  developmentWindow: "critical" | "active" | "stable";
+  adjustedVSI: number;
+  recommendation: string;
+  confidence: number;
+  formula: "mirwald_male" | "mirwald_female";
+  inputsUsed: { sittingHeight: "real" | "estimated"; legLength: "real" | "estimated" };
+}
 
-Si no tienes sitting_height ni leg_length, estima con:
-- sitting_height ≈ height × 0.52
-- leg_length ≈ height × 0.48
+/**
+ * Mirwald formula (Mirwald et al. 2002).
+ * Calcula el offset de maduración (años) respecto al PHV.
+ *
+ * Para varones:
+ *   MO = -9.236
+ *      + 0.0002708 × (legLength × sittingHeight)
+ *      − 0.001663  × (age × legLength)
+ *      + 0.007216  × (age × sittingHeight)
+ *      + 0.02292   × (weight / height × 100)
+ *
+ * Para mujeres (Moore 2015 alternativa, simplificada):
+ *   MO = -9.376 + 0.0001882 × (legLength × sittingHeight)
+ *      + 0.0022 × (age × legLength) + 0.005841 × (age × sittingHeight)
+ *      - 0.002658 × (age × weight) + 0.07693 × (weight / height × 100)
+ *
+ * Nota: si no se aportan sittingHeight/legLength, se estiman:
+ *   sittingHeight ≈ height × 0.52
+ *   legLength     ≈ height × 0.48
+ */
+function calculateMaturityOffset(input: PhvInput): {
+  offset: number;
+  formula: "mirwald_male" | "mirwald_female";
+  inputsUsed: { sittingHeight: "real" | "estimated"; legLength: "real" | "estimated" };
+  confidence: number;
+} {
+  const age = input.chronologicalAge;
+  const height = input.height ?? 0;
+  const weight = input.weight ?? 0;
 
-REGLAS DE CATEGORIZACIÓN (obligatorias):
-- offset < -1.0 → category: "early", phvStatus: "pre_phv"
-- offset entre -1.0 y +1.0 → category: "ontme", phvStatus: "during_phv"
-- offset > +1.0 → category: "late", phvStatus: "post_phv"
+  // Estimación si faltan datos antropométricos
+  const sittingHeightUsed = input.sittingHeight ?? (height ? height * 0.52 : 0);
+  const legLengthUsed = input.legLength ?? (height ? height * 0.48 : 0);
 
-VENTANA DE DESARROLLO:
-- Si phvStatus es "during_phv" → developmentWindow: "critical"
-- Si offset entre -2.0 y -1.0, o +1.0 y +2.0 → developmentWindow: "active"
-- Resto → developmentWindow: "stable"
+  const inputsUsed = {
+    sittingHeight: input.sittingHeight ? "real" as const : "estimated" as const,
+    legLength: input.legLength ? "real" as const : "estimated" as const,
+  };
 
-AJUSTE VSI POR PHV:
-- early: el VSI real se multiplica × 1.12
-- ontme: VSI sin ajuste × 1.0
-- late: VSI real × 0.92
-El adjustedVSI es el VSI original recibido multiplicado por el factor correspondiente, clamped a [0,100].
-Si no recibes VSI explícito, usa 70 como base.
+  // Confianza
+  const confidence =
+    inputsUsed.sittingHeight === "real" && inputsUsed.legLength === "real"
+      ? 0.92
+      : 0.74;
 
-CONFIANZA:
-- Con sitting_height y leg_length reales: 0.92
-- Sin esos datos (estimados): 0.74
+  let offset: number;
+  let formula: "mirwald_male" | "mirwald_female";
 
-RESPONDE ÚNICAMENTE con JSON válido:
-{"playerId":"string","biologicalAge":number,"chronologicalAge":number,"offset":number,"category":"early|ontme|late","phvStatus":"pre_phv|during_phv|post_phv","developmentWindow":"critical|active|stable","adjustedVSI":number,"recommendation":"string en español max 120 chars","confidence":number}
+  if (input.gender === "M") {
+    formula = "mirwald_male";
+    offset =
+      -9.236 +
+      0.0002708 * (legLengthUsed * sittingHeightUsed) -
+      0.001663 * (age * legLengthUsed) +
+      0.007216 * (age * sittingHeightUsed) +
+      (height > 0 ? 0.02292 * ((weight / height) * 100) : 0);
+  } else {
+    formula = "mirwald_female";
+    offset =
+      -9.376 +
+      0.0001882 * (legLengthUsed * sittingHeightUsed) +
+      0.0022 * (age * legLengthUsed) +
+      0.005841 * (age * sittingHeightUsed) -
+      0.002658 * (age * weight) +
+      (height > 0 ? 0.07693 * ((weight / height) * 100) : 0);
+  }
 
-No incluyas texto, explicaciones ni markdown fuera del JSON.
-`;
+  return { offset: Number(offset.toFixed(2)), formula, inputsUsed, confidence };
+}
+
+function categorize(offset: number): {
+  category: PhvResult["category"];
+  phvStatus: PhvResult["phvStatus"];
+  developmentWindow: PhvResult["developmentWindow"];
+} {
+  let category: PhvResult["category"];
+  let phvStatus: PhvResult["phvStatus"];
+  let developmentWindow: PhvResult["developmentWindow"];
+
+  if (offset < -1.0) {
+    category = "early";
+    phvStatus = "pre_phv";
+  } else if (offset > 1.0) {
+    category = "late";
+    phvStatus = "post_phv";
+  } else {
+    category = "ontime";
+    phvStatus = "during_phv";
+  }
+
+  if (phvStatus === "during_phv") developmentWindow = "critical";
+  else if ((offset >= -2 && offset < -1) || (offset > 1 && offset <= 2))
+    developmentWindow = "active";
+  else developmentWindow = "stable";
+
+  return { category, phvStatus, developmentWindow };
+}
+
+function adjustVSI(currentVSI: number | undefined, category: PhvResult["category"]): number {
+  const base = currentVSI ?? 70;
+  const factor = category === "early" ? 1.12 : category === "late" ? 0.92 : 1.0;
+  return Math.max(0, Math.min(100, Number((base * factor).toFixed(1))));
+}
+
+function buildRecommendation(result: Omit<PhvResult, "recommendation">): string {
+  const cat = result.category;
+  const win = result.developmentWindow;
+
+  if (cat === "early" && win === "critical") {
+    return "Estirón en curso: priorizar técnica + coordinación. Reducir cargas pesadas.";
+  }
+  if (cat === "early" && win === "active") {
+    return "Pre-estirón cercano: aprovechar ventana técnica antes del crecimiento rápido.";
+  }
+  if (cat === "ontime" && win === "critical") {
+    return "Período crítico de maduración: trabajo técnico-coordinativo prioritario.";
+  }
+  if (cat === "late" && win === "stable") {
+    return "Maduración tardía: foco en fuerza y resistencia. Paciencia con el desarrollo físico.";
+  }
+  if (cat === "late" && win === "active") {
+    return "Post-estirón: consolidar adaptaciones, incrementar trabajo de fuerza progresivo.";
+  }
+  return "Desarrollo estable: mantener plan equilibrado de técnica, físico y táctica.";
+}
 
 export default withHandler(
-  { schema: phvSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId }) => {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return successResponse(phvFallback(body, "no_api_key"));
+  { schema: phvSchema, requireAuth: true, maxRequests: 100 },
+  async ({ body }) => {
+    try {
+      const input = body as PhvInput;
+      const { offset, formula, inputsUsed, confidence } = calculateMaturityOffset(input);
+      const biologicalAge = Number((input.chronologicalAge + offset).toFixed(2));
+      const { category, phvStatus, developmentWindow } = categorize(offset);
+      const adjustedVSI = adjustVSI(input.currentVSI, category);
+
+      const partialResult = {
+        playerId: input.playerId,
+        biologicalAge,
+        chronologicalAge: input.chronologicalAge,
+        offset,
+        category,
+        phvStatus,
+        developmentWindow,
+        adjustedVSI,
+        confidence,
+        formula,
+        inputsUsed,
+      };
+
+      const recommendation = buildRecommendation(partialResult);
+      const result: PhvResult = { ...partialResult, recommendation };
+
+      return successResponse(result);
+    } catch (err) {
+      return errorResponse({
+        code: "phv_calc_failed",
+        message: err instanceof Error ? err.message : "Unknown error in PHV calculation",
+        status: 500,
+      });
     }
-
-    // ── Usage quota check ───────────────────────────────────────
-    if (userId) {
-      const usage = await checkUsageQuota(userId);
-      if (!usage.allowed) return usageExceededResponse(usage);
-    }
-
-    // ── Cache check ─────────────────────────────────────────────
-    const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const playerId = body?.playerId ?? null;
-
-    if (sbUrl && sbKey && userId) {
-      try {
-        const cacheKey = await hashInput("phv-calculator", userId, body);
-        const cached = await getCached(cacheKey, sbUrl, sbKey);
-        if (cached) {
-          incrementHitCount(cacheKey, sbUrl, sbKey).catch(() => {});
-          return successResponse({ ...cached.response, _cached: true });
-        }
-      } catch { /* cache miss — proceed to Claude */ }
-    }
-
-    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type":      "application/json",
-        "x-api-key":         apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model:       "claude-haiku-4-5",
-        max_tokens:  1024,
-        temperature: 0,
-        system:      PHV_CALCULATOR_PROMPT,
-        messages:    [{ role: "user", content: JSON.stringify(body) }],
-      }),
-    });
-
-    if (!claudeRes.ok) {
-      console.warn(`[PHV] Claude API ${claudeRes.status}, using fallback`);
-      return successResponse(phvFallback(body, "claude_error"));
-    }
-
-    const claudeData = await claudeRes.json() as {
-      content: Array<{ type: string; text?: string }>;
-      usage?: { input_tokens: number; output_tokens: number };
-    };
-
-    let fullText = "";
-    for (const block of claudeData.content) {
-      if (block.type === "text" && block.text) fullText += block.text;
-    }
-
-    const m = fullText.match(/\{[\s\S]*\}/);
-    if (!m) {
-      console.warn("[PHV] No JSON in Claude response, using fallback");
-      return successResponse(phvFallback(body, "parse_error"));
-    }
-
-    const parsed = JSON.parse(m[0]);
-    const tokensUsed = claudeData.usage
-      ? claudeData.usage.input_tokens + claudeData.usage.output_tokens
-      : 0;
-
-    const result = { ...parsed, tokensUsed, agentName: "PHVCalculatorAgent" };
-
-    // ── Cache store ─────────────────────────────────────────────
-    if (sbUrl && sbKey && userId) {
-      hashInput("phv-calculator", userId, body).then(cacheKey =>
-        setCached(cacheKey, "phv-calculator", userId, playerId, null, result, tokensUsed, sbUrl, sbKey)
-      ).catch(() => {});
-    }
-
-    // ── Usage log (non-blocking) ────────────────────────────────
-    if (userId) incrementUsage(userId, "phv-calculator").catch(() => {});
-
-    return successResponse(result);
-  },
+  }
 );

@@ -32,6 +32,10 @@
     {
       "path": "/api/scout/auto-generate",
       "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/crons/data-retention",
+      "schedule": "0 3 * * *"
     }
   ],
   "github": {
