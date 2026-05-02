@@ -128,6 +128,44 @@ Sigue este checklist en orden. **No saltes etapas.** Cada ✓ debe estar verific
 
 ---
 
+## ✅ SPRINT 4 · 6 Reportes Claude · ADICIONES (Sprint 2 retrospectiva)
+
+### 🎯 Métrica diferenciadora · Scan Rate Detection
+**Origen:** decisión del usuario tras Sprint 2 (intención original detrás de "gestos faciales").
+
+**Qué es:** medir cuántas veces el jugador gira la cabeza ANTES de recibir el balón.
+Métrica validada científicamente (Geir Jordet · Universidad Noruega).
+- Pedri sub-12: 0.51 scans/s
+- Pro promedio: 0.4-0.8 scans/s
+- Sub-12 promedio: 0.15 scans/s
+
+**Implementación (servicio determinista):**
+- [ ] Crear `_scan-detector.ts` (post-procesa keypoints MediaPipe)
+- [ ] Algoritmo: detectar cambios bruscos de yaw (cabeza) > 20° en <0.4s
+- [ ] Inputs: `nose`, `leftEye`, `rightEye` (índices 0, 2, 5 de MediaPipe)
+- [ ] Outputs:
+  - `scan_rate` (scans/s global)
+  - `pre_reception_scans` (en 3s antes de recibir)
+  - `scan_amplitude_avg` (grados)
+  - `scan_bilaterality_pct` (% miradas a ambos lados)
+
+**Integración en reportes:**
+- [ ] Añadir sección "Scanning" en LAB Biomechanics
+- [ ] Crear subscore "Lectura de Juego" en VSI (peso ajustable)
+- [ ] Ejemplo en Player Report: "tu hijo escanea X veces/segundo · top Y%"
+
+**Bloqueador parcial (Sprint 5+):**
+- ⚠️ Requiere detector de balón (YOLOv8) para identificar "pre-recepción"
+- En Sprint 4: implementar como `scan_rate global` (sin pre-recepción)
+- En Sprint 5+: añadir detector de balón → `pre_reception_scans` real
+
+**Por qué importa:**
+- Diferenciador BRUTAL vs MyCoach/Once/Veo (nadie lo hace bien)
+- Métrica predictiva del talento futuro (papers Jordet)
+- Apreciada por scouts profesionales
+
+---
+
 ## ✅ SPRINT 5 · Integración App (3 días)
 
 ### Día 1 · Webhook + Queue
