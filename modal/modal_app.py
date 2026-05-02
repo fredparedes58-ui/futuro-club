@@ -1,20 +1,22 @@
 """
-VITAS · Modal GPU Pipeline (NUEVO)
-Procesa un vídeo de fútbol → keypoints + embedding + detecciones.
+VITAS · Modal GPU Pipeline (PRODUCCIÓN)
+Procesa un vídeo de fútbol → keypoints biomecánicos + métricas.
 
 Stack:
-  - RTMDet-m (Apache 2.0)  · detección + tracking jugadores
-  - MMPose RTMPose-m       · 17 keypoints biomecánicos
-  - VideoMAE v2 (MIT)      · embedding 768-dim del clip
+  - MediaPipe Pose Landmarker (Apache 2.0) · 33 keypoints biomecánicos
+  - GPU T4 para acelerar inferencia
 
-Coste objetivo: ~€0,012 por vídeo de 90 seg en GPU T4 (free tier)
-Latencia objetivo: 30-40 segundos en T4 (sin cold start)
+Coste objetivo: ~€0,003 por vídeo de 90 seg en GPU T4
+Latencia objetivo: 30-60 segundos en T4
 
 Deploy:
-    modal deploy modal_app.py
+    modal deploy modal/modal_app.py
 
-Test:
-    modal run modal_app.py::analyze_video --video-url=https://...
+Endpoint público que VITAS API llama:
+    POST https://YOUR-WORKSPACE--vitas-video-pipeline-analyze.modal.run
+    Body: { videoUrl, analysisId, callbackUrl, callbackToken, ... }
+    Comportamiento: ASYNC · responde 200 inmediato + procesa en background +
+    callback HTTP cuando termina.
 """
 
 import modal
@@ -22,200 +24,339 @@ from typing import Any
 
 app = modal.App("vitas-video-pipeline")
 
-# ── Imagen Docker con todas las dependencias ────────────────────────────
+# ── Imagen Docker ─────────────────────────────────────────────────────
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg", "libgl1-mesa-glx", "libglib2.0-0")
     .pip_install(
-        "torch==2.2.0",
-        "torchvision==0.17.0",
-        "opencv-python-headless==4.9.0.80",
-        "numpy==1.26.3",
-        "openmim==0.3.9",
-        "transformers==4.38.0",  # para VideoMAE v2
-        "decord==0.6.0",         # decodificación de vídeo eficiente
-        "supervision==0.18.0",   # ByteTrack
-        "requests==2.31.0",
-    )
-    .run_commands(
-        # Instalar MMPose + MMDetection (RTMDet) via mim
-        "mim install mmengine==0.10.3",
-        "mim install 'mmcv==2.1.0'",
-        "mim install 'mmdet==3.3.0'",
-        "mim install 'mmpose==1.3.1'",
+        "mediapipe==0.10.18",
+        "opencv-python-headless==4.10.0.84",
+        "numpy==1.26.4",
+        "decord==0.6.0",
+        "requests==2.32.3",
+        "fastapi[standard]==0.115.0",  # requerido por @modal.fastapi_endpoint
     )
 )
 
-# ── Volumen persistente para los pesos de los modelos ───────────────────
 volume = modal.Volume.from_name("vitas-models", create_if_missing=True)
-
 MODELS_PATH = "/models"
 
 
+# ── Función core: procesa vídeo ───────────────────────────────────────
 @app.function(
     image=image,
     gpu="T4",
     volumes={MODELS_PATH: volume},
-    timeout=600,  # max 10 min
+    timeout=600,
+    memory=8192,
     secrets=[
         modal.Secret.from_name("vitas-bunny"),
         modal.Secret.from_name("vitas-anthropic"),
         modal.Secret.from_name("vitas-voyage"),
     ],
-    memory=8192,
 )
 def analyze_video(
     video_url: str,
-    target_player_bbox: dict | None = None,  # {"x":, "y":, "w":, "h":} si ya identificado
+    target_player_bbox: dict | None = None,
+    max_frames: int = 60,
 ) -> dict[str, Any]:
     """
-    Pipeline principal: vídeo → keypoints + embedding + detecciones.
+    Pipeline principal: vídeo → keypoints + métricas biomecánicas.
 
-    Args:
-        video_url: URL HTTPS del vídeo (Bunny Stream)
-        target_player_bbox: bbox del jugador objetivo (opcional, primera vez será None)
-
-    Returns:
-        {
-          "keypoints": [...],          # 17 keypoints × jugador × frame
-          "embedding": [...],          # 768-dim VideoMAE
-          "detections": [...],         # bboxes RTMDet
-          "videoFps": float,
-          "pixelsPerMeter": float | None,
-          "framesProcessed": int,
-          "latencyMs": int,
-        }
+    Returns dict serializable (sin objetos torch/numpy raw).
     """
     import time
     import os
+    import math
     import requests
     import cv2
-    import numpy as np
+    import mediapipe as mp
     from decord import VideoReader, cpu
 
     t0 = time.time()
+    log = []
 
-    # ── 1. Descargar vídeo ─────────────────────────────────────────
+    def step(msg):
+        elapsed = time.time() - t0
+        log.append(f"[{elapsed:.1f}s] {msg}")
+        print(log[-1])
+
+    step("Iniciando pipeline MediaPipe Pose")
+
+    # ── 1. Descargar vídeo ──────────────────────────────────────
+    step(f"Descargando: {video_url[:80]}...")
     local_path = "/tmp/input.mp4"
-    print(f"[VITAS] Descargando vídeo desde {video_url[:80]}...")
-    r = requests.get(video_url, stream=True, timeout=60)
+    r = requests.get(video_url, stream=True, timeout=120)
     r.raise_for_status()
     with open(local_path, "wb") as f:
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             f.write(chunk)
+    file_size_mb = os.path.getsize(local_path) / 1024 / 1024
+    step(f"Vídeo descargado · {file_size_mb:.1f} MB")
 
-    # ── 2. Decodificar frames (submuestreo 5 fps) ──────────────────
+    # ── 2. Decodificar ──────────────────────────────────────────
     vr = VideoReader(local_path, ctx=cpu(0))
     total_frames = len(vr)
-    fps = vr.get_avg_fps()
+    fps = float(vr.get_avg_fps())
     duration = total_frames / fps
-    sample_step = max(1, int(fps / 5))  # ~5 fps efectivos
-    sampled_indices = list(range(0, total_frames, sample_step))
-    print(f"[VITAS] Vídeo: {duration:.1f}s @ {fps:.0f}fps · sampling {len(sampled_indices)} frames")
+    step(f"Vídeo: {duration:.1f}s @ {fps:.0f}fps · {total_frames} frames totales")
 
-    # ── 3. RTMDet detección + ByteTrack ────────────────────────────
-    print("[VITAS] Inicializando RTMDet-m...")
-    from mmdet.apis import init_detector, inference_detector
-    rtmdet_config = f"{MODELS_PATH}/rtmdet_m_8xb32-300e_coco.py"
-    rtmdet_ckpt = f"{MODELS_PATH}/rtmdet_m_8xb32-300e_coco.pth"
+    sample_step = max(1, total_frames // max_frames)
+    sampled_indices = list(range(0, total_frames, sample_step))[:max_frames]
+    step(f"Procesando {len(sampled_indices)} frames")
 
-    if not os.path.exists(rtmdet_ckpt):
-        print("[VITAS] Descargando pesos RTMDet (primera vez)...")
-        os.makedirs(MODELS_PATH, exist_ok=True)
-        os.system(f"mim download mmdet --config rtmdet_m_8xb32-300e_coco --dest {MODELS_PATH}")
-        volume.commit()
-
-    detector = init_detector(rtmdet_config, rtmdet_ckpt, device="cuda:0")
-
-    detections_per_frame = []
-    for idx in sampled_indices:
-        frame = vr[idx].asnumpy()
-        result = inference_detector(detector, frame)
-        # Filtrar solo personas (class_id=0) con confianza >0.5
-        person_dets = result.pred_instances[result.pred_instances.labels == 0]
-        person_dets = person_dets[person_dets.scores > 0.5]
-        bboxes = person_dets.bboxes.cpu().numpy().tolist()
-        detections_per_frame.append({"frame_idx": idx, "bboxes": bboxes})
-
-    print(f"[VITAS] Detección: {sum(len(d['bboxes']) for d in detections_per_frame)} personas-frame")
-
-    # ── 4. MMPose RTMPose ──────────────────────────────────────────
-    print("[VITAS] Inicializando MMPose RTMPose-m...")
-    from mmpose.apis import init_model as init_pose, inference_topdown
-    pose_config = f"{MODELS_PATH}/rtmpose-m_8xb256-420e_coco-256x192.py"
-    pose_ckpt = f"{MODELS_PATH}/rtmpose-m_8xb256-420e_coco-256x192.pth"
-
-    if not os.path.exists(pose_ckpt):
-        print("[VITAS] Descargando pesos RTMPose (primera vez)...")
-        os.system(f"mim download mmpose --config rtmpose-m_8xb256-420e_coco-256x192 --dest {MODELS_PATH}")
-        volume.commit()
-
-    pose_model = init_pose(pose_config, pose_ckpt, device="cuda:0")
+    # ── 3. MediaPipe Pose ───────────────────────────────────────
+    step("Inicializando MediaPipe Pose")
+    mp_pose = mp.solutions.pose
+    pose = mp_pose.Pose(
+        static_image_mode=False,
+        model_complexity=2,
+        enable_segmentation=False,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+    )
 
     keypoints_per_frame = []
-    for det in detections_per_frame:
-        if not det["bboxes"]:
-            continue
-        frame = vr[det["frame_idx"]].asnumpy()
-        bboxes_np = np.array(det["bboxes"])
-        pose_results = inference_topdown(pose_model, frame, bboxes_np)
-        for player_idx, pr in enumerate(pose_results):
-            kp = pr.pred_instances.keypoints[0].cpu().numpy()  # (17, 2)
-            kp_scores = pr.pred_instances.keypoint_scores[0].cpu().numpy()
+    frames_with_pose = 0
+
+    for idx in sampled_indices:
+        frame_bgr = vr[idx].asnumpy()
+        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        results = pose.process(frame_rgb)
+
+        if results.pose_landmarks:
+            frames_with_pose += 1
+            h, w, _ = frame_rgb.shape
+            kp_list = []
+            for lm in results.pose_landmarks.landmark:
+                kp_list.append({
+                    "x": float(lm.x * w),
+                    "y": float(lm.y * h),
+                    "z": float(lm.z),
+                    "visibility": float(lm.visibility),
+                })
+
             keypoints_per_frame.append({
-                "timestamp": det["frame_idx"] / fps,
-                "playerIdx": player_idx,
-                "keypoints": _format_keypoints(kp, kp_scores),
+                "timestamp": float(idx / fps),
+                "frame_idx": int(idx),
+                "keypoints": kp_list,
             })
 
-    # ── 5. VideoMAE v2 embedding ───────────────────────────────────
-    print("[VITAS] Calculando VideoMAE embedding...")
-    from transformers import VideoMAEImageProcessor, VideoMAEModel
-    import torch
+    pose.close()
+    step(f"Pose detectada en {frames_with_pose}/{len(sampled_indices)} frames")
 
-    processor = VideoMAEImageProcessor.from_pretrained("MCG-NJU/videomae-base", cache_dir=MODELS_PATH)
-    videomae = VideoMAEModel.from_pretrained("MCG-NJU/videomae-base", cache_dir=MODELS_PATH).cuda().eval()
+    # ── 4. Métricas biomecánicas ──────────────────────────────
+    metrics = compute_biomechanics(keypoints_per_frame)
+    step(f"Métricas: knee_L={metrics.get('knee_left_avg')}° R={metrics.get('knee_right_avg')}°")
 
-    # Tomar 16 frames uniformemente espaciados
-    sample_16 = np.linspace(0, total_frames - 1, 16, dtype=int)
-    clip_frames = [vr[int(i)].asnumpy() for i in sample_16]
-    inputs = processor(clip_frames, return_tensors="pt").to("cuda:0")
+    # ── 5. Resultado ──────────────────────────────────────────
+    total_time = time.time() - t0
+    step(f"Pipeline completo en {total_time:.1f}s")
 
-    with torch.no_grad():
-        outputs = videomae(**inputs)
-        embedding = outputs.last_hidden_state.mean(dim=1)[0].cpu().numpy().tolist()
-
-    # ── 6. Resultado final ─────────────────────────────────────────
-    latency_ms = int((time.time() - t0) * 1000)
-    print(f"[VITAS] ✓ Pipeline completado en {latency_ms / 1000:.1f}s")
+    # ── 6. Si NO hay target_player_bbox, extraer candidatos para identificación ─
+    candidates = []
+    if not target_player_bbox and frames_with_pose > 0:
+        candidates = extract_player_candidates(vr, keypoints_per_frame, max_candidates=6)
+        step(f"Candidatos extraídos para identificación: {len(candidates)}")
 
     return {
-        "keypoints": keypoints_per_frame,
-        "embedding": embedding,
-        "detections": detections_per_frame,
-        "videoFps": fps,
-        "videoDurationSec": duration,
-        "pixelsPerMeter": None,  # requiere calibración manual
+        "status": "success" if frames_with_pose > 0 else "no_pose_detected",
+        "videoUrl": video_url,
+        "videoFps": round(fps, 1),
+        "videoDurationSec": round(duration, 2),
         "framesProcessed": len(sampled_indices),
-        "latencyMs": latency_ms,
+        "framesWithPose": int(frames_with_pose),
+        "detectionRate": round(frames_with_pose / len(sampled_indices), 3) if sampled_indices else 0,
+        "keypointsPerFrame": 33,
+        "keypoints": keypoints_per_frame,
+        "biomechanics": metrics,
+        "candidates": candidates,        # NUEVO: imágenes en base64 de cada persona detectada
+        "totalLatencyMs": int(total_time * 1000),
+        "pixelsPerMeter": None,
+        "log": log,
     }
 
 
-def _format_keypoints(kp_arr, scores):
-    """Convierte keypoints COCO 17 puntos al formato VITAS."""
-    names = [
-        "nose", "leftEye", "rightEye", "leftEar", "rightEar",
-        "leftShoulder", "rightShoulder", "leftElbow", "rightElbow",
-        "leftWrist", "rightWrist", "leftHip", "rightHip",
-        "leftKnee", "rightKnee", "leftAnkle", "rightAnkle",
-    ]
+def extract_player_candidates(vr, keypoints_per_frame, max_candidates: int = 6) -> list:
+    """
+    Extrae crops de personas detectadas en frames distintos.
+    Devuelve lista de:
+      { candidateIdx, frameIdx, bbox, cropBase64 }
+    Para que el frontend pueda mostrar al usuario quién seleccionar.
+    """
+    import cv2
+    import base64
+
+    if not keypoints_per_frame:
+        return []
+
+    # Submuestrear: tomar candidatos de frames espaciados
+    step_size = max(1, len(keypoints_per_frame) // max_candidates)
+    selected = keypoints_per_frame[::step_size][:max_candidates]
+
+    candidates = []
+    for idx, frame_data in enumerate(selected):
+        kp = frame_data["keypoints"]
+
+        # Calcular bbox a partir de los keypoints visibles
+        xs = [p["x"] for p in kp if p["visibility"] > 0.5]
+        ys = [p["y"] for p in kp if p["visibility"] > 0.5]
+        if not xs or not ys:
+            continue
+
+        x_min = max(0, int(min(xs) - 30))
+        y_min = max(0, int(min(ys) - 30))
+        x_max = int(max(xs) + 30)
+        y_max = int(max(ys) + 30)
+        w = x_max - x_min
+        h = y_max - y_min
+
+        # Filtrar bbox demasiado pequeñas (<80px alto)
+        if h < 80:
+            continue
+
+        # Extraer crop del frame
+        frame_bgr = vr[frame_data["frame_idx"]].asnumpy()
+        h_frame, w_frame, _ = frame_bgr.shape
+        x_max = min(w_frame, x_max)
+        y_max = min(h_frame, y_max)
+        crop = frame_bgr[y_min:y_max, x_min:x_max]
+
+        # Comprimir a JPEG y codificar base64 (máx 100KB cada uno)
+        _, jpeg = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 70])
+        crop_b64 = base64.b64encode(jpeg.tobytes()).decode("ascii")
+
+        candidates.append({
+            "candidateIdx": idx,
+            "frameIdx": frame_data["frame_idx"],
+            "timestamp": frame_data["timestamp"],
+            "bbox": {"x": x_min, "y": y_min, "w": w, "h": h},
+            "cropBase64": crop_b64,  # frontend lo renderiza como <img src="data:image/jpeg;base64,...">
+        })
+
+    return candidates
+
+
+def compute_biomechanics(keypoints_per_frame: list) -> dict:
+    """Calcula métricas biomecánicas a partir de los keypoints MediaPipe."""
+    import math
+
+    if not keypoints_per_frame:
+        return {"error": "no_keypoints"}
+
+    def angle(a, b, c):
+        ab = (a["x"] - b["x"], a["y"] - b["y"])
+        cb = (c["x"] - b["x"], c["y"] - b["y"])
+        dot = ab[0] * cb[0] + ab[1] * cb[1]
+        mag_ab = math.hypot(*ab)
+        mag_cb = math.hypot(*cb)
+        if mag_ab == 0 or mag_cb == 0:
+            return 0
+        cos_angle = max(-1, min(1, dot / (mag_ab * mag_cb)))
+        return math.degrees(math.acos(cos_angle))
+
+    knee_left, knee_right = [], []
+    ankle_y_left = []
+
+    # Indices MediaPipe: 23=leftHip, 24=rightHip, 25=leftKnee, 26=rightKnee,
+    # 27=leftAnkle, 28=rightAnkle
+    for f in keypoints_per_frame:
+        kp = f["keypoints"]
+        if (kp[23]["visibility"] > 0.5 and kp[25]["visibility"] > 0.5
+                and kp[27]["visibility"] > 0.5):
+            knee_left.append(angle(kp[23], kp[25], kp[27]))
+            ankle_y_left.append(kp[27]["y"])
+        if (kp[24]["visibility"] > 0.5 and kp[26]["visibility"] > 0.5
+                and kp[28]["visibility"] > 0.5):
+            knee_right.append(angle(kp[24], kp[26], kp[28]))
+
+    def avg(arr):
+        return round(sum(arr) / len(arr), 2) if arr else None
+
+    knee_l_avg = avg(knee_left)
+    knee_r_avg = avg(knee_right)
+    asymmetry = None
+    if knee_l_avg and knee_r_avg:
+        asymmetry = round(abs(knee_l_avg - knee_r_avg) / max(knee_l_avg, knee_r_avg) * 100, 2)
+
+    stride_hz = None
+    if len(ankle_y_left) > 5:
+        peaks = 0
+        for i in range(1, len(ankle_y_left) - 1):
+            if ankle_y_left[i] < ankle_y_left[i - 1] and ankle_y_left[i] < ankle_y_left[i + 1]:
+                peaks += 1
+        duration = keypoints_per_frame[-1]["timestamp"] - keypoints_per_frame[0]["timestamp"]
+        if duration > 0:
+            stride_hz = round(peaks / duration, 2)
+
     return {
-        name: {"x": float(kp_arr[i][0]), "y": float(kp_arr[i][1]), "confidence": float(scores[i])}
-        for i, name in enumerate(names)
+        "knee_left_avg": knee_l_avg,
+        "knee_right_avg": knee_r_avg,
+        "asymmetry_pct": asymmetry,
+        "stride_frequency_hz": stride_hz,
+        "samples_left": len(knee_left),
+        "samples_right": len(knee_right),
     }
 
 
-# ── Endpoint HTTP que dispara procesamiento ASYNC con callback ────────
+# ── Función ASYNC con callback (lo que llama VITAS API) ────────────────
+@app.function(
+    image=image,
+    gpu="T4",
+    volumes={MODELS_PATH: volume},
+    timeout=900,
+    memory=8192,
+    secrets=[
+        modal.Secret.from_name("vitas-bunny"),
+        modal.Secret.from_name("vitas-anthropic"),
+        modal.Secret.from_name("vitas-voyage"),
+    ],
+)
+def analyze_and_callback(
+    video_url: str,
+    analysis_id: str,
+    callback_url: str,
+    callback_token: str,
+    target_player_bbox: dict | None = None,
+) -> dict:
+    """Procesa vídeo + POST callback a VITAS cuando termina."""
+    import requests
+
+    try:
+        result = analyze_video.local(video_url, target_player_bbox)
+
+        cb_response = requests.post(
+            callback_url,
+            json={
+                "analysisId": analysis_id,
+                "callbackToken": callback_token,
+                "modalRunId": "managed-by-modal",
+                "status": "success",
+                "result": result,
+            },
+            timeout=30,
+        )
+        cb_response.raise_for_status()
+        return {"callback_sent": True, "callback_status": cb_response.status_code}
+
+    except Exception as exc:
+        try:
+            requests.post(
+                callback_url,
+                json={
+                    "analysisId": analysis_id,
+                    "callbackToken": callback_token,
+                    "status": "failed",
+                    "error": str(exc),
+                },
+                timeout=30,
+            )
+        except Exception:
+            pass
+        raise
+
+
+# ── Endpoint HTTP público que llama VITAS API ─────────────────────────
 @app.function(
     image=image,
     secrets=[
@@ -224,7 +365,7 @@ def _format_keypoints(kp_arr, scores):
         modal.Secret.from_name("vitas-voyage"),
     ],
 )
-@modal.web_endpoint(method="POST", label="analyze")
+@modal.fastapi_endpoint(method="POST", label="analyze")
 def analyze_endpoint(payload: dict) -> dict:
     """
     HTTP endpoint llamado desde VITAS API · ASYNC con callback.
@@ -236,19 +377,21 @@ def analyze_endpoint(payload: dict) -> dict:
         "playerId": "...",
         "videoId": "...",
         "callbackUrl": "https://vitas.app/api/webhooks/modal-callback",
-        "callbackToken": "secret"
+        "callbackToken": "secret",
+        "targetPlayerBbox": {...} | null
       }
-
-    Comportamiento:
-      1. Acepta el job (return 202)
-      2. Procesa en background (.spawn)
-      3. Cuando termina, POST a callbackUrl con el resultado
     """
-    video_url = payload["videoUrl"]
-    analysis_id = payload["analysisId"]
-    callback_url = payload["callbackUrl"]
-    callback_token = payload["callbackToken"]
+    video_url = payload.get("videoUrl")
+    analysis_id = payload.get("analysisId")
+    callback_url = payload.get("callbackUrl")
+    callback_token = payload.get("callbackToken")
     target_bbox = payload.get("targetPlayerBbox")
+
+    if not all([video_url, analysis_id, callback_url, callback_token]):
+        return {
+            "error": "missing_required_fields",
+            "required": ["videoUrl", "analysisId", "callbackUrl", "callbackToken"],
+        }
 
     # Lanzar procesamiento en background y retornar inmediatamente
     call = analyze_and_callback.spawn(
@@ -267,77 +410,13 @@ def analyze_endpoint(payload: dict) -> dict:
     }
 
 
-@app.function(
-    image=image,
-    gpu="T4",
-    volumes={MODELS_PATH: volume},
-    timeout=900,  # 15 min max
-    secrets=[
-        modal.Secret.from_name("vitas-bunny"),
-        modal.Secret.from_name("vitas-anthropic"),
-        modal.Secret.from_name("vitas-voyage"),
-    ],
-    memory=8192,
-)
-def analyze_and_callback(
-    video_url: str,
-    analysis_id: str,
-    callback_url: str,
-    callback_token: str,
-    target_player_bbox: dict | None = None,
-) -> dict:
-    """
-    Procesa el vídeo + hace callback a VITAS cuando termina.
-    """
-    import requests
-
-    try:
-        # Procesar vídeo (función que ya teníamos)
-        result = analyze_video.local(video_url, target_player_bbox)
-
-        # POST al callback con el resultado
-        callback_payload = {
-            "analysisId": analysis_id,
-            "callbackToken": callback_token,
-            "modalRunId": "managed-by-modal",
-            "status": "success",
-            "result": result,
-        }
-
-        cb_response = requests.post(
-            callback_url,
-            json=callback_payload,
-            timeout=30,
-        )
-        cb_response.raise_for_status()
-
-        return {"callback_sent": True, "callback_status": cb_response.status_code}
-
-    except Exception as exc:
-        # Notificar fallo a VITAS
-        try:
-            requests.post(
-                callback_url,
-                json={
-                    "analysisId": analysis_id,
-                    "callbackToken": callback_token,
-                    "status": "failed",
-                    "error": str(exc),
-                },
-                timeout=30,
-            )
-        except Exception:
-            pass
-        raise
-
-
-# ── Test local ─────────────────────────────────────────────────────
+# ── CLI test (sólo para desarrollo) ────────────────────────────────
 @app.local_entrypoint()
-def main(video_url: str = "https://example.com/test.mp4"):
-    print(f"[VITAS] Test analyze_video con {video_url}")
+def main(video_url: str = "https://download.samplelib.com/mp4/sample-5s.mp4"):
+    print(f"[VITAS] Test pipeline con {video_url}")
     result = analyze_video.remote(video_url)
     print(f"\n=== RESULTADO ===")
+    print(f"Status: {result['status']}")
     print(f"Frames procesados: {result['framesProcessed']}")
-    print(f"Keypoints extraídos: {len(result['keypoints'])}")
-    print(f"Embedding dim: {len(result['embedding'])}")
-    print(f"Latencia: {result['latencyMs']}ms")
+    print(f"Pose detectada: {result['framesWithPose']}/{result['framesProcessed']}")
+    print(f"Latencia: {result['totalLatencyMs']}ms")

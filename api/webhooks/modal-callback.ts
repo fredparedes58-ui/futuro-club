@@ -143,11 +143,13 @@ export default withHandler(
 
     // ── Caso éxito: persistir resultado ─────────────────────
     const result = input.result ?? {};
+    const candidates = (result as { candidates?: unknown }).candidates;
     const updatePayload: Record<string, unknown> = {
       status: "processing_reports",
       biomechanics: result.biomechanics ?? null,
       total_latency_ms: result.totalLatencyMs ?? null,
       modal_run_id: input.modalRunId ?? null,
+      candidates: candidates ?? null,
     };
 
     // Si Modal devolvió embedding, persistirlo
