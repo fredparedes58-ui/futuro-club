@@ -274,6 +274,10 @@ ANTES de aceptar el primer pago real o demo a inversor, rotar TODO:
 3. Federación pide auditoría de seguridad
 4. Subida masiva de vídeos de menores reales (>10 jugadores)
 
+**Decisión actualizada (Sprint 4):** rotación postpuesta hasta que VITAS
+esté listo para el primer cliente real. Mientras esté en testing privado
+contigo solo, las keys actuales no son crítica de rotar.
+
 ---
 
 ## 🚦 Reglas globales
