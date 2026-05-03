@@ -21,32 +21,24 @@ import { hashInput, getCached, setCached } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
+// Schema tolerante: PHV puede ser null si player no tiene anthropometrics
 const projectionSchema = z.object({
   playerId: z.string(),
-  videoId: z.string(),
-  vsi: z.object({
-    vsi: z.number(),
-    tier: z.string(),
-    subscores: z.record(z.unknown()),
-  }),
-  phv: z.object({
-    biologicalAge: z.number(),
-    chronologicalAge: z.number(),
-    offset: z.number(),
-    category: z.enum(["early", "ontime", "late"]),
-    phvStatus: z.enum(["pre_phv", "during_phv", "post_phv"]),
-    developmentWindow: z.string(),
-  }),
-  historicalVsi: z
-    .array(z.object({ date: z.string(), vsi: z.number() }))
-    .optional(),
+  videoId: z.string().optional(),
+  analysisId: z.string().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  phv: z.record(z.unknown()).nullable().optional(),
+  biomechanics: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
+  similarity: z.record(z.unknown()).nullable().optional(),
+  historicalVsi: z.array(z.unknown()).optional(),
   playerContext: z.object({
-    chronologicalAge: z.number(),
+    chronologicalAge: z.number().optional(),
     position: z.string().optional(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
-const PROMPT_VERSION = "projection-v1.0.0";
+const PROMPT_VERSION = "projection-v1.1.0"; // v1.1 = schema tolerante (PHV null OK)
 
 const SYSTEM_PROMPT = `Eres el motor de Proyección 3 años de VITAS.
 

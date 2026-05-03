@@ -16,30 +16,21 @@ import { hashInput, getCached, setCached } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
+// Schema tolerante: el orchestrator puede pasar similarity null si falla
 const matchSchema = z.object({
   playerId: z.string(),
-  videoId: z.string(),
-  similarity: z.object({
-    matches: z.array(
-      z.object({
-        proPlayer: z.object({
-          name: z.string(),
-          position: z.string(),
-          club: z.string().optional(),
-          age: z.number().optional(),
-        }),
-        similarityScore: z.number(),
-        sharedAttributes: z.array(z.string()).optional(),
-      })
-    ).min(1),
-  }),
+  videoId: z.string().optional(),
+  analysisId: z.string().optional(),
+  similarity: z.record(z.unknown()).nullable().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
-    chronologicalAge: z.number(),
+    chronologicalAge: z.number().optional(),
     position: z.string().optional(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
-const PROMPT_VERSION = "best-match-v1.0.0";
+const PROMPT_VERSION = "best-match-v1.1.0"; // v1.1 = schema tolerante
 
 const SYSTEM_PROMPT = `Eres el motor narrador de Best-Match de VITAS Football Intelligence.
 

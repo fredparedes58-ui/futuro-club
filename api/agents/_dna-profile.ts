@@ -28,22 +28,19 @@ export const config = { runtime: "edge" };
 
 const dnaSchema = z.object({
   playerId: z.string(),
-  videoId: z.string(),
-  vsi: z.object({
-    vsi: z.number(),
-    subscores: z.record(z.unknown()),
-  }),
-  biomechanics: z.object({
-    sprintSpeed: z.object({ value: z.number(), unit: z.string() }),
-    strideFrequencyHz: z.number(),
-  }).optional(),
+  videoId: z.string().optional(),
+  analysisId: z.string().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  biomechanics: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
+  similarity: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
-    chronologicalAge: z.number(),
+    chronologicalAge: z.number().optional(),
     position: z.string().optional(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
-const PROMPT_VERSION = "dna-profile-v1.0.0";
+const PROMPT_VERSION = "dna-profile-v1.1.0"; // v1.1 = schema tolerante
 
 const SYSTEM_PROMPT = `Eres el motor de ADN Futbolístico de VITAS.
 

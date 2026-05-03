@@ -19,26 +19,23 @@ import { hashInput, getCached, setCached } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
+// Schema tolerante con scanning (Sprint 4)
 const planSchema = z.object({
   playerId: z.string(),
-  videoId: z.string(),
-  vsi: z.object({
-    vsi: z.number(),
-    tier: z.string(),
-    subscores: z.record(z.unknown()),
-  }),
-  phv: z.object({
-    phvStatus: z.string(),
-    developmentWindow: z.string(),
-    category: z.string(),
-  }).optional(),
+  videoId: z.string().optional(),
+  analysisId: z.string().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  phv: z.record(z.unknown()).nullable().optional(),
+  biomechanics: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
+  similarity: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
-    chronologicalAge: z.number(),
+    chronologicalAge: z.number().optional(),
     position: z.string().optional(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
-const PROMPT_VERSION = "dev-plan-v1.0.0";
+const PROMPT_VERSION = "dev-plan-v1.1.0"; // v1.1 = schema tolerante + scanning
 
 const PLAN_SYSTEM_PROMPT = `Eres el motor de generación de Planes de Desarrollo de VITAS.
 
@@ -50,6 +47,9 @@ REGLAS:
 - Si VSI subscore "technique" <60: priorizar drills técnicos.
 - Si VSI subscore "physical" <60 y phvStatus="post_phv": fuerza progresiva.
 - Si VSI subscore "tactical" <60: situaciones de juego reducidas.
+- Si scanning.scan_rate < p25 de su edad: AÑADIR drill "shoulder check pre-recepción"
+  (girar cabeza 2-3 veces antes de recibir el balón) en el primer bloque.
+- Si scanning.bilateralityPct < 30: AÑADIR drill de pase ciego al lado débil.
 - Estructura el plan en 4 bloques de 3 semanas cada uno.
 - Usa los drills sugeridos del RAG context si encajan; no inventes drills nuevos.
 

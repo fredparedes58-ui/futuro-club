@@ -22,44 +22,24 @@ import { hashInput, getCached, setCached } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
+// Schema flexible · acepta lo que el orchestrator manda (incluye partial/null)
 const playerReportSchema = z.object({
   playerId: z.string(),
-  videoId: z.string(),
-  vsi: z.object({
-    vsi: z.number(),
-    tier: z.string(),
-    tierLabel: z.string(),
-    subscores: z.record(z.unknown()),
-  }),
-  phv: z.object({
-    biologicalAge: z.number(),
-    chronologicalAge: z.number(),
-    offset: z.number(),
-    category: z.string(),
-    phvStatus: z.string(),
-    recommendation: z.string().optional(),
-  }).optional(),
-  biomechanics: z.object({
-    knee: z.object({
-      leftAvgDeg: z.number(),
-      rightAvgDeg: z.number(),
-      asymmetryPct: z.number().nullable(),
-    }),
-    strideFrequencyHz: z.number(),
-    sprintSpeed: z.object({ value: z.number(), unit: z.string() }),
-    qualityScore: z.number(),
-  }).optional(),
-  similarity: z.object({
-    matches: z.array(z.unknown()).optional(),
-  }).optional(),
+  videoId: z.string().optional(),
+  analysisId: z.string().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  phv: z.record(z.unknown()).nullable().optional(),
+  biomechanics: z.record(z.unknown()).nullable().optional(),
+  similarity: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
-    chronologicalAge: z.number(),
+    chronologicalAge: z.number().optional(),
     position: z.string().optional(),
     name: z.string().optional(),
-  }),
-});
+  }).passthrough(),
+}).passthrough();
 
-const PROMPT_VERSION = "player-report-v2.0.0"; // v2 = post refactor
+const PROMPT_VERSION = "player-report-v2.1.0"; // v2.1 = schema tolerante + scanning
 
 const SYSTEM_PROMPT = `Eres el motor del Player Report de VITAS Football Intelligence.
 
