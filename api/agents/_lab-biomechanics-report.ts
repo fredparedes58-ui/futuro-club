@@ -19,36 +19,17 @@ export const config = { runtime: "edge" };
 const labSchema = z.object({
   playerId: z.string(),
   videoId: z.string(),
-  biomechanics: z.object({
-    knee: z.object({
-      leftAvgDeg: z.number(),
-      rightAvgDeg: z.number(),
-      asymmetryPct: z.number().nullable(),
-    }),
-    strideFrequencyHz: z.number(),
-    sprintSpeed: z.object({ value: z.number(), unit: z.string() }),
-    trunkInclinationDeg: z.number(),
-    qualityScore: z.number(),
-  }),
-  phv: z.object({
-    biologicalAge: z.number(),
-    chronologicalAge: z.number(),
-    offset: z.number(),
-    category: z.string(),
-    phvStatus: z.string(),
-  }).optional(),
-  vsi: z.object({
-    vsi: z.number(),
-    tier: z.string(),
-    subscores: z.record(z.unknown()),
-  }).optional(),
+  biomechanics: z.record(z.unknown()).nullable(),
+  phv: z.record(z.unknown()).nullable().optional(),
+  vsi: z.record(z.unknown()).nullable().optional(),
+  scanning: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
     chronologicalAge: z.number(),
     position: z.string().optional(),
   }),
-});
+}).passthrough();
 
-const PROMPT_VERSION = "lab-biomech-v1.0.0";
+const PROMPT_VERSION = "lab-biomech-v1.1.0"; // v1.1 · añadido scanning rate
 
 const LAB_SYSTEM_PROMPT = `Eres el motor de generación de reportes biomecánicos LAB de VITAS Football Intelligence.
 
@@ -62,6 +43,14 @@ ESTILO OBLIGATORIO:
 - Si trunkInclination >35° en sprint, indica posible déficit de core
 - Si strideFrequency <2.5 Hz para edad >12, indica déficit explosividad
 - Adapta a la edad biológica (no cronológica) si tienes PHV
+
+SCANNING (lectura de juego):
+- Si recibes datos de scanning, INCLUYE una sección dedicada
+- Cita scan_rate (scans/segundo) y comparalo con el percentil
+- Pedri sub-12 = 0.51 scans/seg · si está cerca, mencionar comparable
+- Bilateralidad >40% = jugador equilibrado mirando a ambos lados
+- Bilateralidad <20% = "punto ciego" hacia un lado (CRÍTICO en mediocentros)
+- scan_rate < p25 = trabajar "shoulder check" antes de recibir
 
 ESTRUCTURA OBLIGATORIA (JSON):
 {
@@ -149,8 +138,11 @@ export default withHandler(
     const userMessage = `DATOS DEL JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
-MÉTRICAS BIOMECÁNICAS (extracción automática MMPose):
+MÉTRICAS BIOMECÁNICAS (extracción automática MediaPipe Pose):
 ${JSON.stringify(input.biomechanics, null, 2)}
+
+SCANNING (lectura de juego · Sprint 4):
+${JSON.stringify((input as { scanning?: unknown }).scanning ?? "no_data", null, 2)}
 
 MADURACIÓN BIOLÓGICA (Mirwald):
 ${JSON.stringify(input.phv ?? "no_data", null, 2)}
@@ -158,7 +150,9 @@ ${JSON.stringify(input.phv ?? "no_data", null, 2)}
 VSI ACTUAL:
 ${JSON.stringify(input.vsi ?? "no_data", null, 2)}
 
-Genera el reporte LAB en JSON estricto.`;
+Genera el reporte LAB en JSON estricto. Si hay datos de scanning, INCLUYE
+una sección "Lectura de juego (Scanning)" con la frecuencia, comparable
+y recomendación.`;
 
     try {
       const report = await callClaude(LAB_SYSTEM_PROMPT, userMessage, apiKey);

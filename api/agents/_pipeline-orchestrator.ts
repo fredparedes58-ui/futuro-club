@@ -174,7 +174,25 @@ export default withHandler(
 
     const vsi = vsiRes.success ? (vsiRes.data?.data ?? vsiRes.data) : null;
 
-    // ── 3. Similarity (best-match) ──────────────────────────────────
+    // ── 3a. Scan rate detection (NUEVO Sprint 4) ────────────────────
+    // Si Modal devolvió keypoints, calcular scan rate del jugador
+    let scanResult: unknown = null;
+    const keypointsRaw = (analysis as { keypoints?: unknown[] }).keypoints;
+    if (Array.isArray(keypointsRaw) && keypointsRaw.length >= 10) {
+      const ageGroup = anthro?.chronological_age
+        ? `sub-${Math.floor(anthro.chronological_age / 2) * 2}`
+        : "default";
+      const scanRes = await callInternal("/api/agents/scan-detector", {
+        playerId: analysis.player_id,
+        frames: keypointsRaw,
+        ageGroup,
+      });
+      if (scanRes.success) {
+        scanResult = scanRes.data?.data ?? scanRes.data;
+      }
+    }
+
+    // ── 3b. Similarity (best-match) ──────────────────────────────────
     const similarityRes = await callInternal("/api/agents/player-similarity", {
       metrics: {
         speed: subscores.physical,
@@ -212,6 +230,7 @@ export default withHandler(
       videoId: analysis.video_id,
       analysisId: analysis.id,
       biomechanics: analysis.biomechanics,
+      scanning: scanResult, // NUEVO Sprint 4 · scan rate detection
       phv: anthro,
       vsi: vsi,
       similarity: similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null,
