@@ -213,6 +213,38 @@ Métrica validada científicamente (Geir Jordet · Universidad Noruega).
 
 ---
 
+## ✅ POST-SPRINT 7 · Pre-lanzamiento comercial (1 día)
+
+### 🔐 Rotación de credenciales (OBLIGATORIO antes de cliente real)
+
+Durante el desarrollo se compartieron tokens en chat para configuración rápida.
+ANTES de aceptar el primer pago real o demo a inversor, rotar TODO:
+
+- [ ] Anthropic API Key (https://console.anthropic.com/settings/keys)
+- [ ] Voyage AI API Key (https://dash.voyageai.com/api-keys)
+- [ ] Bunny Stream API Key (al crear library nueva)
+- [ ] Supabase service_role (Project Settings → API → Roll)
+- [ ] Modal AUTH token (regenerar UUID)
+- [ ] Bunny webhook secret (cuando esté configurado)
+- [ ] CRON_SECRET (regenerar UUID)
+- [ ] INTERNAL_API_TOKEN (regenerar UUID)
+
+**Tras rotar cada uno:**
+- [ ] Actualizar Vercel env vars (las 9 variables)
+- [ ] Actualizar Modal secrets (vitas-bunny, vitas-anthropic, vitas-voyage)
+- [ ] Verificar que pipeline E2E sigue funcionando con un vídeo de prueba
+- [ ] Borrar archivos `.env*` locales
+
+**Tiempo estimado:** 30-45 minutos.
+
+**Disparador:** antes del PRIMER de estos eventos, lo que llegue antes:
+1. Primera academia firma plan anual
+2. Primera demo a inversor con datos reales
+3. Federación pide auditoría de seguridad
+4. Subida masiva de vídeos de menores reales (>10 jugadores)
+
+---
+
 ## 🚦 Reglas globales
 
 1. **Cada sprint cierra con un demo interno** (te enseñas a ti mismo el entregable funcionando).
