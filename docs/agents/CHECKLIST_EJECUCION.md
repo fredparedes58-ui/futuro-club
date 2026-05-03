@@ -213,6 +213,37 @@ Métrica validada científicamente (Geir Jordet · Universidad Noruega).
 
 ---
 
+## ✅ SPRINT 5 día 3 · Migración hooks frontend al pipeline nuevo (~3-4h)
+
+### Hooks que llaman agentes deprecated y deben migrar:
+
+#### `src/hooks/usePlayerIntelligence.ts`
+- [ ] Reemplazar llamada a `/api/agents/video-intelligence` por:
+  - POST `/api/videos/create-upload` → upload TUS → POST `/api/videos/finalize`
+  - Polling a `/api/analyses/by-video?videoId=...`
+  - GET `/api/analyses/reports?analysisId=...` cuando `status='completed'`
+- [ ] Renderizar los 6 reportes con `<AnalysisDashboard />` (ya creado Sprint 3)
+- [ ] Eliminar lógica SSE streaming (orchestrator hace todo en una llamada)
+- [ ] Verificar que `VitasLab.tsx` también usa el nuevo flujo
+
+#### `src/hooks/useTeamIntelligence.ts` + componentes que lo usan
+- [ ] **Decisión:** ¿feature de team analysis va en MVP o no?
+  - Si NO: deshabilitar la pestaña/botón del frontend
+  - Si SÍ: rediseñar como "team summary" agregando reports individuales
+- [ ] Borrar referencias en `src/hooks/useBusinessAnalytics.ts`
+
+### Tras migración exitosa:
+- [ ] Borrar `api/agents/_video-intelligence.ts`
+- [ ] Borrar `api/agents/_team-intelligence.ts`
+- [ ] Borrar `api/agents/_role-profile.ts` (reemplazado por _dna-profile)
+- [ ] Borrar `api/agents/_tactical-label.ts` (reemplazado por _dna-profile)
+- [ ] Borrar `api/agents/_scout-insight.ts` (reemplazado por _player-report)
+- [ ] Borrar `api/agents/_phv-calculator.legacy.ts` (LLM viejo)
+- [ ] Eliminar imports en `[action].ts`
+- [ ] Limpiar `src/agents/prompts.ts`
+
+---
+
 ## ✅ POST-SPRINT 7 · Pre-lanzamiento comercial (1 día)
 
 ### 🔐 Rotación de credenciales (OBLIGATORIO antes de cliente real)

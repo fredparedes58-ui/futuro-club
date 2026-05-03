@@ -5,6 +5,17 @@
  * Edge runtime + raw fetch a Anthropic API.
  * Recibe observaciones de Gemini sobre el equipo + YOLO opcional.
  * Retorna SSE → TeamIntelligenceOutput completo.
+ *
+ * ⚠️ @deprecated · Sprint 4 día 4 · análisis de equipo NO está en MVP.
+ *
+ * En MVP VITAS analizamos JUGADORES individuales, no equipos completos.
+ * Análisis de equipo es feature post-MVP (Sprint 8+ · cuando un cliente lo pida).
+ *
+ * NO usar en código nuevo. Se mantiene activo porque hook lo llama:
+ *    - src/hooks/useTeamIntelligence.ts
+ *
+ * Plan de borrado: Sprint 5 día 3 · cuando frontend desactive el feature
+ * "team analysis" del MVP comercial.
  */
 
 import { withHandler } from "../_lib/withHandler";

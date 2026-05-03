@@ -5,6 +5,19 @@
  * Edge runtime + raw fetch a Anthropic API.
  * Acepta keyframes base64 (local) o URLs (Bunny CDN).
  * Retorna SSE → VideoIntelligenceOutput completo.
+ *
+ * ⚠️ @deprecated · Sprint 4 día 4 · será reemplazado por:
+ *    - pipeline-orchestrator.ts (coordinación)
+ *    - Modal pipeline (procesa vídeo real con MediaPipe)
+ *    - Los 6 agentes Claude (player-report, lab-biomechanics, dna-profile,
+ *      best-match-narrator, projection-report, development-plan)
+ *
+ * NO usar en código nuevo. Se mantiene activo porque estos hooks lo siguen
+ * llamando (Sprint 5 los migrará):
+ *    - src/hooks/usePlayerIntelligence.ts
+ *    - src/pages/VitasLab.tsx
+ *
+ * Plan de borrado: Sprint 5 día 3 · cuando frontend migre al pipeline nuevo.
  */
 
 import { withHandler } from "../_lib/withHandler";

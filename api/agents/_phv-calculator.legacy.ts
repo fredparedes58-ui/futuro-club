@@ -1,6 +1,13 @@
 /**
- * VITAS Agent API — PHV Calculator
- * POST /api/agents/phv-calculator
+ * VITAS Agent API — PHV Calculator (LEGACY · LLM-based)
+ *
+ * ⚠️ @deprecated · Sprint 2 · reemplazado por _phv-calculator.ts (determinista, 0 EUR/cálculo).
+ *
+ * Esta versión basada en LLM se mantiene como BACKUP histórico.
+ * NO está en el router activo `[action].ts` — no se ejecuta.
+ *
+ * Plan de borrado: Sprint 6 día 2 · una vez que la versión determinista
+ * tenga >100 ejecuciones en producción sin issues.
  *
  * Edge runtime + raw fetch a Anthropic API (sin SDK pesado).
  */
