@@ -244,6 +244,56 @@ Métrica validada científicamente (Geir Jordet · Universidad Noruega).
 
 ---
 
+## ✅ POST-MVP · Capacitor (cuando tengas 50-100 clientes)
+
+### Migrar de PWA a App nativa (5 días)
+
+**Disparador:** lo que llegue antes:
+- 100 clientes pagando en PWA
+- Cliente importante pide "tener app en App Store"
+- Competidor lanza app nativa y empieza a quitarte clientes
+- Métrica de instalación PWA <30% de usuarios que entran
+
+**Plan:**
+- [ ] Decidir nombre/branding final
+- [ ] Comprar Apple Developer Program ($99/año)
+- [ ] Comprar Google Play Console ($25 una vez)
+- [ ] `npm install @capacitor/core @capacitor/cli`
+- [ ] `npx cap init VITAS com.vitas.app`
+- [ ] Configurar `capacitor.config.ts` apuntando a vitas.app
+- [ ] Generar iconos en todas las resoluciones (`@capacitor/assets`)
+- [ ] Splash screens iOS + Android
+- [ ] Build iOS en Xcode → TestFlight
+- [ ] Build Android en Android Studio → Internal Track
+- [ ] Submit a App Store Review (1-7 días Apple)
+- [ ] Submit a Google Play (horas)
+- [ ] Implementar "Native Viewer" pattern: pricing **NO** dentro de la app, redirigir a vitas.app
+
+**Beneficios:**
+- Presencia App Store (confianza marca)
+- Push notifications iOS robustas
+- Splash screen propio
+- Recuperabilidad si user pierde la app
+
+**Coste anual:** $99 Apple + $25 Google + 5 días dev
+
+---
+
+## ✅ POST-MVP · React Native (solo si crecimiento alto)
+
+### Migrar de Capacitor a React Native (3-4 semanas)
+
+**Disparador:**
+- 1.000+ clientes pagando
+- Feedback "la app va lenta/UX inferior"
+- Competidor con UX premium gana cuota
+
+**Plan:** reescribir UI en RN manteniendo backend.
+
+**NO HACER en MVP.** UX 8.5 → 9.5 no justifica 3 semanas.
+
+---
+
 ## ✅ POST-SPRINT 7 · Pre-lanzamiento comercial (1 día)
 
 ### 🔐 Rotación de credenciales (OBLIGATORIO antes de cliente real)
