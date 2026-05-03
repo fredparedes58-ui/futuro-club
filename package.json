@@ -21,6 +21,8 @@
     "test:e2e:ui": "npx playwright test --ui",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "eval": "npx tsx eval/run-eval.ts",
+    "eval:prod": "cross-env VITAS_PUBLIC_URL=https://futuro-club.vercel.app npx tsx eval/run-eval.ts",
     "qa": "bash scripts/qa-deploy.sh",
     "qa:prod": "bash scripts/qa-deploy.sh https://futuro-club.vercel.app",
     "prepare": "husky",
