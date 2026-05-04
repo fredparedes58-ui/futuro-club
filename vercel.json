@@ -39,7 +39,7 @@
     },
     {
       "path": "/api/crons/process-analyses-queue",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "github": {
