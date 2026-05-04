@@ -76,15 +76,17 @@ export default withHandler(
       return errorResponse(`Error actualizando rol: ${updateError.message}`, 500);
     }
 
-    // ── Audit log ────────────────────────────────────────────────────
-    await supabase.from("team_audit_log").insert({
-      org_owner_id: userId,
-      actor_id: userId,
-      action: "role_change",
-      target_member_id: memberId,
-      previous_role: previousRole,
-      new_role: role,
-    }).catch(() => {}); // Best effort
+    // ── Audit log (best effort) ──────────────────────────────────────
+    try {
+      await supabase.from("team_audit_log").insert({
+        org_owner_id: userId,
+        actor_id: userId,
+        action: "role_change",
+        target_member_id: memberId,
+        previous_role: previousRole,
+        new_role: role,
+      });
+    } catch { /* best effort */ }
 
     return successResponse({
       success: true,

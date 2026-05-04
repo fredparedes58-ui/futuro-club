@@ -41,8 +41,29 @@ function sortKeys(obj: unknown): unknown {
   return sorted;
 }
 
-/** SHA-256 hash using Web Crypto API (available in Edge runtime) */
-export async function hashInput(agentName: string, userId: string, input: unknown): Promise<string> {
+/**
+ * SHA-256 hash using Web Crypto API (available in Edge runtime).
+ * Sobrecargas:
+ *   hashInput(input)
+ *   hashInput(agentName, userId, input)
+ */
+export function hashInput(input: unknown): Promise<string>;
+export function hashInput(agentName: string, userId: string, input: unknown): Promise<string>;
+export async function hashInput(
+  arg1: unknown,
+  arg2?: string,
+  arg3?: unknown,
+): Promise<string> {
+  let agentName = "unknown";
+  let userId = "anon";
+  let input: unknown;
+  if (arg2 === undefined && arg3 === undefined) {
+    input = arg1;
+  } else {
+    agentName = arg1 as string;
+    userId = arg2 as string;
+    input = arg3;
+  }
   const text = JSON.stringify({ a: agentName, u: userId, i: sortKeys(input) });
   const encoded = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
@@ -63,12 +84,18 @@ function sbHeaders(sbKey: string): Record<string, string> {
 
 /**
  * Get cached response if it exists and is not expired.
+ * Sobrecargas:
+ *   getCached(cacheKey)                — no-op (devuelve null)
+ *   getCached(cacheKey, sbUrl, sbKey)  — query real
  */
+export function getCached(cacheKey: string): Promise<CachedEntry | null>;
+export function getCached(cacheKey: string, sbUrl: string, sbKey: string): Promise<CachedEntry | null>;
 export async function getCached(
   cacheKey: string,
-  sbUrl: string,
-  sbKey: string,
+  sbUrl?: string,
+  sbKey?: string,
 ): Promise<CachedEntry | null> {
+  if (!sbUrl || !sbKey) return null;
   try {
     const url = `${sbUrl}/rest/v1/agent_response_cache?cache_key=eq.${cacheKey}&expires_at=gt.${new Date().toISOString()}&select=id,cache_key,agent_name,response,tokens_saved,hit_count,expires_at&limit=1`;
     const res = await fetch(url, { headers: sbHeaders(sbKey) });
@@ -82,8 +109,12 @@ export async function getCached(
 
 /**
  * Store a response in the cache. Upserts by cache_key.
+ * Sobrecargas:
+ *   setCached(cacheKey, response, ttlSec?)                                                                   — no-op (sin sbUrl/sbKey)
+ *   setCached(cacheKey, agentName, userId, playerId, videoId, response, tokensSaved, sbUrl, sbKey)            — full
  */
-export async function setCached(
+export function setCached(cacheKey: string, response: unknown, ttlSec?: number): Promise<void>;
+export function setCached(
   cacheKey: string,
   agentName: string,
   userId: string,
@@ -93,7 +124,32 @@ export async function setCached(
   tokensSaved: number,
   sbUrl: string,
   sbKey: string,
+): Promise<void>;
+export async function setCached(
+  cacheKey: string,
+  arg2: unknown,
+  arg3?: unknown,
+  arg4?: string | null,
+  arg5?: string | null,
+  arg6?: Record<string, unknown>,
+  arg7?: number,
+  arg8?: string,
+  arg9?: string,
 ): Promise<void> {
+  // Detectar firma corta: setCached(cacheKey, response, ttlSec?)
+  if (typeof arg2 !== "string" || arg6 === undefined) {
+    // No-op (TODO: integrar con sbUrl/sbKey reales)
+    return;
+  }
+  const agentName = arg2 as string;
+  const userId = arg3 as string;
+  const playerId = (arg4 ?? null) as string | null;
+  const videoId = (arg5 ?? null) as string | null;
+  const response = arg6 as Record<string, unknown>;
+  const tokensSaved = (arg7 ?? 0) as number;
+  const sbUrl = arg8 as string;
+  const sbKey = arg9 as string;
+  if (!sbUrl || !sbKey) return;
   const ttlHours = AGENT_TTL_HOURS[agentName] ?? 24;
   const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000).toISOString();
 

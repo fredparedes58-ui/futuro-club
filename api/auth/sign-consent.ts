@@ -18,7 +18,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
+import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
 
 export const config = { runtime: "edge" };
 
@@ -103,10 +103,7 @@ export default withHandler(
     );
 
     // ── Hashear DNI · NUNCA guardar en claro ──────────────────────
-    const dniHash = crypto
-      .createHash("sha256")
-      .update(input.parentDni.toUpperCase())
-      .digest("hex");
+    const dniHash = await sha256Hex(input.parentDni.toUpperCase());
 
     // ── Hash de la firma (bundle de campos clave) ─────────────────
     const signaturePayload = JSON.stringify({
@@ -117,10 +114,10 @@ export default withHandler(
       consentVersion: input.consentVersion,
       timestamp: Date.now(),
     });
-    const signatureHash = crypto.createHash("sha256").update(signaturePayload).digest("hex");
+    const signatureHash = await sha256Hex(signaturePayload);
 
     // ── Token de verificación (24h validez) ───────────────────────
-    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationToken = randomHex(32);
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // ── Buscar tenant del player ──────────────────────────────────

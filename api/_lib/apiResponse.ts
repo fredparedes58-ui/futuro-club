@@ -31,18 +31,39 @@ export function successResponse(data: unknown, status = 200, extraHeaders?: Reco
 
 /**
  * Respuesta de error estandarizada.
+ * Acepta dos formas:
+ *   errorResponse("mensaje", 400, "code")
+ *   errorResponse({ message: "mensaje", status: 400, code: "code" })
  */
+export interface ErrorResponseOpts {
+  message: string;
+  status?: number;
+  code?: string;
+  extraHeaders?: Record<string, string>;
+}
+export function errorResponse(message: string, status?: number, code?: string, extraHeaders?: Record<string, string>): Response;
+export function errorResponse(opts: ErrorResponseOpts): Response;
 export function errorResponse(
-  message: string,
-  status = 400,
+  arg1: string | ErrorResponseOpts,
+  status: number = 400,
   code?: string,
   extraHeaders?: Record<string, string>
 ): Response {
+  const opts: ErrorResponseOpts =
+    typeof arg1 === "string"
+      ? { message: arg1, status, code, extraHeaders }
+      : { status: 400, ...arg1 };
+  const finalStatus = opts.status ?? 400;
   return new Response(
-    JSON.stringify({ ok: false, success: false, error: message, errorDetail: { message, code } }),
+    JSON.stringify({
+      ok: false,
+      success: false,
+      error: opts.message,
+      errorDetail: { message: opts.message, code: opts.code },
+    }),
     {
-      status,
-      headers: { ...CORS_HEADERS, ...extraHeaders },
+      status: finalStatus,
+      headers: { ...CORS_HEADERS, ...opts.extraHeaders },
     }
   );
 }

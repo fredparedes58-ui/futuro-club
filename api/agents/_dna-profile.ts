@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · DNA Profile (NUEVO · LLM Haiku)
  * POST /api/agents/dna-profile
  *
@@ -101,7 +101,7 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof dnaSchema>;
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
 

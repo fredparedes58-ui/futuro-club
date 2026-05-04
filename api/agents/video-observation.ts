@@ -103,7 +103,17 @@ export default withHandler(
         mediaType = (mediaTypeFromBody as string) || "video/mp4";
       }
 
-      const ctx = playerContext;
+      const ctx = playerContext as {
+        age: number;
+        position: string;
+        name?: string;
+        foot?: string;
+        height?: number;
+        weight?: number;
+        jerseyNumber?: number | string;
+        teamColor?: string;
+        competitiveLevel?: string;
+      };
 
       // Calibración de exigencia por edad y nivel competitivo
       const ageCalibration = ctx.age <= 12

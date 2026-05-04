@@ -147,8 +147,12 @@ export default withHandler(
       });
 
       if (ragRes.ok) {
-        const ragData = await ragRes.json() as { context?: string; results?: unknown[] };
-        ragContext = ragData.context ?? "";
+        const ragData = await ragRes.json() as {
+          context?: string;
+          data?: { context?: string; results?: unknown[]; usedEmbeddings?: boolean };
+        };
+        // successResponse() wraps payload in { ok, success, data }
+        ragContext = ragData.data?.context ?? ragData.context ?? "";
       }
     } catch {
       // RAG failure is non-blocking — proceed without enrichment

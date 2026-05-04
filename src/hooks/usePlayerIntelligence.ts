@@ -372,10 +372,16 @@ export function usePlayerIntelligence(player: Player) {
               }),
             });
             if (ragRes.ok) {
-              const ragData = await ragRes.json() as { context?: string; results?: Array<{ content: string }> };
-              const results = ragData.results ?? [];
-              if (ragData.context) {
-                ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" + ragData.context;
+              const raw = await ragRes.json() as {
+                context?: string;
+                results?: Array<{ content: string }>;
+                data?: { context?: string; results?: Array<{ content: string }> };
+              };
+              // successResponse() wraps payload in { ok, success, data }
+              const payload = raw.data ?? raw;
+              const results = payload.results ?? [];
+              if (payload.context) {
+                ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" + payload.context;
               } else if (results.length > 0) {
                 ragContext = "\n\nCONTEXTO RAG (drills y metodología relevante):\n" +
                   results.map(r => r.content.slice(0, 500)).join("\n---\n");

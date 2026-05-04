@@ -42,7 +42,8 @@ async function notifySlack(message: string) {
   }
 }
 
-async function purgeOldVideos(supabase: ReturnType<typeof createClient>, retentionDays: number) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function purgeOldVideos(supabase: any, retentionDays: number) {
   const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
 
   // Marcar como soft-deleted primero (para auditoría)
@@ -69,7 +70,8 @@ async function purgeOldVideos(supabase: ReturnType<typeof createClient>, retenti
   return { count: ids.length, bunny_pending: ids.length };
 }
 
-async function executePendingDeletions(supabase: ReturnType<typeof createClient>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function executePendingDeletions(supabase: any) {
   const { data: pending } = await supabase
     .from("deletion_requests")
     .select("*")

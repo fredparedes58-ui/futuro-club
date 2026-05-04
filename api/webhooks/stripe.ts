@@ -68,7 +68,8 @@ function tierFromPriceId(priceId: string): string | null {
 }
 
 async function upsertSubscription(
-  supabase: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   sub: StripeSubscription
 ) {
   const userId = sub.metadata?.user_id;

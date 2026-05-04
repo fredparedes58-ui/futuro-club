@@ -29,7 +29,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
+import { hmacSha256Hex, timingSafeEqual } from "../_lib/edgeCrypto";
 
 export const config = { runtime: "edge" };
 
@@ -52,21 +52,16 @@ const bunnySchema = z.object({
 const STATUS_FINISHED = 4;
 const STATUS_ERROR = 5;
 
-function validateBunnySignature(body: string, signature: string | null): boolean {
+async function validateBunnySignature(body: string, signature: string | null): Promise<boolean> {
   if (!BUNNY_WEBHOOK_SECRET) {
     console.warn("[VITAS] BUNNY_WEBHOOK_SECRET not configured · skipping signature validation");
     return true; // dev mode
   }
   if (!signature) return false;
 
-  const expected = crypto
-    .createHmac("sha256", BUNNY_WEBHOOK_SECRET)
-    .update(body)
-    .digest("hex");
-
-  // timing-safe compare
   try {
-    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+    const expected = await hmacSha256Hex(BUNNY_WEBHOOK_SECRET, body);
+    return timingSafeEqual(signature.toLowerCase(), expected.toLowerCase());
   } catch {
     return false;
   }
@@ -77,7 +72,7 @@ export default withHandler(
   async ({ body, headers, rawBody }) => {
     // ── Validar firma Bunny ─────────────────────────────────
     const signature = headers?.["x-bunny-signature"] ?? null;
-    if (BUNNY_WEBHOOK_SECRET && !validateBunnySignature(rawBody ?? "", signature)) {
+    if (BUNNY_WEBHOOK_SECRET && !(await validateBunnySignature(rawBody ?? "", signature))) {
       return errorResponse({
         code: "invalid_signature",
         message: "Bunny webhook signature mismatch",

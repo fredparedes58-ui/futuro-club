@@ -103,14 +103,16 @@ export default withHandler(
       }).catch(() => {});
     }
 
-    // ── Audit log ────────────────────────────────────────────────────
-    await supabase.from("team_audit_log").insert({
-      org_owner_id: orgOwnerId,
-      actor_id: orgOwnerId,
-      action: "invite_sent",
-      target_email: email,
-      new_role: role,
-    }).catch(() => {}); // Best effort
+    // ── Audit log (best effort) ──────────────────────────────────────
+    try {
+      await supabase.from("team_audit_log").insert({
+        org_owner_id: orgOwnerId,
+        actor_id: orgOwnerId,
+        action: "invite_sent",
+        target_email: email,
+        new_role: role,
+      });
+    } catch { /* best effort */ }
 
     return successResponse({ success: true });
   },

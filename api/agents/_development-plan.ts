@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · Development Plan (NUEVO · LLM Haiku + RAG drills)
  * POST /api/agents/development-plan
  *
@@ -152,13 +152,16 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof planSchema>;
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
 
     try {
       // ── 1. Detectar debilidades ────────────────────────────────
-      const weaknesses = detectWeaknesses(input.vsi.subscores);
+      type VsiShape = { vsi?: number; subscores?: Record<string, unknown> };
+      const inputVsi = input.vsi as VsiShape | null | undefined;
+      const subscores = (inputVsi?.subscores ?? {}) as Record<string, unknown>;
+      const weaknesses = detectWeaknesses(subscores);
 
       // ── 2. RAG: buscar drills relacionados ─────────────────────
       const ragDrills =

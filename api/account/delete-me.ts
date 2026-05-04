@@ -16,7 +16,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
+import { randomHex } from "../_lib/edgeCrypto";
 
 export const config = { runtime: "edge" };
 
@@ -64,7 +64,8 @@ async function sendDeletionEmail(to: string, cancellationLink: string, scheduled
   return res.ok;
 }
 
-async function deleteUserDataCompletely(supabase: ReturnType<typeof createClient>, userId: string, tenantId: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function deleteUserDataCompletely(supabase: any, userId: string, tenantId: string) {
   const summary: Record<string, number> = {};
 
   // 1. Players (cascade a videos, analyses, reports via FK ON DELETE CASCADE)
@@ -151,7 +152,7 @@ export default withHandler(
 
     // ── Modo programado (72h) · POST ─────────────────────────────
     const scheduledFor = new Date(Date.now() + RETENTION_HOURS * 60 * 60 * 1000);
-    const cancellationToken = crypto.randomBytes(32).toString("hex");
+    const cancellationToken = randomHex(32);
 
     const { data: req, error } = await supabase
       .from("deletion_requests")

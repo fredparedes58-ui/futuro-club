@@ -58,7 +58,7 @@ export default withHandler(
     // ── Cache check ─────────────────────────────────────────────
     const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const videoId = body?.videoId ?? null;
+    const videoId: string | null = (body as { videoId?: string } | undefined)?.videoId ?? null;
 
     if (sbUrl && sbKey && userId) {
       try {

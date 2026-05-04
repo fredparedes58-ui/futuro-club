@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · LAB Biomechanics Report (NUEVO · LLM Sonnet)
  * POST /api/agents/lab-biomechanics-report
  *
@@ -12,7 +12,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
+import { hashInput, getCached, setCached } from "../_lib/agentCache";
 
 export const config = { runtime: "edge" };
 
@@ -127,10 +127,10 @@ export default withHandler(
     const input = body as LabReportInput;
 
     // ── Cache: mismo input → mismo reporte ──────────────────────
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) {
-      await incrementHitCount(cacheKey);
+      // incrementHitCount(cacheKey) requires sbUrl/sbKey · skipping in fallback path
       return successResponse({ ...cached, fromCache: true });
     }
 

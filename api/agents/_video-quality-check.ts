@@ -164,12 +164,12 @@ export default withHandler(
         : "Vídeo procesable con advertencias menores."
       : `Vídeo no procesable. Problemas: ${issues.map((i) => i.message).join(" · ")}`;
 
-    return successResponse<QualityCheckResult>({
+    return successResponse({
       passed,
       canProcess,
       issues,
       warnings,
       recommendation,
-    });
+    } satisfies QualityCheckResult);
   }
 );

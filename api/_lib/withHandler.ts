@@ -45,6 +45,10 @@ interface HandlerContext<T> {
   body: T;
   ip: string;
   userId: string | null;
+  method: string;
+  query: Record<string, string>;
+  headers: Record<string, string>;
+  rawBody: string | null;
 }
 
 /**
@@ -163,29 +167,55 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
 
     // 5. Parse & validate body
     let body: InferBody<T> = undefined as InferBody<T>;
-    if (methods.includes(req.method) && req.method === "POST" && !options.rawBody) {
-      try {
-        const raw = await req.json();
-        if (options.schema) {
-          const result = options.schema.safeParse(raw);
-          if (!result.success) {
-            const details = result.error.errors.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join("; ");
-            return errorResponse(`Datos invalidos: ${details}`, 400, "VALIDATION_ERROR", rateLimitHeaders(rl));
-          }
-          body = result.data;
-        } else {
-          body = raw;
+    let rawBodyStr: string | null = null;
+    if (methods.includes(req.method) && req.method === "POST") {
+      if (options.rawBody) {
+        try {
+          rawBodyStr = await req.text();
+          body = (rawBodyStr as unknown) as InferBody<T>;
+        } catch {
+          return errorResponse("Cannot read raw body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
         }
-      } catch {
-        return errorResponse("Invalid JSON body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
+      } else {
+        try {
+          const raw = await req.json();
+          if (options.schema) {
+            const result = options.schema.safeParse(raw);
+            if (!result.success) {
+              const details = result.error.errors.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join("; ");
+              return errorResponse(`Datos invalidos: ${details}`, 400, "VALIDATION_ERROR", rateLimitHeaders(rl));
+            }
+            body = result.data;
+          } else {
+            body = raw;
+          }
+        } catch {
+          return errorResponse("Invalid JSON body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
+        }
       }
     }
 
-    // 6. Execute handler with centralized error catching + request logging
+    // 6. Build context (method, query, headers)
+    const url = new URL(req.url);
+    const query: Record<string, string> = {};
+    url.searchParams.forEach((v, k) => { query[k] = v; });
+    const headersMap: Record<string, string> = {};
+    req.headers.forEach((v, k) => { headersMap[k.toLowerCase()] = v; });
+
+    // 7. Execute handler with centralized error catching + request logging
     const start = Date.now();
-    const pathname = new URL(req.url).pathname;
+    const pathname = url.pathname;
     try {
-      const res = await handler({ req, body, ip, userId });
+      const res = await handler({
+        req,
+        body,
+        ip,
+        userId,
+        method: req.method,
+        query,
+        headers: headersMap,
+        rawBody: rawBodyStr,
+      });
       const ms = Date.now() - start;
       console.log(JSON.stringify({
         level: "info", ts: new Date().toISOString(),

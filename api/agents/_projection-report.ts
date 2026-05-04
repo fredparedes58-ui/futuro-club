@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · Projection Report (NUEVO · LLM Haiku)
  * POST /api/agents/projection-report
  *
@@ -133,25 +133,39 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof projectionSchema>;
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+
+    // Tipado defensivo · vsi y phv pueden ser null/undefined según schema
+    type VsiShape = { vsi: number; tier?: string; subscores?: Record<string, unknown> };
+    type PhvShape = { offset: number; category?: string };
+    const inputVsi = input.vsi as VsiShape | null | undefined;
+    const inputPhv = input.phv as PhvShape | null | undefined;
+
+    if (!inputVsi || typeof inputVsi.vsi !== "number") {
+      return errorResponse({ code: "missing_vsi", message: "VSI requerido para proyección", status: 400 });
+    }
+    if (!inputPhv || typeof inputPhv.offset !== "number") {
+      return errorResponse({ code: "missing_phv", message: "PHV requerido para proyección", status: 400 });
+    }
+
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
 
     try {
       // Cálculo determinista de la curva
-      const curve = projectVsiCurve(input.vsi.vsi, {
-        offset: input.phv.offset,
-        category: input.phv.category,
+      const curve = projectVsiCurve(inputVsi.vsi, {
+        offset: inputPhv.offset,
+        category: (inputPhv.category ?? "ontime") as "early" | "ontime" | "late",
       });
 
       const userMessage = `JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
-VSI ACTUAL: ${input.vsi.vsi} (tier: ${input.vsi.tier})
-Subscores: ${JSON.stringify(input.vsi.subscores, null, 2)}
+VSI ACTUAL: ${inputVsi.vsi} (tier: ${inputVsi.tier ?? "?"})
+Subscores: ${JSON.stringify(inputVsi.subscores, null, 2)}
 
 PHV:
-${JSON.stringify(input.phv, null, 2)}
+${JSON.stringify(inputPhv, null, 2)}
 
 CURVA PROYECTADA (calculada deterministicamente):
 - Año 1: ${curve.year1}
@@ -170,7 +184,7 @@ Genera el reporte Proyección 3 años en JSON estricto, usando los valores de la
         videoId: input.videoId,
         promptVersion: PROMPT_VERSION,
         model: "claude-haiku-4-5",
-        deterministicCurve: { current: input.vsi.vsi, ...curve },
+        deterministicCurve: { current: inputVsi.vsi, ...curve },
         narrative,
         generatedAt: new Date().toISOString(),
       };

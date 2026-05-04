@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · Best-Match Narrator (NUEVO · LLM Haiku)
  * POST /api/agents/best-match-narrator
  *
@@ -90,16 +90,19 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof matchSchema>;
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
 
     try {
+      const similarityShape = input.similarity as { matches?: unknown[] } | null | undefined;
+      const matches = (similarityShape?.matches ?? []) as unknown[];
+
       const userMessage = `JUGADOR JUVENIL:
 ${JSON.stringify(input.playerContext, null, 2)}
 
 TOP-5 SIMILAR PROS (calculado por similitud coseno):
-${JSON.stringify(input.similarity.matches.slice(0, 5), null, 2)}
+${JSON.stringify(matches.slice(0, 5), null, 2)}
 
 Genera el reporte Best-Match en JSON estricto.`;
 

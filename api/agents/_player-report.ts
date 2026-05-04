@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VITAS · Player Report (REFACTOR de _scout-insight · LLM Sonnet)
  * POST /api/agents/player-report
  *
@@ -106,7 +106,7 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof playerReportSchema>;
-    const cacheKey = hashInput({ ...input, promptVersion: PROMPT_VERSION });
+    const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
 

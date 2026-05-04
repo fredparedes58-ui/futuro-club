@@ -16,7 +16,7 @@ import uploadVideoInit from "./upload/_video-init";
 import health from "./health";
 import scoutGenerate from "./scout/generate";
 import scoutInsights from "./scout/insights";
-import scoutAutoGenerate from "./scout/_auto-generate";
+import scoutAutoGenerate from "./scout/auto-generate";
 import rankingsList from "./rankings/_list";
 import reportsPdf from "./reports/_pdf";
 import accountDelete from "./account/_delete";

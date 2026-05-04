@@ -70,14 +70,16 @@ export default withHandler(
       .update({ status: "accepted" })
       .eq("id", invitation.id);
 
-    // ── Audit log ────────────────────────────────────────────────────
-    await supabase.from("team_audit_log").insert({
-      org_owner_id: invitation.org_owner_id,
-      actor_id: userId,
-      action: "invite_accepted",
-      target_member_id: userId,
-      new_role: invitation.role,
-    }).catch(() => {}); // Best effort
+    // ── Audit log (best effort) ──────────────────────────────────────
+    try {
+      await supabase.from("team_audit_log").insert({
+        org_owner_id: invitation.org_owner_id,
+        actor_id: userId,
+        action: "invite_accepted",
+        target_member_id: userId,
+        new_role: invitation.role,
+      });
+    } catch { /* best effort */ }
 
     return successResponse({
       success: true,

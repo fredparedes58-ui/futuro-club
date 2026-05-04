@@ -62,7 +62,7 @@ export default withHandler(
     let playerAge  = 15;
     let playerPos  = "CM";
 
-    if (supabaseUrl && supabaseKey) {
+    if (supabaseUrl && supabaseKey && playerId) {
       try {
         const r = await fetch(
           `${supabaseUrl}/rest/v1/players?id=eq.${encodeURIComponent(playerId)}&select=data&limit=1`,

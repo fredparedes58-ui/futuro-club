@@ -228,26 +228,33 @@ export default withHandler(
         try {
           const history = await fetchPlayerHistory(supabaseUrl, supabaseKey!, player.id, userId!);
           if (history && history.length >= 2) {
-            const latest = history[0].report as Record<string, Record<string, unknown>>;
-            const previous = history[1].report as Record<string, Record<string, unknown>>;
+            type ReportShape = {
+              estadoActual?: {
+                vsi?: number;
+                dimensiones?: Record<string, { score?: number }>;
+              };
+            };
+            const latest = (history[0].report ?? {}) as ReportShape;
+            const previous = (history[1].report ?? {}) as ReportShape;
             const latestDims = latest?.estadoActual?.dimensiones;
             const prevDims = previous?.estadoActual?.dimensiones;
-            const latestVSI = latest?.estadoActual?.vsi ?? player.vsi;
-            const prevVSI = previous?.estadoActual?.vsi ?? (player.vsi_history?.at(-2) ?? player.vsi);
+            const latestVSI: number = (latest?.estadoActual?.vsi ?? player.vsi ?? 0) as number;
+            const prevVSI: number = (previous?.estadoActual?.vsi ?? player.vsi_history?.at(-2) ?? player.vsi ?? 0) as number;
             if (latestDims && prevDims) {
               const dimNames = Object.keys(latestDims);
               const deltas = dimNames.map((d: string) => {
-                const curr = latestDims[d]?.score ?? 0;
-                const prev = prevDims[d]?.score ?? 0;
+                const curr = Number(latestDims[d]?.score ?? 0);
+                const prev = Number(prevDims[d]?.score ?? 0);
                 const delta = curr - prev;
                 return `${d}: ${prev}→${curr} (${delta > 0 ? "+" : ""}${delta})`;
               });
               historicalContext = `\n\nHISTORIAL DE EVOLUCIÓN (comparación últimos 2 análisis):\n${deltas.join("\n")}`;
-              historicalContext += `\nVSI previo: ${prevVSI} → VSI actual: ${latestVSI} (${latestVSI - prevVSI > 0 ? "+" : ""}${latestVSI - prevVSI})`;
+              const vsiDeltaSimple = latestVSI - prevVSI;
+              historicalContext += `\nVSI previo: ${prevVSI} → VSI actual: ${latestVSI} (${vsiDeltaSimple > 0 ? "+" : ""}${vsiDeltaSimple})`;
 
               // Override context detection based on real analysis deltas
               const maxDelta = Math.max(...dimNames.map((d: string) => {
-                return (latestDims[d]?.score ?? 0) - (prevDims[d]?.score ?? 0);
+                return Number(latestDims[d]?.score ?? 0) - Number(prevDims[d]?.score ?? 0);
               }));
               const vsiDelta = latestVSI - prevVSI;
               if (maxDelta > 1.5) {

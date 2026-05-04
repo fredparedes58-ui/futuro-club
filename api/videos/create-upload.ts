@@ -18,7 +18,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "node:crypto";
+import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
 
 export const config = { runtime: "edge" };
 
@@ -74,9 +74,9 @@ async function createBunnyVideo(title: string): Promise<{ guid: string; libraryI
  * Formato: SHA256(library_id + api_key + expiration_timestamp + video_id)
  * Expiración: 24h en el futuro.
  */
-function generateTusSignature(videoId: string, expirationSec: number): string {
+async function generateTusSignature(videoId: string, expirationSec: number): Promise<string> {
   const payload = BUNNY_LIBRARY_ID + BUNNY_API_KEY + expirationSec + videoId;
-  return crypto.createHash("sha256").update(payload).digest("hex");
+  return await sha256Hex(payload);
 }
 
 export default withHandler(
@@ -118,7 +118,7 @@ export default withHandler(
     }
 
     // Crear row en `videos` table
-    const videoId = `vid-${crypto.randomBytes(8).toString("hex")}`;
+    const videoId = `vid-${randomHex(8)}`;
     const { data: video, error } = await supabase
       .from("videos")
       .insert({
@@ -137,7 +137,7 @@ export default withHandler(
 
     // Generar signature TUS válida 24h
     const expirationSec = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-    const signature = generateTusSignature(bunnyVideo.guid, expirationSec);
+    const signature = await generateTusSignature(bunnyVideo.guid, expirationSec);
 
     return successResponse({
       videoId: video.id,
