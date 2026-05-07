@@ -33,6 +33,7 @@ import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import GlobalSearch from "./components/GlobalSearch";
 import ContextualFAB from "./components/ContextualFAB";
+import OnboardingTour from "./components/OnboardingTour";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
@@ -189,6 +190,7 @@ const App = () => (
             <BottomNav />
             <GlobalSearch />
             <ContextualFAB />
+            <OnboardingTour />
             </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
