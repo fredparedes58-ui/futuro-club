@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy } from "lucide-react";
+import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy, Swords, Grid3x3, Sparkles, BarChart3, FileText } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
@@ -66,6 +66,51 @@ const Dashboard = () => {
             </div>
           }
         />
+      </motion.div>
+
+      {/* Hoy puedes… · quick action tiles */}
+      <motion.div variants={item} className="space-y-2">
+        <div className="flex items-center gap-1.5 px-1">
+          <Sparkles size={11} className="text-primary" />
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+            Hoy puedes…
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { Icon: Activity, label: "Match-day Live",    sub: "Tagear partido",       color: "#22e88c", to: "/live" },
+            { Icon: Swords,   label: "Plan vs Rival",      sub: "Plan + drills",        color: "#F59E0B", to: "/equipo/rival" },
+            { Icon: Grid3x3,  label: "Análisis equipo",    sub: "9 cuadrantes IA",      color: "#1A8FFF", to: "/equipo/baseline" },
+            { Icon: Zap,      label: "VITAS.LAB",          sub: "Subir vídeo",          color: "#B82BD9", to: "/lab" },
+            { Icon: BarChart3,label: "Mis jugadores",      sub: "Ranking VSI",          color: "#10b981", to: "/rankings" },
+            { Icon: FileText, label: "Generar reporte",    sub: "Baseline IA",          color: "#0066CC", to: "/rankings" },
+          ].map((tile) => {
+            const Icon = tile.Icon;
+            return (
+              <button
+                key={tile.label}
+                onClick={() => navigate(tile.to)}
+                className="glass rounded-xl p-3 flex items-center gap-2 hover:bg-secondary/30 active:scale-[0.98] transition-all text-left border"
+                style={{ borderColor: `${tile.color}40` }}
+              >
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `${tile.color}20` }}
+                >
+                  <Icon size={16} style={{ color: tile.color }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-display font-bold text-foreground truncate leading-tight">
+                    {tile.label}
+                  </div>
+                  <div className="text-[9px] text-muted-foreground truncate">
+                    {tile.sub}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </motion.div>
 
       {/* Stats */}

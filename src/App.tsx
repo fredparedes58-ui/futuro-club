@@ -31,6 +31,7 @@ import MasterDashboard from "./pages/MasterDashboard";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
+import GlobalSearch from "./components/GlobalSearch";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
@@ -185,6 +186,7 @@ const App = () => (
             </ErrorBoundary>
             </AcceptTermsGate>
             <BottomNav />
+            <GlobalSearch />
             </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
