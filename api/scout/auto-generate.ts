@@ -31,12 +31,13 @@ export default withHandler(
       "Content-Type": "application/json",
     };
 
-    // 1. Find users who have players with recent analyses (last 24h)
-    //    but no scout_insights generated in last 24h
+    // 1. Find users who have players with recent V2 analyses (last 24h)
+    //    completadas, sin scout_insights generados en las ultimas 24h.
+    //    NOTA: usa la tabla V2 `analyses` (legacy `player_analyses` deprecated).
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     const analysesRes = await fetch(
-      `${supabaseUrl}/rest/v1/player_analyses?created_at=gte.${since}&select=user_id,player_id&order=created_at.desc`,
+      `${supabaseUrl}/rest/v1/analyses?created_at=gte.${since}&status=in.(completed,completed_partial)&select=user_id,player_id,vsi,phv&order=created_at.desc`,
       { headers }
     );
 
@@ -44,7 +45,12 @@ export default withHandler(
       return errorResponse("Failed to fetch recent analyses", 500);
     }
 
-    const analyses = await analysesRes.json() as Array<{ user_id: string; player_id: string }>;
+    const analyses = await analysesRes.json() as Array<{
+      user_id: string;
+      player_id: string;
+      vsi?: { vsi?: number; trend?: { momentum?: string; delta?: number | null } } | null;
+      phv?: { category?: string } | null;
+    }>;
 
     if (analyses.length === 0) {
       return successResponse({ message: "No recent analyses to process", generated: 0 });
