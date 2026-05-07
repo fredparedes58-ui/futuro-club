@@ -37,6 +37,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
+import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
+import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import BenchmarkBadge from "@/components/intelligence/BenchmarkBadge";
@@ -719,6 +721,16 @@ export default function PlayerIntelligencePage() {
   const [searchParams] = useSearchParams();
   const [compareMode, setCompareMode] = useState(searchParams.get("compare") === "1");
   const [compareIdx, setCompareIdx] = useState<number>(1);
+  const [trackingSnapshot, setTrackingSnapshot] = useState<TrackingSnapshot | null>(null);
+
+  // Cargar snapshot del Lab (escaneos, duels, distancia, sprints)
+  useEffect(() => {
+    if (!id) return;
+    setTrackingSnapshot(PlayerTrackingService.get(id));
+    const onFocus = () => id && setTrackingSnapshot(PlayerTrackingService.get(id));
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [id]);
 
   if (!player) {
     return (
@@ -940,6 +952,12 @@ export default function PlayerIntelligencePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Movimiento + Escaneo — desde VITAS Lab (YOLOv8n-pose) */}
+                <TrackingSnapshotPanel
+                  playerId={id ?? ""}
+                  snapshot={trackingSnapshot}
+                />
 
                 {/* Métricas Cuantitativas — vista clásica (se mantiene para compatibilidad) */}
                 {latestReport.metricasCuantitativas && (

@@ -30,6 +30,7 @@ import {
   Zap,
 } from "lucide-react";
 import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
+import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import VoronoiOverlay from "@/components/VoronoiOverlay";
 import { useTracking } from "@/hooks/useTracking";
@@ -328,6 +329,33 @@ const VitasLab = () => {
     cdnHostname:       trackingCdnHostname,
     localVideoSrc,
   });
+
+  // Auto-guardar snapshot cuando tracking termina · disponible en perfil + role
+  useEffect(() => {
+    if (tracking.state.status !== "complete" || !selectedPlayerId) return;
+    if (!tracking.state.sessionMetrics) return;
+    const focusTrack = tracking.state.focusTrackId
+      ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
+      : null;
+    PlayerTrackingService.save({
+      playerId:       selectedPlayerId,
+      videoId:        selectedVideoId ?? null,
+      savedAt:        new Date().toISOString(),
+      durationSec:    tracking.state.sessionMetrics.distanceCoveredM > 0
+                        ? tracking.state.sessionMetrics.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics.avgSpeedMs)
+                        : 0,
+      sessionMetrics: tracking.state.sessionMetrics,
+      scanCount:      tracking.state.scanEvents.length,
+      duelCount:      tracking.state.duelEvents.length,
+      tracksCount:    tracking.state.currentTracks.length,
+      focusTrackId:   tracking.state.focusTrackId,
+      scanEvents:     tracking.state.scanEvents,
+      duelEvents:     tracking.state.duelEvents,
+      focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })),
+    });
+    toast.success("📊 Snapshot del Lab guardado en el perfil del jugador");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracking.state.status, selectedPlayerId, selectedVideoId]);
 
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 

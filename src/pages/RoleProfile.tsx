@@ -14,6 +14,8 @@ import RoleProfileFilterBar, { type RoleProfileFilters } from "@/components/role
 import EmptyState from "@/components/role-profile/EmptyState";
 import { PlayerHeaderSkeleton, IdentityCardSkeleton, CapabilityCardsSkeleton, PositionFitSkeleton } from "@/components/role-profile/Skeletons";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
+import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
+import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, GitCompare, Table2, Zap, MapPin } from "lucide-react";
@@ -27,8 +29,18 @@ export default function RoleProfile() {
   const [mode, setMode] = useState<ViewMode>("scout");
   const [filters, setFilters] = useState<RoleProfileFilters | null>(null);
   const [positionOverride, setPositionOverride] = useState<string | null>(null);
+  const [trackingSnapshot, setTrackingSnapshot] = useState<TrackingSnapshot | null>(null);
   const navigate = useNavigate();
   const { data, isLoading, isError, error, refetch } = useRoleProfile(id, positionOverride);
+
+  // Snapshot del Lab (escaneos, duelos, distancia)
+  useEffect(() => {
+    if (!id) return;
+    setTrackingSnapshot(PlayerTrackingService.get(id));
+    const onFocus = () => id && setTrackingSnapshot(PlayerTrackingService.get(id));
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [id]);
 
   const handleFilterChange = useCallback((f: RoleProfileFilters) => {
     setFilters(f);
@@ -239,6 +251,9 @@ export default function RoleProfile() {
             </div>
 
             <StrengthsRisksPanel data={data} />
+
+            {/* Movimiento + Escaneo · snapshot guardado desde VITAS Lab */}
+            <TrackingSnapshotPanel playerId={id ?? ""} snapshot={trackingSnapshot} />
 
             {(mode === "scout" || filters?.showProjected) && <ProjectionComparator data={data} />}
 

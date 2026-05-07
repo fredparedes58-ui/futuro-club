@@ -1,0 +1,157 @@
+/**
+ * VITAS · TrackingSnapshotPanel
+ *
+ * Versión read-only de TrackingMetricsPanel que renderiza un snapshot
+ * persistido por PlayerTrackingService (generado en VitasLab).
+ *
+ * Diferencia con TrackingMetricsPanel:
+ *  - No depende de tracking en vivo · solo lee snapshot
+ *  - Incluye CTA "Re-analizar en Lab" si quieres datos frescos
+ *  - Si no hay snapshot, muestra empty state con CTA al Lab
+ */
+import { motion } from "framer-motion";
+import {
+  Zap, Activity, Eye, Swords, Map as MapIcon, Hexagon, FlaskConical, Calendar, ArrowRight,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
+
+interface Props {
+  playerId: string;
+  snapshot: TrackingSnapshot | null;
+  /** Si true, no muestra el botón "Re-analizar" (modo embebido) */
+  compact?: boolean;
+}
+
+export default function TrackingSnapshotPanel({ playerId, snapshot, compact = false }: Props) {
+  const navigate = useNavigate();
+
+  // ── Empty state ─────────────────────────────────────────────────────────
+  if (!snapshot) {
+    return (
+      <div className="glass rounded-xl p-5 space-y-3 border border-dashed border-border">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <FlaskConical size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-display font-bold text-sm text-foreground">
+              Movimiento + Escaneo · sin analizar
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+              Analiza un video de este jugador en VITAS Lab para ver cuánto y cómo escanea,
+              duelos ganados/perdidos, distancia, sprints y mapa de calor.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate(`/lab?playerId=${playerId}`)}
+          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+        >
+          <FlaskConical size={12} /> Analizar en VITAS Lab <ArrowRight size={12} />
+        </button>
+      </div>
+    );
+  }
+
+  // ── Snapshot loaded ─────────────────────────────────────────────────────
+  const m = snapshot.sessionMetrics;
+  const maxKmh = (m.maxSpeedMs * 3.6).toFixed(1);
+  const avgKmh = (m.avgSpeedMs * 3.6).toFixed(1);
+  const date = new Date(snapshot.savedAt).toLocaleString("es-ES", {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+  const intensityTotal = Math.max(1,
+    m.intensityZones.walk + m.intensityZones.jog + m.intensityZones.run + m.intensityZones.sprint
+  );
+  const pct = (v: number) => Math.round((v / intensityTotal) * 100);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-3"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider">
+          Movimiento + Escaneo (VITAS Lab)
+        </h3>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <Calendar size={10} /> {date}
+        </span>
+      </div>
+
+      {/* Top-line stats grid */}
+      <div className="grid grid-cols-2 gap-2">
+        <StatCard icon={<Zap size={12} className="text-yellow-400" />} label="VEL. MÁX" value={maxKmh} unit="km/h" />
+        <StatCard icon={<Activity size={12} className="text-emerald-400" />} label="VEL. PROM" value={avgKmh} unit="km/h" />
+        <StatCard icon={<MapIcon size={12} className="text-blue-400" />} label="DISTANCIA" value={m.distanceCoveredM.toFixed(0)} unit="m" />
+        <StatCard icon={<Activity size={12} className="text-purple-400" />} label="SPRINTS" value={`${m.sprintCount}`} unit={`${m.sprintDistanceM.toFixed(0)}m`} />
+      </div>
+
+      {/* Eventos clave */}
+      <div className="grid grid-cols-3 gap-2">
+        <StatCard icon={<Eye size={12} className="text-cyan-400" />} label="ESCANEOS" value={`${snapshot.scanCount}`} unit="giros cabeza" />
+        <StatCard icon={<Swords size={12} className="text-orange-400" />} label="DUELOS" value={`${m.duelsWon}/${m.duelsWon + m.duelsLost}`} unit="ganados" />
+        <StatCard icon={<Hexagon size={12} className="text-fuchsia-400" />} label="VORONOI" value={m.avgVoronoiAreaM2.toFixed(0)} unit="m² control" />
+      </div>
+
+      {/* Distribución de intensidad */}
+      <div className="glass rounded-xl p-3 space-y-2">
+        <p className="text-[10px] font-display font-semibold uppercase tracking-wider text-muted-foreground">
+          Distribución intensidad
+        </p>
+        <div className="flex h-2 rounded-full overflow-hidden bg-secondary">
+          <div className="bg-blue-400" style={{ width: `${pct(m.intensityZones.walk)}%` }} />
+          <div className="bg-emerald-400" style={{ width: `${pct(m.intensityZones.jog)}%` }} />
+          <div className="bg-yellow-400" style={{ width: `${pct(m.intensityZones.run)}%` }} />
+          <div className="bg-red-400" style={{ width: `${pct(m.intensityZones.sprint)}%` }} />
+        </div>
+        <div className="grid grid-cols-4 gap-1 text-[9px] text-muted-foreground">
+          <Legend dot="bg-blue-400"   label="Caminar" pct={pct(m.intensityZones.walk)} />
+          <Legend dot="bg-emerald-400" label="Trotar"  pct={pct(m.intensityZones.jog)} />
+          <Legend dot="bg-yellow-400" label="Correr"  pct={pct(m.intensityZones.run)} />
+          <Legend dot="bg-red-400"    label="Sprint"  pct={pct(m.intensityZones.sprint)} />
+        </div>
+      </div>
+
+      {/* Footer · re-analizar */}
+      {!compact && (
+        <button
+          onClick={() => navigate(`/lab?playerId=${playerId}`)}
+          className="w-full py-2 rounded-lg bg-secondary/50 border border-border text-[11px] font-display font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
+        >
+          <FlaskConical size={11} /> Re-analizar con video más reciente
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+// ── Subcomponentes ────────────────────────────────────────────────────────
+
+function StatCard({ icon, label, value, unit }: {
+  icon: React.ReactNode; label: string; value: string; unit?: string;
+}) {
+  return (
+    <div className="glass rounded-xl p-3 space-y-1">
+      <div className="flex items-center gap-1.5 text-[9px] font-display uppercase tracking-wider text-muted-foreground">
+        {icon}{label}
+      </div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-lg font-display font-bold text-foreground">{value}</span>
+        {unit && <span className="text-[9px] text-muted-foreground">{unit}</span>}
+      </div>
+    </div>
+  );
+}
+
+function Legend({ dot, label, pct }: { dot: string; label: string; pct: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      <span>{label}</span>
+      <span className="ml-auto text-foreground/70">{pct}%</span>
+    </div>
+  );
+}
