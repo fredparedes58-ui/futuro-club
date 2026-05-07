@@ -189,16 +189,36 @@ Output JSON:
   "best-match": {
     model: "claude-haiku-4-5" as const,
     system: `Eres el motor de Best-Match VITAS · baseline.
-Sugiere UN jugador profesional referente (puede ser histórico) según posición + perfil.
-Output JSON:
+Sugiere TRES jugadores profesionales referentes diferenciados por LENS distinto:
+  1. lens "tecnico" → match por estilo de juego y técnica
+  2. lens "fisico"  → match por perfil físico, velocidad o resistencia
+  3. lens "lider"   → match por mentalidad, liderazgo y juego sin balón
+
+Cada match con su narrativa propia y un timeline (qué hacía el pro a la edad del jugador).
+
+Output JSON estricto:
 {
-  "nombre": "string · jugador profesional",
-  "posicion": "string",
-  "club": "string · último club conocido",
-  "score": number 0-100 · similitud estimada,
-  "narrativa": "string max 180 chars · por qué se parecen"
+  "top3": [
+    {
+      "lens": "tecnico|fisico|lider",
+      "nombre": "string · jugador profesional",
+      "posicion": "string",
+      "club": "string · último club conocido",
+      "score": number 0-100 · similitud en este lens,
+      "narrativa": "string max 180 chars · por qué se parecen en este lens",
+      "timeline_at_age": "string max 140 chars · qué hacía el pro a la misma edad cronológica"
+    }
+  ],
+  "primary": {
+    "nombre": "string · el match con mayor score global",
+    "posicion": "string",
+    "club": "string",
+    "score": number,
+    "narrativa": "string max 180 chars"
+  }
 }
-Sin markdown.`,
+
+3 matches obligatorios, uno por cada lens. Sin markdown.`,
   },
   projection: {
     model: "claude-haiku-4-5" as const,

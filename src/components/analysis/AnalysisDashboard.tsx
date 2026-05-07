@@ -254,6 +254,13 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
     return <p className="text-xs text-muted-foreground italic">Sin contenido</p>;
   }
 
+  // Best-match shape (top3 + primary OR legacy single-match)
+  const top3 = report.top3 as Array<BestMatchItem> | undefined;
+  const isBestMatch = !!top3 || (typeof report.nombre === "string" && typeof report.score === "number");
+  if (isBestMatch) {
+    return <BestMatchSection report={report} />;
+  }
+
   const title = report.title as string | undefined;
   const summary = (report.summary as string | undefined) ?? (report.executive_summary as string | undefined);
   const strengths = report.strengths as Array<{ title: string; description?: string } | string> | undefined;
@@ -398,5 +405,129 @@ function Section({
       <h5 className={`font-display font-bold text-xs ${color} mb-1.5`}>{heading}</h5>
       <ul className="list-disc list-inside space-y-1 text-xs text-foreground">{children}</ul>
     </section>
+  );
+}
+
+// ─── BestMatchSection ───────────────────────────────────────────────────────
+
+interface BestMatchItem {
+  lens?: "tecnico" | "fisico" | "lider" | string;
+  nombre?: string;
+  posicion?: string;
+  club?: string;
+  score?: number;
+  narrativa?: string;
+  timeline_at_age?: string;
+}
+
+const LENS_META: Record<string, { label: string; color: string; emoji: string }> = {
+  tecnico: { label: "Técnico",  color: "#1A8FFF", emoji: "🎯" },
+  fisico:  { label: "Físico",   color: "#22e88c", emoji: "⚡" },
+  lider:   { label: "Liderazgo", color: "#FFD700", emoji: "👑" },
+};
+
+function BestMatchSection({ report }: { report: Record<string, unknown> }) {
+  const top3 = report.top3 as BestMatchItem[] | undefined;
+  const primary = report.primary as BestMatchItem | undefined;
+
+  // Legacy fallback: single match shape
+  if (!top3 || top3.length === 0) {
+    const single = (primary ?? report) as BestMatchItem;
+    return (
+      <div className="space-y-3">
+        <BestMatchCard match={single} highlighted />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {primary && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
+            Match principal
+          </div>
+          <BestMatchCard match={primary} highlighted />
+        </div>
+      )}
+
+      <div>
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
+          Top 3 · por dimensión
+        </div>
+        <div className="grid gap-2">
+          {top3.map((m, i) => (
+            <BestMatchCard key={i} match={m} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BestMatchCard({ match, highlighted }: { match: BestMatchItem; highlighted?: boolean }) {
+  const lensMeta = match.lens ? LENS_META[match.lens] : null;
+  const score = match.score ?? 0;
+  const scoreColor =
+    score >= 80 ? "text-green-400" :
+    score >= 60 ? "text-electric"   : "text-amber-400";
+
+  return (
+    <div
+      className={`rounded-xl p-3 ${
+        highlighted
+          ? "bg-primary/10 border border-primary/30"
+          : "bg-secondary/30 border border-border"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
+          {lensMeta && (
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
+              style={{ backgroundColor: `${lensMeta.color}20` }}
+              title={lensMeta.label}
+            >
+              {lensMeta.emoji}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="font-display font-bold text-sm text-foreground truncate">
+              {match.nombre ?? "—"}
+            </div>
+            <div className="text-[10px] text-muted-foreground flex flex-wrap gap-x-1.5">
+              {match.posicion && <span>{match.posicion}</span>}
+              {match.club && <span>· {match.club}</span>}
+              {lensMeta && (
+                <span className="font-bold" style={{ color: lensMeta.color }}>
+                  · {lensMeta.label}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className={`font-display font-bold text-base ${scoreColor} shrink-0`}>
+          {score}
+          <span className="text-[10px] text-muted-foreground font-normal">/100</span>
+        </div>
+      </div>
+
+      {match.narrativa && (
+        <p className="text-[11px] text-foreground/90 leading-relaxed mt-2">
+          {match.narrativa}
+        </p>
+      )}
+
+      {match.timeline_at_age && (
+        <div className="mt-2 pt-2 border-t border-border/40 flex items-start gap-1.5">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold shrink-0">
+            A su edad:
+          </span>
+          <p className="text-[10px] text-muted-foreground italic leading-relaxed">
+            {match.timeline_at_age}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
