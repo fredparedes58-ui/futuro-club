@@ -18,6 +18,7 @@
 
 import type { Player } from "./playerService";
 import type { PlayerMetrics } from "./metricsService";
+import { enrichActionWithXg } from "@/lib/xg/zoneXg";
 import type { MatchEvent, EventType, EventZone } from "./matchEventsService";
 import type { FieldPosition } from "@/lib/yolo/types";
 
@@ -471,22 +472,25 @@ export const VAEPService = {
         && a.concedeProbBefore !== undefined && a.concedeProbAfter !== undefined
     );
 
-    if (!hasProbs) {
-      return {
-        vaepTotal: null,
-        vaep90: null,
-        topActions: [],
-        status: "stub_no_data",
-        message: "STUB: Acciones detectadas pero sin probabilidades de gol/concesión. "
-          + "Proveer scoreProbBefore/After y concedeProbBefore/After en cada SPADLAction.",
-      };
-    }
+    // Si faltan probabilidades, las derivamos del modelo zone-xG (no proveedor externo).
+    // Solo necesitamos coordenadas válidas en el campo para que tenga sentido.
+    const enrichedActions = hasProbs
+      ? input.actions
+      : input.actions.map((a) => {
+          const xg = enrichActionWithXg({
+            type:   a.type,
+            startX: a.startX, startY: a.startY,
+            endX:   a.endX,   endY:   a.endY,
+            result: a.result,
+          });
+          return { ...a, ...xg };
+        });
 
-    // Cálculo real cuando haya probabilidades
+    // Cálculo real con probabilidades (originales o derivadas)
     let total = 0;
     const impacts: Array<{ actionId: string; impact: number }> = [];
 
-    for (const action of input.actions) {
+    for (const action of enrichedActions) {
       const scoreGain   = (action.scoreProbAfter!  - action.scoreProbBefore!);
       const concedeGain = (action.concedeProbAfter! - action.concedeProbBefore!);
       const vaep = scoreGain - concedeGain;
@@ -504,7 +508,9 @@ export const VAEPService = {
       vaep90,
       topActions: impacts.slice(0, 5),
       status: "calculated",
-      message: `VAEP calculado sobre ${input.actions.length} acciones.`,
+      message: hasProbs
+        ? `VAEP calculado sobre ${input.actions.length} acciones (probabilidades del proveedor).`
+        : `VAEP calculado sobre ${input.actions.length} acciones (xG zonal · modelo VITAS).`,
     };
   },
 

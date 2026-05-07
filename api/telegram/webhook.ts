@@ -113,6 +113,17 @@ const TOOLS = [
     input_schema: { type: "object", properties: {} },
   },
   {
+    name: "get_match_stats",
+    description: "Stats del último video analizado de un jugador: pases (precisión, completados/fallados), duelos (ganados/perdidos), recuperaciones, robos, anticipaciones, pérdidas, disparos, físicas (vel máx/prom, distancia, sprints). Usa cuando piden 'estadísticas de X', 'cómo jugó X', 'stats de pase de X'.",
+    input_schema: {
+      type: "object",
+      required: ["name_query"],
+      properties: {
+        name_query: { type: "string", description: "Nombre del jugador" },
+      },
+    },
+  },
+  {
     name: "get_team_stats",
     description: "Stats agregadas del equipo: VSI promedio, distribución PHV, número de jugadores activos, talentos en P90.",
     input_schema: { type: "object", properties: {} },
@@ -142,6 +153,33 @@ const TOOLS = [
     },
   },
 ] as const;
+
+// ─── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Extrae stats clave (pases, recup, duelos, físicas) del report.metricasCuantitativas
+ * Devuelve null si no hay datos.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractKeyStats(report: any): Record<string, unknown> | null {
+  const m = report?.metricasCuantitativas;
+  if (!m) return null;
+  return {
+    pases:           m.pases ? { completados: m.pases.completados, fallados: m.pases.fallados, precision: m.pases.precision } : null,
+    duelos:          m.duelos ? { ganados: m.duelos.ganados, perdidos: m.duelos.perdidos } : null,
+    recuperaciones:  m.eventos?.recuperaciones ?? null,
+    robos:           m.eventos?.robos ?? null,
+    anticipaciones:  m.eventos?.anticipaciones ?? null,
+    perdidas:        m.eventos?.perdidas ?? null,
+    disparos:        m.disparos ? { alArco: m.disparos.alArco, fuera: m.disparos.fuera } : null,
+    fisicas:         m.fisicas ? {
+      velocidadMaxKmh:  m.fisicas.velocidadMaxKmh,
+      velocidadPromKmh: m.fisicas.velocidadPromKmh,
+      distanciaM:       m.fisicas.distanciaM,
+      sprints:          m.fisicas.sprints,
+    } : null,
+  };
+}
 
 // ─── Tool implementations ────────────────────────────────────────
 
@@ -186,18 +224,51 @@ async function execTool(
 
       if (!matches || matches.length === 0) return `No encontré jugador con "${q}".`;
       if (matches.length === 1) {
-        // Buscar último análisis del jugador
+        const playerId = matches[0].id;
+        // Último análisis (pipeline GPU)
         const { data: lastAnalysis } = await supabase
           .from("analyses")
           .select("id, status, vsi, completed_at")
-          .eq("player_id", matches[0].id)
+          .eq("player_id", playerId)
           .in("status", ["completed", "completed_partial"])
           .order("completed_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        return JSON.stringify({ player: matches[0], lastAnalysis }, null, 2);
+
+        // Último report con metricasCuantitativas (pase/recup/duelos/etc)
+        const { data: lastReport } = await supabase
+          .from("player_analyses")
+          .select("id, report, created_at")
+          .eq("player_id", playerId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const stats = extractKeyStats(lastReport?.report);
+        return JSON.stringify({ player: matches[0], lastAnalysis, lastVideoStats: stats }, null, 2);
       }
       return `Múltiples coincidencias: ${matches.map((m: { name: string }) => m.name).join(", ")}. Especifica más.`;
+    }
+
+    case "get_match_stats": {
+      const q = ((input.name_query as string) ?? "").toLowerCase().trim();
+      const { data: matches } = await supabase
+        .from("players")
+        .select("id, name")
+        .eq("user_id", ctx.userId)
+        .ilike("name", `%${q}%`)
+        .limit(1);
+      if (!matches || matches.length === 0) return `No encontré jugador "${q}".`;
+      const { data: report } = await supabase
+        .from("player_analyses")
+        .select("report, created_at")
+        .eq("player_id", matches[0].id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!report?.report) return `Sin análisis de video para ${matches[0].name}. Sube uno desde la app.`;
+      const stats = extractKeyStats(report.report);
+      return JSON.stringify({ player: matches[0].name, stats, analysisDate: report.created_at }, null, 2);
     }
 
     case "get_latest_match": {
@@ -522,6 +593,7 @@ export default withHandler(
         `📋 Comandos\n\n` +
         `/jugadores — top 15 por VSI\n` +
         `/equipo — stats agregadas (VSI, PHV)\n` +
+        `/stats <nombre> — pase/duelos/recup/disparos/físicas del último video\n` +
         `/ultimo — último partido finalizado\n` +
         `/drill <tema> — drills para entrenar (pase, regate, etc.)\n` +
         `/help — este mensaje\n` +
@@ -619,6 +691,60 @@ export default withHandler(
           `📅 ${date} · ⏱ ${dur}\n\n` +
           `Para análisis detallado: abre la app → Reportes → Match-day Live.`);
       }
+      return successResponse({ ok: true });
+    }
+
+    if (lowerText.startsWith("/stats")) {
+      const name = text.slice(6).trim();
+      if (!name) {
+        await sendMessage(chatId, "📊 Stats de un jugador\n\nUso: /stats <nombre>\nEj: /stats Samu");
+        return successResponse({ ok: true });
+      }
+      const { data: matches } = await supabase
+        .from("players")
+        .select("id, name")
+        .eq("user_id", mapping.user_id)
+        .ilike("name", `%${name.toLowerCase()}%`)
+        .limit(1);
+      if (!matches || matches.length === 0) {
+        await sendMessage(chatId, `No encontré jugador "${name}".`);
+        return successResponse({ ok: true });
+      }
+      const { data: row } = await supabase
+        .from("player_analyses")
+        .select("report, created_at")
+        .eq("player_id", matches[0].id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const stats = row?.report ? extractKeyStats(row.report) : null;
+      if (!stats) {
+        await sendMessage(chatId,
+          `📊 ${matches[0].name}\n\n` +
+          `Aún no tiene análisis de video con stats.\n\n` +
+          `Sube un video desde la app → Reportes → analizar.`);
+        return successResponse({ ok: true });
+      }
+      const date = row?.created_at ? new Date(row.created_at as string).toLocaleDateString("es-ES") : "—";
+      const lines: string[] = [`📊 ${matches[0].name} · último video (${date})`, ""];
+      const p = stats.pases as { completados: number; fallados: number; precision: number } | null;
+      if (p) lines.push(`⚽ Pases: ${p.completados}/${p.completados + p.fallados} (${p.precision}% precisión)`);
+      const d = stats.duelos as { ganados: number; perdidos: number } | null;
+      if (d) lines.push(`💥 Duelos: ${d.ganados}/${d.ganados + d.perdidos} ganados`);
+      if (stats.recuperaciones != null) lines.push(`🛡 Recuperaciones: ${stats.recuperaciones}`);
+      if (stats.robos != null) lines.push(`🔪 Robos: ${stats.robos}`);
+      if (stats.anticipaciones != null) lines.push(`👁 Anticipaciones: ${stats.anticipaciones}`);
+      if (stats.perdidas != null) lines.push(`❌ Pérdidas: ${stats.perdidas}`);
+      const s = stats.disparos as { alArco: number; fuera: number } | null;
+      if (s) lines.push(`🎯 Disparos: ${s.alArco} al arco · ${s.fuera} fuera`);
+      const f = stats.fisicas as { velocidadMaxKmh: number; velocidadPromKmh: number; distanciaM: number; sprints: number } | null;
+      if (f) {
+        lines.push("");
+        lines.push(`🏃 Físicas:`);
+        lines.push(`   Vel máx: ${f.velocidadMaxKmh} km/h · prom ${f.velocidadPromKmh} km/h`);
+        lines.push(`   Distancia: ${f.distanciaM}m · ${f.sprints} sprints`);
+      }
+      await sendMessage(chatId, lines.join("\n"));
       return successResponse({ ok: true });
     }
 
