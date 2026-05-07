@@ -167,6 +167,7 @@ async function execTool(
       const { data } = await supabase
         .from("players")
         .select("id, name, age, position, vsi, phv_category")
+        .eq("user_id", ctx.userId)
         .order(sortBy === "vsi" ? "vsi" : sortBy === "age" ? "age" : "name", { ascending: sortBy !== "vsi" })
         .limit(limit);
 
@@ -179,6 +180,7 @@ async function execTool(
       const { data: matches } = await supabase
         .from("players")
         .select("id, name, age, position, foot, height_cm, weight_kg, vsi, vsi_history, phv_category, phv_offset, metric_speed, metric_technique, metric_vision, metric_stamina, metric_shooting, metric_defending")
+        .eq("user_id", ctx.userId)
         .ilike("name", `%${q}%`)
         .limit(3);
 
@@ -214,7 +216,8 @@ async function execTool(
     case "get_team_stats": {
       const { data: players } = await supabase
         .from("players")
-        .select("vsi, phv_category, age");
+        .select("vsi, phv_category, age")
+        .eq("user_id", ctx.userId);
       if (!players || players.length === 0) return "Sin jugadores.";
 
       const n = players.length;
@@ -262,6 +265,7 @@ async function execTool(
       const { data: p } = await supabase
         .from("players")
         .select("name, age, phv_category, phv_offset, height_cm, weight_kg")
+        .eq("user_id", ctx.userId)
         .ilike("name", `%${q}%`)
         .limit(1)
         .maybeSingle();

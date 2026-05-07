@@ -49,9 +49,8 @@ const BottomNav = () => {
     prevOnline.current = syncState.online;
   }, [syncState.online, syncState.pending, t]);
 
-  const navItems = isClub
-    ? [...BASE_NAV, { path: "/equipo", icon: Users, label: "nav.team" }]
-    : BASE_NAV;
+  // /equipo ya está en BASE_NAV · no duplicar para isClub
+  const navItems = BASE_NAV;
 
   const shouldHide =
     location.pathname === "/" ||
