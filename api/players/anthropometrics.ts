@@ -131,10 +131,17 @@ export default withHandler(
       }
     }
 
-    // ── DELETE · borrar fila ──────────────────────────────────────
+    // ── DELETE · borrar fila + revertir player record al anterior ─
     if (method === "DELETE") {
       const id = query.id;
       if (!id) return errorResponse({ code: "missing_id", message: "Falta id en query", status: 400 });
+
+      // Leer la fila antes de borrar para saber el player_id
+      const { data: rowToDelete } = await supabase
+        .from("player_anthropometrics")
+        .select("player_id")
+        .eq("id", id)
+        .single();
 
       const { error } = await supabase
         .from("player_anthropometrics")
@@ -142,6 +149,30 @@ export default withHandler(
         .eq("id", id);
 
       if (error) return errorResponse({ code: "delete_failed", message: error.message, status: 500 });
+
+      // Buscar la nueva última medición y resincronizar el player record
+      if (rowToDelete?.player_id) {
+        const { data: latest } = await supabase
+          .from("player_anthropometrics")
+          .select("height_cm, weight_kg, sitting_height_cm, leg_length_cm, maturity_offset, phv_category")
+          .eq("player_id", rowToDelete.player_id)
+          .order("measured_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latest) {
+          await supabase.from("players").update({
+            height_cm: latest.height_cm,
+            weight_kg: latest.weight_kg,
+            sitting_height: latest.sitting_height_cm,
+            leg_length: latest.leg_length_cm,
+            phv_category: latest.phv_category,
+            phv_offset: latest.maturity_offset,
+          }).eq("id", rowToDelete.player_id);
+        }
+        // Si no quedan mediciones, dejamos el player con los valores que tuviera
+      }
+
       return successResponse({ deleted: true, id });
     }
 
@@ -203,6 +234,29 @@ export default withHandler(
         .single();
 
       if (error) return errorResponse({ code: "update_failed", message: error.message, status: 500 });
+
+      // Si esta fila era la más reciente, sincronizar al player record
+      if (row?.player_id) {
+        const { data: latest } = await supabase
+          .from("player_anthropometrics")
+          .select("id")
+          .eq("player_id", row.player_id)
+          .order("measured_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latest?.id === id) {
+          await supabase.from("players").update({
+            height_cm: input.heightCm,
+            weight_kg: input.weightKg,
+            sitting_height: input.sittingHeightCm ?? null,
+            leg_length: input.legLengthCm ?? null,
+            phv_category: phv.category,
+            phv_offset: phv.offset,
+          }).eq("id", row.player_id);
+        }
+      }
+
       return successResponse({ updated: true, record: row, phv });
     }
 
@@ -261,6 +315,16 @@ export default withHandler(
     if (error) {
       return errorResponse({ code: "save_failed", message: error.message, status: 500 });
     }
+
+    // Sincronizar al player record · POST siempre es la nueva más reciente
+    await supabase.from("players").update({
+      height_cm: input.heightCm,
+      weight_kg: input.weightKg,
+      sitting_height: input.sittingHeightCm ?? null,
+      leg_length: input.legLengthCm ?? null,
+      phv_category: phv.category,
+      phv_offset: phv.offset,
+    }).eq("id", input.playerId);
 
     return successResponse({ saved: true, record: row, phv });
   }
