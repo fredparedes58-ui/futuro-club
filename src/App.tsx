@@ -155,6 +155,7 @@ const App = () => (
                 <Route path="/admin" element={<P><AdminDashboardPage /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
+                <Route path="/players/:id" element={<P><PlayerProfile /></P>} />
                 <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />
                 <Route path="/players/:id/role-profile" element={<P><RoleProfile /></P>} />
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />

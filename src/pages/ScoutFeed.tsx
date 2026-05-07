@@ -92,7 +92,8 @@ function useIndexedPlayers(q: string, position: string, league: string) {
       const res = await fetch(`/api/players/search?${params}`);
       if (!res.ok) return [];
       const data = await res.json();
-      return data.players ?? [];
+      // El API responde { success, data: { players, total } } via apiResponse helper
+      return data?.data?.players ?? data?.players ?? [];
     },
     staleTime: 1000 * 60 * 5,
   });

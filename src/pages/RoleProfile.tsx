@@ -63,7 +63,26 @@ export default function RoleProfile() {
                 {t("common.audit")}
               </Button>
             </Link>
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                if (!data) {
+                  toast.error("No hay perfil cargado para exportar");
+                  return;
+                }
+                // Exporta JSON con todo el perfil · sirve para coach + dev
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `role-profile-${id ?? "player"}-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast.success("Perfil exportado");
+              }}
+            >
               <FileText className="w-3.5 h-3.5" />
               {t("common.export")}
             </Button>

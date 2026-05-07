@@ -3,7 +3,7 @@
  * /equipo — Lista de miembros del equipo + invitaciones (plan Club).
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -26,6 +26,7 @@ import { useTeamMembers, useTeamInvitations, useInviteMember, useRemoveMember, u
 import { ROLE_LABELS, type UserRole } from "@/services/real/userProfileService";
 import { PlanGuard } from "@/components/PlanGuard";
 import { useTranslation } from "react-i18next";
+import { PlayerService, type Player } from "@/services/real/playerService";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -47,6 +48,29 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<UserRole>("scout");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [myPlayers, setMyPlayers] = useState<Player[]>([]);
+
+  // Cargar jugadores del coach (localStorage · ya filtrados por user via PlayerService)
+  useEffect(() => {
+    const loadPlayers = () => {
+      const all = PlayerService.getAll();
+      // Ordenar por VSI desc
+      const sorted = [...all].sort((a, b) => Number(b.vsi || 0) - Number(a.vsi || 0));
+      setMyPlayers(sorted);
+    };
+    loadPlayers();
+    // Refrescar cuando vuelve la pestaña al foco
+    const onFocus = () => loadPlayers();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  const phvIcon = (cat?: string) => {
+    if (cat === "early") return "🟢";
+    if (cat === "ontime" || cat === "ontme") return "🟡";
+    if (cat === "late") return "🔵";
+    return "⚪";
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -236,6 +260,63 @@ export default function TeamPage() {
           </div>
           <span className="text-[10px] text-primary font-bold">→</span>
         </motion.button>
+
+        {/* Tus jugadores · clicables */}
+        <motion.div variants={item}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <Users size={13} /> Tus jugadores ({myPlayers.length})
+            </h2>
+            <button
+              onClick={() => navigate("/players/new")}
+              className="text-[10px] text-primary font-display font-bold flex items-center gap-1 hover:text-primary/80 transition-colors"
+            >
+              <Plus size={11} /> Nuevo
+            </button>
+          </div>
+          {myPlayers.length === 0 ? (
+            <button
+              onClick={() => navigate("/players/new")}
+              className="w-full glass rounded-xl p-6 text-center hover:bg-secondary/30 transition-colors"
+            >
+              <Plus size={20} className="mx-auto mb-2 text-primary" />
+              <p className="text-sm font-display font-bold text-foreground">Añade tu primer jugador</p>
+              <p className="text-[10px] text-muted-foreground mt-1">VSI · PHV · análisis IA</p>
+            </button>
+          ) : (
+            <div className="glass rounded-xl divide-y divide-border">
+              {myPlayers.slice(0, 10).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => navigate(`/players/${p.id}`)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-secondary/30 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-display font-bold text-primary shrink-0">
+                    {p.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-display font-semibold text-foreground truncate">
+                      {p.name} <span className="text-muted-foreground font-normal">· {p.age}a · {p.position}</span>
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      VSI {Number(p.vsi || 0).toFixed(0)} {phvIcon(p.phvCategory)}
+                      {p.phvCategory && ` · ${p.phvCategory === "early" ? "Pre-PHV" : p.phvCategory === "late" ? "Post-PHV" : "En PHV"}`}
+                    </p>
+                  </div>
+                  <span className="text-[10px] text-primary font-bold">→</span>
+                </button>
+              ))}
+              {myPlayers.length > 10 && (
+                <button
+                  onClick={() => navigate("/rankings")}
+                  className="w-full p-3 text-center text-[11px] font-display font-bold text-primary hover:bg-secondary/30 transition-colors"
+                >
+                  Ver todos ({myPlayers.length}) →
+                </button>
+              )}
+            </div>
+          )}
+        </motion.div>
 
         {/* Miembros activos */}
         <motion.div variants={item}>
