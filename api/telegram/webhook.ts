@@ -37,17 +37,12 @@ const BOT_USERNAME = process.env.TELEGRAM_BOT_USERNAME ?? "vitas_copilot_bot";
 async function sendMessage(chatId: number, text: string, opts: {
   parseMode?: "Markdown" | "HTML";
   replyMarkup?: Record<string, unknown>;
-} = {}): Promise<void> {
+} = {}): Promise<{ ok: boolean; status: number; error?: string }> {
   if (!BOT_TOKEN) {
     console.error("[telegram] BOT_TOKEN missing · cannot send");
-    return;
+    return { ok: false, status: 0, error: "no_bot_token" };
   }
-  // Strip markdown safe-fallback: si el mensaje tiene caracteres frágiles
-  // ('_', '*', '`', '[', ']') Y el caller no pidió HTML explícito, mandamos
-  // plain text. Telegram Markdown legacy es muy estricto con paréntesis.
-  const useParseMode = opts.parseMode === "HTML"
-    ? "HTML"
-    : undefined; // plain text por defecto · 100% safe
+  const useParseMode = opts.parseMode === "HTML" ? "HTML" : undefined;
   const cleanText = useParseMode
     ? text
     : text.replace(/\*([^*]+)\*/g, "$1").replace(/_([^_]+)_/g, "$1");
@@ -68,9 +63,13 @@ async function sendMessage(chatId: number, text: string, opts: {
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.error(`[telegram] sendMessage failed ${res.status}: ${body.slice(0, 300)}`);
+      return { ok: false, status: res.status, error: body.slice(0, 200) };
     }
+    return { ok: true, status: res.status };
   } catch (err) {
-    console.error("[telegram] sendMessage exception:", err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[telegram] sendMessage exception:", msg);
+    return { ok: false, status: 0, error: msg };
   }
 }
 
@@ -399,7 +398,10 @@ export default withHandler(
       }
     }
 
+    const debugSteps: string[] = [];
     const log = (step: string, extra: Record<string, unknown> = {}) => {
+      const entry = `${step}${Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : ""}`;
+      debugSteps.push(entry);
       console.log(JSON.stringify({ level: "debug", msg: `[tg] ${step}`, ...extra }));
     };
 
@@ -410,6 +412,9 @@ export default withHandler(
       hasSecret: !!WEBHOOK_SECRET,
       botUsername: BOT_USERNAME,
     });
+
+    // Debug mode: si chatId es 0, devuelve los pasos en la response
+    const isDebug = req.headers.get("x-vitas-debug") === "1";
 
     const update = (await req.json().catch(() => null)) as TelegramUpdate | null;
     log("parsed", { hasMsg: !!update?.message, hasText: !!update?.message?.text });
@@ -483,10 +488,10 @@ export default withHandler(
 
     if (!mapping) {
       log("no_mapping_sending_welcome", { chatId });
-      await sendMessage(chatId,
+      const r = await sendMessage(chatId,
         "👋 No estás vinculado a una cuenta VITAS.\n\nVe a la web → Ajustes → Conectar Telegram y abre el link que te genere.\n\n(Si lo hiciste y no funciona, vuelve a generar el token · expira a los 10 min)");
-      log("welcome_sent", { chatId });
-      return successResponse({ ok: true });
+      log("welcome_sent", { chatId, ok: r.ok, status: r.status, err: r.error });
+      return successResponse(isDebug ? { ok: true, debug: debugSteps } : { ok: true });
     }
 
     // ── Comandos canned ──────────────────────────────────────
