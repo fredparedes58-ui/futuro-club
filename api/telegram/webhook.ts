@@ -477,7 +477,18 @@ export default withHandler(
         .eq("token", token);
 
       await sendMessage(chatId,
-        `✅ *Vinculado correctamente*\n\nHola ${tgFirstName ?? "coach"} 👋\n\nSoy *VITAS Copilot*. Pregúntame sobre tus jugadores y equipo:\n\n• "¿cómo va el equipo?"\n• "Samu"\n• "drills para lectura defensiva"\n• "fase PHV de Marcos"\n\n/help para ver más comandos.`);
+        `✅ Vinculado correctamente\n\n` +
+        `Hola ${tgFirstName ?? "coach"} 👋\n\n` +
+        `Soy VITAS Copilot. Pruébalos:\n\n` +
+        `/jugadores — top 15 por VSI\n` +
+        `/equipo — stats agregadas\n` +
+        `/ultimo — último partido\n` +
+        `/drill <tema> — drills al instante\n\n` +
+        `O escríbeme en lenguaje natural:\n` +
+        `• "¿cómo va Samu?"\n` +
+        `• "fase PHV de Marcos"\n` +
+        `• "drills para lectura defensiva"\n\n` +
+        `/help para más.`);
       return successResponse({ ok: true });
     }
 
@@ -508,7 +519,18 @@ export default withHandler(
 
     if (text === "/help") {
       await sendMessage(chatId,
-        `*Comandos*\n\n/jugadores · listado top VSI\n/equipo · stats agregadas\n/ultimo · resumen último partido\n/help · este mensaje\n/desvincular · cerrar conexión\n\n*O escribe en lenguaje natural*:\n• "¿cómo va Samu?"\n• "drills para pase"\n• "fase PHV de Marcos"\n• "¿qué entreno hoy?"`);
+        `📋 Comandos\n\n` +
+        `/jugadores — top 15 por VSI\n` +
+        `/equipo — stats agregadas (VSI, PHV)\n` +
+        `/ultimo — último partido finalizado\n` +
+        `/drill <tema> — drills para entrenar (pase, regate, etc.)\n` +
+        `/help — este mensaje\n` +
+        `/desvincular — cerrar conexión\n\n` +
+        `💬 O escribe en lenguaje natural:\n` +
+        `• "¿cómo va Samu?"\n` +
+        `• "fase PHV de Marcos"\n` +
+        `• "drills para lectura defensiva"\n` +
+        `• "¿qué entreno hoy?"`);
       return successResponse({ ok: true });
     }
 
@@ -518,6 +540,126 @@ export default withHandler(
         .update({ unlinked_at: new Date().toISOString() })
         .eq("telegram_chat_id", chatId);
       await sendMessage(chatId, "🔓 Desvinculado. Tus mensajes se borran. Hasta otra coach 👋");
+      return successResponse({ ok: true });
+    }
+
+    // ── Slash commands directos (sin LLM · rápido + barato) ───────────
+    const lowerText = text.toLowerCase().trim();
+
+    if (lowerText === "/jugadores") {
+      const { data } = await supabase
+        .from("players")
+        .select("name, age, position, vsi, phv_category")
+        .eq("user_id", mapping.user_id)
+        .order("vsi", { ascending: false })
+        .limit(15);
+      if (!data || data.length === 0) {
+        await sendMessage(chatId, "📋 Aún no tienes jugadores registrados.\n\nAñade el primero desde la app → Equipo → +");
+      } else {
+        const phvIcon = (cat?: string) => cat === "early" ? "🟢" : cat === "ontime" || cat === "ontme" ? "🟡" : cat === "late" ? "🔵" : "⚪";
+        const rows = (data as Array<{ name: string; age: number | null; position: string | null; vsi: number | null; phv_category: string | null }>)
+          .map((p, i) => `${i + 1}. ${p.name} · ${p.age ?? "?"}a · ${p.position ?? "—"} · VSI ${Number(p.vsi || 0).toFixed(0)} ${phvIcon(p.phv_category ?? undefined)}`)
+          .join("\n");
+        await sendMessage(chatId, `🏆 Tu plantilla (top ${data.length} por VSI)\n\n${rows}\n\n🟢 pre-PHV · 🟡 en PHV · 🔵 post-PHV · ⚪ sin datos`);
+      }
+      return successResponse({ ok: true });
+    }
+
+    if (lowerText === "/equipo") {
+      const { data: players } = await supabase
+        .from("players")
+        .select("vsi, phv_category, age")
+        .eq("user_id", mapping.user_id);
+      if (!players || players.length === 0) {
+        await sendMessage(chatId, "Aún no tienes jugadores. Añade desde la app → Equipo.");
+      } else {
+        const n = players.length;
+        const ps = players as Array<{ vsi: number | null; phv_category: string | null; age: number | null }>;
+        const avgVsi = ps.reduce((a, p) => a + Number(p.vsi || 0), 0) / n;
+        const elite = ps.filter(p => Number(p.vsi || 0) >= 70).length;
+        const early = ps.filter(p => p.phv_category === "early").length;
+        const ontime = ps.filter(p => p.phv_category === "ontime" || p.phv_category === "ontme").length;
+        const late = ps.filter(p => p.phv_category === "late").length;
+        const ages = ps.map(p => Number(p.age || 0)).filter(a => a > 0);
+        const avgAge = ages.length ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : "—";
+        await sendMessage(chatId,
+          `📊 Stats del equipo\n\n` +
+          `👥 Plantilla: ${n} jugadores · edad media ${avgAge}\n` +
+          `⚡ VSI promedio: ${avgVsi.toFixed(1)}\n` +
+          `🌟 Élite (VSI ≥70): ${elite}\n\n` +
+          `Distribución PHV:\n` +
+          `🟢 Pre-PHV: ${early}\n` +
+          `🟡 En PHV: ${ontime}\n` +
+          `🔵 Post-PHV: ${late}\n` +
+          `⚪ Sin datos: ${n - early - ontime - late}`);
+      }
+      return successResponse({ ok: true });
+    }
+
+    if (lowerText === "/ultimo") {
+      const { data: match } = await supabase
+        .from("live_matches")
+        .select("team_name, opponent_name, status, ended_at, duration_seconds, score_home, score_away")
+        .eq("user_id", mapping.user_id)
+        .eq("status", "finished")
+        .order("ended_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!match) {
+        await sendMessage(chatId, "⚽ Sin partidos finalizados aún.\n\nAbre Match-day Live desde la app → Equipo → Match-day Live para empezar uno.");
+      } else {
+        const m = match as { team_name: string; opponent_name: string | null; ended_at: string; duration_seconds: number | null; score_home: number; score_away: number };
+        const dur = m.duration_seconds ? `${Math.round(m.duration_seconds / 60)}min` : "—";
+        const date = m.ended_at ? new Date(m.ended_at).toLocaleDateString("es-ES") : "—";
+        const result = m.score_home > m.score_away ? "✅ Victoria" : m.score_home < m.score_away ? "❌ Derrota" : "🤝 Empate";
+        await sendMessage(chatId,
+          `⚽ Último partido\n\n` +
+          `${m.team_name} ${m.score_home} – ${m.score_away} ${m.opponent_name ?? "Rival"}\n` +
+          `${result}\n\n` +
+          `📅 ${date} · ⏱ ${dur}\n\n` +
+          `Para análisis detallado: abre la app → Reportes → Match-day Live.`);
+      }
+      return successResponse({ ok: true });
+    }
+
+    if (lowerText.startsWith("/drill")) {
+      const tema = text.slice(6).trim();
+      if (!tema) {
+        await sendMessage(chatId,
+          "💪 Drill recomendado\n\n" +
+          "Uso: /drill <tema>\n\n" +
+          "Ejemplos:\n" +
+          "• /drill lectura defensiva\n" +
+          "• /drill pase\n" +
+          "• /drill primer toque\n" +
+          "• /drill regate\n" +
+          "• /drill velocidad\n" +
+          "• /drill resistencia");
+      } else {
+        const lower = tema.toLowerCase();
+        const drills: Record<string, string[]> = {
+          "lectura defensiva":   ["TAC-001 Posicionamiento táctico", "TAC-002 Pressing coordinado"],
+          "pase":                ["TEC-002 Circuito de pases", "TAC-004 Posesión 5v5+2"],
+          "primer toque":        ["TEC-001 Rondo 4v2", "TEC-005 Recepción bajo presión"],
+          "regate":              ["TEC-003 Circuito 1v1", "POS-WG-001 Desborde y centro"],
+          "velocidad":           ["FIS-001 Sprints con cambio dirección", "FIS-004 Velocidad de reacción"],
+          "resistencia":         ["FIS-003 HIIT fútbol", "FIS-005 Fuerza preventiva"],
+        };
+        let recommended: string[] = [];
+        let matched = "";
+        for (const [key, val] of Object.entries(drills)) {
+          if (lower.includes(key)) { recommended = val; matched = key; break; }
+        }
+        if (recommended.length === 0) {
+          recommended = ["TEC-001 Rondo 4v2 (versátil)", "TAC-001 Posicionamiento táctico"];
+          matched = "general";
+        }
+        const lines = recommended.map((d, i) => `${i + 1}. ${d}`).join("\n");
+        await sendMessage(chatId,
+          `💪 Drills para "${tema}"\n\n` +
+          `Categoría: ${matched}\n\n${lines}\n\n` +
+          `📚 Detalle completo en la app → VITAS Lab → Drill Library.`);
+      }
       return successResponse({ ok: true });
     }
 
