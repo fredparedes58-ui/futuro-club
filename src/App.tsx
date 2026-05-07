@@ -50,6 +50,7 @@ import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
 import PlayerAnalysisPage from "./pages/PlayerAnalysisPage";
+import SharedAnalysisPage from "./pages/SharedAnalysisPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import UserGuidePage from "./pages/UserGuidePage";
@@ -125,6 +126,7 @@ const App = () => (
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/share/analysis/:analysisId" element={<SharedAnalysisPage />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />

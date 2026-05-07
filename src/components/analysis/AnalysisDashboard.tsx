@@ -59,9 +59,11 @@ const REPORT_META: Record<
 
 interface Props {
   analysisId: string;
+  /** Si se pasa, fetchea desde /api/analyses/share (público) en lugar del endpoint con auth */
+  shareToken?: string;
 }
 
-export function AnalysisDashboard({ analysisId }: Props) {
+export function AnalysisDashboard({ analysisId, shareToken }: Props) {
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [reports, setReports] = useState<ReportData[]>([]);
@@ -83,9 +85,10 @@ export function AnalysisDashboard({ analysisId }: Props) {
     let mounted = true;
     async function load() {
       try {
-        const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, {
-          credentials: "include",
-        });
+        const url = shareToken
+          ? `/api/analyses/share?analysisId=${analysisId}&t=${encodeURIComponent(shareToken)}`
+          : `/api/analyses/reports?analysisId=${analysisId}`;
+        const res = await fetch(url, shareToken ? {} : { credentials: "include" });
         const data = await res.json();
         if (!mounted) return;
         if (!res.ok || !data.success) {
@@ -106,7 +109,7 @@ export function AnalysisDashboard({ analysisId }: Props) {
     }
     load();
     return () => { mounted = false; };
-  }, [analysisId]);
+  }, [analysisId, shareToken]);
 
   if (loading) {
     return (
@@ -183,8 +186,8 @@ export function AnalysisDashboard({ analysisId }: Props) {
         )}
       </motion.div>
 
-      {/* Tabs */}
-      <div className="flex gap-1.5 flex-wrap">
+      {/* Tabs · ocultas al imprimir */}
+      <div className="flex gap-1.5 flex-wrap print:hidden">
         {reports.map((r) => {
           const meta = REPORT_META[r.report_type] ?? { Icon: Brain, title: r.report_type, color: "#888" };
           const Icon = meta.Icon;
@@ -207,14 +210,14 @@ export function AnalysisDashboard({ analysisId }: Props) {
         })}
       </div>
 
-      {/* Contenido del reporte activo */}
+      {/* Contenido del reporte activo · solo en pantalla */}
       {activeReport && (
         <motion.div
           key={activeReport.report_type}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="glass rounded-2xl p-5"
+          className="glass rounded-2xl p-5 print:hidden"
         >
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -231,13 +234,37 @@ export function AnalysisDashboard({ analysisId }: Props) {
         </motion.div>
       )}
 
+      {/* Print mode · TODOS los reportes apilados, solo visible al imprimir */}
+      <div className="hidden print:block space-y-4">
+        {reports.map((r) => {
+          const meta = REPORT_META[r.report_type];
+          const Icon = meta?.Icon ?? Brain;
+          return (
+            <div key={r.report_type} className="break-inside-avoid border border-border rounded-2xl p-4 page-break-inside-avoid">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Icon size={14} className="text-primary" />
+                  <h3 className="font-display font-bold text-sm">
+                    {meta?.title ?? r.report_type}
+                  </h3>
+                </div>
+                <span className="text-[9px] text-muted-foreground font-mono">
+                  {r.model} · {r.prompt_version}
+                </span>
+              </div>
+              <ReportRenderer report={r.content} />
+            </div>
+          );
+        })}
+      </div>
+
       {/* Drill Recommendations · auto-derivadas de areas_to_improve */}
       {areasDesarrollo.length > 0 && (
         <DrillRecommendations areasDesarrollo={areasDesarrollo} />
       )}
 
-      {/* Datos técnicos crudos */}
-      <details className="text-xs text-muted-foreground">
+      {/* Datos técnicos crudos · ocultos al imprimir */}
+      <details className="text-xs text-muted-foreground print:hidden">
         <summary className="cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5">
           <Activity size={11} /> Datos técnicos (avanzado)
         </summary>
