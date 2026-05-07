@@ -25,6 +25,7 @@ import { PlayerService } from "@/services/real/playerService";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import PeerBenchmark from "@/components/PeerBenchmark";
 
 interface Badge {
   id: string;
@@ -239,6 +240,11 @@ export default function ParentDashboardPage() {
               </div>
             ))}
           </div>
+        </motion.div>
+
+        {/* Cross-club benchmark · network effect */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="glass rounded-2xl p-4">
+          <PeerBenchmark playerId={playerId!} variant="full" />
         </motion.div>
 
         {/* Último análisis · resumen claro */}

@@ -19,6 +19,7 @@ import {
   Brain,
 } from "lucide-react";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
+import PeerBenchmark from "@/components/PeerBenchmark";
 
 interface ReportData {
   report_type: string;
@@ -284,6 +285,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
             </div>
           );
         })}
+      </div>
+
+      {/* Cross-club Peer Benchmark · oculto en print, network effect display */}
+      <div className="glass rounded-2xl p-4 print:hidden">
+        <PeerBenchmark playerId={analysis.player_id} variant="compact" />
       </div>
 
       {/* Drill Recommendations · auto-derivadas de areas_to_improve */}
