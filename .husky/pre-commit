@@ -1,1 +1,17 @@
-npx lint-staged
+#!/usr/bin/env sh
+# 1. ESLint + auto-fix sobre archivos staged
+npx lint-staged || exit 1
+
+# 2. TypeScript check del directorio api/ (Edge Functions Vercel)
+#    El tsconfig raiz NO incluye api/, asi que un error TS aqui solo
+#    aparece en el deploy. Este chequeo lo cazamos antes de push.
+#    Filtramos errores de tests preexistentes para no bloquear commits
+#    en archivos no relacionados.
+echo "🔍 Chequeando types de api/ (Vercel Edge Functions)..."
+ERRORS=$(npx tsc --project api/tsconfig.json --noEmit 2>&1 | grep -E "^api/" | grep -vE "test\.ts|__tests__|_player-report\.ts" || true)
+if [ -n "$ERRORS" ]; then
+  echo "❌ Errores TS en api/ que romperian el deploy de Vercel:"
+  echo "$ERRORS"
+  exit 1
+fi
+echo "✅ api/ types OK"
