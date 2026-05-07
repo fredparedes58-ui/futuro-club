@@ -385,7 +385,7 @@ interface TelegramUpdate {
 
 export default withHandler(
   { method: "POST", maxRequests: 600 },         // sin auth · webhook público
-  async ({ req }) => {
+  async ({ req, body }) => {
     if (!BOT_TOKEN) {
       return errorResponse({ code: "bot_not_configured", message: "TELEGRAM_BOT_TOKEN missing", status: 503 });
     }
@@ -416,7 +416,8 @@ export default withHandler(
     // Debug mode: si chatId es 0, devuelve los pasos en la response
     const isDebug = req.headers.get("x-vitas-debug") === "1";
 
-    const update = (await req.json().catch(() => null)) as TelegramUpdate | null;
+    // withHandler ya consumió el body via req.text() · usar ctx.body, no req.json()
+    const update = (body ?? null) as TelegramUpdate | null;
     log("parsed", { hasMsg: !!update?.message, hasText: !!update?.message?.text });
     if (!update?.message?.text || !update.message.chat?.id) {
       return successResponse({ ok: true });           // ignorar updates sin texto
