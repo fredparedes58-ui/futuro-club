@@ -1,21 +1,21 @@
 /**
- * VITAS - Team Intelligence Agent v1
+ * VITAS · Team Intelligence Agent v1.1 · REACTIVADO Sprint B1
  * POST /api/agents/team-intelligence
  *
  * Edge runtime + raw fetch a Anthropic API.
  * Recibe observaciones de Gemini sobre el equipo + YOLO opcional.
  * Retorna SSE → TeamIntelligenceOutput completo.
  *
- * ⚠️ @deprecated · Sprint 4 día 4 · análisis de equipo NO está en MVP.
+ * Histórico: marcado @deprecated en Sprint 4 d4 (no era MVP).
+ * Reactivado en Sprint B1 al añadir team analysis a la oferta core
+ * — diferenciador vs Veo/Pixellot que solo hacen highlights.
  *
- * En MVP VITAS analizamos JUGADORES individuales, no equipos completos.
- * Análisis de equipo es feature post-MVP (Sprint 8+ · cuando un cliente lo pida).
+ * Consumido por:
+ *   - src/hooks/useTeamIntelligence.ts
+ *   - src/pages/TeamAnalysisPage.tsx
  *
- * NO usar en código nuevo. Se mantiene activo porque hook lo llama:
- *    - src/hooks/useTeamIntelligence.ts
- *
- * Plan de borrado: Sprint 5 día 3 · cuando frontend desactive el feature
- * "team analysis" del MVP comercial.
+ * Vía paralela: api/team/baseline-team-analysis (SIN vídeo) para
+ * generar informes de equipo cuando aún no hay vídeo disponible.
  */
 
 import { withHandler } from "../_lib/withHandler";
