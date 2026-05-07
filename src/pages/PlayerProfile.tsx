@@ -5,6 +5,7 @@ import {
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
   Activity, ClipboardList, FileText, Image, Save, Share2,
+  Ruler,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
@@ -28,6 +29,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
 import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
+import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -298,6 +300,28 @@ const PlayerProfile = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Antropometría · PHV */}
+      {rawPlayer && (
+        <motion.div variants={item} className="glass rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Ruler size={14} className="text-primary" />
+            <h2 className="font-display font-semibold text-sm text-foreground">Antropometría</h2>
+            <span className="text-[10px] text-muted-foreground ml-auto">PHV · Mirwald</span>
+          </div>
+          <AnthropometricsForm
+            playerId={rawPlayer.id}
+            chronologicalAge={rawPlayer.age}
+            gender={(rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M"}
+            fallback={{
+              heightCm: rawPlayer.height,
+              weightKg: rawPlayer.weight,
+              sittingHeightCm: (rawPlayer as unknown as Record<string, number>).sittingHeight,
+              legLengthCm:     (rawPlayer as unknown as Record<string, number>).legLength,
+            }}
+          />
+        </motion.div>
+      )}
 
       {/* Radar de métricas */}
       <motion.div variants={item} className="glass rounded-xl p-4">

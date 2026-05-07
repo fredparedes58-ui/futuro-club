@@ -1,11 +1,13 @@
 /**
  * VITAS · Player Anthropometrics API
- * POST /api/players/anthropometrics    → guardar nueva medida + calcular PHV
- * GET  /api/players/anthropometrics?playerId=xxx → última medida + histórico
+ *
+ *   POST   /api/players/anthropometrics                 → nueva medida + calc PHV
+ *   PATCH  /api/players/anthropometrics?id=<rowId>      → actualizar medida + recalc PHV
+ *   DELETE /api/players/anthropometrics?id=<rowId>      → borrar medida
+ *   GET    /api/players/anthropometrics?playerId=<id>   → última medida o histórico
  *
  * Cada POST inserta una nueva fila (histórico, no sobreescribe).
- * Tras guardar, llama internamente a phv-calculator y cachea el resultado
- * en la misma fila.
+ * PATCH/DELETE operan sobre una fila concreta por su id.
  */
 
 import { z } from "zod";
@@ -18,7 +20,7 @@ export const config = { runtime: "edge" };
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// ── POST · guardar nueva medida ─────────────────────────────────────
+// ── Schemas ─────────────────────────────────────────────────────────
 const postSchema = z.object({
   playerId: z.string().min(1).max(120),
   heightCm: z.number().min(80).max(230),
@@ -30,13 +32,14 @@ const postSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
-// ── GET · query params ──────────────────────────────────────────────
+const patchSchema = postSchema.partial({ playerId: true });
+
 const getSchema = z.object({
   playerId: z.string().min(1),
   history: z.enum(["true", "false"]).default("false"),
 });
 
-// ── Helper · calcula PHV con la fórmula Mirwald (idéntica a _phv-calculator.ts) ─
+// ── Helper · fórmula Mirwald (idéntica a _phv-calculator.ts) ─────────
 function computePhv(input: {
   age: number;
   height: number;
@@ -90,13 +93,17 @@ function computePhv(input: {
 }
 
 export default withHandler(
-  { schema: postSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId, method, query }) => {
+  {
+    method: ["GET", "POST", "PATCH", "DELETE"],
+    requireAuth: true,
+    maxRequests: 60,
+  },
+  async ({ req, userId, method, query }) => {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
     });
 
-    // ── GET · histórico o última medida ───────────────────────────
+    // ── GET · histórico o última medida ──────────────────────────
     if (method === "GET") {
       const params = getSchema.safeParse(query);
       if (!params.success) {
@@ -104,7 +111,6 @@ export default withHandler(
       }
 
       if (params.data.history === "true") {
-        // Histórico completo
         const { data, error } = await supabase
           .from("player_anthropometrics")
           .select("*")
@@ -114,7 +120,6 @@ export default withHandler(
         if (error) return errorResponse({ code: "db_error", message: error.message, status: 500 });
         return successResponse({ history: data, count: data?.length ?? 0 });
       } else {
-        // Solo última
         const { data, error } = await supabase
           .from("player_latest_anthropometrics")
           .select("*")
@@ -126,10 +131,93 @@ export default withHandler(
       }
     }
 
-    // ── POST · guardar nueva medida + calcular PHV ────────────────
-    const input = body as z.infer<typeof postSchema>;
+    // ── DELETE · borrar fila ──────────────────────────────────────
+    if (method === "DELETE") {
+      const id = query.id;
+      if (!id) return errorResponse({ code: "missing_id", message: "Falta id en query", status: 400 });
 
-    // Buscar tenant_id del player
+      const { error } = await supabase
+        .from("player_anthropometrics")
+        .delete()
+        .eq("id", id);
+
+      if (error) return errorResponse({ code: "delete_failed", message: error.message, status: 500 });
+      return successResponse({ deleted: true, id });
+    }
+
+    // ── PATCH · actualizar fila + recalcular PHV ─────────────────
+    if (method === "PATCH") {
+      const id = query.id;
+      if (!id) return errorResponse({ code: "missing_id", message: "Falta id en query", status: 400 });
+
+      const body = (await req.json().catch(() => null)) as unknown;
+      const parsed = patchSchema.safeParse(body);
+      if (!parsed.success) {
+        return errorResponse({
+          code: "invalid_body",
+          message: parsed.error.errors[0]?.message ?? "Body inválido",
+          status: 400,
+        });
+      }
+      const input = parsed.data;
+
+      // Recalcular PHV con los nuevos valores (todos requeridos para el cálculo)
+      if (
+        input.heightCm === undefined ||
+        input.weightKg === undefined ||
+        input.chronologicalAge === undefined
+      ) {
+        return errorResponse({
+          code: "missing_fields",
+          message: "PATCH requiere heightCm, weightKg, chronologicalAge",
+          status: 400,
+        });
+      }
+
+      const phv = computePhv({
+        age: input.chronologicalAge,
+        height: input.heightCm,
+        weight: input.weightKg,
+        sittingHeight: input.sittingHeightCm,
+        legLength: input.legLengthCm,
+        gender: input.gender ?? "M",
+      });
+
+      const { data: row, error } = await supabase
+        .from("player_anthropometrics")
+        .update({
+          height_cm: input.heightCm,
+          weight_kg: input.weightKg,
+          sitting_height_cm: input.sittingHeightCm ?? null,
+          leg_length_cm: input.legLengthCm ?? null,
+          chronological_age: input.chronologicalAge,
+          maturity_offset: phv.offset,
+          biological_age: phv.biologicalAge,
+          phv_category: phv.category,
+          phv_status: phv.phv_status,
+          development_window: phv.development_window,
+          notes: input.notes,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) return errorResponse({ code: "update_failed", message: error.message, status: 500 });
+      return successResponse({ updated: true, record: row, phv });
+    }
+
+    // ── POST · nueva medida + calcular PHV ───────────────────────
+    const body = (await req.json().catch(() => null)) as unknown;
+    const parsed = postSchema.safeParse(body);
+    if (!parsed.success) {
+      return errorResponse({
+        code: "invalid_body",
+        message: parsed.error.errors[0]?.message ?? "Body inválido",
+        status: 400,
+      });
+    }
+    const input = parsed.data;
+
     const { data: player } = await supabase
       .from("players")
       .select("tenant_id")
@@ -140,7 +228,6 @@ export default withHandler(
       return errorResponse({ code: "player_not_found", message: "Jugador no existe", status: 404 });
     }
 
-    // Calcular PHV
     const phv = computePhv({
       age: input.chronologicalAge,
       height: input.heightCm,
@@ -150,7 +237,6 @@ export default withHandler(
       gender: input.gender,
     });
 
-    // Insertar
     const { data: row, error } = await supabase
       .from("player_anthropometrics")
       .insert({
@@ -176,10 +262,6 @@ export default withHandler(
       return errorResponse({ code: "save_failed", message: error.message, status: 500 });
     }
 
-    return successResponse({
-      saved: true,
-      record: row,
-      phv,
-    });
+    return successResponse({ saved: true, record: row, phv });
   }
 );
