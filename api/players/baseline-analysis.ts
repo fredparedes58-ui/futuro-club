@@ -404,7 +404,7 @@ export default withHandler(
       : historyArr;
     const trend = computeVsiTrend(fullHistory);
 
-    const vsiData = { ...vsiBase, peer, trend };
+    const vsiData = { ...vsiBase, peer, trend, history: fullHistory };
 
     // ── 2. Insertar analysis row (placeholder video_id sentinel) ───
     const sentinelVideoId = `baseline-${profile.id}-${Date.now()}`;

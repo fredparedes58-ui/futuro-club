@@ -43,6 +43,7 @@ interface AnalysisData {
       delta: number | null;
       samples: number;
     } | null;
+    history?: number[];
   } | null;
   phv: Record<string, unknown> | null;
   similarity: Record<string, unknown> | null;
@@ -245,6 +246,14 @@ export function AnalysisDashboard({ analysisId, shareToken }: Props) {
               {activeReport.model} · {activeReport.prompt_version}
             </span>
           </div>
+
+          {/* Evolution sparkline embebido solo en player-report */}
+          {activeReport.report_type === "player-report" &&
+            Array.isArray(analysis.vsi?.history) &&
+            (analysis.vsi?.history?.length ?? 0) >= 2 && (
+              <VsiSparkline history={analysis.vsi!.history!} currentVsi={vsi ?? undefined} />
+            )}
+
           <ReportRenderer report={activeReport.content} />
         </motion.div>
       )}
@@ -447,6 +456,70 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
           {JSON.stringify(report, null, 2)}
         </pre>
       )}
+    </div>
+  );
+}
+
+// ─── VsiSparkline · evolution chart embebido en player-report ───────────────
+
+function VsiSparkline({ history, currentVsi }: { history: number[]; currentVsi?: number }) {
+  // Render simple SVG path · sin recharts para mantener bundle ligero
+  if (history.length < 2) return null;
+
+  const w = 100;   // viewBox units
+  const h = 24;
+  const min = Math.min(...history);
+  const max = Math.max(...history);
+  const range = Math.max(1, max - min);
+
+  const points = history.map((v, i) => {
+    const x = (i / (history.length - 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return `${x},${y.toFixed(1)}`;
+  });
+  const linePath = `M${points.join(" L")}`;
+  const areaPath = `${linePath} L${w},${h} L0,${h} Z`;
+
+  const first = history[0];
+  const last = history[history.length - 1];
+  const delta = last - first;
+  const deltaSign = delta > 0 ? "+" : "";
+  const deltaColor = delta > 0 ? "text-green-400" : delta < 0 ? "text-red-400" : "text-muted-foreground";
+
+  return (
+    <div className="mb-4 rounded-lg bg-secondary/30 border border-border p-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+          Evolución VSI · {history.length} análisis
+        </div>
+        <div className={`text-[11px] font-display font-bold ${deltaColor}`}>
+          {deltaSign}{delta.toFixed(1)} pts
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h + 2}`} preserveAspectRatio="none" className="w-full h-12 overflow-visible">
+        <path d={areaPath} fill="hsl(var(--primary))" fillOpacity={0.15} />
+        <path d={linePath} fill="none" stroke="hsl(var(--primary))" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        {history.map((v, i) => {
+          const x = (i / (history.length - 1)) * w;
+          const y = h - ((v - min) / range) * h;
+          const isLast = i === history.length - 1;
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r={isLast ? 2 : 1.2}
+              fill={isLast ? "hsl(var(--primary))" : "hsl(var(--electric))"}
+              stroke={isLast ? "hsl(var(--background))" : "none"}
+              strokeWidth={isLast ? 1 : 0}
+            />
+          );
+        })}
+      </svg>
+      <div className="flex items-center justify-between mt-1 text-[9px] text-muted-foreground">
+        <span>VSI inicial: <span className="text-foreground font-bold">{first.toFixed(1)}</span></span>
+        <span>Actual: <span className="text-primary font-bold">{(currentVsi ?? last).toFixed(1)}</span></span>
+      </div>
     </div>
   );
 }
