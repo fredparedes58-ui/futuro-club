@@ -139,6 +139,42 @@ function computeVsi(p: PlayerProfile): { vsi: number; tier: string; tierLabel: s
   return { vsi, tier, tierLabel };
 }
 
+// ── Peer percentile · compara contra jugadores edad±1 + misma posición + mismo PHV stratum
+async function computePeerPercentile(
+  supabase: ReturnType<typeof createClient>,
+  player: PlayerProfile,
+): Promise<{ percentile: number | null; peerCount: number; stratum: string }> {
+  const age = player.age ?? null;
+  const pos = player.position;
+  const phvCat = player.phv.category;
+  if (!age || !pos) return { percentile: null, peerCount: 0, stratum: "no-data" };
+
+  let q = supabase
+    .from("players")
+    .select("vsi", { count: "exact", head: false })
+    .gte("age", age - 1)
+    .lte("age", age + 1)
+    .eq("position", pos);
+
+  if (phvCat) q = q.eq("phv_category", phvCat);
+
+  const { data: peers, count } = await q;
+
+  if (!peers || peers.length === 0) {
+    return { percentile: null, peerCount: 0, stratum: `${pos} ${age}±1 ${phvCat ?? "todos"}` };
+  }
+
+  const total = count ?? peers.length;
+  const below = peers.filter((r) => Number(r.vsi ?? 0) <= player.vsi).length;
+  const percentile = total > 0 ? Math.round((below / total) * 100) : null;
+
+  return {
+    percentile,
+    peerCount: total,
+    stratum: `${pos} U${Math.round(age)}±1 ${phvCat ?? "todos"}`,
+  };
+}
+
 // ── Prompts (compactos · sin biomecánica) ──────────────────────────
 
 const PROMPTS = {
@@ -307,7 +343,9 @@ export default withHandler(
       vsi: Number(playerRow.vsi) || 0,
     };
 
-    const vsiData = computeVsi(profile);
+    const vsiBase = computeVsi(profile);
+    const peer = await computePeerPercentile(supabase, profile);
+    const vsiData = { ...vsiBase, peer };
 
     // ── 2. Insertar analysis row (placeholder video_id sentinel) ───
     const sentinelVideoId = `baseline-${profile.id}-${Date.now()}`;
@@ -402,6 +440,7 @@ export default withHandler(
       vsi: vsiData.vsi,
       tier: vsiData.tier,
       tierLabel: vsiData.tierLabel,
+      peer,
       totalLatencyMs: Date.now() - startedAt,
       failedReports: results.filter((r) => !r.ok).map((r) => ({
         type: r.reportType,

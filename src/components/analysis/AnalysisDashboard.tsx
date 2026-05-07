@@ -31,7 +31,12 @@ interface ReportData {
 interface AnalysisData {
   id: string;
   status: string;
-  vsi: { vsi?: number; tier?: string; tierLabel?: string } | null;
+  vsi: {
+    vsi?: number;
+    tier?: string;
+    tierLabel?: string;
+    peer?: { percentile: number | null; peerCount: number; stratum: string } | null;
+  } | null;
   phv: Record<string, unknown> | null;
   similarity: Record<string, unknown> | null;
   biomechanics: Record<string, unknown> | null;
@@ -146,7 +151,7 @@ export function AnalysisDashboard({ analysisId }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* Header VSI */}
+      {/* Header VSI · score + tier + peer percentile */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -161,6 +166,19 @@ export function AnalysisDashboard({ analysisId }: Props) {
         {tier && (
           <div className="text-[11px] mt-1.5 text-muted-foreground">
             Tier · <span className="text-foreground font-semibold">{tier}</span>
+          </div>
+        )}
+        {analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined && (
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-center gap-1.5 text-[10px]">
+            <span className="font-display font-bold text-primary text-base">
+              P{analysis.vsi.peer.percentile}
+            </span>
+            <span className="text-muted-foreground">
+              vs {analysis.vsi.peer.stratum}
+              {analysis.vsi.peer.peerCount > 0 && (
+                <span className="text-foreground/60"> · {analysis.vsi.peer.peerCount} peers</span>
+              )}
+            </span>
           </div>
         )}
       </motion.div>
