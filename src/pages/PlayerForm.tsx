@@ -12,7 +12,7 @@ import { z } from "zod";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Save, User, Ruler, Weight,
-  Target, Dna, Trophy, Sliders, Info, ChevronDown,
+  Target, Dna, Trophy, Sliders, Info, ChevronDown, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -224,6 +224,7 @@ const PlayerForm = () => {
     control,
     watch,
     setValue,
+    trigger,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<FormValues>({
@@ -271,6 +272,34 @@ const PlayerForm = () => {
   }, [id, isEditMode, navigate, reset]);
 
   const metricsWatch = watch("metrics");
+  const watchedName = watch("name");
+  const watchedAge = watch("age");
+
+  // ── Step navigation · solo en modo creación ────────────────────────
+  // En edit mode mostramos todo a la vez (el coach ya conoce la app)
+  const useSteps = !isEditMode;
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+
+  // Campos de cada paso para validación parcial (trigger)
+  const STEP_FIELDS = {
+    1: ["name", "age", "position", "gender", "foot"] as const,
+    2: ["height", "weight", "sittingHeight", "legLength", "competitiveLevel", "minutesPlayed"] as const,
+    3: ["metrics"] as const,
+  };
+
+  async function handleNextStep() {
+    const fields = STEP_FIELDS[currentStep] as readonly (keyof FormValues)[];
+    const valid = await trigger(fields as (keyof FormValues)[]);
+    if (!valid) {
+      toast.error(t("players.form.fixErrors") ?? "Revisa los campos antes de continuar");
+      return;
+    }
+    if (currentStep < 3) setCurrentStep((s) => Math.min(3, (s + 1)) as 1 | 2 | 3);
+  }
+
+  function handlePrevStep() {
+    if (currentStep > 1) setCurrentStep((s) => Math.max(1, (s - 1)) as 1 | 2 | 3);
+  }
 
   const onSubmit = async (data: FormValues) => {
     // Verificar límite del plan antes de crear (solo en modo creación)
@@ -379,8 +408,42 @@ const PlayerForm = () => {
       </motion.div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Progress · solo en modo creación con steps */}
+        {useSteps && (
+          <motion.div variants={item} className="space-y-2">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold">
+              <span className="text-muted-foreground">
+                Paso {currentStep} de 3
+              </span>
+              <span className="text-primary">
+                {currentStep === 1 ? "Identidad" : currentStep === 2 ? "Físico" : "Métricas"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`h-1.5 flex-1 rounded-full transition-all ${
+                    i === currentStep ? "bg-primary"
+                    : i < currentStep  ? "bg-primary/50"
+                    : "bg-secondary"
+                  }`}
+                />
+              ))}
+            </div>
+            {watchedName && watchedAge && currentStep > 1 && (
+              <p className="text-[10px] text-muted-foreground">
+                Creando · <span className="text-foreground font-bold">{watchedName}</span> ({watchedAge}a)
+              </p>
+            )}
+          </motion.div>
+        )}
+
         {/* Sección: Datos básicos */}
-        <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
+        <motion.div
+          variants={item}
+          className={`glass rounded-xl p-4 space-y-4 ${useSteps && currentStep !== 1 ? "hidden" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-1">
             <User size={14} className="text-primary" />
             <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.basicData")}</h2>
@@ -503,7 +566,10 @@ const PlayerForm = () => {
         </motion.div>
 
         {/* Sección: Físico */}
-        <motion.div variants={item} className="glass rounded-xl p-4 space-y-4">
+        <motion.div
+          variants={item}
+          className={`glass rounded-xl p-4 space-y-4 ${useSteps && currentStep !== 2 ? "hidden" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-1">
             <Ruler size={14} className="text-electric" />
             <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.physicalData")}</h2>
@@ -610,7 +676,10 @@ const PlayerForm = () => {
         </motion.div>
 
         {/* Sección: Métricas */}
-        <motion.div variants={item} className="glass rounded-xl p-4 space-y-5">
+        <motion.div
+          variants={item}
+          className={`glass rounded-xl p-4 space-y-5 ${useSteps && currentStep !== 3 ? "hidden" : ""}`}
+        >
           <div className="flex items-center gap-2 mb-1">
             <Sliders size={14} className="text-gold" />
             <h2 className="font-display font-semibold text-sm text-foreground">{t("players.form.performanceMetrics")}</h2>
@@ -638,27 +707,70 @@ const PlayerForm = () => {
         </motion.div>
 
         {/* Botones */}
-        <motion.div variants={item} className="flex gap-3 pt-2 pb-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            onClick={() => navigate(-1)}
-          >
-            {t("common.cancel")}
-          </Button>
-          <Button
-            type="submit"
-            className="flex-1 gap-2"
-            disabled={isSubmitting}
-          >
-            <Save size={16} />
-            {isSubmitting
-              ? t("players.form.submitting")
-              : isEditMode
-              ? t("players.form.submitEdit")
-              : t("players.form.submit")}
-          </Button>
+        <motion.div variants={item} className="flex gap-2 pt-2 pb-4">
+          {useSteps ? (
+            <>
+              {currentStep > 1 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 gap-1.5"
+                  onClick={handlePrevStep}
+                >
+                  <ChevronLeft size={14} />
+                  Atrás
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => navigate(-1)}
+                >
+                  {t("common.cancel")}
+                </Button>
+              )}
+
+              {currentStep < 3 ? (
+                <Button
+                  type="button"
+                  className="flex-1 gap-1.5"
+                  onClick={handleNextStep}
+                >
+                  Siguiente
+                  <ChevronRight size={14} />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="flex-1 gap-2"
+                  disabled={isSubmitting}
+                >
+                  <Save size={16} />
+                  {isSubmitting ? t("players.form.submitting") : t("players.form.submit")}
+                </Button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate(-1)}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 gap-2"
+                disabled={isSubmitting}
+              >
+                <Save size={16} />
+                {isSubmitting ? t("players.form.submitting") : t("players.form.submitEdit")}
+              </Button>
+            </>
+          )}
         </motion.div>
       </form>
     </motion.div>
