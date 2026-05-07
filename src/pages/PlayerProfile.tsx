@@ -31,6 +31,7 @@ import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
 import GrowthVelocityChart from "@/components/player/GrowthVelocityChart";
+import { PhvWindowPlan } from "@/components/player/PhvWindowPlan";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -323,6 +324,9 @@ const PlayerProfile = () => {
           />
           <div className="mt-4 pt-4 border-t border-border/40">
             <GrowthVelocityChart playerId={rawPlayer.id} />
+          </div>
+          <div className="mt-4 pt-4 border-t border-border/40">
+            <PhvWindowPlan playerId={rawPlayer.id} hasPhv={hasPHV} />
           </div>
         </motion.div>
       )}
