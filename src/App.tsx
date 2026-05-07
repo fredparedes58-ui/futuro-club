@@ -47,6 +47,8 @@ import AnalysisReportPrint from "./pages/AnalysisReportPrint";
 import TeamPage from "./pages/TeamPage";
 import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import TeamBaselinePage from "./pages/TeamBaselinePage";
+import LiveHubPage from "./pages/LiveHubPage";
+import LiveMatchPage from "./pages/LiveMatchPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
@@ -161,6 +163,8 @@ const App = () => (
                 <Route path="/equipo" element={<P><TeamPage /></P>} />
                 <Route path="/team-analysis" element={<P><TeamAnalysisPage /></P>} />
                 <Route path="/equipo/baseline" element={<P><TeamBaselinePage /></P>} />
+                <Route path="/live" element={<P><LiveHubPage /></P>} />
+                <Route path="/live/:matchId" element={<P><LiveMatchPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
                 <Route path="/guide" element={<P><UserGuidePage /></P>} />
 
