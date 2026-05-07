@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
+import TelegramConnect from "@/components/TelegramConnect";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
@@ -339,6 +340,16 @@ const SettingsPage = () => {
           {t("settings.subtitle")}
         </p>
       </motion.div>
+
+      {/* Integraciones · Telegram Coach Copilot */}
+      {user && (
+        <motion.div variants={item} className="space-y-2">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
+            Integraciones
+          </h2>
+          <TelegramConnect />
+        </motion.div>
+      )}
 
       {/* Cuenta */}
       {user && (
