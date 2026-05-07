@@ -21,7 +21,7 @@ import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, Activity, Swords, Grid3x3, Zap, Sparkles, FileText,
-  TrendingUp, Share2, BarChart3, Target,
+  TrendingUp, Share2, BarChart3, Target, Heart,
 } from "lucide-react";
 
 interface FabAction {
@@ -45,9 +45,9 @@ function actionsForRoute(pathname: string, params: Record<string, string | undef
   if (playerMatch) {
     const id = playerMatch[1];
     return [
+      { id: "family",    label: "Vista familia",  Icon: Heart,    color: "#EC4899", onClick: () => navigate(`/family/${id}`) },
       { id: "reports",   label: "Reportes",       Icon: FileText, color: "#0066CC", onClick: () => navigate(`/players/${id}/reports`) },
       { id: "evolution", label: "Evolución",      Icon: TrendingUp, color: "#10b981", onClick: () => navigate(`/players/${id}/evolution`) },
-      { id: "live",      label: "Match-day",      Icon: Activity, color: "#22e88c", onClick: () => navigate(`/live`) },
       { id: "lab",       label: "Subir vídeo",    Icon: Zap,      color: "#B82BD9", onClick: () => navigate(`/lab?playerId=${id}`) },
     ];
   }

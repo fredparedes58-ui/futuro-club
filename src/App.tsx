@@ -54,6 +54,7 @@ import LiveHubPage from "./pages/LiveHubPage";
 import LiveMatchPage from "./pages/LiveMatchPage";
 import LiveSummaryPage from "./pages/LiveSummaryPage";
 import CompareRivalPage from "./pages/CompareRivalPage";
+import ParentDashboardPage from "./pages/ParentDashboardPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
@@ -172,6 +173,7 @@ const App = () => (
                 <Route path="/live/:matchId" element={<P><LiveMatchPage /></P>} />
                 <Route path="/live/:matchId/summary" element={<P><LiveSummaryPage /></P>} />
                 <Route path="/equipo/rival" element={<P><CompareRivalPage /></P>} />
+                <Route path="/family/:playerId" element={<P><ParentDashboardPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
                 <Route path="/guide" element={<P><UserGuidePage /></P>} />
 

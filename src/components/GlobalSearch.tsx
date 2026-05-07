@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/command";
 import {
   Users, Activity, Swords, Grid3x3, Zap, BarChart3, Target,
-  Sparkles, Trophy, FileText, Search,
+  Sparkles, Trophy, FileText, Search, Heart,
 } from "lucide-react";
 import { useAllPlayers } from "@/hooks/usePlayers";
 
@@ -160,9 +160,18 @@ export default function GlobalSearch() {
                       <span className="text-[9px] text-muted-foreground shrink-0">→ Perfil</span>
                     </CommandItem>
                   ))}
-                  {/* Atajo: rapido a reports / live */}
+                  {/* Atajo: rapido a reports / live / family */}
                   {filteredPlayers.length === 1 && (
                     <>
+                      <CommandItem
+                        onSelect={() => go(`/family/${filteredPlayers[0].id}`)}
+                        className="flex items-center gap-3 cursor-pointer pl-12"
+                      >
+                        <Heart size={12} className="text-pink-400 shrink-0" />
+                        <span className="text-[11px] text-foreground">
+                          Vista familia de {filteredPlayers[0].name}
+                        </span>
+                      </CommandItem>
                       <CommandItem
                         onSelect={() => go(`/players/${filteredPlayers[0].id}/reports`)}
                         className="flex items-center gap-3 cursor-pointer pl-12"
