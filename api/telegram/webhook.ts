@@ -399,18 +399,20 @@ export default withHandler(
       }
     }
 
-    // DEBUG: log env presence (sin leakear valores)
-    console.log(JSON.stringify({
-      level: "debug",
-      msg: "[telegram] webhook hit",
+    const log = (step: string, extra: Record<string, unknown> = {}) => {
+      console.log(JSON.stringify({ level: "debug", msg: `[tg] ${step}`, ...extra }));
+    };
+
+    log("webhook_hit", {
       hasBotToken: !!BOT_TOKEN,
       botTokenLen: BOT_TOKEN.length,
       hasAnthropicKey: !!ANTHROPIC_API_KEY,
       hasSecret: !!WEBHOOK_SECRET,
       botUsername: BOT_USERNAME,
-    }));
+    });
 
     const update = (await req.json().catch(() => null)) as TelegramUpdate | null;
+    log("parsed", { hasMsg: !!update?.message, hasText: !!update?.message?.text });
     if (!update?.message?.text || !update.message.chat?.id) {
       return successResponse({ ok: true });           // ignorar updates sin texto
     }
@@ -419,6 +421,7 @@ export default withHandler(
     const text = update.message.text.trim();
     const tgUsername = update.message.from?.username;
     const tgFirstName = update.message.from?.first_name;
+    log("got_message", { chatId, text: text.slice(0, 40), tgFirstName });
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
@@ -469,16 +472,20 @@ export default withHandler(
     }
 
     // ── Identificar usuario por chat_id ──────────────────────
-    const { data: mapping } = await supabase
+    log("checking_mapping", { chatId });
+    const { data: mapping, error: mappingErr } = await supabase
       .from("coach_telegram_mapping")
       .select("user_id, tenant_id")
       .eq("telegram_chat_id", chatId)
       .is("unlinked_at", null)
       .maybeSingle();
+    log("mapping_check_done", { hasMapping: !!mapping, err: mappingErr?.message });
 
     if (!mapping) {
+      log("no_mapping_sending_welcome", { chatId });
       await sendMessage(chatId,
-        "👋 No estás vinculado a una cuenta VITAS.\n\nVe a la web → *Ajustes* → *Conectar Telegram* y abre el link que te genere.\n\n_(Si lo hiciste y no funciona, vuelve a generar el token · expira a los 10 min)_");
+        "👋 No estás vinculado a una cuenta VITAS.\n\nVe a la web → Ajustes → Conectar Telegram y abre el link que te genere.\n\n(Si lo hiciste y no funciona, vuelve a generar el token · expira a los 10 min)");
+      log("welcome_sent", { chatId });
       return successResponse({ ok: true });
     }
 
