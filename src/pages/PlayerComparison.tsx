@@ -41,20 +41,31 @@ const labelMap: Record<string, string> = {
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
 const item = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.45 } } };
 
-// ─── Vacío ───────────────────────────────────────────────────────────────────
+// ─── Vacío · usa EmptyState global ───────────────────────────────────────────
+import EmptyStateComponent from "@/components/EmptyState";
+import { Plus, BarChart3 } from "lucide-react";
+
 function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   const { t } = useTranslation();
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-8 text-center">
-      <Users size={40} className="text-muted-foreground" />
-      <p className="font-display font-bold text-lg text-foreground">{t("compare.needMinPlayers")}</p>
-      <p className="text-sm text-muted-foreground">{t("compare.needMinDesc")}</p>
-      <button
-        onClick={() => navigate("/rankings")}
-        className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold"
-      >
-        {t("compare.goToRanking")}
-      </button>
+    <div className="px-4 pt-8 max-w-md mx-auto">
+      <EmptyStateComponent
+        Icon={Users}
+        size="lg"
+        title={t("compare.needMinPlayers")}
+        description={t("compare.needMinDesc")}
+        primary={{
+          label: "Añadir jugador",
+          Icon: Plus,
+          onClick: () => navigate("/players/new"),
+        }}
+        secondary={{
+          label: "Ir a Rankings",
+          Icon: BarChart3,
+          onClick: () => navigate("/rankings"),
+        }}
+        hint="Necesitas al menos 2 jugadores en plantilla para compararlos lado a lado."
+      />
     </div>
   );
 }

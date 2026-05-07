@@ -22,6 +22,7 @@ import {
 
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
+import EmptyState from "@/components/EmptyState";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import RadarChartComponent from "@/components/RadarChart";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
@@ -472,23 +473,27 @@ export default function PlayerEvolutionPage() {
           </div>
         )}
 
-        {/* Not enough data */}
+        {/* Not enough data · empty state mejorado */}
         {!isLoading && total < 2 && (
-          <div className="glass rounded-2xl p-8 text-center space-y-3">
-            <TrendingUp size={32} className="mx-auto text-primary/50" />
-            <h3 className="text-sm font-display font-bold text-foreground">
-              {total === 0 ? "Sin reportes" : "Necesitas al menos 2 reportes"}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Genera mas informes VITAS Intelligence para ver la evolucion del jugador.
-            </p>
-            <button
-              onClick={() => navigate(`/players/${id}/intelligence`)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary"
-            >
-              <Zap size={12} /> Generar informe
-            </button>
-          </div>
+          <EmptyState
+            Icon={TrendingUp}
+            title={total === 0 ? "Sin reportes todavía" : "Falta 1 reporte para ver evolución"}
+            description={
+              total === 0
+                ? "Genera el primer informe baseline (sin vídeo) o sube un partido en VITAS.LAB."
+                : "Con 2 reportes podemos calcular delta, slope y momentum. Genera otro para desbloquear la curva."
+            }
+            primary={{
+              label: total === 0 ? "Generar primer informe" : "Generar otro informe",
+              Icon: Zap,
+              onClick: () => navigate(`/players/${id}/reports`),
+            }}
+            secondary={{
+              label: "Match-day Live",
+              onClick: () => navigate("/live"),
+            }}
+            hint="Cada partido live también suma al historial · cuenta como reporte para evolución."
+          />
         )}
 
         {total >= 2 && (
