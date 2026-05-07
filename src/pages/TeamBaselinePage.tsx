@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Sparkles, Loader2, Users, Brain, Swords, Activity, Target,
-  AlertCircle, ChevronDown, ChevronUp,
+  AlertCircle, ChevronDown, ChevronUp, Grid3x3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
@@ -32,6 +32,7 @@ interface TeamBaselineResponse {
 const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; title: string; color: string }> = {
   "team-overview":     { Icon: Brain,    title: "Resumen del equipo",   color: "#0066CC" },
   "tactical-profile":  { Icon: Swords,   title: "Perfil táctico",       color: "#B82BD9" },
+  "tactical-zones":    { Icon: Grid3x3,  title: "Zonas (9 cuadrantes)", color: "#1A8FFF" },
   "phv-stratification": { Icon: Activity, title: "Estratificación PHV", color: "#10b981" },
   "opponent-readiness": { Icon: Target,   title: "Preparación rival",    color: "#DC8B0A" },
 };
@@ -224,6 +225,9 @@ function ReportContent({ type, content }: { type: string; content: Record<string
   if (type === "tactical-profile") {
     return <TacticalRenderer content={content} />;
   }
+  if (type === "tactical-zones") {
+    return <ZonesRenderer content={content} />;
+  }
   if (type === "phv-stratification") {
     return <PhvStratRenderer content={content} />;
   }
@@ -309,6 +313,106 @@ function PhvStratRenderer({ content }: { content: Record<string, unknown> }) {
       )}
     </>
   );
+}
+
+interface ZoneEntry {
+  id: string;
+  row: "defensa" | "medio" | "ataque" | string;
+  col: "izq" | "cen" | "dcha" | string;
+  offensive: number;
+  defensive: number;
+  note?: string;
+}
+
+function ZonesRenderer({ content }: { content: Record<string, unknown> }) {
+  const zones = content.zones as ZoneEntry[] | undefined;
+  const summary = content.summary as string | undefined;
+  const dominant = content.dominant_zone as string | undefined;
+  const weakest = content.weakest_zone as string | undefined;
+
+  if (!Array.isArray(zones) || zones.length === 0) {
+    return <p className="text-muted-foreground italic">Sin datos de zonas</p>;
+  }
+
+  const byPos = new Map<string, ZoneEntry>();
+  zones.forEach((z) => byPos.set(`${z.row}-${z.col}`, z));
+
+  const rows: Array<"ataque" | "medio" | "defensa"> = ["ataque", "medio", "defensa"];
+  const cols: Array<"izq" | "cen" | "dcha"> = ["izq", "cen", "dcha"];
+
+  return (
+    <>
+      {summary && <p className="text-foreground leading-relaxed">{summary}</p>}
+
+      <div className="rounded-xl bg-secondary/30 border border-border p-3">
+        <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-2 text-center">
+          ↑ Vista hacia portería rival
+        </div>
+        <div className="grid grid-cols-3 gap-1.5 max-w-[280px] mx-auto">
+          {rows.flatMap((row) =>
+            cols.map((col) => {
+              const z = byPos.get(`${row}-${col}`);
+              const isDominant = z && (dominant === z.id || dominant === `${z.row}-${z.col}`);
+              const isWeakest  = z && (weakest  === z.id || weakest  === `${z.row}-${z.col}`);
+              const offColor = z ? scoreToColor(z.offensive) : "transparent";
+              return (
+                <div
+                  key={`${row}-${col}`}
+                  className={`aspect-square rounded-md p-1 flex flex-col justify-center items-center text-center border ${
+                    isDominant ? "border-primary border-2" : isWeakest ? "border-destructive border-2" : "border-border"
+                  }`}
+                  style={{ backgroundColor: offColor }}
+                  title={z?.note}
+                >
+                  <div className="text-[8px] uppercase tracking-wider text-foreground/70 font-bold leading-none mb-0.5">
+                    {row.slice(0, 3)}-{col}
+                  </div>
+                  {z && (
+                    <>
+                      <div className="text-[10px] font-display font-bold text-foreground leading-none">
+                        {z.offensive}
+                      </div>
+                      <div className="text-[8px] text-muted-foreground">{z.defensive}d</div>
+                    </>
+                  )}
+                </div>
+              );
+            }),
+          )}
+        </div>
+        <div className="mt-3 text-center text-[8px] uppercase tracking-wider text-muted-foreground font-bold">
+          ↓ Tu portería
+        </div>
+        <div className="mt-3 pt-2 border-t border-border/40 text-[10px] flex items-center justify-between">
+          <span>Color = ataque · número grande = ofensivo, pequeño = defensivo</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-[11px]">
+        {dominant && (
+          <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
+            <div className="text-[9px] uppercase tracking-wider text-primary font-bold">Dominante</div>
+            <div className="text-foreground font-mono">{dominant}</div>
+          </div>
+        )}
+        {weakest && (
+          <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-2">
+            <div className="text-[9px] uppercase tracking-wider text-destructive font-bold">Vulnerable</div>
+            <div className="text-foreground font-mono">{weakest}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function scoreToColor(score: number): string {
+  // 0-100 → gradient red → amber → green con baja opacidad para fondo
+  if (score >= 75) return "rgba(34, 197, 94, 0.18)";
+  if (score >= 60) return "rgba(132, 204, 22, 0.15)";
+  if (score >= 45) return "rgba(245, 158, 11, 0.14)";
+  if (score >= 30) return "rgba(249, 115, 22, 0.14)";
+  return "rgba(239, 68, 68, 0.14)";
 }
 
 function OpponentRenderer({ content }: { content: Record<string, unknown> }) {

@@ -200,6 +200,37 @@ Output JSON:
 }
 Sin markdown.`,
   },
+  "tactical-zones": {
+    model: "claude-haiku-4-5" as const,
+    system: `Eres el motor de Tactical Zones VITAS · baseline.
+Estima eficacia ofensiva y defensiva por las 9 ZONAS DEL CAMPO (3 tercios x 3 carriles)
+basado en el perfil del equipo. SIN vídeo, son ESTIMACIONES proyectadas.
+
+Distribución estándar de zonas (vista propia atacando arriba):
+  defensa-izq | defensa-centro | defensa-dcha   (tercio defensivo)
+  medio-izq   | medio-centro   | medio-dcha     (tercio medio)
+  ataque-izq  | ataque-centro  | ataque-dcha    (tercio ofensivo)
+
+Output JSON estricto:
+{
+  "zones": [
+    {"id":"def-izq","row":"defensa","col":"izq","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"def-cen","row":"defensa","col":"cen","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"def-dcha","row":"defensa","col":"dcha","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"med-izq","row":"medio","col":"izq","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"med-cen","row":"medio","col":"cen","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"med-dcha","row":"medio","col":"dcha","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"atq-izq","row":"ataque","col":"izq","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"atq-cen","row":"ataque","col":"cen","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"},
+    {"id":"atq-dcha","row":"ataque","col":"dcha","offensive":0-100,"defensive":0-100,"note":"string max 60 chars"}
+  ],
+  "dominant_zone": "string · id de la zona con mayor offensive",
+  "weakest_zone": "string · id de la zona con menor defensive",
+  "summary": "string max 220 chars"
+}
+
+9 zonas obligatorias en orden. Scores 0-100 son ESTIMACIONES. Sin markdown.`,
+  },
 } as const;
 
 type ReportType = keyof typeof TEAM_PROMPTS;
@@ -278,7 +309,7 @@ export default withHandler(
         model: r.model,
       })),
       reportsGenerated: successful.length,
-      reportsFailed: 4 - successful.length,
+      reportsFailed: Object.keys(TEAM_PROMPTS).length - successful.length,
       pipelineVersion: PIPELINE_VERSION,
       generatedBy: userId,
       totalLatencyMs: Date.now() - startedAt,
