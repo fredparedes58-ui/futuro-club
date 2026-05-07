@@ -36,6 +36,13 @@ interface AnalysisData {
     tier?: string;
     tierLabel?: string;
     peer?: { percentile: number | null; peerCount: number; stratum: string } | null;
+    trend?: {
+      slope: number | null;
+      momentum: "up" | "flat" | "down" | null;
+      confidence: "high" | "medium" | "low";
+      delta: number | null;
+      samples: number;
+    } | null;
   } | null;
   phv: Record<string, unknown> | null;
   similarity: Record<string, unknown> | null;
@@ -171,17 +178,25 @@ export function AnalysisDashboard({ analysisId, shareToken }: Props) {
             Tier · <span className="text-foreground font-semibold">{tier}</span>
           </div>
         )}
-        {analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined && (
-          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-center gap-1.5 text-[10px]">
-            <span className="font-display font-bold text-primary text-base">
-              P{analysis.vsi.peer.percentile}
-            </span>
-            <span className="text-muted-foreground">
-              vs {analysis.vsi.peer.stratum}
-              {analysis.vsi.peer.peerCount > 0 && (
-                <span className="text-foreground/60"> · {analysis.vsi.peer.peerCount} peers</span>
-              )}
-            </span>
+        {((analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined) ||
+          (analysis.vsi?.trend?.momentum && analysis.vsi.trend.samples >= 2)) && (
+          <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-center gap-3 flex-wrap text-[10px]">
+            {analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined && (
+              <div className="flex items-center gap-1.5">
+                <span className="font-display font-bold text-primary text-base">
+                  P{analysis.vsi.peer.percentile}
+                </span>
+                <span className="text-muted-foreground">
+                  vs {analysis.vsi.peer.stratum}
+                  {analysis.vsi.peer.peerCount > 0 && (
+                    <span className="text-foreground/60"> · {analysis.vsi.peer.peerCount}</span>
+                  )}
+                </span>
+              </div>
+            )}
+            {analysis.vsi?.trend?.momentum && analysis.vsi.trend.samples >= 2 && (
+              <TrendBadge trend={analysis.vsi.trend} />
+            )}
           </div>
         )}
       </motion.div>
@@ -432,6 +447,29 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
           {JSON.stringify(report, null, 2)}
         </pre>
       )}
+    </div>
+  );
+}
+
+// ─── TrendBadge · momentum del VSI con confianza ────────────────────────────
+
+function TrendBadge({ trend }: {
+  trend: { slope: number | null; momentum: "up" | "flat" | "down" | null; confidence: "high" | "medium" | "low"; delta: number | null; samples: number };
+}) {
+  const arrow = trend.momentum === "up" ? "↗" : trend.momentum === "down" ? "↘" : "→";
+  const color = trend.momentum === "up" ? "text-green-400" : trend.momentum === "down" ? "text-red-400" : "text-muted-foreground";
+  const slope = trend.slope ?? 0;
+  const slopeStr = slope > 0 ? `+${slope.toFixed(1)}` : slope.toFixed(1);
+  const confDot = trend.confidence === "high" ? "●●●" : trend.confidence === "medium" ? "●●○" : "●○○";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`font-display font-bold text-base ${color}`}>{arrow}</span>
+      <span className="text-muted-foreground">
+        <span className={`${color} font-bold`}>{slopeStr}</span>
+        <span> /análisis</span>
+        <span className="text-foreground/60 ml-1.5" title={`Confianza ${trend.confidence} · ${trend.samples} muestras`}>{confDot}</span>
+      </span>
     </div>
   );
 }
