@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, Mail, Plus, Trash2, Clock, CheckCircle2, XCircle,
-  Sparkles, Grid3x3, Activity,
+  Sparkles, Grid3x3, Activity, Swords,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -189,6 +189,29 @@ export default function TeamPage() {
             </p>
           </div>
           <span className="text-[10px] text-electric font-bold">→</span>
+        </motion.button>
+
+        {/* CTA · Plan vs Rival */}
+        <motion.button
+          variants={item}
+          onClick={() => navigate("/equipo/rival")}
+          className="w-full glass rounded-xl p-3 flex items-center gap-3 hover:bg-secondary/30 transition-colors text-left border border-amber-500/40"
+        >
+          <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+            <Swords size={16} className="text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
+              Plan vs Rival
+              <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />Nuevo
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Describe al rival · Claude genera plan de partido + drills semana
+            </p>
+          </div>
+          <span className="text-[10px] text-amber-400 font-bold">→</span>
         </motion.button>
 
         {/* CTA · Análisis táctico baseline */}
