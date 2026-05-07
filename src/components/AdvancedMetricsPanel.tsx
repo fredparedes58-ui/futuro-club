@@ -5,21 +5,35 @@
  * Props:
  *   metrics — AdvancedPlayerMetrics (de advancedMetricsService)
  *   qualityScore — 0-1 (opcional) de videoAdvancedMetricsService.assessPacketQuality
+ *   trackingSnapshot — Si existe, OVERRIDES los stubs de tracking/biomechanics
+ *     con datos reales del Lab (YOLOv8n-pose). Cuando hay snapshot, deja de
+ *     mostrarse "STUB - en espera de Roboflow" y aparecen métricas reales.
  */
 import { motion } from "framer-motion";
 import {
   TrendingUp, Activity, MapPin, Zap, AlertCircle, CheckCircle2,
 } from "lucide-react";
 import type { AdvancedPlayerMetrics } from "@/services/real/advancedMetricsService";
+import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
 
 interface Props {
   metrics: AdvancedPlayerMetrics;
   qualityScore?: number;
   qualityIssues?: string[];
+  /** Snapshot del Lab · si presente, reemplaza stubs de tracking/biomechanics */
+  trackingSnapshot?: TrackingSnapshot | null;
 }
 
-export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues }: Props) {
-  const { vaep, tracking, biomechanics } = metrics;
+export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, trackingSnapshot }: Props) {
+  const { vaep } = metrics;
+
+  // ── Override tracking con snapshot del Lab si existe ─────────────────
+  const trackingFromSnapshot = trackingSnapshot ? buildTrackingFromSnapshot(trackingSnapshot) : null;
+  const tracking = trackingFromSnapshot ?? metrics.tracking;
+
+  // ── Override biomechanics con snapshot del Lab si existe ─────────────
+  const biomechanicsFromSnapshot = trackingSnapshot ? buildBiomechanicsFromSnapshot(trackingSnapshot) : null;
+  const biomechanics = biomechanicsFromSnapshot ?? metrics.biomechanics;
 
   return (
     <motion.div
@@ -178,6 +192,64 @@ function QualityBadge({ score }: { score: number }) {
       <span className="text-muted-foreground">({Math.round(score * 100)}%)</span>
     </div>
   );
+}
+
+// ── Adaptadores de TrackingSnapshot → forma esperada por las cards ────────
+
+function buildTrackingFromSnapshot(s: TrackingSnapshot): {
+  maxSpeedMs: number | null;
+  avgSpeedMs: number | null;
+  totalDistanceM: number | null;
+  fieldCoveragePct: number | null;
+  sprintCount: number | null;
+  sprintDistanceM: number | null;
+  status: "calculated" | "stub_no_data";
+  message: string;
+} {
+  const m = s.sessionMetrics;
+  // Cobertura: (área voronoi promedio / área de campo total 105×68=7140) * 100
+  const fieldCoverage = m.avgVoronoiAreaM2 > 0
+    ? Math.min(100, Math.round((m.avgVoronoiAreaM2 / 7140) * 100 * 10))
+    : null;
+  return {
+    maxSpeedMs:       m.maxSpeedMs > 0 ? m.maxSpeedMs : null,
+    avgSpeedMs:       m.avgSpeedMs > 0 ? m.avgSpeedMs : null,
+    totalDistanceM:   m.distanceCoveredM > 0 ? m.distanceCoveredM : null,
+    fieldCoveragePct: fieldCoverage,
+    sprintCount:      m.sprintCount,
+    sprintDistanceM:  m.sprintDistanceM > 0 ? m.sprintDistanceM : null,
+    status:           "calculated",
+    message:          `Calculado desde ${s.tracksCount} tracks · ${s.scanCount} escaneos detectados (VITAS Lab)`,
+  };
+}
+
+function buildBiomechanicsFromSnapshot(s: TrackingSnapshot): {
+  drillScore: number | null;
+  injuryRisk: number | null;
+  asymmetryPct: number | null;
+  status: "calculated" | "stub_no_data";
+  message: string;
+} {
+  const m = s.sessionMetrics;
+  // Heurística DrillScore desde tracking:
+  //   - 40% intensidad (más sprint+correr = mejor preparación)
+  //   - 30% escaneos por minuto (mayor lectura del juego)
+  //   - 30% ratio duelos ganados
+  const intensityTotal = Math.max(1, m.intensityZones.walk + m.intensityZones.jog + m.intensityZones.run + m.intensityZones.sprint);
+  const intensityScore = ((m.intensityZones.run + m.intensityZones.sprint * 1.5) / intensityTotal) * 100;
+  const minutesEstimated = Math.max(1, m.distanceCoveredM / Math.max(0.1, m.avgSpeedMs) / 60);
+  const scansPerMin = s.scanCount / minutesEstimated;
+  const scanScore = Math.min(100, scansPerMin * 12); // 8 escaneos/min ≈ 96
+  const duelsTotal = m.duelsWon + m.duelsLost;
+  const duelScore = duelsTotal > 0 ? (m.duelsWon / duelsTotal) * 100 : 50;
+  const drillScore = Math.round(intensityScore * 0.4 + scanScore * 0.3 + duelScore * 0.3);
+  return {
+    drillScore,
+    injuryRisk:   null,
+    asymmetryPct: null,
+    status:       "calculated",
+    message:      `DrillScore desde Lab · ${s.scanCount} escaneos · ${duelsTotal} duelos · ${m.sprintCount} sprints`,
+  };
 }
 
 function formatActionId(id: string): string {

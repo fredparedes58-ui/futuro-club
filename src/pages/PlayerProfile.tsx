@@ -29,6 +29,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
 import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
+import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
 import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
 import GrowthVelocityChart from "@/components/player/GrowthVelocityChart";
 import { PhvWindowPlan } from "@/components/player/PhvWindowPlan";
@@ -176,6 +177,17 @@ const PlayerProfile = () => {
     if (!rawPlayer) return null;
     return calculateAdvancedMetrics(rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0]);
   }, [rawPlayer]);
+
+  // Snapshot del Lab para alimentar AdvancedMetricsPanel (reemplaza stubs)
+  const [trackingSnapshot, setTrackingSnapshot] = useState<TrackingSnapshot | null>(null);
+  useEffect(() => {
+    const pid = rawPlayer?.id;
+    if (!pid) return;
+    setTrackingSnapshot(PlayerTrackingService.get(pid));
+    const onFocus = () => pid && setTrackingSnapshot(PlayerTrackingService.get(pid));
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [rawPlayer?.id]);
 
   // ─── Estados ───────────────────────────────────────────────────────────────
   if (isLoading) return <ProfileSkeleton />;
@@ -788,7 +800,10 @@ const PlayerProfile = () => {
           </PlanGuard>
 
           {/* ── Métricas avanzadas consolidadas (VAEP/Tracking/Biomechanics) ── */}
-          <AdvancedMetricsPanel metrics={advancedMetrics} />
+          <AdvancedMetricsPanel
+            metrics={advancedMetrics}
+            trackingSnapshot={trackingSnapshot}
+          />
         </motion.div>
       )}
 
