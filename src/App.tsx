@@ -34,6 +34,7 @@ import BottomNav from "./components/BottomNav";
 import GlobalSearch from "./components/GlobalSearch";
 import ContextualFAB from "./components/ContextualFAB";
 import OnboardingTour from "./components/OnboardingTour";
+import FirstRunWizard from "./components/FirstRunWizard";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
@@ -193,6 +194,7 @@ const App = () => (
             <GlobalSearch />
             <ContextualFAB />
             <OnboardingTour />
+            <FirstRunWizard />
             </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
