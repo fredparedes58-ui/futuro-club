@@ -65,6 +65,15 @@ export default withHandler(
       .is("user_id", null);
     result.orphanPlayers = orphans;
 
+    // 5. Historial de mensajes Telegram (para diagnóstico)
+    const { data: msgs, count: msgCount } = await supabase
+      .from("telegram_messages")
+      .select("telegram_chat_id, role, content, created_at", { count: "exact" })
+      .order("created_at", { ascending: false })
+      .limit(20);
+    result.telegramMessagesCount = msgCount;
+    result.telegramMessagesSample = msgs;
+
     return successResponse(result);
   },
 );
