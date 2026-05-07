@@ -272,6 +272,43 @@ export function usePlayerAnalysisV2() {
   );
 
   /**
+   * Recargar reportes de un análisis existente (sin subir vídeo).
+   * Útil cuando el padre vuelve a la app y quiere ver el último.
+   */
+  const loadAnalysis = useCallback(async (analysisId: string) => {
+    try {
+      setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, { headers });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Not found");
+
+      const a = data.data.analysis;
+      setResult({
+        analysisId: a.id,
+        videoId: a.video_id,
+        vsi: a.vsi,
+        phv: a.phv,
+        similarity: a.similarity,
+        scanning: null,
+        biomechanics: a.biomechanics,
+        reports: data.data.reports,
+        completedAt: a.completed_at,
+      });
+      setState({ step: "completed", progress: 100, message: "Cargado", error: null });
+      return data.data;
+    } catch (err) {
+      setState({
+        step: "error",
+        progress: 0,
+        message: "Error al cargar",
+        error: err instanceof Error ? err.message : "unknown",
+      });
+      throw err;
+    }
+  }, []);
+
+  /**
    * Analizar un vídeo ya subido a Bunny (flujo sin re-upload).
    * Requiere videoId (Supabase UUID) y bunnyVideoId (Bunny GUID).
    * Si ya hay un análisis completado lo carga directamente.
@@ -345,43 +382,6 @@ export function usePlayerAnalysisV2() {
     },
     [loadAnalysis]
   );
-
-  /**
-   * Recargar reportes de un análisis existente (sin subir vídeo).
-   * Útil cuando el padre vuelve a la app y quiere ver el último.
-   */
-  const loadAnalysis = useCallback(async (analysisId: string) => {
-    try {
-      setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
-      const headers = await getAuthHeaders();
-      const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, { headers });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Not found");
-
-      const a = data.data.analysis;
-      setResult({
-        analysisId: a.id,
-        videoId: a.video_id,
-        vsi: a.vsi,
-        phv: a.phv,
-        similarity: a.similarity,
-        scanning: null,
-        biomechanics: a.biomechanics,
-        reports: data.data.reports,
-        completedAt: a.completed_at,
-      });
-      setState({ step: "completed", progress: 100, message: "Cargado", error: null });
-      return data.data;
-    } catch (err) {
-      setState({
-        step: "error",
-        progress: 0,
-        message: "Error al cargar",
-        error: err instanceof Error ? err.message : "unknown",
-      });
-      throw err;
-    }
-  }, []);
 
   // Cleanup al unmount
   useEffect(() => {
