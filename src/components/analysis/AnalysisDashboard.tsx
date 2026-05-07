@@ -69,9 +69,11 @@ interface Props {
   analysisId: string;
   /** Si se pasa, fetchea desde /api/analyses/share (público) en lugar del endpoint con auth */
   shareToken?: string;
+  /** Callback cuando el análisis termina de cargar · útil para el wrapper que necesita datos para Share text */
+  onLoaded?: (analysis: AnalysisData, reports: ReportData[]) => void;
 }
 
-export function AnalysisDashboard({ analysisId, shareToken }: Props) {
+export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [reports, setReports] = useState<ReportData[]>([]);
@@ -108,6 +110,7 @@ export function AnalysisDashboard({ analysisId, shareToken }: Props) {
         setReports(data.data.reports ?? []);
         if (data.data.reports?.length > 0) setActiveTab(data.data.reports[0].report_type);
         setLoading(false);
+        if (onLoaded) onLoaded(data.data.analysis as AnalysisData, (data.data.reports ?? []) as ReportData[]);
       } catch (err) {
         if (mounted) {
           setError(err instanceof Error ? err.message : "Error");
@@ -117,6 +120,7 @@ export function AnalysisDashboard({ analysisId, shareToken }: Props) {
     }
     load();
     return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analysisId, shareToken]);
 
   if (loading) {

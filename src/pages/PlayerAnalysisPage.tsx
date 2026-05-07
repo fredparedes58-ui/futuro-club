@@ -8,7 +8,7 @@
  * Header acciones:
  *   - Volver al historial
  *   - Imprimir / PDF (window.print con CSS @media print)
- *   - Compartir (genera HMAC token vía /api/analyses/share + copia URL)
+ *   - Compartir (genera HMAC token + texto WhatsApp rico copiable)
  */
 
 import { useState } from "react";
@@ -19,11 +19,58 @@ import { PlayerService } from "@/services/real/playerService";
 import { AnalysisDashboard } from "@/components/analysis/AnalysisDashboard";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
+interface LoadedData {
+  analysis: {
+    vsi?: { vsi?: number; tierLabel?: string; peer?: { percentile: number | null } | null; trend?: { delta: number | null } | null } | null;
+  };
+  reports: Array<{ report_type: string; content: Record<string, unknown> }>;
+}
+
+function buildWhatsAppText(playerName: string, data: LoadedData | null, url: string): string {
+  if (!data) return `Análisis VITAS · ${playerName}\n\n${url}`;
+
+  const vsi = data.analysis.vsi?.vsi ?? null;
+  const tier = data.analysis.vsi?.tierLabel ?? "";
+  const percentile = data.analysis.vsi?.peer?.percentile ?? null;
+  const delta = data.analysis.vsi?.trend?.delta ?? null;
+
+  const playerReport = data.reports.find((r) => r.report_type === "player-report")?.content as
+    | { strengths?: Array<{ title?: string } | string>; areas_to_improve?: Array<{ title?: string } | string> } | undefined;
+  const topStrength = playerReport?.strengths?.[0];
+  const topArea = playerReport?.areas_to_improve?.[0];
+  const strengthText = typeof topStrength === "string" ? topStrength : topStrength?.title;
+  const areaText     = typeof topArea     === "string" ? topArea     : topArea?.title;
+
+  const lines: string[] = [];
+  lines.push(`🏆 *Análisis VITAS · ${playerName}*`);
+  lines.push("");
+  if (vsi !== null) {
+    let vsiLine = `*VSI ${vsi}*`;
+    if (tier) vsiLine += ` · ${tier}`;
+    if (percentile !== null && percentile !== undefined) vsiLine += ` · P${percentile}`;
+    lines.push(vsiLine);
+  }
+  if (delta !== null && delta !== undefined) {
+    const sign = delta > 0 ? "↗ +" : delta < 0 ? "↘ " : "→ ";
+    lines.push(`${sign}${delta} pts vs análisis previo`);
+  }
+  lines.push("");
+  if (strengthText) lines.push(`✅ Fortaleza: ${strengthText}`);
+  if (areaText)     lines.push(`⚠️ A trabajar: ${areaText}`);
+  lines.push("");
+  lines.push(`📊 Ver completo: ${url}`);
+  lines.push("");
+  lines.push(`_Generado por VITAS · Football Intelligence_`);
+
+  return lines.join("\n");
+}
+
 export default function PlayerAnalysisPage() {
   const { id, analysisId } = useParams<{ id: string; analysisId: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
   const [sharing, setSharing] = useState(false);
+  const [loaded, setLoaded] = useState<LoadedData | null>(null);
 
   async function handleShare() {
     if (!analysisId || sharing) return;
@@ -39,13 +86,15 @@ export default function PlayerAnalysisPage() {
         throw new Error(data?.error?.message ?? "No se pudo generar link");
       }
       const fullUrl = `${window.location.origin}${data.data.url}`;
+      const text = buildWhatsAppText(player?.name ?? "Jugador", loaded, fullUrl);
 
-      // Try Web Share API first (móvil), fallback a clipboard
+      // Web Share API primero (móvil → menú nativo + texto rico),
+      // fallback a copiar el texto rico al clipboard.
       if (navigator.share) {
         try {
           await navigator.share({
             title: `Análisis VITAS · ${player?.name ?? "Jugador"}`,
-            text: `Mira el análisis IA de ${player?.name ?? "este jugador"}`,
+            text,
             url: fullUrl,
           });
           toast.success("Compartido");
@@ -55,8 +104,8 @@ export default function PlayerAnalysisPage() {
         }
       }
 
-      await navigator.clipboard.writeText(fullUrl);
-      toast.success("Link copiado · expira en 90 días");
+      await navigator.clipboard.writeText(text);
+      toast.success("Texto WhatsApp copiado · pega en grupo familia");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al compartir");
     } finally {
@@ -96,10 +145,10 @@ export default function PlayerAnalysisPage() {
           </button>
           <button
             onClick={handleShare}
-            disabled={sharing}
+            disabled={sharing || !loaded}
             className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             aria-label="Compartir"
-            title="Generar link público"
+            title="Generar link público + texto WhatsApp"
           >
             {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
           </button>
@@ -107,7 +156,7 @@ export default function PlayerAnalysisPage() {
         </div>
       </div>
 
-      {/* Print-only header · solo al imprimir */}
+      {/* Print-only header */}
       <div className="hidden print:block px-4 py-3 border-b border-border">
         <h1 className="text-base font-bold">{player?.name ?? "Jugador"} · Análisis VITAS</h1>
         <p className="text-xs text-muted-foreground">
@@ -117,7 +166,10 @@ export default function PlayerAnalysisPage() {
 
       <div className="px-4 py-4 max-w-3xl mx-auto">
         {analysisId ? (
-          <AnalysisDashboard analysisId={analysisId} />
+          <AnalysisDashboard
+            analysisId={analysisId}
+            onLoaded={(analysis, reports) => setLoaded({ analysis, reports })}
+          />
         ) : (
           <div className="text-center py-16 text-sm text-muted-foreground">
             Falta el ID del análisis.
