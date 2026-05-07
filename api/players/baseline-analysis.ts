@@ -190,7 +190,8 @@ function computeVsi(p: PlayerProfile): { vsi: number; tier: string; tierLabel: s
 
 // ── Peer percentile · compara contra jugadores edad±1 + misma posición + mismo PHV stratum
 async function computePeerPercentile(
-  supabase: ReturnType<typeof createClient>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   player: PlayerProfile,
 ): Promise<{ percentile: number | null; peerCount: number; stratum: string }> {
   const age = player.age ?? null;
@@ -207,7 +208,7 @@ async function computePeerPercentile(
 
   if (phvCat) q = q.eq("phv_category", phvCat);
 
-  const { data: peers, count } = await q;
+  const { data: peers, count } = await q as { data: Array<{ vsi: number | null }> | null; count: number | null };
 
   if (!peers || peers.length === 0) {
     return { percentile: null, peerCount: 0, stratum: `${pos} ${age}±1 ${phvCat ?? "todos"}` };
@@ -386,7 +387,7 @@ export default withHandler(
       },
       phv: {
         category:        anthro?.phv_category    ?? playerRow.phv_category ?? null,
-        offset:          anthro?.maturity_offset ?? Number(playerRow.phv_offset) || null,
+        offset:          anthro?.maturity_offset ?? (Number(playerRow.phv_offset) || null),
         biological_age:  anthro?.biological_age  ?? null,
       },
       vsi: Number(playerRow.vsi) || 0,
