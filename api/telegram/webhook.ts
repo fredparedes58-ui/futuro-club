@@ -399,6 +399,17 @@ export default withHandler(
       }
     }
 
+    // DEBUG: log env presence (sin leakear valores)
+    console.log(JSON.stringify({
+      level: "debug",
+      msg: "[telegram] webhook hit",
+      hasBotToken: !!BOT_TOKEN,
+      botTokenLen: BOT_TOKEN.length,
+      hasAnthropicKey: !!ANTHROPIC_API_KEY,
+      hasSecret: !!WEBHOOK_SECRET,
+      botUsername: BOT_USERNAME,
+    }));
+
     const update = (await req.json().catch(() => null)) as TelegramUpdate | null;
     if (!update?.message?.text || !update.message.chat?.id) {
       return successResponse({ ok: true });           // ignorar updates sin texto
