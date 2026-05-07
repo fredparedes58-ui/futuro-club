@@ -49,6 +49,7 @@ import TeamAnalysisPage from "./pages/TeamAnalysisPage";
 import AcceptInvitationPage from "./pages/AcceptInvitationPage";
 import PlayerReportsPage from "./pages/PlayerReportsPage";
 import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
+import PlayerAnalysisPage from "./pages/PlayerAnalysisPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import UserGuidePage from "./pages/UserGuidePage";
@@ -149,6 +150,7 @@ const App = () => (
                 <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/players/:id/reports" element={<P><PlayerReportsPage /></P>} />
                 <Route path="/players/:id/evolution" element={<P><PlayerEvolutionPage /></P>} />
+                <Route path="/player/:id/analysis/:analysisId" element={<P><PlayerAnalysisPage /></P>} />
                 {/* Alias: /player/:id/intelligence → misma página (backward compat) */}
                 <Route path="/player/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<P><PlayerReportPrint /></P>} />

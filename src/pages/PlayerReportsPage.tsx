@@ -295,7 +295,7 @@ export default function PlayerReportsPage() {
             analysis={a as { id: string; created_at: string; report: unknown; video_id?: string }}
             index={idx}
             total={total}
-            onView={() => navigate(`/players/${id}/intelligence?report=${idx}`)}
+            onView={() => navigate(`/player/${id}/analysis/${a.id}`)}
             onEvolution={() => navigate(`/players/${id}/evolution`)}
           />
         ))}

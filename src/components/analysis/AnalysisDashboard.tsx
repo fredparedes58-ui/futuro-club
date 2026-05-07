@@ -1,12 +1,23 @@
 /**
  * VITAS · Analysis Dashboard
- * Muestra los 6 reportes generados por un análisis con tabs.
  *
- * Uso:
- *   <AnalysisDashboard analysisId="..." />
+ * Renderiza los 6 reportes Claude generados por un análisis V2 con tabs:
+ *   - player-report (Sonnet)
+ *   - lab-biomechanics (Sonnet)
+ *   - dna-profile, best-match, projection, development-plan (Haiku)
+ *
+ * Lee directamente de /api/analyses/reports?analysisId=… y muestra el JSON
+ * crudo de cada reporte (sin pasar por el mapping legacy lossy).
+ *
+ * Estado de carga: muestra spinner mientras `status` es processing/queued.
  */
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
+  Brain,
+} from "lucide-react";
 
 interface ReportData {
   report_type: string;
@@ -28,13 +39,16 @@ interface AnalysisData {
   video_id: string;
 }
 
-const REPORT_LABELS: Record<string, { emoji: string; title: string; color: string }> = {
-  "player-report": { emoji: "📊", title: "Player Report", color: "#0066CC" },
-  "lab-biomechanics": { emoji: "🦴", title: "LAB Biomechanics", color: "#B82BD9" },
-  "dna-profile": { emoji: "🧬", title: "ADN Futbolístico", color: "#10b981" },
-  "best-match": { emoji: "🎯", title: "Best-Match", color: "#DC8B0A" },
-  projection: { emoji: "📈", title: "Proyección 3 años", color: "#1A8FFF" },
-  "development-plan": { emoji: "📋", title: "Plan Desarrollo", color: "#22e88c" },
+const REPORT_META: Record<
+  string,
+  { Icon: React.ComponentType<{ size?: number; className?: string }>; title: string; color: string }
+> = {
+  "player-report":    { Icon: BarChart3,    title: "Player Report",    color: "#0066CC" },
+  "lab-biomechanics": { Icon: Activity,     title: "LAB Biomecánica",  color: "#B82BD9" },
+  "dna-profile":      { Icon: Dna,          title: "ADN Futbolístico", color: "#10b981" },
+  "best-match":       { Icon: Target,       title: "Best-Match",       color: "#DC8B0A" },
+  projection:         { Icon: TrendingUp,   title: "Proyección 3a",    color: "#1A8FFF" },
+  "development-plan": { Icon: ClipboardList, title: "Plan Desarrollo", color: "#22e88c" },
 };
 
 interface Props {
@@ -50,7 +64,6 @@ export function AnalysisDashboard({ analysisId }: Props) {
 
   useEffect(() => {
     let mounted = true;
-
     async function load() {
       try {
         const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, {
@@ -58,18 +71,14 @@ export function AnalysisDashboard({ analysisId }: Props) {
         });
         const data = await res.json();
         if (!mounted) return;
-
         if (!res.ok || !data.success) {
           setError(data?.error?.message ?? "Error cargando reportes");
           setLoading(false);
           return;
         }
-
         setAnalysis(data.data.analysis);
         setReports(data.data.reports ?? []);
-        if (data.data.reports?.length > 0) {
-          setActiveTab(data.data.reports[0].report_type);
-        }
+        if (data.data.reports?.length > 0) setActiveTab(data.data.reports[0].report_type);
         setLoading(false);
       } catch (err) {
         if (mounted) {
@@ -78,42 +87,42 @@ export function AnalysisDashboard({ analysisId }: Props) {
         }
       }
     }
-
     load();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [analysisId]);
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto py-12 text-center">
-        <div className="w-12 h-12 mx-auto border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-600 mt-4">Cargando reportes...</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-3">
+        <Loader2 size={28} className="animate-spin text-primary" />
+        <p className="text-xs text-muted-foreground">Cargando reportes…</p>
       </div>
     );
   }
 
   if (error || !analysis) {
     return (
-      <div className="max-w-3xl mx-auto py-12 text-center">
-        <div className="text-5xl mb-4">⚠️</div>
-        <p className="text-slate-600">{error ?? "Análisis no encontrado"}</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+        <AlertCircle size={28} className="text-destructive" />
+        <p className="text-sm text-foreground">{error ?? "Análisis no encontrado"}</p>
       </div>
     );
   }
 
-  const isProcessing = analysis.status === "processing" || analysis.status === "queued" || analysis.status === "processing_reports";
+  const isProcessing =
+    analysis.status === "processing" ||
+    analysis.status === "queued" ||
+    analysis.status === "processing_reports";
 
   if (isProcessing) {
     return (
-      <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
-        <div className="w-12 h-12 mx-auto border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-        <h2 className="font-rajdhani text-2xl font-bold">IA generando reportes...</h2>
-        <p className="text-slate-600">
-          Estado: <code className="bg-slate-100 px-2 py-1 rounded text-sm">{analysis.status}</code>
+      <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+        <Loader2 size={28} className="animate-spin text-primary" />
+        <h2 className="font-display font-bold text-base text-foreground">IA generando reportes…</h2>
+        <p className="text-[11px] text-muted-foreground">
+          Estado: <code className="px-1.5 py-0.5 rounded bg-secondary font-mono">{analysis.status}</code>
         </p>
-        <p className="text-xs text-slate-400">Tarda ~25 segundos · esta página se actualiza sola</p>
+        <p className="text-[10px] text-muted-foreground">~25 segundos · refresca la página</p>
       </div>
     );
   }
@@ -121,36 +130,48 @@ export function AnalysisDashboard({ analysisId }: Props) {
   const vsi = analysis.vsi?.vsi ?? null;
   const tier = analysis.vsi?.tierLabel ?? null;
   const activeReport = reports.find((r) => r.report_type === activeTab);
+  const ActiveIcon = activeReport ? REPORT_META[activeReport.report_type]?.Icon ?? Brain : Brain;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header con VSI */}
-      <div className="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-2xl p-8 text-center">
-        <div className="text-xs uppercase tracking-widest opacity-80 mb-2">VSI Score</div>
-        <div className="font-rajdhani font-bold text-7xl leading-none">
+    <div className="space-y-4">
+      {/* Header VSI */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-2xl p-5 text-center bg-gradient-to-br from-primary/15 via-electric/10 to-transparent border border-primary/20"
+      >
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+          VSI Score
+        </div>
+        <div className="font-display font-bold text-5xl text-foreground leading-none">
           {vsi ?? "—"}
         </div>
         {tier && (
-          <div className="text-sm mt-2 opacity-90">
-            Tier: <strong>{tier}</strong>
+          <div className="text-[11px] mt-1.5 text-muted-foreground">
+            Tier · <span className="text-foreground font-semibold">{tier}</span>
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Tabs */}
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-1.5 flex-wrap">
         {reports.map((r) => {
-          const meta = REPORT_LABELS[r.report_type] ?? { emoji: "📄", title: r.report_type, color: "#666" };
+          const meta = REPORT_META[r.report_type] ?? { Icon: Brain, title: r.report_type, color: "#888" };
+          const Icon = meta.Icon;
           const isActive = activeTab === r.report_type;
           return (
             <button
               key={r.report_type}
               onClick={() => setActiveTab(r.report_type)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all ${
-                isActive ? "bg-slate-900 text-white border-slate-900" : "bg-white border-slate-200 hover:border-slate-400"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-display font-bold border transition-all ${
+                isActive
+                  ? "border-primary text-primary-foreground"
+                  : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground hover:border-foreground/30"
               }`}
+              style={isActive ? { backgroundColor: meta.color, borderColor: meta.color } : undefined}
             >
-              {meta.emoji} {meta.title}
+              <Icon size={11} />
+              {meta.title}
             </button>
           );
         })}
@@ -158,26 +179,45 @@ export function AnalysisDashboard({ analysisId }: Props) {
 
       {/* Contenido del reporte activo */}
       {activeReport && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-8">
-          <div className="flex items-baseline justify-between mb-6">
-            <h3 className="font-rajdhani font-bold text-2xl">
-              {REPORT_LABELS[activeReport.report_type]?.title ?? activeReport.report_type}
-            </h3>
-            <span className="text-xs text-slate-500 font-mono">
+        <motion.div
+          key={activeReport.report_type}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="glass rounded-2xl p-5"
+        >
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <ActiveIcon size={16} className="text-primary" />
+              <h3 className="font-display font-bold text-base text-foreground">
+                {REPORT_META[activeReport.report_type]?.title ?? activeReport.report_type}
+              </h3>
+            </div>
+            <span className="text-[9px] text-muted-foreground font-mono">
               {activeReport.model} · {activeReport.prompt_version}
             </span>
           </div>
           <ReportRenderer report={activeReport.content} />
-        </div>
+        </motion.div>
       )}
 
-      {/* Métricas crudas (debug/info) */}
-      <details className="text-sm text-slate-500">
-        <summary className="cursor-pointer hover:text-slate-700">📊 Datos técnicos (avanzado)</summary>
-        <div className="mt-2 bg-slate-50 rounded-xl p-4">
-          <div className="font-mono text-xs space-y-1">
-            <div>📐 Biomecánica: <pre className="inline">{JSON.stringify(analysis.biomechanics, null, 2)}</pre></div>
-            <div>🧬 PHV: <pre className="inline">{JSON.stringify(analysis.phv, null, 2)}</pre></div>
+      {/* Datos técnicos crudos */}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5">
+          <Activity size={11} /> Datos técnicos (avanzado)
+        </summary>
+        <div className="mt-2 rounded-xl bg-secondary/30 p-3 space-y-2 font-mono text-[10px]">
+          <div>
+            <div className="text-foreground font-bold mb-1">Biomecánica</div>
+            <pre className="whitespace-pre-wrap break-all text-muted-foreground">
+              {JSON.stringify(analysis.biomechanics, null, 2)}
+            </pre>
+          </div>
+          <div>
+            <div className="text-foreground font-bold mb-1">PHV</div>
+            <pre className="whitespace-pre-wrap break-all text-muted-foreground">
+              {JSON.stringify(analysis.phv, null, 2)}
+            </pre>
           </div>
         </div>
       </details>
@@ -185,97 +225,130 @@ export function AnalysisDashboard({ analysisId }: Props) {
   );
 }
 
+// ─── ReportRenderer ──────────────────────────────────────────────────────────
+
 /**
- * Renderiza un reporte JSON · maneja varios formatos típicos:
- * - {title, summary, sections: [...]}
- * - {strengths, concerns, recommendations}
- * - {blocks: [...]}
- * - Fallback: pretty-print del JSON
+ * Renderiza el JSON de un reporte intentando varios shapes:
+ *   {title, summary, sections}, {strengths, concerns, recommendations},
+ *   {blocks}, {metrics_table}. Fallback: pretty-print JSON.
  */
 function ReportRenderer({ report }: { report: Record<string, unknown> }) {
   if (!report || Object.keys(report).length === 0) {
-    return <p className="text-slate-500 italic">Sin contenido</p>;
+    return <p className="text-xs text-muted-foreground italic">Sin contenido</p>;
   }
 
   const title = report.title as string | undefined;
-  const summary = report.summary as string | undefined;
-  const strengths = report.strengths as string[] | undefined;
-  const concerns = report.concerns as string[] | undefined;
-  const recommendations = report.recommendations as string[] | undefined;
-  const nextFocus = report.next_focus as string | undefined;
+  const summary = (report.summary as string | undefined) ?? (report.executive_summary as string | undefined);
+  const strengths = report.strengths as Array<{ title: string; description?: string } | string> | undefined;
+  const concerns = (report.concerns as Array<{ title: string; description?: string } | string> | undefined)
+    ?? (report.areas_to_improve as Array<{ title: string; description?: string } | string> | undefined);
+  const recommendations = report.recommendations as Array<{ title?: string; description?: string } | string> | undefined;
+  const nextFocus = (report.next_focus as string | undefined) ?? (report.proximo_foco as string | undefined);
   const blocks = report.blocks as Record<string, unknown>[] | undefined;
   const metricsTable = report.metrics_table as Record<string, unknown>[] | undefined;
+  const pillars = report.pillars as Array<{ pilar?: string; acciones?: string[]; prioridad?: string }> | undefined;
 
   return (
-    <div className="space-y-5">
-      {title && <h4 className="font-rajdhani font-bold text-xl">{title}</h4>}
-      {summary && <p className="text-slate-700 leading-relaxed">{summary}</p>}
+    <div className="space-y-4">
+      {title && <h4 className="font-display font-bold text-sm text-foreground">{title}</h4>}
+      {summary && <p className="text-xs text-foreground leading-relaxed">{summary}</p>}
 
       {metricsTable && metricsTable.length > 0 && (
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-slate-50 text-left">
-              <th className="p-2 border-b border-slate-200">Métrica</th>
-              <th className="p-2 border-b border-slate-200">Valor</th>
-              <th className="p-2 border-b border-slate-200">Interpretación</th>
-            </tr>
-          </thead>
-          <tbody>
-            {metricsTable.map((m, i) => (
-              <tr key={i} className="hover:bg-slate-50">
-                <td className="p-2 border-b border-slate-100 font-semibold">{m.metric as string}</td>
-                <td className="p-2 border-b border-slate-100 font-mono">{m.value as string}</td>
-                <td className="p-2 border-b border-slate-100 text-slate-600">{m.interpretation as string}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px] border-collapse">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                <th className="p-2 border-b border-border font-bold">Métrica</th>
+                <th className="p-2 border-b border-border font-bold">Valor</th>
+                <th className="p-2 border-b border-border font-bold">Interpretación</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {metricsTable.map((m, i) => (
+                <tr key={i} className="hover:bg-secondary/30">
+                  <td className="p-2 border-b border-border/40 font-semibold text-foreground">
+                    {m.metric as string}
+                  </td>
+                  <td className="p-2 border-b border-border/40 font-mono text-primary">
+                    {m.value as string}
+                  </td>
+                  <td className="p-2 border-b border-border/40 text-muted-foreground">
+                    {m.interpretation as string}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {strengths && strengths.length > 0 && (
-        <section>
-          <h5 className="font-bold text-green-700 mb-2">✓ Fortalezas</h5>
-          <ul className="list-disc list-inside space-y-1 text-slate-700">
-            {strengths.map((s, i) => <li key={i}>{s}</li>)}
-          </ul>
-        </section>
+        <Section heading="✓ Fortalezas" color="text-green-400">
+          {strengths.map((s, i) => (
+            <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
+          ))}
+        </Section>
       )}
 
       {concerns && concerns.length > 0 && (
-        <section>
-          <h5 className="font-bold text-amber-700 mb-2">⚠️ Áreas de mejora</h5>
-          <ul className="list-disc list-inside space-y-1 text-slate-700">
-            {concerns.map((s, i) => <li key={i}>{s}</li>)}
-          </ul>
-        </section>
+        <Section heading="⚠ Áreas de mejora" color="text-amber-400">
+          {concerns.map((s, i) => (
+            <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
+          ))}
+        </Section>
       )}
 
       {recommendations && recommendations.length > 0 && (
-        <section>
-          <h5 className="font-bold text-blue-700 mb-2">💡 Recomendaciones</h5>
-          <ul className="list-disc list-inside space-y-1 text-slate-700">
-            {recommendations.map((s, i) => <li key={i}>{s}</li>)}
-          </ul>
-        </section>
+        <Section heading="💡 Recomendaciones" color="text-electric">
+          {recommendations.map((s, i) => (
+            <li key={i}>
+              {typeof s === "string" ? s : (s.title ?? "")}
+              {typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}
+            </li>
+          ))}
+        </Section>
+      )}
+
+      {pillars && pillars.length > 0 && (
+        <Section heading="🏛 Pilares de trabajo" color="text-primary">
+          {pillars.map((p, i) => (
+            <li key={i}>
+              <span className="font-semibold text-foreground">{p.pilar}</span>
+              {p.prioridad && (
+                <span className="ml-2 text-[9px] uppercase tracking-wider text-muted-foreground">
+                  ({p.prioridad})
+                </span>
+              )}
+              {Array.isArray(p.acciones) && p.acciones.length > 0 && (
+                <ul className="ml-4 mt-1 list-[circle] list-inside text-muted-foreground">
+                  {p.acciones.map((a, j) => <li key={j}>{a}</li>)}
+                </ul>
+              )}
+            </li>
+          ))}
+        </Section>
       )}
 
       {nextFocus && (
-        <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-xl">
-          <div className="font-bold text-purple-900 text-xs uppercase tracking-wider mb-1">Próximo foco</div>
-          <p className="text-purple-800 text-sm">{nextFocus}</p>
+        <div className="rounded-xl bg-primary/10 border border-primary/30 p-3">
+          <div className="text-[10px] uppercase tracking-wider text-primary font-bold mb-1">
+            Próximo foco
+          </div>
+          <p className="text-xs text-foreground">{nextFocus}</p>
         </div>
       )}
 
       {blocks && blocks.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {blocks.map((b, i) => (
-            <div key={i} className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-xl">
-              <div className="font-bold text-blue-900 text-sm">
-                Bloque {(b.block_number as number) ?? i + 1} · {(b.weeks as string) ?? ""}
+            <div key={i} className="rounded-xl bg-secondary/30 border-l-2 border-electric p-3">
+              <div className="text-[10px] uppercase tracking-wider text-electric font-bold">
+                Bloque {(b.block_number as number) ?? i + 1}
+                {b.weeks && <span className="ml-2 text-muted-foreground">· {b.weeks as string}</span>}
               </div>
-              <p className="text-blue-800 text-sm mt-1">{b.theme as string}</p>
+              <p className="text-xs text-foreground mt-1">{b.theme as string}</p>
               {Array.isArray(b.objectives) && (
-                <ul className="text-xs text-blue-700 mt-2 list-disc list-inside">
+                <ul className="text-[11px] text-muted-foreground mt-1.5 list-disc list-inside">
                   {(b.objectives as string[]).map((o, j) => <li key={j}>{o}</li>)}
                 </ul>
               )}
@@ -284,12 +357,29 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
         </div>
       )}
 
-      {/* Fallback: si nada de lo anterior matchea, pretty-print JSON */}
-      {!title && !summary && !blocks && !strengths && (
-        <pre className="bg-slate-50 rounded-xl p-4 text-xs overflow-x-auto">
+      {/* Fallback */}
+      {!title && !summary && !blocks && !strengths && !concerns && !recommendations && !pillars && !metricsTable && (
+        <pre className="bg-secondary/30 rounded-xl p-3 text-[10px] overflow-x-auto whitespace-pre-wrap text-muted-foreground font-mono">
           {JSON.stringify(report, null, 2)}
         </pre>
       )}
     </div>
+  );
+}
+
+function Section({
+  heading,
+  color,
+  children,
+}: {
+  heading: string;
+  color: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h5 className={`font-display font-bold text-xs ${color} mb-1.5`}>{heading}</h5>
+      <ul className="list-disc list-inside space-y-1 text-xs text-foreground">{children}</ul>
+    </section>
   );
 }
