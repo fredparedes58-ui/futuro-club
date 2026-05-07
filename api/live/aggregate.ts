@@ -283,6 +283,36 @@ export default withHandler(
     const results = await Promise.all(reportPromises);
     const successful = results.filter((r) => r.ok);
 
+    // ── 4. Bidireccional · alimentar VSI history individual ────
+    const vsiDeltas: Record<string, { before: number; after: number; delta: number }> = {};
+    for (const s of stats) {
+      if (!s.playerId || s.totalEvents === 0) continue;
+      // Delta proporcional al netImpact, clamp [-3, +3]
+      const delta = Math.max(-3, Math.min(3, s.netImpact * 0.4));
+      if (Math.abs(delta) < 0.1) continue; // ignorar deltas insignificantes
+
+      const { data: pRow } = await supabase
+        .from("players")
+        .select("vsi, vsi_history")
+        .eq("id", s.playerId)
+        .single();
+
+      const before = Number(pRow?.vsi ?? 50);
+      const after = Math.max(0, Math.min(100, before + delta));
+      const history = Array.isArray(pRow?.vsi_history) ? (pRow.vsi_history as number[]) : [];
+      const newHistory = [...history, Number(after.toFixed(1))].slice(-20); // cap 20
+
+      await supabase
+        .from("players")
+        .update({
+          vsi: Number(after.toFixed(1)),
+          vsi_history: newHistory,
+        })
+        .eq("id", s.playerId);
+
+      vsiDeltas[s.playerId] = { before, after, delta: Number(delta.toFixed(2)) };
+    }
+
     const analysisResult = {
       pipeline: PIPELINE_VERSION,
       generated_at: new Date().toISOString(),
@@ -290,9 +320,10 @@ export default withHandler(
       total_events: (events ?? []).length,
       reports: successful.map((r) => ({ type: r.type, content: r.content, model: r.model })),
       reports_failed: results.length - successful.length,
+      vsi_deltas: vsiDeltas,    // mostrar en summary qué jugadores subieron/bajaron
     };
 
-    // ── 4. Persistir en match.analysis_result ──────────────────
+    // ── 5. Persistir en match.analysis_result ──────────────────
     await supabase
       .from("live_matches")
       .update({
