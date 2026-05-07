@@ -22,7 +22,7 @@ import {
 
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
-import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import RadarChartComponent from "@/components/RadarChart";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
@@ -332,7 +332,7 @@ export default function PlayerEvolutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading } = useSavedAnalyses(id ?? "");
+  const { data: analyses, isLoading } = useSavedAnalysesV2(id ?? "");
 
   if (!player) {
     return (

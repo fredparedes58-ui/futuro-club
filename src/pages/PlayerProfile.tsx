@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PlanGuard } from "@/components/PlanGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { usePlayerById, useRawPlayerById, useDeletePlayer } from "@/hooks/usePlayers";
-import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import { usePHVCalculator } from "@/hooks/useAgents";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
@@ -109,7 +109,7 @@ const PlayerProfile = () => {
   const deletePlayer = useDeletePlayer();
 
   // Análisis guardados
-  const { data: savedAnalyses } = useSavedAnalyses(id ?? "");
+  const { data: savedAnalyses } = useSavedAnalysesV2(id ?? "");
   const latestAnalysis = savedAnalyses?.[0]?.report as VideoIntelligenceOutput | undefined;
 
   // Videos del jugador

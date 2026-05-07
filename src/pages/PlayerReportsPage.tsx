@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
-import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
@@ -188,7 +188,7 @@ export default function PlayerReportsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading } = useSavedAnalyses(id ?? "");
+  const { data: analyses, isLoading } = useSavedAnalysesV2(id ?? "");
 
   if (!player) {
     return (

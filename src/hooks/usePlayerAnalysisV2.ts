@@ -26,8 +26,10 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 
 // ── Tipos ─────────────────────────────────────────────────────────
 
@@ -399,4 +401,129 @@ export function usePlayerAnalysisV2() {
     loadAnalysis,
     reset,
   };
+}
+
+// ── useSavedAnalysesV2 ────────────────────────────────────────────
+// Replaces the legacy useSavedAnalyses (player_analyses table).
+// Queries V2 analyses+reports tables, maps to legacy VideoIntelligenceOutput
+// shape so existing consumer components continue to work without changes.
+
+type AnalysisDbRow = {
+  id: string;
+  player_id: string;
+  video_id: string;
+  created_at: string;
+  vsi: Record<string, unknown> | null;
+  reports: Array<{ report_type: string; content: Record<string, unknown> }>;
+};
+
+function normalizeTier(tier?: string): string {
+  const map: Record<string, string> = {
+    elite: "elite", alto: "alto", medio_alto: "medio_alto", medio: "medio",
+    desarrollo: "desarrollo", high: "alto", mid_high: "medio_alto", mid: "medio",
+    developing: "desarrollo", talent: "medio_alto",
+  };
+  return map[tier ?? ""] ?? "medio";
+}
+
+function mapDbRowToLegacy(row: AnalysisDbRow) {
+  const rpts = row.reports ?? [];
+  const get = (type: string) =>
+    (rpts.find((r) => r.report_type === type)?.content ?? {}) as Record<string, unknown>;
+
+  if (rpts.length === 0) {
+    return { id: row.id, player_id: row.player_id, video_id: row.video_id, created_at: row.created_at, report: null };
+  }
+
+  const pr  = get("player-report");
+  const dna = get("dna-profile");
+  const bm  = get("best-match");
+  const pj  = get("projection");
+  const dp  = get("development-plan");
+
+  const vsiScore   = (row.vsi?.vsi as number) ?? 50;
+  const tierLabel  = normalizeTier((row.vsi?.tierLabel as string) ?? (pr.tier_label as string));
+  const strengths  = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
+  const areasRaw   = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
+  const defaultDim = { score: 5, observacion: "Calculado por pipeline GPU" };
+
+  const report = {
+    playerId:    row.player_id,
+    videoId:     row.video_id ?? "",
+    generatedAt: row.created_at,
+    estadoActual: {
+      resumenEjecutivo:    (pr.executive_summary as string) ?? "Análisis completado · pipeline GPU + MediaPipe.",
+      nivelActual:         tierLabel,
+      fortalezasPrimarias: strengths.map((s) => s.title),
+      areasDesarrollo:     areasRaw.map((a) => a.title),
+      dimensiones: {
+        velocidadDecision:   defaultDim,
+        tecnicaConBalon:     defaultDim,
+        inteligenciaTactica: defaultDim,
+        capacidadFisica:     defaultDim,
+        liderazgoPresencia:  defaultDim,
+        eficaciaCompetitiva: defaultDim,
+      },
+      ajusteVSIVideoScore: Math.round(vsiScore - 50),
+    },
+    adnFutbolistico: {
+      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
+      arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
+      patrones:         [] as never[],
+      mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
+    },
+    jugadorReferencia: {
+      top5: [] as never[],
+      bestMatch: {
+        proPlayerId: "",
+        nombre:   (bm.nombre as string) ?? "Jugador Referencia",
+        posicion: (bm.posicion as string) ?? "",
+        club:     (bm.club as string) ?? "",
+        score:    (bm.score as number) ?? 60,
+        narrativa:(bm.narrativa as string) ?? "",
+      },
+    },
+    proyeccionCarrera: {
+      escenarioOptimista: {
+        descripcion:   ((pj.optimistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.descripcion as string ?? "Progresión favorable",
+        nivelProyecto: ((pj.optimistic as Record<string,unknown>)?.level as string) ?? "Semi-pro",
+        clubTipo:      "",
+      },
+      escenarioRealista: {
+        descripcion:   ((pj.realistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioRealista as Record<string,unknown>)?.descripcion as string ?? "Desarrollo consistente",
+        nivelProyecto: ((pj.realistic as Record<string,unknown>)?.level as string) ?? "Amateur alto",
+        clubTipo:      "",
+      },
+      factoresClave: (pj.key_factors as string[]) ?? [],
+      riesgos:       (pj.risks as string[]) ?? [],
+    },
+    planDesarrollo: {
+      objetivo6meses:  (dp.goal_6months as string) ?? (dp.objetivo6meses as string) ?? "Consolidar fundamentos técnicos",
+      objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
+      pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
+    },
+    confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
+  };
+
+  return { id: row.id, player_id: row.player_id, video_id: row.video_id, created_at: row.created_at, report };
+}
+
+export function useSavedAnalysesV2(playerId: string) {
+  return useQuery({
+    queryKey: ["analyses-v2", playerId],
+    queryFn: async () => {
+      if (!playerId || !SUPABASE_CONFIGURED) return [];
+      const { data, error } = await supabase
+        .from("analyses")
+        .select("id, player_id, video_id, created_at, vsi, reports(report_type, content)")
+        .eq("player_id", playerId)
+        .in("status", ["completed", "completed_partial"])
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []).map((row) => mapDbRowToLegacy(row as AnalysisDbRow));
+    },
+    enabled: !!playerId && SUPABASE_CONFIGURED,
+    staleTime: 60_000,
+  });
 }

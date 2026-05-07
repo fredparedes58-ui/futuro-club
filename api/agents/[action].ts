@@ -9,7 +9,6 @@ import playerSimilarity from "./_player-similarity";
 import roleProfile from "./_role-profile";
 import scoutInsight from "./_scout-insight";
 import tacticalLabel from "./_tactical-label";
-import videoIntelligence from "./_video-intelligence";
 import teamIntelligence from "./_team-intelligence";
 import invalidateCache from "./_invalidate-cache";
 
@@ -21,7 +20,6 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "role-profile": roleProfile,
   "scout-insight": scoutInsight,
   "tactical-label": tacticalLabel,
-  "video-intelligence": videoIntelligence,
   "team-intelligence": teamIntelligence,
   "invalidate-cache": invalidateCache,
 };

@@ -7,7 +7,7 @@
 import { motion } from "framer-motion";
 import { Clock, Brain, Star, TrendingUp, ChevronRight, Loader2, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
 interface AnalysisTimelineProps {
@@ -172,7 +172,7 @@ function TimelineEntry({
 
 export default function AnalysisTimeline({ playerId, compact = false }: AnalysisTimelineProps) {
   const navigate = useNavigate();
-  const { data: analyses, isLoading } = useSavedAnalyses(playerId);
+  const { data: analyses, isLoading } = useSavedAnalysesV2(playerId);
 
   if (isLoading) {
     return (

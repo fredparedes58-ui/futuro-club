@@ -27,21 +27,17 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
-import { PlayerService, type Player } from "@/services/real/playerService";
-import { VideoService, getBestVideoUrl, type VideoRecord } from "@/services/real/videoService";
-import { usePlayerIntelligence, useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
+import { PlayerService } from "@/services/real/playerService";
+import { VideoService } from "@/services/real/videoService";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import ProPlayerMatch from "@/components/ProPlayerMatch";
 import VitasCard from "@/components/VitasCard";
 import AnalysisTimeline from "@/components/AnalysisTimeline";
-import VideoUpload from "@/components/VideoUpload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { SimilarityMatch } from "@/services/real/similarityService";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import QuantitativeMetricsPanel from "@/components/QuantitativeMetricsPanel";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
-import { getErrorDetails } from "@/services/errorDiagnosticService";
-import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import BenchmarkBadge from "@/components/intelligence/BenchmarkBadge";
 import { calculateReportBenchmark, type ReportBenchmark, DIMENSION_TO_METRIC } from "@/services/real/benchmarkService";
@@ -712,25 +708,11 @@ export default function PlayerIntelligencePage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [selectedVideoId, setSelectedVideoId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"nuevo" | "guardado" | "historial">("guardado");
+  const [activeTab, setActiveTab] = useState<"guardado" | "historial">("guardado");
   const [showCard, setShowCard] = useState(false);
-  const [jerseyNumber, setJerseyNumber] = useState<string>("");
-  const [teamColor, setTeamColor] = useState<string>("");
-  const [analysisFocus, setAnalysisFocus] = useState<string[]>([]);
 
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading: loadingAnalyses } = useSavedAnalyses(id ?? "");
-
-  const {
-    state,
-    isAnalyzing,
-    isSimilarityLoading,
-    analysisResult,
-    similarityData,
-    runAnalysis,
-    refetchSimilarity,
-  } = usePlayerIntelligence(player ?? ({} as Player));
+  const { data: analyses, isLoading: loadingAnalyses } = useSavedAnalysesV2(id ?? "");
 
   // Hooks MUST be called before any early return (Rules of Hooks)
   const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
@@ -748,19 +730,11 @@ export default function PlayerIntelligencePage() {
     );
   }
 
-  // Obtener videos disponibles — primero los del jugador, si no hay, mostrar todos
-  const playerVideos = (() => {
-    const byPlayer = VideoService.getByPlayerId(player.id);
-    if (byPlayer.length > 0) return byPlayer;
-    // Fallback: mostrar todos los videos disponibles para análisis
-    return VideoService.getAll();
-  })();
-
-  // Informe a mostrar: el recién generado o el seleccionado del historial
+  // Informe a mostrar: el seleccionado del historial (V2 pipeline)
   const savedReport = analyses && analyses[selectedAnalysisIdx]
     ? (analyses[selectedAnalysisIdx].report as VideoIntelligenceOutput)
     : null;
-  const latestReport: VideoIntelligenceOutput | null = analysisResult ?? savedReport;
+  const latestReport: VideoIntelligenceOutput | null = savedReport;
 
   // Para comparativa
   const compareReport: VideoIntelligenceOutput | null =
@@ -768,58 +742,9 @@ export default function PlayerIntelligencePage() {
       ? (analyses[compareIdx].report as VideoIntelligenceOutput)
       : null;
 
-  // Similitud: priorizar motor determinista (datos reales de PRO_PLAYERS) sobre Claude
-  const top5Matches: SimilarityMatch[] = similarityData?.top5 ?? [];
-
-  const bestMatchData: SimilarityMatch | null =
-    similarityData?.bestMatch ?? top5Matches[0] ?? null;
-
-  const handleRunAnalysis = async () => {
-    if (!selectedVideoId) {
-      toast.error(t("reports.selectVideoFirst", "Selecciona un video primero"));
-      return;
-    }
-    const video = playerVideos.find(v => v.id === selectedVideoId);
-    if (!video) return;
-    const duration = (video.duration as number) || 34;
-    try {
-      // Get best available video URL (prefers CDN over expired blob)
-      const videoSrc = getBestVideoUrl(video) ?? undefined;
-
-      // Verify blob URLs are still valid (they expire on page refresh)
-      if (videoSrc?.startsWith("blob:")) {
-        const { isBlobUrlValid } = await import("@/lib/localVideoUtils");
-        if (!isBlobUrlValid(videoSrc)) {
-          toast.error("El video local expiró", {
-            description: "Los videos locales se pierden al refrescar la página. Sube el video de nuevo para analizarlo.",
-            duration: 8000,
-          });
-          return;
-        }
-      }
-      if (!videoSrc) {
-        toast.error("No hay video disponible", {
-          description: "Sube un video para este jugador antes de generar el informe.",
-          duration: 6000,
-        });
-        return;
-      }
-
-      await runAnalysis({
-        videoId: selectedVideoId,
-        videoDuration: duration,
-        jerseyNumber: jerseyNumber.trim() || undefined,
-        teamColor: teamColor.trim() || undefined,
-        localVideoSrc: videoSrc,
-        analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
-      });
-      toast.success(t("toasts.drillAnalyzed"));
-      setActiveTab("guardado");
-    } catch (err) {
-      const { title, description } = getErrorDetails(err, "intelligence");
-      toast.error(title, { description });
-    }
-  };
+  // Similarity data comes from the report itself (V2 pipeline)
+  const top5Matches = latestReport?.jugadorReferencia?.top5 ?? [];
+  const bestMatchData = latestReport?.jugadorReferencia?.bestMatch ?? null;
 
   return (
     <div className="min-h-screen pb-24">
@@ -844,7 +769,7 @@ export default function PlayerIntelligencePage() {
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 glass rounded-xl">
-          {(["guardado", "historial", "nuevo"] as const).map(tab => (
+          {(["guardado", "historial"] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -854,9 +779,15 @@ export default function PlayerIntelligencePage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "guardado" ? "Informe" : tab === "historial" ? "Historial" : "Nuevo"}
+              {tab === "guardado" ? "Informe" : "Historial"}
             </button>
           ))}
+          <button
+            onClick={() => navigate(`/lab?playerId=${id}`)}
+            className="flex-1 py-1.5 rounded-lg text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-1"
+          >
+            <Zap size={9} /> Nuevo
+          </button>
         </div>
 
         {/* ── HISTORIAL ── */}
@@ -864,158 +795,6 @@ export default function PlayerIntelligencePage() {
           <AnalysisTimeline playerId={id} />
         )}
 
-        {/* ── NUEVO ANÁLISIS ── */}
-        {activeTab === "nuevo" && (
-          <div className="space-y-4">
-            {/* Upload de video */}
-            <div className="glass rounded-2xl p-4">
-              <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-3">
-                Subir nuevo video
-              </p>
-              <VideoUpload
-                playerId={player.id}
-                onDone={(videoId) => {
-                  toast.success("Video listo para analizar");
-                  setSelectedVideoId(videoId);
-                }}
-              />
-            </div>
-
-            {/* Selector de video */}
-            {playerVideos.length > 0 ? (
-              <div className="glass rounded-2xl p-4">
-                <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-3">
-                  Selecciona el video a analizar
-                </p>
-                <div className="space-y-2">
-                  {playerVideos.filter(v => v.status === "finished" || v.status === "uploaded" || !!v.embedUrl || (v.localPath && !v.localPath.startsWith("http"))).map(v => (
-                    <button
-                      key={v.id}
-                      onClick={() => setSelectedVideoId(v.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                        selectedVideoId === v.id
-                          ? "border-primary bg-primary/10"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <Play size={14} className="text-primary shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">
-                          {v.title ?? v.id}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {v.embedUrl || (v.localPath && !v.localPath.startsWith("http")) ? "Listo para análisis" : v.status}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="glass rounded-2xl p-6 text-center">
-                <Play size={24} className="mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">Sin videos disponibles</p>
-                <p className="text-xs text-muted-foreground">
-                  Sube un video desde el perfil del jugador primero
-                </p>
-              </div>
-            )}
-
-            {/* Botón de análisis */}
-            {state.step !== "idle" && state.step !== "done" && state.step !== "error" && (
-              <div className="glass rounded-2xl p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <Loader2 size={14} className="text-primary animate-spin" />
-                  <span className="text-xs text-foreground">{state.message}</span>
-                </div>
-                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-primary rounded-full"
-                    animate={{ width: `${state.progress}%` }}
-                    transition={{ duration: 0.4 }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {state.step === "error" && (
-              <div className="glass rounded-2xl p-4 border border-destructive/30">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={14} className="text-destructive" />
-                  <p className="text-xs text-destructive">{state.message}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Identificación del jugador en video */}
-            <div className="glass rounded-2xl p-4 space-y-3">
-              <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                Identificar jugador en el video
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                    Nº Camiseta
-                  </label>
-                  <input
-                    type="text"
-                    value={jerseyNumber}
-                    onChange={(e) => setJerseyNumber(e.target.value)}
-                    placeholder="ej: 7, 10, 23"
-                    maxLength={3}
-                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                    Color uniforme
-                  </label>
-                  <input
-                    type="text"
-                    value={teamColor}
-                    onChange={(e) => setTeamColor(e.target.value)}
-                    placeholder="ej: rojo, verde"
-                    className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 transition-colors"
-                  />
-                </div>
-              </div>
-              <p className="text-[9px] text-muted-foreground leading-relaxed">
-                La IA buscará específicamente ese dorsal y color en los fotogramas del video para centrar el análisis en ese jugador.
-              </p>
-            </div>
-
-            {/* Selector de enfoque */}
-            <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />
-
-            <Button
-              className="w-full h-12 text-sm font-display font-bold gap-2"
-              onClick={handleRunAnalysis}
-              disabled={!selectedVideoId || isAnalyzing}
-            >
-              {isAnalyzing ? (
-                <><Loader2 size={16} className="animate-spin" /> Analizando con IA...</>
-              ) : (
-                <><Zap size={16} /> Generar Informe VITAS</>
-              )}
-            </Button>
-
-            {/* Similitud sin video */}
-            {!latestReport && (
-              <Button
-                variant="outline"
-                className="w-full h-10 text-xs gap-2"
-                onClick={() => refetchSimilarity()}
-                disabled={isSimilarityLoading}
-              >
-                {isSimilarityLoading ? (
-                  <><Loader2 size={12} className="animate-spin" /> Calculando...</>
-                ) : (
-                  <><RefreshCw size={12} /> Solo similitud (sin video)</>
-                )}
-              </Button>
-            )}
-          </div>
-        )}
 
         {/* ── INFORME ── */}
         {activeTab === "guardado" && (
@@ -1152,7 +931,7 @@ export default function PlayerIntelligencePage() {
                           size="sm"
                           variant="outline"
                           className="gap-2 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
-                          onClick={() => setActiveTab("nuevo")}
+                          onClick={() => navigate(`/lab?playerId=${id}`)}
                         >
                           <Zap size={13} />
                           Generar nuevo análisis
@@ -1315,35 +1094,10 @@ export default function PlayerIntelligencePage() {
                   <p className="text-xs text-muted-foreground mb-4">
                     Genera el primer informe de inteligencia para {player.name}
                   </p>
-                  <Button size="sm" onClick={() => setActiveTab("nuevo")} className="gap-2">
+                  <Button size="sm" onClick={() => navigate(`/lab?playerId=${id}`)} className="gap-2">
                     <Zap size={14} /> Generar Informe
                   </Button>
                 </div>
-
-                {/* Similitud rápida sin video */}
-                {similarityData && bestMatchData && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                      Similitud por métricas (sin video)
-                    </p>
-                    <ProPlayerMatch top5={similarityData.top5} bestMatch={similarityData.bestMatch} />
-                  </div>
-                )}
-
-                {!similarityData && (
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2"
-                    onClick={() => refetchSimilarity()}
-                    disabled={isSimilarityLoading}
-                  >
-                    {isSimilarityLoading ? (
-                      <><Loader2 size={14} className="animate-spin" /> Calculando similitud...</>
-                    ) : (
-                      <><Star size={14} /> Ver jugadores similares ahora</>
-                    )}
-                  </Button>
-                )}
               </div>
             )}
           </>
