@@ -7,12 +7,16 @@
  */
 
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Brain, Star, TrendingUp, ChevronRight,
-  Loader2, FileText, Calendar, Video, Zap,
+  Loader2, FileText, Calendar, Video, Zap, Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
@@ -187,8 +191,34 @@ function ReportCard({
 export default function PlayerReportsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const player = id ? PlayerService.getById(id) : null;
   const { data: analyses, isLoading } = useSavedAnalysesV2(id ?? "");
+  const [generating, setGenerating] = useState(false);
+
+  async function handleGenerateBaseline() {
+    if (!id || generating) return;
+    setGenerating(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/players/baseline-analysis", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error?.message ?? "Error generando reporte baseline");
+      }
+      toast.success(`✓ ${data.data.reportsGenerated}/6 reportes generados · VSI ${data.data.vsi}`);
+      await queryClient.invalidateQueries({ queryKey: ["analyses-v2", id] });
+      navigate(`/player/${id}/analysis/${data.data.analysisId}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error generando reporte");
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   if (!player) {
     return (
@@ -273,19 +303,53 @@ export default function PlayerReportsPage() {
 
         {/* Empty state */}
         {!isLoading && total === 0 && (
-          <div className="glass rounded-2xl p-8 text-center space-y-3">
+          <div className="glass rounded-2xl p-6 text-center space-y-4">
             <Brain size={32} className="mx-auto text-primary/50" />
-            <h3 className="text-sm font-display font-bold text-foreground">Sin reportes todavia</h3>
-            <p className="text-xs text-muted-foreground">
-              Genera tu primer informe VITAS Intelligence para comenzar a hacer seguimiento.
+            <div className="space-y-1">
+              <h3 className="text-sm font-display font-bold text-foreground">Sin reportes todavía</h3>
+              <p className="text-xs text-muted-foreground">
+                Genera el primer informe usando el perfil del jugador o subiendo un vídeo.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={handleGenerateBaseline}
+                disabled={generating}
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold disabled:opacity-50 hover:bg-primary/90 transition-colors"
+              >
+                {generating ? (
+                  <><Loader2 size={12} className="animate-spin" /> Generando 6 reportes…</>
+                ) : (
+                  <><Sparkles size={12} /> Generar baseline (sin vídeo)</>
+                )}
+              </button>
+              <button
+                onClick={() => navigate(`/lab?playerId=${id}`)}
+                disabled={generating}
+                className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-border text-xs font-display disabled:opacity-50 hover:border-foreground/30 transition-colors"
+              >
+                <Zap size={12} /> Subir vídeo en VitasLab
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
+              El baseline usa las métricas del coach + PHV. Para análisis biomecánico real, sube un vídeo.
             </p>
-            <button
-              onClick={() => navigate(`/players/${id}/intelligence`)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary"
-            >
-              <Zap size={12} /> Generar primer informe
-            </button>
           </div>
+        )}
+
+        {/* Generate baseline button (when reports already exist) */}
+        {!isLoading && total > 0 && (
+          <button
+            onClick={handleGenerateBaseline}
+            disabled={generating}
+            className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-dashed border-border text-[11px] font-display disabled:opacity-50 hover:border-primary/50 transition-colors"
+          >
+            {generating ? (
+              <><Loader2 size={12} className="animate-spin" /> Generando…</>
+            ) : (
+              <><Sparkles size={12} /> Nuevo reporte baseline</>
+            )}
+          </button>
         )}
 
         {/* Report cards */}
