@@ -32,6 +32,7 @@ import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import GlobalSearch from "./components/GlobalSearch";
+import ContextualFAB from "./components/ContextualFAB";
 import RoleProfile from "./pages/RoleProfile";
 import RoleProfileCompare from "./pages/RoleProfileCompare";
 import RoleProfileAudit from "./pages/RoleProfileAudit";
@@ -187,6 +188,7 @@ const App = () => (
             </AcceptTermsGate>
             <BottomNav />
             <GlobalSearch />
+            <ContextualFAB />
             </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
