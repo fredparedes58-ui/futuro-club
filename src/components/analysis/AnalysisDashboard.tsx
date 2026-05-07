@@ -12,12 +12,13 @@
  * Estado de carga: muestra spinner mientras `status` es processing/queued.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
   Brain,
 } from "lucide-react";
+import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 
 interface ReportData {
   report_type: string;
@@ -61,6 +62,17 @@ export function AnalysisDashboard({ analysisId }: Props) {
   const [reports, setReports] = useState<ReportData[]>([]);
   const [activeTab, setActiveTab] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+
+  // Extract areas_to_improve from player-report for RAG drill recommendations.
+  // MUST be before any early returns to keep hooks order consistent.
+  const areasDesarrollo = useMemo(() => {
+    const pr = reports.find((r) => r.report_type === "player-report")?.content as
+      | { areas_to_improve?: Array<{ title?: string } | string> } | undefined;
+    const areas = pr?.areas_to_improve ?? [];
+    return areas
+      .map((a) => (typeof a === "string" ? a : a.title ?? ""))
+      .filter((s) => s.trim().length > 0);
+  }, [reports]);
 
   useEffect(() => {
     let mounted = true;
@@ -199,6 +211,11 @@ export function AnalysisDashboard({ analysisId }: Props) {
           </div>
           <ReportRenderer report={activeReport.content} />
         </motion.div>
+      )}
+
+      {/* Drill Recommendations · auto-derivadas de areas_to_improve */}
+      {areasDesarrollo.length > 0 && (
+        <DrillRecommendations areasDesarrollo={areasDesarrollo} />
       )}
 
       {/* Datos técnicos crudos */}
