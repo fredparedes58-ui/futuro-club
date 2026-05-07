@@ -177,20 +177,25 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
           return errorResponse("Cannot read raw body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
         }
       } else {
+        // Tolerante a body vacio: si no hay body o no es JSON valido,
+        // pasamos {} cuando no hay schema · solo falla si schema requiere datos.
+        let raw: unknown = null;
         try {
-          const raw = await req.json();
-          if (options.schema) {
-            const result = options.schema.safeParse(raw);
-            if (!result.success) {
-              const details = result.error.errors.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join("; ");
-              return errorResponse(`Datos invalidos: ${details}`, 400, "VALIDATION_ERROR", rateLimitHeaders(rl));
-            }
-            body = result.data;
-          } else {
-            body = raw;
-          }
+          const text = await req.text();
+          raw = text.trim() ? JSON.parse(text) : null;
         } catch {
           return errorResponse("Invalid JSON body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
+        }
+
+        if (options.schema) {
+          const result = options.schema.safeParse(raw ?? {});
+          if (!result.success) {
+            const details = result.error.errors.map((e: z.ZodIssue) => `${e.path.join(".")}: ${e.message}`).join("; ");
+            return errorResponse(`Datos invalidos: ${details}`, 400, "VALIDATION_ERROR", rateLimitHeaders(rl));
+          }
+          body = result.data;
+        } else {
+          body = (raw ?? {}) as InferBody<T>;
         }
       }
     }

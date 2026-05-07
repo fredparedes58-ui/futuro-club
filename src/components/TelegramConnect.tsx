@@ -94,7 +94,8 @@ export default function TelegramConnect() {
       const headers = await getAuthHeaders();
       const res = await fetch("/api/telegram/connect", {
         method: "POST",
-        headers,
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: "{}",
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Error");
