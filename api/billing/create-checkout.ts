@@ -117,6 +117,17 @@ export default withHandler(
     formData.append("subscription_data[metadata][user_persona]", input.userPersona);
     formData.append("allow_promotion_codes", "true");
 
+    // ── Trial 14 días para nuevos suscriptores Personal y Pro ───────
+    // Solo si el usuario no ha tenido nunca una suscripción (sin customer_id existente).
+    // Academia / Agencia: contacto comercial · sin trial automático.
+    const eligibleForTrial = !existingSub?.stripe_customer_id &&
+                             (input.planTier === "personal" || input.planTier === "pro");
+    if (eligibleForTrial) {
+      formData.append("subscription_data[trial_period_days]", "14");
+      formData.append("subscription_data[trial_settings][end_behavior][missing_payment_method]", "cancel");
+      formData.append("payment_method_collection", "if_required");
+    }
+
     if (existingSub?.stripe_customer_id) {
       formData.append("customer", existingSub.stripe_customer_id);
     } else {
