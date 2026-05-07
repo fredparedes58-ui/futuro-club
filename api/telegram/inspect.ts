@@ -24,6 +24,16 @@ export default withHandler(
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
+    // Acción: limpiar historial conversacional de un chat
+    if (query.action === "clear_history" && query.chat_id) {
+      const cid = parseInt(query.chat_id, 10);
+      const { error, count } = await supabase
+        .from("telegram_messages")
+        .delete({ count: "exact" })
+        .eq("telegram_chat_id", cid);
+      return successResponse({ cleared: count, error: error?.message });
+    }
+
     // 1. Todos los mappings activos
     const { data: mappings } = await supabase
       .from("coach_telegram_mapping")
