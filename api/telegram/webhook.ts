@@ -38,17 +38,40 @@ async function sendMessage(chatId: number, text: string, opts: {
   parseMode?: "Markdown" | "HTML";
   replyMarkup?: Record<string, unknown>;
 } = {}): Promise<void> {
-  if (!BOT_TOKEN) return;
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  if (!BOT_TOKEN) {
+    console.error("[telegram] BOT_TOKEN missing · cannot send");
+    return;
+  }
+  // Strip markdown safe-fallback: si el mensaje tiene caracteres frágiles
+  // ('_', '*', '`', '[', ']') Y el caller no pidió HTML explícito, mandamos
+  // plain text. Telegram Markdown legacy es muy estricto con paréntesis.
+  const useParseMode = opts.parseMode === "HTML"
+    ? "HTML"
+    : undefined; // plain text por defecto · 100% safe
+  const cleanText = useParseMode
+    ? text
+    : text.replace(/\*([^*]+)\*/g, "$1").replace(/_([^_]+)_/g, "$1");
+
+  try {
+    const payload: Record<string, unknown> = {
       chat_id: chatId,
-      text,
-      parse_mode: opts.parseMode ?? "Markdown",
+      text: cleanText,
       reply_markup: opts.replyMarkup,
-    }),
-  }).catch(() => null);
+    };
+    if (useParseMode) payload.parse_mode = useParseMode;
+
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.error(`[telegram] sendMessage failed ${res.status}: ${body.slice(0, 300)}`);
+    }
+  } catch (err) {
+    console.error("[telegram] sendMessage exception:", err instanceof Error ? err.message : err);
+  }
 }
 
 async function sendTyping(chatId: number): Promise<void> {
