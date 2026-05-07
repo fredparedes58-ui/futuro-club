@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, Mail, Plus, Trash2, Clock, CheckCircle2, XCircle,
+  Sparkles, Grid3x3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -166,6 +167,29 @@ export default function TeamPage() {
             </Sheet>
           )}
         </motion.div>
+
+        {/* CTA · Análisis táctico baseline */}
+        <motion.button
+          variants={item}
+          onClick={() => navigate("/equipo/baseline")}
+          className="w-full glass rounded-xl p-3 flex items-center gap-3 hover:bg-secondary/30 transition-colors text-left border border-primary/30"
+        >
+          <div className="w-9 h-9 rounded-lg bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+            <Grid3x3 size={16} className="text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
+              Análisis táctico
+              <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />Nuevo
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              5 reportes IA · 9 cuadrantes · sin necesidad de vídeo
+            </p>
+          </div>
+          <span className="text-[10px] text-primary font-bold">→</span>
+        </motion.button>
 
         {/* Miembros activos */}
         <motion.div variants={item}>
