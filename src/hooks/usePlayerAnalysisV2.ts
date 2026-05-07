@@ -270,6 +270,81 @@ export function usePlayerAnalysisV2() {
   );
 
   /**
+   * Analizar un vídeo ya subido a Bunny (flujo sin re-upload).
+   * Requiere videoId (Supabase UUID) y bunnyVideoId (Bunny GUID).
+   * Si ya hay un análisis completado lo carga directamente.
+   */
+  const analyzeExistingVideo = useCallback(
+    async (params: { videoId: string; bunnyVideoId: string; playerId: string }) => {
+      const ac = new AbortController();
+      abortRef.current = ac;
+      setResult(INITIAL_RESULT);
+
+      try {
+        const headers = await getAuthHeaders();
+
+        // 1. Verificar si ya existe un análisis completado
+        setState({ step: "queued", progress: 15, message: "Verificando análisis existente...", error: null });
+        const checkRes = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, {
+          headers, signal: ac.signal,
+        });
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          const existing = checkData?.data?.analysis;
+          if (existing?.status === "completed" || existing?.status === "completed_partial") {
+            setResult((r) => ({ ...r, analysisId: existing.id, videoId: params.videoId }));
+            return await loadAnalysis(existing.id);
+          }
+        }
+
+        // 2. Disparar pipeline via finalize (trigger webhook → Modal → orchestrator)
+        setState({ step: "bunny_processing", progress: 30, message: "Iniciando pipeline GPU (MediaPipe)...", error: null });
+        let finalizeAttempts = 0;
+        let finalized = false;
+        while (finalizeAttempts < 12 && !finalized && !ac.signal.aborted) {
+          finalizeAttempts++;
+          const finRes = await fetch("/api/videos/finalize", {
+            method: "POST",
+            headers: { ...headers, "Content-Type": "application/json" },
+            body: JSON.stringify({ videoId: params.videoId, bunnyVideoId: params.bunnyVideoId }),
+            signal: ac.signal,
+          });
+          const finData = await finRes.json();
+          if (finData?.data?.ready) { finalized = true; break; }
+          await new Promise((r) => setTimeout(r, 5000));
+          setState((s) => ({ ...s, progress: 30 + finalizeAttempts * 2, message: `Bunny encoding... ${finalizeAttempts}/12` }));
+        }
+
+        // 3. Polling hasta completado
+        setState({ step: "queued", progress: 55, message: "Análisis encolado · Modal procesará con GPU", error: null });
+        const analysisStatus = await pollUntil(
+          async () => {
+            const res = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, { headers, signal: ac.signal });
+            if (!res.ok) return null;
+            const d = await res.json();
+            return d?.data?.analysis ?? null;
+          },
+          (a) => a?.status === "completed" || a?.status === "completed_partial" || a?.status === "failed",
+          60, 5000, ac.signal
+        );
+
+        if (!analysisStatus) throw new Error("Análisis no completó en 5 minutos");
+        if (analysisStatus.status === "failed") throw new Error(analysisStatus.status_message ?? "Análisis falló");
+
+        setResult((r) => ({ ...r, analysisId: analysisStatus.id, videoId: params.videoId }));
+        setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
+        return await loadAnalysis(analysisStatus.id);
+
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+        setState({ step: "error", progress: 0, message: "Error", error: errorMsg });
+        throw err;
+      }
+    },
+    [loadAnalysis]
+  );
+
+  /**
    * Recargar reportes de un análisis existente (sin subir vídeo).
    * Útil cuando el padre vuelve a la app y quiere ver el último.
    */
@@ -320,6 +395,7 @@ export function usePlayerAnalysisV2() {
     isCompleted: state.step === "completed",
     isError: state.step === "error",
     startAnalysis,
+    analyzeExistingVideo,
     loadAnalysis,
     reset,
   };

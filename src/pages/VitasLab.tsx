@@ -45,15 +45,13 @@ import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { usePlan } from "@/hooks/usePlan";
 import { SubscriptionService } from "@/services/real/subscriptionService";
-import { extractKeyframesFromVideo, isLocalSrc, readVideoAsBase64 } from "@/lib/localVideoUtils";
-import { getAuthHeaders } from "@/lib/apiAuth";
-import { VideoService } from "@/services/real/videoService";
+import { isLocalSrc } from "@/lib/localVideoUtils";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import KnowledgeSearch from "@/components/KnowledgeSearch";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
-import { useSavedAnalyses } from "@/hooks/usePlayerIntelligence";
-import { calculateVAEPFromGemini } from "@/lib/geminiToVaep";
+import { useQuery } from "@tanstack/react-query";
+import { usePlayerAnalysisV2, type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
 
 interface CalibrationPoint {
   id: number;
@@ -169,7 +167,74 @@ interface AnalysisReport {
   confianza: number;
 }
 
-type AnalysisState = "idle" | "running" | "done" | "error";
+// ── Bridge: mapea V2 reports al shape legacy que usa el panel de resultados ──
+function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
+  if (!result.reports || result.reports.length === 0) return null;
+  const get = (type: string) =>
+    (result.reports!.find((r) => r.report_type === type)?.content ?? {}) as Record<string, unknown>;
+
+  const pr  = get("player-report");
+  const dna = get("dna-profile");
+  const bm  = get("best-match");
+  const pj  = get("projection");
+  const dp  = get("development-plan");
+
+  const vsiScore = (result.vsi?.vsi as number) ?? 50;
+  const strengths   = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
+  const areasRaw    = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
+  const defaultDim  = { score: 0.5, observacion: "Calculado por pipeline GPU" };
+
+  return {
+    estadoActual: {
+      resumenEjecutivo:  (pr.executive_summary as string) ?? "Análisis completado · pipeline GPU + MediaPipe.",
+      nivelActual:       (pr.tier_label as string) ?? (result.vsi?.tierLabel as string) ?? "talent",
+      fortalezasPrimarias: strengths.map((s) => s.title),
+      areasDesarrollo:   areasRaw.map((a) => a.title),
+      dimensiones: {
+        velocidadDecision:   defaultDim,
+        tecnicaConBalon:     defaultDim,
+        inteligenciaTactica: defaultDim,
+        capacidadFisica:     defaultDim,
+        liderazgoPresencia:  defaultDim,
+        eficaciaCompetitiva: defaultDim,
+      },
+      ajusteVSIVideoScore: Math.round(vsiScore - 50),
+    },
+    adnFutbolistico: {
+      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
+      arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
+      patrones:         [],
+      mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
+    },
+    jugadorReferencia: {
+      bestMatch: (bm.nombre as string) ? {
+        nombre:   bm.nombre as string,
+        posicion: (bm.posicion as string) ?? "",
+        club:     (bm.club as string) ?? "",
+        score:    (bm.score as number) ?? 70,
+        narrativa:(bm.narrativa as string) ?? "",
+      } : null as never,
+    },
+    proyeccionCarrera: {
+      escenarioOptimista: {
+        descripcion:   ((pj.optimistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.descripcion as string ?? "Progresión favorable según análisis biomecánico",
+        nivelProyecto: ((pj.optimistic as Record<string,unknown>)?.level as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.nivelProyecto as string ?? "Semi-pro",
+      },
+      escenarioRealista: {
+        descripcion:   ((pj.realistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioRealista as Record<string,unknown>)?.descripcion as string ?? "Desarrollo consistente con dedicación sostenida",
+        nivelProyecto: ((pj.realistic as Record<string,unknown>)?.level as string) ?? (pj.escenarioRealista as Record<string,unknown>)?.nivelProyecto as string ?? "Amateur alto",
+      },
+      factoresClave: (pj.key_factors as string[]) ?? (pj.factoresClave as string[]) ?? [],
+      riesgos:       (pj.risks as string[]) ?? (pj.riesgos as string[]) ?? [],
+    },
+    planDesarrollo: {
+      objetivo6meses:  (dp.goal_6months as string) ?? (dp.objetivo6meses as string) ?? "Consolidar fundamentos técnicos",
+      objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
+      pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? (dp.pilaresTrabajo as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
+    },
+    confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
+  };
+}
 
 const VitasLab = () => {
   const { t } = useTranslation();
@@ -188,9 +253,25 @@ const VitasLab = () => {
   const [showResultsPanel, setShowResultsPanel] = useState(false);
   const [selectedVideoId, setSelectedVideoId]   = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const { data: savedAnalyses = [], refetch: refetchAnalyses } = useSavedAnalyses(selectedPlayerId ?? "");
-  const [analysisState, setAnalysisState]       = useState<AnalysisState>("idle");
-  const [analysisReport, setAnalysisReport]     = useState<AnalysisReport | null>(null);
+  const v2 = usePlayerAnalysisV2();
+  const analysisReport = v2.isCompleted ? mapV2ToReport(v2.result) : null;
+
+  // Historial: análisis completados previos del jugador (tabla analyses)
+  const { data: savedAnalyses = [] } = useQuery<Array<{ id: string; created_at: string; vsi: Record<string, unknown> | null }>>({
+    queryKey: ["saved-analyses-v2", selectedPlayerId],
+    queryFn: async () => {
+      if (!selectedPlayerId || !SUPABASE_CONFIGURED) return [];
+      const { data } = await supabase
+        .from("analyses")
+        .select("id, created_at, vsi")
+        .eq("player_id", selectedPlayerId)
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data ?? [];
+    },
+    enabled: !!selectedPlayerId && SUPABASE_CONFIGURED,
+  });
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
   const [jerseyNumber, setJerseyNumber]         = useState<string>("");
   const [teamColor, setTeamColor]               = useState<string>("");
@@ -418,342 +499,38 @@ const VitasLab = () => {
       return;
     }
     if (!selectedVideoId) {
-      toast.info(t("lab.selectVideoFirst"), {
-        description: t("lab.selectVideoDesc"),
-        duration: 4000,
-      });
+      toast.info(t("lab.selectVideoFirst"), { description: t("lab.selectVideoDesc"), duration: 4000 });
       return;
     }
     if (!selectedPlayerId) {
-      toast.info(t("lab.selectPlayerFirst"), {
-        description: t("lab.selectPlayerDesc"),
-        duration: 4000,
-      });
+      toast.info(t("lab.selectPlayerFirst"), { description: t("lab.selectPlayerDesc"), duration: 4000 });
       return;
     }
 
-    setAnalysisState("running");
-    setActionLog([]); // Clear previous actions
-    const toastId = toast.loading(t("toasts.analysisStarting"), {
-      description: t("toasts.analysisStartingDesc"),
-    });
+    const video = videos.find((v) => v.id === selectedVideoId);
+    if (!video) { toast.error("Video no encontrado"); return; }
+
+    // Extraer bunnyVideoId desde embedUrl: https://iframe.mediadelivery.net/embed/{libId}/{guid}
+    const bunnyVideoId = video.embedUrl?.split("/").pop() ?? selectedVideoId;
+
+    setActionLog([]);
+    v2.reset();
+    const toastId = toast.loading("Iniciando análisis GPU (MediaPipe + Claude)...");
 
     try {
-      const video = videos.find(v => v.id === selectedVideoId);
-      const playerData = players.find(p => p.id === selectedPlayerId);
-      if (!video || !playerData) throw new Error(t("errors.videoOrPlayerNotFound"));
-
-      // Vincular video ↔ jugador (persistente)
-      if (video.playerId !== selectedPlayerId) {
-        VideoService.save({ ...video, playerId: selectedPlayerId });
-      }
-
-      // 1. Extraer keyframes (local o Bunny CDN)
-      const videoSrc = isLocalSrc(video.localPath) ? video.localPath!
-        : isLocalSrc(video.streamUrl) ? video.streamUrl!
-        : undefined;
-
-      let keyframes: Array<{ url: string; timestamp: number; frameIndex: number }>;
-      if (videoSrc) {
-        toast.loading(t("toasts.extractingFrames"), { id: toastId });
-        keyframes = await extractKeyframesFromVideo(videoSrc, (video.duration as number) || 90, 8);
-        if (keyframes.length === 0) throw new Error(t("errors.frameExtractError"));
-      } else {
-        // Bunny CDN thumbnails — extract hostname from streamUrl if available
-        let hostname = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
-        if (video.streamUrl) {
-          try { hostname = new URL(video.streamUrl).hostname; } catch { /* keep fallback */ }
-        }
-        const duration = (video.duration as number) || 90;
-        keyframes = Array.from({ length: 8 }, (_, i) => {
-          const ts = Math.floor((duration / 9) * (i + 1));
-          return { url: `https://${hostname}/${video.id}/thumbnails/thumbnail_${String(ts).padStart(4, "0")}.jpg`, timestamp: ts, frameIndex: i };
-        });
-      }
-
-      // 2. Intentar observación Gemini — enviar URL del CDN (prioritario) o base64 local
-      let geminiObservations: Record<string, unknown> | null = null;
-      let geminiEventCounts: Record<string, number> | null = null;
-
-      {
-        try {
-          toast.loading(t("toasts.preparingVideo"), { id: toastId });
-          // Extract CDN hostname from streamUrl if available, else fallback to env/default
-          let bunnyCdnHost = import.meta.env.VITE_BUNNY_CDN_HOSTNAME || "";
-          if (video.streamUrl) {
-            try { bunnyCdnHost = new URL(video.streamUrl).hostname; } catch { /* keep fallback */ }
-          }
-          const bunnyVideoUrl = bunnyCdnHost && video.id && !video.id.startsWith("local-")
-            ? `https://${bunnyCdnHost}/${video.id}/play_720p.mp4`
-            : null;
-
-          const geminiPayload: Record<string, unknown> = {
-            playerContext: {
-              name: playerData.name,
-              age: playerData.age,
-              position: playerData.position,
-              foot: playerData.foot,
-              height: playerData.height,
-              weight: playerData.weight,
-              jerseyNumber: jerseyNumber.trim() || undefined,
-              teamColor: teamColor.trim() || undefined,
-            },
-          };
-
-          if (bunnyVideoUrl) {
-            geminiPayload.videoUrl = bunnyVideoUrl;
-            toast.loading("Analizando video completo con Gemini (CDN)...", { id: toastId });
-          } else if (videoSrc) {
-            const videoData = await readVideoAsBase64(videoSrc, 3);
-            if (videoData) {
-              geminiPayload.videoBase64 = videoData.base64;
-              geminiPayload.mediaType = videoData.mediaType;
-              toast.loading("Analizando video con Gemini (local)...", { id: toastId });
-            }
-          }
-
-          if (geminiPayload.videoUrl || geminiPayload.videoBase64) {
-            toast.loading(t("toasts.observingGemini"), { id: toastId });
-            const geminiRes = await fetch("/api/agents/video-observation", {
-              method: "POST",
-              headers: await getAuthHeaders(),
-              body: JSON.stringify(geminiPayload),
-            });
-            if (geminiRes.ok) {
-              const geminiData = await geminiRes.json();
-              if (geminiData.observations && !geminiData.fallback) {
-                geminiObservations = geminiData.observations;
-                geminiEventCounts = (geminiData.observations as Record<string, unknown>).eventosContados as Record<string, number> ?? null;
-                console.log("[VitasLab] Gemini observaciones recibidas:", Object.keys(geminiData.observations));
-              }
-            } else {
-              console.warn("[VitasLab] Gemini respondió con HTTP", geminiRes.status, "— continuando sin observaciones");
-            }
-          }
-        } catch (geminiErr) {
-          console.warn("[VitasLab] Gemini falló, continuando sin observaciones:", geminiErr);
-        }
-      }
-
-      toast.loading(t("toasts.analyzingIA"), { id: toastId });
-
-      // 3. Recoger métricas YOLO si hay sesión de tracking completada o activa
-      let physicalMetrics: Record<string, unknown> | undefined;
-      let heatmapPositions: Array<{ fx: number; fy: number }> | undefined;
-
-      const yoloMetrics = tracking.state.sessionMetrics;
-      if (yoloMetrics && yoloMetrics.distanceCoveredM > 0) {
-        // Convertir m/s → km/h para Claude
-        physicalMetrics = {
-          maxSpeedKmh:    +(yoloMetrics.maxSpeedMs * 3.6).toFixed(1),
-          avgSpeedKmh:    +(yoloMetrics.avgSpeedMs * 3.6).toFixed(1),
-          distanceM:      +yoloMetrics.distanceCoveredM.toFixed(0),
-          sprints:        yoloMetrics.sprintCount,
-          duelsWon:       yoloMetrics.duelsWon,
-          duelsLost:      yoloMetrics.duelsLost,
-          intensityZones: yoloMetrics.intensityZones,
-        };
-
-        // Recoger posiciones del track enfocado para heatmap (subsample: 1 por segundo)
-        const focusTrack = tracking.state.currentTracks.find(
-          t => t.id === tracking.state.focusTrackId
-        );
-        const allPos = focusTrack?.positions
-          ?? tracking.state.currentTracks.flatMap(t => t.positions);
-        if (allPos.length > 0) {
-          // Subsamplear a ~1 posición por segundo para no enviar demasiados datos
-          const step = Math.max(1, Math.floor(allPos.length / Math.min(allPos.length, 600)));
-          heatmapPositions = allPos
-            .filter((_, i) => i % step === 0)
-            .map(p => ({ fx: p.fx, fy: p.fy }));
-        }
-      }
-
-      // 3a. RAG enrichment — fetch relevant drills and methodology
-      let ragContext: string | null = null;
-      try {
-        const ragRes = await fetch("/api/rag/query", {
-          method: "POST",
-          headers: await getAuthHeaders(),
-          body: JSON.stringify({
-            query: `${playerData.position} ${playerData.age} años análisis video`,
-            limit: 3,
-          }),
-        });
-        if (ragRes.ok) {
-          const ragData = await ragRes.json() as { context?: string };
-          ragContext = ragData.context || null;
-        }
-      } catch { /* RAG failure is non-blocking */ }
-
-      // 3b. Llamar al agente via SSE (con métricas YOLO + RAG si disponibles)
-      const res = await fetch("/api/agents/video-intelligence", {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({
-          playerId: playerData.id,
-          videoId: selectedVideoId,
-          playerContext: {
-            name: playerData.name,
-            age: playerData.age,
-            position: playerData.position,
-            foot: playerData.foot,
-            height: playerData.height,
-            weight: playerData.weight,
-            currentVSI: playerData.vsi,
-            jerseyNumber: jerseyNumber.trim() || undefined,
-            teamColor: teamColor.trim() || undefined,
-          },
-          keyframes,
-          videoDuration: (video.duration as number) || 90,
-          analysisFocus: analysisFocus.length > 0 ? analysisFocus : null,
-          physicalMetrics: physicalMetrics || undefined,
-          geminiObservations: geminiObservations || undefined,
-          geminiEventCounts: geminiEventCounts || undefined,
-          ragContext: ragContext || undefined,
-        }),
-      });
-
-      if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-
-      // 3. Leer SSE stream
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let report: AnalysisReport | null = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const chunks = buffer.split("\n\n");
-        buffer = chunks.pop() ?? "";
-
-        for (const chunk of chunks) {
-          if (!chunk.trim()) continue;
-          const eventMatch = chunk.match(/^event:\s*(.+)$/m);
-          const dataMatch = chunk.match(/^data:\s*(.+)$/m);
-          const eventType = eventMatch?.[1]?.trim();
-          const jsonStr = dataMatch?.[1]?.trim();
-          if (!jsonStr) continue;
-          try {
-            const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
-            if (eventType === "progress") {
-              toast.loading(parsed.step as string, { id: toastId });
-            } else if (eventType === "complete") {
-              report = parsed.report as AnalysisReport;
-            } else if (eventType === "error") {
-              throw new Error(parsed.message as string);
-            }
-          } catch (e) {
-            if (e instanceof Error && e.message !== jsonStr) throw e;
-          }
-        }
-      }
-      reader.releaseLock();
-
-      if (!report) throw new Error(t("errors.analysisNoResult"));
-
-      // 4. Enriquecer el reporte con métricas cuantitativas (YOLO + Gemini)
-      const hasYolo = !!physicalMetrics;
-      const hasGemini = !!geminiEventCounts;
-
-      if (hasYolo || hasGemini) {
-        const fuente = hasYolo && hasGemini ? "yolo+gemini" : hasYolo ? "yolo_only" : "gemini_only";
-        const confianza = hasYolo && hasGemini ? 0.85 : hasGemini ? 0.7 : 0.6;
-
-        // Métricas físicas (YOLO)
-        const fisicas = hasYolo ? {
-          velocidadMaxKmh:  physicalMetrics!.maxSpeedKmh as number,
-          velocidadPromKmh: physicalMetrics!.avgSpeedKmh as number,
-          distanciaM:       physicalMetrics!.distanceM as number,
-          sprints:          physicalMetrics!.sprints as number,
-          zonasIntensidad:  physicalMetrics!.intensityZones as { caminar: number; trotar: number; correr: number; sprint: number },
-        } : undefined;
-
-        // Métricas de eventos (Gemini)
-        const eventos = hasGemini ? (() => {
-          const ec = geminiEventCounts!;
-          const totalPases = (ec.pasesCompletados ?? 0) + (ec.pasesFallados ?? 0);
-          return {
-            pasesCompletados: ec.pasesCompletados ?? 0,
-            pasesFallados:    ec.pasesFallados ?? 0,
-            precisionPases:   totalPases > 0 ? Math.round(((ec.pasesCompletados ?? 0) / totalPases) * 100) : 0,
-            recuperaciones:   ec.recuperaciones ?? 0,
-            duelosGanados:    ec.duelosGanados ?? 0,
-            duelosPerdidos:   ec.duelosPerdidos ?? 0,
-            disparosAlArco:   ec.disparosAlArco ?? 0,
-            disparosFuera:    ec.disparosFuera ?? 0,
-          };
-        })() : undefined;
-
-        report.metricasCuantitativas = {
-          fisicas,
-          eventos,
-          fuente,
-          confianza,
-          heatmapPositions,
-        };
-      }
-
-      setAnalysisReport(report);
-      setAnalysisState("done");
+      await v2.analyzeExistingVideo({ videoId: selectedVideoId, bunnyVideoId, playerId: selectedPlayerId });
       SubscriptionService.incrementAnalysisCount();
-
-      // Populate action log from Gemini timeline observations
-      if (geminiObservations) {
-        const obs = geminiObservations as { timeline?: Array<{ timestamp: string; tipo: string; descripcion: string }>; momentosDestacados?: Array<{ timestamp: string; tipo: string; descripcion: string }> };
-        const logs: typeof actionLog = [];
-        if (obs.timeline) {
-          for (const ev of obs.timeline.slice(0, 20)) {
-            const timeParts = (ev.timestamp || "0:00").split(":").map(Number);
-            const secs = timeParts.length === 3 ? timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2] : timeParts[0] * 60 + (timeParts[1] || 0);
-            logs.push({ time: secs, text: ev.descripcion.slice(0, 80), type: "neutral" });
-          }
-        }
-        if (obs.momentosDestacados) {
-          for (const m of obs.momentosDestacados) {
-            const timeParts = (m.timestamp || "0:00").split(":").map(Number);
-            const secs = timeParts.length === 3 ? timeParts[0] * 3600 + timeParts[1] * 60 + timeParts[2] : timeParts[0] * 60 + (timeParts[1] || 0);
-            logs.push({ time: secs, text: m.descripcion.slice(0, 80), type: m.tipo === "positivo" ? "positive" : "negative" });
-          }
-        }
-        logs.sort((a, b) => a.time - b.time);
-        setActionLog(logs);
-      }
-
-      // 5. Persistir en Supabase (si configurado)
-      if (SUPABASE_CONFIGURED && user) {
-        try {
-          const { OrganizationService } = await import("@/services/real/organizationService");
-          const _orgId = OrganizationService.getOrgId();
-          await supabase.from("player_analyses").insert({
-            user_id:        user.id,
-            ...(_orgId ? { org_id: _orgId } : {}),
-            player_id:      selectedPlayerId,
-            video_id:       selectedVideoId,
-            report:         report,
-            similarity_top5: null,
-            projection:     report.proyeccionCarrera ?? null,
-          });
-          refetchAnalyses();
-        } catch (saveErr) {
-          console.warn("[VitasLab] No se pudo guardar en Supabase:", saveErr);
-        }
-      }
-
       toast.dismiss(toastId);
       toast.success(t("lab.analysisComplete"), {
-        description: t("lab.analysisCompleteDesc", { confidence: Math.round((report.confianza ?? 0) * 100) }),
+        description: "Pipeline GPU completado · 6 reportes generados",
         duration: 5000,
       });
       setShowResultsPanel(true);
-
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error desconocido";
-      setAnalysisState("error");
       toast.dismiss(toastId);
-      toast.error(t("lab.analysisError"), { description: msg });
+      toast.error(t("lab.analysisError"), {
+        description: err instanceof Error ? err.message : "Error desconocido",
+      });
     }
   };
 
@@ -897,7 +674,7 @@ const VitasLab = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <span className="text-[10px] font-display text-primary uppercase tracking-wider">
-              ESTADO_SISTEMA: <span className="text-primary">{analysisState === "running" ? "ANALIZANDO" : "ACTIVO"}</span>
+              ESTADO_SISTEMA: <span className="text-primary">{v2.isProcessing ? "ANALIZANDO" : "ACTIVO"}</span>
             </span>
             <br />
             <span className="text-[10px] font-display text-muted-foreground tracking-wider">
@@ -976,7 +753,7 @@ const VitasLab = () => {
                 <Upload size={14} />
                 {t("lab.uploadVideo")}
               </button>
-              {analysisState === "done" && (
+              {v2.isCompleted && (
                 <button onClick={() => setShowResultsPanel(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/30 text-xs font-display font-semibold text-green-600 hover:bg-green-500/20 transition-colors">
                   <Brain size={14} />
                   {t("lab.viewReport")}
@@ -1048,17 +825,17 @@ const VitasLab = () => {
             )}
             {/* Calibration Status */}
             <div className="absolute bottom-4 left-4 glass rounded-lg px-4 py-2 flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${analysisState === "running" ? "bg-yellow-400" : labVideoUrl ? "bg-green-400" : "bg-destructive"} animate-pulse`} />
+              <div className={`w-2 h-2 rounded-full ${v2.isProcessing ? "bg-yellow-400" : labVideoUrl ? "bg-green-400" : "bg-destructive"} animate-pulse`} />
               <span className="text-[11px] font-display font-semibold text-foreground tracking-wider">
-                {analysisState === "running"
-                  ? "ANALIZANDO… PROCESAMIENTO CLAUDE VISION"
+                {v2.isProcessing
+                  ? `ANALIZANDO… ${v2.state.message || "GPU PIPELINE"}`
                   : labVideoUrl
                   ? `VIDEO CARGADO · ${points.length} PUNTOS DE CALIBRACIÓN · ${formatTime(videoDuration)}`
                   : `CALIBRACI\u00d3N ACTIVA: ${points.length} DE 4 PUNTOS ASIGNADOS`}
               </span>
             </div>
             {/* Analysis running overlay */}
-            {analysisState === "running" && (
+            {v2.isProcessing && (
               <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex items-center justify-center">
                 <div className="glass rounded-2xl px-8 py-6 flex flex-col items-center gap-3">
                   <Loader2 size={32} className="text-primary animate-spin" />
@@ -1457,19 +1234,19 @@ const VitasLab = () => {
             {/* START ANALYSIS — Claude Vision */}
             <button
               onClick={handleStartAnalysis}
-              disabled={analysisState === "running"}
+              disabled={v2.isProcessing}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {analysisState === "running" ? (
-                <><Loader2 size={16} className="animate-spin" /> ANALIZANDO…</>
+              {v2.isProcessing ? (
+                <><Loader2 size={16} className="animate-spin" /> {v2.state.message || "ANALIZANDO…"}</>
               ) : (
-                <><Rocket size={16} /> ANALYSIS IA</>
+                <><Rocket size={16} /> ANALYSIS IA · GPU</>
               )}
             </button>
             <p className="text-center text-[10px] font-display text-muted-foreground tracking-wider">
-              {analysisState === "done"
-                ? `ÚLTIMO ANÁLISIS: CONFIANZA ${Math.round((analysisReport?.confianza ?? 0) * 100)}%`
-                : "TRACKING = métricas físicas · IA = táctica"}
+              {v2.isCompleted
+                ? `ÚLTIMO ANÁLISIS: VSI ${v2.result.vsi?.vsi ?? "—"} · CONFIANZA ${Math.round((analysisReport?.confianza ?? 0) * 100)}%`
+                : "TRACKING = métricas físicas · GPU = biomecánica · IA = táctica"}
             </p>
           </div>
         </motion.div>
@@ -1544,7 +1321,7 @@ const VitasLab = () => {
 
       {/* ── Results Panel ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {showResultsPanel && analysisReport && (
+        {showResultsPanel && v2.isCompleted && analysisReport && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40"
@@ -1600,25 +1377,24 @@ const VitasLab = () => {
                 <div className="border-b border-border bg-muted/30 px-5 py-3 max-h-48 overflow-y-auto">
                   <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">Análisis Guardados</p>
                   <div className="space-y-1.5">
-                    {savedAnalyses.map((sa: { id: string; created_at: string; report: AnalysisReport }) => (
+                    {savedAnalyses.map((sa) => (
                       <button
                         key={sa.id}
                         onClick={() => {
-                          setAnalysisReport(sa.report);
-                          setShowHistorial(false);
+                          v2.loadAnalysis(sa.id).then(() => setShowHistorial(false));
                         }}
                         className="w-full text-left glass rounded-lg px-3 py-2 hover:bg-primary/5 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-display font-semibold text-foreground">
-                            {sa.report?.estadoActual?.nivelActual?.replace("_", " ").toUpperCase() ?? "Análisis"}
+                            VSI {(sa.vsi as Record<string, unknown>)?.vsi ?? "—"}
                           </span>
                           <span className="text-[9px] text-muted-foreground">
                             {new Date(sa.created_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
                           </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                          {sa.report?.estadoActual?.resumenEjecutivo?.slice(0, 80)}…
+                          Análisis completado · cargar resultados…
                         </p>
                       </button>
                     ))}
@@ -1797,55 +1573,7 @@ const VitasLab = () => {
                   </div>
                 )}
 
-                {/* VAEP Estimado (si hay eventos Gemini) */}
-                {analysisReport.metricasCuantitativas?.eventos && (() => {
-                  const vaepResult = calculateVAEPFromGemini(
-                    analysisReport.metricasCuantitativas.eventos,
-                    playerPosition || "mediocampista",
-                    90, // asumimos 90 min si no hay dato exacto
-                  );
-                  if (vaepResult.status !== "calculated") return null;
-                  return (
-                    <div className="glass rounded-xl p-4 border border-purple-500/20">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Zap size={14} className="text-purple-500" />
-                        <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">VAEP Estimado</p>
-                        <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                          Aproximado
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="text-center">
-                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">VAEP Total</p>
-                          <p className={`text-2xl font-display font-black ${(vaepResult.vaepTotal ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                            {(vaepResult.vaepTotal ?? 0) >= 0 ? "+" : ""}{vaepResult.vaepTotal?.toFixed(3)}
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">VAEP / 90 min</p>
-                          <p className={`text-2xl font-display font-black ${(vaepResult.vaep90 ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                            {(vaepResult.vaep90 ?? 0) >= 0 ? "+" : ""}{vaepResult.vaep90?.toFixed(3)}
-                          </p>
-                        </div>
-                      </div>
-                      {vaepResult.topActions.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">Top Acciones</p>
-                          <div className="flex flex-wrap gap-1">
-                            {vaepResult.topActions.slice(0, 4).map((a, i) => (
-                              <span key={i} className={`text-[9px] font-display px-1.5 py-0.5 rounded ${a.impact >= 0 ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"}`}>
-                                {a.actionId.replace("synth-", "").split("-")[0]} {a.impact >= 0 ? "+" : ""}{a.impact.toFixed(3)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <p className="text-[8px] text-muted-foreground mt-2 italic">
-                        Calculado a partir de observación de video IA. Valores aproximados basados en conteos de eventos.
-                      </p>
-                    </div>
-                  );
-                })()}
+                {/* VAEP: disponible en future sprint con datos biomecánicos del pipeline GPU */}
 
                 {/* ADN Futbolístico */}
                 <div className="glass rounded-xl p-4">
@@ -1976,8 +1704,8 @@ const VitasLab = () => {
       <motion.div variants={item} className="px-4 py-2 border-t border-border flex items-center justify-between text-[10px] font-display text-muted-foreground tracking-wider">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${analysisState === "running" ? "bg-yellow-400 animate-pulse" : "bg-primary"}`} />
-            {analysisState === "running" ? "PIPELINE: RUNNING" : "GPU_LOAD: 42%"}
+            <span className={`w-1.5 h-1.5 rounded-full ${v2.isProcessing ? "bg-yellow-400 animate-pulse" : "bg-primary"}`} />
+            {v2.isProcessing ? `PIPELINE: ${v2.state.step.toUpperCase()}` : "GPU_READY"}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-primary" />

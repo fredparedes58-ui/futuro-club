@@ -45,7 +45,7 @@ ON CONFLICT (plan_tier) DO UPDATE SET
 -- Vista: subscripción activa por usuario (consulta rápida)
 CREATE OR REPLACE VIEW user_active_subscription AS
 SELECT DISTINCT ON (user_id)
-  s.id,
+  s.user_id AS id,
   s.user_id,
   s.tenant_id,
   s.plan_tier,
