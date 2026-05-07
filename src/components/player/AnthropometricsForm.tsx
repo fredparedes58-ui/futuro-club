@@ -15,9 +15,11 @@ import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Ruler, Save, Loader2, Pencil, Trash2, Plus, X, Calendar,
-  AlertCircle, Sparkles,
+  AlertCircle, Sparkles, WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getAuthHeaders } from "@/lib/apiAuth";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 
 interface Props {
   playerId: string;
@@ -75,6 +77,24 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [lastResult, setLastResult] = useState<PhvResult | null>(null);
+
+  // Offline queue para mediciones · resilencia ante red intermitente
+  const offline = useOfflineMutation({
+    queueKey: "vitas_anthro_queue_v1",
+    execute: async (action) => {
+      const headers = await getAuthHeaders();
+      const res = await fetch(action.url, {
+        method: action.method,
+        headers: { ...headers, "Content-Type": "application/json" },
+        credentials: "include",
+        body: action.payload ? JSON.stringify(action.payload) : undefined,
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error?.message ?? `HTTP ${res.status}`);
+      }
+    },
+  });
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -164,23 +184,26 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
       gender,
     };
 
-    try {
-      const res = await fetch(
-        editingId ? `/api/players/anthropometrics?id=${editingId}` : "/api/players/anthropometrics",
-        {
-          method: editingId ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(payload),
-        }
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Error al guardar");
+    const url = editingId
+      ? `/api/players/anthropometrics?id=${editingId}`
+      : "/api/players/anthropometrics";
+    const method: "POST" | "PATCH" = editingId ? "PATCH" : "POST";
 
-      setLastResult(data.data.phv);
-      onSaved?.(data.data.phv);
-      toast.success(editingId ? "Medida actualizada" : "Medida guardada · PHV recalculado");
-      await loadHistory();
+    try {
+      const result = await offline.run({
+        url,
+        method,
+        payload,
+        label: editingId ? "Actualizar medición" : "Nueva medición antropométrica",
+      });
+
+      if (result.sent) {
+        toast.success(editingId ? "Medida actualizada" : "Medida guardada · PHV recalculado");
+        await loadHistory();
+      } else if (result.queued) {
+        toast.info("📡 Guardado en cola · se sincronizará al volver la red", { duration: 5000 });
+      }
+
       setShowForm(false);
       setEditingId(null);
       setForm(EMPTY_FORM);
@@ -196,14 +219,19 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
   async function handleDelete(id: string) {
     if (!confirm("¿Eliminar esta medición? El PHV histórico de esta fecha se perderá.")) return;
     try {
-      const res = await fetch(`/api/players/anthropometrics?id=${id}`, {
+      const result = await offline.run({
+        url: `/api/players/anthropometrics?id=${id}`,
         method: "DELETE",
-        credentials: "include",
+        label: "Eliminar medición",
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "No se pudo borrar");
-      toast.success("Medición eliminada");
-      await loadHistory();
+      if (result.sent) {
+        toast.success("Medición eliminada");
+        await loadHistory();
+      } else if (result.queued) {
+        toast.info("📡 Eliminación en cola · se aplicará al recuperar conexión");
+        // Optimistic UI · quitar de history local
+        setHistory((prev) => prev.filter((r) => r.id !== id));
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error al eliminar");
     }
@@ -213,6 +241,21 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
 
   return (
     <div className="space-y-3">
+      {/* Indicador offline · solo si hay items en cola */}
+      {offline.queueSize > 0 && (
+        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/30 px-2.5 py-1.5">
+          {offline.online && offline.syncing ? (
+            <Loader2 size={11} className="text-amber-400 animate-spin shrink-0" />
+          ) : (
+            <WifiOff size={11} className="text-amber-400 shrink-0" />
+          )}
+          <span className="text-[10px] text-amber-400 font-display font-bold">
+            {offline.queueSize} {offline.queueSize === 1 ? "cambio pendiente" : "cambios pendientes"}
+            {offline.online ? " · sincronizando…" : " · sin conexión"}
+          </span>
+        </div>
+      )}
+
       {/* Última medida + CTA nueva */}
       {!loading && (
         <div className="flex items-center justify-between gap-3">
