@@ -13,7 +13,7 @@
  *  - CTA final + footer
  */
 import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight, Zap, Brain, Activity, Shield, Sparkles, Check,
@@ -23,12 +23,16 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function PublicLanding() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, configured } = useAuth();
+  const isLoggedIn = !!(user && configured);
+  // Solo redirige a dashboard si entra a "/" (home)
+  // En "/welcome" se ve siempre la landing aunque estés logueado
+  const shouldRedirect = isLoggedIn && location.pathname === "/";
 
-  // Si ya está logueado, ir directo al dashboard
   useEffect(() => {
-    if (user && configured) navigate("/pulse", { replace: true });
-  }, [user, configured, navigate]);
+    if (shouldRedirect) navigate("/pulse", { replace: true });
+  }, [shouldRedirect, navigate]);
 
   // SEO meta tags · actualiza dinámicamente
   useEffect(() => {
@@ -78,15 +82,26 @@ export default function PublicLanding() {
             </span>
           </div>
           <nav className="flex items-center gap-3">
-            <Link to="/login" className="text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition-colors">
-              Iniciar sesión
-            </Link>
-            <Link
-              to="/register"
-              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors flex items-center gap-1"
-            >
-              Empezar gratis <ArrowRight size={11} />
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                to="/pulse"
+                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors flex items-center gap-1"
+              >
+                Volver al dashboard <ArrowRight size={11} />
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition-colors">
+                  Iniciar sesión
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors flex items-center gap-1"
+                >
+                  Empezar gratis <ArrowRight size={11} />
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>

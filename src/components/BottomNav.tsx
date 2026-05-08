@@ -113,6 +113,12 @@ const BottomNav = () => {
               >
                 {t("dashboard.quickAccess.config")}
               </button>
+              <button
+                onClick={() => { setShowUserMenu(false); navigate("/welcome"); }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
+              >
+                Sobre VITAS · Landing
+              </button>
               {configured && user && (
                 <button
                   onClick={handleSignOut}
