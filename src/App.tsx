@@ -1,6 +1,6 @@
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,6 +25,7 @@ import ScoutFeed from "./pages/ScoutFeed";
 import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
+import PlayerHubPage from "./pages/PlayerHubPage";
 import PlayerComparison from "./pages/PlayerComparison";
 import VitasLab from "./pages/VitasLab";
 import MasterDashboard from "./pages/MasterDashboard";
@@ -112,6 +113,12 @@ const P = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>{children}</ProtectedRoute>
 );
 
+// Redirige rutas legacy (/intelligence, /role-profile) al hub con tab pre-seleccionado
+const RedirectToHub = ({ tab }: { tab: string }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/players/${id}?tab=${tab}`} replace />;
+};
+
 const App = () => (
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
@@ -155,12 +162,16 @@ const App = () => (
                 <Route path="/admin" element={<P><AdminDashboardPage /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
-                <Route path="/players/:id" element={<P><PlayerProfile /></P>} />
+                {/* Hub consolidado · /players/:id?tab=resumen|stats|movimiento|rol|historico */}
+                <Route path="/players/:id" element={<P><PlayerHubPage /></P>} />
                 <Route path="/players/:id/edit" element={<P><PlayerForm /></P>} />
-                <Route path="/players/:id/role-profile" element={<P><RoleProfile /></P>} />
+                {/* Legacy compat · ahora redirigen al hub con tab pre-seleccionado */}
+                <Route path="/players/:id/intelligence" element={<P><RedirectToHub tab="stats" /></P>} />
+                <Route path="/players/:id/role-profile" element={<P><RedirectToHub tab="rol" /></P>} />
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
-                <Route path="/players/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
+                {/* Vista clásica disponible vía /players/:id/classic si alguien la quiere */}
+                <Route path="/players/:id/classic" element={<P><PlayerProfile /></P>} />
                 <Route path="/players/:id/reports" element={<P><PlayerReportsPage /></P>} />
                 <Route path="/players/:id/evolution" element={<P><PlayerEvolutionPage /></P>} />
                 <Route path="/player/:id/analysis/:analysisId" element={<P><PlayerAnalysisPage /></P>} />
