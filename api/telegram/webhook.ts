@@ -593,7 +593,8 @@ export default withHandler(
         `📋 Comandos\n\n` +
         `/jugadores — top 15 por VSI\n` +
         `/equipo — stats agregadas (VSI, PHV)\n` +
-        `/stats <nombre> — pase/duelos/recup/disparos/físicas del último video\n` +
+        `/stats <nombre> [como <pos>] — pase/duelos/recup del último video\n` +
+        `/posiciones <nombre> — polivalencia (videos por posición jugada)\n` +
         `/ultimo — último partido finalizado\n` +
         `/drill <tema> — drills para entrenar (pase, regate, etc.)\n` +
         `/help — este mensaje\n` +
@@ -694,10 +695,63 @@ export default withHandler(
       return successResponse({ ok: true });
     }
 
-    if (lowerText.startsWith("/stats")) {
-      const name = text.slice(6).trim();
+    if (lowerText.startsWith("/posiciones")) {
+      const name = text.slice(11).trim();
       if (!name) {
-        await sendMessage(chatId, "📊 Stats de un jugador\n\nUso: /stats <nombre>\nEj: /stats Samu");
+        await sendMessage(chatId, "🧭 Polivalencia de un jugador\n\nUso: /posiciones <nombre>\nEj: /posiciones Samu");
+        return successResponse({ ok: true });
+      }
+      const { data: matches } = await supabase
+        .from("players")
+        .select("id, name, position, secondary_positions")
+        .eq("user_id", mapping.user_id)
+        .ilike("name", `%${name.toLowerCase()}%`)
+        .limit(1);
+      if (!matches || matches.length === 0) {
+        await sendMessage(chatId, `No encontré jugador "${name}".`);
+        return successResponse({ ok: true });
+      }
+      const player = matches[0] as { id: string; name: string; position: string; secondary_positions: string[] | null };
+      // Rollup por played_position
+      const { data: rows } = await supabase
+        .from("player_analyses")
+        .select("played_position, report, created_at")
+        .eq("player_id", player.id);
+      const groups = new Map<string, { count: number; vsiSum: number; vsiN: number }>();
+      const fallbackPos = player.position;
+      for (const r of (rows ?? []) as Array<{ played_position: string | null; report: { vsi?: number | { score?: number } } | null }>) {
+        const pos = r.played_position ?? fallbackPos;
+        const v = typeof r.report?.vsi === "number" ? r.report.vsi : (r.report?.vsi as { score?: number })?.score ?? null;
+        const g = groups.get(pos) ?? { count: 0, vsiSum: 0, vsiN: 0 };
+        g.count += 1;
+        if (v !== null && v !== undefined) { g.vsiSum += v; g.vsiN += 1; }
+        groups.set(pos, g);
+      }
+      const declared = new Set([player.position, ...(player.secondary_positions ?? [])].filter(Boolean));
+      const lines: string[] = [`🧭 ${player.name} · polivalencia`, ""];
+      lines.push(`Declaradas: ⭐ ${player.position}` + (player.secondary_positions?.length ? ` · ${player.secondary_positions.join(", ")}` : ""));
+      if (groups.size === 0) {
+        lines.push("\nAún no hay videos analizados.");
+      } else {
+        lines.push("\nVideos por posición jugada:");
+        for (const [pos, g] of [...groups.entries()].sort((a, b) => b[1].count - a[1].count)) {
+          const avg = g.vsiN > 0 ? (g.vsiSum / g.vsiN).toFixed(0) : "—";
+          const tag = pos === player.position ? "⭐" : declared.has(pos) ? "✓" : "🔍";
+          lines.push(`${tag} ${pos}: ${g.count} video${g.count > 1 ? "s" : ""} · VSI medio ${avg}`);
+        }
+      }
+      await sendMessage(chatId, lines.join("\n"));
+      return successResponse({ ok: true });
+    }
+
+    if (lowerText.startsWith("/stats")) {
+      const args = text.slice(6).trim();
+      // Soporta "/stats Samu" o "/stats Samu como CAM"
+      const comoMatch = args.match(/^(.+?)\s+como\s+(.+)$/i);
+      const name = comoMatch ? comoMatch[1].trim() : args;
+      const positionFilter = comoMatch ? comoMatch[2].trim() : null;
+      if (!name) {
+        await sendMessage(chatId, "📊 Stats de un jugador\n\nUso:\n/stats <nombre>\n/stats <nombre> como <posición>\n\nEj: /stats Samu como Pivote");
         return successResponse({ ok: true });
       }
       const { data: matches } = await supabase
@@ -710,23 +764,29 @@ export default withHandler(
         await sendMessage(chatId, `No encontré jugador "${name}".`);
         return successResponse({ ok: true });
       }
-      const { data: row } = await supabase
+      let query = supabase
         .from("player_analyses")
-        .select("report, created_at")
+        .select("report, created_at, played_position")
         .eq("player_id", matches[0].id)
         .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+      if (positionFilter) {
+        query = query.ilike("played_position", `%${positionFilter}%`);
+      }
+      const { data: row } = await query.maybeSingle();
       const stats = row?.report ? extractKeyStats(row.report) : null;
       if (!stats) {
+        const filterMsg = positionFilter ? ` jugando como "${positionFilter}"` : "";
         await sendMessage(chatId,
           `📊 ${matches[0].name}\n\n` +
-          `Aún no tiene análisis de video con stats.\n\n` +
+          `Aún no tiene análisis de video con stats${filterMsg}.\n\n` +
           `Sube un video desde la app → Reportes → analizar.`);
         return successResponse({ ok: true });
       }
       const date = row?.created_at ? new Date(row.created_at as string).toLocaleDateString("es-ES") : "—";
-      const lines: string[] = [`📊 ${matches[0].name} · último video (${date})`, ""];
+      const playedPos = (row as { played_position?: string | null } | null)?.played_position;
+      const headerSuffix = playedPos ? ` · jugó de ${playedPos}` : "";
+      const lines: string[] = [`📊 ${matches[0].name} · último video (${date})${headerSuffix}`, ""];
       const p = stats.pases as { completados: number; fallados: number; precision: number } | null;
       if (p) lines.push(`⚽ Pases: ${p.completados}/${p.completados + p.fallados} (${p.precision}% precisión)`);
       const d = stats.duelos as { ganados: number; perdidos: number } | null;

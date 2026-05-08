@@ -68,6 +68,9 @@ CONSIDERA SIEMPRE:
 - Distribución PHV de tu equipo (precoces / on-time / tardíos)
 - Asimetría física esperada por categoría/edad
 - Que el rival tiene su propia distribución desconocida (asumir mixta)
+- POLIVALENCIA: si un jugador tiene secondary_positions, eso da flexibilidad táctica
+  · Para key_matchups específicos sugiere mover jugadores polivalentes a la posición ideal contra ese rival
+  · Ej: "Samu (LB principal · también DM): jugar de DM para neutralizar al 10 rival"
 
 Output JSON estricto:
 {
@@ -199,9 +202,11 @@ export default withHandler(
     });
 
     // ── 1. Cargar nuestro equipo (top 40 por VSI) ──────────────
+    // Incluimos secondary_positions para que el agente considere polivalencia al
+    // diseñar el matchup (un LB que también es DM da más flexibilidad táctica)
     const { data: players, error } = await supabase
       .from("players")
-      .select("name, age, position, vsi, phv_category")
+      .select("name, age, position, secondary_positions, vsi, phv_category")
       .order("vsi", { ascending: false })
       .limit(40);
 

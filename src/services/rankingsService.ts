@@ -33,6 +33,7 @@ export interface RankedPlayer {
   name: string;
   age: number;
   position: string;
+  secondaryPositions?: string[];          // polivalencia
   positionShort: string;
   vsi: number;
   phvCategory: string;
@@ -139,6 +140,7 @@ function fetchLocalRankedPlayers(
       name: p.name,
       age: p.age,
       position: p.position,
+      secondaryPositions: (p as unknown as { secondaryPositions?: string[] }).secondaryPositions,
       positionShort: p.positionShort ?? p.position.slice(0, 3).toUpperCase(),
       vsi: p.vsi,
       phvCategory: p.phvCategory ?? "on-time",
@@ -171,7 +173,12 @@ function fetchLocalRankedPlayers(
     filtered = filtered.filter((p) => p.phvCategory === filters.phv);
   }
   if (filters.position && filters.position !== "Todos") {
-    filtered = filtered.filter((p) => p.position === filters.position);
+    // Incluye también jugadores que tienen la posición como secundaria (polivalencia)
+    filtered = filtered.filter((p) => {
+      const raw = p as unknown as { secondaryPositions?: string[] };
+      const secondary = raw.secondaryPositions ?? [];
+      return p.position === filters.position || secondary.includes(filters.position!);
+    });
   }
   if (filters.ageGroup && filters.ageGroup !== "all") {
     filtered = filtered.filter((p) => p.ageGroup === filters.ageGroup);

@@ -68,16 +68,32 @@ export default function LiveMatchPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [isFinishing, setIsFinishing] = useState(false);
 
+  // Posición vigente por jugador en este partido (default: posición principal)
+  // Permite trackear cambios tácticos (ej. min 60 Samu pasa de LB a CAM)
+  const [livePositions, setLivePositions] = useState<Record<string, string>>({});
+  const [showPositionPicker, setShowPositionPicker] = useState(false);
+
   const recentEvents = events.slice(-5).reverse();
 
   function handleEventTap(type: LiveEventType) {
     if (!matchId) return;
+    const playerPosition = selectedPlayerId
+      ? livePositions[selectedPlayerId] ?? players.find((p) => p.id === selectedPlayerId)?.position
+      : undefined;
     addEvent({
       playerId: selectedPlayerId,
       eventType: type,
+      metadata: playerPosition ? { player_position: playerPosition } : undefined,
     });
     vibrate(20);
     // Mantener jugador seleccionado para próximos eventos del mismo jugador
+  }
+
+  function changePlayerPosition(playerId: string, newPosition: string) {
+    setLivePositions((prev) => ({ ...prev, [playerId]: newPosition }));
+    setShowPositionPicker(false);
+    const playerName = players.find((p) => p.id === playerId)?.name ?? "Jugador";
+    toast.info(`📍 ${playerName} ahora juega de ${newPosition}`);
   }
 
   async function handlePauseToggle() {
@@ -193,11 +209,74 @@ export default function LiveMatchPage() {
         </div>
       </div>
 
-      {/* Hint */}
+      {/* Hint con posición vigente y opción de cambiar */}
       {selectedPlayer && (
-        <div className="px-4 py-1.5 bg-primary/10 border-b border-primary/30 text-[11px] text-primary font-display font-bold flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          Eventos para: {selectedPlayer.name}
+        <div className="px-4 py-1.5 bg-primary/10 border-b border-primary/30 text-[11px] text-primary font-display font-bold flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
+            <span className="truncate">
+              Eventos para: {selectedPlayer.name}
+              {" · "}
+              <span className="text-foreground/70 font-normal">
+                jugando de {livePositions[selectedPlayer.id] ?? selectedPlayer.position}
+              </span>
+            </span>
+          </div>
+          <button
+            onClick={() => setShowPositionPicker(true)}
+            className="px-2 py-0.5 rounded text-[10px] bg-primary/20 hover:bg-primary/30 transition-colors shrink-0"
+          >
+            Cambiar posición
+          </button>
+        </div>
+      )}
+
+      {/* Modal cambio de posición */}
+      {showPositionPicker && selectedPlayer && (
+        <div
+          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
+          onClick={() => setShowPositionPicker(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="glass-strong rounded-2xl p-5 max-w-md w-full space-y-3"
+          >
+            <h3 className="font-display font-bold text-base text-foreground">
+              ¿En qué posición está jugando ahora {selectedPlayer.name}?
+            </h3>
+            <p className="text-[11px] text-muted-foreground">
+              Los eventos siguientes se etiquetarán con esta posición. Útil para análisis post-partido segregado.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {[selectedPlayer.position, ...(selectedPlayer.secondaryPositions ?? [])]
+                .filter(Boolean)
+                .filter((p, i, arr) => arr.indexOf(p) === i)
+                .map((pos) => {
+                  const current = livePositions[selectedPlayer.id] ?? selectedPlayer.position;
+                  const isActive = pos === current;
+                  return (
+                    <button
+                      key={pos}
+                      onClick={() => changePlayerPosition(selectedPlayer.id, pos)}
+                      className={`px-3 py-1.5 rounded-md text-xs font-display border transition-colors ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-secondary text-foreground border-border hover:border-primary/40"
+                      }`}
+                    >
+                      {pos === selectedPlayer.position ? `⭐ ${pos}` : pos}
+                      {isActive && " ·  ahora"}
+                    </button>
+                  );
+                })}
+            </div>
+            <button
+              onClick={() => setShowPositionPicker(false)}
+              className="w-full py-2 rounded-lg bg-secondary text-xs font-display font-bold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
 

@@ -27,9 +27,10 @@ export interface LiveEventDraft {
   zoneRow?: "defensa" | "medio" | "ataque";
   zoneCol?: "izq" | "cen" | "dcha";
   notes?: string;
-  clientEventId: string;       // UUID idempotencia
+  metadata?: Record<string, unknown>;   // ej. { player_position: "Lateral Izquierdo" }
+  clientEventId: string;                // UUID idempotencia
   syncStatus: "queued" | "synced" | "failed";
-  createdAt: number;           // ms epoch local
+  createdAt: number;                    // ms epoch local
 }
 
 export interface LiveMatchState {
@@ -176,6 +177,7 @@ export function useLiveMatch(matchId: string | null) {
             zoneRow: e.zoneRow,
             zoneCol: e.zoneCol,
             notes: e.notes,
+            metadata: e.metadata,                    // incluye player_position
             clientEventId: e.clientEventId,
           })),
         }),
@@ -220,6 +222,7 @@ export function useLiveMatch(matchId: string | null) {
     zoneRow?: "defensa" | "medio" | "ataque";
     zoneCol?: "izq" | "cen" | "dcha";
     notes?: string;
+    metadata?: Record<string, unknown>;
   }) => {
     if (!matchId) return;
     const draft: LiveEventDraft = {
@@ -231,6 +234,7 @@ export function useLiveMatch(matchId: string | null) {
       zoneRow: args.zoneRow,
       zoneCol: args.zoneCol,
       notes: args.notes,
+      metadata: args.metadata,
       clientEventId: uuid(),
       syncStatus: "queued",
       createdAt: Date.now(),
