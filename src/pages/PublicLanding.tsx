@@ -53,7 +53,18 @@ export default function PublicLanding() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        background: `
+          radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 40% / 0.08) 0%, transparent 55%),
+          radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 70% 50% / 0.06) 0%, transparent 50%),
+          radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 70% 35% / 0.04) 0%, transparent 40%),
+          radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 80% 50% / 0.03) 0%, transparent 35%),
+          linear-gradient(160deg, hsl(210 40% 98%) 0%, hsl(210 40% 96%) 30%, hsl(210 40% 97%) 60%, hsl(210 40% 98%) 100%)
+        `,
+      }}
+    >
       {/* ── Top nav ───────────────────────────────────────────── */}
       <header className="sticky top-0 z-30 glass-strong border-b border-border">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -120,7 +131,7 @@ export default function PublicLanding() {
       </section>
 
       {/* ── Diferenciador PHV ─────────────────────────────────── */}
-      <section className="bg-secondary/30 border-y border-border">
+      <section className="border-y border-border/50">
         <div className="max-w-6xl mx-auto px-4 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -199,7 +210,7 @@ export default function PublicLanding() {
       </section>
 
       {/* ── Cómo funciona ─────────────────────────────────────── */}
-      <section className="bg-secondary/30 border-y border-border">
+      <section className="border-y border-border/50">
         <div className="max-w-6xl mx-auto px-4 py-12 md:py-16">
           <h2 className="font-display font-black text-2xl md:text-3xl text-center text-foreground mb-10">
             En 3 pasos
@@ -227,39 +238,55 @@ export default function PublicLanding() {
         </div>
       </section>
 
-      {/* ── Pricing teaser ────────────────────────────────────── */}
+      {/* ── Planes ────────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
         <h2 className="font-display font-black text-2xl md:text-3xl text-center text-foreground mb-3">
-          Precios honestos
+          Tres planes para tres momentos
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-10">
-          Free para probar · Pro cuando te enganches · Club para academias completas.
+          Free para probar · Pro para coaches independientes · Club para academias completas.
         </p>
-        <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto">
-          <PricingTier
+        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+          <PlanTier
             name="Free"
-            price="0€"
-            description="Para probar"
-            features={["1 jugador", "1 análisis IA al mes", "Acceso a la base de 365+ jugadores Liga"]}
+            description="Para probar la plataforma"
+            features={[
+              "1 jugador",
+              "1 análisis IA al mes",
+              "Acceso a la base de +365 jugadores de La Liga",
+              "VSI corregido por PHV",
+            ]}
           />
-          <PricingTier
+          <PlanTier
             name="Pro"
-            price="19€"
-            period="/mes"
             description="Para coaches independientes"
             highlight
-            features={["25 jugadores", "Análisis IA ilimitados", "Match-day Live", "Telegram copilot", "PHV plan personalizado"]}
+            features={[
+              "Hasta 25 jugadores",
+              "Análisis IA ilimitados",
+              "Match-day Live (etiqueta eventos en directo)",
+              "Telegram Copilot personal",
+              "PHV plan personalizado",
+              "Drills personalizados por edad",
+              "Mapa de calor + escaneo + Voronoi",
+            ]}
           />
-          <PricingTier
+          <PlanTier
             name="Club"
-            price="99€"
-            period="/mes"
-            description="Para academias"
-            features={["Jugadores ilimitados", "Equipo (scouts + directores)", "Benchmark cross-club anónimo", "Compare-vs-rival", "Soporte prioritario"]}
+            description="Para academias completas"
+            features={[
+              "Jugadores ilimitados",
+              "Equipo: scouts + directores invitables",
+              "Benchmark cross-club anónimo",
+              "Compare-vs-rival con plan táctico",
+              "Dashboard de padres",
+              "API + integraciones (white-label)",
+              "Soporte prioritario",
+            ]}
           />
         </div>
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          Trial 14 días en cualquier plan · sin tarjeta · cancela cuando quieras
+        <p className="text-xs text-muted-foreground text-center mt-8">
+          Empieza gratis sin tarjeta · cambia de plan o cancela cuando quieras
         </p>
       </section>
 
@@ -284,7 +311,7 @@ export default function PublicLanding() {
       </section>
 
       {/* ── Footer ────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-secondary/30">
+      <footer className="border-t border-border/50">
         <div className="max-w-6xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-xs">
@@ -374,14 +401,14 @@ function StepCard({ num, title, description, icon: Icon }: {
   );
 }
 
-function PricingTier({ name, price, period, description, features, highlight }: {
-  name: string; price: string; period?: string; description: string; features: string[]; highlight?: boolean;
+function PlanTier({ name, description, features, highlight }: {
+  name: string; description: string; features: string[]; highlight?: boolean;
 }) {
   return (
-    <div className={`rounded-2xl p-6 space-y-4 ${
+    <div className={`rounded-2xl p-6 space-y-4 transition-all ${
       highlight
-        ? "bg-primary text-primary-foreground border-2 border-primary scale-105 shadow-xl"
-        : "glass border border-border"
+        ? "bg-primary text-primary-foreground border-2 border-primary md:scale-105 shadow-xl shadow-primary/20"
+        : "glass border border-border hover:border-primary/30"
     }`}>
       {highlight && (
         <span className="inline-block text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary-foreground text-primary font-bold">
@@ -389,12 +416,8 @@ function PricingTier({ name, price, period, description, features, highlight }: 
         </span>
       )}
       <div>
-        <h3 className="font-display font-black text-lg">{name}</h3>
+        <h3 className="font-display font-black text-xl">{name}</h3>
         <p className={`text-xs ${highlight ? "opacity-90" : "text-muted-foreground"}`}>{description}</p>
-      </div>
-      <div className="flex items-baseline gap-1">
-        <span className="font-display font-black text-3xl">{price}</span>
-        {period && <span className={`text-xs ${highlight ? "opacity-80" : "text-muted-foreground"}`}>{period}</span>}
       </div>
       <ul className="space-y-2 text-sm">
         {features.map((f) => (
