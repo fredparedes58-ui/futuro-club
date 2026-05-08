@@ -37,6 +37,11 @@ import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
 
 // Componentes del role-profile reutilizados sin envoltorio
+import PositionDiscoveryBanner from "@/components/PositionDiscoveryBanner";
+import PositionRollup, { type PositionRollupRow } from "@/components/PositionRollup";
+import PositionComparison from "@/components/PositionComparison";
+import BestMatchProByPosition from "@/components/BestMatchProByPosition";
+import { getPositionRollup } from "@/services/real/positionRollupService";
 import IdentityCard from "@/components/role-profile/IdentityCard";
 import CapabilityCards from "@/components/role-profile/CapabilityCards";
 import PositionFitRanking from "@/components/role-profile/PositionFitRanking";
@@ -85,6 +90,15 @@ export default function PlayerHubPage() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [id]);
+
+  // Position rollup · agregado de todos los videos por posición
+  const [positionRollup, setPositionRollup] = useState<PositionRollupRow[]>([]);
+  useEffect(() => {
+    if (!player) return;
+    let cancelled = false;
+    getPositionRollup(player).then((r) => { if (!cancelled) setPositionRollup(r); });
+    return () => { cancelled = true; };
+  }, [player, analyses]);
 
   // Métricas avanzadas
   const advancedMetrics = useMemo(() => {
@@ -347,6 +361,23 @@ export default function PlayerHubPage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Banner descubrimiento · sugiere añadir nuevas posiciones detectadas en video */}
+                  {Array.isArray((roleData as { positionAlternatives?: Array<{ code: string; fit: number; alreadyDeclared: boolean; reason: string; confidence: number }> }).positionAlternatives) && (
+                    <PositionDiscoveryBanner
+                      player={player}
+                      alternatives={(roleData as unknown as { positionAlternatives: Array<{ code: string; fit: number; alreadyDeclared: boolean; reason: string; confidence: number }> }).positionAlternatives}
+                    />
+                  )}
+
+                  {/* Rollup agregado por posición · todos los videos */}
+                  <PositionRollup player={player} rows={positionRollup} />
+
+                  {/* Comparativa por posición · solo si polivalente con datos */}
+                  <PositionComparison rows={positionRollup} />
+
+                  {/* Referentes pro por posición declarada */}
+                  <BestMatchProByPosition player={player} />
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <IdentityCard data={roleData} />
