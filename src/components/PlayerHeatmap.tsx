@@ -90,13 +90,11 @@ export default function PlayerHeatmap({ positions, title }: Props) {
         </div>
       </div>
 
-      {/* Campo SVG */}
+      {/* Campo SVG · estilo Wyscout pro con blur smooth */}
       <svg
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         className="w-full rounded-xl overflow-hidden"
-        style={{ backgroundColor: "#1a472a" }}
       >
-        {/* Defs: gradiente para heatmap */}
         <defs>
           <linearGradient id="heatGradient" x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor="#22c55e" stopOpacity="0" />
@@ -105,31 +103,58 @@ export default function PlayerHeatmap({ positions, title }: Props) {
             <stop offset="75%" stopColor="#f97316" stopOpacity="0.75" />
             <stop offset="100%" stopColor="#ef4444" stopOpacity="0.85" />
           </linearGradient>
+          {/* Gradiente pasto · más pro que color sólido */}
+          <linearGradient id="pitchGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1f5933" />
+            <stop offset="50%" stopColor="#1a472a" />
+            <stop offset="100%" stopColor="#163d24" />
+          </linearGradient>
+          {/* Filter para suavizar heatmap (gaussian blur) */}
+          <filter id="heatBlur" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" />
+          </filter>
         </defs>
 
-        {/* Campo base */}
-        <g transform={`translate(${PAD}, ${PAD})`}>
-          <FieldDiagram />
+        {/* Fondo pasto base */}
+        <rect x="0" y="0" width={VB_W} height={VB_H} fill="url(#pitchGradient)" />
 
-          {/* Heatmap cells */}
-          {grid.map((row, ri) =>
-            row.map((count, ci) => {
-              if (count === 0) return null;
-              const intensity = count / maxCount;
-              return (
-                <rect
-                  key={`${ri}-${ci}`}
-                  x={ci * CELL_W}
-                  y={ri * CELL_H}
-                  width={CELL_W}
-                  height={CELL_H}
-                  rx={0.8}
-                  fill={heatColor(intensity)}
-                  opacity={0.15 + intensity * 0.7}
-                />
-              );
-            })
-          )}
+        {/* Stripes alternados (efecto césped cortado) */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <rect
+            key={i}
+            x={PAD + (i * FIELD_W) / 8}
+            y={PAD}
+            width={FIELD_W / 8}
+            height={FIELD_H}
+            fill={i % 2 === 0 ? "rgba(255,255,255,0.025)" : "transparent"}
+          />
+        ))}
+
+        {/* Campo base + heatmap */}
+        <g transform={`translate(${PAD}, ${PAD})`}>
+          {/* Heatmap con blur smooth */}
+          <g filter="url(#heatBlur)">
+            {grid.map((row, ri) =>
+              row.map((count, ci) => {
+                if (count === 0) return null;
+                const intensity = count / maxCount;
+                return (
+                  <rect
+                    key={`${ri}-${ci}`}
+                    x={ci * CELL_W}
+                    y={ri * CELL_H}
+                    width={CELL_W}
+                    height={CELL_H}
+                    fill={heatColor(intensity)}
+                    opacity={0.25 + intensity * 0.65}
+                  />
+                );
+              })
+            )}
+          </g>
+
+          {/* Líneas del campo encima del heatmap */}
+          <FieldDiagram />
         </g>
       </svg>
 

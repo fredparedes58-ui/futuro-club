@@ -19,7 +19,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
-  Sparkles, ChevronRight, AlertCircle, Brain, Zap,
+  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -164,6 +164,15 @@ export default function PlayerHubPage() {
             </div>
 
             {/* Acciones */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`/players/${id}/print?auto=1`, "_blank", "noopener")}
+              className="gap-1.5 text-xs"
+              title="Descargar PDF · 2 páginas, listo para compartir"
+            >
+              <Printer size={12} /> <span className="hidden sm:inline">PDF</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"

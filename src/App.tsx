@@ -27,6 +27,7 @@ import SoloDrill from "./pages/SoloDrill";
 import Rankings from "./pages/Rankings";
 import PlayerProfile from "./pages/PlayerProfile";
 import PlayerHubPage from "./pages/PlayerHubPage";
+import PlayerHubPrint from "./pages/PlayerHubPrint";
 import PlayerComparison from "./pages/PlayerComparison";
 import VitasLab from "./pages/VitasLab";
 import MasterDashboard from "./pages/MasterDashboard";
@@ -177,6 +178,8 @@ const App = () => (
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
                 {/* Vista clásica disponible vía /players/:id/classic si alguien la quiere */}
                 <Route path="/players/:id/classic" element={<P><PlayerProfile /></P>} />
+                {/* Print-ready · 2 páginas A4 · descargable como PDF */}
+                <Route path="/players/:id/print" element={<P><PlayerHubPrint /></P>} />
                 <Route path="/players/:id/reports" element={<P><PlayerReportsPage /></P>} />
                 <Route path="/players/:id/evolution" element={<P><PlayerEvolutionPage /></P>} />
                 <Route path="/player/:id/analysis/:analysisId" element={<P><PlayerAnalysisPage /></P>} />
