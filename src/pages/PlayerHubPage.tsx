@@ -42,6 +42,7 @@ import PositionRollup, { type PositionRollupRow } from "@/components/PositionRol
 import PositionComparison from "@/components/PositionComparison";
 import BestMatchProByPosition from "@/components/BestMatchProByPosition";
 import { getPositionRollup } from "@/services/real/positionRollupService";
+import { EmptyVideo, EmptyInsights, EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 import IdentityCard from "@/components/role-profile/IdentityCard";
 import CapabilityCards from "@/components/role-profile/CapabilityCards";
 import PositionFitRanking from "@/components/role-profile/PositionFitRanking";
@@ -215,29 +216,25 @@ export default function PlayerHubPage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              {/* Empty state grande si no hay análisis */}
+              {/* Empty state grande si no hay análisis · ilustración + CTAs */}
               {!hasAnalysis && (
-                <div className="glass rounded-2xl p-6 border border-primary/30 bg-primary/5 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                      <Video size={22} className="text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h2 className="font-display font-bold text-lg text-foreground">
-                        Sube tu primer video de {player.name}
-                      </h2>
-                      <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-                        Desbloquea automáticamente:
-                      </p>
-                      <ul className="text-xs text-muted-foreground space-y-1 mt-2 ml-1">
-                        <li>✓ Pases · duelos · recuperaciones · disparos</li>
-                        <li>✓ Escaneo · sprints · mapa de calor</li>
-                        <li>✓ VAEP · cobertura de campo · DrillScore</li>
-                        <li>✓ Perfil de rol y proyección 18 meses</li>
-                      </ul>
-                    </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="glass rounded-2xl p-8 border border-primary/30 bg-gradient-to-br from-primary/5 to-electric/5 space-y-5 text-center"
+                >
+                  <EmptyVideo className="w-44 mx-auto" />
+                  <div className="space-y-2 max-w-md mx-auto">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                      Sube tu primer video de {player.name}
+                    </h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Desbloquea pases, duelos, recuperaciones, escaneo, mapa de calor,
+                      VAEP, cobertura de campo, DrillScore y perfil de rol.
+                    </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
                     <Button onClick={() => navigate(`/lab?playerId=${id}`)} className="flex-1 gap-2">
                       <FlaskConical size={14} /> Analizar en VITAS Lab
                     </Button>
@@ -245,16 +242,16 @@ export default function PlayerHubPage() {
                       <Video size={14} /> Subir video
                     </Button>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* VSI + métricas avanzadas siempre visibles */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass rounded-xl p-4 flex flex-col items-center justify-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">VSI Global</p>
-                  <VsiGauge value={player.vsi} size="lg" />
+                <div className="glass rounded-xl p-6 flex flex-col items-center justify-center gap-3">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">VSI Global</p>
+                  <VsiGauge value={player.vsi} size="xl" showTier />
                   {player.vsiHistory && player.vsiHistory.length > 1 && (
-                    <p className="text-[10px] text-muted-foreground mt-2">
+                    <p className="text-[11px] text-muted-foreground">
                       {player.vsiHistory.length} actualizaciones registradas
                     </p>
                   )}

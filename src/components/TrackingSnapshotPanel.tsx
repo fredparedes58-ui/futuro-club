@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
+import { EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 
 interface Props {
   playerId: string;
@@ -29,28 +30,29 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
   // ── Empty state ─────────────────────────────────────────────────────────
   if (!snapshot) {
     return (
-      <div className="glass rounded-xl p-5 space-y-3 border border-dashed border-border">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <FlaskConical size={18} className="text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-display font-bold text-sm text-foreground">
-              Movimiento + Escaneo · sin analizar
-            </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              Analiza un video de este jugador en VITAS Lab para ver cuánto y cómo escanea,
-              duelos ganados/perdidos, distancia, sprints y mapa de calor.
-            </p>
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className="glass rounded-xl p-6 space-y-4 border border-dashed border-border text-center"
+      >
+        <EmptyTracking className="w-32 mx-auto" />
+        <div className="space-y-1.5 max-w-sm mx-auto">
+          <h3 className="font-bold text-base text-foreground">
+            Movimiento + Escaneo · sin analizar
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Analiza un video en VITAS Lab para ver cuánto y cómo escanea el jugador,
+            duelos, distancia, sprints y mapa de calor.
+          </p>
         </div>
         <button
           onClick={() => navigate(`/lab?playerId=${playerId}`)}
-          className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
         >
           <FlaskConical size={12} /> Analizar en VITAS Lab <ArrowRight size={12} />
         </button>
-      </div>
+      </motion.div>
     );
   }
 

@@ -14,8 +14,26 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Rajdhani", "sans-serif"],
-        body: ["Inter", "sans-serif"],
+        // Sistema tipográfico VITAS
+        sans:     ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        display:  ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        body:     ["Geist", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono:     ["Geist Mono", "ui-monospace", "SFMono-Regular", "monospace"],
+        tactical: ["Rajdhani", "Geist", "sans-serif"], // identidad deportiva
+      },
+      fontSize: {
+        // Escala tipográfica calibrada · 7 tamaños con line-height + letter-spacing
+        "2xs":   ["10px",  { lineHeight: "14px", letterSpacing: "0.01em" }],
+        xs:      ["11px",  { lineHeight: "16px", letterSpacing: "0.005em" }],
+        sm:      ["13px",  { lineHeight: "20px", letterSpacing: "0" }],
+        base:    ["15px",  { lineHeight: "24px", letterSpacing: "-0.005em" }],
+        lg:      ["17px",  { lineHeight: "26px", letterSpacing: "-0.01em" }],
+        xl:      ["20px",  { lineHeight: "28px", letterSpacing: "-0.015em" }],
+        "2xl":   ["24px",  { lineHeight: "32px", letterSpacing: "-0.02em" }],
+        "3xl":   ["30px",  { lineHeight: "36px", letterSpacing: "-0.025em" }],
+        "4xl":   ["36px",  { lineHeight: "40px", letterSpacing: "-0.03em" }],
+        "5xl":   ["48px",  { lineHeight: "52px", letterSpacing: "-0.035em" }],
+        "6xl":   ["60px",  { lineHeight: "62px", letterSpacing: "-0.04em" }],
       },
       colors: {
         border: "hsl(var(--border))",

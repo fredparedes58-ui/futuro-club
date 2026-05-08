@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+/* VITAS · Sistema tipográfico premium
+ * - Geist: body + UI (Vercel typeface · refinado, neutral, moderno)
+ * - Geist Mono: números, stats, datos cuantitativos
+ * - Rajdhani: identidad deportiva (PHV badges, VITAS.LAB, labels uppercase)
+ */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&family=Rajdhani:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -64,10 +69,20 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv11"; /* Geist stylistic sets */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Rajdhani', sans-serif;
+    font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  /* Números/stats con tabular-nums para alineación pixel-perfect */
+  .font-mono, code, kbd, pre, samp {
+    font-family: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+    font-feature-settings: "tnum";
   }
 }
 

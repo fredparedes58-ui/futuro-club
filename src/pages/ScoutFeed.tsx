@@ -6,6 +6,7 @@ import {
   AlertTriangle, TrendingUp, TrendingDown, Award, Dumbbell,
   Zap, X,
 } from "lucide-react";
+import { EmptySearch } from "@/components/illustrations/EmptyIllustrations";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate, Link } from "react-router-dom";
 import {
@@ -174,8 +175,8 @@ function IndexedPlayersTab() {
 
         {!isLoading && (!players || players.length === 0) && (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-            <Database size={32} className="text-muted-foreground" />
-            <p className="font-display font-bold text-foreground">{t("scout.noIndexedResults")}</p>
+            <EmptySearch className="w-32" />
+            <p className="font-bold text-foreground">{t("scout.noIndexedResults")}</p>
             <p className="text-xs text-muted-foreground max-w-xs">
               {t("scout.noIndexedDesc")}
             </p>

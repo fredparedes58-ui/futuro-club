@@ -27,6 +27,7 @@ import { ROLE_LABELS, type UserRole } from "@/services/real/userProfileService";
 import { PlanGuard } from "@/components/PlanGuard";
 import { useTranslation } from "react-i18next";
 import { PlayerService, type Player } from "@/services/real/playerService";
+import { EmptyPlayers } from "@/components/illustrations/EmptyIllustrations";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -277,11 +278,13 @@ export default function TeamPage() {
           {myPlayers.length === 0 ? (
             <button
               onClick={() => navigate("/players/new")}
-              className="w-full glass rounded-xl p-6 text-center hover:bg-secondary/30 transition-colors"
+              className="w-full glass rounded-xl p-6 text-center hover:bg-secondary/30 transition-colors space-y-3"
             >
-              <Plus size={20} className="mx-auto mb-2 text-primary" />
-              <p className="text-sm font-display font-bold text-foreground">Añade tu primer jugador</p>
-              <p className="text-[10px] text-muted-foreground mt-1">VSI · PHV · análisis IA</p>
+              <EmptyPlayers className="w-32 mx-auto" />
+              <div>
+                <p className="text-base font-bold text-foreground">Añade tu primer jugador</p>
+                <p className="text-xs text-muted-foreground mt-0.5">VSI · PHV · análisis IA</p>
+              </div>
             </button>
           ) : (
             <div className="glass rounded-xl divide-y divide-border">
