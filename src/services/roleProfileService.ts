@@ -111,10 +111,12 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
     }
   }
 
-  // Sin análisis de video → generar perfil básico desde métricas del jugador
+  // Sin análisis de video → NO generar perfil ficticio.
+  // Filosofía VITAS: ningún informe sin video real que lo respalde.
+  // El UI muestra empty state con CTA "Analizar en Lab".
   if (videoAnalyses.length === 0) {
-    console.warn("[roleProfileService] No video analyses — generating metrics-based profile for", playerId);
-    return buildMetricsOnlyProfile(player);
+    console.info("[roleProfileService] No video analyses for", playerId, "· returning null (UI debe mostrar empty state)");
+    return null;
   }
 
   // 2. Extraer datos consolidados de los análisis de video
@@ -249,6 +251,10 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
         })),
         consolidation_notes: d.strengths.slice(0, 2),
         evidence:            buildVideoEvidence(),
+        source_videos:       videoAnalyses.map((v) => ({
+          video_id:    v.video_id ?? "unknown",
+          analyzed_at: v.created_at,
+        })),
       };
 
       const parsed = RoleProfileSchema.safeParse(agentProfile);
@@ -320,6 +326,10 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
       archetypes_impacted: [],
       explanation: dim.observacion ?? `${key}: ${dim.score}/10`,
     })),
+    source_videos: videoAnalyses.map((v) => ({
+      video_id:    v.video_id ?? "unknown",
+      analyzed_at: v.created_at,
+    })),
   };
 
   const parsed = RoleProfileSchema.safeParse(videoBasedProfile);
@@ -329,13 +339,14 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   return null;
 }
 
-// ─── Metrics-only profile (no video analyses) ─────────────────────────────
+// ─── Metrics-only profile (DEPRECATED) ────────────────────────────────────
+//
+// VITAS no genera informes sin un video real que los respalde.
+// La función se conserva temporalmente porque su tipo está referenciado en
+// tests legacy · pero no se llama desde producción. Cuando un jugador no
+// tiene video, getRoleProfile() devuelve null y el UI muestra empty state.
 
-/**
- * Generates a basic role profile from player metrics alone (no video analysis).
- * Returns a valid RoleProfileData with sample_tier "bronze" and a disclaimer.
- * This ensures the UI always shows something useful, even for new players.
- */
+ 
 function buildMetricsOnlyProfile(player: Player): RoleProfileData | null {
   const m = player.metrics;
   const tacticalScore = m.vision;

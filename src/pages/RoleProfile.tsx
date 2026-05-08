@@ -257,6 +257,22 @@ export default function RoleProfile() {
 
             {(mode === "scout" || filters?.showProjected) && <ProjectionComparator data={data} />}
 
+            {/* Cita explícita de los videos fuente */}
+            {data.source_videos && data.source_videos.length > 0 && (
+              <div className="p-4 rounded-md border-l-4 border-primary/40 bg-muted/30 text-xs text-muted-foreground">
+                <p className="font-semibold text-foreground mb-1">📹 Fuente del informe</p>
+                <p>
+                  Este perfil de rol se construye sobre {data.source_videos.length} análisis de video.
+                  Sube más videos en VITAS Lab para mejorar la confianza y el sample tier.
+                </p>
+                <ul className="mt-2 space-y-0.5">
+                  {data.source_videos.slice(0, 3).map((v, i) => (
+                    <li key={i}>• Video {v.video_id.slice(0, 8)} · {new Date(v.analyzed_at).toLocaleString("es-ES")}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
               <span>Run: <span className="font-mono">{data.run_id}</span></span>
               <span>Confianza global: {Math.round(data.overall_confidence * 100)}%</span>

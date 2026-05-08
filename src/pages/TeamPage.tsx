@@ -296,7 +296,7 @@ export default function TeamPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-display font-semibold text-foreground truncate">
-                      {p.name} <span className="text-muted-foreground font-normal">· {p.age}a · {p.position}</span>
+                      {p.name} <span className="text-muted-foreground font-normal">· {p.age}a · {p.position}{p.secondaryPositions && p.secondaryPositions.length > 0 ? ` / ${p.secondaryPositions.join(" / ")}` : ""}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       VSI {Number(p.vsi || 0).toFixed(0)} {phvIcon(p.phvCategory)}

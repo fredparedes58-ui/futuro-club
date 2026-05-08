@@ -20,7 +20,8 @@ export const PlayerSchema = z.object({
   id: z.string(),
   name: z.string().min(2).max(80),
   age: z.number().min(8).max(21),
-  position: z.string(),
+  position: z.string(),                                  // posición primaria (backward-compat)
+  secondaryPositions: z.array(z.string()).optional(),    // adicionales · jugadores polivalentes
   foot: z.enum(["right", "left", "both"]),
   height: z.number().min(100).max(220),
   weight: z.number().min(20).max(120),

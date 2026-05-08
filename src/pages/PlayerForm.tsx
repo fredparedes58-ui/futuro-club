@@ -33,6 +33,7 @@ const formSchema = z.object({
   name: z.string().min(2, "Mínimo 2 caracteres").max(80, "Máximo 80 caracteres"),
   age: z.number({ invalid_type_error: "Ingresa la edad" }).min(8, "Mínimo 8 años").max(21, "Máximo 21 años"),
   position: z.string().min(1, "Selecciona una posición"),
+  secondaryPositions: z.array(z.string()).optional(),
   gender: z.enum(["M", "F"]).default("M"),
   foot: z.enum(["right", "left", "both"], { required_error: "Selecciona pie dominante" }),
   height: z.number({ invalid_type_error: "Ingresa la altura" }).min(100, "Mínimo 100 cm").max(220, "Máximo 220 cm"),
@@ -258,6 +259,7 @@ const PlayerForm = () => {
       name: player.name,
       age: player.age,
       position: player.position,
+      secondaryPositions: player.secondaryPositions ?? [],
       gender: (player as typeof player & { gender?: "M" | "F" }).gender ?? "M",
       foot: player.foot,
       height: player.height,
@@ -323,6 +325,7 @@ const PlayerForm = () => {
             name: data.name,
             age: data.age,
             position: data.position,
+            secondaryPositions: data.secondaryPositions ?? [],
             foot: data.foot,
             height: data.height,
             weight: data.weight,
@@ -344,6 +347,7 @@ const PlayerForm = () => {
           name: data.name,
           age: data.age,
           position: data.position,
+          secondaryPositions: data.secondaryPositions ?? [],
           gender: data.gender,
           foot: data.foot,
           height: data.height,
@@ -481,7 +485,7 @@ const PlayerForm = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="position" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                {t("common.position")}
+                {t("common.position")} principal
               </Label>
               <select
                 id="position"
@@ -497,6 +501,47 @@ const PlayerForm = () => {
               </select>
               {errors.position && <p className="text-[10px] text-destructive">{errors.position.message}</p>}
             </div>
+          </div>
+
+          {/* Posiciones secundarias · jugadores polivalentes */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+              Posiciones secundarias <span className="text-[9px] normal-case text-muted-foreground/70">(opcional · marca las que también puede jugar)</span>
+            </Label>
+            <Controller
+              name="secondaryPositions"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => {
+                const primary = watch("position");
+                const selected: string[] = field.value ?? [];
+                const toggle = (pos: string) => {
+                  if (selected.includes(pos)) field.onChange(selected.filter((p) => p !== pos));
+                  else field.onChange([...selected, pos]);
+                };
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {POSITIONS.filter((p) => p !== primary).map((p) => {
+                      const active = selected.includes(p);
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => toggle(p)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-display border transition-colors ${
+                            active
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              }}
+            />
           </div>
 
           {/* Género */}

@@ -110,6 +110,12 @@ export interface RoleProfileData {
   gaps: GapItem[];
   consolidation_notes: string[];
   evidence: EvidenceIndicator[];
+  /** Videos fuente del informe · TODO informe DEBE tener al menos uno · vacío = informe inválido */
+  source_videos?: Array<{
+    video_id: string;
+    analyzed_at: string; // ISO
+    duration_min?: number;
+  }>;
 }
 
 // ─── Mock data REMOVED ──────────────────────────────────────────────────

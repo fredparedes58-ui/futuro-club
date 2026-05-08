@@ -135,7 +135,11 @@ export default function PlayerHubPage() {
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-bold text-base text-foreground truncate">{player.name}</h1>
               <p className="text-[11px] text-muted-foreground truncate">
-                {player.age}a · {player.position} · {phvIcon} {phvLabel}
+                {player.age}a · {player.position}
+                {player.secondaryPositions && player.secondaryPositions.length > 0 && (
+                  <span className="text-muted-foreground/70"> / {player.secondaryPositions.join(" / ")}</span>
+                )}
+                {" · "}{phvIcon} {phvLabel}
               </p>
             </div>
 
@@ -326,6 +330,7 @@ export default function PlayerHubPage() {
             >
               {roleData ? (
                 <>
+                  {/* Header con tier + cita explícita al video fuente */}
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                       roleData.sample_tier === "platinum" ? "bg-purple-100 text-purple-700" :
@@ -336,6 +341,11 @@ export default function PlayerHubPage() {
                       {roleData.sample_tier === "platinum" ? "💎 Platino" : roleData.sample_tier === "gold" ? "🥇 Oro" : roleData.sample_tier === "silver" ? "🥈 Plata" : "🥉 Bronce"}
                       {" · "}{Math.round(roleData.overall_confidence * 100)}%
                     </span>
+                    {roleData.source_videos && roleData.source_videos.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground">
+                        Basado en {roleData.source_videos.length} video{roleData.source_videos.length > 1 ? "s" : ""} · último análisis {new Date(roleData.source_videos[0].analyzed_at).toLocaleDateString("es-ES")}
+                      </span>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -348,6 +358,22 @@ export default function PlayerHubPage() {
                   </div>
                   <StrengthsRisksPanel data={roleData} />
                   <ProjectionComparator data={roleData} />
+
+                  {/* Cita explícita de los videos fuente al final del informe */}
+                  {roleData.source_videos && roleData.source_videos.length > 0 && (
+                    <div className="glass rounded-xl p-4 border-l-4 border-primary/40 text-xs text-muted-foreground">
+                      <p className="font-display font-semibold text-foreground mb-1">📹 Fuente del informe</p>
+                      <p>
+                        Este perfil de rol está construido sobre el análisis de {roleData.source_videos.length} video{roleData.source_videos.length > 1 ? "s" : ""} de {player.name}.
+                        Si subes más videos en VITAS Lab, la confianza del informe sube y el sample tier mejora (Bronce → Plata → Oro → Platino).
+                      </p>
+                      <ul className="mt-2 space-y-0.5">
+                        {roleData.source_videos.slice(0, 3).map((v, i) => (
+                          <li key={i}>• Video {v.video_id.slice(0, 8)} · analizado {new Date(v.analyzed_at).toLocaleString("es-ES")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="glass rounded-xl p-6 text-center">
