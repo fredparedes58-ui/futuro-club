@@ -7,7 +7,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import TopNav from "@/components/TopNav";
 import { Play, Search, Video, Upload, Zap, Clock, Trash2, ChevronDown, Brain } from "lucide-react";
 import { useVideos, useDeleteVideo } from "@/hooks/useVideos";
 import { useDeletePlayer } from "@/hooks/usePlayers";
@@ -44,8 +43,6 @@ const ReportsPage = () => {
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="min-h-screen pb-24">
-      <TopNav />
-
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-6 space-y-6">
 
         {/* Header */}

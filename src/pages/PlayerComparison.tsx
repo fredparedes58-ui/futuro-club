@@ -13,7 +13,7 @@ import { useMatchEvents } from "@/hooks/useMatchEvents";
 import { PDFService } from "@/services/real/pdfService";
 import RadarChartComponent from "@/components/RadarChart";
 import VsiGauge from "@/components/VsiGauge";
-import TopNav from "@/components/TopNav";
+
 import VitasCard from "@/components/VitasCard";
 import { PlayerListSkeleton } from "@/components/shared/Skeletons";
 import { toast } from "sonner";
@@ -171,7 +171,7 @@ const PlayerComparison = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen pb-24">
-        <TopNav />
+        
         <div className="max-w-5xl mx-auto px-4 pt-8">
           <PlayerListSkeleton count={3} />
         </div>
@@ -182,7 +182,7 @@ const PlayerComparison = () => {
   if (players.length < 2) {
     return (
       <div className="min-h-screen pb-24">
-        <TopNav />
+        
         <EmptyState navigate={navigate} />
       </div>
     );
@@ -265,7 +265,7 @@ const PlayerComparison = () => {
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="min-h-screen pb-24">
-      <TopNav />
+      
 
       {/* Header */}
       <motion.div variants={item} className="px-4 pt-6 max-w-5xl mx-auto">

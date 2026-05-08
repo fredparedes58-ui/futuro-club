@@ -982,7 +982,7 @@
     "notifPermissionDenied": "Permiso de notificaciones denegado",
     "notifChangeError": "Error al cambiar notificaciones",
     "connectionRestored": "Conexi\u00f3n restaurada",
-    "syncPending": "Sincronizando {{{count}}} cambios pendientes...",
+    "syncPending": "Sincronizando {{count}} cambios pendientes...",
     "syncComplete": "Todos los datos est\u00e1n sincronizados",
     "offline": "Sin conexi\u00f3n",
     "offlineDesc": "Los cambios se guardar\u00e1n localmente",

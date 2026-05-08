@@ -982,7 +982,7 @@
     "notifPermissionDenied": "Notification permission denied",
     "notifChangeError": "Error changing notifications",
     "connectionRestored": "Connection restored",
-    "syncPending": "Syncing {{{count}}} pending changes...",
+    "syncPending": "Syncing {{count}} pending changes...",
     "syncComplete": "All data is synced",
     "offline": "No connection",
     "offlineDesc": "Changes will be saved locally",

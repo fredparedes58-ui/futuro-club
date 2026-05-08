@@ -278,7 +278,9 @@ export default function PlayerHubPage() {
                 </div>
               </div>
 
-              {advancedMetrics && (
+              {/* Solo mostrar Métricas Avanzadas si hay video O snapshot del Lab.
+                  Sin datos las cards aparecen como STUB y confunden al coach. */}
+              {advancedMetrics && (hasAnalysis || snapshot) && (
                 <AdvancedMetricsPanel metrics={advancedMetrics} trackingSnapshot={snapshot} />
               )}
             </motion.div>

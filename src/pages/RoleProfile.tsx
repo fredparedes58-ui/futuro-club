@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
-import TopNav from "@/components/TopNav";
+
 import PlayerHeader from "@/components/role-profile/PlayerHeader";
 import IdentityCard from "@/components/role-profile/IdentityCard";
 import CapabilityCards from "@/components/role-profile/CapabilityCards";
@@ -53,7 +53,7 @@ export default function RoleProfile() {
 
   return (
     <div className="min-h-screen bg-background">
-      <TopNav />
+      
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
         {/* Top bar */}
         <div className="flex items-center justify-between">

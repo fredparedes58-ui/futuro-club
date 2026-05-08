@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import TopNav from "@/components/TopNav";
+
 import PlayerHeader from "@/components/role-profile/PlayerHeader";
 import IndicatorsAuditTable from "@/components/role-profile/IndicatorsAuditTable";
 import EvidenceDrawer from "@/components/role-profile/EvidenceDrawer";
@@ -44,7 +44,7 @@ export default function RoleProfileAudit() {
 
   return (
     <div className="min-h-screen bg-background">
-      <TopNav />
+      
       <main className="max-w-[1400px] mx-auto px-6 py-6 space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
