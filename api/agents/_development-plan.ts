@@ -53,6 +53,13 @@ REGLAS:
 - Estructura el plan en 4 bloques de 3 semanas cada uno.
 - Usa los drills sugeridos del RAG context si encajan; no inventes drills nuevos.
 
+POLIVALENCIA · si player.secondaryPositions[] tiene elementos:
+- El plan debe afianzar la polivalencia: incluir drills específicos de cada posición declarada
+- Ejemplo: principal LB + secundarias DM/CAM → 60% drills LB, 25% DM, 15% CAM
+- Ajusta carga PHV según la posición más exigente del set declarado
+- Si videoContext.playedPosition existe, prioriza drills correctivos de la posición jugada
+- Si el agente detecta una posición no declarada con potencial, sugiérela en metrics_to_track como discovery
+
 ESTRUCTURA OBLIGATORIA (JSON):
 {
   "title": "string",

@@ -31,6 +31,7 @@ const PUBLIC_URL =
 const finalizeSchema = z.object({
   videoId: z.string().min(1),
   bunnyVideoId: z.string().min(1),
+  playedPosition: z.string().optional(),       // posición jugada en este video
 });
 
 interface BunnyVideoStatus {
@@ -121,12 +122,12 @@ export default withHandler(
     const STATUS_FINISHED = 4;
     const STATUS_ERROR = 5;
 
-    // Actualizar duration en BBDD
-    if (bunnyStatus.length > 0) {
-      await supabase
-        .from("videos")
-        .update({ duration_sec: bunnyStatus.length })
-        .eq("id", video.id);
+    // Actualizar duration y played_position en BBDD
+    const updateData: Record<string, unknown> = {};
+    if (bunnyStatus.length > 0) updateData.duration_sec = bunnyStatus.length;
+    if (input.playedPosition) updateData.played_position = input.playedPosition;
+    if (Object.keys(updateData).length > 0) {
+      await supabase.from("videos").update(updateData).eq("id", video.id);
     }
 
     if (bunnyStatus.status === STATUS_ERROR) {

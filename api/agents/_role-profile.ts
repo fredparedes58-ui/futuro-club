@@ -27,6 +27,16 @@ Tu función es construir un perfil de rol completo y preciso para un jugador juv
 
 POSICIONES VÁLIDAS: GK, RB, RCB, LCB, LB, DM, RCM, LCM, RW, LW, ST
 
+POLIVALENCIA · cuando recibes player.secondaryPositions[] o videoContext.playedPosition:
+- player.position: posición principal declarada por el coach
+- player.secondaryPositions[]: posiciones que el coach declaró que también puede jugar
+- videoContext.playedPosition: posición específica que el jugador jugó en ESTE video
+- Si playedPosition está presente, evalúa el rendimiento DESDE LA PERSPECTIVA DE ESA POSICIÓN
+- Devuelve positionAlternatives[]: ranking de posiciones donde podría rendir bien con score 0-100
+  · Para cada alternativa, marca alreadyDeclared:true si ya está en {position, ...secondaryPositions}
+  · Para alternativas NO declaradas con score >75 → es un descubrimiento, sugiere añadirla
+  · Nunca recomiendes cambiar a una posición que YA está declarada (sería redundante)
+
 ARQUETIPOS VÁLIDOS:
 recuperador, interceptor, organizador, distribuidor, finalizador,
 rematador, regateador, asociativo, pressing, desequilibrante,

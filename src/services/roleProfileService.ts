@@ -96,12 +96,12 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   if (!player) return null;
 
   // 1. Buscar análisis de video guardados en Supabase
-  let videoAnalyses: Array<{ report: Record<string, unknown>; created_at: string; video_id?: string }> = [];
+  let videoAnalyses: Array<{ report: Record<string, unknown>; created_at: string; video_id?: string; played_position?: string | null }> = [];
   if (SUPABASE_CONFIGURED) {
     try {
       const { data } = await supabase
         .from("player_analyses")
-        .select("report, created_at, video_id")
+        .select("report, created_at, video_id, played_position")
         .eq("player_id", playerId)
         .order("created_at", { ascending: false })
         .limit(5);
@@ -139,6 +139,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
         age: player.age,
         foot: player.foot,
         position: player.position,
+        secondaryPositions: player.secondaryPositions ?? [],   // multi-posición
         minutesPlayed: player.minutesPlayed,
         competitiveLevel: player.competitiveLevel,
         metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
@@ -154,6 +155,11 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
           arquetipoTactico: (adnFutbolistico?.arquetipoTactico as string) ?? "",
           estiloJuego: (adnFutbolistico?.estiloJuego as string) ?? "",
         },
+      },
+      videoContext: {
+        playedPosition: videoAnalyses[0]?.played_position ?? player.position,
+        videoId:        videoAnalyses[0]?.video_id ?? null,
+        analyzedAt:     videoAnalyses[0]?.created_at ?? null,
       },
     });
 

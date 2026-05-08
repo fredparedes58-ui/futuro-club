@@ -55,6 +55,12 @@ ESTILO:
 - 2-3 áreas de mejora claras (sin endulzar)
 - Una recomendación concreta para próximas 4 semanas
 - Tono: profesional pero cercano, NUNCA alarmista
+- TODO informe DEBE referenciar el video fuente: incluye la fecha del análisis y la posición jugada en ese video. Sin video no hay informe.
+
+POLIVALENCIA · si videoContext.playedPosition existe:
+- El executive_summary debe mencionar explícitamente la posición jugada: "Análisis del video del DD/MM jugando de [posición]"
+- Las fortalezas y áreas de mejora se evalúan EN EL CONTEXTO de esa posición específica
+- Si player.secondaryPositions[] existe, el next_4_weeks_focus puede sugerir afianzar polivalencia
 
 ESTRUCTURA OBLIGATORIA (JSON):
 {

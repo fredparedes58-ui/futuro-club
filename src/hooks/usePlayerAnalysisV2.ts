@@ -314,7 +314,7 @@ export function usePlayerAnalysisV2() {
    * Si ya hay un análisis completado lo carga directamente.
    */
   const analyzeExistingVideo = useCallback(
-    async (params: { videoId: string; bunnyVideoId: string; playerId: string }) => {
+    async (params: { videoId: string; bunnyVideoId: string; playerId: string; playedPosition?: string }) => {
       const ac = new AbortController();
       abortRef.current = ac;
       setResult(INITIAL_RESULT);
@@ -345,7 +345,11 @@ export function usePlayerAnalysisV2() {
           const finRes = await fetch("/api/videos/finalize", {
             method: "POST",
             headers: { ...headers, "Content-Type": "application/json" },
-            body: JSON.stringify({ videoId: params.videoId, bunnyVideoId: params.bunnyVideoId }),
+            body: JSON.stringify({
+              videoId: params.videoId,
+              bunnyVideoId: params.bunnyVideoId,
+              playedPosition: params.playedPosition,    // posición jugada en este video
+            }),
             signal: ac.signal,
           });
           const finData = await finRes.json();

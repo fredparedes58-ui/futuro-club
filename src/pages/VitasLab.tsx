@@ -254,6 +254,7 @@ const VitasLab = () => {
   const [showResultsPanel, setShowResultsPanel] = useState(false);
   const [selectedVideoId, setSelectedVideoId]   = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [playedPosition, setPlayedPosition] = useState<string>("");
   const v2 = usePlayerAnalysisV2();
   const analysisReport = v2.isCompleted ? mapV2ToReport(v2.result) : null;
 
@@ -546,7 +547,14 @@ const VitasLab = () => {
     const toastId = toast.loading("Iniciando análisis GPU (MediaPipe + Claude)...");
 
     try {
-      await v2.analyzeExistingVideo({ videoId: selectedVideoId, bunnyVideoId, playerId: selectedPlayerId });
+      const selectedPlayer = players?.find((p) => p.id === selectedPlayerId);
+      const finalPlayedPosition = playedPosition || selectedPlayer?.position || undefined;
+      await v2.analyzeExistingVideo({
+        videoId: selectedVideoId,
+        bunnyVideoId,
+        playerId: selectedPlayerId,
+        playedPosition: finalPlayedPosition,
+      });
       SubscriptionService.incrementAnalysisCount();
       toast.dismiss(toastId);
       toast.success(t("lab.analysisComplete"), {
@@ -1173,6 +1181,54 @@ const VitasLab = () => {
                   <p className="text-[9px] text-muted-foreground">* Obligatorio para identificar al jugador en el video con precisión.</p>
                 </div>
               )}
+
+              {/* Selector de posición jugada en este video · multi-posición */}
+              {selectedPlayerId && (() => {
+                const selPlayer = players?.find((p) => p.id === selectedPlayerId);
+                if (!selPlayer) return null;
+                const declared = [selPlayer.position, ...(selPlayer.secondaryPositions ?? [])].filter(Boolean);
+                const POSITIONS_FULL = [
+                  "Portero", "Defensa Central", "Lateral Derecho", "Lateral Izquierdo",
+                  "Pivote", "Mediocentro", "Mediapunta", "Extremo Derecho",
+                  "Extremo Izquierdo", "Delantero",
+                ];
+                return (
+                  <div className="space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
+                      Posición jugada en este video
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {declared.map((p) => (
+                        <button
+                          key={`d-${p}`}
+                          type="button"
+                          onClick={() => setPlayedPosition(p)}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-display border transition-colors ${
+                            playedPosition === p
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-secondary text-foreground border-border hover:border-primary/40"
+                          }`}
+                        >
+                          {p === selPlayer.position ? `⭐ ${p}` : p}
+                        </button>
+                      ))}
+                      <select
+                        value={!declared.includes(playedPosition) ? playedPosition : ""}
+                        onChange={(e) => setPlayedPosition(e.target.value)}
+                        className="px-2 py-1 rounded-md text-[11px] font-display bg-secondary border border-border text-foreground"
+                      >
+                        <option value="">+ Otra posición</option>
+                        {POSITIONS_FULL.filter((p) => !declared.includes(p)).map((p) => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">
+                      Default: posición principal (⭐). Selecciona otra si jugó en posición diferente.
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Selector de enfoque del análisis */}
               <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />

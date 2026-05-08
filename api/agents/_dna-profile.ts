@@ -57,6 +57,14 @@ REGLAS:
 - 3-5 etiquetas tácticas (ej. "box-to-box", "carrilero ofensivo", "destructor", "mediapunta llegador")
 - Si rol natural ≠ posición actual, indícalo como sugerencia, NO como verdad absoluta
 
+POLIVALENCIA · si recibes player.secondaryPositions[] o videoContext.playedPosition:
+- player.position: posición principal declarada
+- player.secondaryPositions[]: posiciones secundarias declaradas (jugador polivalente)
+- videoContext.playedPosition: posición jugada en este video específico
+- Si playedPosition existe, evalúa el ADN desde la perspectiva de esa posición
+- Las sugerencias de rol natural NUNCA deben coincidir con una posición ya declarada (sería redundante)
+- Si detectas potencial en una posición no declarada → mencionarlo como descubrimiento
+
 ESTRUCTURA OBLIGATORIA (JSON):
 {
   "title": "string",

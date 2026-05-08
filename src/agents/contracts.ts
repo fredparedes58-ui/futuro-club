@@ -94,6 +94,7 @@ export const RoleProfileInputSchema = z.object({
     age: z.number(),
     foot: z.enum(["right", "left", "both"]),
     position: z.string(),
+    secondaryPositions: z.array(z.string()).optional(),         // multi-posición
     minutesPlayed: z.number(),
     competitiveLevel: z.string(),
     metrics: z.object({
@@ -108,8 +109,14 @@ export const RoleProfileInputSchema = z.object({
     }),
     phvCategory: z.enum(["early", "ontme", "late"]),
     phvOffset: z.number(),
-  }),
-});
+    videoAnalysisSummary: z.unknown().optional(),               // estructura libre · datos del video
+  }).passthrough(),
+  videoContext: z.object({                                       // contexto del video específico
+    playedPosition: z.string().optional(),
+    videoId:        z.string().nullable().optional(),
+    analyzedAt:     z.string().nullable().optional(),
+  }).optional(),
+}).passthrough();
 
 export const RoleProfileOutputSchema = z.object({
   playerId: z.string().optional(),
@@ -126,6 +133,14 @@ export const RoleProfileOutputSchema = z.object({
     fit: z.number().min(0).max(100),
     confidence: z.number().min(0).max(1),
   })).max(5),
+  /** Alternativas de posición con info de polivalencia · jugadores polivalentes */
+  positionAlternatives: z.array(z.object({
+    code: z.string(),
+    fit: z.number().min(0).max(100),
+    alreadyDeclared: z.boolean(),
+    reason: z.string(),
+    confidence: z.number().min(0).max(1),
+  })).optional(),
   topArchetypes: z.array(z.object({
     code: z.string(),
     fit: z.number().min(0).max(100),

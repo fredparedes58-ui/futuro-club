@@ -70,6 +70,14 @@ general:
   - Para cualquier otro caso
   - urgency: "low"
 
+POLIVALENCIA · si recibes player.secondaryPositions[] o videoContext.playedPosition:
+- Tipo nuevo "position_discovery": cuando un video sugiere una posición no declarada con encaje >75
+  · headline: "[Nombre] mostró potencial como [POS] en su último video"
+  · body: cita evidencia concreta del partido
+  · urgency: "medium"
+- Si playedPosition existe, el insight debe centrarse en el rendimiento en ESA posición
+- Cita siempre el video fuente (fecha + posición jugada)
+
 ${ragContext ? `CONTEXTO DE LA BASE DE CONOCIMIENTO VITAS (RAG):
 ${ragContext}
 

@@ -50,6 +50,12 @@ REGLAS:
 - Identifica los 2-3 sub-scores que más impactarán el VSI futuro
 - Sugiere qué pasa si trabaja sus debilidades (escenario optimista) vs si no (escenario base)
 
+POLIVALENCIA · si player.secondaryPositions[] tiene elementos:
+- Genera UNA proyección por cada posición declarada: positionProjections: { [code]: { y1, y2, y3, headline } }
+- Identifica cuál posición tiene el techo más alto a 3 años
+- El headline principal debe mencionar la posición de mayor techo proyectado
+- key_drivers pueden ser distintos por posición (ej. CAM necesita visión, LB necesita velocidad)
+
 ESTRUCTURA OBLIGATORIA (JSON):
 {
   "title": "string",
