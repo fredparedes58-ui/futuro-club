@@ -293,7 +293,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
       explanation: `Perfil generado desde ${videoAnalyses.length} análisis de video.`,
     },
     positions: [
-      { code: player.position.includes("Portero") ? "GK" : player.position.includes("Central") ? "RCB" : player.position.includes("Lateral") ? "RB" : player.position.includes("Pivote") ? "DM" : player.position.includes("Mediocent") ? "RCM" : player.position.includes("Extremo") ? "RW" : player.position.includes("Delantero") ? "ST" : "RCM",
+      { code: mapPositionToCode(player.position, player.foot),
         prob: 0.5, score: Math.max(tacticalScore, technicalScore), confidence: 0.65, reason: "Posición registrada — pendiente análisis completo con agente AI" },
     ],
     archetypes: [],
@@ -342,7 +342,7 @@ function buildMetricsOnlyProfile(player: Player): RoleProfileData | null {
   const technicalScore = Math.round((m.technique + m.shooting) / 2);
   const physicalScore = Math.round((m.speed + m.stamina) / 2);
 
-  const posCode = mapPositionToCode(player.position);
+  const posCode = mapPositionToCode(player.position, player.foot);
   const dominantType: RoleProfileData["identity"]["dominant"] =
     technicalScore >= tacticalScore && technicalScore >= physicalScore ? "tecnico"
     : tacticalScore >= physicalScore ? "defensivo" : "fisico";
@@ -407,17 +407,43 @@ function buildMetricsOnlyProfile(player: Player): RoleProfileData | null {
   return null;
 }
 
-/** Map Spanish position to position code */
-function mapPositionToCode(position: string): string {
+/**
+ * Map Spanish position to position code.
+ * Respeta la lateralidad declarada en el nombre de posición + el pie hábil.
+ *
+ * Ejemplos:
+ *   "Lateral Izquierdo" + foot=any → LB
+ *   "Lateral Derecho"   + foot=any → RB
+ *   "Lateral"           + foot=left → LB (deduce por pie)
+ *   "Lateral"           + foot=right → RB
+ *   "Lateral"           + foot=both → RB (default)
+ *   "Central Izquierdo" → LCB
+ *   "Mediocentro"       → RCM
+ *   "Extremo Izquierdo" → LW
+ */
+function mapPositionToCode(position: string, foot?: "right" | "left" | "both"): string {
   const lower = position.toLowerCase();
+
+  // Detectar lateralidad explícita en el nombre
+  const isLeft  = lower.includes("izquierd") || /\b(?:l|li|lb|lcb|lw|lm)\b/.test(lower);
+  const isRight = lower.includes("derech")   || /\b(?:r|rd|rb|rcb|rw|rm)\b/.test(lower);
+
+  // Si no hay lateralidad declarada, usar pie hábil como pista
+  const sideHint: "L" | "R" =
+    isLeft ? "L" :
+    isRight ? "R" :
+    foot === "left" ? "L" : "R";
+
   if (lower.includes("portero")) return "GK";
-  if (lower.includes("central")) return "RCB";
-  if (lower.includes("lateral")) return "RB";
+  if (lower.includes("central")) return sideHint === "L" ? "LCB" : "RCB";
+  if (lower.includes("lateral")) return sideHint === "L" ? "LB"  : "RB";
+  if (lower.includes("carrilero")) return sideHint === "L" ? "LWB" : "RWB";
   if (lower.includes("pivote")) return "DM";
-  if (lower.includes("mediocent") || lower.includes("mc")) return "RCM";
-  if (lower.includes("mediopunta") || lower.includes("cam")) return "CAM";
-  if (lower.includes("extremo")) return "RW";
-  if (lower.includes("delantero") || lower.includes("punta")) return "ST";
+  if (lower.includes("interior")) return sideHint === "L" ? "LCM" : "RCM";
+  if (lower.includes("mediocent") || lower.includes("mc")) return sideHint === "L" ? "LCM" : "RCM";
+  if (lower.includes("mediopunta") || lower.includes("cam") || lower.includes("enganche")) return "CAM";
+  if (lower.includes("extremo") || lower.includes("banda")) return sideHint === "L" ? "LW" : "RW";
+  if (lower.includes("delantero") || lower.includes("punta") || lower.includes("9")) return "ST";
   return "RCM";
 }
 

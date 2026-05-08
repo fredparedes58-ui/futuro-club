@@ -164,12 +164,25 @@ export function roleProfileFallback(body: RoleProfileInput, reason: FallbackReas
   const mins = p.minutesPlayed ?? 0;
   const confidence = mins > 500 ? 0.42 : mins > 200 ? 0.35 : 0.28;
 
-  // Position mapping
-  const posMap: Record<string, string> = {
-    portero: "GK", delantero: "ST", extremo: "RW", centrocampista: "RCM",
-    defensa: "RCB", lateral: "RB", mediocentro: "DM", mediapunta: "LCM",
-  };
-  const posCode = posMap[(p.position ?? "").toLowerCase()] ?? "RCM";
+  // Position mapping · respeta lateralidad declarada y pie hábil
+  const positionStr = (p.position ?? "").toLowerCase();
+  const foot = (p as { foot?: string }).foot;
+  const isLeft  = positionStr.includes("izquierd") || foot === "left";
+  const isRight = positionStr.includes("derech") || (!isLeft && (foot === "right" || foot === undefined));
+  const side: "L" | "R" = isLeft ? "L" : "R";
+
+  let posCode = "RCM";
+  if (positionStr.includes("portero")) posCode = "GK";
+  else if (positionStr.includes("central") || positionStr.includes("defensa")) posCode = side === "L" ? "LCB" : "RCB";
+  else if (positionStr.includes("lateral")) posCode = side === "L" ? "LB" : "RB";
+  else if (positionStr.includes("carrilero")) posCode = side === "L" ? "LWB" : "RWB";
+  else if (positionStr.includes("pivote") || positionStr.includes("mediocentro defensiv")) posCode = "DM";
+  else if (positionStr.includes("interior") || positionStr.includes("mediocent") || positionStr.includes("centrocampista")) posCode = side === "L" ? "LCM" : "RCM";
+  else if (positionStr.includes("mediapunta") || positionStr.includes("enganche")) posCode = "CAM";
+  else if (positionStr.includes("extremo") || positionStr.includes("banda")) posCode = side === "L" ? "LW" : "RW";
+  else if (positionStr.includes("delantero") || positionStr.includes("punta")) posCode = "ST";
+  // Suprimir warning sobre isRight no usado
+  void isRight;
 
   // Strengths = top 3 metrics
   const strengths = sorted.slice(0, 3).map(s => `${s.k}: ${s.v}`);

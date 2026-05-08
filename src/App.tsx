@@ -20,6 +20,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 // Pages — App
 import Index from "./pages/Index";
+import PublicLanding from "./pages/PublicLanding";
 import Dashboard from "./pages/Dashboard";
 import ScoutFeed from "./pages/ScoutFeed";
 import SoloDrill from "./pages/SoloDrill";
@@ -145,9 +146,13 @@ const App = () => (
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/share/analysis/:analysisId" element={<SharedAnalysisPage />} />
 
+                {/* ── Landing pública (sin login) ────────────────────── */}
+                <Route path="/" element={<PublicLanding />} />
+                <Route path="/welcome" element={<PublicLanding />} />
+
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />
-                <Route path="/" element={<P><Index /></P>} />
+                <Route path="/home" element={<P><Index /></P>} />
                 <Route path="/pulse" element={<P><Dashboard /></P>} />
                 <Route path="/master" element={<P><MasterDashboard /></P>} />
                 <Route path="/scout" element={<P><ScoutFeed /></P>} />
