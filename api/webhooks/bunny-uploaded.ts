@@ -101,7 +101,7 @@ export default withHandler(
     // ── Buscar el video en nuestra BBDD ────────────────────
     const { data: video, error: videoError } = await supabase
       .from("videos")
-      .select("id, tenant_id, player_id, target_player_bbox")
+      .select("id, tenant_id, player_id, target_player_bbox, played_position")
       .eq("bunny_video_id", payload.VideoGuid)
       .single();
 
@@ -132,6 +132,7 @@ export default withHandler(
     }
 
     // ── Crear analysis row · status=queued ─────────────────
+    // Hereda played_position del video si fue declarada al subir (multi-posición)
     const { data: analysis, error: createError } = await supabase
       .from("analyses")
       .insert({
@@ -140,6 +141,7 @@ export default withHandler(
         video_id: video.id,
         status: "queued",
         pipeline_version: "v1.0",
+        played_position: (video as { played_position?: string | null }).played_position ?? null,
       })
       .select("id")
       .single();

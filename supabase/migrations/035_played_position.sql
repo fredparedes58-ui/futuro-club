@@ -36,3 +36,13 @@ BEGIN
     EXECUTE 'ALTER TABLE public.videos ADD COLUMN IF NOT EXISTS played_position text';
   END IF;
 END $$;
+
+-- ─── Columna secondary_positions en players (multi-posición) ─────────
+ALTER TABLE public.players
+  ADD COLUMN IF NOT EXISTS secondary_positions text[];
+
+CREATE INDEX IF NOT EXISTS idx_players_secondary_positions
+  ON public.players USING gin(secondary_positions);
+
+COMMENT ON COLUMN public.players.secondary_positions IS
+  'Posiciones secundarias declaradas por el coach · jugadores polivalentes (ej. {"Pivote","Mediocentro"})';

@@ -142,7 +142,7 @@ export default withHandler(
 
     const { data: player } = await supabase
       .from("players")
-      .select("id, name, position, tenant_id")
+      .select("id, name, position, secondary_positions, foot, tenant_id")
       .eq("id", analysis.player_id)
       .single();
 
@@ -225,6 +225,12 @@ export default withHandler(
       .eq("id", analysis.id);
 
     // ── 5. Disparar 6 reportes LLM EN PARALELO ──────────────────────
+    // Posición jugada en este video específico · default a la principal
+    const playedPosition =
+      (analysis as { played_position?: string | null }).played_position
+      ?? player?.position
+      ?? null;
+
     const sharedContext = {
       playerId: analysis.player_id,
       videoId: analysis.video_id,
@@ -237,6 +243,14 @@ export default withHandler(
       playerContext: {
         chronologicalAge: anthro?.chronological_age ?? 12,
         position: player?.position,
+        secondaryPositions: (player as { secondary_positions?: string[] } | null)?.secondary_positions ?? [],
+        foot: (player as { foot?: string } | null)?.foot,
+      },
+      // Contexto del video específico · agentes lo usan para análisis polivalente
+      videoContext: {
+        videoId: analysis.video_id,
+        playedPosition,
+        analyzedAt: (analysis as { completed_at?: string }).completed_at ?? new Date().toISOString(),
       },
     };
 

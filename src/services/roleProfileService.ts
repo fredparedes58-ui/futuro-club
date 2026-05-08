@@ -81,6 +81,20 @@ const RoleProfileSchema = z.object({
   })),
   consolidation_notes: z.array(z.string()),
   evidence: z.array(EvidenceSchema),
+  /** Alternativas de posición · multi-posición · descubrimientos del agente */
+  positionAlternatives: z.array(z.object({
+    code:            z.string(),
+    fit:             z.number().min(0).max(100),
+    alreadyDeclared: z.boolean(),
+    reason:          z.string(),
+    confidence:      z.number().min(0).max(1),
+  })).optional(),
+  /** Videos fuente del informe · cita explícita */
+  source_videos: z.array(z.object({
+    video_id:    z.string(),
+    analyzed_at: z.string(),
+    duration_min: z.number().optional(),
+  })).optional(),
 });
 
 // ─── Service functions ───────────────────────────────────────────────────

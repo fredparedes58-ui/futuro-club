@@ -21,6 +21,7 @@ function playerToColumns(p: Player) {
     name: p.name,
     age: p.age,
     position: p.position,
+    secondary_positions: p.secondaryPositions ?? [],   // multi-posición · array text[]
     foot: p.foot,
     height_cm: p.height,
     weight_kg: p.weight,
