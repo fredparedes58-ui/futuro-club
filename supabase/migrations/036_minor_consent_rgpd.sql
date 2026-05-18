@@ -122,7 +122,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- 7. Consent audit log
 CREATE TABLE IF NOT EXISTS consent_audit_log (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  player_id UUID REFERENCES players(id) ON DELETE CASCADE,
+  player_id TEXT REFERENCES players(id) ON DELETE CASCADE,
   action TEXT NOT NULL CHECK (action IN ('consent_requested', 'consent_granted', 'consent_denied', 'consent_revoked', 'data_exported', 'deletion_requested')),
   actor_email TEXT,
   details JSONB DEFAULT '{}',

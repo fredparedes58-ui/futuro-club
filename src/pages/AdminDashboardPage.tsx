@@ -109,6 +109,38 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+        {/* Quick links to compliance tools */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate("/admin/bias")}
+            className="glass rounded-xl p-4 border border-border/20 hover:border-primary/30 transition-all text-left group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Activity size={14} className="text-primary" />
+              <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                Auditoría de Sesgo IA
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Detecta anomalías por posición, edad, visibilidad y tiempo
+            </p>
+          </button>
+          <button
+            onClick={() => navigate("/admin/consent")}
+            className="glass rounded-xl p-4 border border-border/20 hover:border-primary/30 transition-all text-left group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <Shield size={14} className="text-primary" />
+              <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                Consentimiento Parental
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              RGPD menores &lt;14 · gestiona autorizaciones y DSAR
+            </p>
+          </button>
+        </div>
+
         {isLoading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={24} className="animate-spin text-primary" />

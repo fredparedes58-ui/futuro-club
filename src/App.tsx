@@ -48,6 +48,8 @@ import OnboardingPage from "./pages/OnboardingPage";
 import DirectorDashboard from "./pages/DirectorDashboard";
 import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import BiasAuditDashboard from "./pages/BiasAuditDashboard";
+import ParentalConsentPage from "./pages/ParentalConsentPage";
 import PricingPage from "./pages/PricingPage";
 import PlayerReportPrint from "./pages/PlayerReportPrint";
 import AnalysisReportPrint from "./pages/AnalysisReportPrint";
@@ -166,6 +168,8 @@ const App = () => (
                 <Route path="/billing" element={<P><BillingPage /></P>} />
                 <Route path="/director" element={<P><DirectorDashboard /></P>} />
                 <Route path="/admin" element={<P><AdminDashboardPage /></P>} />
+                <Route path="/admin/bias" element={<P><BiasAuditDashboard /></P>} />
+                <Route path="/admin/consent" element={<P><ParentalConsentPage /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
                 <Route path="/players/new" element={<P><PlayerForm /></P>} />
                 {/* Hub consolidado · /players/:id?tab=resumen|stats|movimiento|rol|historico */}
