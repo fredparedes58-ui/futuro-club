@@ -3,6 +3,8 @@
  * Tipos base para el sistema de tracking real con YOLOv8n-pose
  */
 
+import type { KalmanLite2D } from "./kalmanLite";
+
 // ─── Coordenadas ──────────────────────────────────────────────────────────────
 
 export interface PixelPoint  { px: number; py: number }
@@ -49,6 +51,11 @@ export interface Track {
   accelMs2:        number;       // aceleración m/s²
   distanceM:       number;       // distancia acumulada en metros
   sprintCount:     number;
+  // ── Tracking enhancements (optional) ──
+  /** Kalman predictor for position smoothing and occlusion handling */
+  kalman?:          KalmanLite2D;
+  /** HSV color histogram of torso region for re-identification */
+  histogram?:       Float32Array;
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────

@@ -77,7 +77,7 @@
 
   "auth": {
     "login": {
-      "title": "VITAS: HOLOGRAPHIC PORTAL LOGIN",
+      "title": "Accede a tu academia",
       "subtitle": "Accede a tu academia de scouting",
       "emailLabel": "Email",
       "emailPlaceholder": "usuario@vitas.ai",
@@ -88,7 +88,7 @@
       "submitting": "Entrando\u2026",
       "noAccount": "\u00bfNo tienes cuenta?",
       "createAcademy": "Crear academia",
-      "offlineMode": "Modo offline \u2014 configura Supabase en .env",
+      "offlineMode": "Modo local activo",
       "fillAllFields": "Completa todos los campos",
       "footer": "VITAS V2.0 \u00b7 Football Intelligence Platform"
     },

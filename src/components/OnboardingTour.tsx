@@ -67,7 +67,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
 
-  // Auto-open al primer mount si no está visto
+  // Auto-open al primer mount si no está visto Y cookies ya aceptadas
   useEffect(() => {
     if (forceOpen) {
       setOpen(true);
@@ -76,8 +76,17 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
     try {
       const seen = localStorage.getItem(SEEN_KEY);
       if (!seen) {
-        // Pequeño delay para que la app cargue primero
-        const t = setTimeout(() => setOpen(true), 600);
+        // Espera a que el usuario resuelva el banner de cookies antes de mostrar tour
+        const check = () => {
+          const cookieConsent = localStorage.getItem("cookie-consent");
+          if (cookieConsent) {
+            setTimeout(() => setOpen(true), 400);
+          } else {
+            // Re-check cada 500ms hasta que cookies estén resueltas
+            setTimeout(check, 500);
+          }
+        };
+        const t = setTimeout(check, 600);
         return () => clearTimeout(t);
       }
     } catch { /* ignore */ }

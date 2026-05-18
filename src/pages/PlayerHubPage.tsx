@@ -35,6 +35,9 @@ import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
+import TalentoOcultoAlert from "@/components/TalentoOcultoAlert";
+import ConfidenceBadge from "@/components/ConfidenceBadge";
+import NotEvaluatedSection from "@/components/NotEvaluatedSection";
 
 // Componentes del role-profile reutilizados sin envoltorio
 import PositionDiscoveryBanner from "@/components/PositionDiscoveryBanner";
@@ -254,6 +257,16 @@ export default function PlayerHubPage() {
                 </motion.div>
               )}
 
+              {/* B1: Talento Oculto · PHV alert */}
+              <TalentoOcultoAlert player={player} />
+
+              {/* B2: Confidence badge */}
+              <ConfidenceBadge
+                videosCount={analyses?.length ?? 0}
+                hasTracking={!!snapshot}
+                player={player}
+              />
+
               {/* VSI + métricas avanzadas siempre visibles */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="glass rounded-xl p-6 flex flex-col items-center justify-center gap-3">
@@ -289,6 +302,14 @@ export default function PlayerHubPage() {
               {advancedMetrics && (hasAnalysis || snapshot) && (
                 <AdvancedMetricsPanel metrics={advancedMetrics} trackingSnapshot={snapshot} />
               )}
+
+              {/* B3: No evaluado — transparencia radical */}
+              <NotEvaluatedSection
+                player={player}
+                hasAnalysis={hasAnalysis}
+                hasTracking={!!snapshot}
+                latestReport={latestReport}
+              />
             </motion.div>
           )}
 

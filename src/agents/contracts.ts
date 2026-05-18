@@ -155,6 +155,9 @@ export const RoleProfileOutputSchema = z.object({
   risks: z.array(z.string()).max(3),
   gaps: z.array(z.string()).max(3),
   overallConfidence: z.number().min(0).max(1),
+  confidence_score: z.number().min(0).max(100).describe("How confident we are in this evaluation (depends on data quality and quantity)"),
+  data_completeness: z.number().min(0).max(100).describe("Percentage of evaluation dimensions with actual data"),
+  not_evaluated: z.array(z.string()).describe("List of dimensions we could NOT evaluate and why"),
   summary: z.string().max(400),
 });
 

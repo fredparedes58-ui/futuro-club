@@ -535,6 +535,14 @@ const ScoutFeed = () => {
                     <option value="low">{t("scout.urgencyLow")}</option>
                   </select>
                 </div>
+                <select
+                  value={(filters as Record<string, string>).position ?? ""}
+                  onChange={e => handleFilterChange("position" as keyof InsightsFilters, e.target.value)}
+                  className="w-full py-1.5 px-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground focus:outline-none"
+                >
+                  <option value="">Todas las posiciones</option>
+                  {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}

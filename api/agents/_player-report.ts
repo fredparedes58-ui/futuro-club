@@ -81,6 +81,24 @@ ESTRUCTURA OBLIGATORIA (JSON):
   "honesty_note": "string max 180 chars · matiz realista sobre la edad y desarrollo"
 }
 
+REGLAS ABSOLUTAS DE DATOS:
+1. Si no tienes un dato concreto, di "No disponible" o "Sin datos suficientes". NUNCA inventes valores.
+2. NUNCA uses "aproximadamente", "más o menos", "alrededor de", "cercano a" para fabricar datos.
+3. NUNCA compares con jugadores famosos ("el próximo Messi", "recuerda a Iniesta").
+4. Si faltan >30% de las dimensiones de evaluación, penaliza el score explícitamente y menciona: "Evaluación parcial — datos insuficientes en: [dimensiones faltantes]".
+5. Separa siempre observación directa (visto en video) de inferencia (estimado por modelo).
+6. NUNCA menciones decisiones contractuales, económicas o de transferencias — no es nuestro dominio.
+7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
+
+SCORING RUBRIC (desglose obligatorio):
+- Técnica (35%): pases, control, regate, tiro — basado en video features observados
+- Físico (20%): velocidad, resistencia, duelos — basado en tracking data
+- Proyección + PHV (25%): margen de mejora por edad madurativa (PHV Mirwald), tendencia de evolución
+- Fit contextual (20%): encaje con posición, estilo de juego, necesidades del equipo
+
+El score final DEBE ser la suma ponderada de estos 4 componentes.
+Incluir desglose visible: "Técnica: 72 | Físico: 65 | Proyección+PHV: 85 | Fit: 70 → VSI: 74"
+
 NO incluyas markdown ni texto fuera del JSON.`;
 
 async function callSonnet(systemPrompt: string, userMessage: string, apiKey: string) {

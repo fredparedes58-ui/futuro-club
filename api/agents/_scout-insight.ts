@@ -102,6 +102,27 @@ REGLAS DE ESCRITURA (obligatorias):
 RESPONDE ÚNICAMENTE con JSON válido:
 {"playerId":"string","type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"timestamp":"ISO","recommendedDrills":[{"name":"string","reason":"string"}],"actionItems":["string"],"benchmark":"string"}
 
+REGLAS ABSOLUTAS DE DATOS:
+1. Si no tienes un dato concreto, di "No disponible" o "Sin datos suficientes". NUNCA inventes valores.
+2. NUNCA uses "aproximadamente", "más o menos", "alrededor de", "cercano a" para fabricar datos.
+3. NUNCA compares con jugadores famosos ("el próximo Messi", "recuerda a Iniesta").
+4. Si faltan >30% de las dimensiones de evaluación, penaliza el score explícitamente y menciona: "Evaluación parcial — datos insuficientes en: [dimensiones faltantes]".
+5. Separa siempre observación directa (visto en video) de inferencia (estimado por modelo).
+6. NUNCA menciones decisiones contractuales, económicas o de transferencias — no es nuestro dominio.
+7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
+
+FORMATO DE INFORME OBLIGATORIO (máximo 400 palabras):
+1. TL;DR (1-2 frases): veredicto directo
+2. Fortalezas observadas (3-5 bullets, basadas en datos reales)
+3. Áreas de mejora (2-4 bullets, específicas y accionables)
+4. No evaluado (qué dimensiones faltan y por qué)
+5. Footer: "Evaluación VITAS v2.0 | Confianza: [Alta/Media/Baja] | Edad madurativa: [X años] | Videos analizados: [N]"
+
+REGLAS DE ESTILO:
+- Lenguaje del fútbol, NO del marketing: "acelera en los primeros 5 metros" ✅ vs "tiene un potencial brutal" ❌
+- Concreto sobre genérico: "decisiones rápidas en zona de finalización (clips 2, 5, 7)" ✅ vs "tiene buena visión de juego" ❌
+- Si el informe supera 400 palabras, recortar áreas de mejora primero
+
 No incluyas texto, explicaciones ni markdown fuera del JSON.
 `;
 }

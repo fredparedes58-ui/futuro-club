@@ -236,7 +236,7 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 1 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS · Football Intelligence</span>
+            <span>VITAS · Football Intelligence · Edad madurativa: {player.phvAge ? `${player.phvAge.toFixed(1)} años` : "No disponible"} · {phvLabel}</span>
             <span>Página 1/2 · {player.name} · {today}</span>
           </div>
         </div>
@@ -326,7 +326,7 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 2 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS · Football Intelligence</span>
+            <span>VITAS v2.0 · Evaluación con corrección PHV Mirwald · Confianza: {player.phvAge ? "Media-Alta" : "Parcial (sin PHV)"}</span>
             <span>Página 2/2 · {player.name} · {today}</span>
           </div>
         </div>

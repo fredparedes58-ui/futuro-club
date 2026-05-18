@@ -10,9 +10,10 @@ import { useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, Video, X, CheckCircle2, AlertCircle,
-  Loader2, Zap, Film, RefreshCw,
+  Loader2, Zap, Film, RefreshCw, Camera,
 } from "lucide-react";
 import { useVideoUpload, type UploadPhase, type DuplicateInfo } from "@/hooks/useVideoUpload";
+import RecordingGuide, { useRecordingGuideNeeded } from "@/components/RecordingGuide";
 
 interface VideoUploadProps {
   playerId?: string;
@@ -39,6 +40,8 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [title, setTitle] = useState("");
+  const guideNeeded = useRecordingGuideNeeded();
+  const [showGuide, setShowGuide] = useState(false);
 
   /**
    * Callback para duplicados: muestra confirm nativo.
@@ -93,8 +96,31 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
 
   const isActive = state.phase !== "idle" && state.phase !== "error" && state.phase !== "done";
 
+  // Auto-show recording guide on first upload attempt
+  const handleUploadClick = () => {
+    if (guideNeeded && !showGuide) {
+      setShowGuide(true);
+      return;
+    }
+    inputRef.current?.click();
+  };
+
   return (
     <div className={`space-y-3 ${className}`}>
+      {/* Recording Guide Modal */}
+      <RecordingGuide open={showGuide} onClose={() => setShowGuide(false)} />
+
+      {/* Tips button */}
+      {state.phase === "idle" && (
+        <button
+          onClick={() => setShowGuide(true)}
+          className="flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
+        >
+          <Camera size={12} />
+          Consejos para grabar mejor video
+        </button>
+      )}
+
       {/* Title input (optional) */}
       {state.phase === "idle" && (
         <input
