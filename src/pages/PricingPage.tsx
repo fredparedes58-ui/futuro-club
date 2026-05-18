@@ -59,14 +59,6 @@ const COMPETITORS: CompetitorRow[] = [
     instat: "Bajo consulta",
   },
   {
-    feature: "Análisis IA de video",
-    icon: Video,
-    vitas: "✅ Incluido",
-    wyscout: "Limitado",
-    hudl: "Assist addon",
-    instat: "✅ Incluido",
-  },
-  {
     feature: "Ajuste biológico PHV",
     icon: TrendingUp,
     vitas: "✅ Integrado",
@@ -75,25 +67,49 @@ const COMPETITORS: CompetitorRow[] = [
     instat: "❌",
   },
   {
-    feature: "Métricas VAEP/SPADL",
-    icon: BarChart3,
-    vitas: "✅ Desde video",
-    wyscout: "✅ (dataset)",
-    hudl: "Limitado",
-    instat: "✅ (dataset)",
-  },
-  {
-    feature: "Agente IA para scouting",
+    feature: "Detección talento oculto",
     icon: Brain,
-    vitas: "✅ Claude + Gemini",
-    wyscout: "Parcial",
+    vitas: "✅ Pre-pico PHV",
+    wyscout: "❌",
     hudl: "❌",
     instat: "❌",
   },
   {
-    feature: "Setup sin hardware",
+    feature: "Nivel de confianza visible",
     icon: Shield,
-    vitas: "✅ Solo video",
+    vitas: "✅ Por evaluación",
+    wyscout: "❌",
+    hudl: "❌",
+    instat: "❌",
+  },
+  {
+    feature: "Auto-auditoría sesgo IA",
+    icon: BarChart3,
+    vitas: "✅ Dashboard",
+    wyscout: "❌",
+    hudl: "❌",
+    instat: "❌",
+  },
+  {
+    feature: "RGPD menores con panel",
+    icon: Shield,
+    vitas: "✅ Consent + DSAR",
+    wyscout: "❓ Interno",
+    hudl: "❓ Interno",
+    instat: "❓",
+  },
+  {
+    feature: "Análisis IA de video",
+    icon: Video,
+    vitas: "✅ Incluido",
+    wyscout: "Limitado",
+    hudl: "Assist addon",
+    instat: "✅ Incluido",
+  },
+  {
+    feature: "Setup sin hardware",
+    icon: Zap,
+    vitas: "✅ Solo celular",
     wyscout: "N/A",
     hudl: "Cámaras propias",
     instat: "N/A",
@@ -370,19 +386,27 @@ export default function PricingPage() {
           <div className="grid md:grid-cols-2 gap-3 max-w-4xl mx-auto">
             <FaqItem
               q="¿Necesito GPS o cámaras especiales?"
-              a="No. VITAS analiza cualquier video convencional. Gemini + Claude extraen métricas VAEP/SPADL desde el video, sin hardware adicional."
-            />
-            <FaqItem
-              q="¿Puedo exportar informes?"
-              a="Sí, los planes Pro y Club incluyen exportación a PDF personalizada por jugador o equipo."
+              a="No. VITAS analiza cualquier video grabado con celular. La IA extrae métricas biomecánicas desde el video, sin hardware adicional."
             />
             <FaqItem
               q="¿Qué es el ajuste PHV?"
-              a="Peak Height Velocity. VITAS ajusta el score VSI según la madurez biológica del jugador (x1.12 early, x1.0 ontime, x0.92 late) para comparar justamente."
+              a="Peak Height Velocity (Mirwald). VITAS ajusta el score VSI según la madurez biológica del jugador para no comparar un niño de 12 con desarrollo temprano contra uno tardío. Ninguna otra plataforma lo hace."
+            />
+            <FaqItem
+              q="¿Es seguro para menores de edad?"
+              a="Sí. VITAS cumple RGPD y LOPD Art. 7. Los menores de 14 años requieren consentimiento parental verificado antes de procesar sus datos con IA. Incluye panel de gestión DSAR (derecho de acceso y eliminación)."
+            />
+            <FaqItem
+              q="¿La IA puede equivocarse?"
+              a="Sí, y VITAS lo dice. Cada evaluación muestra su nivel de confianza (Alto/Medio/Bajo) y lista qué dimensiones NO pudo evaluar. Además, un dashboard de auditoría detecta si la IA favorece ciertos perfiles."
+            />
+            <FaqItem
+              q="¿Puedo exportar informes?"
+              a="Sí. Los planes Pro y Club incluyen exportación a PDF con métricas, radar chart, análisis táctico y recomendaciones de desarrollo."
             />
             <FaqItem
               q="¿Hay permanencia?"
-              a="No. Puedes cancelar desde tu panel de facturación cuando quieras."
+              a="No. Cancela cuando quieras desde tu panel de facturación. Tus datos se mantienen 90 días después de cancelar."
             />
           </div>
         </section>
