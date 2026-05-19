@@ -19,11 +19,13 @@ export const config = { runtime: "edge" };
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const SHARE_SECRET =
-  process.env.SHARE_SECRET ??
-  process.env.CRON_SECRET ??
-  process.env.SUPABASE_JWT_SECRET ??
-  "vitas-default-share-secret-change-me";
+const SHARE_SECRET = (() => {
+  const secret = process.env.SHARE_SECRET ?? process.env.CRON_SECRET ?? process.env.SUPABASE_JWT_SECRET;
+  if (!secret) {
+    console.error("[share] CRITICAL: No SHARE_SECRET, CRON_SECRET, or SUPABASE_JWT_SECRET configured. Share tokens are disabled.");
+  }
+  return secret ?? "";
+})();
 
 const DEFAULT_TTL_MS = 90 * 24 * 60 * 60 * 1000; // 90 días
 
@@ -49,6 +51,10 @@ export default withHandler(
     maxRequests: 60,
   },
   async ({ method, query, userId }) => {
+    if (!SHARE_SECRET) {
+      return errorResponse({ code: "share_disabled", message: "Share tokens disabled — no secret configured", status: 503 });
+    }
+
     const analysisId = query.analysisId;
     if (!analysisId) {
       return errorResponse({ code: "missing_analysisId", message: "analysisId requerido", status: 400 });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -12,64 +12,73 @@ import { SyncProvider } from "@/context/SyncContext";
 import OfflineBanner from "@/components/OfflineBanner";
 import CookieConsent from "@/components/CookieConsent";
 
-// Pages — Auth
+// Pages — Auth (static — small, needed immediately)
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-// Pages — App
+// Pages — Core (static — hit on every session)
 import Index from "./pages/Index";
 import PublicLanding from "./pages/PublicLanding";
-import Dashboard from "./pages/Dashboard";
-import ScoutFeed from "./pages/ScoutFeed";
-import SoloDrill from "./pages/SoloDrill";
-import Rankings from "./pages/Rankings";
-import PlayerProfile from "./pages/PlayerProfile";
-import PlayerHubPage from "./pages/PlayerHubPage";
-import PlayerHubPrint from "./pages/PlayerHubPrint";
-import PlayerComparison from "./pages/PlayerComparison";
-import VitasLab from "./pages/VitasLab";
-import MasterDashboard from "./pages/MasterDashboard";
-import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
 import GlobalSearch from "./components/GlobalSearch";
 import ContextualFAB from "./components/ContextualFAB";
 import OnboardingTour from "./components/OnboardingTour";
 import FirstRunWizard from "./components/FirstRunWizard";
-import RoleProfile from "./pages/RoleProfile";
-import RoleProfileCompare from "./pages/RoleProfileCompare";
-import RoleProfileAudit from "./pages/RoleProfileAudit";
-import ReportsPage from "./pages/ReportsPage";
-import PlayerForm from "./pages/PlayerForm";
-import BillingPage from "./pages/BillingPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import DirectorDashboard from "./pages/DirectorDashboard";
-import PlayerIntelligencePage from "./pages/PlayerIntelligencePage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import BiasAuditDashboard from "./pages/BiasAuditDashboard";
-import ParentalConsentPage from "./pages/ParentalConsentPage";
-import PricingPage from "./pages/PricingPage";
-import PlayerReportPrint from "./pages/PlayerReportPrint";
-import AnalysisReportPrint from "./pages/AnalysisReportPrint";
-import TeamPage from "./pages/TeamPage";
-import TeamAnalysisPage from "./pages/TeamAnalysisPage";
-import TeamBaselinePage from "./pages/TeamBaselinePage";
-import LiveHubPage from "./pages/LiveHubPage";
-import LiveMatchPage from "./pages/LiveMatchPage";
-import LiveSummaryPage from "./pages/LiveSummaryPage";
-import CompareRivalPage from "./pages/CompareRivalPage";
-import ParentDashboardPage from "./pages/ParentDashboardPage";
-import AcceptInvitationPage from "./pages/AcceptInvitationPage";
-import PlayerReportsPage from "./pages/PlayerReportsPage";
-import PlayerEvolutionPage from "./pages/PlayerEvolutionPage";
-import PlayerAnalysisPage from "./pages/PlayerAnalysisPage";
-import SharedAnalysisPage from "./pages/SharedAnalysisPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import UserGuidePage from "./pages/UserGuidePage";
 import AcceptTermsGate from "./components/AcceptTermsGate";
+
+// Pages — Lazy loaded (heavy pages, loaded on demand)
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const ScoutFeed = React.lazy(() => import("./pages/ScoutFeed"));
+const SoloDrill = React.lazy(() => import("./pages/SoloDrill"));
+const Rankings = React.lazy(() => import("./pages/Rankings"));
+const PlayerProfile = React.lazy(() => import("./pages/PlayerProfile"));
+const PlayerHubPage = React.lazy(() => import("./pages/PlayerHubPage"));
+const PlayerHubPrint = React.lazy(() => import("./pages/PlayerHubPrint"));
+const PlayerComparison = React.lazy(() => import("./pages/PlayerComparison"));
+const VitasLab = React.lazy(() => import("./pages/VitasLab"));
+const MasterDashboard = React.lazy(() => import("./pages/MasterDashboard"));
+const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
+const RoleProfile = React.lazy(() => import("./pages/RoleProfile"));
+const RoleProfileCompare = React.lazy(() => import("./pages/RoleProfileCompare"));
+const RoleProfileAudit = React.lazy(() => import("./pages/RoleProfileAudit"));
+const ReportsPage = React.lazy(() => import("./pages/ReportsPage"));
+const PlayerForm = React.lazy(() => import("./pages/PlayerForm"));
+const BillingPage = React.lazy(() => import("./pages/BillingPage"));
+const OnboardingPage = React.lazy(() => import("./pages/OnboardingPage"));
+const DirectorDashboard = React.lazy(() => import("./pages/DirectorDashboard"));
+const PlayerIntelligencePage = React.lazy(() => import("./pages/PlayerIntelligencePage"));
+const AdminDashboardPage = React.lazy(() => import("./pages/AdminDashboardPage"));
+const BiasAuditDashboard = React.lazy(() => import("./pages/BiasAuditDashboard"));
+const ParentalConsentPage = React.lazy(() => import("./pages/ParentalConsentPage"));
+const PricingPage = React.lazy(() => import("./pages/PricingPage"));
+const PlayerReportPrint = React.lazy(() => import("./pages/PlayerReportPrint"));
+const AnalysisReportPrint = React.lazy(() => import("./pages/AnalysisReportPrint"));
+const TeamPage = React.lazy(() => import("./pages/TeamPage"));
+const TeamAnalysisPage = React.lazy(() => import("./pages/TeamAnalysisPage"));
+const TeamBaselinePage = React.lazy(() => import("./pages/TeamBaselinePage"));
+const LiveHubPage = React.lazy(() => import("./pages/LiveHubPage"));
+const LiveMatchPage = React.lazy(() => import("./pages/LiveMatchPage"));
+const LiveSummaryPage = React.lazy(() => import("./pages/LiveSummaryPage"));
+const CompareRivalPage = React.lazy(() => import("./pages/CompareRivalPage"));
+const ParentDashboardPage = React.lazy(() => import("./pages/ParentDashboardPage"));
+const AcceptInvitationPage = React.lazy(() => import("./pages/AcceptInvitationPage"));
+const PlayerReportsPage = React.lazy(() => import("./pages/PlayerReportsPage"));
+const PlayerEvolutionPage = React.lazy(() => import("./pages/PlayerEvolutionPage"));
+const PlayerAnalysisPage = React.lazy(() => import("./pages/PlayerAnalysisPage"));
+const SharedAnalysisPage = React.lazy(() => import("./pages/SharedAnalysisPage"));
+const TermsPage = React.lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = React.lazy(() => import("./pages/PrivacyPage"));
+const UserGuidePage = React.lazy(() => import("./pages/UserGuidePage"));
+
+// Suspense fallback for lazy routes
+const LazyFallback = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 // Health check + purge — diagnóstico automático al iniciar
 // (Sync is now handled by SyncProvider)
@@ -138,6 +147,7 @@ const App = () => (
             <CookieConsent />
             <AcceptTermsGate>
             <ErrorBoundary>
+              <Suspense fallback={<LazyFallback />}>
               <Routes>
                 {/* ── Rutas públicas (auth) ─────────────────────────── */}
                 <Route path="/login" element={<LoginPage />} />
@@ -212,6 +222,7 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </ErrorBoundary>
             </AcceptTermsGate>
             <BottomNav />

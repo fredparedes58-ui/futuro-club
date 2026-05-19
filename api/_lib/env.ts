@@ -77,7 +77,7 @@ export const env = {
   get upstashRedisToken() { return optional("UPSTASH_REDIS_REST_TOKEN"); },
 
   // ─── Security ───
-  get cronSecret() { return optional("CRON_SECRET"); },
+  get cronSecret() { return required("CRON_SECRET"); },
   get adminSecret() { return optional("ADMIN_SECRET"); },
   get allowedOrigin() { return optional("ALLOWED_ORIGIN", "https://futuro-club.vercel.app"); },
   get turnstileSecretKey() { return optional("TURNSTILE_SECRET_KEY"); },

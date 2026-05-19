@@ -6,15 +6,35 @@
  * - Error: { ok: false, error: { message: string, code?: string } }
  */
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? "https://futuro-club.vercel.app";
+const ALLOWED_ORIGINS = [
+  process.env.ALLOWED_ORIGIN ?? "https://futuro-club.vercel.app",
+  "https://futuro-club.vercel.app",
+];
 
-const CORS_HEADERS: Record<string, string> = {
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Vary": "Origin",
-};
+/** Build CORS origin dynamically — allow Vercel preview deploys + configured origins */
+function getAllowedOrigin(requestOrigin?: string | null): string {
+  if (!requestOrigin) return ALLOWED_ORIGINS[0];
+  // Exact match
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
+  // Vercel preview deploys: *.vercel.app
+  if (/^https:\/\/futuro-club[a-z0-9-]*\.vercel\.app$/.test(requestOrigin)) return requestOrigin;
+  // Localhost dev
+  if (/^https?:\/\/localhost(:\d+)?$/.test(requestOrigin)) return requestOrigin;
+  return ALLOWED_ORIGINS[0];
+}
+
+function corsHeaders(requestOrigin?: string | null): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": getAllowedOrigin(requestOrigin),
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Vary": "Origin",
+  };
+}
+
+/** @deprecated Use corsHeaders(origin) instead — kept for backward compat */
+const CORS_HEADERS = corsHeaders(null);
 
 /**
  * Respuesta exitosa estandarizada.

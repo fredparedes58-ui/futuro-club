@@ -90,7 +90,7 @@ export function usePushNotifications() {
       });
 
       // Enviar al backend para guardar
-      const res = await fetch("/api/push/subscribe", {
+      const res = await fetch("/api/notifications/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -115,11 +115,11 @@ export function usePushNotifications() {
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
         await sub.unsubscribe();
-        await fetch("/api/push/unsubscribe", {
-          method: "POST",
+        await fetch("/api/notifications/subscribe", {
+          method: "DELETE",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ endpoint: sub.endpoint }),
+          body: JSON.stringify({ subscription: { endpoint: sub.endpoint, keys: { p256dh: "", auth: "" } } }),
         });
       }
       setIsSubscribed(false);

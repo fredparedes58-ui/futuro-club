@@ -141,7 +141,10 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
                 );
               }
             }
-          } catch { /* plan check failed — allow through to avoid blocking */ }
+          } catch (planErr) {
+            console.error("[withHandler] Plan check failed — blocking request for safety:", planErr);
+            return errorResponse("No se pudo verificar el plan. Intenta de nuevo.", 503, "PLAN_CHECK_FAILED", rateLimitHeaders(rl));
+          }
         }
 
         if (options.requiredRole) {
@@ -160,7 +163,10 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
                 );
               }
             }
-          } catch { /* role check failed — allow through */ }
+          } catch (roleErr) {
+            console.error("[withHandler] Role check failed — blocking request for safety:", roleErr);
+            return errorResponse("No se pudo verificar el rol. Intenta de nuevo.", 503, "ROLE_CHECK_FAILED", rateLimitHeaders(rl));
+          }
         }
       }
     }
