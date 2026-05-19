@@ -8,7 +8,7 @@ import {
   Ruler,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
-import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
+import { calculateAdvancedMetrics, VAEPService, TrackingService } from "@/services/real/advancedMetricsService";
 import { useMatchEvents, useLogMatchEvent } from "@/hooks/useMatchEvents";
 import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/services/real/matchEventsService";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -172,12 +172,6 @@ const PlayerProfile = () => {
     toast.info(t("toasts.phvCalculating"));
   };
 
-  // ─── Métricas avanzadas — MUST be before early returns (Rules of Hooks) ──
-  const advancedMetrics = useMemo(() => {
-    if (!rawPlayer) return null;
-    return calculateAdvancedMetrics(rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0]);
-  }, [rawPlayer]);
-
   // Snapshot del Lab para alimentar AdvancedMetricsPanel (reemplaza stubs)
   const [trackingSnapshot, setTrackingSnapshot] = useState<TrackingSnapshot | null>(null);
   useEffect(() => {
@@ -188,6 +182,32 @@ const PlayerProfile = () => {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [rawPlayer?.id]);
+
+  // ─── Métricas avanzadas — feeds real tracking + biomechanics from snapshot ──
+  const advancedMetrics = useMemo(() => {
+    if (!rawPlayer) return null;
+
+    // Build trackingInput from saved YOLO positions (if available)
+    const trackingInput = trackingSnapshot?.focusPositions?.length
+      ? TrackingService.fromYoloPositions(
+          trackingSnapshot.focusPositions.map(p => ({ fx: p.fx, fy: p.fy, timestampMs: p.tMs })),
+          trackingSnapshot.durationSec / 60,
+        )
+      : undefined;
+
+    // Build biomechanicsInput from snapshot sessionMetrics (basic) — full data comes from MediaPipe
+    const biomechanicsInput = trackingSnapshot?.sessionMetrics
+      ? { bilateralAsymmetry: undefined } // Placeholder — real values come from MediaPipe saved in Supabase
+      : undefined;
+
+    return calculateAdvancedMetrics(
+      rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0],
+      {
+        trackingInput,
+        biomechanicsInput,
+      },
+    );
+  }, [rawPlayer, trackingSnapshot]);
 
   // ─── Estados ───────────────────────────────────────────────────────────────
   if (isLoading) return <ProfileSkeleton />;

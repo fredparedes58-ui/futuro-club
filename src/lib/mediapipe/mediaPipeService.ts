@@ -119,12 +119,14 @@ const DEFAULT_CONFIG: MediaPipeConfig = {
   useGpu: true,
 };
 
-/* ── CDN Model URLs ────────────────────────────────────────────── */
+/* ── CDN Model URLs (pinned versions — NEVER use @latest) ────── */
 
-const VISION_WASM_CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
-const POSE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task";
-const POSE_MODEL_LITE_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task";
-const POSE_MODEL_HEAVY_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task";
+/** Pinned to 0.10.14 — last verified stable release for PoseLandmarker */
+const MEDIAPIPE_VISION_VERSION = "0.10.14";
+const VISION_WASM_CDN = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MEDIAPIPE_VISION_VERSION}/wasm`;
+const POSE_MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
+const POSE_MODEL_LITE_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+const POSE_MODEL_HEAVY_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/1/pose_landmarker_heavy.task";
 
 /* ── Service ───────────────────────────────────────────────────── */
 

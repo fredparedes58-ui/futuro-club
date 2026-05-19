@@ -34,7 +34,7 @@ import MatchStatsPanel from "@/components/MatchStatsPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
-import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
+import { calculateAdvancedMetrics, TrackingService } from "@/services/real/advancedMetricsService";
 import TalentoOcultoAlert from "@/components/TalentoOcultoAlert";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import NotEvaluatedSection from "@/components/NotEvaluatedSection";
@@ -104,11 +104,20 @@ export default function PlayerHubPage() {
     return () => { cancelled = true; };
   }, [player, analyses]);
 
-  // Métricas avanzadas
+  // Métricas avanzadas — feeds real YOLO tracking data from Lab snapshot
   const advancedMetrics = useMemo(() => {
     if (!player) return null;
-    return calculateAdvancedMetrics(player as Parameters<typeof calculateAdvancedMetrics>[0]);
-  }, [player]);
+    const trackingInput = snapshot?.focusPositions?.length
+      ? TrackingService.fromYoloPositions(
+          snapshot.focusPositions.map(p => ({ fx: p.fx, fy: p.fy, timestampMs: p.tMs })),
+          snapshot.durationSec / 60,
+        )
+      : undefined;
+    return calculateAdvancedMetrics(
+      player as Parameters<typeof calculateAdvancedMetrics>[0],
+      { trackingInput },
+    );
+  }, [player, snapshot]);
 
   // Role profile (lazy · solo si hay análisis y se mira la pestaña)
   const { data: roleData } = useRoleProfile(tab === "rol" ? id : undefined, null);

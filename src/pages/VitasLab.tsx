@@ -39,6 +39,8 @@ import { EventDetectionEngine } from "@/lib/tracking/eventDetectionEngine";
 import type { TacticalEvent, EventSummary } from "@/lib/tracking/eventDetectionEngine";
 import { AnalyticsExporter } from "@/lib/tracking/analyticsExportPipeline";
 import type { SessionExportData, ExportFormat } from "@/lib/tracking/analyticsExportPipeline";
+import { detectFieldLines } from "@/lib/tracking/fieldLineDetector";
+import type { FieldDetectionResult } from "@/lib/tracking/fieldLineDetector";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -323,6 +325,56 @@ const VitasLab = () => {
   const eventEngineRef = useRef(new EventDetectionEngine({ trackingFps: 8 }));
   const [eventSummary, setEventSummary] = useState<EventSummary | null>(null);
   const [tacticalEvents, setTacticalEvents] = useState<TacticalEvent[]>([]);
+
+  // ── Auto-calibration via field line detection ──
+  const [autoCalibResult, setAutoCalibResult] = useState<FieldDetectionResult | null>(null);
+  const [autoCalibRunning, setAutoCalibRunning] = useState(false);
+
+  const runAutoCalibration = useCallback(async () => {
+    const video = labVideoRef.current;
+    if (!video || video.readyState < 2) return;
+    setAutoCalibRunning(true);
+    try {
+      // Capture a frame from the video
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(video, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const result = await detectFieldLines(imageData);
+      setAutoCalibResult(result);
+
+      if (result.autoCalibrationReady && result.corners.length >= 4) {
+        // Map detected corners to % coordinates for the calibration overlay
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        const newPoints = result.corners.slice(0, 4).map((corner, i) => ({
+          id: i + 1,
+          x: (corner[0] / vw) * 100,
+          y: (corner[1] / vh) * 100,
+          label: `P${i + 1}`,
+        }));
+        setPoints(newPoints);
+        toast.success("Auto-calibración exitosa", {
+          description: `${result.lines.length} líneas detectadas · Confianza ${Math.round(result.confidence * 100)}%`,
+          duration: 5000,
+        });
+      } else {
+        toast.info("Auto-calibración parcial", {
+          description: `Confianza ${Math.round(result.confidence * 100)}% (necesita ≥60%). Ajusta manualmente.`,
+          duration: 4000,
+        });
+      }
+    } catch (err) {
+      toast.error("Error en auto-detección de líneas");
+      console.error("[FieldLineDetector]", err);
+    } finally {
+      setAutoCalibRunning(false);
+    }
+  }, []);
 
   // points DEBE declararse ANTES de useTracking (que lo usa en calibrationPoints)
   const [points, setPoints] = useState<CalibrationPoint[]>([
@@ -631,16 +683,67 @@ const VitasLab = () => {
     try {
       const selectedPlayer = players?.find((p) => p.id === selectedPlayerId);
       const finalPlayedPosition = playedPosition || selectedPlayer?.position || undefined;
-      await v2.analyzeExistingVideo({
-        videoId: selectedVideoId,
-        bunnyVideoId,
-        playerId: selectedPlayerId,
-        playedPosition: finalPlayedPosition,
-      });
+
+      // ── Prefer client-side data path when MediaPipe/tracking data exists ──
+      const hasClientData = mediaPipe.biomechanics || tracking.state.sessionMetrics || eventSummary;
+      if (hasClientData) {
+        // Build physical metrics from YOLO tracking
+        const physicalMetrics: Record<string, unknown> = {};
+        if (tracking.state.sessionMetrics) {
+          const sm = tracking.state.sessionMetrics;
+          physicalMetrics.maxSpeedMs = sm.maxSpeedMs;
+          physicalMetrics.avgSpeedMs = sm.avgSpeedMs;
+          physicalMetrics.distanceCoveredM = sm.distanceCoveredM;
+          physicalMetrics.sprintCount = sm.sprintCount;
+          physicalMetrics.scanCount = tracking.state.scanEvents.length;
+          physicalMetrics.duelCount = tracking.state.duelEvents.length;
+          physicalMetrics.tracksDetected = tracking.state.currentTracks.length;
+        }
+
+        await v2.analyzeWithClientData({
+          videoId: selectedVideoId,
+          playerId: selectedPlayerId,
+          playedPosition: finalPlayedPosition,
+          biomechanics: mediaPipe.biomechanics ? {
+            drillScore: mediaPipe.biomechanics.drillScore,
+            bilateralSymmetry: mediaPipe.biomechanics.bilateralSymmetry,
+            injuryRiskFlags: mediaPipe.biomechanics.injuryRiskFlags,
+            jointAngles: mediaPipe.biomechanics.avgJointAngles,
+            framesAnalyzed: mediaPipe.biomechanics.framesAnalyzed,
+            source: "client_mediapipe",
+          } : null,
+          physicalMetrics: Object.keys(physicalMetrics).length > 0 ? physicalMetrics : null,
+          eventSummary: eventSummary ? {
+            totalEvents: eventSummary.totalEvents,
+            passCompletionPct: eventSummary.passCompletionPct,
+            passesAttempted: eventSummary.passesAttempted,
+            passesCompleted: eventSummary.passesCompleted,
+            duelsWon: eventSummary.duelsWon,
+            duelsLost: eventSummary.duelsLost,
+            recoveries: eventSummary.recoveries,
+            sprintBursts: eventSummary.sprintBursts,
+            shots: eventSummary.shots,
+            xgContributions: eventSummary.xgContributions,
+            vaepApprox: eventSummary.vaepApprox,
+            source: "client_event_engine",
+          } : null,
+        });
+      } else {
+        // Fallback: standard pipeline via Bunny → Modal → Claude
+        await v2.analyzeExistingVideo({
+          videoId: selectedVideoId,
+          bunnyVideoId,
+          playerId: selectedPlayerId,
+          playedPosition: finalPlayedPosition,
+        });
+      }
+
       SubscriptionService.incrementAnalysisCount();
       toast.dismiss(toastId);
       toast.success(t("lab.analysisComplete"), {
-        description: "Pipeline GPU completado · 6 reportes generados",
+        description: hasClientData
+          ? "Client-side pipeline completado · biomecánica + eventos + reportes IA"
+          : "Pipeline GPU completado · 6 reportes generados",
         duration: 5000,
       });
       setShowResultsPanel(true);
@@ -686,7 +789,12 @@ const VitasLab = () => {
   const [showCalibPresets, setShowCalibPresets] = useState(false);
 
   const handleAutoDetect = () => {
-    setShowCalibPresets(v => !v);
+    // If video is loaded, try auto field line detection first
+    if (labVideoRef.current && labVideoRef.current.readyState >= 2) {
+      runAutoCalibration();
+    } else {
+      setShowCalibPresets(v => !v);
+    }
   };
 
   const resetPoints = () => {
@@ -804,6 +912,24 @@ const VitasLab = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* ── Degradation Banners: warn when features are unavailable ── */}
+      {!SUPABASE_CONFIGURED && (
+        <div className="px-4 py-1.5 bg-yellow-500/10 border-b border-yellow-500/30 flex items-center gap-2">
+          <AlertTriangle size={14} className="text-yellow-500 shrink-0" />
+          <span className="text-[11px] font-display text-yellow-500">
+            Supabase no configurado — análisis IA y persistencia deshabilitados. Tracking + biomecánica client-side disponible.
+          </span>
+        </div>
+      )}
+      {SUPABASE_CONFIGURED && !import.meta.env.VITE_BUNNY_CDN_HOSTNAME && videos.length === 0 && (
+        <div className="px-4 py-1.5 bg-blue-500/10 border-b border-blue-500/30 flex items-center gap-2">
+          <Activity size={14} className="text-blue-400 shrink-0" />
+          <span className="text-[11px] font-display text-blue-400">
+            Bunny CDN no configurado — sube videos locales o configura VITE_BUNNY_CDN_HOSTNAME para streaming.
+          </span>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex">

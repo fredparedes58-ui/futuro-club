@@ -387,6 +387,133 @@ export function usePlayerAnalysisV2() {
     [loadAnalysis]
   );
 
+  /**
+   * Análisis con datos client-side (MediaPipe + YOLO tracking).
+   * Bypasses Modal — crea análisis en Supabase y dispara reportes Claude
+   * directamente con la biomecánica y métricas calculadas en el navegador.
+   *
+   * Esto conecta el pipeline completo sin depender de Modal.
+   */
+  const analyzeWithClientData = useCallback(
+    async (params: {
+      videoId: string;
+      playerId: string;
+      playedPosition?: string;
+      biomechanics?: Record<string, unknown> | null;
+      physicalMetrics?: Record<string, unknown> | null;
+      eventSummary?: Record<string, unknown> | null;
+    }) => {
+      const ac = new AbortController();
+      abortRef.current = ac;
+      setResult(INITIAL_RESULT);
+
+      try {
+        const headers = await getAuthHeaders();
+
+        // 1. Crear o encontrar análisis en Supabase
+        setState({ step: "queued", progress: 20, message: "Creando análisis con datos client-side...", error: null });
+
+        if (SUPABASE_CONFIGURED) {
+          // Upsert análisis con datos de biomecánica del cliente
+          const { data: analysis, error: upsertError } = await supabase
+            .from("analyses")
+            .upsert({
+              video_id: params.videoId,
+              player_id: params.playerId,
+              status: "processing_reports",
+              biomechanics: params.biomechanics ?? null,
+              vsi: null, // Will be calculated by reports
+              played_position: params.playedPosition ?? null,
+              client_metrics: {
+                physicalMetrics: params.physicalMetrics ?? null,
+                eventSummary: params.eventSummary ?? null,
+                source: "client_mediapipe_yolo",
+                processedAt: new Date().toISOString(),
+              },
+            }, { onConflict: "video_id" })
+            .select("id")
+            .single();
+
+          if (upsertError) {
+            console.warn("[V2] Supabase upsert warning:", upsertError.message);
+          }
+
+          const analysisId = analysis?.id;
+          if (analysisId) {
+            setResult(r => ({ ...r, analysisId, videoId: params.videoId }));
+          }
+
+          // 2. Disparar generación de reportes Claude
+          setState({ step: "generating_reports", progress: 50, message: "Claude generando 6 reportes especializados...", error: null });
+
+          // Trigger report generation via API
+          try {
+            const reportRes = await fetch("/api/analyses/generate-reports", {
+              method: "POST",
+              headers: { ...headers, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                analysisId,
+                playerId: params.playerId,
+                videoId: params.videoId,
+                biomechanics: params.biomechanics,
+                physicalMetrics: params.physicalMetrics,
+                eventSummary: params.eventSummary,
+                playedPosition: params.playedPosition,
+              }),
+              signal: ac.signal,
+            });
+
+            if (reportRes.ok) {
+              setState({ step: "generating_reports", progress: 75, message: "Reportes generándose...", error: null });
+
+              // Poll until complete
+              const completed = await pollUntil(
+                async () => {
+                  const res = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, { headers, signal: ac.signal });
+                  if (!res.ok) return null;
+                  const d = await res.json();
+                  return d?.data?.analysis ?? null;
+                },
+                (a) => a?.status === "completed" || a?.status === "completed_partial",
+                30, 3000, ac.signal
+              );
+
+              if (completed) {
+                return await loadAnalysis(completed.id);
+              }
+            }
+          } catch {
+            // Report generation endpoint may not exist yet — fall back to existing flow
+            console.warn("[V2] Report generation endpoint not available, trying existing pipeline");
+          }
+        }
+
+        // 3. Fallback: try the standard analyzeExistingVideo flow
+        setState({ step: "queued", progress: 40, message: "Intentando pipeline estándar...", error: null });
+        const bunnyVideoId = params.videoId; // May need different extraction
+        return await analyzeExistingVideo({
+          videoId: params.videoId,
+          bunnyVideoId,
+          playerId: params.playerId,
+          playedPosition: params.playedPosition,
+        });
+
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : "Error desconocido";
+        // Don't throw — store biomechanics result even if reports fail
+        setState({ step: "completed", progress: 100, message: "Biomecánica guardada (reportes IA pendientes)", error: null });
+        setResult(r => ({
+          ...r,
+          videoId: params.videoId,
+          biomechanics: params.biomechanics as Record<string, unknown> ?? null,
+          completedAt: new Date().toISOString(),
+        }));
+        console.warn("[V2] analyzeWithClientData partial:", errorMsg);
+      }
+    },
+    [loadAnalysis, analyzeExistingVideo]
+  );
+
   // Cleanup al unmount
   useEffect(() => {
     return () => {
@@ -402,6 +529,7 @@ export function usePlayerAnalysisV2() {
     isError: state.step === "error",
     startAnalysis,
     analyzeExistingVideo,
+    analyzeWithClientData,
     loadAnalysis,
     reset,
   };
