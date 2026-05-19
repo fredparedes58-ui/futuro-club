@@ -735,7 +735,7 @@ export const TrackingService = {
         sprintDistanceM: null,
         status: "stub_no_data",
         message: "STUB: En espera de datos de tracking GPS o video-tracking por keypoints. "
-          + "Conectar Roboflow Pose Estimation o dispositivo GPS para activar.",
+          + "Analiza un video en VITAS Lab con MediaPipe Pose para activar.",
       };
     }
 
@@ -861,8 +861,8 @@ export const BiomechanicsService = {
         asymmetryPct: null,
         status: "stub_no_data",
         message: "STUB: En espera de datos cinemáticos. "
-          + "Conectar Roboflow Pose Estimation para obtener ángulos articulares "
-          + "y calcular DrillScore biomecánico.",
+          + "Analiza un video en VITAS Lab con MediaPipe Pose para obtener "
+          + "ángulos articulares y calcular DrillScore biomecánico.",
       };
     }
 

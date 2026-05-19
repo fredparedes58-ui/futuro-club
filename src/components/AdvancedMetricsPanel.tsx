@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { AdvancedPlayerMetrics } from "@/services/real/advancedMetricsService";
 import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
+import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 
 interface Props {
   metrics: AdvancedPlayerMetrics;
@@ -22,18 +23,21 @@ interface Props {
   qualityIssues?: string[];
   /** Snapshot del Lab · si presente, reemplaza stubs de tracking/biomechanics */
   trackingSnapshot?: TrackingSnapshot | null;
+  /** MediaPipe biomechanics · si presente, reemplaza el DrillScore heurístico con datos reales */
+  mediaPipeBiomechanics?: BiomechanicsScore | null;
 }
 
-export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, trackingSnapshot }: Props) {
+export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, trackingSnapshot, mediaPipeBiomechanics }: Props) {
   const { vaep } = metrics;
 
   // ── Override tracking con snapshot del Lab si existe ─────────────────
   const trackingFromSnapshot = trackingSnapshot ? buildTrackingFromSnapshot(trackingSnapshot) : null;
   const tracking = trackingFromSnapshot ?? metrics.tracking;
 
-  // ── Override biomechanics con snapshot del Lab si existe ─────────────
+  // ── Override biomechanics: MediaPipe real > snapshot heurístico > service stub
+  const biomechanicsFromMediaPipe = mediaPipeBiomechanics ? buildBiomechanicsFromMediaPipe(mediaPipeBiomechanics) : null;
   const biomechanicsFromSnapshot = trackingSnapshot ? buildBiomechanicsFromSnapshot(trackingSnapshot) : null;
-  const biomechanics = biomechanicsFromSnapshot ?? metrics.biomechanics;
+  const biomechanics = biomechanicsFromMediaPipe ?? biomechanicsFromSnapshot ?? metrics.biomechanics;
 
   return (
     <motion.div
@@ -249,6 +253,22 @@ function buildBiomechanicsFromSnapshot(s: TrackingSnapshot): {
     asymmetryPct: null,
     status:       "calculated",
     message:      `DrillScore desde Lab · ${s.scanCount} escaneos · ${duelsTotal} duelos · ${m.sprintCount} sprints`,
+  };
+}
+
+function buildBiomechanicsFromMediaPipe(bio: BiomechanicsScore): {
+  drillScore: number | null;
+  injuryRisk: number | null;
+  asymmetryPct: number | null;
+  status: "calculated" | "stub_no_data";
+  message: string;
+} {
+  return {
+    drillScore:   bio.drillScore,
+    injuryRisk:   bio.injuryRisk,
+    asymmetryPct: bio.asymmetryPct,
+    status:       "calculated",
+    message:      `MediaPipe Pose · ${bio.framesAnalyzed} frames · Eficiencia ${bio.runningEfficiency}% · Simetría ${bio.bilateralSymmetry}%`,
   };
 }
 
