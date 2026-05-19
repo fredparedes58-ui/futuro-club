@@ -103,38 +103,56 @@ async function processQueue() {
     auth: { persistSession: false },
   });
 
-  // ── 1. Obtener vídeos a procesar (status=queued · ordenados por created_at) ──
-  const { data: queuedAnalyses, error: queryError } = await supabase
-    .from("analyses")
-    .select("id, player_id, video_id, tenant_id")
-    .eq("status", "queued")
-    .order("created_at", { ascending: true })
-    .limit(BATCH_SIZE);
+  // ── 1. Atomically claim queued analyses (prevents double-dispatch) ──
+  // Uses RPC with FOR UPDATE SKIP LOCKED for true atomicity.
+  // Falls back to non-atomic SELECT+UPDATE if RPC not yet deployed.
+  let queuedAnalyses: QueuedAnalysis[] = [];
 
-  if (queryError) {
-    return { processed: 0, error: queryError.message };
+  const { data: rpcResult, error: rpcError } = await supabase
+    .rpc("claim_queued_analyses", { batch_size: BATCH_SIZE });
+
+  if (!rpcError && rpcResult && rpcResult.length > 0) {
+    // RPC available — analyses are already locked as 'processing'
+    queuedAnalyses = rpcResult as QueuedAnalysis[];
+  } else {
+    // Fallback: non-atomic SELECT + conditional UPDATE (for pre-migration DBs)
+    if (rpcError) console.warn("[queue] RPC not available, using fallback:", rpcError.message);
+    const { data: fallbackData, error: queryError } = await supabase
+      .from("analyses")
+      .select("id, player_id, video_id, tenant_id")
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(BATCH_SIZE);
+
+    if (queryError) {
+      return { processed: 0, error: queryError.message };
+    }
+    queuedAnalyses = (fallbackData ?? []) as QueuedAnalysis[];
   }
 
-  if (!queuedAnalyses || queuedAnalyses.length === 0) {
+  if (queuedAnalyses.length === 0) {
     return { processed: 0, message: "no queued analyses" };
   }
 
   const callbackToken = process.env.CRON_SECRET ?? "default-token";
   const callbackUrl = `${PUBLIC_URL}/api/webhooks/modal-callback`;
+  const usedRpc = !rpcError;
 
   const results: Array<{ id: string; status: string; error?: string }> = [];
 
-  for (const analysis of queuedAnalyses as QueuedAnalysis[]) {
-    // ── 2. Marcar como processing (lock) ──
-    const { error: lockError } = await supabase
-      .from("analyses")
-      .update({ status: "processing", started_at: new Date().toISOString() })
-      .eq("id", analysis.id)
-      .eq("status", "queued"); // condicional: solo si sigue queued
+  for (const analysis of queuedAnalyses) {
+    // If using fallback (no RPC), lock each row individually
+    if (!usedRpc) {
+      const { error: lockError } = await supabase
+        .from("analyses")
+        .update({ status: "processing", started_at: new Date().toISOString() })
+        .eq("id", analysis.id)
+        .eq("status", "queued");
 
-    if (lockError) {
-      results.push({ id: analysis.id, status: "skip", error: lockError.message });
-      continue;
+      if (lockError) {
+        results.push({ id: analysis.id, status: "skip", error: lockError.message });
+        continue;
+      }
     }
 
     // ── 3. Obtener URL del vídeo desde Bunny ──

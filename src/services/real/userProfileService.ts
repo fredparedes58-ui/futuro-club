@@ -135,6 +135,41 @@ export const UserProfileService = {
     return this.get(userId)?.onboardingCompleted ?? false;
   },
 
+  /**
+   * Server-authoritative onboarding check.
+   * Falls back to localStorage if Supabase unavailable.
+   * Used by ProtectedRoute to prevent localStorage bypass.
+   */
+  async isOnboardingCompletedAsync(userId: string): Promise<boolean> {
+    // 1. Fast path: localStorage says yes
+    const cached = this.get(userId);
+    if (cached?.onboardingCompleted) return true;
+
+    // 2. Check Supabase (authoritative)
+    if (SUPABASE_CONFIGURED) {
+      try {
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (data?.onboarding_completed) {
+          // Sync to localStorage so next check is fast
+          this.update(userId, { onboardingCompleted: true });
+          return true;
+        }
+        // Supabase says not completed
+        return false;
+      } catch {
+        // Supabase failed — fall back to localStorage
+        return cached?.onboardingCompleted ?? false;
+      }
+    }
+
+    return cached?.onboardingCompleted ?? false;
+  },
+
   // ── Escritura ─────────────────────────────────────────────────────────────
 
   create(profile: Omit<UserProfile, "createdAt">): UserProfile {

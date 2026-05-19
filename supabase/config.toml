@@ -1,0 +1,44 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# VITAS · Supabase Local Configuration
+# Used by `supabase db push`, `supabase db reset`, `supabase start`
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[project]
+id = "vitas-football"
+
+[db]
+port = 54322
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://localhost:5200"
+additional_redirect_urls = ["https://futuro-club.vercel.app"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+double_confirm_changes = false
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
+
+# Migration ordering note:
+# 000_full_schema.sql is the baseline (creates all tables from scratch).
+# Migrations 001+ are incremental. For a fresh DB, apply 000 first.
+# For an existing DB, skip 000 and apply only the newer migrations.
+# 008_subscriptions_stripe.sql is a patch on 005_subscriptions.sql.
