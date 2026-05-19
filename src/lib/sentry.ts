@@ -15,6 +15,11 @@ export function initSentry() {
   if (!DSN) {
     if (import.meta.env.DEV) {
       console.log("[Sentry] No DSN configured — skipping initialization");
+    } else {
+      console.warn(
+        "[Sentry] VITE_SENTRY_DSN not configured in production — errors are not being tracked. "
+        + "Create a project at https://sentry.io and add VITE_SENTRY_DSN to Vercel env vars."
+      );
     }
     return;
   }

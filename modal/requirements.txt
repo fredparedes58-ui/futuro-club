@@ -1,0 +1,10 @@
+# VITAS · Modal GPU Worker dependencies
+# These are installed inside the Modal container image (see modal_app.py).
+# This file is for local development / IDE autocomplete only.
+modal>=0.64.0
+mediapipe==0.10.18
+opencv-python-headless==4.10.0.84
+numpy==1.26.4
+decord==0.6.0
+requests==2.32.3
+fastapi[standard]==0.115.0

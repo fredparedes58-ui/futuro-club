@@ -73,6 +73,7 @@ interface MemoryEntry {
 }
 
 const memStore = new Map<string, MemoryEntry>();
+let _memFallbackWarned = false;
 
 function checkMemory(ip: string, max: number, windowMs: number): RateLimitResult {
   const now = Date.now();
@@ -132,7 +133,15 @@ export async function checkRateLimit(
     }
   }
 
-  // Fallback in-memory
+  // Fallback in-memory — WARNING: ineffective on multi-instance Edge
+  if (!limiter && !_memFallbackWarned) {
+    _memFallbackWarned = true;
+    console.warn(
+      "[RateLimit] UPSTASH_REDIS_REST_URL not configured — using in-memory fallback. "
+      + "Rate limiting is NOT effective across Vercel Edge instances. "
+      + "Configure Upstash Redis for production: https://upstash.com"
+    );
+  }
   return checkMemory(ip, max, windowMs);
 }
 
