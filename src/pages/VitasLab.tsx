@@ -34,6 +34,11 @@ import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import VoronoiOverlay from "@/components/VoronoiOverlay";
 import { useTracking } from "@/hooks/useTracking";
+import { useMediaPipePose } from "@/hooks/useMediaPipePose";
+import { EventDetectionEngine } from "@/lib/tracking/eventDetectionEngine";
+import type { TacticalEvent, EventSummary } from "@/lib/tracking/eventDetectionEngine";
+import { AnalyticsExporter } from "@/lib/tracking/analyticsExportPipeline";
+import type { SessionExportData, ExportFormat } from "@/lib/tracking/analyticsExportPipeline";
 import pitchImage from "@/assets/pitch-field.jpg";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -292,6 +297,33 @@ const VitasLab = () => {
   const [videoDuration, setVideoDuration] = useState(0);
   const [actionLog, setActionLog] = useState<Array<{ time: number; text: string; type: "positive" | "negative" | "neutral" }>>([]);
 
+  // ── MediaPipe Pose (biomechanics real) ──
+  const mediaPipe = useMediaPipePose({
+    targetFps: 8,
+    modelComplexity: 1,
+    offlineMode: false,
+    onFrame: (poses, frameIndex) => {
+      if (poses.length > 0 && frameIndex % 30 === 0) {
+        setActionLog(prev => [...prev.slice(-10), {
+          time: Math.floor((labVideoRef.current?.currentTime ?? 0)),
+          text: `MediaPipe: ${poses.length} poses · ${poses[0]?.jointAngles?.trunkLean?.toFixed(1) ?? "?"}° trunk`,
+          type: "neutral" as const,
+        }]);
+      }
+    },
+    onComplete: (bio) => {
+      toast.success("Biomecánica completada", {
+        description: `DrillScore: ${bio.drillScore}/100 · Simetría: ${bio.bilateralSymmetry}% · ${bio.framesAnalyzed} frames`,
+        duration: 6000,
+      });
+    },
+  });
+
+  // ── Event Detection Engine ──
+  const eventEngineRef = useRef(new EventDetectionEngine({ trackingFps: 8 }));
+  const [eventSummary, setEventSummary] = useState<EventSummary | null>(null);
+  const [tacticalEvents, setTacticalEvents] = useState<TacticalEvent[]>([]);
+
   // points DEBE declararse ANTES de useTracking (que lo usa en calibrationPoints)
   const [points, setPoints] = useState<CalibrationPoint[]>([
     { id: 1, x: 28, y: 62, label: "P1" },
@@ -331,6 +363,44 @@ const VitasLab = () => {
     localVideoSrc,
   });
 
+  // ── Auto-start MediaPipe cuando tracking empieza ──
+  useEffect(() => {
+    if (tracking.state.status === "tracking" && mediaPipe.status === "idle" && labVideoRef.current) {
+      mediaPipe.start(labVideoRef.current).catch(err => {
+        console.warn("[MediaPipe] Auto-start failed:", err.message);
+      });
+    }
+    if (tracking.state.status === "complete" && mediaPipe.status === "processing") {
+      mediaPipe.stop();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracking.state.status]);
+
+  // ── Feed YOLO tracks into Event Detection Engine each frame ──
+  useEffect(() => {
+    if (tracking.state.status !== "tracking") return;
+    const tracks = tracking.state.currentTracks;
+    if (tracks.length === 0) return;
+
+    const videoEl = labVideoRef.current;
+    const timestampMs = videoEl ? videoEl.currentTime * 1000 : Date.now();
+    const frameIndex = Math.round(timestampMs / 125);
+
+    eventEngineRef.current.processFrame(
+      tracks,
+      timestampMs,
+      frameIndex,
+      tracking.state.focusTrackId,
+    );
+
+    // Update summary periodically (every 30 frames ≈ 3.75s)
+    if (frameIndex % 30 === 0) {
+      setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
+      setTacticalEvents(eventEngineRef.current.getEvents());
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracking.state.currentTracks]);
+
   // Auto-guardar snapshot cuando tracking termina · disponible en perfil + role
   useEffect(() => {
     if (tracking.state.status !== "complete" || !selectedPlayerId) return;
@@ -338,6 +408,11 @@ const VitasLab = () => {
     const focusTrack = tracking.state.focusTrackId
       ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
       : null;
+    // Final event summary
+    const finalEventSummary = eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined);
+    setEventSummary(finalEventSummary);
+    setTacticalEvents(eventEngineRef.current.getEvents());
+
     PlayerTrackingService.save({
       playerId:       selectedPlayerId,
       videoId:        selectedVideoId ?? null,
@@ -354,7 +429,14 @@ const VitasLab = () => {
       duelEvents:     tracking.state.duelEvents,
       focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })),
     });
-    toast.success("📊 Snapshot del Lab guardado en el perfil del jugador");
+
+    const bioMsg = mediaPipe.biomechanics
+      ? ` · DrillScore ${mediaPipe.biomechanics.drillScore}`
+      : "";
+    const evtMsg = finalEventSummary
+      ? ` · ${finalEventSummary.totalEvents} eventos`
+      : "";
+    toast.success(`📊 Snapshot guardado${bioMsg}${evtMsg}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracking.state.status, selectedPlayerId, selectedVideoId]);
 
@@ -1251,6 +1333,72 @@ const VitasLab = () => {
                 onToggleVoronoi={() => setShowVoronoi(v => !v)}
               />
 
+              {/* MediaPipe + Event Detection Status */}
+              <div className="glass rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">MediaPipe Pose</span>
+                  <span className={`text-[9px] font-display px-1.5 py-0.5 rounded-full ${
+                    mediaPipe.status === "processing" ? "bg-green-500/10 text-green-500 border border-green-500/20" :
+                    mediaPipe.status === "loading" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                    mediaPipe.status === "complete" ? "bg-primary/10 text-primary border border-primary/20" :
+                    "bg-muted text-muted-foreground border border-border"
+                  }`}>
+                    {mediaPipe.status === "processing" ? `${mediaPipe.fps} FPS` :
+                     mediaPipe.status === "loading" ? "Cargando..." :
+                     mediaPipe.status === "complete" ? "Completado" :
+                     mediaPipe.status === "error" ? "Error" : "Esperando"}
+                  </span>
+                </div>
+                {mediaPipe.biomechanics && (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <div className="text-center">
+                      <p className="text-[8px] text-muted-foreground uppercase">DrillScore</p>
+                      <p className="text-sm font-display font-black text-primary">{mediaPipe.biomechanics.drillScore}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[8px] text-muted-foreground uppercase">Simetría</p>
+                      <p className="text-sm font-display font-black text-green-500">{mediaPipe.biomechanics.bilateralSymmetry}%</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[8px] text-muted-foreground uppercase">Riesgo</p>
+                      <p className={`text-sm font-display font-black ${mediaPipe.biomechanics.injuryRisk > 50 ? "text-red-500" : "text-green-500"}`}>{mediaPipe.biomechanics.injuryRisk}</p>
+                    </div>
+                  </div>
+                )}
+                {eventSummary && eventSummary.totalEvents > 0 && (
+                  <div className="pt-1 border-t border-border/50">
+                    <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">Eventos Tácticos</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {eventSummary.passesAttempted > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">
+                          Pases {eventSummary.passesCompleted}/{eventSummary.passesAttempted}
+                        </span>
+                      )}
+                      {eventSummary.duelsWon + eventSummary.duelsLost > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
+                          Duelos {eventSummary.duelsWon}G/{eventSummary.duelsLost}P
+                        </span>
+                      )}
+                      {eventSummary.recoveries > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">
+                          Recup. {eventSummary.recoveries}
+                        </span>
+                      )}
+                      {eventSummary.sprintBursts > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
+                          Sprints {eventSummary.sprintBursts}
+                        </span>
+                      )}
+                      {eventSummary.shots > 0 && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400">
+                          Tiros {eventSummary.shots}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Mapa de calor — jugador individual o equipo completo */}
               {(() => {
                 if (tracking.state.focusTrackId) {
@@ -1286,6 +1434,11 @@ const VitasLab = () => {
                 if (!selectedVideoId) { toast.error("Selecciona un video primero"); return; }
                 if (!labVideoRef.current) { toast.error("Video no cargado"); return; }
                 setShowTracking(true);
+                // Reset MediaPipe + event engine for fresh session
+                mediaPipe.reset();
+                eventEngineRef.current.reset();
+                setEventSummary(null);
+                setTacticalEvents([]);
                 // Use the visible video element for tracking (needed for canvas overlay)
                 const videoEl = labVideoRef.current;
                 videoEl.crossOrigin = "anonymous";
@@ -1308,11 +1461,65 @@ const VitasLab = () => {
 
             {tracking.state.status === "tracking" && (
               <button
-                onClick={() => { tracking.stopTracking(); }}
+                onClick={() => {
+                  tracking.stopTracking();
+                  if (mediaPipe.status === "processing") mediaPipe.stop();
+                  // Final event summary
+                  setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
+                  setTacticalEvents(eventEngineRef.current.getEvents());
+                }}
                 className="w-full py-2 rounded-xl border border-red-500 text-red-400 text-sm font-display font-semibold hover:bg-red-500/10 transition-colors"
               >
                 Detener tracking
               </button>
+            )}
+
+            {/* Export Data — available after tracking completes */}
+            {tracking.state.status === "complete" && tracking.state.sessionMetrics && (
+              <div className="flex gap-1.5">
+                {(["csv", "json", "html_report"] as ExportFormat[]).map(fmt => (
+                  <button
+                    key={fmt}
+                    onClick={() => {
+                      const focusTrack = tracking.state.focusTrackId
+                        ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
+                        : null;
+                      const exportData: SessionExportData = {
+                        metadata: {
+                          sessionId: `session_${Date.now()}`,
+                          playerId: selectedPlayerId ?? "unknown",
+                          playerName: selectedPlayer?.name ?? "Jugador",
+                          videoId: selectedVideoId,
+                          date: new Date().toISOString().slice(0, 10),
+                          durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
+                          trackingFps: 8,
+                          fieldDimensions: { lengthM: 105, widthM: 68 },
+                        },
+                        physicalMetrics: tracking.state.sessionMetrics!,
+                        biomechanics: mediaPipe.biomechanics,
+                        tracks: tracking.state.currentTracks,
+                        focusTrackId: tracking.state.focusTrackId,
+                        events: tacticalEvents,
+                        eventSummary: eventSummary ?? {
+                          totalEvents: 0, byType: {} as Record<string, number>,
+                          passCompletionPct: 0, passesAttempted: 0, passesCompleted: 0,
+                          duelsWon: 0, duelsLost: 0, recoveries: 0, sprintBursts: 0,
+                          pressTriggers: 0, shots: 0, xgContributions: 0, vaepApprox: 0,
+                        } as EventSummary,
+                        scanEvents: tracking.state.scanEvents,
+                        duelEvents: tracking.state.duelEvents,
+                        focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })) ?? [],
+                      };
+                      const exporter = new AnalyticsExporter(exportData);
+                      exporter.download(fmt);
+                      toast.success(`Exportado como ${fmt.toUpperCase()}`);
+                    }}
+                    className="flex-1 py-1.5 rounded-lg border border-border text-[10px] font-display font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors uppercase"
+                  >
+                    {fmt === "html_report" ? "HTML" : fmt.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             )}
 
             {/* START ANALYSIS — Claude Vision */}
@@ -1792,12 +1999,12 @@ const VitasLab = () => {
             {v2.isProcessing ? `PIPELINE: ${v2.state.step.toUpperCase()}` : "GPU_READY"}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            RAM_USAGE: 4.8GB
+            <span className={`w-1.5 h-1.5 rounded-full ${mediaPipe.status === "processing" ? "bg-green-400 animate-pulse" : mediaPipe.status === "complete" ? "bg-green-400" : "bg-muted-foreground"}`} />
+            MEDIAPIPE: {mediaPipe.status === "processing" ? `${mediaPipe.fps}FPS` : mediaPipe.status === "complete" ? `DONE·${mediaPipe.framesProcessed}f` : "STANDBY"}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-            ENGINE: YOLOv11M
+            ENGINE: YOLO+MediaPipe{eventSummary ? ` · ${eventSummary.totalEvents}evt` : ""}
           </span>
         </div>
         <span>VITAS_STATION_004 // BUILD_3.0.0</span>
