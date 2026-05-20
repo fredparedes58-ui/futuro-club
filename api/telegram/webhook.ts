@@ -402,23 +402,30 @@ async function callClaudeWithTools(
 
   // Loop hasta 3 iteraciones de tool use
   for (let i = 0; i < 3; i++) {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5",
-        max_tokens: 800,
-        system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-        tools: TOOLS,
-        messages,
-      }),
-    });
-    if (!res.ok) {
-      return { text: `_(Error Claude ${res.status})_`, toolsUsed, tokensIn: totalIn, tokensOut: totalOut };
+    // Fetch con retry para errores transitorios (429, 529, 500+)
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5",
+          max_tokens: 800,
+          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          tools: TOOLS,
+          messages,
+        }),
+      });
+      if (res.ok || (res.status < 500 && res.status !== 429)) break;
+      // Esperar antes de reintentar: 1s, 2s, 4s
+      if (attempt < 2) await new Promise((r) => setTimeout(r, 1000 * (2 ** attempt)));
+    }
+    if (!res || !res.ok) {
+      return { text: `_(Error Claude ${res?.status ?? "?"} · intenta de nuevo en unos segundos)_`, toolsUsed, tokensIn: totalIn, tokensOut: totalOut };
     }
     const data = await res.json();
     totalIn += data.usage?.input_tokens ?? 0;
