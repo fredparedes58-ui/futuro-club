@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VITAS · Resumen Ejecutivo — Análisis Competitivo 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #0059B3;
+  --primary-light: #0066CC;
+  --primary-10: rgba(0,89,179,0.10);
+  --primary-20: rgba(0,89,179,0.20);
+  --electric: #A855F7;
+  --electric-10: rgba(168,85,247,0.10);
+  --gold: #D4940A;
+  --gold-10: rgba(212,148,10,0.10);
+  --cyan: #158585;
+  --cyan-10: rgba(21,133,133,0.10);
+  --hot-pink: #E6197A;
+  --hot-pink-10: rgba(230,25,122,0.10);
+  --navy: #0F1729;
+  --amber: #F59E0B;
+  --amber-10: rgba(245,158,11,0.10);
+  --red: #EF4444;
+  --red-10: rgba(239,68,68,0.10);
+  --bg: #F5F7FA;
+  --card: #FFFFFF;
+  --text: #0F1729;
+  --muted: #38455A;
+  --border: #E2E8F0;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+  font-size: 11pt;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+h1, h2, h3 { font-family: 'Space Grotesk', system-ui, sans-serif; line-height: 1.2; }
+h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); color: var(--primary); }
+h3 { font-size: 0.95rem; margin: 0.8rem 0 0.3rem; }
+p { margin-bottom: 0.5rem; }
+table { border-collapse: collapse; width: 100%; margin: 0.5rem 0; font-size: 0.85rem; }
+th, td { padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--border); text-align: left; }
+th { background: var(--primary-10); font-weight: 600; font-size: 0.8rem; color: var(--primary); }
+ol, ul { padding-left: 1.2rem; margin-bottom: 0.5rem; }
+li { margin-bottom: 0.25rem; font-size: 0.9rem; }
+
+.badge {
+  display: inline-block; padding: 0.1rem 0.45rem; border-radius: 100px;
+  font-size: 0.65rem; font-weight: 600; white-space: nowrap;
+}
+.badge-primary { background: var(--primary-10); color: var(--primary); }
+.badge-electric { background: var(--electric-10); color: var(--electric); }
+.badge-amber { background: var(--amber-10); color: #B45309; }
+.badge-red { background: var(--red-10); color: var(--red); }
+.badge-gold { background: var(--gold-10); color: var(--gold); }
+
+.highlight {
+  background: var(--primary-10); border-left: 4px solid var(--primary);
+  padding: 0.7rem 0.9rem; border-radius: 0 8px 8px 0; margin: 0.5rem 0;
+  font-size: 0.9rem;
+}
+.header-block {
+  background: linear-gradient(135deg, var(--navy) 0%, #1a2744 50%, var(--primary) 100%);
+  color: #fff; padding: 1.8rem 1.5rem;
+  border-radius: 12px; margin-bottom: 1.5rem; text-align: center;
+  position: relative; overflow: hidden;
+}
+.header-block::before {
+  content: ''; position: absolute; top: -50%; right: -20%; width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(0,89,179,0.3) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.header-block h1 { color: #fff; position: relative; }
+.header-block .sub { color: #94A3B8; font-size: 0.85rem; position: relative; }
+.header-block .accent { color: var(--electric); }
+
+/* Stat cards row */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; margin: 0.8rem 0 1rem; }
+.stat-card {
+  background: var(--card); border-radius: 10px; padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border); text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.stat-card .num { font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+.stat-card .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+/* Moat bar */
+.moat-bar { display: flex; gap: 2px; align-items: center; }
+.moat-bar span { width: 18px; height: 6px; border-radius: 3px; background: var(--border); display: inline-block; }
+.moat-bar span.on { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 0.7rem 0.8rem; margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.card h3 { margin: 0 0 0.2rem; font-size: 0.85rem; color: var(--text); }
+.card p { font-size: 0.8rem; margin: 0; color: var(--muted); }
+
+/* Mini radar chart */
+.radar-wrap { display: flex; justify-content: center; margin: 0.5rem 0; }
+
+footer {
+  text-align: center; margin-top: 2rem; font-size: 0.7rem; color: var(--muted);
+  border-top: 1px solid var(--border); padding-top: 0.8rem;
+}
+
+@media print {
+  body { padding: 0; font-size: 9.5pt; max-width: none; background: #fff; }
+  .header-block { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .stat-card, .card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page { size: A4; margin: 1.5cm; }
+  h2 { page-break-after: avoid; }
+  table, .card { page-break-inside: avoid; }
+}
+@media (max-width: 600px) {
+  .two-col { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  body { padding: 1rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="header-block">
+  <h1>VITAS<span class="accent">.</span> Análisis Competitivo</h1>
+  <p class="sub">Resumen Ejecutivo · Mayo 2026</p>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-row">
+  <div class="stat-card"><div class="num">0/14</div><div class="label">Competidores con PHV</div></div>
+  <div class="stat-card"><div class="num">10-40×</div><div class="label">Más barato</div></div>
+  <div class="stat-card"><div class="num">68.7×</div><div class="label">LTV:CAC</div></div>
+  <div class="stat-card"><div class="num">$5.7B</div><div class="label">TAM 2025</div></div>
+</div>
+
+<!-- TL;DR -->
+<h2>Posicionamiento</h2>
+<div class="highlight">
+  <strong>VITAS es la única plataforma de inteligencia futbolística que corrige evaluaciones de talento juvenil por maduración biológica (PHV)</strong>, ofreciendo análisis de video con IA, scouting y métricas avanzadas a un precio 10-40× inferior al de competidores enterprise, sin requerir hardware.
+</div>
+
+<!-- Diferenciadores -->
+<h2>5 Diferenciadores Únicos</h2>
+<table>
+  <thead><tr><th>Diferenciador</th><th>Descripción</th><th>Moat</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>PHV + TruthFilter + UBI</strong></td>
+      <td>Corrección de maduración biológica en evaluaciones. First mover: 0/14 competidores lo integran con rendimiento.</td>
+      <td><div class="moat-bar"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div></td>
+    </tr>
+    <tr>
+      <td><strong>Multi-agente IA nativo</strong></td>
+      <td>8 agentes (Claude+Gemini), RAG, circuit breakers. No es IA bolted-on, es el core.</td>
+      <td><div class="moat-bar"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div></td>
+    </tr>
+    <tr>
+      <td><strong>Canal B2B2C (Parent Pro)</strong></td>
+      <td>€9/mes por familia. LTV:CAC 68.7×. Network effect creciente.</td>
+      <td><div class="moat-bar"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div></td>
+    </tr>
+    <tr>
+      <td><strong>Transparencia (confianza + tier)</strong></td>
+      <td>Score de confianza 0-1 por métrica + Sample Tier. Ningún competidor lo expone.</td>
+      <td><div class="moat-bar"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div></td>
+    </tr>
+    <tr>
+      <td><strong>Precio 10-40× inferior</strong></td>
+      <td>€2.4K/año vs €13.5-36K stack equivalente. Sin hardware.</td>
+      <td><div class="moat-bar"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Mini Radar -->
+<h2>Radar: VITAS vs Competidores</h2>
+<div class="radar-wrap">
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .radar-label { font: 600 9px 'Inter', sans-serif; fill: #38455A; }
+      .radar-grid { stroke: #E2E8F0; stroke-width: 0.5; fill: none; }
+    </style>
+  </defs>
+  <!-- Grid rings -->
+  <g transform="translate(160,115)">
+    <polygon class="radar-grid" points="0,-90 85.6,-27.8 52.9,72.8 -52.9,72.8 -85.6,-27.8"/>
+    <polygon class="radar-grid" points="0,-60 57,-18.5 35.3,48.5 -35.3,48.5 -57,-18.5"/>
+    <polygon class="radar-grid" points="0,-30 28.5,-9.3 17.6,24.3 -17.6,24.3 -28.5,-9.3"/>
+    <!-- Axis lines -->
+    <line x1="0" y1="0" x2="0" y2="-90" stroke="#E2E8F0" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="85.6" y2="-27.8" stroke="#E2E8F0" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="52.9" y2="72.8" stroke="#E2E8F0" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="-52.9" y2="72.8" stroke="#E2E8F0" stroke-width="0.5"/>
+    <line x1="0" y1="0" x2="-85.6" y2="-27.8" stroke="#E2E8F0" stroke-width="0.5"/>
+    <!-- Hudl (gray) -->
+    <polygon points="0,-81 77,-25 21.2,29.2 -42.3,58.2 -34.3,-11.1"
+             fill="rgba(100,116,139,0.08)" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4,3"/>
+    <!-- Metrica (gold) -->
+    <polygon points="0,-54 38,-12.5 37,51 -26.5,36.4 -17.1,-5.6"
+             fill="rgba(212,148,10,0.08)" stroke="#D4940A" stroke-width="1.2" stroke-dasharray="4,3"/>
+    <!-- VITAS (blue, solid) -->
+    <polygon points="0,-81 68.5,-22.2 42.3,58.2 -42.3,58.2 -51.3,-16.7"
+             fill="rgba(0,89,179,0.15)" stroke="#0059B3" stroke-width="2"/>
+    <!-- Dots VITAS -->
+    <circle cx="0" cy="-81" r="3" fill="#0059B3"/>
+    <circle cx="68.5" cy="-22.2" r="3" fill="#0059B3"/>
+    <circle cx="42.3" cy="58.2" r="3" fill="#0059B3"/>
+    <circle cx="-42.3" cy="58.2" r="3" fill="#0059B3"/>
+    <circle cx="-51.3" cy="-16.7" r="3" fill="#0059B3"/>
+  </g>
+  <!-- Labels -->
+  <text x="160" y="14" text-anchor="middle" class="radar-label">IA Generativa</text>
+  <text x="260" y="82" text-anchor="start" class="radar-label">Video Analysis</text>
+  <text x="225" y="200" text-anchor="middle" class="radar-label">Scouting DB</text>
+  <text x="95" y="200" text-anchor="middle" class="radar-label">PHV / Bio</text>
+  <text x="60" y="82" text-anchor="end" class="radar-label">Accesibilidad</text>
+  <!-- Legend -->
+  <line x1="15" y1="232" x2="30" y2="232" stroke="#0059B3" stroke-width="2"/>
+  <text x="33" y="235" style="font: 500 8px 'Inter', sans-serif; fill: #0059B3;">VITAS</text>
+  <line x1="75" y1="232" x2="90" y2="232" stroke="#94A3B8" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="93" y="235" style="font: 500 8px 'Inter', sans-serif; fill: #94A3B8;">Hudl</text>
+  <line x1="125" y1="232" x2="140" y2="232" stroke="#D4940A" stroke-width="1.2" stroke-dasharray="4,3"/>
+  <text x="143" y="235" style="font: 500 8px 'Inter', sans-serif; fill: #D4940A;">Metrica</text>
+</svg>
+</div>
+
+<!-- Panorama -->
+<h2>Panorama Competitivo (Top 7)</h2>
+<table>
+  <thead><tr><th>Empresa</th><th>Funding</th><th>Valoración</th><th>Segmento</th><th>PHV</th><th>IA Gen.</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Hudl</strong></td><td>$230M</td><td>N/D (private)</td><td>Pro/All</td><td>❌</td><td>❌</td></tr>
+    <tr><td><strong>Kitman Labs</strong></td><td>$82.3M</td><td>N/D</td><td>Pro/Youth</td><td>⚠️ datos</td><td>❌</td></tr>
+    <tr><td><strong>Veo</strong></td><td>$115M</td><td>$440M</td><td>Amateur</td><td>❌</td><td>⚠️</td></tr>
+    <tr><td><strong>PlayerMaker</strong></td><td>$50M</td><td>N/D</td><td>Grassroots</td><td>⚠️</td><td>❌</td></tr>
+    <tr><td><strong>AiSCOUT</strong></td><td>~$21M</td><td>Adq. HUMAIN</td><td>Youth</td><td>❌</td><td>❌</td></tr>
+    <tr><td><strong>Metrica</strong></td><td>$124K+</td><td>N/D (FCB)</td><td>Amateur/Pro</td><td>❌</td><td>❌</td></tr>
+    <tr style="background: var(--primary-10);"><td><strong style="color: var(--primary);">VITAS</strong></td><td><span class="badge badge-primary">Pre-seed</span></td><td>—</td><td><strong>Youth</strong></td><td><strong>✅</strong></td><td><strong>✅</strong></td></tr>
+  </tbody>
+</table>
+<p style="font-size:0.75rem; color: var(--muted); margin-top: 0.2rem;">⚠️ Kitman Labs tiene datos Mirwald/Khamis-Roche pero <strong>no</strong> corrige métricas de rendimiento automáticamente. VITAS = única con TruthFilter.</p>
+
+<!-- Gaps -->
+<h2>3 Gaps Críticos a Cerrar</h2>
+<ol>
+  <li><strong>Ball tracking + xG:</strong> Sin ball tracking no hay xG, posesión ni progressive passes. ~8 semanas de desarrollo. <span class="badge badge-red">Crítico</span></li>
+  <li><strong>Base de datos scouting:</strong> 6 jugadores reales vs 600K+ de Hudl/Wyscout. Expandir a 1K+ vía FBref. <span class="badge badge-amber">Alto</span></li>
+  <li><strong>Primer contrato de pago:</strong> NPS 72 de 200 familias piloto, pero €0 revenue. Milestone #1 para fundraising. <span class="badge badge-red">Crítico</span></li>
+</ol>
+
+<!-- Fundraising -->
+<h2>Fundraising Readiness</h2>
+
+<div class="two-col">
+  <div>
+    <h3>Stage: Pre-seed / Seed temprano</h3>
+    <p style="font-size:0.85rem">Producto en producción, piloto con tracción cualitativa, 0 revenue. Equipo: 1 fundador técnico.</p>
+
+    <h3>3 Comparables</h3>
+    <div class="card"><h3>AiSCOUT <span class="badge badge-electric">~$21M · Adq.</span></h3><p>Mismo segmento youth. VITAS tiene PHV (AiSCOUT no) + B2B2C.</p></div>
+    <div class="card"><h3>Metrica <span class="badge badge-gold">$124K + FCB</span></h3><p>16 personas, FCB anchor. VITAS tiene stack más completo.</p></div>
+    <div class="card"><h3>Tonsser <span class="badge badge-primary">$23.8M · 1.7M users</span></h3><p>Prueba apetito inversor en grassroots. Tonsser en declive; VITAS entra con tech 2026.</p></div>
+  </div>
+  <div>
+    <h3>Hitos para la ronda</h3>
+    <table>
+      <tbody>
+        <tr><td><strong>1 club pagando</strong></td><td>Proof of WTP</td></tr>
+        <tr><td><strong>10 clubes activos</strong></td><td>Multi-club demand</td></tr>
+        <tr><td><strong>€5K MRR</strong></td><td>Unit economics</td></tr>
+        <tr><td><strong>Ball tracking + xG</strong></td><td>Feature parity</td></tr>
+        <tr><td><strong>Whitepaper PHV</strong></td><td>Moat científico</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Top 3 riesgos</h3>
+    <ol style="font-size:0.83rem">
+      <li><strong>Startup IA-nativa YC</strong> entra en youth scouting <span class="badge badge-red">Alta prob.</span></li>
+      <li><strong>Veo añade scouting</strong> analytics <span class="badge badge-red">Alta prob.</span></li>
+      <li><strong>Kitman Labs implementa TruthFilter</strong> <span class="badge badge-amber">Media prob.</span></li>
+    </ol>
+  </div>
+</div>
+
+<!-- Mercado -->
+<h2>Contexto de Mercado</h2>
+<div class="two-col" style="font-size:0.85rem">
+  <div>
+    <p><strong>Sports Analytics:</strong> $5.7B (2025) → $23.1B (2033). CAGR 18.5%.</p>
+    <p><strong>Football Analysis Software:</strong> $522M → $1.18B (2032). CAGR 12.1%.</p>
+    <p><strong>SportsTech deals 2024:</strong> $86B en 1,100+ transacciones (Drake Star).</p>
+  </div>
+  <div>
+    <p><strong>Consolidación:</strong> Hudl ha hecho 15 adquisiciones. Catapult pagó €78M por IMPECT. SciSports y AiSCOUT ya adquiridas.</p>
+    <p><strong>Múltiplos SaaS:</strong> 3-5× revenue (mediana) · 10.7× (alto crecimiento) · Veo: 11.8×.</p>
+  </div>
+</div>
+
+<!-- Mini funding chart -->
+<h2>Funding Comparado</h2>
+<div style="margin: 0.5rem 0;">
+<svg width="100%" height="160" viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="gBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#0059B3"/>
+      <stop offset="100%" stop-color="#0066CC"/>
+    </linearGradient>
+    <linearGradient id="gGray" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+  </defs>
+  <!-- Bars -->
+  <text x="0" y="20" style="font: 600 11px 'Inter', sans-serif; fill: #0F1729;">Hudl</text>
+  <rect x="110" y="8" width="460" height="18" rx="4" fill="url(#gGray)"/>
+  <text x="575" y="21" style="font: 600 10px 'Inter', sans-serif; fill: #38455A;">$230M</text>
+
+  <text x="0" y="50" style="font: 600 11px 'Inter', sans-serif; fill: #0F1729;">Veo</text>
+  <rect x="110" y="38" width="230" height="18" rx="4" fill="url(#gGray)"/>
+  <text x="345" y="51" style="font: 600 10px 'Inter', sans-serif; fill: #38455A;">$115M</text>
+
+  <text x="0" y="80" style="font: 600 11px 'Inter', sans-serif; fill: #D4940A;">Kitman Labs</text>
+  <rect x="110" y="68" width="164" height="18" rx="4" fill="#D4940A" opacity="0.7"/>
+  <text x="279" y="81" style="font: 600 10px 'Inter', sans-serif; fill: #D4940A;">$82.3M ⚠️ PHV data</text>
+
+  <text x="0" y="110" style="font: 600 11px 'Inter', sans-serif; fill: #0F1729;">PlayerMaker</text>
+  <rect x="110" y="98" width="100" height="18" rx="4" fill="url(#gGray)"/>
+  <text x="215" y="111" style="font: 600 10px 'Inter', sans-serif; fill: #38455A;">$50M</text>
+
+  <text x="0" y="140" style="font: 600 11px 'Inter', sans-serif; fill: #0059B3;">VITAS</text>
+  <rect x="110" y="128" width="8" height="18" rx="4" fill="url(#gBar)"/>
+  <text x="123" y="141" style="font: 700 10px 'Inter', sans-serif; fill: #0059B3;">Pre-seed · PHV + IA ✅</text>
+</svg>
+</div>
+
+<footer>
+  VITAS · Football Intelligence — Resumen Ejecutivo · Mayo 2026<br>
+  Documento completo: <code>docs/competitive-analysis-vitas.html</code> · Generado con Claude Code
+</footer>
+
+</body>
+</html>

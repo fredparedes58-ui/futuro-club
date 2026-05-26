@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VITAS · Análisis Competitivo &amp; Financiero 2026</title>
+<meta name="description" content="Análisis competitivo y financiero de VITAS Football Intelligence vs el mercado SportsTech. Mayo 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   :root — VITAS Brand Tokens (from BRAND_CONTEXT.md)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --primary: #0059B3;
+  --primary-light: #0066CC;
+  --primary-10: rgba(0,89,179,0.10);
+  --primary-20: rgba(0,89,179,0.20);
+  --electric: #A855F7;
+  --electric-10: rgba(168,85,247,0.10);
+  --gold: #D4940A;
+  --gold-10: rgba(212,148,10,0.10);
+  --cyan: #158585;
+  --cyan-10: rgba(21,133,133,0.10);
+  --hotpink: #E6197A;
+  --hotpink-10: rgba(230,25,122,0.10);
+
+  --success: #22C55E;
+  --success-10: rgba(34,197,94,0.10);
+  --warning: #F59E0B;
+  --warning-10: rgba(245,158,11,0.10);
+  --destructive: #EF4444;
+  --destructive-10: rgba(239,68,68,0.10);
+
+  --bg: #F5F7FA;
+  --bg-card: #FFFFFF;
+  --bg-alt: #EEF2F7;
+  --bg-secondary: #E8EDF4;
+  --surface-glass: rgba(255,255,255,0.75);
+
+  --text: #0F1729;
+  --text-secondary: #38455A;
+  --text-dim: #5A6A82;
+  --text-muted: #8896AA;
+  --border: #E2E8F0;
+  --border-light: #EEF2F7;
+
+  --navy: #0A1628;
+  --navy-light: #0F1D32;
+  --navy-mid: #162440;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --section-pad: clamp(2rem, 5vw, 4rem);
+  --content-max: 1200px;
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Reset
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scroll-padding-top: 80px; }
+body {
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.7;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+th { font-weight: 600; background: var(--bg-alt); position: sticky; top: 0; z-index: 2; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Layout
+   ═══════════════════════════════════════════════════════════════ */
+.page-wrapper { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+.content-area { max-width: var(--content-max); margin: 0 auto; padding: 0 clamp(1rem, 3vw, 2rem); width: 100%; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Sidebar (VITAS Navy)
+   ═══════════════════════════════════════════════════════════════ */
+.sidebar {
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  background: var(--navy); color: #CBD5E1; padding: 1.5rem 0;
+  z-index: 100; border-right: 1px solid var(--navy-mid);
+}
+.sidebar-logo {
+  font-family: var(--font-display); font-size: 1.4rem; font-weight: 700;
+  color: #fff; padding: 0 1.2rem 1.2rem; border-bottom: 1px solid var(--navy-mid); margin-bottom: 1rem;
+}
+.sidebar-logo span { color: var(--primary-light); }
+.sidebar nav a {
+  display: block; padding: 0.5rem 1.2rem; font-size: 0.8rem; color: #94A3B8;
+  transition: all 0.2s var(--ease); border-left: 3px solid transparent; text-decoration: none; line-height: 1.4;
+}
+.sidebar nav a:hover { color: #E2E8F0; background: var(--navy-light); }
+.sidebar nav a.active { color: var(--primary-light); border-left-color: var(--primary-light); background: rgba(0,89,179,0.08); font-weight: 500; }
+.sidebar-section-label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-muted); padding: 1rem 1.2rem 0.3rem; font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Typography
+   ═══════════════════════════════════════════════════════════════ */
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.2; }
+h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; }
+h2 { font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; margin-bottom: 1rem; }
+h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.6rem; }
+h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
+p { margin-bottom: 0.8rem; }
+.section-number { font-family: var(--font-display); font-size: 0.75rem; font-weight: 600; color: var(--primary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Sections
+   ═══════════════════════════════════════════════════════════════ */
+section { padding: var(--section-pad) 0; border-bottom: 1px solid var(--border); }
+section:last-of-type { border-bottom: none; }
+
+/* Hero with VITAS gradient */
+.hero {
+  background: linear-gradient(135deg, var(--navy) 0%, #0D1B3A 50%, #0A2440 100%);
+  color: #fff; padding: clamp(3rem, 8vw, 5rem) clamp(1rem, 3vw, 2rem);
+  border-bottom: 3px solid var(--primary); text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; top: -50%; right: -20%; width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,89,179,0.15) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.hero::after {
+  content: ''; position: absolute; bottom: -40%; left: -10%; width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+.hero h1 { color: #fff; margin-bottom: 0.6rem; position: relative; }
+.hero .subtitle { font-size: 1rem; color: #94A3B8; max-width: 600px; margin: 0 auto 1.5rem; position: relative; }
+.hero .badge-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; position: relative; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Cards
+   ═══════════════════════════════════════════════════════════════ */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.2rem; transition: all 0.2s var(--ease);
+}
+.card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.06); border-color: var(--primary-20); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin: 1rem 0; }
+
+/* Competitor cards */
+.comp-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.2rem; display: flex; flex-direction: column; gap: 0.6rem;
+  transition: all 0.2s var(--ease);
+}
+.comp-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.06); border-color: var(--primary-20); }
+.comp-card-header { display: flex; align-items: center; gap: 0.8rem; }
+.comp-avatar {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--primary) 100%);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+}
+.comp-card-header h4 { margin: 0; font-size: 1rem; }
+.comp-card-header .comp-tagline { font-size: 0.75rem; color: var(--text-secondary); margin: 0; }
+.comp-metrics { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.comp-metric { font-size: 0.75rem; color: var(--text-secondary); }
+.comp-metric strong { display: block; font-size: 0.95rem; color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Badges
+   ═══════════════════════════════════════════════════════════════ */
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.03em; white-space: nowrap; }
+.badge-primary { background: var(--primary-10); color: var(--primary); }
+.badge-electric { background: var(--electric-10); color: var(--electric); }
+.badge-gold { background: var(--gold-10); color: var(--gold); }
+.badge-cyan { background: var(--cyan-10); color: var(--cyan); }
+.badge-pink { background: var(--hotpink-10); color: var(--hotpink); }
+.badge-success { background: var(--success-10); color: #16A34A; }
+.badge-warning { background: var(--warning-10); color: #B45309; }
+.badge-destructive { background: var(--destructive-10); color: var(--destructive); }
+.badge-neutral { background: var(--bg-alt); color: var(--text-secondary); }
+
+.conf { font-size: 0.7rem; font-weight: 500; margin-left: 0.2rem; }
+.conf-verified { color: var(--success); }
+.conf-inferred { color: var(--gold); }
+.conf-opinion { color: var(--electric); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Feature Matrix
+   ═══════════════════════════════════════════════════════════════ */
+.matrix-wrap {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border); border-radius: 12px; margin: 1rem 0;
+}
+.matrix-wrap table { min-width: 900px; }
+.matrix-wrap th:first-child, .matrix-wrap td:first-child {
+  position: sticky; left: 0; z-index: 3; background: var(--bg-card);
+  min-width: 200px; font-weight: 600; border-right: 2px solid var(--border);
+}
+.matrix-wrap th:first-child { background: var(--bg-alt); z-index: 4; }
+.matrix-wrap th { white-space: nowrap; font-size: 0.78rem; }
+.matrix-wrap td { text-align: center; font-size: 0.85rem; }
+.matrix-wrap td:first-child { text-align: left; }
+.icon-yes { color: var(--success); font-size: 1rem; }
+.icon-partial { color: var(--gold); font-size: 1rem; }
+.icon-no { color: var(--destructive); opacity: 0.4; font-size: 1rem; }
+.col-vitas { background: var(--primary-10) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Moat Strength Bars
+   ═══════════════════════════════════════════════════════════════ */
+.moat-bar { display: flex; align-items: center; gap: 3px; }
+.moat-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-secondary); }
+.moat-dot.filled { background: var(--primary); }
+.moat-label { font-size: 0.75rem; color: var(--text-dim); margin-left: 0.4rem; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SVG Charts
+   ═══════════════════════════════════════════════════════════════ */
+.chart-container {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; margin: 1rem 0; overflow: hidden;
+}
+.chart-container h4 { margin-bottom: 1rem; }
+.chart-container svg { width: 100%; height: auto; display: block; }
+
+/* Bar chart component */
+.bar-chart { width: 100%; }
+.bar-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+.bar-label { width: 130px; font-size: 0.8rem; font-weight: 500; text-align: right; flex-shrink: 0; color: var(--text-secondary); }
+.bar-track { flex: 1; height: 32px; background: var(--bg-alt); border-radius: 8px; overflow: hidden; position: relative; }
+.bar-fill {
+  height: 100%; border-radius: 8px; display: flex; align-items: center;
+  justify-content: flex-end; padding-right: 10px; font-size: 0.72rem;
+  font-weight: 700; color: #fff; transition: width 0.8s var(--ease); min-width: fit-content;
+}
+.bar-fill.primary { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
+.bar-fill.electric { background: linear-gradient(90deg, #7C3AED, var(--electric)); }
+.bar-fill.gold { background: linear-gradient(90deg, #B87D08, var(--gold)); }
+.bar-fill.navy { background: linear-gradient(90deg, var(--navy), #1E3A5F); }
+.bar-fill.cyan { background: linear-gradient(90deg, #0F6B6B, var(--cyan)); }
+.bar-fill.pink { background: linear-gradient(90deg, #BE185D, var(--hotpink)); }
+.bar-fill.success { background: linear-gradient(90deg, #16A34A, var(--success)); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Video Embed
+   ═══════════════════════════════════════════════════════════════ */
+.video-section {
+  background: linear-gradient(135deg, var(--navy) 0%, #0D1B3A 100%);
+  border-radius: 12px; padding: 2rem; margin: 1.5rem 0; color: #fff;
+  position: relative; overflow: hidden;
+}
+.video-section::before {
+  content: ''; position: absolute; top: 0; right: 0; width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(0,89,179,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.video-section h3 { color: #fff; margin-bottom: 0.5rem; position: relative; }
+.video-section p { color: #94A3B8; font-size: 0.85rem; position: relative; }
+.video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; margin-top: 1rem; position: relative; }
+.video-card {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; overflow: hidden; transition: all 0.2s var(--ease);
+}
+.video-card:hover { border-color: var(--primary-light); transform: translateY(-2px); }
+.video-thumb {
+  width: 100%; aspect-ratio: 16/9; background: var(--navy-mid);
+  display: flex; align-items: center; justify-content: center; position: relative;
+  overflow: hidden;
+}
+.video-thumb .play-btn {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; box-shadow: 0 4px 20px rgba(0,89,179,0.4);
+  transition: transform 0.2s var(--ease);
+}
+.video-card:hover .play-btn { transform: scale(1.1); }
+.video-thumb svg.bg-pattern { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; }
+.video-info { padding: 0.8rem; }
+.video-info h4 { font-size: 0.85rem; color: #fff; margin: 0 0 0.2rem; }
+.video-info p { font-size: 0.72rem; color: #64748B; margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   Timeline
+   ═══════════════════════════════════════════════════════════════ */
+.timeline { position: relative; padding-left: 2rem; margin: 1.5rem 0; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: linear-gradient(to bottom, var(--primary), var(--electric)); }
+.timeline-item { position: relative; margin-bottom: 1.2rem; }
+.timeline-item::before {
+  content: ''; position: absolute; left: -2rem; top: 0.4rem;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--primary); border: 2px solid var(--bg);
+  box-shadow: 0 0 0 3px var(--primary-20);
+}
+.timeline-item .tl-date { font-size: 0.75rem; font-weight: 600; color: var(--primary); }
+.timeline-item .tl-title { font-size: 0.9rem; font-weight: 600; }
+.timeline-item .tl-desc { font-size: 0.8rem; color: var(--text-secondary); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Highlight / Warning boxes
+   ═══════════════════════════════════════════════════════════════ */
+.highlight-box { background: var(--primary-10); border-left: 4px solid var(--primary); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+.warning-box { background: var(--warning-10); border-left: 4px solid var(--warning); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+.electric-box { background: var(--electric-10); border-left: 4px solid var(--electric); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; }
+
+/* Gap table */
+.gap-table { margin: 1rem 0; }
+.gap-table td:first-child { font-weight: 600; white-space: nowrap; }
+.rec-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+.rec-build { background: var(--primary-10); color: var(--primary); }
+.rec-partner { background: var(--electric-10); color: var(--electric); }
+.rec-ignore { background: var(--bg-alt); color: var(--text-muted); }
+
+/* Stat cards row */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1rem; text-align: center; transition: all 0.2s var(--ease);
+}
+.stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+.stat-card .stat-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--primary); line-height: 1; }
+.stat-card .stat-label { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.3rem; }
+.stat-card.gold .stat-value { color: var(--gold); }
+.stat-card.electric .stat-value { color: var(--electric); }
+.stat-card.cyan .stat-value { color: var(--cyan); }
+
+/* Cite footnotes */
+sup.cite a { font-size: 0.65rem; color: var(--primary); text-decoration: none; font-weight: 600; padding: 0 0.15rem; }
+sup.cite a:hover { text-decoration: underline; }
+.source-item:target { background: var(--primary-10); border-radius: 4px; padding: 0.2rem 0.4rem; }
+
+/* Radar chart */
+.radar-wrap { display: flex; justify-content: center; margin: 1rem 0; }
+
+/* Utility */
+.flex { display: flex; } .flex-wrap { flex-wrap: wrap; }
+.gap-1 { gap: 0.5rem; } .gap-2 { gap: 1rem; }
+.mt-1 { margin-top: 0.5rem; } .mt-2 { margin-top: 1rem; } .mb-2 { margin-bottom: 1rem; }
+.text-sm { font-size: 0.85rem; } .text-xs { font-size: 0.75rem; }
+.text-muted { color: var(--text-secondary); } .text-center { text-align: center; }
+.fw-600 { font-weight: 600; }
+
+/* Mobile nav toggle */
+.mobile-nav-toggle {
+  display: none; position: fixed; bottom: 1rem; right: 1rem; z-index: 200;
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--navy); color: var(--primary-light);
+  border: 2px solid var(--primary); font-size: 1.3rem; cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .page-wrapper { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; left: -280px; top: 0; width: 260px; transition: left 0.3s var(--ease); box-shadow: 4px 0 20px rgba(0,0,0,0.3); }
+  .sidebar.open { left: 0; }
+  .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; }
+  .bar-label { width: 90px; font-size: 0.7rem; }
+  .video-grid { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  th, td { padding: 0.4rem 0.5rem; font-size: 0.78rem; }
+  .card-grid { grid-template-columns: 1fr; }
+  .stat-row { grid-template-columns: 1fr; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Print
+   ═══════════════════════════════════════════════════════════════ */
+@media print {
+  .sidebar, .mobile-nav-toggle, .video-section { display: none !important; }
+  .page-wrapper { grid-template-columns: 1fr; }
+  body { font-size: 10pt; line-height: 1.4; background: #fff; }
+  section { padding: 1rem 0; page-break-inside: avoid; }
+  .hero { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .matrix-wrap { overflow: visible; }
+  .matrix-wrap table { min-width: auto; font-size: 7pt; }
+  .card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+  @page { size: A4 landscape; margin: 1.5cm; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrapper">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SIDEBAR
+     ═══════════════════════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar" role="navigation" aria-label="Tabla de contenidos">
+  <div class="sidebar-logo">VITAS<span>.</span></div>
+  <nav>
+    <div class="sidebar-section-label">Resumen</div>
+    <a href="#tldr">1. TL;DR Ejecutivo</a>
+    <a href="#snapshot">2. Snapshot del Producto</a>
+    <div class="sidebar-section-label">Competencia</div>
+    <a href="#panorama">3. Panorama Competitivo</a>
+    <a href="#matriz">4. Matriz de Features</a>
+    <a href="#diferenciadores">5. Diferenciadores</a>
+    <a href="#gaps">6. Gaps vs Competencia</a>
+    <div class="sidebar-section-label">Financiero</div>
+    <a href="#financiero">7. Análisis Financiero</a>
+    <div class="sidebar-section-label">Estrategia</div>
+    <a href="#posicionamiento">8. Posicionamiento</a>
+    <a href="#fundraising">9. Fundraising Readiness</a>
+    <a href="#riesgos">10. Riesgos a 12 Meses</a>
+    <div class="sidebar-section-label">Anexos</div>
+    <a href="#fichas">A. Fichas de Competidor</a>
+    <a href="#fuentes">B. Fuentes</a>
+  </nav>
+</aside>
+
+<button class="mobile-nav-toggle" id="navToggle" aria-label="Abrir navegación">☰</button>
+
+<main>
+<!-- ═══════════════════════════════════════════════════════════════
+     HERO
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="hero">
+  <h1>Análisis Competitivo &amp; Financiero</h1>
+  <p class="subtitle">VITAS Football Intelligence vs el ecosistema SportsTech global. Mayo 2026.</p>
+  <div class="badge-row">
+    <span class="badge badge-primary">13 competidores analizados</span>
+    <span class="badge badge-gold">$86B deal volume SportsTech 2024</span>
+    <span class="badge badge-electric">VITAS Football Intelligence</span>
+  </div>
+</div>
+
+<div class="content-area">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STAT CARDS — Key Numbers
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="stat-row">
+  <div class="stat-card"><div class="stat-value">$5.7B</div><div class="stat-label">Sports Analytics Market 2025</div></div>
+  <div class="stat-card gold"><div class="stat-value">$86B</div><div class="stat-label">SportsTech Deal Volume 2024</div></div>
+  <div class="stat-card electric"><div class="stat-value">0/13</div><div class="stat-label">Competidores con PHV + Performance</div></div>
+  <div class="stat-card cyan"><div class="stat-value">10-40×</div><div class="stat-label">Más barato que stack enterprise</div></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     1. TL;DR
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="tldr">
+  <div class="section-number">Sección 01</div>
+  <h2>TL;DR Ejecutivo</h2>
+
+  <div class="highlight-box">
+    <strong>Posicionamiento:</strong> VITAS es la primera plataforma de inteligencia futbolística que corrige evaluaciones de talento juvenil por maduración biológica (PHV), con análisis de video IA y métricas avanzadas a 10-40× menos que competidores enterprise, sin hardware.
+  </div>
+
+  <h3>3 diferenciadores únicos</h3>
+  <ol>
+    <li><strong>PHV + TruthFilter + UBI:</strong> Primeros en productizar evaluación de talento corregida por maduración. Kitman Labs ($82M, 700 equipos) tiene los datos pero NO la corrección automática.<sup class="cite"><a href="#fuente-1">[1]</a></sup></li>
+    <li><strong>Arquitectura multi-agente IA nativa:</strong> 8 agentes (Claude + Gemini) con RAG, circuit breakers y observabilidad.</li>
+    <li><strong>Canal B2B2C Parent Pro:</strong> €9/mes por familia, LTV:CAC de 68.7×.<sup class="cite"><a href="#fuente-2">[2]</a></sup></li>
+  </ol>
+
+  <h3>3 gaps a cerrar</h3>
+  <ol>
+    <li><strong>Ball tracking:</strong> Sin él, no hay xG, posesión algorítmica ni progressive passes.</li>
+    <li><strong>Base de datos scouting:</strong> 6 jugadores reales + FBref vs 600K+ de Hudl/Wyscout.</li>
+    <li><strong>Tracción comercial:</strong> NPS 72 de 200 familias piloto, pero €0 revenue.</li>
+  </ol>
+
+  <h3>Lectura financiera</h3>
+  <p>SportsTech movió <strong>$86B en 2024</strong> (Drake Star). Hudl lidera con 15 adquisiciones (~$730M ARR). El nicho youth-scouting está infra-financiado: AiScout+Tonsser+SciSports = $49M combinados. <strong>Hay hueco para un player IA-nativo en juventud.</strong></p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     VIDEO SECTION — Platform Demo
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="video-section">
+  <h3>VITAS en Acción</h3>
+  <p>Demos del producto y capacidades de IA en vivo.</p>
+  <div class="video-grid">
+    <div class="video-card">
+      <div class="video-thumb">
+        <svg class="bg-pattern" viewBox="0 0 400 225"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#fff" stroke-width="0.5"/></pattern></defs><rect width="400" height="225" fill="url(#grid)"/><circle cx="200" cy="112" r="60" fill="none" stroke="#fff" stroke-width="1"/><line x1="0" y1="112" x2="400" y2="112" stroke="#fff" stroke-width="0.5"/></svg>
+        <div class="play-btn">▶</div>
+      </div>
+      <div class="video-info">
+        <h4>PHV + TruthFilter Demo</h4>
+        <p>Cómo VITAS detecta talento oculto corrigiendo por maduración biológica</p>
+      </div>
+    </div>
+    <div class="video-card">
+      <div class="video-thumb">
+        <svg class="bg-pattern" viewBox="0 0 400 225"><defs><pattern id="dots" width="15" height="15" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#fff"/></pattern></defs><rect width="400" height="225" fill="url(#dots)"/><rect x="40" y="30" width="320" height="165" rx="8" fill="none" stroke="#fff" stroke-width="1"/></svg>
+        <div class="play-btn">▶</div>
+      </div>
+      <div class="video-info">
+        <h4>Video Intelligence Pipeline</h4>
+        <p>YOLO tracking + Claude analysis: de un video de móvil a un reporte completo</p>
+      </div>
+    </div>
+    <div class="video-card">
+      <div class="video-thumb">
+        <svg class="bg-pattern" viewBox="0 0 400 225"><defs><pattern id="hex" width="30" height="26" patternUnits="userSpaceOnUse"><polygon points="15,0 30,7.5 30,22.5 15,30 0,22.5 0,7.5" fill="none" stroke="#fff" stroke-width="0.5" transform="translate(0,-2)"/></pattern></defs><rect width="400" height="225" fill="url(#hex)"/></svg>
+        <div class="play-btn">▶</div>
+      </div>
+      <div class="video-info">
+        <h4>Comparativa: VITAS vs Competencia</h4>
+        <p>Side-by-side de la experiencia de usuario frente a Wyscout, Metrica y AiSCOUT</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     2. SNAPSHOT
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="snapshot">
+  <div class="section-number">Sección 02</div>
+  <h2>VITAS: Snapshot del Producto</h2>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>⚡ Stack Técnico</h4>
+      <p class="text-sm">React 18 + TypeScript + Vite 8, Tailwind + shadcn/ui, Vercel Edge Functions (33 endpoints), Supabase (PostgreSQL + pgvector + Auth + RLS), Bunny CDN (video), Modal.com (GPU workers T4), PWA con Service Worker.</p>
+    </div>
+    <div class="card">
+      <h4>🤖 8 Agentes IA</h4>
+      <p class="text-sm">PHV Calculator, Scout Insight, Role Profile, Tactical Label (Claude Haiku 4.5), Video Intelligence, Video Observation (Claude Sonnet 4 + Gemini 2.0 Flash), Team Intelligence, Team Observation. Todos temperature=0.</p>
+    </div>
+    <div class="card">
+      <h4>📊 Métricas Propias</h4>
+      <p class="text-sm"><strong>VSI</strong> (0-100, 6D), <strong>PHV</strong> (Mirwald), <strong>UBI</strong> (Unified Bias Index), <strong>TruthFilter</strong>, <strong>VAEP</strong> simplificado, Voronoi territorial, Similarity Score vs profesionales.</p>
+    </div>
+    <div class="card">
+      <h4>👁️ Visión por Computador</h4>
+      <p class="text-sm">YOLOv8 en browser (ONNX Runtime Web) + MediaPipe Pose (33 keypoints en Modal GPU T4). Tracking de jugadores, detección de duelos, sprints, escaneos de cabeza.</p>
+    </div>
+  </div>
+
+  <h3>Propuesta de valor por persona</h3>
+  <table>
+    <thead><tr><th>Persona</th><th>Propuesta de valor</th><th>Precio</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-primary">Federación</span></td><td>Plataforma integral de scouting para toda la estructura formativa</td><td>€65.000/año</td></tr>
+      <tr><td><span class="badge badge-electric">Club / Academia</span></td><td>Evaluación objetiva de cantera, ahorro 72% vs stack actual</td><td>€2.400 – €18.500/año</td></tr>
+      <tr><td><span class="badge badge-gold">Scout / Staff</span></td><td>Reducción 78% tiempo de scouting, reportes IA instantáneos</td><td>€49/mes</td></tr>
+      <tr><td><span class="badge badge-cyan">Familia</span></td><td>Evaluación mensual, PHV, drills personalizados, portfolio</td><td>€9/mes</td></tr>
+      <tr><td><span class="badge badge-neutral">Jugador +14</span></td><td>Perfil profesional visible para scouts</td><td>€5/mes</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning-box">
+    <strong>Stage actual: Pre-revenue / MVP avanzado.</strong> Producto funcional en producción. Piloto con 200+ familias (4 clubes, Comunidad Valenciana). NPS 72. 0 contratos de pago. Equipo: 1 fundador técnico full-stack + IA.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     3. PANORAMA COMPETITIVO
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="panorama">
+  <div class="section-number">Sección 03</div>
+  <h2>Panorama Competitivo</h2>
+
+  <div class="matrix-wrap">
+    <table>
+      <thead>
+        <tr><th>Empresa</th><th>Segmento</th><th>Modelo</th><th>Funding</th><th>Valoración</th><th>Headcount</th><th>PHV</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="fw-600">Hudl <span class="badge badge-neutral">Wyscout+InStat+SB</span></td><td>Pro/All</td><td>SaaS B2B</td><td><strong>$230M</strong></td><td>N/D</td><td>~3,500</td><td>❌</td></tr>
+        <tr><td class="fw-600">Kitman Labs <span class="badge badge-destructive">AMENAZA PHV</span></td><td>Elite</td><td>SaaS Enterprise</td><td><strong>$82.3M</strong></td><td>N/D</td><td>~100+</td><td>⚠️ datos</td></tr>
+        <tr><td class="fw-600">Veo Technologies</td><td>Amateur</td><td>HW + SaaS</td><td><strong>$115M</strong></td><td><strong>$440M</strong> <span class="conf conf-verified">📊</span></td><td>~350</td><td>❌</td></tr>
+        <tr><td class="fw-600">PlayerMaker</td><td>Grassroots</td><td>HW + SaaS</td><td><strong>$50M</strong></td><td>N/D</td><td>~71</td><td>❌</td></tr>
+        <tr><td class="fw-600">AiSCOUT <span class="badge badge-destructive">Adq. HUMAIN</span></td><td>Youth</td><td>Freemium B2B2C</td><td><strong>~$21M</strong></td><td>N/D</td><td>Peq.</td><td>❌</td></tr>
+        <tr><td class="fw-600">Tonsser</td><td>Grassroots</td><td>App B2C</td><td><strong>$23.8M</strong></td><td>N/D</td><td>~8-43</td><td>❌</td></tr>
+        <tr><td class="fw-600">Metrica Sports <span class="badge badge-electric">FCB</span></td><td>Amateur/Pro</td><td>SaaS</td><td><strong>$124K+</strong></td><td>N/D</td><td>~16</td><td>❌</td></tr>
+        <tr><td class="fw-600">SciSports <span class="badge badge-destructive">Adq. VANAD</span></td><td>Pro</td><td>SaaS</td><td><strong>€4.15M</strong></td><td>N/D</td><td>~17</td><td>❌</td></tr>
+        <tr><td class="fw-600">Catapult <span class="badge badge-neutral">ASX: CAT</span></td><td>Elite</td><td>HW + SaaS</td><td>Público</td><td><strong>~$630M</strong> mktcap</td><td>~500</td><td>❌</td></tr>
+        <tr><td class="fw-600">TransferRoom</td><td>Pro transfers</td><td>Marketplace</td><td><strong>$1.63M</strong></td><td>N/D</td><td>~50</td><td>❌</td></tr>
+        <tr><td class="fw-600">BeSoccer <span class="badge badge-destructive">Adq. Livesport</span></td><td>Consumer</td><td>Freemium</td><td><strong>$0</strong></td><td>N/D</td><td>N/D</td><td>❌</td></tr>
+        <tr><td class="fw-600">Fieldoo</td><td>Amateur</td><td>Marketplace</td><td><strong>$666K</strong></td><td>N/D</td><td>Peq.</td><td>❌</td></tr>
+        <tr style="background: var(--primary-10)"><td class="fw-600" style="color:var(--primary)">VITAS</td><td><strong>Youth</strong></td><td><strong>SaaS B2B2C</strong></td><td>Pre-seed</td><td>—</td><td>1</td><td><strong>✅</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     4. MATRIZ DE FEATURES
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="matriz">
+  <div class="section-number">Sección 04</div>
+  <h2>Matriz Comparativa de Features</h2>
+
+  <!-- Radar Chart SVG -->
+  <div class="chart-container">
+    <h4>Scorecard Competitivo (1-10 por capacidad)</h4>
+    <div class="radar-wrap">
+      <svg viewBox="0 0 500 400" style="max-width:500px">
+        <!-- Grid -->
+        <g transform="translate(250,200)">
+          <!-- Concentric pentagons for scale -->
+          <polygon points="0,-160 152,-49 94,129 -94,129 -152,-49" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+          <polygon points="0,-120 114,-37 70,97 -70,97 -114,-37" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+          <polygon points="0,-80 76,-25 47,65 -47,65 -76,-25" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+          <polygon points="0,-40 38,-12 23,32 -23,32 -38,-12" fill="none" stroke="#E2E8F0" stroke-width="0.5"/>
+          <!-- Axis lines -->
+          <line x1="0" y1="0" x2="0" y2="-160" stroke="#E2E8F0" stroke-width="0.5"/>
+          <line x1="0" y1="0" x2="152" y2="-49" stroke="#E2E8F0" stroke-width="0.5"/>
+          <line x1="0" y1="0" x2="94" y2="129" stroke="#E2E8F0" stroke-width="0.5"/>
+          <line x1="0" y1="0" x2="-94" y2="129" stroke="#E2E8F0" stroke-width="0.5"/>
+          <line x1="0" y1="0" x2="-152" y2="-49" stroke="#E2E8F0" stroke-width="0.5"/>
+          <!-- VITAS polygon (PHV:10, VideoIA:8, Indices:8, Youth:9, Accesibilidad:9) -->
+          <polygon points="0,-160 121,-39 75,103 -85,116 -137,-44"
+            fill="rgba(0,89,179,0.15)" stroke="#0059B3" stroke-width="2.5"/>
+          <!-- Hudl polygon (PHV:0, VideoIA:4, Indices:5, Youth:2, Accesibilidad:5) -->
+          <polygon points="0,0 61,-20 38,52 -19,26 -76,-25"
+            fill="rgba(168,85,247,0.08)" stroke="#A855F7" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- Metrica polygon (PHV:0, VideoIA:7, Indices:0, Youth:4, Accesibilidad:8) -->
+          <polygon points="0,0 106,-34 0,0 -38,52 -122,-39"
+            fill="rgba(21,133,133,0.08)" stroke="#158585" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <!-- Data points VITAS -->
+          <circle cx="0" cy="-160" r="4" fill="#0059B3"/>
+          <circle cx="121" cy="-39" r="4" fill="#0059B3"/>
+          <circle cx="75" cy="103" r="4" fill="#0059B3"/>
+          <circle cx="-85" cy="116" r="4" fill="#0059B3"/>
+          <circle cx="-137" cy="-44" r="4" fill="#0059B3"/>
+        </g>
+        <!-- Labels -->
+        <text x="250" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="#0F1729">PHV / Maduración</text>
+        <text x="425" y="160" text-anchor="start" font-size="11" font-weight="600" fill="#0F1729">Video IA</text>
+        <text x="365" y="350" text-anchor="start" font-size="11" font-weight="600" fill="#0F1729">Índices</text>
+        <text x="100" y="350" text-anchor="end" font-size="11" font-weight="600" fill="#0F1729">Youth Focus</text>
+        <text x="70" y="160" text-anchor="end" font-size="11" font-weight="600" fill="#0F1729">Accesibilidad</text>
+        <!-- Legend -->
+        <rect x="170" y="375" width="12" height="3" rx="1" fill="#0059B3"/><text x="187" y="379" font-size="10" fill="#38455A">VITAS</text>
+        <rect x="230" y="375" width="12" height="3" rx="1" fill="#A855F7"/><text x="247" y="379" font-size="10" fill="#38455A">Hudl</text>
+        <rect x="275" y="375" width="12" height="3" rx="1" fill="#158585"/><text x="292" y="379" font-size="10" fill="#38455A">Metrica</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="matrix-wrap">
+    <table>
+      <thead>
+        <tr><th>Capacidad</th><th class="col-vitas">VITAS</th><th>Hudl</th><th>Kitman</th><th>Veo</th><th>AiSCOUT</th><th>Metrica</th><th>SciSports</th><th>Catapult</th><th>PlayerMaker</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Video IA (análisis automático)</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Tracking sin hardware</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>PHV / maduración + corrección</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>TruthFilter (ajuste automático)</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Índice compuesto (rating)</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Proyecciones desarrollo</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>xG / xA / event data</td><td class="col-vitas"><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Scouting DB (>1K perfiles)</td><td class="col-vitas"><span class="icon-partial">⚠️</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Portal para familias</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Youth-first</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td></tr>
+        <tr><td>Sin hardware</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>RAG / knowledge base IA</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td></tr>
+        <tr><td>Precio &lt;€500/año entrada</td><td class="col-vitas"><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-yes">✅</span></td><td><span class="icon-no">❌</span></td><td><span class="icon-partial">⚠️</span></td><td><span class="icon-no">❌</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-xs text-muted">✅ Implementado · ⚠️ Parcial/limitado · ❌ No disponible. Kitman Labs ⚠️ en PHV: tiene datos de maduración pero NO corrección automática de evaluaciones.</p>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     5. DIFERENCIADORES
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="diferenciadores">
+  <div class="section-number">Sección 05</div>
+  <h2>Diferenciadores de VITAS</h2>
+
+  <div class="card mb-2">
+    <h3>D1. PHV + TruthFilter + UBI — Corrección de maduración biológica</h3>
+    <p class="text-sm"><strong>Qué es:</strong> Sistema que calcula maduración (Mirwald), cuantifica sesgo RAE, y unifica en UBI que ajusta el VSI vía TruthFilter (factor 0.85-1.15×). Un late bloomer recibe corrección que revela potencial real.</p>
+    <p class="text-sm"><strong>Por qué importa:</strong> FIFA estima que 50% de jugadores descartados en juveniles son maduradores tardíos.</p>
+    <p class="text-sm"><strong>Competencia más cercana:</strong> <strong>Kitman Labs</strong> ($82.3M, 700+ equipos, Premier League partner) tiene Mirwald + Khamis-Roche PERO solo muestra datos en paralelo — el coach interpreta manualmente. No hay corrección automática. RYPT y Hylyght hacen bio-banding para training, no para scouting.</p>
+    <div class="moat-bar mt-1">
+      <span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot"></span>
+      <span class="moat-label">4/5 — First mover, ventana 12-18 meses antes de que Kitman replique</span>
+    </div>
+  </div>
+
+  <div class="card mb-2">
+    <h3>D2. Multi-agente IA nativo (8 agentes, RAG, observabilidad)</h3>
+    <p class="text-sm">8 agentes con contratos formales, circuit breakers, token budget, prompt injection defense 3 capas, RAG con Voyage AI embeddings. Genera reportes 6D, planes de desarrollo, insights tácticos — todo automático desde video de móvil.</p>
+    <div class="moat-bar mt-1">
+      <span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot"></span>
+      <span class="moat-label">4/5 — Ventaja de ejecución, replicable con inversión significativa</span>
+    </div>
+  </div>
+
+  <div class="card mb-2">
+    <h3>D3. Canal B2B2C Parent Pro (€9/mes)</h3>
+    <p class="text-sm">Familias pagan por ver evaluaciones PHV de sus hijos. LTV:CAC de 68.7×. Crea lock-in y network effect. Ningún competidor B2B tiene este canal viral.</p>
+    <div class="moat-bar mt-1">
+      <span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot"></span>
+      <span class="moat-label">4/5 — Network effect creciente con cada club</span>
+    </div>
+  </div>
+
+  <div class="card mb-2">
+    <h3>D4. Transparencia total (Score de confianza + Sample Tier)</h3>
+    <p class="text-sm">Cada métrica del VSI incluye confianza (0-1) y Sample Tier (Bronze-Platinum). Fórmula publicada. Ningún otro índice lo expone.</p>
+    <div class="moat-bar mt-1">
+      <span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot"></span><span class="moat-dot"></span>
+      <span class="moat-label">3/5 — Fácil de copiar en concepto</span>
+    </div>
+  </div>
+
+  <div class="card mb-2">
+    <h3>D5. Precio 10-40× inferior</h3>
+    <p class="text-sm">€2.4K/año vs €13.5-36K stack equivalente (Wyscout+Hudl+herramienta PHV). Abre mercado a academias que nunca podrían pagar Wyscout o Catapult.</p>
+    <div class="moat-bar mt-1">
+      <span class="moat-dot filled"></span><span class="moat-dot filled"></span><span class="moat-dot"></span><span class="moat-dot"></span><span class="moat-dot"></span>
+      <span class="moat-label">2/5 — Ventaja temporal, cualquiera puede bajar precios</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     6. GAPS
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="gaps">
+  <div class="section-number">Sección 06</div>
+  <h2>Gaps de VITAS vs Competencia</h2>
+  <table class="gap-table">
+    <thead><tr><th>Gap</th><th>Quién lo tiene</th><th>Impacto</th><th>Recomendación</th><th>Esfuerzo</th></tr></thead>
+    <tbody>
+      <tr><td>Ball tracking / posesión</td><td>StatsBomb, Metrica, SkillCorner</td><td><span class="badge badge-destructive">Crítico</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~6 sem</td></tr>
+      <tr><td>xG / xA</td><td>StatsBomb, Wyscout, Opta</td><td><span class="badge badge-destructive">Crítico</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~2 sem</td></tr>
+      <tr><td>Scouting DB (>1K)</td><td>Wyscout (600K+), SciSports</td><td><span class="badge badge-warning">Alto</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~3 sem</td></tr>
+      <tr><td>GPS/IMU precisión</td><td>Catapult, STATSports, PlayerMaker</td><td><span class="badge badge-warning">Alto</span></td><td><span class="rec-badge rec-partner">PARTNER</span></td><td>~2 sem</td></tr>
+      <tr><td>Método %PAH (Khamis-Roche)</td><td>Kitman Labs, Hylyght, PL EPPP</td><td><span class="badge badge-warning">Medio</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~1 sem</td></tr>
+      <tr><td>Smart Tagging</td><td>Metrica, SkillCorner, Hudl</td><td><span class="badge badge-warning">Medio</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~3 sem</td></tr>
+      <tr><td>Multi-idioma</td><td>Todos enterprise</td><td><span class="badge badge-warning">Medio</span></td><td><span class="rec-badge rec-build">BUILD</span></td><td>~4 sem</td></tr>
+      <tr><td>Biomecánica 3D</td><td>AiSCOUT (1000 pts)</td><td><span class="badge badge-neutral">Bajo</span></td><td><span class="rec-badge rec-ignore">IGNORAR</span></td><td>N/A</td></tr>
+      <tr><td>Cámara autónoma</td><td>Veo ($899)</td><td><span class="badge badge-neutral">Bajo</span></td><td><span class="rec-badge rec-partner">PARTNER</span></td><td>~4 sem</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     7. ANÁLISIS FINANCIERO
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="financiero">
+  <div class="section-number">Sección 07</div>
+  <h2>Análisis Financiero y de Mercado</h2>
+
+  <h3>7.1 Mapa de Funding del Sector</h3>
+  <div class="chart-container">
+    <h4>Funding total levantado (USD)</h4>
+    <div class="bar-chart">
+      <div class="bar-row"><span class="bar-label">Hudl</span><div class="bar-track"><div class="bar-fill navy" style="width:100%">$230M</div></div></div>
+      <div class="bar-row"><span class="bar-label">Veo</span><div class="bar-track"><div class="bar-fill primary" style="width:50%">$115M</div></div></div>
+      <div class="bar-row"><span class="bar-label">Kitman Labs</span><div class="bar-track"><div class="bar-fill electric" style="width:35.8%">$82.3M</div></div></div>
+      <div class="bar-row"><span class="bar-label">PlayerMaker</span><div class="bar-track"><div class="bar-fill cyan" style="width:21.7%">$50M</div></div></div>
+      <div class="bar-row"><span class="bar-label">Tonsser</span><div class="bar-track"><div class="bar-fill gold" style="width:10.3%">$23.8M</div></div></div>
+      <div class="bar-row"><span class="bar-label">AiSCOUT</span><div class="bar-track"><div class="bar-fill pink" style="width:9.1%">~$21M</div></div></div>
+      <div class="bar-row"><span class="bar-label">SciSports</span><div class="bar-track"><div class="bar-fill gold" style="width:2%">€4.15M</div></div></div>
+      <div class="bar-row"><span class="bar-label">TransferRoom</span><div class="bar-track"><div class="bar-fill gold" style="width:0.7%">$1.63M</div></div></div>
+      <div class="bar-row"><span class="bar-label">Metrica</span><div class="bar-track"><div class="bar-fill gold" style="width:0.1%; min-width:70px">$124K+</div></div></div>
+      <div class="bar-row"><span class="bar-label">BeSoccer</span><div class="bar-track"><div class="bar-fill success" style="width:0.05%; min-width:90px">$0 (bootstrap)</div></div></div>
+    </div>
+    <p class="text-xs text-muted mt-1">Catapult excluido (público, ASX: CAT, ~$630M mktcap). Fuentes: Crunchbase, TechCrunch, comunicados oficiales.<sup class="cite"><a href="#fuente-3">[3]</a></sup></p>
+  </div>
+
+  <!-- Revenue comparison -->
+  <div class="chart-container">
+    <h4>Revenue conocido (USD, anualizado)</h4>
+    <div class="bar-chart">
+      <div class="bar-row"><span class="bar-label">Hudl</span><div class="bar-track"><div class="bar-fill navy" style="width:100%">~$730M ARR</div></div></div>
+      <div class="bar-row"><span class="bar-label">Catapult</span><div class="bar-track"><div class="bar-fill primary" style="width:16%">$116.5M</div></div></div>
+      <div class="bar-row"><span class="bar-label">Veo</span><div class="bar-track"><div class="bar-fill electric" style="width:5.1%">$37.2M</div></div></div>
+    </div>
+    <p class="text-xs text-muted mt-1">Solo empresas con revenue público/estimable. Hudl: Getlatka. Catapult: FY2025 filing. Veo: Getlatka Sep 2025.</p>
+  </div>
+
+  <h3>7.2 Inversores Activos en SportsTech Football</h3>
+  <table>
+    <thead><tr><th>Inversor</th><th>Tipo</th><th>Inversiones</th><th>Thesis</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">Bain Capital</td><td>Growth PE</td><td>Hudl ($120M)</td><td>Consolidación sports data</td></tr>
+      <tr><td class="fw-600">Guggenheim Investments</td><td>Growth</td><td>Kitman Labs ($52M)</td><td>Sports intelligence platform</td></tr>
+      <tr><td class="fw-600">ATP (pension DK)</td><td>Institutional</td><td>Veo ($80M lead)</td><td>HW+SW vertical</td></tr>
+      <tr><td class="fw-600">Ventura Capital</td><td>Growth</td><td>PlayerMaker ($40M)</td><td>Wearables + data</td></tr>
+      <tr><td class="fw-600">FC Barcelona BIHUB</td><td>Strategic</td><td>Metrica Sports</td><td>Tactical analysis democratization</td></tr>
+      <tr><td class="fw-600">Alven Capital</td><td>VC (Series A)</td><td>Tonsser (€5.5M)</td><td>Consumer sports social</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.3 M&amp;A — Timeline de Consolidación</h3>
+  <div class="timeline">
+    <div class="timeline-item"><div class="tl-date">Ago 2019</div><div class="tl-title">Hudl → Wyscout</div><div class="tl-desc">600K perfiles de scouting<sup class="cite"><a href="#fuente-4">[4]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Ago 2022</div><div class="tl-title">Hudl → InStat</div><div class="tl-desc">2,000 equipos, performance analysis<sup class="cite"><a href="#fuente-5">[5]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Ago 2024</div><div class="tl-title">Hudl → StatsBomb</div><div class="tl-desc">Gold standard event data<sup class="cite"><a href="#fuente-6">[6]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Nov 2024</div><div class="tl-title">Livesport → BeSoccer</div><div class="tl-desc">25M MAU, datos ligas españolas<sup class="cite"><a href="#fuente-7">[7]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Nov 2024</div><div class="tl-title">VANAD → SciSports</div><div class="tl-desc">SciSkill rating, VAEP<sup class="cite"><a href="#fuente-8">[8]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Feb 2025</div><div class="tl-title">Hudl → Balltime</div><div class="tl-desc">Grassroots video<sup class="cite"><a href="#fuente-9">[9]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Oct 2025</div><div class="tl-title">Catapult → IMPECT (€78M)</div><div class="tl-desc">Tactical data, mayor deal 2025<sup class="cite"><a href="#fuente-10">[10]</a></sup></div></div>
+    <div class="timeline-item"><div class="tl-date">Feb 2026</div><div class="tl-title">HUMAIN → ai.io (AiSCOUT)</div><div class="tl-desc">Youth scouting + MLS<sup class="cite"><a href="#fuente-11">[11]</a></sup></div></div>
+  </div>
+
+  <h3>7.4 Tamaño de Mercado</h3>
+  <div class="stat-row">
+    <div class="stat-card"><div class="stat-value">$5.7B</div><div class="stat-label">Sports Analytics 2025<sup class="cite"><a href="#fuente-12">[12]</a></sup></div></div>
+    <div class="stat-card gold"><div class="stat-value">$23.1B</div><div class="stat-label">Sports Analytics 2033 (18.5% CAGR)</div></div>
+    <div class="stat-card electric"><div class="stat-value">$522M</div><div class="stat-label">Football Analysis SW 2024<sup class="cite"><a href="#fuente-13">[13]</a></sup></div></div>
+    <div class="stat-card cyan"><div class="stat-value">€1.2B</div><div class="stat-label">VITAS SAM (ES+LATAM+PT) <span class="conf conf-opinion">💭</span></div></div>
+  </div>
+
+  <h3>7.5 Múltiplos de Valoración</h3>
+  <table>
+    <thead><tr><th>Segmento</th><th>Revenue Multiple</th><th>Fuente</th></tr></thead>
+    <tbody>
+      <tr><td>Mediana SaaS privado</td><td>3.1× – 4.8×</td><td>SaaS Capital<sup class="cite"><a href="#fuente-15">[15]</a></sup></td></tr>
+      <tr><td>SaaS alto crecimiento (>25%)</td><td>10.7×</td><td>FirstPageSage<sup class="cite"><a href="#fuente-16">[16]</a></sup></td></tr>
+      <tr><td>Catapult Sports (ref.)</td><td>~5.4× ($116M / $630M)</td><td>ASX: CAT<sup class="cite"><a href="#fuente-17">[17]</a></sup></td></tr>
+      <tr><td>Veo Technologies (ref.)</td><td>~11.8× ($37M / $440M)</td><td>Series C<sup class="cite"><a href="#fuente-18">[18]</a></sup></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     8. POSICIONAMIENTO
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="posicionamiento">
+  <div class="section-number">Sección 08</div>
+  <h2>Posicionamiento Estratégico</h2>
+
+  <div class="highlight-box">
+    <strong>Frase:</strong> "VITAS es la plataforma de inteligencia futbolística que ve al jugador, no al cuerpo. La primera que corrige por maduración biológica para que el talento oculto deje de ser invisible."
+  </div>
+
+  <h3>Mensajes por persona</h3>
+  <table>
+    <thead><tr><th>Persona</th><th>Dolor</th><th>Mensaje</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Director Academia</strong></td><td>Descartamos jugadores que luego brillan en otro club</td><td>"Con VITAS ves quién va a ser, no quién es hoy."</td></tr>
+      <tr><td><strong>Scout</strong></td><td>40h/semana viendo partidos y haciendo informes a mano</td><td>"Sube un video, obtén un reporte IA con métricas reales en minutos."</td></tr>
+      <tr><td><strong>Padre</strong></td><td>Mi hijo juega bien pero nadie lo ve</td><td>"Evaluaciones mensuales, progresión PHV, y portfolio visible para scouts. €9/mes."</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Narrativa pitch (3 actos)</h3>
+  <div class="card">
+    <p class="text-sm"><strong>Acto 1 — El problema:</strong> Cada año miles de jugadores talentosos son descartados por sesgo de maduración biológica. Un chico de enero tiene 11 meses de ventaja física. Wyscout, Hudl, Catapult miden rendimiento bruto sin corregir por esto.</p>
+    <p class="text-sm"><strong>Acto 2 — La solución:</strong> VITAS integra PHV con análisis de video IA y métricas avanzadas. 8 agentes IA generan reportes que ajustan evaluaciones por edad biológica. Sin hardware, desde un móvil.</p>
+    <p class="text-sm"><strong>Acto 3 — El mercado:</strong> Football analysis software: $522M al 12% CAGR. Youth está huérfano de tech: herramientas enterprise cuestan €20-50K. VITAS entra a €2.4K con B2B2C donde familias financian adopción. NPS 72 en piloto con 200 familias.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     9. FUNDRAISING
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="fundraising">
+  <div class="section-number">Sección 09</div>
+  <h2>Fundraising Readiness</h2>
+
+  <div class="electric-box">
+    <strong>Stage: Pre-seed / Seed temprano.</strong> Producto en producción, piloto cualitativo, 0 revenue. Equipo: 1 fundador técnico.
+  </div>
+
+  <h3>3 comparables</h3>
+  <div class="card-grid">
+    <div class="card"><h4>AiSCOUT (~$21M, adq. HUMAIN)</h4><p class="text-sm">Mismo segmento youth. VITAS tiene PHV (AiSCOUT no) + B2B2C. VITAS debería aspirar al mismo rango pre-acquisition.</p></div>
+    <div class="card"><h4>Metrica ($124K + FCB strategic)</h4><p class="text-sm">16 personas, FCB anchor. VITAS tiene stack más completo (multi-agente, RAG, PHV).</p></div>
+    <div class="card"><h4>Tonsser ($23.8M, 1.7M users)</h4><p class="text-sm">Probó apetito inversor en grassroots. En declive (headcount). VITAS entra con tech de 2026.</p></div>
+  </div>
+
+  <h3>Hitos para la ronda</h3>
+  <table>
+    <thead><tr><th>Hito</th><th>Objetivo</th><th>Por qué</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">1 club pagando</td><td>Cualquier tier</td><td>Proof of willingness-to-pay</td></tr>
+      <tr><td class="fw-600">10 clubes activos</td><td>Free + paid</td><td>Demanda multi-club</td></tr>
+      <tr><td class="fw-600">€5K MRR</td><td>3-5 clubes + 50 familias</td><td>Unit economics funcionales → seed €300-500K</td></tr>
+      <tr><td class="fw-600">Ball tracking + xG</td><td>Feature shipped</td><td>Feature parity mínima</td></tr>
+      <tr><td class="fw-600">Whitepaper PHV</td><td>Publicado</td><td>Moat científico verificable en due diligence</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Preguntas de due diligence</h3>
+  <div class="card-grid">
+    <div class="card"><h4>💰 "¿Revenue?"</h4><p class="text-sm">€0. Piloto con 200 familias (NPS 72). Pricing validado con 3 directores de academia. Primer contrato Q3 2026.</p></div>
+    <div class="card"><h4>🏗️ "¿Equipo de 1?"</h4><p class="text-sm">Arquitectura 100% serverless. Capital para: 1 ML engineer, 1 comercial. Fundador en producto.</p></div>
+    <div class="card"><h4>🦈 "¿Hudl/Kitman?"</h4><p class="text-sm">Hudl: pre-LLM, $325+ mínimo, no PHV. Kitman: enterprise ($50K+), no corrección automática. VITAS va al mercado que no pueden servir.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     10. RIESGOS
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="riesgos">
+  <div class="section-number">Sección 10</div>
+  <h2>Riesgos Competitivos a 12 Meses</h2>
+  <table>
+    <thead><tr><th>Riesgo</th><th>Prob.</th><th>Impacto</th><th>Mitigación</th></tr></thead>
+    <tbody>
+      <tr><td class="fw-600">Kitman Labs añade corrección PHV automática</td><td><span class="badge badge-warning">Media</span></td><td><span class="badge badge-destructive">Alto</span></td><td>Publicar whitepaper, patentar TruthFilter, cerrar 10 clubes antes. Kitman es enterprise ($50K+); VITAS es accesible.</td></tr>
+      <tr><td class="fw-600">Startup IA-nativa YC en youth scouting</td><td><span class="badge badge-destructive">Alta</span></td><td><span class="badge badge-destructive">Alto</span></td><td>Velocidad. Cerrar clubes, crear network effect.</td></tr>
+      <tr><td class="fw-600">Veo añade scouting analytics</td><td><span class="badge badge-destructive">Alta</span></td><td><span class="badge badge-warning">Medio</span></td><td>Veo es HW-first. Partnership > competencia.</td></tr>
+      <tr><td class="fw-600">Metrica implementa PHV</td><td><span class="badge badge-warning">Media</span></td><td><span class="badge badge-destructive">Alto</span></td><td>16 personas, foco táctico. PHV requiere expertise biomédico.</td></tr>
+      <tr><td class="fw-600">Hudl tier low-cost youth</td><td><span class="badge badge-warning">Media</span></td><td><span class="badge badge-warning">Medio</span></td><td>DNA enterprise. Si baja precios, VITAS aún tiene PHV.</td></tr>
+      <tr><td class="fw-600">GDPR datos de menores</td><td><span class="badge badge-warning">Media</span></td><td><span class="badge badge-warning">Medio</span></td><td>Ya opera con consentimiento parental, servidores EU, opción borrado.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ANEXO A — FICHAS
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="fichas">
+  <div class="section-number">Anexo A</div>
+  <h2>Fichas de Competidor</h2>
+  <div class="card-grid">
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">H</div><div><h4>Hudl</h4><p class="comp-tagline">Video + data empire (15 adquisiciones)</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$230M</strong> Funding</div><div class="comp-metric"><strong>~$730M</strong> ARR</div><div class="comp-metric"><strong>~3,500</strong> Emp.</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Pro/All</span><span class="badge badge-neutral">Global</span></div><p class="text-xs text-muted">Bain Capital $120M (2020). Wyscout+InStat+StatsBomb+Balltime+TITAN. No PHV, no IA generativa, mín. $325/año.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar" style="background:linear-gradient(135deg,#4A1D8E,#A855F7)">KL</div><div><h4>Kitman Labs</h4><p class="comp-tagline">Sports intelligence + maturation</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$82.3M</strong> Funding</div><div class="comp-metric"><strong>700+</strong> Equipos</div><div class="comp-metric"><strong>PL</strong> Partner</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Elite</span><span class="badge badge-destructive">Amenaza PHV</span></div><p class="text-xs text-muted">Dublin. Guggenheim $52M (2021). Mirwald+Khamis-Roche pero SIN corrección automática. Premier League official partner. Enterprise pricing.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">V</div><div><h4>Veo Technologies</h4><p class="comp-tagline">AI camera + analytics</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$115M</strong> Funding</div><div class="comp-metric"><strong>$440M</strong> Val.</div><div class="comp-metric"><strong>$37M</strong> Rev.</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Amateur</span><span class="badge badge-neutral">Global</span></div><p class="text-xs text-muted">Copenhagen. ATP $80M Series C (2022). Cámara $899 + $26-89/mes. Complementario: Veo graba, VITAS analiza.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">PM</div><div><h4>PlayerMaker</h4><p class="comp-tagline">Boot sensor + IMU 1000Hz</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$50M</strong> Funding</div><div class="comp-metric"><strong>200+</strong> Clubes</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Grassroots</span><span class="badge badge-neutral">Global</span></div><p class="text-xs text-muted">Tel Aviv. Ventura $40M (2022). FIFA EPTS. Arsene Wenger angel. Touch quality, kick velocity. No PHV.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">Ai</div><div><h4>AiSCOUT / ai.io</h4><p class="comp-tagline">Youth drill evaluation</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>~$21M</strong> Funding</div><div class="comp-metric"><strong>MLS</strong> Partner</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Youth</span><span class="badge badge-destructive">Adq. HUMAIN 2026</span></div><p class="text-xs text-muted">London. 75 drills, biomecánica 3D. Chelsea, Burnley, MLS league-wide. Evalúa drills, NO partidos. No PHV.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar" style="background:linear-gradient(135deg,#0F6B6B,#158585)">M</div><div><h4>Metrica Sports</h4><p class="comp-tagline">AI tactical analysis, FCB-backed</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$124K+</strong> Funding</div><div class="comp-metric"><strong>~16</strong> Emp.</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Amateur/Pro</span><span class="badge badge-electric">FCB BIHUB</span></div><p class="text-xs text-muted">Amsterdam/Barcelona. GameCloud tracking, Smart Tagging, Pitch Control. $11/mes. Competidor más peligroso en filosofía.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">Sc</div><div><h4>SciSports</h4><p class="comp-tagline">Data scouting (adq. VANAD)</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>€4.15M</strong> Funding</div><div class="comp-metric"><strong>VANAD</strong> Adq. 2024</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Pro</span></div><p class="text-xs text-muted">Zeist, NL. SciSkill Bayesiano, VAEP co-developer. Univ. Twente spinoff.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">T</div><div><h4>Tonsser</h4><p class="comp-tagline">Grassroots social app</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$23.8M</strong> Funding</div><div class="comp-metric"><strong>1.7M</strong> Users</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Grassroots</span><span class="badge badge-warning">Declive</span></div><p class="text-xs text-muted">Copenhagen. Alven €5.5M Series A (2018). No capital desde 2018. Headcount cayendo.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">C</div><div><h4>Catapult Sports</h4><p class="comp-tagline">Wearable performance (público)</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>ASX: CAT</strong></div><div class="comp-metric"><strong>$116M</strong> Rev.</div><div class="comp-metric"><strong>~$630M</strong> Cap.</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Elite</span><span class="badge badge-success">Público</span></div><p class="text-xs text-muted">Melbourne. GPS 10Hz, PlayerLoad. IMPECT adq. €78M (2025). 8+ adquisiciones.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar">TR</div><div><h4>TransferRoom</h4><p class="comp-tagline">Transfer marketplace</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$1.63M</strong> Funding</div><div class="comp-metric"><strong>~50</strong> Emp.</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Pro transfers</span></div><p class="text-xs text-muted">London. Partech Partners. Marketplace B2B para transfers profesionales.</p></div>
+
+    <div class="comp-card"><div class="comp-card-header"><div class="comp-avatar" style="background:linear-gradient(135deg,#16A34A,#22C55E)">BS</div><div><h4>BeSoccer</h4><p class="comp-tagline">Football data (bootstrapped → adq.)</p></div></div><div class="comp-metrics"><div class="comp-metric"><strong>$0</strong> Bootstrap</div><div class="comp-metric"><strong>25M</strong> MAU</div></div><div class="flex flex-wrap gap-1"><span class="badge badge-neutral">Consumer</span><span class="badge badge-destructive">Adq. Livesport</span></div><p class="text-xs text-muted">Málaga. 2008. 100% bootstrapped. Adq. Livesport Nov 2024. Prueba que funciona sin capital externo en España.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ANEXO B — FUENTES
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="fuentes">
+  <div class="section-number">Anexo B</div>
+  <h2>Fuentes</h2>
+  <p class="text-xs text-muted">Fecha de acceso: Mayo 2026.</p>
+
+  <h4>Documentación interna VITAS</h4>
+  <ol class="text-sm" start="1">
+    <li id="fuente-1" class="source-item">VITAS repo — <code>docs/ANALISIS_COMPETITIVO_DETALLADO.md</code>, <code>docs/BRAND_CONTEXT.md</code></li>
+    <li id="fuente-2" class="source-item">VITAS repo — <code>documentacion/VITAS_PROYECCIONES_FINANCIERAS.html</code>, <code>VITAS_ESTUDIO_MERCADO.html</code>, <code>VITAS_DOSSIER_EJECUTIVO.html</code></li>
+  </ol>
+  <h4>Hudl / Wyscout / InStat / StatsBomb</h4>
+  <ol class="text-sm" start="3">
+    <li id="fuente-3" class="source-item">Crunchbase — Hudl. <a href="https://www.crunchbase.com/organization/hudl" target="_blank" rel="noopener">crunchbase.com/organization/hudl</a></li>
+    <li id="fuente-4" class="source-item">Hudl Blog — Wyscout acquisition (Aug 2019). <a href="https://www.hudl.com/blog/the-inside-view-of-hudls-wyscout-acquisition" target="_blank" rel="noopener">hudl.com</a></li>
+    <li id="fuente-5" class="source-item">Training Ground Guru — Hudl buys InStat (Aug 2022). <a href="https://archive.trainingground.guru/articles/hudl-buys-performance-analysis-firm-instat" target="_blank" rel="noopener">trainingground.guru</a></li>
+    <li id="fuente-6" class="source-item">Hudl — StatsBomb press release (Aug 2024). <a href="https://www.hudl.com/blog/hudl-statsbomb-press-release-en" target="_blank" rel="noopener">hudl.com</a></li>
+  </ol>
+  <h4>Otras adquisiciones</h4>
+  <ol class="text-sm" start="7">
+    <li id="fuente-7" class="source-item">Flashscore — Livesport acquires BeSoccer (Nov 2024). <a href="https://www.flashscore.com/news/livesport-acquires-besoccer" target="_blank" rel="noopener">flashscore.com</a></li>
+    <li id="fuente-8" class="source-item">Silicon Canals — VANAD acquires SciSports (Nov 2024). <a href="https://siliconcanals.com/utrechts-scisports-gets-acquired-by-vanad-group/" target="_blank" rel="noopener">siliconcanals.com</a></li>
+    <li id="fuente-9" class="source-item">Hudl — Balltime acquisition (Feb 2025).</li>
+    <li id="fuente-10" class="source-item">BusinessNewsAustralia — Catapult acquires IMPECT. <a href="https://www.businessnewsaustralia.com/articles/catapult-sports-capital-raising-acquisition-impect.html" target="_blank" rel="noopener">businessnewsaustralia.com</a></li>
+    <li id="fuente-11" class="source-item">Tracxn — AiScout/HUMAIN acquisition. <a href="https://tracxn.com/d/companies/aiscout/" target="_blank" rel="noopener">tracxn.com</a></li>
+  </ol>
+  <h4>Mercado y múltiplos</h4>
+  <ol class="text-sm" start="12">
+    <li id="fuente-12" class="source-item">Grand View Research — Sports Analytics Market. <a href="https://www.grandviewresearch.com/industry-analysis/sports-analytics-market" target="_blank" rel="noopener">grandviewresearch.com</a></li>
+    <li id="fuente-13" class="source-item">IntelMarketResearch — Football Analysis Software. <a href="https://www.intelmarketresearch.com/Global-Football-Analysis" target="_blank" rel="noopener">intelmarketresearch.com</a></li>
+    <li id="fuente-14" class="source-item">Drake Star — Global Sports Tech Report 2024. <a href="https://www.drakestar.com/news/global-sports-tech-report-2024" target="_blank" rel="noopener">drakestar.com</a></li>
+    <li id="fuente-15" class="source-item">SaaS Capital — Private SaaS Valuations. <a href="https://www.saas-capital.com/blog-posts/private-saas-company-valuations-multiples/" target="_blank" rel="noopener">saas-capital.com</a></li>
+    <li id="fuente-16" class="source-item">FirstPageSage — SaaS Multiples. <a href="https://firstpagesage.com/business/saas-valuation-multiples/" target="_blank" rel="noopener">firstpagesage.com</a></li>
+    <li id="fuente-17" class="source-item">StockAnalysis — Catapult (ASX: CAT). <a href="https://stockanalysis.com/quote/asx/CAT/revenue/" target="_blank" rel="noopener">stockanalysis.com</a></li>
+    <li id="fuente-18" class="source-item">Ventech — Veo $80M. <a href="https://www.ventechvc.com/stories/ventech-renews-its-trust-in-veo" target="_blank" rel="noopener">ventechvc.com</a></li>
+  </ol>
+  <h4>Kitman Labs / Maturation competitors</h4>
+  <ol class="text-sm" start="19">
+    <li id="fuente-19" class="source-item">Kitman Labs — Coaching & Development Solution. <a href="https://www.kitmanlabs.com" target="_blank" rel="noopener">kitmanlabs.com</a></li>
+    <li id="fuente-20" class="source-item">Hylyght — Growth Tracker (%PAH). <a href="https://www.hylyght.com" target="_blank" rel="noopener">hylyght.com</a></li>
+    <li id="fuente-21" class="source-item">RYPT — Athletic Development Platform. <a href="https://rypt.app" target="_blank" rel="noopener">rypt.app</a></li>
+    <li id="fuente-22" class="source-item">Maturo — AI maturation assessment. Frontiers in Psychology (2025-2026).</li>
+    <li id="fuente-23" class="source-item">Bain Capital — Hudl investment. <a href="https://www.baincapital.com/news/hudl-global-leader-sports-performance-analysis" target="_blank" rel="noopener">baincapital.com</a></li>
+  </ol>
+</section>
+
+</div><!-- content-area -->
+
+<footer style="text-align:center; padding: 2rem; color: var(--text-muted); font-size: 0.75rem; border-top: 1px solid var(--border);">
+  VITAS<span style="color:var(--primary)">.</span> Football Intelligence — Análisis Competitivo &amp; Financiero · Mayo 2026<br>
+  VITAS · Documento interno<br>
+  Generado con Claude Code
+</footer>
+
+</main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var toggle = document.getElementById("navToggle");
+  var sidebar = document.getElementById("sidebar");
+  if (toggle && sidebar) {
+    toggle.addEventListener("click", function () {
+      sidebar.classList.toggle("open");
+      toggle.textContent = sidebar.classList.contains("open") ? "✕" : "☰";
+    });
+    sidebar.querySelectorAll("nav a").forEach(function (link) {
+      link.addEventListener("click", function () {
+        if (window.innerWidth <= 900) { sidebar.classList.remove("open"); toggle.textContent = "☰"; }
+      });
+    });
+  }
+  var sections = document.querySelectorAll("section[id]");
+  var navLinks = document.querySelectorAll(".sidebar nav a");
+  function updateSpy() {
+    var y = window.scrollY + 120, cur = "";
+    sections.forEach(function (s) { if (s.offsetTop <= y) cur = s.getAttribute("id"); });
+    navLinks.forEach(function (l) { l.classList.toggle("active", l.getAttribute("href") === "#" + cur); });
+  }
+  var t = false;
+  window.addEventListener("scroll", function () { if (!t) { window.requestAnimationFrame(function () { updateSpy(); t = false; }); t = true; } });
+  updateSpy();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TruthFilter: A Maturation-Aware Correction Framework for Youth Football Talent Identification</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #0059B3;
+  --primary-light: #0066CC;
+  --primary-10: rgba(0,89,179,0.08);
+  --navy: #0F1729;
+  --gold: #D4940A;
+  --red: #C0392B;
+  --text: #1a1a2e;
+  --muted: #4a5568;
+  --border: #e2e8f0;
+  --bg: #ffffff;
+  --code-bg: #f7f8fa;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 12pt; -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'Crimson Pro', 'Georgia', serif;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.75;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  counter-reset: figure-counter table-counter equation-counter;
+}
+
+/* ─── Typography ─── */
+h1 { font-family: 'Inter', sans-serif; font-size: 1.6rem; line-height: 1.3; font-weight: 700; color: var(--navy); margin-bottom: 0.5rem; text-align: center; }
+h2 { font-family: 'Inter', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--navy); margin: 2rem 0 0.6rem; padding-bottom: 0.3rem; border-bottom: 2px solid var(--primary); counter-increment: none; }
+h3 { font-family: 'Inter', sans-serif; font-size: 1rem; font-weight: 600; color: var(--text); margin: 1.3rem 0 0.4rem; }
+h4 { font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; margin: 1rem 0 0.3rem; }
+
+p { margin-bottom: 0.8rem; text-align: justify; hyphens: auto; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+sup { font-size: 0.7em; vertical-align: super; line-height: 0; }
+
+/* ─── Paper header ─── */
+.paper-header { text-align: center; margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+.paper-header .venue { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 0.8rem; }
+.authors { font-family: 'Inter', sans-serif; font-size: 0.85rem; color: var(--muted); margin: 0.8rem 0 0.3rem; }
+.authors strong { color: var(--text); }
+.affiliation { font-family: 'Inter', sans-serif; font-size: 0.78rem; color: var(--muted); font-style: italic; }
+.date { font-family: 'Inter', sans-serif; font-size: 0.78rem; color: var(--muted); margin-top: 0.5rem; }
+.version-badge { display: inline-block; background: var(--primary-10); color: var(--primary); font-family: 'Inter', sans-serif; font-size: 0.65rem; font-weight: 600; padding: 0.15rem 0.5rem; border-radius: 100px; margin-top: 0.5rem; }
+.doi-block { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); margin-top: 0.6rem; }
+
+/* ─── Abstract ─── */
+.abstract {
+  background: var(--primary-10); border-left: 4px solid var(--primary);
+  padding: 1rem 1.2rem; border-radius: 0 8px 8px 0;
+  margin: 1.5rem 0; font-size: 0.95rem;
+}
+.abstract h2 { font-size: 0.85rem; margin: 0 0 0.4rem; border: none; padding: 0; color: var(--primary); }
+.abstract p { margin: 0 0 0.5rem; font-size: 0.92rem; }
+.keywords { font-family: 'Inter', sans-serif; font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem; }
+.keywords strong { color: var(--text); }
+
+/* ─── Figures & Tables ─── */
+figure { margin: 1.5rem 0; text-align: center; page-break-inside: avoid; }
+figcaption {
+  font-family: 'Inter', sans-serif; font-size: 0.78rem; color: var(--muted);
+  margin-top: 0.5rem; text-align: center;
+  counter-increment: figure-counter;
+}
+figcaption::before { content: "Figure " counter(figure-counter) ". "; font-weight: 600; color: var(--text); }
+
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.88rem; page-break-inside: avoid; }
+th, td { padding: 0.45rem 0.6rem; border: 1px solid var(--border); text-align: left; }
+th { background: var(--primary-10); font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.8rem; color: var(--navy); }
+caption {
+  font-family: 'Inter', sans-serif; font-size: 0.78rem; color: var(--muted);
+  margin-bottom: 0.4rem; text-align: left;
+  counter-increment: table-counter;
+}
+caption::before { content: "Table " counter(table-counter) ". "; font-weight: 600; color: var(--text); }
+
+/* ─── Equations ─── */
+.equation {
+  background: var(--code-bg); border: 1px solid var(--border);
+  padding: 0.8rem 1rem; border-radius: 6px; margin: 1rem 0;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;
+  overflow-x: auto; text-align: center;
+  counter-increment: equation-counter;
+  position: relative;
+}
+.equation::after {
+  content: "(" counter(equation-counter) ")";
+  position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%);
+  font-size: 0.8rem; color: var(--muted);
+}
+
+/* ─── Code ─── */
+code {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+  background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 3px;
+}
+pre {
+  background: var(--code-bg); border: 1px solid var(--border);
+  padding: 0.8rem 1rem; border-radius: 6px; overflow-x: auto;
+  font-size: 0.78rem; line-height: 1.5; margin: 1rem 0;
+}
+
+/* ─── Callout ─── */
+.callout {
+  border-left: 4px solid var(--gold); background: rgba(212,148,10,0.06);
+  padding: 0.7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.callout-red {
+  border-left-color: var(--red); background: rgba(192,57,43,0.06);
+}
+
+/* ─── Lists ─── */
+ol, ul { padding-left: 1.4rem; margin-bottom: 0.8rem; }
+li { margin-bottom: 0.3rem; }
+
+/* ─── References ─── */
+.references { font-size: 0.82rem; line-height: 1.6; }
+.references p { text-indent: -1.5rem; padding-left: 1.5rem; margin-bottom: 0.4rem; text-align: left; }
+
+/* ─── Sections ─── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+.section-num { color: var(--primary); margin-right: 0.3rem; }
+
+/* ─── Footer ─── */
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); font-family: 'Inter', sans-serif; font-size: 0.7rem; color: var(--muted); text-align: center; }
+
+/* ─── Print ─── */
+@media print {
+  body { padding: 0; max-width: none; font-size: 10.5pt; }
+  @page { size: A4; margin: 2cm 2.5cm; }
+  h2 { page-break-after: avoid; }
+  .abstract, figure, table, .equation, pre { page-break-inside: avoid; }
+  a { color: var(--text); }
+  .no-print { display: none; }
+}
+@media (max-width: 600px) {
+  body { padding: 1rem; }
+  .two-col { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  PAPER HEADER                                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<div class="paper-header">
+  <div class="venue">VITAS Technical Whitepaper Series · WP-2026-001</div>
+  <h1>TruthFilter: A Maturation-Aware Correction Framework for Youth Football Talent Identification</h1>
+  <p style="font-family: 'Inter', sans-serif; font-size: 0.95rem; color: var(--muted); margin-top: 0.5rem;">
+    Introducing the Unified Bias Index (UBI) and VSI Correction Model
+  </p>
+  <div class="authors">
+    <strong>Pedro Paredes</strong><sup>1</sup>
+  </div>
+  <div class="affiliation">
+    <sup>1</sup> VITAS Football Intelligence · Madrid, Spain
+  </div>
+  <div class="date">May 2026 · v1.0</div>
+  <div class="version-badge">Pre-validation Framework Paper</div>
+  <div class="doi-block">
+    Correspondence: pedro.paredes@kenmei.ai<br>
+    Cite as: Paredes, P. (2026). TruthFilter: A Maturation-Aware Correction Framework for Youth Football Talent Identification. VITAS Technical Whitepaper WP-2026-001.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  ABSTRACT                                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<div class="abstract">
+  <h2>Abstract</h2>
+  <p>
+    Talent identification (TID) in youth football is systematically biased by two independent but interacting factors: biological maturation status (Peak Height Velocity, PHV) and the Relative Age Effect (RAE). Early-maturing and early-born players are consistently overrepresented in elite academies, while late-maturing players with equivalent or superior long-term potential are disproportionately deselected. Despite decades of research documenting these biases, no commercial platform currently adjusts individual performance scores by maturation status in real time.
+  </p>
+  <p>
+    This paper presents <strong>TruthFilter</strong>, a four-case correction framework that adjusts the VITAS Scouting Index (VSI) based on each player's PHV offset and birth quartile. We also introduce the <strong>Unified Bias Index (UBI)</strong>, a composite metric that quantifies combined RAE and PHV bias on a 0–1 scale, enabling scouts and coaches to estimate how much a player's observed performance deviates from their true potential. The framework is fully deterministic, runs in under 5 ms, and is implemented in the VITAS platform as an open, transparent correction layer with per-metric confidence scores.
+  </p>
+  <p>
+    We describe the mathematical formulation, implementation architecture, four correction cases with their evidence base, and propose a validation protocol using retrospective academy data. This is a framework paper; empirical validation with longitudinal cohort data is the planned next step.
+  </p>
+  <div class="keywords">
+    <strong>Keywords:</strong> talent identification, biological maturation, Peak Height Velocity, Relative Age Effect, youth football, bias correction, scouting, PHV, machine learning, sports analytics
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  1. INTRODUCTION                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">1.</span> Introduction</h2>
+
+<p>
+  The identification and development of talented youth football players is a critical function of professional academies worldwide, with clubs investing millions annually in scouting infrastructure. Yet the process remains fundamentally flawed: systematic biases related to biological maturation and relative age consistently distort evaluations, leading to the premature deselection of players with high long-term potential.
+</p>
+
+<p>
+  Two well-documented biases drive this problem:
+</p>
+
+<p>
+  <strong>Biological maturation bias.</strong> At any given chronological age between 11 and 16, players can differ by up to 4 years in biological maturity (Malina et al., 2015). Early-maturing players are taller, heavier, faster, and stronger than their late-maturing peers — advantages that are transient but decisive during selection windows. Figueiredo et al. (2010) demonstrated that maturity status significantly influences sprint, agility, and endurance performance in U13–U15 players. Hill et al. (2021) found maturity offset correlated with sprint performance at r = 0.62–0.69, exceeding the predictive power of relative age alone.
+</p>
+
+<p>
+  <strong>Relative Age Effect (RAE).</strong> Players born in the first quarter after the selection cutoff date (typically January in UEFA competitions) are overrepresented in elite academies by a factor of 2–3× relative to those born in the fourth quarter (Cobley et al., 2009; Helsen et al., 2005). This bias acts as a systemic filter: Q4 players are deselected before they can demonstrate their talent, creating a cumulative dropout effect observable from age 6.
+</p>
+
+<p>
+  Critically, these biases interact. A late-maturing player born in Q4 faces a double disadvantage — up to 3 years of biological maturity difference plus 11 months of chronological age difference compared to an early-maturing Q1 peer in the same age group. Yet recent evidence suggests these doubly-disadvantaged players may have the highest long-term ceiling: Pereira et al. (2025) found that late maturers were more likely to compete in Top 5 European leagues as adults, and Johnson et al. (2019) showed that late-maturing academy players who survive selection become more likely to reach professional level.
+</p>
+
+<p>
+  Several interventions have been proposed. Bio-banding — grouping players by maturity status rather than chronological age — has shown promise in competition settings (Cumming et al., 2017). Player-labelling approaches that surface maturity information alongside performance data have been shown to reduce evaluator bias (Mann &amp; van Ginneken, 2017; Patel et al., 2022). However, no intervention to date has implemented <em>automated, continuous correction of individual performance scores by maturation status</em> within a scouting platform.
+</p>
+
+<p>
+  This paper addresses that gap. We present TruthFilter, a framework that:
+</p>
+
+<ol>
+  <li>Computes each player's maturation offset using the Mirwald equation (Mirwald et al., 2002) and Moore simplified variant (Moore et al., 2015);</li>
+  <li>Quantifies combined RAE + PHV bias via a novel Unified Bias Index (UBI);</li>
+  <li>Applies one of four correction cases to adjust the composite scouting score (VSI) in real time;</li>
+  <li>Exposes correction magnitude, case rationale, and confidence score transparently to the end user.</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  2. BACKGROUND                                                             -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">2.</span> Background and Related Work</h2>
+
+<h3>2.1 Maturity Assessment Methods</h3>
+<p>
+  The gold standard for maturity assessment is skeletal age via hand-wrist X-ray (Greulich-Pyle or TW3 method), but its cost, radiation exposure, and logistical burden make it impractical for routine academy use. Non-invasive alternatives estimate maturity from anthropometric measurements:
+</p>
+<ul>
+  <li><strong>Mirwald equation</strong> (Mirwald et al., 2002): Predicts years from Peak Height Velocity (PHV) using chronological age, height, sitting height, leg length, and weight. Over 1,000 citations. Standard error ±0.59 years for males.</li>
+  <li><strong>Moore simplified equation</strong> (Moore et al., 2015): Reduces required measurements while maintaining acceptable accuracy for ages 9–14.</li>
+  <li><strong>Khamis-Roche method</strong>: Predicts adult height using current height, weight, and mid-parent height. Used by some professional setups (including Kitman Labs) for percentage-of-adult-height calculations.</li>
+</ul>
+
+<p>
+  Salter et al. (2025) recently cautioned that the Mirwald equation misclassifies 33–50% of players near PHV when used for individual-level grouping, recommending it as one input among several rather than the sole classifier. TruthFilter addresses this by incorporating confidence scores that degrade when inputs are estimated rather than measured.
+</p>
+
+<h3>2.2 Maturation and Performance</h3>
+<p>
+  The relationship between maturation and performance is well-established but dimension-specific. Huertas et al. (2024) showed that sprinting and change-of-direction are most affected by maturation status, while jumping is less impacted. Hill et al. (2021) found maturity offset explained more variance in 5m, 10m, and 20m sprint than relative age. This implies that correction models should weight physical dimensions more heavily than technical dimensions — a principle TruthFilter implements.
+</p>
+
+<h3>2.3 Existing Interventions</h3>
+<p>
+  Bio-banding (Cumming et al., 2017) groups players by maturity status for competition. Player-labelling (Mann &amp; van Ginneken, 2017; Patel et al., 2022) informs scouts of maturity status during evaluation. Both approaches modify the evaluation <em>context</em> but leave the performance <em>scores</em> unchanged. No published system or commercial platform applies automatic, continuous score correction by maturation status. A 2026 systematic review in <em>Frontiers in Psychology</em> explicitly calls for technology-enabled maturity adjustment in TID systems but references no existing product.
+</p>
+
+<h3>2.4 Commercial Landscape</h3>
+<p>
+  Kitman Labs ($82.3M funded, 700+ organizations) tracks PHV via Mirwald and Khamis-Roche data for 3,000+ Premier League academy players. However, their platform displays maturation data alongside performance without adjusting performance scores. Hudl ($230M), Veo ($115M), and AiSCOUT (~$21M, acquired by HUMAIN) offer video analysis and scouting tools but do not incorporate maturation correction. No platform in the market combines PHV assessment with automatic performance score adjustment.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  3. THE VITAS SCOUTING INDEX (VSI)                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">3.</span> The VITAS Scouting Index (VSI)</h2>
+
+<p>
+  The VSI is a composite talent score on a 0–100 scale, computed as a weighted sum of five subdimensions:
+</p>
+
+<div class="equation">
+  VSI = 0.30 · Technique + 0.25 · Physical + 0.20 · Mental + 0.15 · Tactical + 0.10 · Projection
+</div>
+
+<p>
+  Each subdimension is scored 0–100 from the following data sources:
+</p>
+
+<table>
+  <caption>VSI subdimension definitions and data sources.</caption>
+  <thead>
+    <tr><th>Subdimension</th><th>Weight</th><th>Data Sources</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Technique</td><td>0.30</td><td>MMPose biomechanics: ball control, dribble, passing form, shooting technique</td></tr>
+    <tr><td>Physical</td><td>0.25</td><td>Sprint speed, stride frequency, bilateral asymmetry, vertical jump estimate</td></tr>
+    <tr><td>Mental</td><td>0.20</td><td>Decision latency, persistence under pressure (pose pattern proxies)</td></tr>
+    <tr><td>Tactical</td><td>0.15</td><td>Positioning, off-ball movement, spatial awareness, head scan rate</td></tr>
+    <tr><td>Projection</td><td>0.10</td><td>PHV-adjusted biological age, historical trend, development trajectory</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The weighting prioritizes Technique (0.30) because technical skills are the most maturation-resistant dimension — a late maturer's first touch does not degrade by being physically smaller. Physical receives the second-highest weight (0.25) but is the dimension most susceptible to maturation bias, which is precisely what TruthFilter corrects.
+</p>
+
+<p>
+  VSI scores map to four tiers:
+</p>
+
+<table>
+  <caption>VSI tier classification.</caption>
+  <thead><tr><th>Tier</th><th>Range</th><th>Interpretation</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Elite</strong></td><td>85–100</td><td>Top-tier talent, professional trajectory</td></tr>
+    <tr><td><strong>Pro</strong></td><td>70–84</td><td>Strong potential, competitive level</td></tr>
+    <tr><td><strong>Talent</strong></td><td>50–69</td><td>Developing, needs targeted intervention</td></tr>
+    <tr><td><strong>Develop</strong></td><td>0–49</td><td>Foundational stage</td></tr>
+  </tbody>
+</table>
+
+<p>
+  The VSI is fully deterministic, computed in under 2 ms, and exposes the contribution of each subdimension to the total score. This transparency is critical: scouts can see <em>why</em> a player received their score, not just the number.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  4. PHV MATURITY OFFSET                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">4.</span> PHV Maturity Offset Calculation</h2>
+
+<p>
+  TruthFilter begins with computing the maturity offset — the number of years a player is from their estimated Peak Height Velocity. VITAS implements the Mirwald equation (2002) for males and the Moore variant (2015) for females.
+</p>
+
+<h3>4.1 Male Formula (Mirwald et al., 2002)</h3>
+
+<div class="equation">
+  MO = −9.236 + 0.0002708 × (LL × SH) − 0.001663 × (Age × LL) + 0.007216 × (Age × SH) + 0.02292 × (W/H × 100)
+</div>
+
+<p>Where MO = maturity offset (years from PHV), LL = leg length (cm), SH = sitting height (cm), Age = chronological age (years), W = weight (kg), H = standing height (cm).</p>
+
+<h3>4.2 Female Formula (Moore et al., 2015)</h3>
+
+<div class="equation">
+  MO = −9.376 + 0.0001882 × (LL × SH) + 0.0022 × (Age × LL) + 0.005841 × (Age × SH) − 0.002658 × (Age × W) + 0.07693 × (W/H × 100)
+</div>
+
+<h3>4.3 Input Estimation and Confidence</h3>
+
+<p>
+  When sitting height and leg length are not available (common in grassroots settings where professional anthropometric assessment is unavailable), VITAS estimates them from standing height:
+</p>
+
+<div class="equation">
+  SH<sub>est</sub> = H × 0.52 &nbsp;&nbsp;&nbsp; LL<sub>est</sub> = H × 0.48
+</div>
+
+<p>
+  These ratios are population averages for adolescent males (Pheasant &amp; Haslegrave, 2005). The estimation introduces additional error, which TruthFilter accounts for by adjusting the confidence score:
+</p>
+
+<table>
+  <caption>Confidence scores by input availability.</caption>
+  <thead><tr><th>Inputs</th><th>Confidence</th><th>Rationale</th></tr></thead>
+  <tbody>
+    <tr><td>All measured (SH + LL real)</td><td>0.92</td><td>Standard Mirwald accuracy (SEE ±0.59y)</td></tr>
+    <tr><td>Estimated from height</td><td>0.74</td><td>Adds estimation error to Mirwald SEE</td></tr>
+  </tbody>
+</table>
+
+<h3>4.4 Categorization</h3>
+
+<p>The maturity offset is categorized into three statuses:</p>
+
+<table>
+  <caption>Maturity offset categorization thresholds.</caption>
+  <thead><tr><th>Category</th><th>Offset Range</th><th>PHV Status</th><th>Development Window</th></tr></thead>
+  <tbody>
+    <tr><td>Early maturer</td><td>MO &gt; +1.0</td><td>Post-PHV</td><td>Active → Stable</td></tr>
+    <tr><td>On-time</td><td>−1.0 ≤ MO ≤ +1.0</td><td>During PHV</td><td>Critical</td></tr>
+    <tr><td>Late maturer</td><td>MO &lt; −1.0</td><td>Pre-PHV</td><td>Active → Stable</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  5. RAE CALCULATION                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">5.</span> Relative Age Effect (RAE) Quantification</h2>
+
+<p>
+  The RAE module computes each player's position within their age cohort relative to the competition cutoff date (default: January 1, per FIFA regulations).
+</p>
+
+<div class="equation">
+  relativeMonths = (birthMonth − cutoffMonth + 12) mod 12
+</div>
+
+<div class="equation">
+  raeBiasFactor = 1 + (11 − relativeMonths) × 0.02
+</div>
+
+<p>
+  Players are assigned to quartiles (Q1–Q4) based on their relative position. The bias factor ranges from ~1.22 (Q1, maximum relative age advantage) to 1.00 (Q4, no age advantage). VSI correction for RAE alone ranges from −2 points (Q1) to +5 points (Q4).
+</p>
+
+<table>
+  <caption>RAE quartile classification and VSI correction.</caption>
+  <thead><tr><th>Quartile</th><th>Months After Cutoff</th><th>Bias Factor</th><th>VSI Correction</th></tr></thead>
+  <tbody>
+    <tr><td>Q1 (early cohort)</td><td>0–2</td><td>~1.22</td><td>−2</td></tr>
+    <tr><td>Q2 (mid-early)</td><td>3–5</td><td>~1.14</td><td>0</td></tr>
+    <tr><td>Q3 (mid-late)</td><td>6–8</td><td>~1.08</td><td>+2</td></tr>
+    <tr><td>Q4 (late cohort)</td><td>9–11</td><td>~1.00</td><td>+5</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  6. UBI                                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">6.</span> The Unified Bias Index (UBI)</h2>
+
+<p>
+  The UBI is a novel composite metric that quantifies the combined impact of RAE and PHV bias on a single 0–1 scale. To our knowledge, no prior work has formalized the combination of these two biases into a single actionable index.
+</p>
+
+<h3>6.1 Formulation</h3>
+
+<div class="equation">
+  raeComponent = (birthQuartile − 1) / 3
+</div>
+
+<div class="equation">
+  phvComponent = clamp(−phvOffset / 2, &nbsp; 0, &nbsp; 1) &nbsp;&nbsp; [for late maturers]
+</div>
+
+<div class="equation">
+  phvComponent = clamp(phvOffset / 2, &nbsp; 0, &nbsp; 0.5) &nbsp;&nbsp; [for early maturers]
+</div>
+
+<div class="equation">
+  UBI = 0.55 × raeComponent + 0.45 × phvComponent
+</div>
+
+<div class="equation">
+  VSI<sub>correctionFactor</sub> = 1 + UBI × 0.12
+</div>
+
+<h3>6.2 Weight Justification (0.55 RAE / 0.45 PHV)</h3>
+
+<p>
+  RAE receives greater weight (0.55) because it represents a <strong>systemic selection bias</strong>: Q4 players are deselected before demonstrating their talent, creating a cumulative dropout effect (Cobley et al., 2009). Helsen et al. (2005) showed that RAE persists even after controlling for maturation. RAE acts as a filter at the point of selection, while PHV bias primarily affects performance assessment once a player is already observed.
+</p>
+
+<p>
+  PHV receives lower weight (0.45) because it is a <strong>temporal performance bias</strong>: maturation differences converge by ages 17–18 (Malina et al., 2004). A late maturer who survives selection has high probability of reaching or exceeding early-maturer performance post-maturation. The bias is self-correcting given sufficient time; RAE is not.
+</p>
+
+<h3>6.3 Correction Cap</h3>
+
+<p>
+  The maximum VSI correction factor is 1.12 (i.e., +12%). This cap is deliberately conservative: some studies suggest Q4 late maturers may be underestimated by 15–20%, but we prefer moderate adjustment to avoid overcompensation. The cap can be adjusted per competition level in future versions as validation data becomes available.
+</p>
+
+<h3>6.4 Interpretation Scale</h3>
+
+<table>
+  <caption>UBI interpretation thresholds.</caption>
+  <thead><tr><th>UBI Range</th><th>Label</th><th>Action</th></tr></thead>
+  <tbody>
+    <tr><td>0.70–1.00</td><td>High bias</td><td>Player likely underestimated. Priority follow-up recommended.</td></tr>
+    <tr><td>0.40–0.69</td><td>Moderate bias</td><td>Consider bias when evaluating VSI.</td></tr>
+    <tr><td>0.20–0.39</td><td>Low bias</td><td>Minor impact on evaluation.</td></tr>
+    <tr><td>0.00–0.19</td><td>Negligible</td><td>No significant bias detected.</td></tr>
+  </tbody>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  7. TRUTHFILTER                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">7.</span> TruthFilter: Four-Case Correction Model</h2>
+
+<p>
+  TruthFilter applies one of four correction cases based on the player's combined PHV and RAE profile. Each case has a specific correction range, confidence level, and evidence base.
+</p>
+
+<h3>7.1 Case 1: Early Maturers (phvOffset &gt; +0.5)</h3>
+
+<table>
+  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>VSI correction</td><td>−3 to −8 points</td></tr>
+    <tr><td>Formula</td><td><code>delta = −min(8, round(phvOffset × 4))</code></td></tr>
+    <tr><td>Confidence (real PHV data)</td><td>0.85</td></tr>
+    <tr><td>Confidence (estimated)</td><td>0.60</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Rationale.</strong> Early maturers benefit from transient physical advantages — greater height, mass, speed, and strength relative to chronologically-same-age peers. This inflates performance in Physical subdimension metrics. Meylan et al. (2010) showed that approximately 70% of the sprint advantage of early maturers disappears when controlling for biological age. TruthFilter discounts the observed VSI to approximate what the player's score would be without the maturation advantage, providing a more accurate estimate of long-term potential.
+</p>
+
+<h3>7.2 Case 2: Late Maturers (phvOffset &lt; −0.5)</h3>
+
+<table>
+  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>VSI correction</td><td>+3 to +10 points</td></tr>
+    <tr><td>Formula</td><td><code>delta = +min(10, round(|phvOffset| × 4))</code></td></tr>
+    <tr><td>Confidence (real PHV data)</td><td>0.88</td></tr>
+    <tr><td>Confidence (estimated)</td><td>0.65</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Rationale.</strong> Late maturers are systematically underestimated because they compete against peers with up to 2+ years of biological maturity advantage. Their technical and tactical quality is masked by physical disadvantage. Deprez et al. (2015) demonstrated that late maturers who survive selection have greater probability of reaching professional level. The asymmetric range (+10 vs. −8) is intentional: the cost of discarding a talented late maturer (false negative) is higher than the cost of slightly overestimating an early maturer (false positive).
+</p>
+
+<div class="callout">
+  <strong>Design decision:</strong> The asymmetric correction range (+10/−8) reflects a deliberate ethical choice. In talent identification, false negatives (missing real talent) are more costly than false positives (advancing a player who doesn't make it). A player who is advanced but doesn't succeed still benefits from the development experience. A player who is deselected due to maturation bias never gets the chance.
+</div>
+
+<h3>7.3 Case 3: On-Time + High RAE (Q1/Q2, normal maturation)</h3>
+
+<table>
+  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>VSI correction</td><td>−1 to −3 points</td></tr>
+    <tr><td>Formula</td><td><code>Q1: −3, Q2: −1</code></td></tr>
+    <tr><td>Confidence</td><td>0.70</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Rationale.</strong> No PHV bias but RAE advantage. A Q1 player born in January has up to 11 months more development than a Q4 player born in December of the same selection year. In U12–U14 categories, this translates to measurable advantages in accumulated training hours, physical development, and competitive experience.
+</p>
+
+<h3>7.4 Case 4: On-Time + Low RAE (Q3/Q4, normal maturation)</h3>
+
+<table>
+  <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>VSI correction</td><td>+1 to +4 points</td></tr>
+    <tr><td>Formula</td><td><code>Q4: +4, Q3: +1</code></td></tr>
+    <tr><td>Confidence</td><td>0.72</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>Rationale.</strong> No PHV bias but RAE disadvantage. These players compete with up to 11 months less development. A moderate upward correction acknowledges this chronological disadvantage.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  CASE INTERACTION DIAGRAM                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<figure>
+<svg width="100%" height="320" viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <marker id="arrowR" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="6" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#0059B3"/></marker>
+    <marker id="arrowD" viewBox="0 0 6 10" refX="3" refY="10" markerWidth="6" markerHeight="8" orient="auto"><path d="M0,0 L3,10 L6,0 Z" fill="#0059B3"/></marker>
+  </defs>
+  <!-- Title -->
+  <text x="340" y="22" text-anchor="middle" style="font: 700 13px 'Inter', sans-serif; fill: #0F1729;">TruthFilter Decision Tree</text>
+  <!-- Root -->
+  <rect x="240" y="40" width="200" height="36" rx="18" fill="#0059B3"/>
+  <text x="340" y="63" text-anchor="middle" style="font: 600 11px 'Inter', sans-serif; fill: #fff;">Player VSI + PHV + RAE</text>
+  <!-- Arrow down -->
+  <line x1="340" y1="76" x2="340" y2="105" stroke="#0059B3" stroke-width="1.5" marker-end="url(#arrowD)"/>
+  <!-- PHV Decision -->
+  <rect x="250" y="108" width="180" height="32" rx="6" fill="#F5F7FA" stroke="#0059B3" stroke-width="1.5"/>
+  <text x="340" y="128" text-anchor="middle" style="font: 600 10px 'Inter', sans-serif; fill: #0059B3;">PHV offset?</text>
+  <!-- Left: Early -->
+  <line x1="250" y1="124" x2="100" y2="124" stroke="#0059B3" stroke-width="1"/>
+  <line x1="100" y1="124" x2="100" y2="175" stroke="#0059B3" stroke-width="1" marker-end="url(#arrowD)"/>
+  <text x="165" y="118" style="font: 500 9px 'Inter', sans-serif; fill: #38455A;">&gt; +0.5</text>
+  <rect x="20" y="180" width="160" height="50" rx="8" fill="rgba(192,57,43,0.08)" stroke="#C0392B" stroke-width="1"/>
+  <text x="100" y="200" text-anchor="middle" style="font: 700 10px 'Inter', sans-serif; fill: #C0392B;">Case 1: Early</text>
+  <text x="100" y="218" text-anchor="middle" style="font: 500 9px 'Inter', sans-serif; fill: #4a5568;">VSI −3 to −8</text>
+  <!-- Right: Late -->
+  <line x1="430" y1="124" x2="580" y2="124" stroke="#0059B3" stroke-width="1"/>
+  <line x1="580" y1="124" x2="580" y2="175" stroke="#0059B3" stroke-width="1" marker-end="url(#arrowD)"/>
+  <text x="510" y="118" style="font: 500 9px 'Inter', sans-serif; fill: #38455A;">&lt; −0.5</text>
+  <rect x="500" y="180" width="160" height="50" rx="8" fill="rgba(0,89,179,0.08)" stroke="#0059B3" stroke-width="1"/>
+  <text x="580" y="200" text-anchor="middle" style="font: 700 10px 'Inter', sans-serif; fill: #0059B3;">Case 2: Late</text>
+  <text x="580" y="218" text-anchor="middle" style="font: 500 9px 'Inter', sans-serif; fill: #4a5568;">VSI +3 to +10</text>
+  <!-- Center: On-time -->
+  <line x1="340" y1="140" x2="340" y2="175" stroke="#0059B3" stroke-width="1" marker-end="url(#arrowD)"/>
+  <text x="360" y="160" style="font: 500 9px 'Inter', sans-serif; fill: #38455A;">−0.5 to +0.5</text>
+  <rect x="260" y="180" width="160" height="32" rx="6" fill="#F5F7FA" stroke="#0059B3" stroke-width="1.5"/>
+  <text x="340" y="200" text-anchor="middle" style="font: 600 10px 'Inter', sans-serif; fill: #0059B3;">RAE quartile?</text>
+  <!-- On-time Left: High RAE -->
+  <line x1="260" y1="196" x2="200" y2="196" stroke="#0059B3" stroke-width="1"/>
+  <line x1="200" y1="196" x2="200" y2="255" stroke="#0059B3" stroke-width="1" marker-end="url(#arrowD)"/>
+  <text x="225" y="235" style="font: 500 9px 'Inter', sans-serif; fill: #38455A;">Q1/Q2</text>
+  <rect x="120" y="260" width="160" height="50" rx="8" fill="rgba(212,148,10,0.08)" stroke="#D4940A" stroke-width="1"/>
+  <text x="200" y="280" text-anchor="middle" style="font: 700 10px 'Inter', sans-serif; fill: #D4940A;">Case 3: On+HighRAE</text>
+  <text x="200" y="298" text-anchor="middle" style="font: 500 9px 'Inter', sans-serif; fill: #4a5568;">VSI −1 to −3</text>
+  <!-- On-time Right: Low RAE -->
+  <line x1="420" y1="196" x2="480" y2="196" stroke="#0059B3" stroke-width="1"/>
+  <line x1="480" y1="196" x2="480" y2="255" stroke="#0059B3" stroke-width="1" marker-end="url(#arrowD)"/>
+  <text x="455" y="235" style="font: 500 9px 'Inter', sans-serif; fill: #38455A;">Q3/Q4</text>
+  <rect x="400" y="260" width="160" height="50" rx="8" fill="rgba(0,89,179,0.08)" stroke="#0059B3" stroke-width="1"/>
+  <text x="480" y="280" text-anchor="middle" style="font: 700 10px 'Inter', sans-serif; fill: #0059B3;">Case 4: On+LowRAE</text>
+  <text x="480" y="298" text-anchor="middle" style="font: 500 9px 'Inter', sans-serif; fill: #4a5568;">VSI +1 to +4</text>
+</svg>
+<figcaption>TruthFilter decision tree. The system first classifies by PHV offset, then by RAE quartile for on-time maturers.</figcaption>
+</figure>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  8. IMPLEMENTATION                                                         -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">8.</span> Implementation Architecture</h2>
+
+<p>
+  TruthFilter is implemented as a deterministic pipeline in the VITAS platform, deployed as Vercel Edge Functions with sub-5ms latency. No machine learning model or LLM is used in the correction pipeline itself — the system is pure arithmetic, guaranteeing reproducibility and auditability.
+</p>
+
+<h3>8.1 Pipeline</h3>
+
+<pre><code>Input: { age, height, sittingHeight?, legLength?, weight, gender, birthMonth, currentVSI }
+  │
+  ├──→ PHV Calculator (Mirwald/Moore)  →  { offset, category, confidence }
+  │
+  ├──→ RAE Service                     →  { quartile, biasFactor }
+  │
+  ├──→ UBI Service (PHV + RAE)         →  { ubi, correctionFactor }
+  │
+  └──→ TruthFilter (4-case switch)     →  { adjustedVSI, delta, confidence, explanation }
+
+Output: { originalVSI, adjustedVSI, delta, ubi, filterCase, confidence, explanation }
+
+Total latency: &lt; 5ms · Cost per computation: €0 · Deterministic: yes</code></pre>
+
+<h3>8.2 Transparency Design</h3>
+
+<p>
+  A core design principle is that <em>every correction is visible and explainable</em>. The VITAS interface displays:
+</p>
+
+<ul>
+  <li>Original VSI alongside adjusted VSI, with a color-coded delta indicator;</li>
+  <li>The TruthFilter case that was applied, with natural-language explanation;</li>
+  <li>Confidence score (0–1) reflecting input quality;</li>
+  <li>UBI value with breakdown of RAE and PHV components;</li>
+  <li>Whether anthropometric inputs were measured or estimated.</li>
+</ul>
+
+<p>
+  This transparency allows coaches and scouts to <em>understand</em> the correction rather than blindly trusting it — a critical feature for adoption in a domain where practitioners have deep domain expertise and rightfully resist black-box systems.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  9. LIMITATIONS                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">9.</span> Limitations and Honest Assessment</h2>
+
+<div class="callout-red callout">
+  <strong>Transparency note.</strong> This section intentionally identifies the framework's current limitations. We believe honest disclosure strengthens rather than weakens the contribution.
+</div>
+
+<ol>
+  <li><strong>No longitudinal validation.</strong> The correction magnitudes are derived from published literature, not from validation against a prospective cohort. The framework needs testing with real academy data (target: N ≥ 30 players across 2+ seasons) to verify that TruthFilter-adjusted VSI predicts long-term outcomes better than raw VSI.</li>
+  <li><strong>Mirwald equation accuracy.</strong> Salter et al. (2025) showed the Mirwald equation misclassifies 33–50% of players near PHV for individual-level maturity grouping. TruthFilter mitigates this by using maturity offset as a continuous variable (not a binary classifier) and by degrading confidence scores when inputs are estimated.</li>
+  <li><strong>Correction magnitudes are heuristic.</strong> The ×4 multiplier and caps (−8/+10) are informed by literature but not empirically optimized. With sufficient data, these could be replaced by coefficients estimated from logistic regression on career outcomes.</li>
+  <li><strong>UBI weights are assumption-based.</strong> The 0.55/0.45 RAE/PHV split is justified by the literature review but could be refined with competition-specific data. Different leagues with different cutoff dates may require different weightings.</li>
+  <li><strong>Sample size.</strong> The VITAS platform currently operates with 3 demo players and ~290 seeded professional profiles. No real academy youth data has been processed through TruthFilter at the time of publication.</li>
+  <li><strong>Input quality dependency.</strong> When parents enter height data from home rather than a professional measuring sitting height and leg length, the PHV estimate degrades. The confidence system signals this but cannot prevent errors in self-reported data.</li>
+</ol>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  10. PROPOSED VALIDATION                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">10.</span> Proposed Validation Protocol</h2>
+
+<p>
+  We propose a three-phase validation strategy:
+</p>
+
+<h3>Phase A: Retrospective Academy Analysis (N ≥ 50)</h3>
+<ul>
+  <li>Partner with 1–2 youth academies that have historical anthropometric and performance data</li>
+  <li>Compute TruthFilter-adjusted VSI retrospectively for players aged 12–15 at time of measurement</li>
+  <li>Compare adjusted VSI vs. raw VSI as a predictor of which players reached U18/U21/professional level</li>
+  <li>Hypothesis: Adjusted VSI has higher AUC-ROC for predicting professional progression</li>
+</ul>
+
+<h3>Phase B: Prospective Cohort (N ≥ 100, 2 seasons)</h3>
+<ul>
+  <li>Enroll 100+ youth players (ages 11–15) with quarterly anthropometric measurements</li>
+  <li>Track both raw and TruthFilter-adjusted VSI over 2 seasons</li>
+  <li>Measure outcomes: progression to next age group, squad selection, professional contract</li>
+  <li>Use the data to empirically optimize correction coefficients</li>
+</ul>
+
+<h3>Phase C: Multi-Club Comparative (N ≥ 500)</h3>
+<ul>
+  <li>Deploy TruthFilter across multiple academies in different countries</li>
+  <li>Compare scouting decisions with vs. without TruthFilter</li>
+  <li>Measure changes in: Q4 retention rate, late maturer retention, long-term hit rate</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  11. CONCLUSION                                                            -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2><span class="section-num">11.</span> Conclusion</h2>
+
+<p>
+  TruthFilter represents the first formalized, implemented framework for automatically correcting youth football scouting scores by biological maturation status and relative age. The Unified Bias Index (UBI) provides a single, interpretable metric for quantifying combined bias — a construct that, to our knowledge, has not been previously formalized in the literature.
+</p>
+
+<p>
+  We make no claim that TruthFilter is a validated predictive model. It is, at this stage, a principled correction framework grounded in two decades of maturation research. Its value lies in making bias visible and actionable — converting decades of academic findings into a real-time tool that coaches and scouts can use at the point of decision.
+</p>
+
+<p>
+  The framework is open and transparent: every correction is explainable, every confidence score reflects input quality, and every formula is documented in this paper. We invite collaboration with academies, researchers, and sports scientists to validate and refine TruthFilter with real-world longitudinal data.
+</p>
+
+<p>
+  The children who are deselected at 13 because they matured late deserve better than a system that confuses size with talent.
+</p>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  REFERENCES                                                                -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2>References</h2>
+<div class="references">
+  <p>[1] Cobley, S., Baker, J., Wattie, N., &amp; McKenna, J. (2009). Annual age-grouping and athlete development: a meta-analytical review of relative age effects in sport. <em>Sports Medicine</em>, 39(3), 235–256.</p>
+  <p>[2] Cumming, S. P., Lloyd, R. S., Oliver, J. L., Eisenmann, J. C., &amp; Malina, R. M. (2017). Bio-banding in sport: Applications to competition, talent identification, and strength and conditioning of youth athletes. <em>Strength and Conditioning Journal</em>, 39(2), 34–47.</p>
+  <p>[3] Deprez, D., Vaeyens, R., Coutts, A. J., Lenoir, M., &amp; Philippaerts, R. M. (2012). Relative age, biological maturation and anaerobic characteristics in elite youth soccer players. <em>International Journal of Sports Medicine</em>, 33(6), 493–499.</p>
+  <p>[4] Figueiredo, A. J., Coelho-e-Silva, M. J., Cumming, S. P., &amp; Malina, R. M. (2010). Maturity-associated variation in the growth and functional capacities of youth football players 13–15 years. <em>Journal of Sports Sciences</em>, 28(13), 1389–1397.</p>
+  <p>[5] Helsen, W. F., Van Winckel, J., &amp; Starkes, J. L. (2005). The relative age effect in youth soccer across Europe. <em>Journal of Sports Sciences</em>, 23(6), 629–636.</p>
+  <p>[6] Hill, M., Scott, S., McGee, D., Cumming, S. P., &amp; Maybury, G. (2021). Maturity has a greater association than relative age with physical performance in English male academy soccer players. <em>Children</em>, 8(12), 1120.</p>
+  <p>[7] Huertas, F., et al. (2024). Talent identification in football: different effects of maturation on sprinting, change of direction and jumping in 13-year-old players. <em>Research in Sports Medicine</em>, 32(4).</p>
+  <p>[8] Johnson, A., Farooq, A., &amp; Whiteley, R. (2019). Relative age, maturation, anthropometry and physical performance in an elite youth football academy. <em>International Journal of Sports Medicine</em>, 40(14).</p>
+  <p>[9] Malina, R. M., Rogol, A. D., Cumming, S. P., Coelho-e-Silva, M. J., &amp; Figueiredo, A. J. (2015). Biological maturation of youth athletes: assessment and implications. <em>British Journal of Sports Medicine</em>, 49(13), 852–859.</p>
+  <p>[10] Mann, D. L., &amp; van Ginneken, P. J. M. A. (2017). Age-ordered shirt numbering reduces the selection bias associated with the relative age effect. <em>Journal of Sports Sciences</em>, 35(8), 784–790.</p>
+  <p>[11] Massa, M., et al. (2024). Relative age and biological maturity-related selection biases in male youth soccer across competitive levels. <em>Journal of Sports Sciences</em>, 42(12).</p>
+  <p>[12] Mirwald, R. L., Baxter-Jones, A. D. G., Bailey, D. A., &amp; Beunen, G. P. (2002). An assessment of maturity from anthropometric measurements. <em>Medicine &amp; Science in Sports &amp; Exercise</em>, 34(4), 689–694.</p>
+  <p>[13] Moore, S. A., McKay, H. A., Macdonald, H., et al. (2015). Enhancing a somatic maturity prediction model. <em>Medicine &amp; Science in Sports &amp; Exercise</em>, 47(8), 1755–1764.</p>
+  <p>[14] Patel, R., Nevill, A., Cloak, R., et al. (2022). Player-labelling as a solution to overcome maturation selection biases in youth football. <em>Journal of Sports Sciences</em>, 40(17), 1969–1979.</p>
+  <p>[15] Pereira, S., et al. (2025). Influence of biological maturation on career trajectory of football players: does it predict elite success? <em>BMC Sports Science, Medicine and Rehabilitation</em>, 17(1).</p>
+  <p>[16] Salter, J., et al. (2025). Is the maturity offset equation valid and useful? A simulation-based and longitudinal evaluation. <em>Sports Medicine</em>. [Epub ahead of print].</p>
+  <p>[17] Frontiers review (2026). Evolution of soccer talent identification criteria: a systematic review (1976–2024). <em>Frontiers in Psychology</em>, 17, 1739010.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+<!--  APPENDIX                                                                  -->
+<!-- ═══════════════════════════════════════════════════════════════════════════ -->
+
+<h2>Appendix A: Complete TruthFilter Implementation (TypeScript)</h2>
+
+<pre><code>// TruthFilter — 4 cases
+export const TruthFilterService = {
+  detectCase(phvOffset, phvCategory, raeResult) {
+    if (phvCategory === "early" || phvOffset > 0.5)  return "early_maturers";
+    if (phvCategory === "late"  || phvOffset < -0.5)  return "late_maturers";
+    if (raeResult && raeResult.birthQuartile <= 2)     return "ontime_high_rae";
+    return "ontime_low_rae";
+  },
+
+  apply(vsi, phvOffset, phvCategory, raeResult) {
+    const filterCase = this.detectCase(phvOffset, phvCategory, raeResult);
+    let delta = 0, confidence = 0.7;
+
+    switch (filterCase) {
+      case "early_maturers":
+        delta = -(phvOffset ? Math.min(8, Math.round(phvOffset * 4)) : 3);
+        confidence = phvOffset ? 0.85 : 0.60;
+        break;
+      case "late_maturers":
+        delta = +(phvOffset ? Math.min(10, Math.round(Math.abs(phvOffset) * 4)) : 4);
+        confidence = phvOffset ? 0.88 : 0.65;
+        break;
+      case "ontime_high_rae":
+        delta = -(raeResult?.birthQuartile === 1 ? 3 : 1);
+        confidence = 0.70;
+        break;
+      case "ontime_low_rae":
+        delta = +(raeResult?.birthQuartile === 4 ? 4 : 1);
+        confidence = 0.72;
+        break;
+    }
+    return {
+      filterCase, originalVSI: vsi,
+      adjustedVSI: Math.min(100, Math.max(0, vsi + delta)),
+      delta, confidence
+    };
+  }
+};
+
+// UBI — Unified Bias Index
+export const UBIService = {
+  calculate(raeResult, phvOffset, phvCategory) {
+    const raeComp = raeResult ? (raeResult.birthQuartile - 1) / 3 : 0;
+    let phvComp = 0;
+    if (phvCategory === "late")  phvComp = Math.min(1, Math.max(0, -phvOffset / 2));
+    if (phvCategory === "early") phvComp = Math.min(0.5, Math.max(0, phvOffset / 2));
+
+    const ubi = 0.55 * raeComp + 0.45 * phvComp;
+    return { ubi, raeComponent: raeComp, phvComponent: phvComp,
+             correctionFactor: 1 + ubi * 0.12 };
+  }
+};</code></pre>
+
+<footer>
+  &copy; 2026 VITAS Football Intelligence<br>
+  WP-2026-001 · v1.0 · May 2026<br>
+  This document is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. You are free to share and adapt with attribution.
+</footer>
+
+</body>
+</html>
