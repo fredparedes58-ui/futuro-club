@@ -322,11 +322,13 @@ const Rankings = () => {
                   {player.name.split(" ")[0]}
                 </div>
                 <div
-                  className={`${heights[i]} w-16 mt-2 rounded-t-lg flex items-start justify-center pt-2 ${
-                    order[i] === 0
-                      ? "bg-gradient-to-b from-primary/30 to-primary/5 border-t-2 border-primary"
-                      : "bg-gradient-to-b from-secondary to-secondary/50"
-                  }`}
+                  className={`${heights[i]} w-16 mt-2 rounded-t-lg flex items-start justify-center pt-2`}
+                  style={order[i] === 0
+                    ? { background: "linear-gradient(180deg, hsl(210 100% 50% / 0.25), hsl(290 70% 50% / 0.08), transparent)", borderTop: "2px solid hsl(210 100% 50%)" }
+                    : order[i] === 1
+                    ? { background: "linear-gradient(180deg, hsl(0 0% 70% / 0.15), transparent)", borderTop: "2px solid hsl(0 0% 70%)" }
+                    : { background: "linear-gradient(180deg, hsl(30 80% 50% / 0.15), transparent)", borderTop: "2px solid hsl(30 80% 50%)" }
+                  }
                 >
                   {rankIcons[order[i]] || (
                     <span className="text-xs text-muted-foreground font-display">#{order[i] + 1}</span>
@@ -374,7 +376,7 @@ const Rankings = () => {
               variants={item}
               whileTap={{ scale: 0.97 }}
               onClick={() => navigate(`/player/${player.id}`)}
-              className="glass rounded-xl p-3 flex items-center gap-3 cursor-pointer hover:border-primary/30 transition-colors"
+              className="glass-vibrant rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-colors"
             >
               {/* Posición en ranking */}
               <span className="w-6 text-center font-display font-bold text-sm text-muted-foreground">

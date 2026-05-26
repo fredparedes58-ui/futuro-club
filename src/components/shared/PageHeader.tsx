@@ -7,9 +7,10 @@ interface PageHeaderProps {
   subtitle?: string;
   backTo?: string;
   rightContent?: React.ReactNode;
+  gradient?: boolean;
 }
 
-const PageHeader = ({ title, subtitle, backTo = "/", rightContent }: PageHeaderProps) => {
+const PageHeader = ({ title, subtitle, backTo = "/", rightContent, gradient }: PageHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -28,7 +29,9 @@ const PageHeader = ({ title, subtitle, backTo = "/", rightContent }: PageHeaderP
           <ArrowLeft size={20} />
         </button>
         <div className="min-w-0">
-          <h1 className="font-display font-bold text-lg text-foreground truncate">{title}</h1>
+          <h1
+            className={`font-display font-bold text-lg truncate ${gradient ? "gradient-text" : "text-foreground"}`}
+          >{title}</h1>
           {subtitle && (
             <p className="text-[10px] font-display text-muted-foreground uppercase tracking-wider truncate">
               {subtitle}

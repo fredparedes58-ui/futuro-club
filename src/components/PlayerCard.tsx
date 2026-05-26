@@ -59,8 +59,13 @@ const PlayerCard = ({ player }: { player: Player }) => {
         </div>
       </div>
 
-      {/* Hover border glow */}
-      <div className="absolute inset-0 rounded-2xl border border-border/30 group-hover:border-primary/50 transition-colors z-30 pointer-events-none" />
+      {/* Hover border glow — gradient */}
+      <div className="absolute inset-0 rounded-2xl border border-border/30 transition-all z-30 pointer-events-none"
+        style={{ }}
+      />
+      <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity z-30 pointer-events-none"
+        style={{ boxShadow: "inset 0 0 0 1.5px hsl(290 70% 50% / 0.4), 0 4px 20px hsl(210 100% 50% / 0.15)" }}
+      />
     </motion.div>
   );
 };

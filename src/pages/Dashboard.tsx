@@ -15,6 +15,26 @@ import { useTranslation } from "react-i18next";
 import WelcomeGuide from "@/components/WelcomeGuide";
 import UsageMeter from "@/components/UsageMeter";
 
+/* ── Floating background orbs ─────────────────────── */
+function DashboardOrbs() {
+  return (
+    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      <div
+        className="absolute w-[400px] h-[400px] rounded-full animate-float-slow"
+        style={{ background: "radial-gradient(circle, hsl(210 100% 50% / 0.06) 0%, transparent 70%)", top: "-5%", right: "-10%" }}
+      />
+      <div
+        className="absolute w-[300px] h-[300px] rounded-full animate-float-medium"
+        style={{ background: "radial-gradient(circle, hsl(290 70% 55% / 0.05) 0%, transparent 70%)", bottom: "20%", left: "-8%" }}
+      />
+      <div
+        className="absolute w-[250px] h-[250px] rounded-full animate-float-slow"
+        style={{ background: "radial-gradient(circle, hsl(180 70% 40% / 0.04) 0%, transparent 70%)", top: "40%", right: "5%", animationDelay: "3s" }}
+      />
+    </div>
+  );
+}
+
 const statIcons = [Users, Zap, Activity, TrendingUp];
 const statLabelKeys = ["dashboard.stats.activePlayers", "dashboard.stats.drillsCompleted", "dashboard.stats.avgVsi", "dashboard.stats.hiddenTalents"];
 const statSubLabelKeys = ["dashboard.stats.activePlayersDesc", "dashboard.stats.drillsCompletedDesc", "dashboard.stats.avgVsiDesc", "dashboard.stats.hiddenTalentsDesc"];
@@ -53,16 +73,26 @@ const Dashboard = () => {
     : [];
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-6 max-w-lg mx-auto">
+    <>
+    <DashboardOrbs />
+    <motion.div variants={container} initial="hidden" animate="show" className="relative z-10 px-4 pt-4 pb-24 space-y-6 max-w-lg mx-auto">
+      {/* Gradient accent bar */}
+      <div className="gradient-bar rounded-full mx-auto" style={{ width: "60%", opacity: 0.6 }} />
+
       {/* Header */}
       <motion.div variants={item}>
         <PageHeader
           title="VITAS."
           subtitle={t("dashboard.subtitle")}
+          gradient
           rightContent={
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
-              <span className="text-[10px] font-display text-primary uppercase tracking-widest">{t("dashboard.live")}</span>
+              <div className="w-2 h-2 rounded-full pulse-live" style={{ background: "linear-gradient(135deg, #0059B3, #A855F7)" }} />
+              <span className="text-[10px] font-display uppercase tracking-widest" style={{
+                background: "linear-gradient(135deg, #0059B3, #A855F7)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}>{t("dashboard.live")}</span>
             </div>
           }
         />
@@ -90,12 +120,15 @@ const Dashboard = () => {
               <button
                 key={tile.label}
                 onClick={() => navigate(tile.to)}
-                className="glass rounded-xl p-3 flex items-center gap-2 hover:bg-secondary/30 active:scale-[0.98] transition-all text-left border"
-                style={{ borderColor: `${tile.color}40` }}
+                className="glass-vibrant rounded-xl p-3 flex items-center gap-2 active:scale-[0.97] transition-all text-left"
+                style={{ borderColor: `${tile.color}30` }}
               >
                 <div
                   className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${tile.color}20` }}
+                  style={{
+                    background: `linear-gradient(135deg, ${tile.color}25, ${tile.color}10)`,
+                    boxShadow: `0 2px 8px ${tile.color}15`,
+                  }}
                 >
                   <Icon size={16} style={{ color: tile.color }} />
                 </div>
@@ -121,13 +154,20 @@ const Dashboard = () => {
           <div className="grid grid-cols-2 gap-3">
             {statLabelKeys.map((labelKey, i) => {
               const Icon = statIcons[i];
+              const gradients = [
+                "linear-gradient(135deg, hsl(210 100% 50% / 0.08), hsl(290 70% 50% / 0.04))",
+                "linear-gradient(135deg, hsl(290 70% 50% / 0.08), hsl(330 80% 50% / 0.04))",
+                "linear-gradient(135deg, hsl(180 70% 40% / 0.08), hsl(210 100% 50% / 0.04))",
+                "linear-gradient(135deg, hsl(38 92% 50% / 0.08), hsl(330 80% 50% / 0.04))",
+              ];
+              const iconColors = ["#0059B3", "#A855F7", "#158585", "#D4940A"];
               return (
-                <div key={labelKey} className="glass rounded-xl p-3">
+                <div key={labelKey} className="glass-vibrant rounded-xl p-3" style={{ background: gradients[i] }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Icon size={14} className="text-primary" />
+                    <Icon size={14} style={{ color: iconColors[i] }} />
                     <span className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{t(labelKey)}</span>
                   </div>
-                  <div className="font-display font-bold text-xl text-foreground">{statValues[i]}</div>
+                  <div className="font-display font-bold text-xl stat-vibrant">{statValues[i]}</div>
                   <div className="text-[10px] text-muted-foreground font-medium">{t(statSubLabelKeys[i])}</div>
                 </div>
               );
@@ -151,17 +191,22 @@ const Dashboard = () => {
       {/* Quick Access */}
       <motion.div variants={item} className="grid grid-cols-2 gap-3">
         {[
-          { path: "/master", icon: LayoutDashboard, label: t("dashboard.quickAccess.masterDashboard"), sub: t("dashboard.quickAccess.masterSub"), color: "text-primary" },
-          { path: "/lab", icon: Camera, label: t("dashboard.quickAccess.vitasLab"), sub: t("dashboard.quickAccess.vitasLabSub"), color: "text-primary" },
-          { path: "/compare", icon: GitCompareArrows, label: t("dashboard.quickAccess.comparisonTool"), sub: t("dashboard.quickAccess.comparisonToolSub"), color: "text-electric" },
-          ...(isDirector ? [{ path: "/director", icon: Trophy, label: "Director", sub: t("dashboard.quickAccess.directorSub"), color: "text-gold" }] : [{ path: "/settings", icon: Settings, label: t("dashboard.quickAccess.config"), sub: t("dashboard.quickAccess.configSub"), color: "text-gold" }]),
-        ].map(({ path, icon: Icon, label, sub, color }) => (
+          { path: "/master", icon: LayoutDashboard, label: t("dashboard.quickAccess.masterDashboard"), sub: t("dashboard.quickAccess.masterSub"), hex: "#0059B3" },
+          { path: "/lab", icon: Camera, label: t("dashboard.quickAccess.vitasLab"), sub: t("dashboard.quickAccess.vitasLabSub"), hex: "#A855F7" },
+          { path: "/compare", icon: GitCompareArrows, label: t("dashboard.quickAccess.comparisonTool"), sub: t("dashboard.quickAccess.comparisonToolSub"), hex: "#E6197A" },
+          ...(isDirector ? [{ path: "/director", icon: Trophy, label: "Director", sub: t("dashboard.quickAccess.directorSub"), hex: "#D4940A" }] : [{ path: "/settings", icon: Settings, label: t("dashboard.quickAccess.config"), sub: t("dashboard.quickAccess.configSub"), hex: "#D4940A" }]),
+        ].map(({ path, icon: Icon, label, sub, hex }) => (
           <button
             key={path}
             onClick={() => navigate(path)}
-            className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 border border-transparent transition-all"
+            className="glass-vibrant rounded-xl p-4 flex flex-col items-center gap-2 transition-all active:scale-[0.97]"
           >
-            <Icon size={20} className={color} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
+              background: `linear-gradient(135deg, ${hex}20, ${hex}08)`,
+              boxShadow: `0 2px 10px ${hex}12`,
+            }}>
+              <Icon size={20} style={{ color: hex }} />
+            </div>
             <span className="font-display font-bold text-xs text-foreground">{label}</span>
             <span className="text-[9px] text-muted-foreground">{sub}</span>
           </button>
@@ -215,6 +260,7 @@ const Dashboard = () => {
         )}
       </motion.div>
     </motion.div>
+    </>
   );
 };
 

@@ -166,3 +166,63 @@
 .border-glow-animate {
   animation: border-glow 4s ease-in-out infinite;
 }
+
+/* ── Vibrant floating animation ─────────────────── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+.animate-float-slow { animation: float-slow 6s ease-in-out infinite; }
+.animate-float-medium { animation: float-medium 4s ease-in-out infinite; }
+
+/* ── Vibrant gradient backgrounds ───────────────── */
+.bg-gradient-vibrant {
+  background: linear-gradient(135deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--accent)) 50%,
+    hsl(var(--hot-pink)) 100%
+  );
+}
+.bg-gradient-vibrant-subtle {
+  background: linear-gradient(135deg,
+    hsl(var(--primary) / 0.08) 0%,
+    hsl(var(--accent) / 0.06) 50%,
+    hsl(var(--hot-pink) / 0.04) 100%
+  );
+}
+
+/* Gradient accent bar (top/bottom decorators) */
+.gradient-bar {
+  background: linear-gradient(90deg, #F59E0B, #E6197A, #A855F7, #0059B3);
+  height: 3px;
+}
+
+/* Vibrant stat number */
+.stat-vibrant {
+  background: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--primary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card with gradient border on hover */
+.glass-vibrant {
+  background: hsl(var(--surface-glass));
+  backdrop-filter: blur(16px);
+  border: 1px solid hsl(var(--border));
+  transition: all 0.3s ease;
+}
+.glass-vibrant:hover {
+  border-color: hsl(var(--accent) / 0.4);
+  box-shadow: 0 4px 24px hsl(var(--primary) / 0.12), 0 0 40px hsl(var(--accent) / 0.06);
+}
+
+/* Vibrant active nav item */
+.nav-active-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.1));
+  border-color: hsl(var(--primary) / 0.3);
+}

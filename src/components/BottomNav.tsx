@@ -134,7 +134,14 @@ const BottomNav = () => {
       </AnimatePresence>
 
       {/* Nav bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 glass-strong safe-area-bottom">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{
+        background: "linear-gradient(180deg, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0.98))",
+        backdropFilter: "blur(24px)",
+        borderTop: "1px solid hsl(214 32% 88%)",
+        boxShadow: "0 -4px 24px hsl(210 100% 40% / 0.06), 0 -1px 0 hsl(290 70% 50% / 0.04)",
+      }}>
+        {/* Gradient accent line at top of nav */}
+        <div className="gradient-bar" style={{ height: "2px" }} />
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
           {navItems.map((navItem) => {
             const isActive =
@@ -153,13 +160,21 @@ const BottomNav = () => {
                   <Icon
                     size={20}
                     className={`transition-colors duration-200 ${
-                      isActive ? "text-primary" : "text-muted-foreground"
+                      isActive ? "text-transparent" : "text-muted-foreground"
                     }`}
+                    style={isActive ? {
+                      background: "linear-gradient(135deg, #0059B3, #A855F7)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      backgroundClip: "text",
+                    } : undefined}
+                    stroke={isActive ? "url(#navGradient)" : undefined}
                   />
                   {isActive && (
                     <motion.div
                       layoutId="nav-glow"
-                      className="absolute -inset-2 rounded-full bg-primary/20 blur-md"
+                      className="absolute -inset-2 rounded-full blur-md"
+                      style={{ background: "linear-gradient(135deg, hsl(210 100% 40% / 0.25), hsl(290 70% 50% / 0.15))" }}
                       transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     />
                   )}

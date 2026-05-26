@@ -15,9 +15,11 @@ const TopNav = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-full border-b border-border px-6 py-3 flex items-center justify-between" style={{
-      background: "linear-gradient(180deg, hsl(225 25% 12%) 0%, hsl(225 25% 10%) 100%)",
+    <nav className="w-full border-b border-border px-6 py-3 flex items-center justify-between relative overflow-hidden" style={{
+      background: "linear-gradient(135deg, hsl(220 25% 10%) 0%, hsl(260 20% 12%) 50%, hsl(220 25% 10%) 100%)",
     }}>
+      {/* Subtle gradient accent at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 gradient-bar" style={{ height: "2px", opacity: 0.7 }} />
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
