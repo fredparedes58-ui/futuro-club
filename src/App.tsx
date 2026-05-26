@@ -159,9 +159,9 @@ const App = () => (
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/share/analysis/:analysisId" element={<SharedAnalysisPage />} />
 
-                {/* ── Landing pública (sin login) ────────────────────── */}
-                <Route path="/" element={<PublicLanding />} />
-                <Route path="/welcome" element={<PublicLanding />} />
+                {/* ── Root redirect → login (no public landing) ────── */}
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/welcome" element={<Navigate to="/login" replace />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />

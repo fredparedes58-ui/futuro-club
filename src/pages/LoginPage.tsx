@@ -314,7 +314,7 @@ export default function LoginPage() {
   const location = useLocation();
   const { signIn, configured } = useAuth();
   const { t } = useTranslation();
-  const from = (location.state as { from?: Location })?.from?.pathname ?? "/pulse";
+  const from = (location.state as { from?: Location })?.from?.pathname ?? "/home";
 
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");

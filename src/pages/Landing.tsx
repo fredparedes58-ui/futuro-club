@@ -51,13 +51,16 @@ const Landing = () => {
   return (
     <div className="min-h-screen relative overflow-hidden" style={{
       background: `
-        radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 40% / 0.08) 0%, transparent 55%),
-        radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 70% 50% / 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 70% 35% / 0.04) 0%, transparent 40%),
-        radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 80% 50% / 0.03) 0%, transparent 35%),
+        radial-gradient(ellipse 90% 70% at 15% 5%, hsl(210 100% 40% / 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 85% 85%, hsl(290 70% 50% / 0.10) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 50% at 50% 40%, hsl(180 70% 35% / 0.07) 0%, transparent 40%),
+        radial-gradient(ellipse 40% 30% at 70% 20%, hsl(330 80% 50% / 0.06) 0%, transparent 35%),
+        radial-gradient(ellipse 30% 20% at 30% 70%, hsl(38 92% 50% / 0.05) 0%, transparent 30%),
         linear-gradient(160deg, hsl(210 40% 98%) 0%, hsl(210 40% 96%) 30%, hsl(210 40% 97%) 60%, hsl(210 40% 98%) 100%)
       `
     }}>
+      {/* Gradient accent bar top */}
+      <div className="gradient-bar" />
       {/* Noise texture */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
@@ -138,7 +141,11 @@ const Landing = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.6 }}
               onClick={() => navigate("/pulse")}
-              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_40px_hsl(var(--primary)/0.6),0_0_80px_hsl(var(--accent)/0.3)] transition-all duration-500"
+              className="group mt-10 flex items-center gap-3 px-6 py-3 w-fit rounded-xl text-white font-display font-bold text-sm uppercase tracking-wider transition-all duration-500"
+              style={{
+                background: "linear-gradient(135deg, #E6197A, #A855F7, #0059B3)",
+                boxShadow: "0 8px 30px rgba(230,25,122,0.25), 0 0 60px rgba(168,85,247,0.15)",
+              }}
             >
               {t("landing.enter")}
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />

@@ -18,7 +18,7 @@ const BASE_NAV = [
 ];
 
 // Pages where bottom nav should be hidden
-const hiddenOnRoutes = ["/login", "/register", "/forgot-password", "/welcome"];
+const hiddenOnRoutes = ["/login", "/register", "/forgot-password", "/welcome", "/home"];
 
 const BottomNav = () => {
   const location = useLocation();
