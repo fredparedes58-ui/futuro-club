@@ -105,7 +105,7 @@ export const PlayerTrackingService = {
     localStorage.removeItem(STORAGE_PREFIX + playerId);
   },
 
-  /** Lista todos los snapshots guardados. */
+  /** Lista todos los snapshots guardados (localStorage). */
   list(): TrackingSnapshot[] {
     const result: TrackingSnapshot[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -117,4 +117,49 @@ export const PlayerTrackingService = {
     }
     return result.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
   },
+
+  /** Historial de sesiones desde Supabase (últimas N). Fallback a localStorage si falla. */
+  async getHistory(playerId: string, limit = 10): Promise<TrackingSessionSummary[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `/api/tracking/history?playerId=${encodeURIComponent(playerId)}&limit=${limit}`,
+        { headers },
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        return json.data as TrackingSessionSummary[];
+      }
+    } catch {
+      // Fallback: build summary from localStorage
+    }
+    const snap = this.get(playerId);
+    if (!snap) return [];
+    return [{
+      id: `local-${playerId}`,
+      date: snap.savedAt,
+      durationSec: snap.durationSec,
+      maxSpeedMs: snap.sessionMetrics.maxSpeedMs,
+      avgSpeedMs: snap.sessionMetrics.avgSpeedMs,
+      sprintCount: snap.sessionMetrics.sprintCount,
+      scanCount: snap.scanCount,
+      duelCount: snap.duelCount,
+      eventCount: snap.tacticalEvents?.length ?? 0,
+      source: "localStorage" as const,
+    }];
+  },
 };
+
+export interface TrackingSessionSummary {
+  id: string;
+  date: string;
+  durationSec: number;
+  maxSpeedMs: number;
+  avgSpeedMs: number;
+  sprintCount: number;
+  scanCount: number;
+  duelCount: number;
+  eventCount: number;
+  source: "supabase" | "localStorage";
+}

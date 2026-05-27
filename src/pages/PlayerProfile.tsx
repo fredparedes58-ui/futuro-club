@@ -30,7 +30,8 @@ import VideoPlayer from "@/components/VideoPlayer";
 import VideoUpload from "@/components/VideoUpload";
 import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
-import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
+import { PlayerTrackingService, type TrackingSnapshot, type TrackingSessionSummary } from "@/services/real/playerTrackingService";
+import { AnalyticsExporter, type SessionExportData } from "@/lib/tracking/analyticsExportPipeline";
 import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
 import GrowthVelocityChart from "@/components/player/GrowthVelocityChart";
 import { PhvWindowPlan } from "@/components/player/PhvWindowPlan";
@@ -1133,6 +1134,42 @@ const PlayerProfile = () => {
               <FileText size={13} />
               Exportar Datos (JSON)
             </Button>
+            {trackingSnapshot && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 text-xs"
+                onClick={() => {
+                  const sessionData: SessionExportData = {
+                    metadata: {
+                      sessionId: `session-${id}`,
+                      playerId: id!,
+                      playerName: player.name,
+                      videoId: trackingSnapshot.videoId,
+                      date: trackingSnapshot.savedAt,
+                      durationSec: trackingSnapshot.durationSec,
+                      trackingFps: 5,
+                      fieldDimensions: { lengthM: 105, widthM: 68 },
+                    },
+                    physicalMetrics: trackingSnapshot.sessionMetrics,
+                    biomechanics: trackingSnapshot.biomechanicsScore ?? null,
+                    tracks: [],
+                    focusTrackId: trackingSnapshot.focusTrackId,
+                    events: trackingSnapshot.tacticalEvents ?? [],
+                    eventSummary: { total: trackingSnapshot.tacticalEvents?.length ?? 0, byType: {}, byOutcome: {}, byZone: {} },
+                    scanEvents: trackingSnapshot.scanEvents,
+                    duelEvents: trackingSnapshot.duelEvents,
+                    focusPositions: trackingSnapshot.focusPositions ?? [],
+                  };
+                  const exporter = new AnalyticsExporter(sessionData);
+                  exporter.download("csv", { filename: `vitas-tracking-${player.name.replace(/\s/g, "-")}` });
+                  toast.success("Tracking CSV exportado");
+                }}
+              >
+                <Activity size={13} />
+                Exportar Tracking (CSV)
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

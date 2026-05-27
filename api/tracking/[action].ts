@@ -5,11 +5,13 @@
 import { errorResponse } from "../_lib/apiResponse";
 
 import save from "./_save";
+import history from "./_history";
 
 export const config = { runtime: "edge" };
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "save": save,
+  "history": history,
 };
 
 export default async function handler(req: Request): Promise<Response> {
