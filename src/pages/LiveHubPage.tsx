@@ -13,11 +13,12 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Plus, Play, Trophy, Clock, Loader2, Sparkles,
-  Activity, Square,
+  Activity, Square, Video, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
+import VideoUpload from "@/components/VideoUpload";
 
 interface MatchSummary {
   id: string;
@@ -46,6 +47,8 @@ export default function LiveHubPage() {
   const [showForm, setShowForm] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [opponentName, setOpponentName] = useState("");
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [showVideoUpload, setShowVideoUpload] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -71,6 +74,7 @@ export default function LiveHubPage() {
       const id = await createLiveMatch({
         teamName: teamName.trim() || undefined,
         opponentName: opponentName.trim() || undefined,
+        videoUrl: videoUrl ?? undefined,
       });
       if (!id) throw new Error("No se pudo crear");
       toast.success("⚽ Partido iniciado");
@@ -176,6 +180,50 @@ export default function LiveHubPage() {
                 />
               </div>
             </div>
+
+            {/* Video upload (opcional) */}
+            {!showVideoUpload ? (
+              <button
+                onClick={() => setShowVideoUpload(true)}
+                className="w-full py-2.5 rounded-lg border border-dashed border-border text-[11px] font-display text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors flex items-center justify-center gap-2"
+              >
+                <Video size={13} /> Adjuntar video del partido
+                <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">PRO</span>
+              </button>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-display text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
+                    <Video size={10} /> Video del partido
+                  </label>
+                  <button
+                    onClick={() => { setShowVideoUpload(false); setVideoUrl(null); }}
+                    className="text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Quitar
+                  </button>
+                </div>
+                {!videoUrl ? (
+                  <VideoUpload
+                    onUploadComplete={(cdnUrl) => {
+                      if (cdnUrl) {
+                        setVideoUrl(cdnUrl);
+                        toast.success("Video subido — se analizará al terminar el partido");
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <CheckCircle2 size={14} className="text-green-500 shrink-0" />
+                    <span className="text-xs text-foreground">Video listo — Gemini analizará ambos equipos al terminar</span>
+                  </div>
+                )}
+                <p className="text-[9px] text-muted-foreground">
+                  Al terminar, Gemini analiza el video y enriquece los reportes con datos de AMBOS equipos (local + rival)
+                </p>
+              </div>
+            )}
+
             <button
               onClick={handleCreate}
               disabled={creating}

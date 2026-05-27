@@ -14,7 +14,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Loader2, AlertCircle, Trophy, Star, TrendingUp, TrendingDown,
-  Sparkles, Brain, Users, ClipboardList,
+  Sparkles, Brain, Users, ClipboardList, Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
@@ -156,8 +156,13 @@ export default function LiveSummaryPage() {
           <div className="font-display font-bold text-5xl text-foreground leading-none">
             {match.score_home}<span className="text-muted-foreground mx-2">−</span>{match.score_away}
           </div>
-          <div className="text-[11px] mt-2 text-muted-foreground">
-            {fmt(match.duration_seconds)} · {analysis.total_events} eventos · {analysis.reports.length}/3 reportes
+          <div className="text-[11px] mt-2 text-muted-foreground flex items-center justify-center gap-2">
+            <span>{fmt(match.duration_seconds)} · {analysis.total_events} eventos · {analysis.reports.length}/3 reportes</span>
+            {(analysis as Record<string, unknown>).has_video && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[9px] font-bold">
+                <Video size={9} /> CON VÍDEO
+              </span>
+            )}
           </div>
           {teamSummary.result_phrase ? (
             <div className="text-sm font-display font-bold text-foreground mt-2">{teamSummary.result_phrase as string}</div>

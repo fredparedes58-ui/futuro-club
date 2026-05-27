@@ -30,6 +30,7 @@ const createSchema = z.object({
   competition: z.string().max(80).optional(),
   matchDate: z.string().optional(),
   notes: z.string().max(500).optional(),
+  videoUrl: z.string().url().max(500).optional(),
 });
 
 const patchSchema = z.object({
@@ -184,6 +185,7 @@ export default withHandler(
         competition: input.competition,
         match_date: input.matchDate,
         notes: input.notes,
+        video_url: input.videoUrl ?? null,
         status: "live",
         started_at: new Date().toISOString(),
       })

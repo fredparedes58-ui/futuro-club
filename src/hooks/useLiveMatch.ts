@@ -304,6 +304,7 @@ export async function createLiveMatch(input: {
   teamName?: string;
   opponentName?: string;
   competition?: string;
+  videoUrl?: string;
 }): Promise<string | null> {
   const headers = await getAuthHeaders();
   const res = await fetch("/api/live/matches", {

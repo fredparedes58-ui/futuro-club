@@ -18,13 +18,18 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 
-export const config = { runtime: "edge" };
+// Node.js runtime for Gemini video analysis (up to 120s)
+export const config = { runtime: "nodejs", maxDuration: 120 };
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY!;
 
-const PIPELINE_VERSION = "live-aggregate-v1.0";
+const PIPELINE_VERSION = "live-aggregate-v2.0";
+const PUBLIC_URL =
+  process.env.VITAS_PUBLIC_URL ??
+  `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN ?? process.env.CRON_SECRET ?? "";
 
 interface PlayerStats {
   playerId: string | null;
@@ -123,9 +128,85 @@ function aggregateByPlayer(
   return Array.from(byPlayer.values()).sort((a, b) => b.netImpact - a.netImpact);
 }
 
+async function analyzeMatchVideo(
+  videoUrl: string,
+  teamName: string,
+  opponentName: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(`${PUBLIC_URL}/api/agents/video-observation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${INTERNAL_TOKEN}`,
+      },
+      body: JSON.stringify({
+        videoUrl,
+        playerContext: {
+          name: `${teamName} vs ${opponentName}`,
+          age: 13,
+          position: "MID",
+          competitiveLevel: "formativo",
+        },
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return (json?.data?.observations as Record<string, unknown>) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function buildVideoSection(obs: Record<string, unknown>): string {
+  const lines: string[] = ["\n─── ANÁLISIS DE VÍDEO DEL PARTIDO (Gemini) ───"];
+
+  const resumen = obs.resumenGeneral as string | undefined;
+  if (resumen) lines.push(`Resumen visual: ${resumen}`);
+
+  const patrones = obs.patronesJuego as string[] | undefined;
+  if (patrones?.length) {
+    lines.push("Patrones observados (ambos equipos):");
+    patrones.forEach((p) => lines.push(`  • ${p}`));
+  }
+
+  const dims = obs.dimensiones as Record<string, { observaciones?: string[]; score_estimado?: number }> | undefined;
+  if (dims) {
+    lines.push("Dimensiones evaluadas:");
+    for (const [key, val] of Object.entries(dims)) {
+      if (val?.score_estimado != null) {
+        lines.push(`  ${key}: ${val.score_estimado}/10`);
+        val.observaciones?.slice(0, 2).forEach((o) => lines.push(`    - ${o}`));
+      }
+    }
+  }
+
+  const destacados = obs.momentosDestacados as Array<{ timestamp?: string; tipo?: string; descripcion?: string }> | undefined;
+  if (destacados?.length) {
+    lines.push("Momentos clave del video:");
+    destacados.slice(0, 6).forEach((m) =>
+      lines.push(`  [${m.timestamp ?? "?"}] ${m.tipo ?? ""}: ${m.descripcion ?? ""}`)
+    );
+  }
+
+  const eventos = obs.eventosContados as Record<string, number> | undefined;
+  if (eventos && Object.keys(eventos).length > 0) {
+    lines.push("Conteo de eventos (video):");
+    for (const [k, v] of Object.entries(eventos)) {
+      if (v > 0) lines.push(`  ${k}: ${v}`);
+    }
+  }
+
+  lines.push("\nIMPORTANTE: Usa estas observaciones de vídeo para analizar AMBOS equipos.");
+  lines.push("Incluye insights sobre el equipo local Y el rival basados en lo observado.");
+
+  return lines.join("\n");
+}
+
 function buildPromptContext(
   match: { team_name: string; opponent_name: string | null; score_home: number; score_away: number; duration_seconds: number },
   stats: PlayerStats[],
+  videoObs?: Record<string, unknown> | null,
 ): string {
   const minutes = Math.floor(match.duration_seconds / 60);
   return `PARTIDO
@@ -145,7 +226,7 @@ ${stats
 
 NOTA: Ponderación impacto neto · gol +5, asist +4, pase clave +2,
 recuperación +1.5, parada +2, duelo ganado +1, pérdida -1,
-duelo perdido -1, amarilla -1, roja -3.`;
+duelo perdido -1, amarilla -1, roja -3.${videoObs ? buildVideoSection(videoObs) : "\n\nSIN VÍDEO · basado solo en eventos taggeados por el coach."}`;
 }
 
 const PROMPTS = {
@@ -263,8 +344,18 @@ export default withHandler(
       });
     }
 
-    // ── 3. Generar 3 reportes Claude en paralelo ───────────────
-    const userMessage = buildPromptContext(match, stats);
+    // ── 3. Analizar video con Gemini si existe ─────────────────
+    let videoObs: Record<string, unknown> | null = null;
+    if (match.video_url) {
+      videoObs = await analyzeMatchVideo(
+        match.video_url,
+        match.team_name,
+        match.opponent_name ?? "Rival",
+      );
+    }
+
+    // ── 4. Generar 3 reportes Claude en paralelo ───────────────
+    const userMessage = buildPromptContext(match, stats, videoObs);
     const reportPromises = (Object.keys(PROMPTS) as ReportType[]).map(async (type) => {
       const cfg = PROMPTS[type];
       try {
@@ -283,7 +374,7 @@ export default withHandler(
     const results = await Promise.all(reportPromises);
     const successful = results.filter((r) => r.ok);
 
-    // ── 4. Bidireccional · alimentar VSI history individual ────
+    // ── 5. Bidireccional · alimentar VSI history individual ────
     const vsiDeltas: Record<string, { before: number; after: number; delta: number }> = {};
     for (const s of stats) {
       if (!s.playerId || s.totalEvents === 0) continue;
@@ -320,10 +411,12 @@ export default withHandler(
       total_events: (events ?? []).length,
       reports: successful.map((r) => ({ type: r.type, content: r.content, model: r.model })),
       reports_failed: results.length - successful.length,
-      vsi_deltas: vsiDeltas,    // mostrar en summary qué jugadores subieron/bajaron
+      vsi_deltas: vsiDeltas,
+      has_video: !!videoObs,
+      video_observation: videoObs ?? undefined,
     };
 
-    // ── 5. Persistir en match.analysis_result ──────────────────
+    // ── 6. Persistir en match.analysis_result ──────────────────
     await supabase
       .from("live_matches")
       .update({
