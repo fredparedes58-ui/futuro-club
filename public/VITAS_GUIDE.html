@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VITAS — Guía Completa de Módulos y Métricas</title>
+<style>
+  :root {
+    --bg: #0B0F1A;
+    --surface: #111827;
+    --surface2: #1A2236;
+    --border: #1E293B;
+    --text: #E2E8F0;
+    --muted: #94A3B8;
+    --blue: #0059B3;
+    --purple: #A855F7;
+    --pink: #E6197A;
+    --gold: #F59E0B;
+    --cyan: #06B6D4;
+    --green: #22C55E;
+    --red: #EF4444;
+    --grad-main: linear-gradient(135deg, #0059B3, #A855F7);
+    --grad-vibrant: linear-gradient(135deg, #0059B3, #A855F7, #E6197A);
+    --grad-bar: linear-gradient(90deg, #F59E0B, #E6197A, #A855F7, #0059B3);
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  /* ── Gradient bar ─────────────────── */
+  .grad-bar {
+    height: 3px;
+    background: var(--grad-bar);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  }
+
+  /* ── Header ────────────────────────── */
+  .hero {
+    text-align: center;
+    padding: 100px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,89,179,0.15) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(168,85,247,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(230,25,122,0.08) 0%, transparent 40%);
+    pointer-events: none;
+  }
+  .hero h1 {
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    background: var(--grad-vibrant);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    position: relative;
+  }
+  .hero .subtitle {
+    font-size: 18px;
+    color: var(--muted);
+    margin-top: 12px;
+    font-weight: 400;
+    position: relative;
+  }
+  .hero .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 20px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(168,85,247,0.3);
+    background: rgba(168,85,247,0.08);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--purple);
+    position: relative;
+  }
+  .badge .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── TOC ─────────────────────────── */
+  .toc {
+    max-width: 900px;
+    margin: 0 auto 60px;
+    padding: 0 24px;
+  }
+  .toc h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .toc-item:hover {
+    border-color: rgba(168,85,247,0.4);
+    background: var(--surface2);
+    transform: translateY(-1px);
+  }
+  .toc-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── Container ──────────────────── */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── Section ────────────────────── */
+  .section {
+    margin-bottom: 80px;
+    scroll-margin-top: 40px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+  .section-header .route {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 10px;
+    border-radius: 6px;
+    margin-left: auto;
+  }
+  .section-header .tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(168,85,247,0.15);
+    color: var(--purple);
+  }
+  .section-desc {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    max-width: 700px;
+    line-height: 1.7;
+  }
+
+  /* ── Card ────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(168,85,247,0.25); }
+  .card h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card p { color: var(--muted); font-size: 14px; }
+
+  /* ── Metric Grid ─────────────────── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .metric {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .metric .metric-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .metric .metric-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .metric .metric-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Color coding for metric bars */
+  .m-blue::before { background: var(--blue); }
+  .m-purple::before { background: var(--purple); }
+  .m-pink::before { background: var(--pink); }
+  .m-gold::before { background: var(--gold); }
+  .m-cyan::before { background: var(--cyan); }
+  .m-green::before { background: var(--green); }
+  .m-red::before { background: var(--red); }
+
+  /* ── Feature list ────────────────── */
+  .feature-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .feature-list li {
+    font-size: 13px;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .feature-list li .emoji { font-size: 14px; flex-shrink:0; }
+
+  /* ── VSI Breakdown ───────────────── */
+  .vsi-bar-container { margin-top: 16px; }
+  .vsi-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .vsi-bar-label { width: 100px; font-weight: 500; text-align: right; color: var(--muted); }
+  .vsi-bar-track { flex:1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+  .vsi-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .vsi-bar-value { width: 40px; font-weight: 700; font-size: 12px; }
+
+  /* ── Tag chips ──────────────────── */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid;
+  }
+  .chip-blue { background: rgba(0,89,179,0.12); border-color: rgba(0,89,179,0.25); color: #3B9FFF; }
+  .chip-purple { background: rgba(168,85,247,0.12); border-color: rgba(168,85,247,0.25); color: #C084FC; }
+  .chip-pink { background: rgba(230,25,122,0.12); border-color: rgba(230,25,122,0.25); color: #F472B6; }
+  .chip-gold { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.25); color: #FBBF24; }
+  .chip-cyan { background: rgba(6,182,212,0.12); border-color: rgba(6,182,212,0.25); color: #22D3EE; }
+  .chip-green { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.25); color: #4ADE80; }
+  .chip-red { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.25); color: #F87171; }
+
+  /* ── Separator ──────────────────── */
+  .sep {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 60px 0;
+  }
+  .sep-label {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .sep-label::before, .sep-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border));
+  }
+  .sep-label::after { background: linear-gradient(to left, transparent, var(--border)); }
+
+  /* ── Footer ──────────────────────── */
+  .footer {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .footer a { color: var(--purple); text-decoration: none; }
+
+  /* ── Responsive ──────────────────── */
+  @media (max-width: 640px) {
+    .feature-list { grid-template-columns: 1fr; }
+    .metric-grid { grid-template-columns: 1fr; }
+    .section-header { flex-wrap: wrap; }
+    .section-header .route { margin-left: 0; margin-top: 8px; }
+    .toc-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="grad-bar"></div>
+
+<!-- ═══════════════════════════════════════════════════ HERO ═══ -->
+<div class="hero">
+  <h1>VITAS.</h1>
+  <p class="subtitle">Guia Completa de Modulos, Reportes y Metricas</p>
+  <div class="badge">
+    <span class="dot"></span>
+    32 Modulos &middot; 50+ Metricas &middot; 24 Agentes IA
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════ TOC ═══ -->
+<div class="toc">
+  <h2>Navegacion Rapida</h2>
+  <div class="toc-grid">
+    <a href="#pulse" class="toc-item"><div class="toc-icon" style="background:rgba(0,89,179,0.15);">📊</div>Pulse (Dashboard)</a>
+    <a href="#master" class="toc-item"><div class="toc-icon" style="background:rgba(168,85,247,0.15);">🧠</div>Master Dashboard</a>
+    <a href="#rankings" class="toc-item"><div class="toc-icon" style="background:rgba(245,158,11,0.15);">🏆</div>Rankings</a>
+    <a href="#scout" class="toc-item"><div class="toc-icon" style="background:rgba(6,182,212,0.15);">🔭</div>Scout Feed</a>
+    <a href="#lab" class="toc-item"><div class="toc-icon" style="background:rgba(230,25,122,0.15);">🔬</div>VITAS.LAB</a>
+    <a href="#reports" class="toc-item"><div class="toc-icon" style="background:rgba(34,197,94,0.15);">🎬</div>Reports / Videos</a>
+    <a href="#playerhub" class="toc-item"><div class="toc-icon" style="background:rgba(0,89,179,0.15);">👤</div>Player Hub</a>
+    <a href="#intelligence" class="toc-item"><div class="toc-icon" style="background:rgba(168,85,247,0.15);">🧬</div>Player Intelligence</a>
+    <a href="#roleprofile" class="toc-item"><div class="toc-icon" style="background:rgba(230,25,122,0.15);">🎯</div>Role Profile</a>
+    <a href="#compare" class="toc-item"><div class="toc-icon" style="background:rgba(6,182,212,0.15);">⚖️</div>Compare</a>
+    <a href="#drill" class="toc-item"><div class="toc-icon" style="background:rgba(245,158,11,0.15);">🏋️</div>Solo Drill</a>
+    <a href="#live" class="toc-item"><div class="toc-icon" style="background:rgba(239,68,68,0.15);">📡</div>Match-Day Live</a>
+    <a href="#equipo" class="toc-item"><div class="toc-icon" style="background:rgba(34,197,94,0.15);">👥</div>Equipo</a>
+    <a href="#baseline" class="toc-item"><div class="toc-icon" style="background:rgba(168,85,247,0.15);">📐</div>Team Baseline</a>
+    <a href="#rival" class="toc-item"><div class="toc-icon" style="background:rgba(239,68,68,0.15);">⚔️</div>Compare Rival</a>
+    <a href="#director" class="toc-item"><div class="toc-icon" style="background:rgba(245,158,11,0.15);">🏛️</div>Director</a>
+    <a href="#evolution" class="toc-item"><div class="toc-icon" style="background:rgba(6,182,212,0.15);">📈</div>Evolution</a>
+    <a href="#bias" class="toc-item"><div class="toc-icon" style="background:rgba(230,25,122,0.15);">⚖️</div>Bias Audit</a>
+    <a href="#parent" class="toc-item"><div class="toc-icon" style="background:rgba(34,197,94,0.15);">👨‍👩‍👦</div>Parent Dashboard</a>
+    <a href="#metricas" class="toc-item"><div class="toc-icon" style="background:rgba(0,89,179,0.15);">🔢</div>Metricas Core</a>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════ PULSE ═══ -->
+<div class="sep-label">Modulos Principales</div>
+
+<section id="pulse" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(0,89,179,0.15);">📊</div>
+    <div>
+      <h2>Pulse</h2>
+      <span class="tag">DASHBOARD PRINCIPAL</span>
+    </div>
+    <span class="route">/pulse</span>
+  </div>
+  <p class="section-desc">
+    Centro de mando principal de VITAS. Muestra un resumen en tiempo real de toda la actividad de tu academia:
+    jugadores activos, entrenamientos completados, talentos ocultos detectados y sesiones en vivo.
+    Desde aqui accedes rapidamente a cualquier modulo.
+  </p>
+
+  <div class="card">
+    <h3>📈 Metricas que muestra</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Jugadores Activos <span class="metric-badge" style="background:rgba(0,89,179,0.2);color:#3B9FFF;">LIVE</span></div>
+        <div class="metric-desc">Total de jugadores registrados en tu base de datos con actividad reciente.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Drills Completados</div>
+        <div class="metric-desc">Numero de sesiones de entrenamiento analizadas por la IA.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">VSI Promedio</div>
+        <div class="metric-desc">Promedio del VITAS Scouting Index de toda tu plantilla (0-100).</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Talentos Ocultos</div>
+        <div class="metric-desc">Jugadores cuyo VSI real (corregido por PHV) es significativamente mayor al percibido. La IA los detecta automaticamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚡ Accesos Rapidos</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">📡</span> Match-Day Live — iniciar tageo en vivo</li>
+      <li><span class="emoji">⚔️</span> Plan vs Rival — generar plan de partido</li>
+      <li><span class="emoji">📐</span> Analisis de Equipo — analisis tactico 9 cuadrantes</li>
+      <li><span class="emoji">🔬</span> VITAS.LAB — subir video para analisis</li>
+      <li><span class="emoji">🏆</span> Rankings — ver clasificacion VSI</li>
+      <li><span class="emoji">📄</span> Generar Reporte — crear PDF de jugador</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>🌐 Widgets adicionales</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">🔥</span> Jugadores Trending — los que mas mejoraron</li>
+      <li><span class="emoji">⚽</span> Partidos en Vivo — fixtures de Football-Data.org</li>
+      <li><span class="emoji">🤖</span> Medidor de uso IA — consumo de analisis del plan</li>
+      <li><span class="emoji">📖</span> Guia de bienvenida — tutorial interactivo</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ MASTER ═══ -->
+<section id="master" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(168,85,247,0.15);">🧠</div>
+    <div>
+      <h2>Master Dashboard</h2>
+      <span class="tag">AI COMMAND CENTER</span>
+    </div>
+    <span class="route">/master</span>
+  </div>
+  <p class="section-desc">
+    Vista panoramica de toda la plantilla para cuerpo tecnico. Permite ver de un vistazo la distribucion de talento,
+    detectar sesgos de evaluacion y tomar decisiones basadas en datos con alertas automaticas de bias.
+  </p>
+
+  <div class="card">
+    <h3>📊 Metricas que muestra</h3>
+    <div class="metric-grid">
+      <div class="metric m-purple">
+        <div class="metric-name">Distribucion VSI por Tier</div>
+        <div class="metric-desc">Cuantos jugadores hay en cada nivel: Elite (80+), High (65-79), Medium (50-64), Developing (&lt;50).</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Distribucion por Posicion</div>
+        <div class="metric-desc">Desglose visual de porteros, defensas, mediocampistas y delanteros en tu plantilla.</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Alerta de Bias <span class="metric-badge" style="background:rgba(230,25,122,0.2);color:#F472B6;">IMPORTANTE</span></div>
+        <div class="metric-desc">Nivel de sesgo por jugador: LOW / MED / HIGH BIAS ALERT. Indica si la evaluacion esta influenciada por edad relativa (RAE) o maduracion biologica (PHV).</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Categoria PHV</div>
+        <div class="metric-desc">Estado de maduracion biologica de cada jugador: Early (maduro temprano), On-time (normal), Late (tardio).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎯 Para que sirve</h3>
+    <p>El Master Dashboard responde estas preguntas clave:</p>
+    <ul class="feature-list">
+      <li><span class="emoji">❓</span> Cuantos talentos estoy subestimando?</li>
+      <li><span class="emoji">❓</span> Que posiciones tienen deficit de talento?</li>
+      <li><span class="emoji">❓</span> Hay sesgo sistematico en mis evaluaciones?</li>
+      <li><span class="emoji">❓</span> Que jugadores necesitan reevaluacion urgente?</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ RANKINGS ═══ -->
+<section id="rankings" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.15);">🏆</div>
+    <div>
+      <h2>Rankings</h2>
+      <span class="tag">BASE DE JUGADORES</span>
+    </div>
+    <span class="route">/rankings</span>
+  </div>
+  <p class="section-desc">
+    Clasificacion completa de todos los jugadores ordenados por VSI. Permite filtrar por posicion,
+    grupo de edad, estado PHV y nivel competitivo. El podio muestra los 3 mejores jugadores.
+  </p>
+
+  <div class="card">
+    <h3>📋 Metricas por jugador</h3>
+    <div class="metric-grid">
+      <div class="metric m-gold">
+        <div class="metric-name">VSI Score</div>
+        <div class="metric-desc">Indice compuesto 0-100 que pondera velocidad, tecnica, vision, resistencia, disparo y defensa.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Percentil</div>
+        <div class="metric-desc">Posicion relativa dentro de su cohorte (misma edad y posicion). Top 10% = Excepcional.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Tendencia</div>
+        <div class="metric-desc">Flecha de evolucion: mejorando (↑), estable (→) o decayendo (↓) respecto al ultimo analisis.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Confianza</div>
+        <div class="metric-desc">Nivel de confianza del score basado en cantidad de datos disponibles (videos, sesiones, partidos).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔍 Filtros disponibles</h3>
+    <div class="tags">
+      <span class="chip chip-blue">Por VSI ↑↓</span>
+      <span class="chip chip-purple">Por Edad</span>
+      <span class="chip chip-pink">Por Nombre</span>
+      <span class="chip chip-gold">PHV: Early / On-time / Late</span>
+      <span class="chip chip-cyan">12 Posiciones (GK a ST)</span>
+      <span class="chip chip-green">Sub-10 a Sub-21</span>
+      <span class="chip chip-red">Nivel Competitivo</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ SCOUT ═══ -->
+<section id="scout" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(6,182,212,0.15);">🔭</div>
+    <div>
+      <h2>Scout Feed</h2>
+      <span class="tag">INTELIGENCIA SCOUTING</span>
+    </div>
+    <span class="route">/scout</span>
+  </div>
+  <p class="section-desc">
+    Feed inteligente de alertas y descubrimientos generados por la IA. Detecta automaticamente
+    jugadores que estan rompiendo expectativas, alertas de maduracion, comparaciones relevantes y regresiones.
+  </p>
+
+  <div class="card">
+    <h3>📌 Tipos de Insight</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">🚀 Breakout</div>
+        <div class="metric-desc">Jugador que supero un umbral de rendimiento inesperadamente. "Momento de explosion".</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">🔄 Comparison</div>
+        <div class="metric-desc">Comparacion automatica entre jugadores similares. La IA detecta cuando dos perfiles son compatibles.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">⚠️ PHV Alert</div>
+        <div class="metric-desc">Alerta de maduracion biologica. Indica que un jugador "late bloomer" puede estar siendo subestimado.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">🏅 Drill Record</div>
+        <div class="metric-desc">Jugador que alcanzo un nuevo record personal en entrenamiento.</div>
+      </div>
+      <div class="metric m-red">
+        <div class="metric-name">📉 Regression</div>
+        <div class="metric-desc">Alerta de caida de rendimiento. La IA detecta tendencias negativas para intervencion temprana.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">🎯 Milestone</div>
+        <div class="metric-desc">Hito de carrera alcanzado (ej: primer analisis, mejora de tier, nueva posicion recomendada).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎚️ Niveles de Urgencia</h3>
+    <div class="tags">
+      <span class="chip chip-red">🔴 Alta — Accion inmediata requerida</span>
+      <span class="chip chip-gold">🟡 Media — Revisar pronto</span>
+      <span class="chip chip-green">🟢 Baja — Informativo</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ LAB ═══ -->
+<section id="lab" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(230,25,122,0.15);">🔬</div>
+    <div>
+      <h2>VITAS.LAB</h2>
+      <span class="tag">VIDEO + VISION IA</span>
+    </div>
+    <span class="route">/lab</span>
+  </div>
+  <p class="section-desc">
+    El motor de vision computacional de VITAS. Sube un video de partido o entrenamiento y la IA
+    detecta jugadores, analiza movimiento, genera heatmaps y produce un reporte de inteligencia completo.
+    Es el unico sistema que combina tracking visual con contexto de maduracion biologica (PHV).
+  </p>
+
+  <div class="card">
+    <h3>🎯 Modos de Analisis</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">🌐</span> <strong>All Players</strong> — Cobertura global del campo, heatmaps colectivos</li>
+      <li><span class="emoji">👆</span> <strong>Manual Tracking</strong> — Seguimiento individual de un jugador</li>
+      <li><span class="emoji">⚔️</span> <strong>Team Tactical</strong> — Comparacion Local vs Visitante</li>
+      <li><span class="emoji">🔢</span> <strong>Specific Player</strong> — Filtrar por numero de camiseta o posicion</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>🧠 Tecnologias de Vision</h3>
+    <div class="metric-grid">
+      <div class="metric m-pink">
+        <div class="metric-name">YOLOv8n-pose</div>
+        <div class="metric-desc">Deteccion de jugadores en tiempo real con estimacion de pose corporal.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">MediaPipe</div>
+        <div class="metric-desc">Analisis biomecanico: angulos articulares (hombro, cadera, rodilla, tobillo), asimetria de movimiento.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Field Line Detection</div>
+        <div class="metric-desc">Mapeo automatico de lineas del campo para conversion de coordenadas pixel → metros reales.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Voronoi Diagram</div>
+        <div class="metric-desc">Dominancia espacial: que jugador controla mas espacio del campo en cada momento.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 Metricas que genera</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Velocidad Max</div>
+        <div class="metric-desc">Velocidad pico alcanzada en m/s y km/h durante el video analizado.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Distancia Total</div>
+        <div class="metric-desc">Metros recorridos durante la sesion. Indicador de carga fisica.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Sprints</div>
+        <div class="metric-desc">Cantidad de carreras a >6.5 m/s por mas de 1 segundo.</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Cobertura de Campo</div>
+        <div class="metric-desc">Porcentaje del campo que el jugador utilizo durante la sesion.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">DrillScore</div>
+        <div class="metric-desc">Indice de eficiencia biomecanica 0-100 calculado por MediaPipe.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">VAEP</div>
+        <div class="metric-desc">Value Added Expected Points — valor generado por cada accion (pase, regate, disparo).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📄 Reporte generado</h3>
+    <p>Al completar el analisis, VITAS.LAB genera automaticamente:</p>
+    <ul class="feature-list">
+      <li><span class="emoji">📊</span> Reporte de 6 dimensiones (0-10 cada una)</li>
+      <li><span class="emoji">🗺️</span> Heatmap de movimiento</li>
+      <li><span class="emoji">🎯</span> Posiciones recomendadas (top 3)</li>
+      <li><span class="emoji">🧬</span> Arquetipo tactico (ej: "Box-to-Box Engine")</li>
+      <li><span class="emoji">⭐</span> Jugador referencia profesional (clon)</li>
+      <li><span class="emoji">📈</span> Ajuste de VSI basado en video</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ REPORTS ═══ -->
+<section id="reports" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(34,197,94,0.15);">🎬</div>
+    <div>
+      <h2>Reports / Videos</h2>
+      <span class="tag">CENTRO DE VIDEOS</span>
+    </div>
+    <span class="route">/reports</span>
+  </div>
+  <p class="section-desc">
+    Repositorio central de todos los videos subidos y analisis generados. Permite buscar, filtrar,
+    reproducir videos y solicitar nuevos analisis. Integrado con Bunny CDN para streaming de alta calidad.
+  </p>
+
+  <div class="card">
+    <h3>🎬 Funcionalidades</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">🔍</span> Busqueda por nombre de video o jugador</li>
+      <li><span class="emoji">▶️</span> Reproductor de video integrado (Bunny Stream)</li>
+      <li><span class="emoji">🤖</span> Solicitar analisis de IA sobre un video existente</li>
+      <li><span class="emoji">👕</span> Asignacion de jugador y numero de camiseta</li>
+      <li><span class="emoji">🎨</span> Asignacion de colores de equipo</li>
+      <li><span class="emoji">📋</span> Historial de analisis por video</li>
+    </ul>
+  </div>
+</section>
+
+<div class="sep-label">Inteligencia de Jugador</div>
+
+<!-- ═══════════════════════════════════════ PLAYER HUB ═══ -->
+<section id="playerhub" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(0,89,179,0.15);">👤</div>
+    <div>
+      <h2>Player Hub</h2>
+      <span class="tag">PERFIL CONSOLIDADO</span>
+    </div>
+    <span class="route">/players/:id</span>
+  </div>
+  <p class="section-desc">
+    Pagina central de cada jugador. Consolida TODA la informacion en una sola vista con pestanas.
+    Es el punto de partida para entender a un jugador completamente.
+  </p>
+
+  <div class="card">
+    <h3>📑 Pestanas</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Resumen</div>
+        <div class="metric-desc">Overview con VSI, edad, posicion, foto, estado PHV y acciones rapidas.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Stats</div>
+        <div class="metric-desc">Estadisticas de partido: pases, duelos, disparos, intercepciones, rating 0-10.</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Movimiento</div>
+        <div class="metric-desc">Datos de tracking del LAB: heatmaps, velocidad, distancia, sprints.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Rol</div>
+        <div class="metric-desc">Perfil tactico: posiciones recomendadas, arquetipo, fortalezas, riesgos.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Historico</div>
+        <div class="metric-desc">Timeline de evolucion con todos los analisis previos y tendencia de mejora.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🖨️ Exportar</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">📄</span> Print — version imprimible 2 paginas A4</li>
+      <li><span class="emoji">📱</span> WhatsApp — texto formateado con metricas clave</li>
+      <li><span class="emoji">🔗</span> Compartir — link publico con token HMAC</li>
+      <li><span class="emoji">📊</span> JSON — datos crudos para integracion</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ INTELLIGENCE ═══ -->
+<section id="intelligence" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(168,85,247,0.15);">🧬</div>
+    <div>
+      <h2>Player Intelligence</h2>
+      <span class="tag">ANALISIS IA PROFUNDO</span>
+    </div>
+    <span class="route">/players/:id/intelligence</span>
+  </div>
+  <p class="section-desc">
+    El reporte mas completo de VITAS. La IA analiza al jugador en 6 dimensiones, identifica su ADN futbolistico,
+    lo compara con jugadores profesionales y genera un plan de desarrollo personalizado de 6 meses.
+  </p>
+
+  <div class="card">
+    <h3>⭐ Las 6 Dimensiones (0-10 cada una)</h3>
+    <div class="vsi-bar-container">
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Decision</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:75%;background:var(--blue)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--blue)">7.5</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Tecnica</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:82%;background:var(--purple)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--purple)">8.2</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Tactica</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:68%;background:var(--cyan)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--cyan)">6.8</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Fisica</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:71%;background:var(--green)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--green)">7.1</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Liderazgo</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:59%;background:var(--gold)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--gold)">5.9</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Eficacia</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:77%;background:var(--pink)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--pink)">7.7</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🧬 Secciones del Reporte</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Estado Actual</div>
+        <div class="metric-desc">Puntuacion en 6 dimensiones con grafico radar. Identifica fortalezas y areas a mejorar.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">ADN Futbolistico</div>
+        <div class="metric-desc">Estilo de juego, arquetipo tactico y mentalidad. Ej: "Playmaker creativo con tendencia ofensiva".</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Jugador Referencia</div>
+        <div class="metric-desc">Jugador profesional con perfil similar (clon). Ej: "Pedri (Barcelona) — 87% similitud".</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Proyeccion de Carrera</div>
+        <div class="metric-desc">Prediccion de trayectoria: que nivel puede alcanzar y en que plazo.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Plan de Desarrollo</div>
+        <div class="metric-desc">Roadmap personalizado de 6 meses con pilares de trabajo y objetivos medibles.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Nivel de Confianza</div>
+        <div class="metric-desc">Porcentaje (0-100%) que indica que tan confiable es el analisis segun la cantidad de datos.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ ROLE PROFILE ═══ -->
+<section id="roleprofile" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(230,25,122,0.15);">🎯</div>
+    <div>
+      <h2>Role Profile</h2>
+      <span class="tag">PERFIL TACTICO</span>
+    </div>
+    <span class="route">/players/:id → tab Rol</span>
+  </div>
+  <p class="section-desc">
+    Analisis tactico profundo del jugador. Identifica sus mejores posiciones, arquetipo de juego,
+    fortalezas/debilidades por fase de juego y lo compara con jugadores profesionales en la misma posicion.
+  </p>
+
+  <div class="card">
+    <h3>📋 Componentes del Perfil</h3>
+    <div class="metric-grid">
+      <div class="metric m-pink">
+        <div class="metric-name">Position Fit Ranking</div>
+        <div class="metric-desc">Top 3 posiciones donde el jugador rinde mejor, con score de ajuste por posicion.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Archetype Ranking</div>
+        <div class="metric-desc">Roles tacticos que mejor encajan: "Box-to-Box", "False 9", "Inverted Winger", etc.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">6 Capability Cards</div>
+        <div class="metric-desc">Competencias nucleo evaluadas con evidencia de video.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Fortalezas y Riesgos</div>
+        <div class="metric-desc">Analisis SWOT: que hace bien, donde falla, oportunidades y amenazas para su desarrollo.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Best Match Pro</div>
+        <div class="metric-desc">Jugador profesional que mejor se ajusta a su perfil tactico.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Position Rollup</div>
+        <div class="metric-desc">Metricas agregadas de multiples videos en la misma posicion.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🔍 Role Profile Audit</h3>
+    <p>Desglose detallado de evidencia por fase de juego:</p>
+    <div class="tags">
+      <span class="chip chip-blue">⚽ En Posesion — acciones ofensivas</span>
+      <span class="chip chip-red">🛡️ Sin Posesion — acciones defensivas</span>
+      <span class="chip chip-gold">🔄 Transicion — momentos de cambio</span>
+    </div>
+    <p style="margin-top:10px;font-size:13px;color:var(--muted);">Cada indicador muestra: nombre, evidencia observada en video, frecuencia y nivel de confianza.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ COMPARE ═══ -->
+<section id="compare" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(6,182,212,0.15);">⚖️</div>
+    <div>
+      <h2>Player Comparison</h2>
+      <span class="tag">COMPARADOR</span>
+    </div>
+    <span class="route">/compare</span>
+  </div>
+  <p class="section-desc">
+    Compara 2 o mas jugadores lado a lado con graficos radar, metricas VAEP, scores dimensionales
+    y jugadores referencia profesionales para cada uno.
+  </p>
+
+  <div class="card">
+    <h3>📊 Que compara</h3>
+    <div class="metric-grid">
+      <div class="metric m-cyan">
+        <div class="metric-name">VSI Gauge</div>
+        <div class="metric-desc">Comparacion visual del indice compuesto de cada jugador.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Radar Chart (6 metricas)</div>
+        <div class="metric-desc">Grafico radar superpuesto con las 6 dimensiones de cada jugador.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Similarity Score</div>
+        <div class="metric-desc">Porcentaje de similitud entre los jugadores comparados.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">VAEP Comparison</div>
+        <div class="metric-desc">Valor agregado por accion normalizado a 90 minutos para cada jugador.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep-label">Entrenamiento y Partido en Vivo</div>
+
+<!-- ═══════════════════════════════════════ DRILL ═══ -->
+<section id="drill" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.15);">🏋️</div>
+    <div>
+      <h2>Solo Drill</h2>
+      <span class="tag">ENTRENAMIENTO IA</span>
+    </div>
+    <span class="route">/drill</span>
+  </div>
+  <p class="section-desc">
+    Sesiones de entrenamiento individuales analizadas por IA. Selecciona una categoria, dificultad
+    y jugador. La IA evalua el rendimiento y genera recomendaciones de mejora con un plan de desarrollo.
+  </p>
+
+  <div class="card">
+    <h3>🎯 Categorias de Drill</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">⚽ Tecnica</div>
+        <div class="metric-desc">Control de balon, primer toque, conduccion. Fundamentos tecnicos.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">🧠 Tactica</div>
+        <div class="metric-desc">Inteligencia de juego, lectura de situaciones, toma de decisiones.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">⚡ Fisico</div>
+        <div class="metric-desc">Capacidad aerobica, potencia, agilidad. Acondicionamiento fisico.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">🎯 Disparo</div>
+        <div class="metric-desc">Finalizacion, precision, potencia de tiro. Eficacia goleadora.</div>
+      </div>
+      <div class="metric m-red">
+        <div class="metric-name">🔥 Pressing</div>
+        <div class="metric-desc">Intensidad de presion, recuperacion, trabajo sin balon.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">🔄 Transicion</div>
+        <div class="metric-desc">Velocidad de cambio ataque-defensa y defensa-ataque.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📄 Reporte de Drill</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">📊</span> Puntuacion por dimension (0-10)</li>
+      <li><span class="emoji">🧬</span> ADN futbolistico actualizado</li>
+      <li><span class="emoji">⭐</span> Jugador referencia profesional</li>
+      <li><span class="emoji">📈</span> Ajuste de VSI basado en el drill</li>
+      <li><span class="emoji">🗓️</span> Plan de desarrollo 6 meses</li>
+      <li><span class="emoji">🎯</span> Nivel de confianza del analisis</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ LIVE ═══ -->
+<section id="live" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(239,68,68,0.15);">📡</div>
+    <div>
+      <h2>Match-Day Live</h2>
+      <span class="tag">TIEMPO REAL</span>
+    </div>
+    <span class="route">/live</span>
+  </div>
+  <p class="section-desc">
+    Modo partido en vivo optimizado para movil. El scout tagea eventos durante el partido
+    (goles, pases clave, recuperaciones, duelos) y al terminar se genera un resumen automatico por jugador.
+    Funciona offline y sincroniza cuando vuelve la conexion.
+  </p>
+
+  <div class="card">
+    <h3>⚽ Eventos que se tagean</h3>
+    <div class="metric-grid">
+      <div class="metric m-green">
+        <div class="metric-name">⚽ Gol</div>
+        <div class="metric-desc">Gol anotado por el jugador seleccionado.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">📤 Pase Clave</div>
+        <div class="metric-desc">Pase que genera ocasion de gol directa.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">🛡️ Recuperacion</div>
+        <div class="metric-desc">Robo de balon, tackle exitoso o intercepcion.</div>
+      </div>
+      <div class="metric m-red">
+        <div class="metric-name">⚠️ Perdida</div>
+        <div class="metric-desc">Perdida de posesion por error del jugador.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">📈 Duelo Ganado</div>
+        <div class="metric-desc">1v1 ganado (aereo, terrestre o corporal).</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">📉 Duelo Perdido</div>
+        <div class="metric-desc">1v1 perdido ante un rival.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 Match Summary</h3>
+    <p>Al terminar el partido (<code>/live/:matchId/summary</code>) se genera:</p>
+    <ul class="feature-list">
+      <li><span class="emoji">📊</span> Stats por jugador (todos los eventos)</li>
+      <li><span class="emoji">⭐</span> Rating de rendimiento (0-10)</li>
+      <li><span class="emoji">🏆</span> MVP del partido</li>
+      <li><span class="emoji">📈</span> Momentos clave del partido</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>📶 Caracteristicas tecnicas</h3>
+    <div class="tags">
+      <span class="chip chip-green">✅ Funciona Offline (PWA)</span>
+      <span class="chip chip-blue">🔄 Auto-sync cada 15s</span>
+      <span class="chip chip-purple">📳 Feedback haptico</span>
+      <span class="chip chip-gold">⏱️ Cronometro de partido</span>
+      <span class="chip chip-cyan">↩️ Deshacer ultimo evento</span>
+    </div>
+  </div>
+</section>
+
+<div class="sep-label">Equipo y Tactica</div>
+
+<!-- ═══════════════════════════════════════ EQUIPO ═══ -->
+<section id="equipo" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(34,197,94,0.15);">👥</div>
+    <div>
+      <h2>Equipo</h2>
+      <span class="tag">GESTION DE EQUIPO</span>
+    </div>
+    <span class="route">/equipo</span>
+  </div>
+  <p class="section-desc">
+    Gestion de miembros del cuerpo tecnico: scouts, entrenadores, directores. Controla permisos,
+    invita nuevos miembros por email y asigna jugadores a cada analista.
+  </p>
+
+  <div class="card">
+    <h3>👤 Roles disponibles</h3>
+    <div class="tags">
+      <span class="chip chip-blue">🔭 Scout — analisis de campo</span>
+      <span class="chip chip-green">⚽ Coach — entrenamiento y desarrollo</span>
+      <span class="chip chip-gold">🏛️ Director — vision estrategica</span>
+      <span class="chip chip-purple">👑 Owner — control total</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 Funciones</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">📨</span> Invitaciones por email</li>
+      <li><span class="emoji">🔐</span> Permisos basados en rol</li>
+      <li><span class="emoji">👕</span> Asignacion de jugadores a miembros</li>
+      <li><span class="emoji">🟢</span> Indicadores PHV por jugador</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ BASELINE ═══ -->
+<section id="baseline" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(168,85,247,0.15);">📐</div>
+    <div>
+      <h2>Team Baseline</h2>
+      <span class="tag">ANALISIS TACTICO DE EQUIPO</span>
+    </div>
+    <span class="route">/equipo/baseline</span>
+  </div>
+  <p class="section-desc">
+    La IA genera un analisis tactico completo del equipo sin necesidad de video — usando solo los datos
+    de la plantilla. Produce 5 reportes que definen la identidad tactica del equipo.
+  </p>
+
+  <div class="card">
+    <h3>📄 5 Reportes generados</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">1. Team Overview</div>
+        <div class="metric-desc">Composicion del plantel, VSI promedio, fortalezas y debilidades colectivas.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">2. Tactical Profile</div>
+        <div class="metric-desc">Formacion ideal, sistema de juego, estilo (posesion, directo, pressing alto, etc.).</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">3. 9 Cuadrantes</div>
+        <div class="metric-desc">Dominancia del campo dividido en 9 zonas. Donde el equipo es fuerte y donde vulnerable.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">4. Estratificacion PHV</div>
+        <div class="metric-desc">Distribucion de maduracion biologica en la plantilla. Detecta desbalances por edad biologica.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">5. Opponent Readiness</div>
+        <div class="metric-desc">Que tan preparado esta el equipo para enfrentar diferentes estilos de juego rival.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ RIVAL ═══ -->
+<section id="rival" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(239,68,68,0.15);">⚔️</div>
+    <div>
+      <h2>Compare Rival</h2>
+      <span class="tag">PLAN DE PARTIDO</span>
+    </div>
+    <span class="route">/equipo/rival</span>
+  </div>
+  <p class="section-desc">
+    Genera un plan de partido completo contra un rival especifico. Ingresa datos del oponente
+    y la IA crea estrategia tactica, emparejamientos clave, plan de entrenamiento semanal y escenarios wildcard.
+  </p>
+
+  <div class="card">
+    <h3>📥 Datos de entrada</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">🏟️</span> Nombre del rival y formacion</li>
+      <li><span class="emoji">💪</span> Fortalezas del rival (lista)</li>
+      <li><span class="emoji">⚡</span> Debilidades del rival (lista)</li>
+      <li><span class="emoji">⭐</span> Jugadores clave (nombre, posicion, nivel de amenaza)</li>
+      <li><span class="emoji">📝</span> Notas y contexto del partido</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>📄 Plan generado por IA</h3>
+    <div class="metric-grid">
+      <div class="metric m-red">
+        <div class="metric-name">TLDR</div>
+        <div class="metric-desc">Resumen ejecutivo del plan en 2-3 oraciones.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Enfoque Tactico</div>
+        <div class="metric-desc">Formacion, pressing, tempo, estilo recomendado contra este rival.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Key Matchups</div>
+        <div class="metric-desc">Emparejamientos clave: nuestro jugador vs su jugador.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Explotar Debilidades</div>
+        <div class="metric-desc">Como atacar los puntos debiles identificados del rival.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Plan de Entrenamiento</div>
+        <div class="metric-desc">Sesiones de Lunes, Miercoles y Viernes previos al partido con drills especificos.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Escenarios Wildcard</div>
+        <div class="metric-desc">Que hacer si vamos perdiendo, si expulsan a un jugador, si llueve, etc.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="sep-label">Administracion y Evolucion</div>
+
+<!-- ═══════════════════════════════════════ DIRECTOR ═══ -->
+<section id="director" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(245,158,11,0.15);">🏛️</div>
+    <div>
+      <h2>Director Dashboard</h2>
+      <span class="tag">PLAN CLUB</span>
+    </div>
+    <span class="route">/director</span>
+  </div>
+  <p class="section-desc">
+    Panel exclusivo para directores deportivos. Muestra metricas de uso del club,
+    consumo de IA, actividad de los analistas y limites del plan de suscripcion.
+  </p>
+
+  <div class="card">
+    <h3>📊 Metricas del club</h3>
+    <div class="metric-grid">
+      <div class="metric m-gold">
+        <div class="metric-name">Consumo IA mensual</div>
+        <div class="metric-desc">Barras de uso: analisis de video, reportes generados, consultas de agentes.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Limites del Plan</div>
+        <div class="metric-desc">Cuanto has usado vs cuanto permite tu suscripcion (Scout, Coach, Club).</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Jugadores mas activos</div>
+        <div class="metric-desc">Ranking de jugadores con mas analisis y sesiones.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Tendencias de interaccion</div>
+        <div class="metric-desc">Graficos de actividad del equipo tecnico a lo largo del tiempo.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ EVOLUTION ═══ -->
+<section id="evolution" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(6,182,212,0.15);">📈</div>
+    <div>
+      <h2>Player Evolution</h2>
+      <span class="tag">HISTORICO</span>
+    </div>
+    <span class="route">/players/:id/evolution</span>
+  </div>
+  <p class="section-desc">
+    Timeline historica de la evolucion de un jugador. Muestra como han cambiado sus metricas
+    a lo largo del tiempo, frecuencia de analisis y progresion de confianza.
+  </p>
+
+  <div class="card">
+    <h3>📊 Metricas de evolucion</h3>
+    <div class="metric-grid">
+      <div class="metric m-cyan">
+        <div class="metric-name">Tendencia VSI</div>
+        <div class="metric-desc">Linea de tiempo del VSI con cada punto siendo un analisis. Muestra mejora o caida.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Mejora Dimensional</div>
+        <div class="metric-desc">Como cambio cada una de las 6 dimensiones entre el primer y ultimo analisis.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Frecuencia de Analisis</div>
+        <div class="metric-desc">Cada cuanto se analiza al jugador. Mas datos = mas confianza.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Progresion de Confianza</div>
+        <div class="metric-desc">Como mejora la confianza del analisis a medida que se acumulan datos.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ BIAS ═══ -->
+<section id="bias" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(230,25,122,0.15);">⚖️</div>
+    <div>
+      <h2>Bias Audit Dashboard</h2>
+      <span class="tag">EQUIDAD + FAIRNESS</span>
+    </div>
+    <span class="route">/admin/bias</span>
+  </div>
+  <p class="section-desc">
+    Panel de auditoria de sesgos. VITAS es la unica plataforma que detecta y corrige automaticamente
+    el sesgo por maduracion biologica (PHV) y efecto de edad relativa (RAE) en evaluaciones juveniles.
+  </p>
+
+  <div class="card">
+    <h3>🔬 Metricas de sesgo</h3>
+    <div class="metric-grid">
+      <div class="metric m-pink">
+        <div class="metric-name">RAE (Relative Age Effect)</div>
+        <div class="metric-desc">Analisis del efecto de nacer en Q1 vs Q4 del ano. Cuantos meses de ventaja tiene cada jugador.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">PHV Bias</div>
+        <div class="metric-desc">Sesgo por maduracion temprana/tardia. Un "early maturer" tiene ventaja fisica temporal que infla su VSI.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">UBI (Unified Bias Index)</div>
+        <div class="metric-desc">Indice combinado de sesgo 0-1. Combina RAE + PHV + factor de correccion VSI. Cercano a 0 = sin sesgo.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">TruthFilter</div>
+        <div class="metric-desc">VSI corregido por sesgo. 4 casos: early maturers, late maturers, on-time high RAE, on-time low RAE. Revela el talento real.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎯 Los 4 casos del TruthFilter</h3>
+    <div class="metric-grid">
+      <div class="metric m-red">
+        <div class="metric-name">Case 1: Early Maturers</div>
+        <div class="metric-desc">VSI se REDUCE. Su ventaja fisica es temporal. El TruthFilter descuenta el bonus de maduracion.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Case 2: Late Maturers</div>
+        <div class="metric-desc">VSI se AUMENTA. Su desventaja fisica es temporal. Aqui se ocultan los talentos. El TruthFilter los revela.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Case 3: On-time + High RAE</div>
+        <div class="metric-desc">Maduracion normal pero nacidos en Q1-Q2. Ligera correccion a la baja por ventaja de edad.</div>
+      </div>
+      <div class="metric m-blue">
+        <div class="metric-name">Case 4: On-time + Low RAE</div>
+        <div class="metric-desc">Maduracion normal y nacidos en Q3-Q4. Sin correccion significativa — evaluacion mas justa naturalmente.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ PARENT ═══ -->
+<section id="parent" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(34,197,94,0.15);">👨‍👩‍👦</div>
+    <div>
+      <h2>Parent Dashboard</h2>
+      <span class="tag">VISTA PADRES</span>
+    </div>
+    <span class="route">/family/:playerId</span>
+  </div>
+  <p class="section-desc">
+    Vista simplificada para padres/tutores. Les permite ver el progreso de su hijo
+    sin acceso a herramientas de scouting profesional. Requiere consentimiento parental previo (GDPR).
+  </p>
+
+  <div class="card">
+    <h3>📊 Lo que ven los padres</h3>
+    <ul class="feature-list">
+      <li><span class="emoji">📈</span> Progreso general del jugador</li>
+      <li><span class="emoji">⭐</span> Puntuaciones y tendencias</li>
+      <li><span class="emoji">🎯</span> Areas de mejora recomendadas</li>
+      <li><span class="emoji">🛡️</span> Estado de maduracion biologica (PHV)</li>
+    </ul>
+  </div>
+</section>
+
+<div class="sep-label">Sistema de Metricas Core</div>
+
+<!-- ═══════════════════════════════════════ METRICAS ═══ -->
+<section id="metricas" class="section">
+  <div class="section-header">
+    <div class="section-icon" style="background:rgba(0,89,179,0.15);">🔢</div>
+    <div>
+      <h2>Sistema de Metricas</h2>
+      <span class="tag">CORE ENGINE</span>
+    </div>
+  </div>
+  <p class="section-desc">
+    VITAS utiliza un sistema de metricas propietario con pesos cientificamente calibrados.
+    Aqui se explica cada metrica, como se calcula y que significa.
+  </p>
+
+  <div class="card">
+    <h3>🏆 VSI — VITAS Scouting Index (0-100)</h3>
+    <p style="margin-bottom:16px;">Indice compuesto que evalua al jugador de forma holistica. Cada componente tiene un peso especifico:</p>
+    <div class="vsi-bar-container">
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Tecnica</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:100%;background:var(--purple)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--purple)">22%</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Vision</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:91%;background:var(--blue)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--blue)">20%</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Velocidad</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:82%;background:var(--cyan)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--cyan)">18%</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Resistencia</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:68%;background:var(--green)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--green)">15%</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Disparo</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:59%;background:var(--gold)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--gold)">13%</span>
+      </div>
+      <div class="vsi-bar-row">
+        <span class="vsi-bar-label">Defensa</span>
+        <div class="vsi-bar-track"><div class="vsi-bar-fill" style="width:55%;background:var(--pink)"></div></div>
+        <span class="vsi-bar-value" style="color:var(--pink)">12%</span>
+      </div>
+    </div>
+    <div class="tags" style="margin-top:16px;">
+      <span class="chip chip-purple">Elite: 80+</span>
+      <span class="chip chip-blue">High: 65-79</span>
+      <span class="chip chip-gold">Medium: 50-64</span>
+      <span class="chip chip-red">Developing: &lt;50</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🧬 PHV — Peak Height Velocity</h3>
+    <p>Formula de Mirwald para estimar el pico de crecimiento biologico. Indica si un jugador esta fisicamente maduro para su edad o no.</p>
+    <div class="metric-grid" style="margin-top:12px;">
+      <div class="metric m-red">
+        <div class="metric-name">🔴 Early Maturer</div>
+        <div class="metric-desc">Maduro antes que sus pares. Ventaja fisica temporal. Riesgo de sobrevaloracion.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">🟡 On-Time</div>
+        <div class="metric-desc">Maduracion normal. Evaluacion mas fiable.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">🟢 Late Maturer</div>
+        <div class="metric-desc">Aun no alcanzo su pico fisico. TALENTO OCULTO potencial. Riesgo de descarte injusto.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚖️ UBI — Unified Bias Index (0-1)</h3>
+    <p>Indice combinado que mide cuanto sesgo afecta la evaluacion de un jugador:</p>
+    <div class="metric-grid" style="margin-top:12px;">
+      <div class="metric m-green">
+        <div class="metric-name">0.0 - 0.2 = Bajo</div>
+        <div class="metric-desc">Evaluacion confiable. Poco sesgo por edad o maduracion.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">0.2 - 0.5 = Medio</div>
+        <div class="metric-desc">Sesgo moderado. Se recomienda revisar con TruthFilter.</div>
+      </div>
+      <div class="metric m-red">
+        <div class="metric-name">0.5 - 1.0 = Alto</div>
+        <div class="metric-desc">Sesgo significativo. El VSI original no es confiable. Usar VSI corregido.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📊 VAEP — Value Added Expected Points</h3>
+    <p>Metrica avanzada de impacto por accion, derivada del modelo academico SPADL:</p>
+    <div class="metric-grid" style="margin-top:12px;">
+      <div class="metric m-blue">
+        <div class="metric-name">VAEP Total</div>
+        <div class="metric-desc">Suma del valor generado por todas las acciones del jugador en el video.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">VAEP-90</div>
+        <div class="metric-desc">VAEP normalizado a 90 minutos para comparar jugadores con diferente tiempo de juego.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Top Actions</div>
+        <div class="metric-desc">Las acciones de mayor impacto del jugador ordenadas por valor generado.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🏃 Metricas Fisicas (del LAB)</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Velocidad Max (km/h)</div>
+        <div class="metric-desc">Pico de velocidad alcanzado. Referencia: elite juvenil Sub-17 = ~30-32 km/h.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Distancia Total (m)</div>
+        <div class="metric-desc">Metros recorridos. Referencia: 90 min elite = ~10,000-12,000m.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Sprints</div>
+        <div class="metric-desc">Carreras a >6.5 m/s (>23.4 km/h) por >1s. Indicador de capacidad explosiva.</div>
+      </div>
+      <div class="metric m-pink">
+        <div class="metric-name">Cobertura (%)</div>
+        <div class="metric-desc">Porcentaje del campo utilizado. Mediocampistas >60%, delanteros ~30-40%.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">DrillScore (0-100)</div>
+        <div class="metric-desc">Eficiencia biomecanica calculada por angulos articulares. 80+ = movimiento excelente.</div>
+      </div>
+      <div class="metric m-cyan">
+        <div class="metric-name">Asimetria (%)</div>
+        <div class="metric-desc">Diferencia de movimiento izquierda vs derecha. >15% = riesgo de lesion.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⚽ Match Stats (del Live Mode)</h3>
+    <div class="metric-grid">
+      <div class="metric m-blue">
+        <div class="metric-name">Pases (C/I)</div>
+        <div class="metric-desc">Pases completados vs intentados. Precision = C/I × 100.</div>
+      </div>
+      <div class="metric m-purple">
+        <div class="metric-name">Duelos (G/P)</div>
+        <div class="metric-desc">Ganados vs Perdidos. Clasificados: dominante (>70%), competitivo (50-70%), igualado, dominado.</div>
+      </div>
+      <div class="metric m-gold">
+        <div class="metric-name">Performance Rating (0-10)</div>
+        <div class="metric-desc">Calificacion global del partido calculada por el algoritmo de VITAS.</div>
+      </div>
+      <div class="metric m-green">
+        <div class="metric-name">Physical Rating</div>
+        <div class="metric-desc">Clasificacion fisica: Elite / Alto / Medio / Bajo basada en distancia y sprints.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<!-- ═══════════════════════════════════════ FOOTER ═══ -->
+<div class="footer">
+  <p style="margin-bottom:8px;">
+    <span style="font-weight:800;background:var(--grad-vibrant);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">VITAS.</span>
+    Football Intelligence Platform
+  </p>
+  <p>
+    by <strong>Kenmei Technologies</strong> &middot;
+    <a href="https://futuro-club.vercel.app" target="_blank">futuro-club.vercel.app</a> &middot;
+    pedro.paredes@kenmei.ai
+  </p>
+  <p style="margin-top:12px;font-size:11px;opacity:0.5;">
+    Guia generada Mayo 2026 &middot; 32 Modulos &middot; 50+ Metricas &middot; 24 Agentes IA
+  </p>
+</div>
+
+</body>
+</html>
