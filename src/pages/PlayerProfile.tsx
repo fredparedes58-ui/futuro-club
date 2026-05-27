@@ -228,8 +228,10 @@ const PlayerProfile = () => {
     );
   }
 
-  const phv = phvInfo[player.phvCategory] ?? phvInfo["on-time"];
-  const phvBarPosition = ((player.phvOffset + 2) / 4) * 100;
+  const phv = player.phvCategory ? (phvInfo[player.phvCategory] ?? phvInfo["on-time"]) : phvInfo["on-time"];
+  const phvBarPosition = player.phvOffset !== null
+    ? ((player.phvOffset + 2) / 4) * 100
+    : 50;
   const hasPHV = !!rawPlayer?.phvCategory;
 
   const trendText =
@@ -285,7 +287,7 @@ const PlayerProfile = () => {
           </span>
           {hasPHV && (
             <span className="text-[10px] text-muted-foreground ml-auto">
-              Offset: {player.phvOffset > 0 ? "+" : ""}{player.phvOffset.toFixed(2)}
+              Offset: {player.phvOffset !== null ? `${player.phvOffset > 0 ? "+" : ""}${player.phvOffset.toFixed(2)}` : "—"}
             </span>
           )}
         </div>
@@ -308,29 +310,10 @@ const PlayerProfile = () => {
             </div>
           </>
         ) : (
-          <div className="mt-2 flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {t("players.profile.phv.calculateDesc")}
+          <div className="mt-2">
+            <p className="text-xs text-amber-600">
+              ⚠ Registra las 4 mediciones antropométricas (altura, peso, altura sentado, pierna) en la sección inferior para calcular el PHV con datos reales.
             </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="ml-3 text-xs shrink-0"
-              onClick={handleCalculatePHV}
-              disabled={isCalculatingPHV || !rawPlayer}
-            >
-              {isCalculatingPHV ? (
-                <>
-                  <RefreshCw size={12} className="mr-1 animate-spin" />
-                  {t("players.profile.phv.calculating")}
-                </>
-              ) : (
-                <>
-                  <Dna size={12} className="mr-1" />
-                  {t("players.profile.phv.calculateBtn")}
-                </>
-              )}
-            </Button>
           </div>
         )}
       </motion.div>
@@ -509,71 +492,102 @@ const PlayerProfile = () => {
           </div>
 
           {/* TruthFilter — VSI ajustado */}
-          <div className="rounded-lg bg-secondary/40 border border-border p-3">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-1.5">
-                <Filter size={11} className="text-primary" />
-                <span className="text-[11px] font-display font-semibold text-foreground">
-                  {t("players.profile.truthFilter")}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground line-through">
-                  {advancedMetrics.truthFilter.originalVSI}
-                </span>
-                <span className={`text-sm font-display font-bold ${
-                  advancedMetrics.truthFilter.delta > 0 ? "text-primary" :
-                  advancedMetrics.truthFilter.delta < 0 ? "text-gold" : "text-electric"
-                }`}>
-                  {advancedMetrics.truthFilter.adjustedVSI}
-                </span>
-                {advancedMetrics.truthFilter.delta !== 0 && (
-                  <span className={`text-[10px] font-display ${
-                    advancedMetrics.truthFilter.delta > 0 ? "text-primary" : "text-gold"
-                  }`}>
-                    ({advancedMetrics.truthFilter.delta > 0 ? "+" : ""}{advancedMetrics.truthFilter.delta})
+          {advancedMetrics.truthFilter ? (
+            <div className="rounded-lg bg-secondary/40 border border-border p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <Filter size={11} className="text-primary" />
+                  <span className="text-[11px] font-display font-semibold text-foreground">
+                    {t("players.profile.truthFilter")}
                   </span>
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-muted-foreground line-through">
+                    {advancedMetrics.truthFilter.originalVSI}
+                  </span>
+                  <span className={`text-sm font-display font-bold ${
+                    advancedMetrics.truthFilter.delta > 0 ? "text-primary" :
+                    advancedMetrics.truthFilter.delta < 0 ? "text-gold" : "text-electric"
+                  }`}>
+                    {advancedMetrics.truthFilter.adjustedVSI}
+                  </span>
+                  {advancedMetrics.truthFilter.delta !== 0 && (
+                    <span className={`text-[10px] font-display ${
+                      advancedMetrics.truthFilter.delta > 0 ? "text-primary" : "text-gold"
+                    }`}>
+                      ({advancedMetrics.truthFilter.delta > 0 ? "+" : ""}{advancedMetrics.truthFilter.delta})
+                    </span>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {advancedMetrics.truthFilter.explanation}
+              </p>
+              <div className="flex items-center gap-1 mt-2">
+                <div className="h-1 rounded-full bg-muted flex-1 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary/60"
+                    style={{ width: `${Math.round(advancedMetrics.truthFilter.confidence * 100)}%` }}
+                  />
+                </div>
+                <span className="text-[9px] text-muted-foreground font-display shrink-0">
+                  {Math.round(advancedMetrics.truthFilter.confidence * 100)}% conf.
+                </span>
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              {advancedMetrics.truthFilter.explanation}
-            </p>
-            <div className="flex items-center gap-1 mt-2">
-              <div className="h-1 rounded-full bg-muted flex-1 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary/60"
-                  style={{ width: `${Math.round(advancedMetrics.truthFilter.confidence * 100)}%` }}
-                />
+          ) : (
+            <div className="rounded-lg bg-secondary/40 border border-amber-200 p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-1.5">
+                  <Filter size={11} className="text-muted-foreground" />
+                  <span className="text-[11px] font-display font-semibold text-muted-foreground">
+                    VSI Ajustado (TruthFilter)
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">— Pendiente</span>
               </div>
-              <span className="text-[9px] text-muted-foreground font-display shrink-0">
-                {Math.round(advancedMetrics.truthFilter.confidence * 100)}% conf.
-              </span>
+              <p className="text-[10px] text-amber-600 leading-relaxed">
+                ⚠ Registra mediciones antropométricas (altura, peso, altura sentado) para calcular el PHV y activar el VSI ajustado.
+              </p>
             </div>
-          </div>
+          )}
 
           {/* UBI */}
-          <div className="rounded-lg bg-secondary/40 border border-border p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-display font-semibold text-foreground">
-                {t("players.profile.ubiBiasIndex")}
-              </span>
-              <span className={`text-sm font-display font-bold ${
-                advancedMetrics.ubi.ubi >= 0.6 ? "text-destructive" :
-                advancedMetrics.ubi.ubi >= 0.3 ? "text-gold" : "text-electric"
-              }`}>
-                {(advancedMetrics.ubi.ubi * 100).toFixed(0)}%
-              </span>
+          {advancedMetrics.ubi ? (
+            <div className="rounded-lg bg-secondary/40 border border-border p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-display font-semibold text-foreground">
+                  {t("players.profile.ubiBiasIndex")}
+                </span>
+                <span className={`text-sm font-display font-bold ${
+                  advancedMetrics.ubi.ubi >= 0.6 ? "text-destructive" :
+                  advancedMetrics.ubi.ubi >= 0.3 ? "text-gold" : "text-electric"
+                }`}>
+                  {(advancedMetrics.ubi.ubi * 100).toFixed(0)}%
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">{advancedMetrics.ubi.description}</p>
+              <div className="flex gap-3 mt-2 text-[9px] text-muted-foreground font-display">
+                <span>RAE: {(advancedMetrics.ubi.raeComponent * 100).toFixed(0)}%</span>
+                <span>PHV: {(advancedMetrics.ubi.phvComponent * 100).toFixed(0)}%</span>
+                <span className="ml-auto text-primary">
+                  x{advancedMetrics.ubi.vsICorrectionFactor} {t("players.profile.correctionFactor")}
+                </span>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">{advancedMetrics.ubi.description}</p>
-            <div className="flex gap-3 mt-2 text-[9px] text-muted-foreground font-display">
-              <span>RAE: {(advancedMetrics.ubi.raeComponent * 100).toFixed(0)}%</span>
-              <span>PHV: {(advancedMetrics.ubi.phvComponent * 100).toFixed(0)}%</span>
-              <span className="ml-auto text-primary">
-                x{advancedMetrics.ubi.vsICorrectionFactor} {t("players.profile.correctionFactor")}
-              </span>
+          ) : (
+            <div className="rounded-lg bg-secondary/40 border border-amber-200 p-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-display font-semibold text-muted-foreground">
+                  UBI (Índice de Sesgo)
+                </span>
+                <span className="text-[10px] text-muted-foreground">Pendiente</span>
+              </div>
+              <p className="text-[10px] text-amber-600 leading-relaxed">
+                ⚠ Necesita datos PHV para calcular el índice de sesgo unificado.
+              </p>
             </div>
-          </div>
+          )}
 
           {/* Dominant Features — Análisis Detallado */}
           <div className="rounded-lg bg-secondary/40 border border-border p-4 space-y-4">

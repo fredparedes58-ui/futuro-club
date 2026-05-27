@@ -167,9 +167,17 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
 
     const heightCm = Number(form.height);
     const weightKg = Number(form.weight);
+    const sittingHeightCm = form.sitting ? Number(form.sitting) : 0;
+    const legLengthCm = form.leg ? Number(form.leg) : 0;
 
     if (!heightCm || !weightKg) {
       setError("Altura y peso son obligatorios");
+      setSubmitting(false);
+      return;
+    }
+
+    if (!sittingHeightCm || !legLengthCm) {
+      setError("Altura sentado y longitud de pierna son obligatorios para calcular el PHV con precisión real");
       setSubmitting(false);
       return;
     }
@@ -178,8 +186,8 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
       playerId,
       heightCm,
       weightKg,
-      sittingHeightCm: form.sitting ? Number(form.sitting) : undefined,
-      legLengthCm:     form.leg     ? Number(form.leg)     : undefined,
+      sittingHeightCm,
+      legLengthCm,
       chronologicalAge,
       gender,
     };
@@ -366,16 +374,18 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
                 value={form.sitting}
                 onChange={(v) => setForm((f) => ({ ...f, sitting: v }))}
                 min={40} max={130}
+                required
                 placeholder="86.0"
-                hint="opcional · mejora precisión"
+                hint="obligatorio para PHV"
               />
               <Field
                 label="Pierna (cm)"
                 value={form.leg}
                 onChange={(v) => setForm((f) => ({ ...f, leg: v }))}
                 min={30} max={130}
+                required
                 placeholder="79.5"
-                hint="opcional"
+                hint="obligatorio para PHV"
               />
             </div>
 

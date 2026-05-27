@@ -165,6 +165,35 @@ export interface BiomechanicsResult {
   message: string;
 }
 
+// ─── PHV Validation Gate ─────────────────────────────────────────────────────
+
+export interface PhvValidationResult {
+  /** true si el PHV fue calculado con datos antropométricos reales */
+  isComplete: boolean;
+  /** true si player.phvOffset existe y no es null */
+  hasPhvOffset: boolean;
+  /** true si player.phvCategory existe y no es null */
+  hasPhvCategory: boolean;
+  /** Campos faltantes para el cálculo */
+  missingFields: string[];
+}
+
+/**
+ * Valida si un jugador tiene datos PHV calculados con mediciones reales.
+ * Si no los tiene, TruthFilter, UBI y VSI ajustado NO deben calcularse.
+ */
+export function validatePhvData(player: Player): PhvValidationResult {
+  const hasPhvOffset = player.phvOffset !== undefined && player.phvOffset !== null;
+  const hasPhvCategory = player.phvCategory !== undefined && player.phvCategory !== null;
+  const isComplete = hasPhvOffset && hasPhvCategory;
+
+  const missingFields: string[] = [];
+  if (!hasPhvOffset) missingFields.push("phvOffset");
+  if (!hasPhvCategory) missingFields.push("phvCategory");
+
+  return { isComplete, hasPhvOffset, hasPhvCategory, missingFields };
+}
+
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const METRIC_LABELS: Record<keyof PlayerMetrics, string> = {
@@ -888,15 +917,17 @@ export const BiomechanicsService = {
 // ─── Facade: calcular todas las métricas avanzadas de un jugador ──────────────
 
 export interface AdvancedPlayerMetrics {
-  rae:           RAEResult | null;
-  ubi:           UBIResult;
-  truthFilter:   TruthFilterResult;
+  rae:              RAEResult | null;
+  ubi:              UBIResult | null;
+  truthFilter:      TruthFilterResult | null;
   dominantFeatures: DominantFeaturesResult;
-  vaep:          VAEPResult;
-  tracking:      TrackingMetricsResult;
-  biomechanics:  BiomechanicsResult;
-  /** VSI final tras aplicar TruthFilter */
-  adjustedVSI:   number;
+  vaep:             VAEPResult;
+  tracking:         TrackingMetricsResult;
+  biomechanics:     BiomechanicsResult;
+  /** VSI final tras aplicar TruthFilter (null si PHV no calculado) */
+  adjustedVSI:      number | null;
+  /** Resultado de validación PHV — indica si los datos están completos */
+  phvValidation:    PhvValidationResult;
 }
 
 export function calculateAdvancedMetrics(
@@ -909,23 +940,33 @@ export function calculateAdvancedMetrics(
     biomechanicsInput?: BiomechanicsInput;
   }
 ): AdvancedPlayerMetrics {
-  // RAE
+  // ─── PHV Validation Gate ───────────────────────────────────────
+  // Si el PHV no fue calculado con datos reales, TruthFilter, UBI
+  // y VSI ajustado quedan bloqueados (null).
+  const phvValidation = validatePhvData(player);
+
+  // RAE (independiente de PHV — solo necesita fecha de nacimiento)
   const rae = (options?.birthMonth && options?.birthYear)
     ? RAEService.calculate({ birthMonth: options.birthMonth, birthYear: options.birthYear })
     : null;
 
-  // UBI
-  const ubi = UBIService.calculate(rae, player.phvOffset ?? null, player.phvCategory ?? null);
+  // UBI y TruthFilter: solo si PHV está completo
+  let ubi: UBIResult | null = null;
+  let truthFilter: TruthFilterResult | null = null;
+  let adjustedVSI: number | null = null;
 
-  // TruthFilter
-  const truthFilter = TruthFilterService.apply(
-    player.vsi,
-    player.phvOffset ?? null,
-    player.phvCategory ?? null,
-    rae
-  );
+  if (phvValidation.isComplete) {
+    ubi = UBIService.calculate(rae, player.phvOffset!, player.phvCategory!);
+    truthFilter = TruthFilterService.apply(
+      player.vsi,
+      player.phvOffset!,
+      player.phvCategory!,
+      rae
+    );
+    adjustedVSI = truthFilter.adjustedVSI;
+  }
 
-  // Dominant Features (funciona con datos existentes)
+  // Dominant Features (funciona con datos existentes, independiente de PHV)
   const dominantFeatures = DominantFeaturesService.calculate(player.metrics);
 
   // VAEP stub
@@ -947,6 +988,7 @@ export function calculateAdvancedMetrics(
     vaep,
     tracking,
     biomechanics,
-    adjustedVSI: truthFilter.adjustedVSI,
+    adjustedVSI,
+    phvValidation,
   };
 }

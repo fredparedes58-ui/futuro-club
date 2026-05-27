@@ -76,20 +76,25 @@ function calculateMaturityOffset(input: PhvInput): {
   const height = input.height ?? 0;
   const weight = input.weight ?? 0;
 
-  // Estimación si faltan datos antropométricos
-  const sittingHeightUsed = input.sittingHeight ?? (height ? height * 0.52 : 0);
-  const legLengthUsed = input.legLength ?? (height ? height * 0.48 : 0);
+  // PHV Validation Gate: rechazar si faltan datos antropométricos reales
+  if (!input.sittingHeight || !input.legLength) {
+    throw new Error(
+      "PHV_INCOMPLETE_DATA: Se requieren las 4 mediciones antropométricas reales " +
+      "(altura, peso, altura sentado, longitud de pierna) para calcular el PHV. " +
+      "No se permiten estimaciones."
+    );
+  }
+
+  const sittingHeightUsed = input.sittingHeight;
+  const legLengthUsed = input.legLength;
 
   const inputsUsed = {
-    sittingHeight: input.sittingHeight ? "real" as const : "estimated" as const,
-    legLength: input.legLength ? "real" as const : "estimated" as const,
+    sittingHeight: "real" as const,
+    legLength: "real" as const,
   };
 
-  // Confianza
-  const confidence =
-    inputsUsed.sittingHeight === "real" && inputsUsed.legLength === "real"
-      ? 0.92
-      : 0.74;
+  // Confianza: siempre alta porque ahora exigimos datos reales
+  const confidence = 0.92;
 
   let offset: number;
   let formula: "mirwald_male" | "mirwald_female";
@@ -201,10 +206,12 @@ export default withHandler(
 
       return successResponse(result);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error in PHV calculation";
+      const isIncomplete = message.includes("PHV_INCOMPLETE_DATA");
       return errorResponse({
-        code: "phv_calc_failed",
-        message: err instanceof Error ? err.message : "Unknown error in PHV calculation",
-        status: 500,
+        code: isIncomplete ? "phv_incomplete_data" : "phv_calc_failed",
+        message,
+        status: isIncomplete ? 422 : 500,
       });
     }
   }

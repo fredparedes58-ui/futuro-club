@@ -159,6 +159,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
         metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
         phvCategory: player.phvCategory ?? "ontme",
         phvOffset: player.phvOffset ?? 0,
+        phvDataAvailable: !!(player.phvCategory && player.phvOffset !== undefined && player.phvOffset !== null),
         // Inyectar resumen de análisis de video para que el agente lo use
         videoAnalysisSummary: {
           totalAnalyses: videoAnalyses.length,
