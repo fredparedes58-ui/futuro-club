@@ -35,6 +35,7 @@ import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import { calculateAdvancedMetrics, TrackingService } from "@/services/real/advancedMetricsService";
+import { VideoAdvancedMetricsService, labSnapshotToObservationPacket } from "@/services/real/videoAdvancedMetricsService";
 import TalentoOcultoAlert from "@/components/TalentoOcultoAlert";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import NotEvaluatedSection from "@/components/NotEvaluatedSection";
@@ -104,19 +105,25 @@ export default function PlayerHubPage() {
     return () => { cancelled = true; };
   }, [player, analyses]);
 
-  // Métricas avanzadas — feeds real YOLO tracking data from Lab snapshot
+  // Métricas avanzadas — feeds real Lab data (VAEP + Tracking + Biomechanics)
   const advancedMetrics = useMemo(() => {
     if (!player) return null;
+    const playerArg = player as Parameters<typeof calculateAdvancedMetrics>[0];
+
+    // Full pipeline: if snapshot has tactical events, use VideoObservationPacket bridge
+    if (snapshot?.tacticalEvents?.length) {
+      const packet = labSnapshotToObservationPacket(snapshot);
+      return VideoAdvancedMetricsService.calculate(playerArg, packet);
+    }
+
+    // Fallback: partial data from positions only
     const trackingInput = snapshot?.focusPositions?.length
       ? TrackingService.fromYoloPositions(
           snapshot.focusPositions.map(p => ({ fx: p.fx, fy: p.fy, timestampMs: p.tMs })),
           snapshot.durationSec / 60,
         )
       : undefined;
-    return calculateAdvancedMetrics(
-      player as Parameters<typeof calculateAdvancedMetrics>[0],
-      { trackingInput },
-    );
+    return calculateAdvancedMetrics(playerArg, { trackingInput });
   }, [player, snapshot]);
 
   // Role profile (lazy · solo si hay análisis y se mira la pestaña)

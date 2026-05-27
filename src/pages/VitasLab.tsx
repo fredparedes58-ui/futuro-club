@@ -465,6 +465,11 @@ const VitasLab = () => {
     setEventSummary(finalEventSummary);
     setTacticalEvents(eventEngineRef.current.getEvents());
 
+    // Collect tactical events for the focused player (VAEP input)
+    const focusEvents = tracking.state.focusTrackId
+      ? eventEngineRef.current.getPlayerEvents(tracking.state.focusTrackId)
+      : eventEngineRef.current.getEvents();
+
     PlayerTrackingService.save({
       playerId:       selectedPlayerId,
       videoId:        selectedVideoId ?? null,
@@ -480,6 +485,8 @@ const VitasLab = () => {
       scanEvents:     tracking.state.scanEvents,
       duelEvents:     tracking.state.duelEvents,
       focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })),
+      tacticalEvents:     focusEvents,
+      biomechanicsScore:  mediaPipe.biomechanics ?? undefined,
     });
 
     const bioMsg = mediaPipe.biomechanics

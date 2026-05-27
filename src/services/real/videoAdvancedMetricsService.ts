@@ -14,8 +14,11 @@
 import type { Player } from "./playerService";
 import type { AdvancedPlayerMetrics } from "./advancedMetricsService";
 import { calculateAdvancedMetrics } from "./advancedMetricsService";
-import type { VideoObservationPacket } from "./videoMetricsExtractor";
+import type { VideoObservationPacket, VideoEvent, FieldZoneApprox } from "./videoMetricsExtractor";
 import { VideoMetricsExtractor } from "./videoMetricsExtractor";
+import type { TrackingSnapshot } from "./playerTrackingService";
+import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
+import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 
 export interface VideoAdvancedMetricsOptions {
   /** Datos de nacimiento para RAE (opcional) */
@@ -110,3 +113,137 @@ export const VideoAdvancedMetricsService = {
     };
   },
 };
+
+// ─── Lab → Profile Bridge ──────────────────────────────────────────────────
+
+/**
+ * Converts a VitasLab TrackingSnapshot (with optional tactical events and
+ * biomechanics) into a VideoObservationPacket that can be fed through
+ * the standard VideoAdvancedMetricsService pipeline.
+ *
+ * This bridges the gap between Lab-generated data and the advanced metrics
+ * system, enabling real VAEP, Tracking, and Biomechanics on the player profile.
+ */
+export function labSnapshotToObservationPacket(
+  snapshot: TrackingSnapshot,
+  biomechanics?: BiomechanicsScore | null,
+): VideoObservationPacket {
+  const events: VideoEvent[] = [];
+
+  // Convert TacticalEvents → VideoEvents (SPADL-compatible)
+  if (snapshot.tacticalEvents?.length) {
+    for (const te of snapshot.tacticalEvents) {
+      const videoType = mapTacticalToVideoType(te.type);
+      if (!videoType) continue;
+
+      events.push({
+        tSec: te.timestampMs / 1000,
+        type: videoType,
+        result: te.outcome === "success" ? "success" : "fail",
+        fromZone: fieldPointToZone(te.startPosition),
+        toZone: te.endPosition ? fieldPointToZone(te.endPosition) : undefined,
+        impact: te.confidence * 0.5, // conservative impact from confidence
+        confidence: te.confidence,
+      });
+    }
+  }
+
+  // Build positioning from focusPositions
+  const positioning = buildPositioning(snapshot);
+
+  // Build biomechanics observation from MediaPipe score
+  const bio = biomechanics ?? snapshot.biomechanicsScore;
+  const biomechanicsObs = bio
+    ? {
+        bilateralAsymmetryObserved: bio.asymmetryPct,
+        movementEfficiency: bio.runningEfficiency / 100,
+        fatigueSignals: bio.injuryRisk > 60,
+        dominantFootUsagePct: undefined,
+      }
+    : undefined;
+
+  return {
+    durationSec: snapshot.durationSec,
+    minutesPlayed: Math.round(snapshot.durationSec / 60),
+    events,
+    positioning,
+    biomechanics: biomechanicsObs,
+  };
+}
+
+/** Map TacticalEventType → VideoEvent.type (or null to skip) */
+function mapTacticalToVideoType(
+  type: TacticalEvent["type"],
+): VideoEvent["type"] | null {
+  switch (type) {
+    case "pass":
+    case "shot":
+    case "tackle":
+    case "interception":
+    case "cross":
+      return type;
+    case "through_ball":
+      return "pass";
+    case "carry":
+      return "dribble";
+    case "duel_aerial":
+    case "duel_ground":
+      return "tackle";
+    case "recovery":
+      return "interception";
+    case "sprint_burst":
+      return "run";
+    case "press_trigger":
+      return "tackle";
+    case "set_piece":
+      return "pass";
+    case "offside_line_break":
+      return "run";
+    default:
+      return null;
+  }
+}
+
+/** Convert field position (fx 0-105, fy 0-68) to approximate zone */
+function fieldPointToZone(pos: { fx: number; fy: number }): FieldZoneApprox {
+  const xZone = pos.fx < 35 ? "def" : pos.fx < 70 ? "mid" : "att";
+  const yZone = pos.fy < 22.7 ? "right" : pos.fy < 45.3 ? "center" : "left";
+  return `${xZone}-${yZone}` as FieldZoneApprox;
+}
+
+/** Build VideoPositioning from snapshot's physical metrics + focusPositions */
+function buildPositioning(snapshot: TrackingSnapshot) {
+  const metrics = snapshot.sessionMetrics;
+  const positions = snapshot.focusPositions;
+
+  // Calculate zone distribution from positions
+  let zoneDistribution: Partial<Record<FieldZoneApprox, number>> | undefined;
+  let dominantZone: FieldZoneApprox | undefined;
+
+  if (positions?.length) {
+    const zoneCounts: Partial<Record<FieldZoneApprox, number>> = {};
+    for (const p of positions) {
+      const zone = fieldPointToZone(p);
+      zoneCounts[zone] = (zoneCounts[zone] ?? 0) + 1;
+    }
+    const total = positions.length;
+    zoneDistribution = {};
+    let maxCount = 0;
+    for (const [zone, count] of Object.entries(zoneCounts)) {
+      const pct = count / total;
+      zoneDistribution[zone as FieldZoneApprox] = Math.round(pct * 100) / 100;
+      if (count > maxCount) {
+        maxCount = count;
+        dominantZone = zone as FieldZoneApprox;
+      }
+    }
+  }
+
+  return {
+    dominantZone,
+    zoneDistribution,
+    estimatedMaxSpeedMs: metrics.maxSpeedMs,
+    sprintCount: metrics.sprintCount,
+    estimatedDistanceM: metrics.distanceCoveredM,
+  };
+}

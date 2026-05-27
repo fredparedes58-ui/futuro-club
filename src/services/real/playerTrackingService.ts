@@ -9,6 +9,9 @@
  * el último prevalece).
  */
 import type { PhysicalMetrics, ScanEvent, DuelEvent } from "@/lib/yolo/types";
+import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
+import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STORAGE_PREFIX = "vitas_tracking_snapshot_";
 
@@ -27,10 +30,15 @@ export interface TrackingSnapshot {
   duelEvents:     DuelEvent[];
   /** Posiciones del track enfocado (para heatmap), normalizadas 0-105 x 0-68 */
   focusPositions?: Array<{ fx: number; fy: number; tMs: number }>;
+  /** Tactical events detected by EventDetectionEngine (Sprint 2 — VAEP input) */
+  tacticalEvents?: TacticalEvent[];
+  /** MediaPipe biomechanics score (Sprint 2 — real biomechanics) */
+  biomechanicsScore?: BiomechanicsScore;
 }
 
 export const PlayerTrackingService = {
-  /** Guarda snapshot · sobreescribe si ya existía. Recorta arrays grandes. */
+  /** Guarda snapshot · sobreescribe si ya existía. Recorta arrays grandes.
+   *  Persiste en localStorage (inmediato) + Supabase (async, best-effort). */
   save(snapshot: TrackingSnapshot): void {
     if (!snapshot.playerId) return;
     const trimmed: TrackingSnapshot = {
@@ -38,11 +46,44 @@ export const PlayerTrackingService = {
       scanEvents: snapshot.scanEvents.slice(-200),
       duelEvents: snapshot.duelEvents.slice(-200),
       focusPositions: snapshot.focusPositions?.slice(-500),
+      tacticalEvents: snapshot.tacticalEvents?.slice(-300),
     };
+    // 1. localStorage (inmediato, nunca falla la app)
     try {
       localStorage.setItem(STORAGE_PREFIX + snapshot.playerId, JSON.stringify(trimmed));
     } catch (e) {
-      console.warn("[playerTrackingService] save failed", e);
+      console.warn("[playerTrackingService] localStorage save failed", e);
+    }
+    // 2. Supabase (async, best-effort — no bloquea UI)
+    this._persistToSupabase(trimmed).catch((e) =>
+      console.warn("[playerTrackingService] Supabase save failed (non-blocking)", e),
+    );
+  },
+
+  /** Fire-and-forget persistence to Supabase via /api/tracking/save */
+  async _persistToSupabase(snapshot: TrackingSnapshot): Promise<void> {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/tracking/save", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId: snapshot.playerId,
+          videoId: snapshot.videoId,
+          targetTrackId: snapshot.focusTrackId,
+          durationMs: Math.round(snapshot.durationSec * 1000),
+          metrics: snapshot.sessionMetrics,
+          scanEvents: snapshot.scanEvents,
+          duelEvents: snapshot.duelEvents,
+          calibrationPreset: "full_corners",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text().catch(() => "unknown");
+        console.warn("[playerTrackingService] Supabase returned", res.status, err);
+      }
+    } catch {
+      // Network error — ignore, localStorage has the data
     }
   },
 

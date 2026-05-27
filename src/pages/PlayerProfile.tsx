@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService, TrackingService } from "@/services/real/advancedMetricsService";
+import { VideoAdvancedMetricsService, labSnapshotToObservationPacket } from "@/services/real/videoAdvancedMetricsService";
 import { useMatchEvents, useLogMatchEvent } from "@/hooks/useMatchEvents";
 import { EVENT_TYPES, EVENT_ZONES, type EventType, type EventZone } from "@/services/real/matchEventsService";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -186,8 +187,16 @@ const PlayerProfile = () => {
   // ─── Métricas avanzadas — feeds real tracking + biomechanics from snapshot ──
   const advancedMetrics = useMemo(() => {
     if (!rawPlayer) return null;
+    const playerArg = rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0];
 
-    // Build trackingInput from saved YOLO positions (if available)
+    // Full pipeline: if snapshot has tactical events, use VideoObservationPacket bridge
+    // This gives us real VAEP (from events), Tracking (from positions), and Biomechanics (from MediaPipe)
+    if (trackingSnapshot?.tacticalEvents?.length) {
+      const packet = labSnapshotToObservationPacket(trackingSnapshot);
+      return VideoAdvancedMetricsService.calculate(playerArg, packet);
+    }
+
+    // Fallback: partial data from positions only (no VAEP, basic tracking)
     const trackingInput = trackingSnapshot?.focusPositions?.length
       ? TrackingService.fromYoloPositions(
           trackingSnapshot.focusPositions.map(p => ({ fx: p.fx, fy: p.fy, timestampMs: p.tMs })),
@@ -195,18 +204,18 @@ const PlayerProfile = () => {
         )
       : undefined;
 
-    // Build biomechanicsInput from snapshot sessionMetrics (basic) — full data comes from MediaPipe
-    const biomechanicsInput = trackingSnapshot?.sessionMetrics
-      ? { bilateralAsymmetry: undefined } // Placeholder — real values come from MediaPipe saved in Supabase
-      : undefined;
+    // Build biomechanicsInput from MediaPipe score if available
+    const bio = trackingSnapshot?.biomechanicsScore;
+    const biomechanicsInput = bio
+      ? { bilateralAsymmetry: bio.asymmetryPct, jointAngles: undefined }
+      : trackingSnapshot?.sessionMetrics
+        ? { bilateralAsymmetry: undefined }
+        : undefined;
 
-    return calculateAdvancedMetrics(
-      rawPlayer as Parameters<typeof calculateAdvancedMetrics>[0],
-      {
-        trackingInput,
-        biomechanicsInput,
-      },
-    );
+    return calculateAdvancedMetrics(playerArg, {
+      trackingInput,
+      biomechanicsInput,
+    });
   }, [rawPlayer, trackingSnapshot]);
 
   // ─── Estados ───────────────────────────────────────────────────────────────
