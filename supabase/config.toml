@@ -3,12 +3,9 @@
 # Used by `supabase db push`, `supabase db reset`, `supabase start`
 # ═══════════════════════════════════════════════════════════════════════════════
 
-[project]
-id = "vitas-football"
-
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
 [db.pooler]
 enabled = false
