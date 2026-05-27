@@ -152,14 +152,14 @@ export default function LiveMatchPage() {
         <div className="px-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ScoreButton
-              label="L"
+              label={match?.team_name ? match.team_name.slice(0, 3).toUpperCase() : "LOC"}
               value={match?.score_home ?? 0}
               onChange={(v) => updateMatchStatus({ scoreHome: v })}
               disabled={isFinished}
             />
             <span className="text-muted-foreground">−</span>
             <ScoreButton
-              label="V"
+              label={match?.opponent_name ? match.opponent_name.slice(0, 3).toUpperCase() : "VIS"}
               value={match?.score_away ?? 0}
               onChange={(v) => updateMatchStatus({ scoreAway: v })}
               disabled={isFinished}
@@ -399,7 +399,7 @@ function ScoreButton({
 }: { label: string; value: number; onChange: (v: number) => void; disabled?: boolean }) {
   return (
     <div className="flex items-center gap-1">
-      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">{label}</span>
+      <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold min-w-[20px]">{label}</span>
       <button
         onClick={() => onChange(Math.max(0, value - 1))}
         disabled={disabled}

@@ -44,6 +44,7 @@ export default function LiveHubPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [teamName, setTeamName] = useState("");
   const [opponentName, setOpponentName] = useState("");
 
   useEffect(() => {
@@ -67,7 +68,10 @@ export default function LiveHubPage() {
     if (creating) return;
     setCreating(true);
     try {
-      const id = await createLiveMatch({ opponentName: opponentName.trim() || undefined });
+      const id = await createLiveMatch({
+        teamName: teamName.trim() || undefined,
+        opponentName: opponentName.trim() || undefined,
+      });
       if (!id) throw new Error("No se pudo crear");
       toast.success("⚽ Partido iniciado");
       navigate(`/live/${id}`);
@@ -144,18 +148,33 @@ export default function LiveHubPage() {
                 Cancelar
               </button>
             </div>
-            <div>
-              <label className="block text-[10px] font-display text-muted-foreground uppercase tracking-wider mb-1">
-                Rival (opcional)
-              </label>
-              <input
-                type="text"
-                value={opponentName}
-                onChange={(e) => setOpponentName(e.target.value)}
-                placeholder="ej. CD Rival U13"
-                className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:outline-none"
-                maxLength={80}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-display text-primary uppercase tracking-wider mb-1 font-bold">
+                  🏠 Local
+                </label>
+                <input
+                  type="text"
+                  value={teamName}
+                  onChange={(e) => setTeamName(e.target.value)}
+                  placeholder="ej. VITAS Academy U13"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-primary/30 text-sm focus:border-primary focus:outline-none"
+                  maxLength={80}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-display text-muted-foreground uppercase tracking-wider mb-1 font-bold">
+                  ✈ Rival
+                </label>
+                <input
+                  type="text"
+                  value={opponentName}
+                  onChange={(e) => setOpponentName(e.target.value)}
+                  placeholder="ej. CD Rival U13"
+                  className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:outline-none"
+                  maxLength={80}
+                />
+              </div>
             </div>
             <button
               onClick={handleCreate}
