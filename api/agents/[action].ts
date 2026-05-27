@@ -1,6 +1,7 @@
 /**
  * VITAS · Agents Router
- * Consolidates 7 Edge agent endpoints into one Vercel function.
+ * Consolidates Edge agent endpoints into one Vercel function.
+ * Includes report agents needed by pipeline-orchestrator.
  */
 import { errorResponse } from "../_lib/apiResponse";
 
@@ -12,6 +13,16 @@ import tacticalLabel from "./_tactical-label";
 import teamIntelligence from "./_team-intelligence";
 import invalidateCache from "./_invalidate-cache";
 import pipelineOrchestrator from "./_pipeline-orchestrator";
+// Report agents (called by pipeline-orchestrator for 6 parallel reports)
+import playerReport from "./_player-report";
+import labBiomechanicsReport from "./_lab-biomechanics-report";
+import dnaProfile from "./_dna-profile";
+import bestMatchNarrator from "./_best-match-narrator";
+import projectionReport from "./_projection-report";
+import developmentPlan from "./_development-plan";
+// Supporting agents
+import vsiCalculator from "./_vsi-calculator";
+import scanDetector from "./_scan-detector";
 
 export const config = { runtime: "edge" };
 
@@ -24,6 +35,16 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "team-intelligence": teamIntelligence,
   "invalidate-cache": invalidateCache,
   "pipeline-orchestrator": pipelineOrchestrator,
+  // Report agents
+  "player-report": playerReport,
+  "lab-biomechanics-report": labBiomechanicsReport,
+  "dna-profile": dnaProfile,
+  "best-match-narrator": bestMatchNarrator,
+  "projection-report": projectionReport,
+  "development-plan": developmentPlan,
+  // Supporting
+  "vsi-calculator": vsiCalculator,
+  "scan-detector": scanDetector,
 };
 
 export default async function handler(req: Request): Promise<Response> {
