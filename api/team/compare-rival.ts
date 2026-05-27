@@ -2,7 +2,8 @@
  * VITAS · Compare to Rival (Sprint B3 · día 3-5)
  * POST /api/team/compare-rival
  *
- * Compara TU equipo contra un rival descrito por el coach (sin vídeo).
+ * Compara TU equipo contra un rival descrito por el coach.
+ * Opcionalmente acepta video-análisis de Gemini para enriquecer el plan.
  * Claude analiza la asimetría de fortalezas/debilidades y genera plan
  * de partido + drills específicos para entrenar la semana previa.
  *
@@ -15,6 +16,7 @@
  *     rivalWeaknesses?: string[],  // hasta 3
  *     rivalKeyPlayers?: Array<{ name: string; position: string; threat: string }>,
  *     matchContext?: string,       // local/visitante, eliminatoria, etc.
+ *     rivalVideoAnalysis?: object, // Gemini video observation (Sprint 3)
  *   }
  *
  * Returns: { plan: { tactical, key_matchups, exploitable, vulnerabilities, drills } }
@@ -52,6 +54,7 @@ const bodySchema = z.object({
     .max(5)
     .optional(),
   matchContext: z.string().max(200).optional(),
+  rivalVideoAnalysis: z.record(z.unknown()).optional(),
 });
 
 const SYSTEM_PROMPT = `Eres el motor Compare-to-Rival VITAS. Comparas DOS equipos juveniles
@@ -124,6 +127,48 @@ interface PlayerSummary {
   phv_category: string | null;
 }
 
+function buildVideoSection(video: Record<string, unknown>): string {
+  const lines: string[] = ["\n─── ANÁLISIS DE VÍDEO RIVAL (Gemini) ───"];
+
+  const resumen = video.resumenGeneral as string | undefined;
+  if (resumen) lines.push(`Resumen: ${resumen}`);
+
+  const patrones = video.patronesJuego as string[] | undefined;
+  if (patrones?.length) {
+    lines.push("Patrones de juego observados:");
+    patrones.forEach((p) => lines.push(`  • ${p}`));
+  }
+
+  const dims = video.dimensiones as Record<string, { observaciones?: string[]; score_estimado?: number }> | undefined;
+  if (dims) {
+    lines.push("Dimensiones evaluadas:");
+    for (const [key, val] of Object.entries(dims)) {
+      if (val?.score_estimado != null) {
+        lines.push(`  ${key}: ${val.score_estimado}/10`);
+        val.observaciones?.slice(0, 2).forEach((o) => lines.push(`    - ${o}`));
+      }
+    }
+  }
+
+  const destacados = video.momentosDestacados as Array<{ timestamp?: string; tipo?: string; descripcion?: string }> | undefined;
+  if (destacados?.length) {
+    lines.push("Momentos destacados:");
+    destacados.slice(0, 5).forEach((m) =>
+      lines.push(`  [${m.timestamp ?? "?"}] ${m.tipo ?? ""}: ${m.descripcion ?? ""}`)
+    );
+  }
+
+  const eventos = video.eventosContados as Record<string, number> | undefined;
+  if (eventos && Object.keys(eventos).length > 0) {
+    lines.push("Eventos contados:");
+    for (const [k, v] of Object.entries(eventos)) {
+      if (v > 0) lines.push(`  ${k}: ${v}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 function buildContext(
   ours: PlayerSummary[],
   ourTeamName: string,
@@ -161,8 +206,14 @@ ${rival.rivalStrengths?.length ? `\nFortalezas conocidas:\n${rival.rivalStrength
 ${rival.rivalWeaknesses?.length ? `\nDebilidades conocidas:\n${rival.rivalWeaknesses.map((w) => `  - ${w}`).join("\n")}` : ""}
 ${rival.rivalKeyPlayers?.length ? `\nJugadores clave:\n${rival.rivalKeyPlayers.map((k) => `  - ${k.name} (${k.position}): ${k.threat}`).join("\n")}` : ""}
 
-LIMITACIÓN: Análisis SIN VÍDEO del rival · basado en lo que reporta
-el coach. Genera plan accionable y honesto sobre incertidumbre.`;
+${rival.rivalVideoAnalysis
+    ? `${buildVideoSection(rival.rivalVideoAnalysis as Record<string, unknown>)}
+
+VENTAJA: Análisis CON VÍDEO del rival via Gemini · usa las observaciones
+de vídeo para hacer el plan más preciso. Prioriza evidencia del vídeo
+sobre las notas del coach cuando haya contradicción.`
+    : `LIMITACIÓN: Análisis SIN VÍDEO del rival · basado en lo que reporta
+el coach. Genera plan accionable y honesto sobre incertidumbre.`}`;
 }
 
 async function callClaude(system: string, user: string): Promise<Record<string, unknown>> {

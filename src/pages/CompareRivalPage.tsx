@@ -12,14 +12,25 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Swords, Sparkles, Loader2, AlertCircle, Plus, X,
   Target, Shield, Zap, Calendar, ListChecks, AlertTriangle,
+  Video, FileText, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import VideoUpload from "@/components/VideoUpload";
+
+type AnalysisMode = "text" | "video";
 
 interface KeyPlayer {
   name: string;
   position: string;
   threat: string;
+}
+
+interface RivalVideoAnalysis {
+  resumenGeneral: string;
+  patronesJuego: string[];
+  dimensiones: Record<string, { observaciones: string[]; score_estimado: number }>;
+  eventosContados: Record<string, number>;
 }
 
 interface PlanResponse {
@@ -46,6 +57,7 @@ interface PlanResponse {
 
 export default function CompareRivalPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<AnalysisMode>("text");
   const [rivalName, setRivalName] = useState("");
   const [rivalFormation, setRivalFormation] = useState("");
   const [rivalNotes, setRivalNotes] = useState("");
@@ -57,8 +69,49 @@ export default function CompareRivalPage() {
   const [result, setResult] = useState<PlanResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function updateList(list: string[], i: number, value: string): string[] {
-    const next = [...list]; next[i] = value; return next;
+  // Video mode state
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [analyzingVideo, setAnalyzingVideo] = useState(false);
+  const [videoAnalysis, setVideoAnalysis] = useState<RivalVideoAnalysis | null>(null);
+
+  async function handleVideoAnalysis(url: string) {
+    setVideoUrl(url);
+    setAnalyzingVideo(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/agents/video-observation", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: url,
+          playerContext: {
+            name: rivalName || "Equipo rival",
+            age: 13,
+            position: "MID",
+            competitiveLevel: "formativo",
+          },
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? "Error analizando video");
+
+      const obs = json.data?.observations as RivalVideoAnalysis;
+      setVideoAnalysis(obs);
+
+      // Auto-fill form from Gemini observations
+      if (obs.patronesJuego?.length) {
+        setStrengths(obs.patronesJuego.slice(0, 3));
+      }
+      if (obs.resumenGeneral) {
+        setRivalNotes((prev) => prev ? `${prev}\n\n[Gemini] ${obs.resumenGeneral}` : obs.resumenGeneral);
+      }
+      toast.success("Video analizado — datos del rival extraídos");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error analizando video");
+      setVideoAnalysis(null);
+    } finally {
+      setAnalyzingVideo(false);
+    }
   }
 
   async function handleGenerate() {
@@ -81,6 +134,8 @@ export default function CompareRivalPage() {
           rivalWeaknesses: weaknesses.map((s) => s.trim()).filter(Boolean),
           rivalKeyPlayers: keyPlayers.filter((k) => k.name.trim()),
           matchContext: matchContext.trim() || undefined,
+          // Video analysis enrichment
+          rivalVideoAnalysis: videoAnalysis ?? undefined,
         }),
       });
       const json = await res.json();
@@ -88,7 +143,7 @@ export default function CompareRivalPage() {
         throw new Error(json?.error?.message ?? "Error generando plan");
       }
       setResult(json.data as PlanResponse);
-      toast.success("✓ Plan de partido generado");
+      toast.success("Plan de partido generado");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Error";
       setError(msg);
@@ -115,7 +170,7 @@ export default function CompareRivalPage() {
               Plan vs Rival
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Compare-to-rival · sin vídeo · genera plan de partido + drills
+              {mode === "video" ? "Video + IA · análisis táctico con evidencia visual" : "Modo texto · genera plan de partido + drills"}
             </p>
           </div>
           <Swords size={18} className="text-electric" />
@@ -123,6 +178,74 @@ export default function CompareRivalPage() {
       </div>
 
       <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+        {/* Mode toggle */}
+        <div className="flex rounded-xl bg-secondary/50 p-1 gap-1">
+          <button
+            onClick={() => setMode("text")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-display font-bold transition-colors ${
+              mode === "text" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <FileText size={13} /> Modo Texto
+          </button>
+          <button
+            onClick={() => setMode("video")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-display font-bold transition-colors ${
+              mode === "video" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Video size={13} /> Modo Video
+            <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+              PRO
+            </span>
+          </button>
+        </div>
+
+        {/* Video upload section */}
+        {mode === "video" && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
+            {!videoAnalysis ? (
+              <div className="glass rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Video size={14} className="text-primary" />
+                  <span className="text-xs font-display font-bold text-foreground">Video del rival</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Sube un clip del rival (5-15 min). Gemini analizará formación, estilo, patrones y debilidades.
+                </p>
+                {analyzingVideo ? (
+                  <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                    <Loader2 size={16} className="animate-spin text-primary" />
+                    <span className="font-display">Gemini analizando video del rival...</span>
+                  </div>
+                ) : (
+                  <VideoUpload
+                    onUploadComplete={(_, cdnUrl) => {
+                      if (cdnUrl) handleVideoAnalysis(cdnUrl);
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="glass rounded-2xl p-4 border border-green-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle2 size={14} className="text-green-500" />
+                  <span className="text-xs font-display font-bold text-green-500">Video analizado</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  {videoAnalysis.resumenGeneral?.slice(0, 200)}...
+                </p>
+                <button
+                  onClick={() => { setVideoAnalysis(null); setVideoUrl(null); }}
+                  className="mt-2 text-[10px] text-muted-foreground hover:text-foreground"
+                >
+                  Cambiar video
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Form */}
         <div className="glass rounded-2xl p-4 space-y-3">
           <Field
@@ -188,17 +311,19 @@ export default function CompareRivalPage() {
 
           <button
             onClick={handleGenerate}
-            disabled={generating || !rivalName.trim()}
+            disabled={generating || !rivalName.trim() || (mode === "video" && analyzingVideo)}
             className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {generating ? (
               <><Loader2 size={14} className="animate-spin" /> Claude analizando…</>
             ) : (
-              <><Sparkles size={14} /> Generar plan vs {rivalName || "rival"}</>
+              <><Sparkles size={14} /> Generar plan vs {rivalName || "rival"}{videoAnalysis ? " (con video)" : ""}</>
             )}
           </button>
           <p className="text-[10px] text-muted-foreground text-center">
-            ~10s · 1 call Claude Sonnet · ~€0.05 por análisis
+            {videoAnalysis
+              ? "Video + Claude Sonnet · plan táctico con evidencia visual"
+              : "~10s · 1 call Claude Sonnet · ~€0.05 por análisis"}
           </p>
         </div>
       </div>
