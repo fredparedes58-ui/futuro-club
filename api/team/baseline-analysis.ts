@@ -32,6 +32,7 @@ const PIPELINE_VERSION = "team-baseline-v1.0";
 const bodySchema = z.object({
   playerIds: z.array(z.string()).optional(),
   teamName: z.string().max(80).optional(),
+  videoObservation: z.record(z.unknown()).optional(),
 });
 
 interface PlayerSummary {
@@ -81,7 +82,49 @@ async function callClaude(opts: {
   catch { return { _raw: raw, _parseError: true }; }
 }
 
-function teamProfileBlock(players: PlayerSummary[], teamName: string): string {
+function buildVideoSection(video: Record<string, unknown>): string {
+  const lines: string[] = ["\n─── ANÁLISIS DE VÍDEO DEL EQUIPO (Gemini) ───"];
+
+  const resumen = video.resumenGeneral as string | undefined;
+  if (resumen) lines.push(`Resumen: ${resumen}`);
+
+  const patrones = video.patronesJuego as string[] | undefined;
+  if (patrones?.length) {
+    lines.push("Patrones de juego observados:");
+    patrones.forEach((p) => lines.push(`  • ${p}`));
+  }
+
+  const dims = video.dimensiones as Record<string, { observaciones?: string[]; score_estimado?: number }> | undefined;
+  if (dims) {
+    lines.push("Dimensiones evaluadas:");
+    for (const [key, val] of Object.entries(dims)) {
+      if (val?.score_estimado != null) {
+        lines.push(`  ${key}: ${val.score_estimado}/10`);
+        val.observaciones?.slice(0, 2).forEach((o) => lines.push(`    - ${o}`));
+      }
+    }
+  }
+
+  const destacados = video.momentosDestacados as Array<{ timestamp?: string; tipo?: string; descripcion?: string }> | undefined;
+  if (destacados?.length) {
+    lines.push("Momentos destacados:");
+    destacados.slice(0, 5).forEach((m) =>
+      lines.push(`  [${m.timestamp ?? "?"}] ${m.tipo ?? ""}: ${m.descripcion ?? ""}`)
+    );
+  }
+
+  const eventos = video.eventosContados as Record<string, number> | undefined;
+  if (eventos && Object.keys(eventos).length > 0) {
+    lines.push("Eventos contados:");
+    for (const [k, v] of Object.entries(eventos)) {
+      if (v > 0) lines.push(`  ${k}: ${v}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function teamProfileBlock(players: PlayerSummary[], teamName: string, videoObservation?: Record<string, unknown>): string {
   const n = players.length;
   const ages = players.map((p) => p.age ?? 0).filter((a) => a > 0);
   const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : "?";
@@ -140,9 +183,15 @@ ${players
   .map((p, i) => `${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${Number(p.vsi || 0).toFixed(0)}, PHV ${p.phv_category ?? "?"})`)
   .join("\n")}
 
-LIMITACIÓN: Análisis baseline SIN VÍDEO. No hay datos de partido, posesión,
+${videoObservation
+    ? `${buildVideoSection(videoObservation)}
+
+VENTAJA: Análisis baseline CON VÍDEO via Gemini. Usa las observaciones
+del vídeo para enriquecer los reportes con evidencia visual real.
+Prioriza datos del vídeo sobre estimaciones genéricas.`
+    : `LIMITACIÓN: Análisis baseline SIN VÍDEO. No hay datos de partido, posesión,
 PPDA, ni eventos de juego real. Basa el reporte en el perfil agregado del
-equipo y la distribución PHV. Sé honesto sobre las limitaciones.`;
+equipo y la distribución PHV. Sé honesto sobre las limitaciones.`}`;
 }
 
 const TEAM_PROMPTS = {
@@ -277,7 +326,7 @@ export default withHandler(
     };
 
     const teamName = input.teamName ?? "Mi equipo";
-    const userMessage = teamProfileBlock(players as PlayerSummary[], teamName);
+    const userMessage = teamProfileBlock(players as PlayerSummary[], teamName, input.videoObservation as Record<string, unknown> | undefined);
 
     // ── 2. Generar 4 reportes Claude en paralelo ───────────────────
     const reportPromises = (Object.keys(TEAM_PROMPTS) as ReportType[]).map(async (type) => {

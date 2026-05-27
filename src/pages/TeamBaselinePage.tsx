@@ -2,10 +2,12 @@
  * VITAS · Team Baseline Analysis Page
  * /equipo/baseline
  *
- * Genera y visualiza el informe táctico del equipo SIN vídeo,
- * usando solo los datos de los jugadores en plantilla.
+ * Genera y visualiza el informe táctico del equipo.
+ * Modo texto: solo datos de plantilla.
+ * Modo vídeo (PRO): el coach sube vídeo del equipo → Gemini analiza
+ * patrones, transiciones, pressing, y enriquece los 4 reportes.
  *
- * Llama POST /api/team/baseline-analysis y muestra los 4 reportes
+ * Llama POST /api/team/baseline-analysis y muestra los reportes
  * en grid · cada uno expandible.
  */
 
@@ -14,10 +16,13 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Sparkles, Loader2, Users, Brain, Swords, Activity, Target,
-  AlertCircle, ChevronDown, ChevronUp, Grid3x3,
+  AlertCircle, ChevronDown, ChevronUp, Grid3x3, Video, FileText, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import VideoUpload from "@/components/VideoUpload";
+
+type AnalysisMode = "text" | "video";
 
 interface TeamBaselineResponse {
   teamName: string;
@@ -39,10 +44,48 @@ const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; c
 
 export default function TeamBaselinePage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<AnalysisMode>("text");
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState<TeamBaselineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Video mode state
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [analyzingVideo, setAnalyzingVideo] = useState(false);
+  const [videoAnalysis, setVideoAnalysis] = useState<Record<string, unknown> | null>(null);
+
+  async function handleVideoAnalysis(url: string) {
+    setVideoUrl(url);
+    setAnalyzingVideo(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/agents/video-observation", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoUrl: url,
+          playerContext: {
+            name: "Equipo propio",
+            age: 13,
+            position: "MID",
+            competitiveLevel: "formativo",
+          },
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? "Error analizando video");
+
+      const obs = json.data?.observations as Record<string, unknown>;
+      setVideoAnalysis(obs);
+      toast.success("Video analizado — observaciones extraídas");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Error analizando video");
+      setVideoAnalysis(null);
+    } finally {
+      setAnalyzingVideo(false);
+    }
+  }
 
   async function handleGenerate() {
     if (generating) return;
@@ -53,7 +96,10 @@ export default function TeamBaselinePage() {
       const res = await fetch("/api/team/baseline-analysis", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ teamName: "Mi equipo" }),
+        body: JSON.stringify({
+          teamName: "Mi equipo",
+          videoObservation: videoAnalysis ?? undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -83,7 +129,7 @@ export default function TeamBaselinePage() {
               Análisis de equipo · baseline
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Sin vídeo · usa el perfil agregado de plantilla
+              {mode === "video" ? "Con vídeo · análisis enriquecido" : "Sin vídeo · perfil agregado de plantilla"}
             </p>
           </div>
           <Users size={18} className="text-primary" />
@@ -91,6 +137,33 @@ export default function TeamBaselinePage() {
       </div>
 
       <div className="px-4 py-4 max-w-3xl mx-auto space-y-4">
+        {/* Mode toggle */}
+        {!data && !generating && (
+          <div className="flex gap-2 p-1 bg-secondary/30 rounded-lg">
+            <button
+              onClick={() => setMode("text")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-display font-bold transition-all ${
+                mode === "text"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <FileText size={12} /> Modo Texto
+            </button>
+            <button
+              onClick={() => setMode("video")}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-display font-bold transition-all ${
+                mode === "video"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Video size={12} /> Modo Video
+              <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">PRO</span>
+            </button>
+          </div>
+        )}
+
         {!data && !generating && (
           <div className="glass rounded-2xl p-6 text-center space-y-3">
             <Brain size={32} className="mx-auto text-primary/50" />
@@ -98,17 +171,54 @@ export default function TeamBaselinePage() {
               Genera el informe del equipo
             </h2>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              VITAS analiza la plantilla agregada (VSI, PHV, métricas coach) y genera 4 reportes:
-              resumen, perfil táctico, estratificación por maduración biológica y preparación rival.
+              {mode === "video"
+                ? "Sube un vídeo de tu equipo. Gemini analiza patrones, transiciones y pressing. Claude genera reportes enriquecidos con evidencia visual."
+                : "VITAS analiza la plantilla agregada (VSI, PHV, métricas coach) y genera 4 reportes: resumen, perfil táctico, estratificación por maduración biológica y preparación rival."}
             </p>
+
+            {/* Video upload section */}
+            {mode === "video" && (
+              <div className="text-left space-y-3">
+                {!videoAnalysis && !analyzingVideo && (
+                  <VideoUpload
+                    onUploadComplete={(cdnUrl) => {
+                      if (cdnUrl) handleVideoAnalysis(cdnUrl);
+                    }}
+                  />
+                )}
+                {analyzingVideo && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                    <Loader2 size={14} className="animate-spin text-primary" />
+                    <span className="text-xs text-foreground">Gemini analizando vídeo del equipo…</span>
+                  </div>
+                )}
+                {videoAnalysis && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <CheckCircle2 size={14} className="text-green-500" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold text-foreground">Video analizado</span>
+                      {(videoAnalysis as Record<string, unknown>).resumenGeneral && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                          {String((videoAnalysis as Record<string, unknown>).resumenGeneral).slice(0, 200)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={handleGenerate}
+              disabled={mode === "video" && !videoAnalysis && !analyzingVideo ? false : undefined}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
             >
-              <Sparkles size={12} /> Generar análisis (sin vídeo)
+              <Sparkles size={12} /> {mode === "video" ? "Generar análisis (con vídeo)" : "Generar análisis (sin vídeo)"}
             </button>
             <p className="text-[10px] text-muted-foreground">
-              ~12-25s · 4 calls Claude · ~€0.08 por análisis
+              {mode === "video"
+                ? "~30-60s vídeo + ~12-25s reportes · Gemini + 4 calls Claude"
+                : "~12-25s · 4 calls Claude · ~€0.08 por análisis"}
             </p>
           </div>
         )}
