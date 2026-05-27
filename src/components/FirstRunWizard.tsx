@@ -412,7 +412,7 @@ export default function FirstRunWizard() {
                         <Sparkles size={11} className="text-primary" />
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        6 reportes Claude en 25-40s · sin vídeo necesario
+                        6 reportes Claude en 25-40s · sube un vídeo para análisis real
                       </div>
                     </div>
                     <span className="text-primary text-lg">→</span>

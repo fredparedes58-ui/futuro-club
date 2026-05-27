@@ -57,7 +57,7 @@ interface PlanResponse {
 
 export default function CompareRivalPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AnalysisMode>("text");
+  const [mode, setMode] = useState<AnalysisMode>("video");
   const [rivalName, setRivalName] = useState("");
   const [rivalFormation, setRivalFormation] = useState("");
   const [rivalNotes, setRivalNotes] = useState("");
@@ -170,7 +170,7 @@ export default function CompareRivalPage() {
               Plan vs Rival
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              {mode === "video" ? "Video + IA · análisis táctico con evidencia visual" : "Modo texto · genera plan de partido + drills"}
+              Video + IA · análisis táctico con evidencia visual
             </p>
           </div>
           <Swords size={18} className="text-electric" />
@@ -178,31 +178,8 @@ export default function CompareRivalPage() {
       </div>
 
       <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
-        {/* Mode toggle */}
-        <div className="flex rounded-xl bg-secondary/50 p-1 gap-1">
-          <button
-            onClick={() => setMode("text")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-display font-bold transition-colors ${
-              mode === "text" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <FileText size={13} /> Modo Texto
-          </button>
-          <button
-            onClick={() => setMode("video")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-display font-bold transition-colors ${
-              mode === "video" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Video size={13} /> Modo Video
-            <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-              PRO
-            </span>
-          </button>
-        </div>
-
         {/* Video upload section */}
-        {mode === "video" && (
+        {(
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
             {!videoAnalysis ? (
               <div className="glass rounded-2xl p-4 space-y-3">

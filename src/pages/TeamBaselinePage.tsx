@@ -44,7 +44,7 @@ const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; c
 
 export default function TeamBaselinePage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<AnalysisMode>("text");
+  const [mode, setMode] = useState<AnalysisMode>("video");
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState<TeamBaselineResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +129,7 @@ export default function TeamBaselinePage() {
               Análisis de equipo · baseline
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              {mode === "video" ? "Con vídeo · análisis enriquecido" : "Sin vídeo · perfil agregado de plantilla"}
+              Con vídeo · análisis enriquecido con Gemini + Claude
             </p>
           </div>
           <Users size={18} className="text-primary" />
@@ -137,33 +137,6 @@ export default function TeamBaselinePage() {
       </div>
 
       <div className="px-4 py-4 max-w-3xl mx-auto space-y-4">
-        {/* Mode toggle */}
-        {!data && !generating && (
-          <div className="flex gap-2 p-1 bg-secondary/30 rounded-lg">
-            <button
-              onClick={() => setMode("text")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-display font-bold transition-all ${
-                mode === "text"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <FileText size={12} /> Modo Texto
-            </button>
-            <button
-              onClick={() => setMode("video")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-display font-bold transition-all ${
-                mode === "video"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Video size={12} /> Modo Video
-              <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">PRO</span>
-            </button>
-          </div>
-        )}
-
         {!data && !generating && (
           <div className="glass rounded-2xl p-6 text-center space-y-3">
             <Brain size={32} className="mx-auto text-primary/50" />
@@ -171,54 +144,48 @@ export default function TeamBaselinePage() {
               Genera el informe del equipo
             </h2>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              {mode === "video"
-                ? "Sube un vídeo de tu equipo. Gemini analiza patrones, transiciones y pressing. Claude genera reportes enriquecidos con evidencia visual."
-                : "VITAS analiza la plantilla agregada (VSI, PHV, métricas coach) y genera 4 reportes: resumen, perfil táctico, estratificación por maduración biológica y preparación rival."}
+              Sube un vídeo de tu equipo. Gemini analiza patrones, transiciones y pressing. Claude genera reportes enriquecidos con evidencia visual.
             </p>
 
             {/* Video upload section */}
-            {mode === "video" && (
-              <div className="text-left space-y-3">
-                {!videoAnalysis && !analyzingVideo && (
-                  <VideoUpload
-                    onUploadComplete={(cdnUrl) => {
-                      if (cdnUrl) handleVideoAnalysis(cdnUrl);
-                    }}
-                  />
-                )}
-                {analyzingVideo && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
-                    <Loader2 size={14} className="animate-spin text-primary" />
-                    <span className="text-xs text-foreground">Gemini analizando vídeo del equipo…</span>
+            <div className="text-left space-y-3">
+              {!videoAnalysis && !analyzingVideo && (
+                <VideoUpload
+                  onUploadComplete={(cdnUrl) => {
+                    if (cdnUrl) handleVideoAnalysis(cdnUrl);
+                  }}
+                />
+              )}
+              {analyzingVideo && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
+                  <Loader2 size={14} className="animate-spin text-primary" />
+                  <span className="text-xs text-foreground">Gemini analizando vídeo del equipo…</span>
+                </div>
+              )}
+              {videoAnalysis && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                  <CheckCircle2 size={14} className="text-green-500" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-foreground">Video analizado</span>
+                    {(videoAnalysis as Record<string, unknown>).resumenGeneral && (
+                      <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                        {String((videoAnalysis as Record<string, unknown>).resumenGeneral).slice(0, 200)}
+                      </p>
+                    )}
                   </div>
-                )}
-                {videoAnalysis && (
-                  <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                    <CheckCircle2 size={14} className="text-green-500" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-bold text-foreground">Video analizado</span>
-                      {(videoAnalysis as Record<string, unknown>).resumenGeneral && (
-                        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
-                          {String((videoAnalysis as Record<string, unknown>).resumenGeneral).slice(0, 200)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={handleGenerate}
-              disabled={mode === "video" && !videoAnalysis && !analyzingVideo ? false : undefined}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
+              disabled={!videoAnalysis}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              <Sparkles size={12} /> {mode === "video" ? "Generar análisis (con vídeo)" : "Generar análisis (sin vídeo)"}
+              <Sparkles size={12} /> Generar análisis
             </button>
             <p className="text-[10px] text-muted-foreground">
-              {mode === "video"
-                ? "~30-60s vídeo + ~12-25s reportes · Gemini + 4 calls Claude"
-                : "~12-25s · 4 calls Claude · ~€0.08 por análisis"}
+              ~30-60s vídeo + ~12-25s reportes · Gemini + 4 calls Claude
             </p>
           </div>
         )}

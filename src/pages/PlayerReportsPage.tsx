@@ -308,47 +308,36 @@ export default function PlayerReportsPage() {
             <div className="space-y-1">
               <h3 className="text-sm font-display font-bold text-foreground">Sin reportes todavía</h3>
               <p className="text-xs text-muted-foreground">
-                Genera el primer informe usando el perfil del jugador o subiendo un vídeo.
+                Sube un vídeo del jugador para generar los 6 reportes IA con análisis biomecánico real.
               </p>
             </div>
             <div className="space-y-2">
               <button
-                onClick={handleGenerateBaseline}
-                disabled={generating}
-                className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold disabled:opacity-50 hover:bg-primary/90 transition-colors"
+                onClick={() => navigate(`/lab?playerId=${id}`)}
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
               >
-                {generating ? (
-                  <><Loader2 size={12} className="animate-spin" /> Generando 6 reportes…</>
-                ) : (
-                  <><Sparkles size={12} /> Generar baseline (sin vídeo)</>
-                )}
+                <Video size={12} /> Subir vídeo en VITAS.LAB
               </button>
               <button
-                onClick={() => navigate(`/lab?playerId=${id}`)}
-                disabled={generating}
-                className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-border text-xs font-display disabled:opacity-50 hover:border-foreground/30 transition-colors"
+                onClick={() => navigate("/live")}
+                className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-border text-xs font-display hover:border-foreground/30 transition-colors"
               >
-                <Zap size={12} /> Subir vídeo en VitasLab
+                <Zap size={12} /> Match-day Live con vídeo
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
-              El baseline usa las métricas del coach + PHV. Para análisis biomecánico real, sube un vídeo.
+              VITAS genera informes basados en vídeo real — análisis biomecánico, táctico y de rendimiento con IA.
             </p>
           </div>
         )}
 
-        {/* Generate baseline button (when reports already exist) */}
+        {/* New report button (when reports already exist) */}
         {!isLoading && total > 0 && (
           <button
-            onClick={handleGenerateBaseline}
-            disabled={generating}
-            className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-dashed border-border text-[11px] font-display disabled:opacity-50 hover:border-primary/50 transition-colors"
+            onClick={() => navigate(`/lab?playerId=${id}`)}
+            className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-dashed border-border text-[11px] font-display hover:border-primary/50 transition-colors"
           >
-            {generating ? (
-              <><Loader2 size={12} className="animate-spin" /> Generando…</>
-            ) : (
-              <><Sparkles size={12} /> Nuevo reporte baseline</>
-            )}
+            <Video size={12} /> Nuevo reporte · Subir vídeo en VITAS.LAB
           </button>
         )}
 

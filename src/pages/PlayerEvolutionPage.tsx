@@ -480,7 +480,7 @@ export default function PlayerEvolutionPage() {
             title={total === 0 ? "Sin reportes todavía" : "Falta 1 reporte para ver evolución"}
             description={
               total === 0
-                ? "Genera el primer informe baseline (sin vídeo) o sube un partido en VITAS.LAB."
+                ? "Sube un vídeo en VITAS.LAB o graba un partido en Match-day Live para generar el primer informe."
                 : "Con 2 reportes podemos calcular delta, slope y momentum. Genera otro para desbloquear la curva."
             }
             primary={{
