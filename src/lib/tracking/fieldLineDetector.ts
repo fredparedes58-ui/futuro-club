@@ -619,3 +619,48 @@ export function drawDetectedLines(
     }
   }
 }
+
+/* ── Video-specific convenience functions (Sprint 0 — UX 1-Click) ── */
+
+/**
+ * Detect field lines from a video element by capturing a frame at 20% playback.
+ * Convenience wrapper for the 1-Click analysis pipeline.
+ *
+ * @param video - HTMLVideoElement (must have readyState >= 2)
+ * @param config - Optional detector config overrides
+ * @returns FieldDetectionResult or null if capture fails
+ */
+export async function detectFieldLinesFromVideo(
+  video: HTMLVideoElement,
+  config?: Partial<FieldDetectorConfig>,
+): Promise<FieldDetectionResult | null> {
+  if (!video || video.readyState < 2) return null;
+
+  try {
+    // Seek to 20% of video duration for a representative frame
+    const targetTime = (video.duration || 0) * 0.2;
+    if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.5) {
+      video.currentTime = targetTime;
+      await new Promise<void>((resolve) => {
+        const onSeeked = () => { video.removeEventListener("seeked", onSeeked); resolve(); };
+        video.addEventListener("seeked", onSeeked);
+        setTimeout(resolve, 2000);
+      });
+    }
+
+    // Capture frame
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.drawImage(video, 0, 0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    return await detectFieldLines(imageData, config);
+  } catch (err) {
+    console.warn("[fieldLineDetector] detectFieldLinesFromVideo failed:", err);
+    return null;
+  }
+}

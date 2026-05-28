@@ -62,6 +62,8 @@ import { useQuery } from "@tanstack/react-query";
 import { usePlayerAnalysisV2, type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
 import { useFatigue } from "@/hooks/useFatigue";
 import FatiguePanel from "@/components/FatiguePanel";
+import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
+import VitasLabOneClick from "@/components/VitasLabOneClick";
 
 interface CalibrationPoint {
   id: number;
@@ -272,6 +274,47 @@ const VitasLab = () => {
   const fatigue = useFatigue({
     playerId: selectedPlayerId ?? "",
     phvOffset: null, // Will be populated from player data when available
+  });
+
+  // ── One-Click Analysis Orchestrator ──
+  const oneClick = useOneClickAnalysis({
+    onCalibrationComplete: (result) => {
+      // Map auto-calibration corners to calibration points
+      if (result.corners.length >= 4) {
+        setPoints(result.corners.slice(0, 4).map((c, i) => ({
+          id: i + 1,
+          x: c.x,
+          y: c.y,
+          label: `P${i + 1}`,
+        })));
+        toast.success(
+          result.autoDetected
+            ? `Auto-calibración exitosa (${Math.round(result.confidence * 100)}%)`
+            : "Calibración por heurística aplicada",
+          { duration: 3000 },
+        );
+      }
+    },
+    onStartTracking: (videoEl) => {
+      setShowTracking(true);
+      mediaPipe.reset();
+      eventEngineRef.current.reset();
+      setEventSummary(null);
+      setTacticalEvents([]);
+      videoEl.crossOrigin = "anonymous";
+      trackingVideoRef.current = videoEl;
+      tracking.startTracking(videoEl).then(() => {
+        oneClick.advanceStep("tracking");
+      }).catch((err) => {
+        oneClick.markError("Error iniciando tracking: " + err.message);
+      });
+    },
+    onError: (error) => {
+      toast.error("Error en análisis 1-Click", { description: error });
+    },
+    onComplete: () => {
+      toast.success("Análisis 1-Click completado");
+    },
   });
 
   // Historial: análisis completados previos del jugador (tabla analyses)
@@ -1149,55 +1192,53 @@ const VitasLab = () => {
           </motion.div>
         </div>
 
-        {/* Right Sidebar */}
-        <motion.div variants={item} className="hidden lg:flex flex-col w-72 border-l border-border p-5 gap-5 overflow-y-auto max-h-screen">
-
-          {/* Player Selector */}
-          <div>
-            <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              {t("lab.playerToAnalyze")}
-            </span>
-            <div className="relative mt-2">
-              <button
-                onClick={() => setShowPlayerDropdown((v) => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-secondary/50 hover:bg-secondary transition-colors text-left"
-              >
-                <span className={`text-sm font-display font-semibold ${selectedPlayer ? "text-foreground" : "text-muted-foreground"}`}>
-                  {selectedPlayer ? selectedPlayer.name : t("lab.selectPlayer")}
-                </span>
-                <ChevronDown size={14} className="text-muted-foreground" />
-              </button>
-              {showPlayerDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 glass rounded-xl border border-border z-20 max-h-48 overflow-y-auto">
-                  {players.length === 0 && (
-                    <p className="text-xs text-muted-foreground px-3 py-2">{t("lab.noPlayers")}</p>
-                  )}
-                  {players.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setSelectedPlayerId(p.id);
-                        setShowPlayerDropdown(false);
-                        // Auto-rellenar campos del jugador para evitar redundancia
-                        if (p.name) setPlayerName(p.name);
-                        if (p.position) setPlayerPosition(p.position);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-primary/5 transition-colors flex items-center justify-between ${selectedPlayerId === p.id ? "text-primary font-semibold" : "text-foreground"}`}
-                    >
-                      <span>{p.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{p.position}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            {selectedPlayer && (
-              <div className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[10px] font-display text-primary">VSI {selectedPlayer.vsi} · {selectedPlayer.position} · {selectedPlayer.age}a</span>
-              </div>
-            )}
-          </div>
+        {/* Right Sidebar — 1-Click Mode */}
+        <motion.div variants={item} className="hidden lg:flex flex-col w-72 border-l border-border p-5 overflow-y-auto max-h-screen">
+          <VitasLabOneClick
+            players={players.map(p => ({ id: p.id, name: p.name, position: p.position, vsi: p.vsi, age: p.age }))}
+            videos={videos.map(v => ({ id: v.id, title: v.title }))}
+            selectedPlayerId={selectedPlayerId}
+            selectedVideoId={selectedVideoId}
+            oneClickState={oneClick.state}
+            isTracking={tracking.state.status === "tracking" || tracking.state.status === "loading-model"}
+            isIAProcessing={v2.isProcessing}
+            isIAComplete={v2.isCompleted}
+            onSelectPlayer={(id) => {
+              setSelectedPlayerId(id);
+              const p = players.find(pl => pl.id === id);
+              if (p?.name) setPlayerName(p.name);
+              if (p?.position) setPlayerPosition(p.position);
+            }}
+            onSelectVideo={(id) => setSelectedVideoId(id)}
+            onStartAnalysis={() => {
+              if (!selectedVideoId || !selectedPlayerId || !labVideoRef.current) {
+                toast.error("Selecciona jugador y video primero");
+                return;
+              }
+              if (!canRunAnalysis) {
+                const limitLabel = limits.analyses >= 9999 ? "∞" : limits.analyses;
+                toast.error(t("lab.analysisLimitReached", { used: analysesUsed, limit: limitLabel }));
+                return;
+              }
+              setActionLog([]);
+              oneClick.startOneClick(labVideoRef.current);
+            }}
+            onStopTracking={() => {
+              tracking.stopTracking();
+              if (mediaPipe.status === "processing") mediaPipe.stop();
+              setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
+              setTacticalEvents(eventEngineRef.current.getEvents());
+              oneClick.advanceStep("analyzing_biomechanics");
+              // Auto-trigger IA analysis after tracking stops
+              setTimeout(() => {
+                oneClick.advanceStep("running_ia_pipeline");
+                handleStartAnalysis();
+              }, 500);
+            }}
+            onOpenUploadPanel={() => setShowUploadPanel(true)}
+            onViewResults={() => setShowResultsPanel(true)}
+          >
+            {/* ── Advanced Settings (collapsed by default) ── */}
 
           {/* Identificación del jugador — solo visible en modos que NO tienen su propio panel de config */}
           {(selectedMode === "all" || selectedMode === "team") && (
@@ -1586,120 +1627,55 @@ const VitasLab = () => {
             </div>
           )}
 
-          {/* Botones de acción */}
-          <div className="mt-auto space-y-2">
-            {/* START TRACKING — YOLO real */}
-            <button
-              onClick={() => {
-                if (!selectedVideoId) { toast.error("Selecciona un video primero"); return; }
-                if (!labVideoRef.current) { toast.error("Video no cargado"); return; }
-                setShowTracking(true);
-                // Reset MediaPipe + event engine for fresh session
-                mediaPipe.reset();
-                eventEngineRef.current.reset();
-                setEventSummary(null);
-                setTacticalEvents([]);
-                // Use the visible video element for tracking (needed for canvas overlay)
-                const videoEl = labVideoRef.current;
-                videoEl.crossOrigin = "anonymous";
-                trackingVideoRef.current = videoEl;
-                tracking.startTracking(videoEl).catch(err => {
-                  toast.error("Error iniciando tracking: " + err.message);
-                });
-              }}
-              disabled={tracking.state.status === "tracking" || tracking.state.status === "loading-model"}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {tracking.state.status === "loading-model" ? (
-                <><Loader2 size={14} className="animate-spin" /> CARGANDO YOLO {tracking.state.modelProgress}%</>
-              ) : tracking.state.status === "tracking" ? (
-                <><Activity size={14} className="animate-pulse" /> TRACKING ACTIVO</>
-              ) : (
-                <><Activity size={14} /> START TRACKING</>
-              )}
-            </button>
+          {/* Export Data — available after tracking completes (in advanced section) */}
+          {tracking.state.status === "complete" && tracking.state.sessionMetrics && (
+            <div className="flex gap-1.5">
+              {(["csv", "json", "html_report"] as ExportFormat[]).map(fmt => (
+                <button
+                  key={fmt}
+                  onClick={() => {
+                    const focusTrack = tracking.state.focusTrackId
+                      ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
+                      : null;
+                    const exportData: SessionExportData = {
+                      metadata: {
+                        sessionId: `session_${Date.now()}`,
+                        playerId: selectedPlayerId ?? "unknown",
+                        playerName: selectedPlayer?.name ?? "Jugador",
+                        videoId: selectedVideoId,
+                        date: new Date().toISOString().slice(0, 10),
+                        durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
+                        trackingFps: 8,
+                        fieldDimensions: { lengthM: 105, widthM: 68 },
+                      },
+                      physicalMetrics: tracking.state.sessionMetrics!,
+                      biomechanics: mediaPipe.biomechanics,
+                      tracks: tracking.state.currentTracks,
+                      focusTrackId: tracking.state.focusTrackId,
+                      events: tacticalEvents,
+                      eventSummary: eventSummary ?? {
+                        totalEvents: 0, byType: {} as Record<string, number>,
+                        passCompletionPct: 0, passesAttempted: 0, passesCompleted: 0,
+                        duelsWon: 0, duelsLost: 0, recoveries: 0, sprintBursts: 0,
+                        pressTriggers: 0, shots: 0, xgContributions: 0, vaepApprox: 0,
+                      } as EventSummary,
+                      scanEvents: tracking.state.scanEvents,
+                      duelEvents: tracking.state.duelEvents,
+                      focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })) ?? [],
+                    };
+                    const exporter = new AnalyticsExporter(exportData);
+                    exporter.download(fmt);
+                    toast.success(`Exportado como ${fmt.toUpperCase()}`);
+                  }}
+                  className="flex-1 py-1.5 rounded-lg border border-border text-[10px] font-display font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors uppercase"
+                >
+                  {fmt === "html_report" ? "HTML" : fmt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
 
-            {tracking.state.status === "tracking" && (
-              <button
-                onClick={() => {
-                  tracking.stopTracking();
-                  if (mediaPipe.status === "processing") mediaPipe.stop();
-                  // Final event summary
-                  setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
-                  setTacticalEvents(eventEngineRef.current.getEvents());
-                }}
-                className="w-full py-2 rounded-xl border border-red-500 text-red-400 text-sm font-display font-semibold hover:bg-red-500/10 transition-colors"
-              >
-                Detener tracking
-              </button>
-            )}
-
-            {/* Export Data — available after tracking completes */}
-            {tracking.state.status === "complete" && tracking.state.sessionMetrics && (
-              <div className="flex gap-1.5">
-                {(["csv", "json", "html_report"] as ExportFormat[]).map(fmt => (
-                  <button
-                    key={fmt}
-                    onClick={() => {
-                      const focusTrack = tracking.state.focusTrackId
-                        ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
-                        : null;
-                      const exportData: SessionExportData = {
-                        metadata: {
-                          sessionId: `session_${Date.now()}`,
-                          playerId: selectedPlayerId ?? "unknown",
-                          playerName: selectedPlayer?.name ?? "Jugador",
-                          videoId: selectedVideoId,
-                          date: new Date().toISOString().slice(0, 10),
-                          durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
-                          trackingFps: 8,
-                          fieldDimensions: { lengthM: 105, widthM: 68 },
-                        },
-                        physicalMetrics: tracking.state.sessionMetrics!,
-                        biomechanics: mediaPipe.biomechanics,
-                        tracks: tracking.state.currentTracks,
-                        focusTrackId: tracking.state.focusTrackId,
-                        events: tacticalEvents,
-                        eventSummary: eventSummary ?? {
-                          totalEvents: 0, byType: {} as Record<string, number>,
-                          passCompletionPct: 0, passesAttempted: 0, passesCompleted: 0,
-                          duelsWon: 0, duelsLost: 0, recoveries: 0, sprintBursts: 0,
-                          pressTriggers: 0, shots: 0, xgContributions: 0, vaepApprox: 0,
-                        } as EventSummary,
-                        scanEvents: tracking.state.scanEvents,
-                        duelEvents: tracking.state.duelEvents,
-                        focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })) ?? [],
-                      };
-                      const exporter = new AnalyticsExporter(exportData);
-                      exporter.download(fmt);
-                      toast.success(`Exportado como ${fmt.toUpperCase()}`);
-                    }}
-                    className="flex-1 py-1.5 rounded-lg border border-border text-[10px] font-display font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors uppercase"
-                  >
-                    {fmt === "html_report" ? "HTML" : fmt.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* START ANALYSIS — Claude Vision */}
-            <button
-              onClick={handleStartAnalysis}
-              disabled={v2.isProcessing}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {v2.isProcessing ? (
-                <><Loader2 size={16} className="animate-spin" /> {v2.state.message || "ANALIZANDO…"}</>
-              ) : (
-                <><Rocket size={16} /> ANALYSIS IA · GPU</>
-              )}
-            </button>
-            <p className="text-center text-[10px] font-display text-muted-foreground tracking-wider">
-              {v2.isCompleted
-                ? `ÚLTIMO ANÁLISIS: VSI ${v2.result.vsi?.vsi ?? "—"} · CONFIANZA ${Math.round((analysisReport?.confianza ?? 0) * 100)}%`
-                : "TRACKING = métricas físicas · GPU = biomecánica · IA = táctica"}
-            </p>
-          </div>
+          </VitasLabOneClick>
         </motion.div>
       </div>
 
