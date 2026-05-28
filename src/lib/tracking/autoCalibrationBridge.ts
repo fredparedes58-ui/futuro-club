@@ -21,6 +21,7 @@ import {
   identityHomography,
 } from "@/lib/yolo/homography";
 import { FIELD_ANCHOR_PRESETS, type FieldAnchorPreset } from "@/lib/yolo/types";
+import { autoComputeHomography, type AutoHomographyResult } from "./autoHomography";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -144,43 +145,77 @@ export async function captureVideoFrame(
 /**
  * Auto-calibrate from a video element's current or seeked frame.
  *
- * 1. Captures a frame at ~20% of video duration
- * 2. Runs field line detection (Canny + Hough)
- * 3. If confidence >= threshold, computes homography from detected corners
- * 4. Otherwise, falls back to aspect-ratio heuristic preset
+ * Sprint 5 upgrade: uses RANSAC + FIFA template matching pipeline first.
+ * Falls back to simple corner detection, then to aspect-ratio heuristic.
+ *
+ * Pipeline priority:
+ *   1. RANSAC + template matching (multi-frame, highest accuracy)
+ *   2. Direct corner detection (Canny + Hough)
+ *   3. Aspect-ratio heuristic (always works)
  *
  * @param video - HTMLVideoElement with loaded video (readyState >= 2)
+ * @param ballPositions - Optional ball positions for cross-validation
  * @returns AutoCalibrationResult with homography and metadata
  */
 export async function autoCalibrate(
   video: HTMLVideoElement,
+  ballPositions?: Array<{ x: number; y: number }>,
 ): Promise<AutoCalibrationResult> {
   const startMs = performance.now();
   const vw = video.videoWidth || 1280;
   const vh = video.videoHeight || 720;
 
+  // ── Try Sprint 5 RANSAC + template matching pipeline first ──
+  try {
+    const ransacResult = await autoComputeHomography(video, {
+      ballPositions,
+      multiFrameSamples: 3,
+      ransacIterations: 200,
+      minConfidence: 0.45,
+    });
+
+    if (ransacResult.confidence >= AUTO_CONFIDENCE_THRESHOLD && ransacResult.method !== "heuristic_fallback") {
+      // RANSAC succeeded — convert to AutoCalibrationResult format
+      // Extract corners from validation for display
+      const corners: Array<{ x: number; y: number }> = [];
+      if (ransacResult.fieldDetection?.corners) {
+        for (const c of ransacResult.fieldDetection.corners.slice(0, 4)) {
+          corners.push({ x: (c[0] / vw) * 100, y: (c[1] / vh) * 100 });
+        }
+      }
+
+      return {
+        H: ransacResult.H,
+        Hinv: ransacResult.Hinv,
+        preset: "full_corners",
+        confidence: ransacResult.confidence,
+        autoDetected: true,
+        corners: corners.length >= 4 ? corners : guessPresetFromAspectRatio(vw, vh).corners,
+        fieldDetection: ransacResult.fieldDetection,
+        processingTimeMs: performance.now() - startMs,
+      };
+    }
+  } catch (err) {
+    console.warn("[autoCalibrationBridge] RANSAC pipeline failed, trying direct corners:", err);
+  }
+
+  // ── Fallback: simple corner detection (original Sprint 0 logic) ──
   let fieldDetection: FieldDetectionResult | null = null;
 
   try {
-    // 1. Capture frame
     const imageData = await captureVideoFrame(video, DEFAULT_SEEK_PCT);
-
-    // 2. Detect field lines
     fieldDetection = await detectFieldLines(imageData);
 
-    // 3. Check if auto-calibration is reliable
     if (
       fieldDetection.autoCalibrationReady &&
       fieldDetection.confidence >= AUTO_CONFIDENCE_THRESHOLD &&
       fieldDetection.corners.length >= 4
     ) {
-      // Convert corners from pixel coords to percentage coords
       const cornersPct = fieldDetection.corners.slice(0, 4).map((c) => ({
         x: (c[0] / vw) * 100,
         y: (c[1] / vh) * 100,
       }));
 
-      // Compute homography
       const { H, Hinv } = computeHomographyFromCorners(cornersPct, vw, vh);
 
       return {
@@ -195,10 +230,10 @@ export async function autoCalibrate(
       };
     }
   } catch (err) {
-    console.warn("[autoCalibrationBridge] Field detection failed, using fallback:", err);
+    console.warn("[autoCalibrationBridge] Direct corner detection failed:", err);
   }
 
-  // 4. Fallback: use aspect-ratio heuristic
+  // ── Ultimate fallback: aspect-ratio heuristic ──
   const heuristic = guessPresetFromAspectRatio(vw, vh);
   const { H, Hinv } = computeHomographyFromCorners(heuristic.corners, vw, vh);
 

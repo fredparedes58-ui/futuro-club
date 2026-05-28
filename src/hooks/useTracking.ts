@@ -28,6 +28,7 @@ import {
 import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
+import { autoCalibrate as runAutoCalibrate } from "@/lib/tracking/autoCalibrationBridge";
 import type { PlayerIdentity } from "@/lib/yolo/playerIdentityManager";
 import type { TeamLabel } from "@/lib/yolo/teamClassifier";
 
@@ -79,6 +80,8 @@ export interface UseTrackingOptions {
   enableBallTracking?: boolean;
   /** Enable player re-identification (Sprint 4, default: true) */
   enableReId?: boolean;
+  /** Enable auto-calibration via RANSAC + template matching (Sprint 5, default: false) */
+  autoCalibrate?: boolean;
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -93,7 +96,7 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true, enableReId = true } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true, enableReId = true, autoCalibrate: autoCalibOpt = false } = options;
   const onTrackingPositionRef = useRef(onTrackingPosition);
   onTrackingPositionRef.current = onTrackingPosition;
 
@@ -103,6 +106,10 @@ export function useTracking(options: UseTrackingOptions) {
   enableBallTrackingRef.current = enableBallTracking;
   const feedBallFrameRef = useRef(feedBallFrame);
   feedBallFrameRef.current = feedBallFrame;
+
+  // Auto-calibration ref (Sprint 5)
+  const autoCalibrateRef = useRef(autoCalibOpt);
+  autoCalibrateRef.current = autoCalibOpt;
 
   // Player Re-ID (Sprint 4)
   const identityManagerRef = useRef<PlayerIdentityManager>(new PlayerIdentityManager());
@@ -346,6 +353,20 @@ export function useTracking(options: UseTrackingOptions) {
         videoEl.addEventListener("error",   onError);
         setTimeout(() => reject(new Error("Timeout cargando video")), 15000);
       });
+    }
+
+    // Auto-calibrate via RANSAC + template matching (Sprint 5)
+    if (autoCalibrateRef.current && videoEl.readyState >= 2) {
+      try {
+        const calibResult = await runAutoCalibrate(videoEl);
+        if (calibResult.autoDetected && calibResult.confidence >= 0.5) {
+          homographyRef.current = calibResult.H;
+          homographyInvRef.current = calibResult.Hinv;
+          console.log(`[useTracking] Auto-calibration: confidence=${calibResult.confidence.toFixed(2)}`);
+        }
+      } catch (err) {
+        console.warn("[useTracking] Auto-calibration failed, using manual:", err);
+      }
     }
 
     // Inicializar worker y cargar modelo desde public/models/

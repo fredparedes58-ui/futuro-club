@@ -620,6 +620,64 @@ export function drawDetectedLines(
   }
 }
 
+/* ── Multi-frame detection (Sprint 5 — Auto Homography) ─────────── */
+
+/**
+ * Detect field lines from multiple video frames for improved accuracy.
+ * Samples N frames across the video, merges detections, and returns
+ * the best result.
+ *
+ * @param video - HTMLVideoElement with loaded video (readyState >= 2)
+ * @param numSamples - Number of frames to sample (default: 5)
+ * @param config - Optional detector config overrides
+ * @returns Best FieldDetectionResult or null if all frames fail
+ */
+export async function detectFieldLinesMultiFrame(
+  video: HTMLVideoElement,
+  numSamples: number = 5,
+  config?: Partial<FieldDetectorConfig>,
+): Promise<FieldDetectionResult | null> {
+  if (!video || video.readyState < 2) return null;
+
+  const results: FieldDetectionResult[] = [];
+
+  for (let i = 0; i < numSamples; i++) {
+    const seekPct = 0.1 + (i / numSamples) * 0.6; // Sample 10%-70%
+    try {
+      // Seek to position
+      const targetTime = (video.duration || 0) * seekPct;
+      if (targetTime > 0 && Math.abs(video.currentTime - targetTime) > 0.5) {
+        video.currentTime = targetTime;
+        await new Promise<void>((resolve) => {
+          const onSeeked = () => { video.removeEventListener("seeked", onSeeked); resolve(); };
+          video.addEventListener("seeked", onSeeked);
+          setTimeout(resolve, 2000);
+        });
+      }
+
+      // Capture frame
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+
+      ctx.drawImage(video, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+      const result = await detectFieldLines(imageData, config);
+      results.push(result);
+    } catch {
+      // Skip failed frames
+    }
+  }
+
+  if (results.length === 0) return null;
+
+  // Return the result with highest confidence
+  return results.reduce((best, r) => (r.confidence > best.confidence ? r : best));
+}
+
 /* ── Video-specific convenience functions (Sprint 0 — UX 1-Click) ── */
 
 /**

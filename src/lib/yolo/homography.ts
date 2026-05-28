@@ -152,6 +152,157 @@ function solveLinear8x9(A: number[][]): number[] {
   return [...x, 1]; // añadir h8 = 1
 }
 
+// ─── RANSAC Homography (Sprint 5 — Auto Homography) ─────────────────────────
+
+export interface RANSACResult {
+  /** Best homography found */
+  H: Float64Array;
+  /** Number of inliers with the best model */
+  inlierCount: number;
+  /** Indices of inlier correspondences */
+  inlierIndices: number[];
+  /** Total iterations run */
+  iterations: number;
+}
+
+/**
+ * Compute homography using RANSAC for outlier rejection.
+ *
+ * Given N ≥ 4 correspondences (some potentially wrong), iteratively:
+ *   1. Sample 4 random correspondences
+ *   2. Compute homography from these 4
+ *   3. Count inliers (reprojection error < threshold)
+ *   4. Keep best model
+ *
+ * @param correspondences - pixel↔field point pairs
+ * @param maxIterations - RANSAC iterations (default: 200)
+ * @param reprojThreshold - Max reprojection error in pixels (default: 5.0)
+ * @returns Best homography with inlier info, or null if failed
+ */
+export function computeHomographyRANSAC(
+  correspondences: Array<{
+    pixel: { x: number; y: number };
+    field: { x: number; y: number };
+  }>,
+  maxIterations: number = 200,
+  reprojThreshold: number = 5.0,
+): RANSACResult | null {
+  const n = correspondences.length;
+  if (n < 4) return null;
+
+  // If exactly 4, just compute directly
+  if (n === 4) {
+    try {
+      const anchors = correspondences.map((c) => ({
+        pixel: { px: c.pixel.x, py: c.pixel.y },
+        field: { fx: c.field.x, fy: c.field.y },
+      }));
+      const H = computeHomography(anchors);
+      return {
+        H,
+        inlierCount: 4,
+        inlierIndices: [0, 1, 2, 3],
+        iterations: 1,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  let bestH: Float64Array | null = null;
+  let bestInlierCount = 0;
+  let bestInlierIndices: number[] = [];
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    // 1. Sample 4 random correspondences (without replacement)
+    const sampleIndices = randomSample4(n);
+
+    try {
+      // 2. Compute homography from sample
+      const anchors = sampleIndices.map((i) => ({
+        pixel: { px: correspondences[i].pixel.x, py: correspondences[i].pixel.y },
+        field: { fx: correspondences[i].field.x, fy: correspondences[i].field.y },
+      }));
+
+      const H = computeHomography(anchors);
+
+      // Quick degeneracy check
+      let degenerate = false;
+      for (let k = 0; k < 9; k++) {
+        if (!isFinite(H[k])) { degenerate = true; break; }
+      }
+      if (degenerate) continue;
+
+      const det = H[0] * (H[4] * H[8] - H[5] * H[7])
+                - H[1] * (H[3] * H[8] - H[5] * H[6])
+                + H[2] * (H[3] * H[7] - H[4] * H[6]);
+      if (det <= 1e-10) continue;
+
+      // 3. Count inliers
+      const Hinv = invertMatrix3x3(H);
+      const inlierIndices: number[] = [];
+
+      for (let i = 0; i < n; i++) {
+        const c = correspondences[i];
+        // Reproject field → pixel and measure error
+        const reproj = fieldToPixel(Hinv, c.field.x, c.field.y);
+        const dx = reproj.px - c.pixel.x;
+        const dy = reproj.py - c.pixel.y;
+        const err = Math.sqrt(dx * dx + dy * dy);
+
+        if (err < reprojThreshold) {
+          inlierIndices.push(i);
+        }
+      }
+
+      // 4. Update best
+      if (inlierIndices.length > bestInlierCount) {
+        bestInlierCount = inlierIndices.length;
+        bestInlierIndices = inlierIndices;
+        bestH = H;
+
+        // Early termination: all points are inliers
+        if (bestInlierCount === n) break;
+      }
+    } catch {
+      // Invalid sample → skip
+      continue;
+    }
+  }
+
+  if (!bestH || bestInlierCount < 4) return null;
+
+  // Refine: recompute homography using all inliers
+  if (bestInlierCount > 4) {
+    try {
+      // Use first 4 inliers for DLT (our solver only takes 4)
+      const refinedAnchors = bestInlierIndices.slice(0, 4).map((i) => ({
+        pixel: { px: correspondences[i].pixel.x, py: correspondences[i].pixel.y },
+        field: { fx: correspondences[i].field.x, fy: correspondences[i].field.y },
+      }));
+      bestH = computeHomography(refinedAnchors);
+    } catch {
+      // Keep original best if refinement fails
+    }
+  }
+
+  return {
+    H: bestH,
+    inlierCount: bestInlierCount,
+    inlierIndices: bestInlierIndices,
+    iterations: maxIterations,
+  };
+}
+
+/** Sample 4 unique random indices from [0, n) */
+function randomSample4(n: number): [number, number, number, number] {
+  const indices = new Set<number>();
+  while (indices.size < 4) {
+    indices.add(Math.floor(Math.random() * n));
+  }
+  return [...indices] as [number, number, number, number];
+}
+
 // ─── Utilidad: calcular distancia en campo ───────────────────────────────────
 
 export function fieldDistance(a: FieldPoint, b: FieldPoint): number {
