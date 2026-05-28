@@ -91,15 +91,14 @@ const EXTRA_GROUPS: ExtraGroup[] = [
     ],
   },
   {
-    title: "Próximamente",
+    title: "Multimedia",
     items: [
       {
         path: "/highlights",
         icon: Film,
         label: "Highlights",
-        description: "Reel automático de mejores momentos",
+        description: "Reels automáticos de mejores momentos",
         color: "from-emerald-500 to-teal-500",
-        soon: true,
       },
     ],
   },
