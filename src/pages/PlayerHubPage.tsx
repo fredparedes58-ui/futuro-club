@@ -62,16 +62,23 @@ import PhvRiskOverlay from "@/components/injury/PhvRiskOverlay";
 import { useInjuryRisk } from "@/hooks/useInjuryRisk";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
+// Sprint 13: Valuation dashboard
+import ValuationCard from "@/components/valuation/ValuationCard";
+import TierProgressionChart from "@/components/valuation/TierProgressionChart";
+import ProbabilityDisplay from "@/components/valuation/ProbabilityDisplay";
+import CeilingComparison from "@/components/valuation/CeilingComparison";
+import { useValuation } from "@/hooks/useValuation";
 
-type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "salud" | "historico";
+type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "salud" | "valoracion" | "historico";
 
 const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
-  { key: "resumen",    label: "Resumen",     icon: Sparkles },
-  { key: "stats",      label: "Stats",       icon: Activity,    needsAnalysis: true },
-  { key: "movimiento", label: "Movimiento",  icon: Compass },
-  { key: "rol",        label: "Rol",         icon: Brain,       needsAnalysis: true },
-  { key: "salud",      label: "Salud",       icon: Heart },
-  { key: "historico",  label: "Histórico",   icon: Clock,       needsAnalysis: true },
+  { key: "resumen",     label: "Resumen",      icon: Sparkles },
+  { key: "stats",       label: "Stats",        icon: Activity,    needsAnalysis: true },
+  { key: "movimiento",  label: "Movimiento",   icon: Compass },
+  { key: "rol",         label: "Rol",          icon: Brain,       needsAnalysis: true },
+  { key: "salud",       label: "Salud",        icon: Heart },
+  { key: "valoracion",  label: "Valoracion",   icon: Zap },
+  { key: "historico",   label: "Historico",     icon: Clock,       needsAnalysis: true },
 ];
 
 export default function PlayerHubPage() {
@@ -107,7 +114,10 @@ export default function PlayerHubPage() {
   }, [id]);
 
   // Sprint 11: Injury risk data
+  const { canUseValuation } = usePlan();
   const { injuries, riskData, saveInjuries: persistInjuries, injuriesLoading } = useInjuryRisk(id);
+  // Sprint 13: Valuation data
+  const { valuationData, valuationLoading } = useValuation(id);
   const [localInjuries, setLocalInjuries] = useState(injuries);
   useEffect(() => { setLocalInjuries(injuries); }, [injuries]);
   const { canUseInjuryPrediction } = usePlan();
@@ -546,6 +556,52 @@ export default function PlayerHubPage() {
                       onSave={(injs) => persistInjuries(injs)}
                     />
                   </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {tab === "valoracion" && (
+            <motion.div
+              key="valoracion"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {!canUseValuation ? (
+                <div className="relative">
+                  <div className="blur-sm pointer-events-none select-none space-y-4">
+                    <div className="glass rounded-2xl p-8 h-48" />
+                    <div className="glass rounded-2xl p-8 h-32" />
+                  </div>
+                  <UpgradePrompt feature="Valoracion Predictiva" requiredPlan="pro" variant="overlay" />
+                </div>
+              ) : valuationLoading ? (
+                <div className="glass rounded-xl p-6 text-center">
+                  <Zap size={20} className="mx-auto text-muted-foreground mb-2 animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Calculando valoracion...</p>
+                </div>
+              ) : valuationData ? (
+                <div className="space-y-4">
+                  <ValuationCard data={valuationData} />
+                  <div className="glass rounded-2xl p-4">
+                    <ProbabilityDisplay
+                      probabilities={valuationData.probabilities}
+                      tierColor={valuationData.tierColor}
+                    />
+                  </div>
+                  <div className="glass rounded-2xl p-4">
+                    <TierProgressionChart data={[]} />
+                  </div>
+                  <div className="glass rounded-2xl p-4">
+                    <CeilingComparison comparables={[]} tier={valuationData.tier} tierColor={valuationData.tierColor} />
+                  </div>
+                </div>
+              ) : (
+                <div className="glass rounded-xl p-6 text-center">
+                  <Zap size={20} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Analiza una sesion para ver la valoracion</p>
                 </div>
               )}
             </motion.div>
