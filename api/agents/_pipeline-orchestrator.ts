@@ -34,9 +34,14 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY ?? "";
 
 const orchestratorSchema = z.object({
   analysisId: z.string().uuid(),
+  /** Sprint 8: analysis mode — determines which report agents to invoke */
+  mode: z.enum(["player", "team", "rival"]).optional().default("player"),
+  /** Sprint 8: team/rival analysis data (only present in team/rival modes) */
+  teamAnalysis: z.record(z.unknown()).optional(),
 });
 
-const REPORT_AGENTS = [
+/** Default report agents for individual player analysis */
+const PLAYER_REPORT_AGENTS = [
   { name: "player-report", endpoint: "/api/agents/player-report", model: "sonnet" },
   { name: "lab-biomechanics", endpoint: "/api/agents/lab-biomechanics-report", model: "sonnet" },
   { name: "dna-profile", endpoint: "/api/agents/dna-profile", model: "haiku" },
@@ -45,6 +50,18 @@ const REPORT_AGENTS = [
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
   { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
 ] as const;
+
+/** Team-mode report agents (Sprint 8) */
+const TEAM_REPORT_AGENTS = [
+  { name: "team-report", endpoint: "/api/agents/team-report", model: "haiku" },
+] as const;
+
+/** Rival-mode report agents (Sprint 8) */
+const RIVAL_REPORT_AGENTS = [
+  { name: "rival-scout-report", endpoint: "/api/agents/rival-scout-report", model: "haiku" },
+] as const;
+
+const REPORT_AGENTS = PLAYER_REPORT_AGENTS;
 
 type ReportName = (typeof REPORT_AGENTS)[number]["name"];
 
@@ -123,8 +140,15 @@ async function sendCompletionEmail(
 export default withHandler(
   { schema: orchestratorSchema, requireAuth: false, maxRequests: 50 },
   async ({ body }) => {
-    const { analysisId } = body as z.infer<typeof orchestratorSchema>;
+    const { analysisId, mode = "player", teamAnalysis } = body as z.infer<typeof orchestratorSchema>;
     const startedAt = Date.now();
+
+    // Sprint 8: select report agents based on mode
+    const activeAgents = mode === "team"
+      ? [...PLAYER_REPORT_AGENTS, ...TEAM_REPORT_AGENTS]
+      : mode === "rival"
+        ? [...PLAYER_REPORT_AGENTS, ...RIVAL_REPORT_AGENTS]
+        : [...PLAYER_REPORT_AGENTS];
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
@@ -280,11 +304,14 @@ export default withHandler(
       // Sprint 7: fatigue data for fatigue-report agent
       fatigueReport,
       fatigueHistory,
+      // Sprint 8: team/rival analysis data (if mode is team or rival)
+      teamAnalysis: teamAnalysis ?? null,
+      analysisMode: mode,
     };
 
-    const reportPromises = REPORT_AGENTS.map((agent) =>
+    const reportPromises = activeAgents.map((agent) =>
       callInternal(agent.endpoint, sharedContext).then((r) => ({
-        name: agent.name as ReportName,
+        name: agent.name,
         model: agent.model,
         ...r,
       }))
@@ -317,7 +344,7 @@ export default withHandler(
     await supabase
       .from("analyses")
       .update({
-        status: successfulReports.length === REPORT_AGENTS.length ? "completed" : "completed_partial",
+        status: successfulReports.length === activeAgents.length ? "completed" : "completed_partial",
         completed_at: new Date().toISOString(),
         candidates: null, // limpiamos los crops · ya no se necesitan
       })
@@ -350,9 +377,9 @@ export default withHandler(
 
     return successResponse({
       analysisId: analysis.id,
-      status: successfulReports.length === 6 ? "completed" : "completed_partial",
+      status: successfulReports.length === activeAgents.length ? "completed" : "completed_partial",
       reportsGenerated: successfulReports.length,
-      reportsFailed: REPORT_AGENTS.length - successfulReports.length,
+      reportsFailed: activeAgents.length - successfulReports.length,
       vsi: (vsi as { vsi?: number })?.vsi ?? null,
       totalLatencyMs,
       emailSent,

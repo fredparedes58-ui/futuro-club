@@ -82,6 +82,8 @@ export interface UseTrackingOptions {
   enableReId?: boolean;
   /** Enable auto-calibration via RANSAC + template matching (Sprint 5, default: false) */
   autoCalibrate?: boolean;
+  /** Sprint 8: Team mode — track all players without a focus target */
+  teamMode?: boolean;
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -96,7 +98,7 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true, enableReId = true, autoCalibrate: autoCalibOpt = false } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true, enableReId = true, autoCalibrate: autoCalibOpt = false, teamMode = false } = options;
   const onTrackingPositionRef = useRef(onTrackingPosition);
   onTrackingPositionRef.current = onTrackingPosition;
 

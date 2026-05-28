@@ -68,6 +68,8 @@ import PlayerIdentityOverlay from "@/components/PlayerIdentityOverlay";
 import XgPanel from "@/components/XgPanel";
 import { XgAccumulator } from "@/lib/xg/xgAccumulator";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
+import TeamDashboard from "@/components/TeamDashboard";
+import { useTeamAnalysis } from "@/hooks/useTeamAnalysis";
 
 interface CalibrationPoint {
   id: number;
@@ -393,6 +395,15 @@ const VitasLab = () => {
   const xgAccumulatorRef = useRef(new XgAccumulator());
   const [xgSummary, setXgSummary] = useState<XgSummary | null>(null);
 
+  // ── Analysis View Mode (Sprint 8): Jugador / Equipo / Rival Scout ──
+  const [analysisViewMode, setAnalysisViewMode] = useState<"player" | "team" | "rival">("player");
+
+  // ── Team Analysis (Sprint 8) ──
+  const teamAnalysis = useTeamAnalysis({
+    enabled: analysisViewMode === "team" || analysisViewMode === "rival",
+    rivalTeam: "away",
+  });
+
   // ── Auto-calibration via field line detection ──
   const [autoCalibResult, setAutoCalibResult] = useState<FieldDetectionResult | null>(null);
   const [autoCalibRunning, setAutoCalibRunning] = useState(false);
@@ -513,6 +524,17 @@ const VitasLab = () => {
       tracking.state.ballTrack ?? null,
     );
 
+    // Sprint 8: Feed team analysis engine
+    if (analysisViewMode !== "player" && tracking.state.identities.size > 0) {
+      teamAnalysis.processFrame(
+        tracks,
+        tracking.state.identities,
+        tracking.state.ballTrack ?? null,
+        tracking.state.possession as "home" | "away" | "contested" | "none",
+        timestampMs,
+      );
+    }
+
     // Update summary periodically (every 30 frames ≈ 3.75s)
     if (frameIndex % 30 === 0) {
       setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
@@ -587,6 +609,11 @@ const VitasLab = () => {
       if (durationSec > 0) {
         fatigue.generateReport(durationSec);
       }
+    }
+
+    // Sprint 8: Generate team analysis report when tracking completes
+    if (analysisViewMode !== "player") {
+      teamAnalysis.generateReports();
     }
 
     const bioMsg = mediaPipe.biomechanics
@@ -2022,6 +2049,49 @@ const VitasLab = () => {
                   phvActive={!!selectedPlayerObj?.phvOffset}
                   phvOffset={selectedPlayerObj?.phvOffset ?? null}
                 />
+
+                {/* ── Analysis View Mode Toggle (Sprint 8) ── */}
+                <div className="glass rounded-xl p-3">
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                    Modo de Análisis
+                  </p>
+                  <div className="flex gap-1">
+                    {([
+                      { id: "player" as const, label: "Jugador", icon: "👤" },
+                      { id: "team" as const, label: "Equipo", icon: "👥" },
+                      { id: "rival" as const, label: "Rival Scout", icon: "🔍" },
+                    ]).map(m => (
+                      <button
+                        key={m.id}
+                        onClick={() => {
+                          setAnalysisViewMode(m.id);
+                          if (m.id !== "player" && tracking.state.status === "complete") {
+                            teamAnalysis.generateReports();
+                          }
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] font-display font-semibold transition-colors ${
+                          analysisViewMode === m.id
+                            ? "bg-primary/10 text-primary border border-primary/30"
+                            : "bg-secondary/50 text-muted-foreground border border-border hover:text-foreground"
+                        }`}
+                      >
+                        <span>{m.icon}</span>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Team Dashboard (Sprint 8) ── */}
+                {analysisViewMode !== "player" && (
+                  <TeamDashboard
+                    teamReport={teamAnalysis.teamReport}
+                    homeFormation={teamAnalysis.homeFormation}
+                    awayFormation={teamAnalysis.awayFormation}
+                    rivalReport={teamAnalysis.rivalReport}
+                    mode={analysisViewMode === "rival" ? "rival" : "team"}
+                  />
+                )}
 
                 {/* Métricas de Eventos (Gemini observation) */}
                 {analysisReport.metricasCuantitativas?.eventos && (

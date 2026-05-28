@@ -12,6 +12,8 @@ import type { PhysicalMetrics, ScanEvent, DuelEvent, FieldPoint } from "@/lib/yo
 import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 import type { FatigueReport } from "@/lib/fatigue/types";
+import type { TeamAnalysisReport } from "@/lib/tracking/teamAnalysisEngine";
+import type { RivalScoutReport } from "@/lib/tracking/rivalAnalysisEngine";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 // ─── Ball / Possession types (Sprint 1) ──────────────────────────────────────
@@ -58,6 +60,10 @@ export interface TrackingSnapshot {
   ballPositions?: BallPosition[];
   /** Possession segments (Sprint 1 — team possession timeline) */
   possessionSegments?: PossessionSegment[];
+  /** Team analysis report (Sprint 8 — team mode) */
+  teamReport?: TeamAnalysisReport;
+  /** Rival scout report (Sprint 8 — rival scouting mode) */
+  rivalReport?: RivalScoutReport;
 }
 
 export const PlayerTrackingService = {
