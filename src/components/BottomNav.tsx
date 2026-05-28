@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, Wifi, WifiOff, RefreshCw, Check } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -20,11 +20,97 @@ const BASE_NAV = [
 // Pages where bottom nav should be hidden
 const hiddenOnRoutes = ["/login", "/register", "/forgot-password", "/welcome", "/home"];
 
+// Extra sections — opened from the "Más" mega-menu, grouped by area.
+// Each item has its route, icon, label, color hint, and optional "soon" badge.
+type ExtraGroup = {
+  title: string;
+  items: Array<{
+    path: string;
+    icon: React.ElementType;
+    label: string;
+    description: string;
+    color: string;
+    soon?: boolean;
+  }>;
+};
+
+const EXTRA_GROUPS: ExtraGroup[] = [
+  {
+    title: "Tácticas",
+    items: [
+      {
+        path: "/set-pieces",
+        icon: Crosshair,
+        label: "Set Pieces",
+        description: "Análisis de balón parado",
+        color: "from-amber-500 to-orange-500",
+      },
+      {
+        path: "/live",
+        icon: Sparkles,
+        label: "Live Match",
+        description: "Tracking en directo",
+        color: "from-fuchsia-500 to-pink-500",
+      },
+    ],
+  },
+  {
+    title: "Entrenamiento",
+    items: [
+      {
+        path: "/coach",
+        icon: ClipboardList,
+        label: "Coach",
+        description: "Planificación de sesiones",
+        color: "from-blue-500 to-cyan-500",
+      },
+    ],
+  },
+  {
+    title: "Salud y bienestar",
+    items: [
+      {
+        path: "/wellbeing",
+        icon: Heart,
+        label: "Bienestar",
+        description: "Riesgo de abandono · engagement",
+        color: "from-rose-500 to-red-500",
+      },
+    ],
+  },
+  {
+    title: "IA Mental",
+    items: [
+      {
+        path: "/players",
+        icon: Brain,
+        label: "Behavioral",
+        description: "Perfil mental por jugador (desde Hub)",
+        color: "from-purple-500 to-indigo-500",
+      },
+    ],
+  },
+  {
+    title: "Próximamente",
+    items: [
+      {
+        path: "/highlights",
+        icon: Film,
+        label: "Highlights",
+        description: "Reel automático de mejores momentos",
+        color: "from-emerald-500 to-teal-500",
+        soon: true,
+      },
+    ],
+  },
+];
+
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, configured } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const { isClub } = usePlan();
   const { t } = useTranslation();
 
@@ -66,8 +152,100 @@ const BottomNav = () => {
     navigate("/login");
   };
 
+  const isExtraActive = EXTRA_GROUPS.some((g) =>
+    g.items.some((it) => !it.soon && location.pathname.startsWith(it.path)),
+  );
+
   return (
     <>
+      {/* "Más" mega-menu */}
+      <AnimatePresence>
+        {showMoreMenu && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]"
+              onClick={() => setShowMoreMenu(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 400, damping: 32 }}
+              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 glass-strong rounded-2xl shadow-2xl w-[92vw] max-w-md max-h-[70vh] overflow-y-auto"
+            >
+              <div className="px-4 pt-4 pb-2 border-b border-border sticky top-0 glass-strong">
+                <h3 className="text-sm font-display font-bold text-foreground">
+                  Más secciones
+                </h3>
+                <p className="text-[10px] text-muted-foreground">
+                  Análisis avanzado, planificación y bienestar
+                </p>
+              </div>
+              <div className="p-3 space-y-4">
+                {EXTRA_GROUPS.map((group) => (
+                  <div key={group.title}>
+                    <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 px-1">
+                      {group.title}
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.items.map((it) => {
+                        const Icon = it.icon;
+                        const active =
+                          !it.soon && location.pathname.startsWith(it.path);
+                        return (
+                          <button
+                            key={it.path}
+                            onClick={() => {
+                              if (it.soon) {
+                                toast.info(
+                                  `${it.label} llega próximamente`,
+                                );
+                                return;
+                              }
+                              setShowMoreMenu(false);
+                              navigate(it.path);
+                            }}
+                            className={`flex items-start gap-2 p-2.5 rounded-xl text-left transition-all border ${
+                              active
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-secondary/30 hover:bg-secondary/60"
+                            } ${it.soon ? "opacity-70" : ""}`}
+                          >
+                            <div
+                              className={`w-9 h-9 rounded-lg bg-gradient-to-br ${it.color} flex items-center justify-center shrink-0`}
+                            >
+                              <Icon size={16} className="text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs font-display font-bold text-foreground truncate">
+                                  {it.label}
+                                </p>
+                                {it.soon && (
+                                  <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold">
+                                    Pronto
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground leading-snug truncate">
+                                {it.description}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* User menu popup */}
       <AnimatePresence>
         {showUserMenu && (
@@ -189,6 +367,50 @@ const BottomNav = () => {
               </button>
             );
           })}
+
+          {/* "Más" button — opens mega-menu with extra sections */}
+          <button
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+            className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
+            title="Más secciones"
+          >
+            <div className="relative">
+              <LayoutGrid
+                size={20}
+                className={`transition-colors duration-200 ${
+                  isExtraActive || showMoreMenu ? "text-transparent" : "text-muted-foreground"
+                }`}
+                style={
+                  isExtraActive || showMoreMenu
+                    ? {
+                        background: "linear-gradient(135deg, #0059B3, #A855F7)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                      }
+                    : undefined
+                }
+              />
+              {(isExtraActive || showMoreMenu) && (
+                <motion.div
+                  layoutId="nav-glow-more"
+                  className="absolute -inset-2 rounded-full blur-md"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, hsl(210 100% 40% / 0.25), hsl(290 70% 50% / 0.15))",
+                  }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+            </div>
+            <span
+              className={`text-[9px] font-medium font-display tracking-wider uppercase transition-colors duration-200 ${
+                isExtraActive || showMoreMenu ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              Más
+            </span>
+          </button>
 
           {/* Sync indicator */}
           {configured && (
