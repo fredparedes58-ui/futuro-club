@@ -21,6 +21,8 @@ import PitchView from "@/components/setPiece/PitchView";
 import SetPieceCard from "@/components/setPiece/SetPieceCard";
 import SetPieceStats from "@/components/setPiece/SetPieceStats";
 import RecommendationCard from "@/components/setPiece/RecommendationCard";
+import EventNotesPanel from "@/components/setPiece/EventNotesPanel";
+import { EventNotesStorage } from "@/services/real/eventNotesStorage";
 import type { SetPieceEvent, SetPieceRecommendation } from "@/lib/setPiece/types";
 
 type Tab = "events" | "stats" | "recommendations";
@@ -73,6 +75,9 @@ export default function SetPiecePage() {
     customEvents.some((c) => c.id === e.id);
   const isCustomRec = (r: SetPieceRecommendation) =>
     customRecs.some((c) => c.id === r.id);
+
+  // Bump this counter when notes change to force note-count badges to refresh
+  const [notesVersion, setNotesVersion] = useState(0);
 
   // Default selection
   const activeEvent =
@@ -179,6 +184,9 @@ export default function SetPiecePage() {
                 <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 lg:pr-2">
                   {filteredEvents.map((event) => {
                     const isCustom = isCustomEvent(event);
+                    // intentionally include notesVersion to refresh counter
+                    void notesVersion;
+                    const noteCount = EventNotesStorage.count(event.id);
                     return (
                       <div key={event.id} className="relative group">
                         <SetPieceCard
@@ -186,6 +194,11 @@ export default function SetPiecePage() {
                           onClick={() => setSelectedEvent(event)}
                           active={activeEvent?.id === event.id}
                         />
+                        {noteCount > 0 && (
+                          <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 text-[9px] font-bold border border-amber-500/30">
+                            📝 {noteCount}
+                          </span>
+                        )}
                         {isCustom && (
                           <>
                             <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
@@ -210,7 +223,7 @@ export default function SetPiecePage() {
 
                 {/* Detail */}
                 {activeEvent && (
-                  <div className="space-y-3 lg:sticky lg:top-32 self-start">
+                  <div className="space-y-3 lg:sticky lg:top-32 self-start max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
                     <div className="glass rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-display font-bold text-foreground">
@@ -242,6 +255,16 @@ export default function SetPiecePage() {
                           ))}
                         </div>
                       )}
+                    </div>
+
+                    {/* User notes blog */}
+                    <div className="glass rounded-2xl p-4">
+                      <EventNotesPanel
+                        key={activeEvent.id}
+                        eventId={activeEvent.id}
+                        eventLabel={activeEvent.matchLabel}
+                        onChange={() => setNotesVersion((v) => v + 1)}
+                      />
                     </div>
                   </div>
                 )}
