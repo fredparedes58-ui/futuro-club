@@ -43,6 +43,7 @@ const REPORT_AGENTS = [
   { name: "best-match", endpoint: "/api/agents/best-match-narrator", model: "haiku" },
   { name: "projection", endpoint: "/api/agents/projection-report", model: "haiku" },
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
+  { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
 ] as const;
 
 type ReportName = (typeof REPORT_AGENTS)[number]["name"];
@@ -224,7 +225,31 @@ export default withHandler(
       })
       .eq("id", analysis.id);
 
-    // ── 5. Disparar 6 reportes LLM EN PARALELO ──────────────────────
+    // ── 4b. Lookup fatigue session for fatigue-report agent (Sprint 7) ──
+    let fatigueReport: unknown = null;
+    let fatigueHistory: unknown[] = [];
+    try {
+      const { data: fatigueSessions } = await supabase
+        .from("fatigue_sessions")
+        .select("*")
+        .eq("player_id", analysis.player_id)
+        .order("session_date", { ascending: false })
+        .limit(10);
+
+      if (fatigueSessions && fatigueSessions.length > 0) {
+        fatigueReport = fatigueSessions[0];
+        fatigueHistory = fatigueSessions.map((s: Record<string, unknown>) => ({
+          date: s.session_date,
+          load: s.total_load,
+          fatigueIndex: s.fatigue_index,
+          acwrValue: s.acwr_value,
+        }));
+      }
+    } catch {
+      // Fatigue data is optional — pipeline continues without it
+    }
+
+    // ── 5. Disparar 7 reportes LLM EN PARALELO ──────────────────────
     // Posición jugada en este video específico · default a la principal
     const playedPosition =
       (analysis as { played_position?: string | null }).played_position
@@ -252,6 +277,9 @@ export default withHandler(
         playedPosition,
         analyzedAt: (analysis as { completed_at?: string }).completed_at ?? new Date().toISOString(),
       },
+      // Sprint 7: fatigue data for fatigue-report agent
+      fatigueReport,
+      fatigueHistory,
     };
 
     const reportPromises = REPORT_AGENTS.map((agent) =>
@@ -289,7 +317,7 @@ export default withHandler(
     await supabase
       .from("analyses")
       .update({
-        status: successfulReports.length === 6 ? "completed" : "completed_partial",
+        status: successfulReports.length === REPORT_AGENTS.length ? "completed" : "completed_partial",
         completed_at: new Date().toISOString(),
         candidates: null, // limpiamos los crops · ya no se necesitan
       })
@@ -324,7 +352,7 @@ export default withHandler(
       analysisId: analysis.id,
       status: successfulReports.length === 6 ? "completed" : "completed_partial",
       reportsGenerated: successfulReports.length,
-      reportsFailed: 6 - successfulReports.length,
+      reportsFailed: REPORT_AGENTS.length - successfulReports.length,
       vsi: (vsi as { vsi?: number })?.vsi ?? null,
       totalLatencyMs,
       emailSent,

@@ -106,7 +106,36 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
   };
 }
 
-// ─── Dispatch to Gemini ──────────────────────────────────────────────────
+// ─── Dispatch to Gemini via dedicated endpoint (Sprint 7) ────────────────
+
+async function dispatchToGeminiEndpoint(
+  analysis: QueuedAnalysis,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const res = await fetch(`${PUBLIC_URL}/api/pipeline/gemini-analyze`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${INTERNAL_TOKEN}`,
+      },
+      body: JSON.stringify({
+        videoId: analysis.video_id,
+        playerId: analysis.player_id,
+        analysisId: analysis.id,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      return { success: false, error: `gemini-analyze ${res.status}: ${errText.slice(0, 200)}` };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "fetch failed" };
+  }
+}
+
+// ─── Dispatch to Gemini (inline fallback) ────────────────────────────────
 
 async function dispatchToGemini(
   analysis: QueuedAnalysis,
@@ -264,32 +293,35 @@ async function processQueue() {
       ? `https://${cdnHost}/${video.bunny_video_id}/play_720p.mp4`
       : `https://video.bunnycdn.com/library/${libraryId}/videos/${video.bunny_video_id}/play.mp4`;
 
-    // ── 3. Dispatch to Gemini (replaces Modal) ──
-    console.log(`[queue] Dispatching ${analysis.id} to Gemini...`);
-    const gemini = await dispatchToGemini(analysis, videoUrl);
+    // ── 3. Dispatch to Gemini via dedicated endpoint (Sprint 7 refactor) ──
+    console.log(`[queue] Dispatching ${analysis.id} to gemini-analyze...`);
+    const geminiRes = await dispatchToGeminiEndpoint(analysis);
 
-    if (!gemini.success || !gemini.observation) {
+    if (!geminiRes.success) {
+      // Fallback: try inline Gemini if endpoint fails
+      console.log(`[queue] gemini-analyze endpoint failed, trying inline...`);
+      const gemini = await dispatchToGemini(analysis, videoUrl);
+
+      if (!gemini.success || !gemini.observation) {
+        await supabase
+          .from("analyses")
+          .update({
+            status: "failed",
+            status_message: `Gemini failed: ${gemini.error}`,
+          })
+          .eq("id", analysis.id);
+        results.push({ id: analysis.id, status: "gemini_failed", error: gemini.error });
+        await notifySlack(`⚠️ VITAS Gemini falló: ${analysis.id} · ${gemini.error}`);
+        continue;
+      }
+
+      // Persist inline Gemini results
+      const biomechanics = geminiToBiomechanics(gemini.observation);
       await supabase
         .from("analyses")
-        .update({
-          status: "failed",
-          status_message: `Gemini failed: ${gemini.error}`,
-        })
+        .update({ status: "processing_reports", biomechanics })
         .eq("id", analysis.id);
-      results.push({ id: analysis.id, status: "gemini_failed", error: gemini.error });
-      await notifySlack(`⚠️ VITAS Gemini falló: ${analysis.id} · ${gemini.error}`);
-      continue;
     }
-
-    // ── 4. Persist Gemini results ──
-    const biomechanics = geminiToBiomechanics(gemini.observation);
-    await supabase
-      .from("analyses")
-      .update({
-        status: "processing_reports",
-        biomechanics,
-      })
-      .eq("id", analysis.id);
 
     // ── 5. Trigger pipeline orchestrator → 6 Claude reports ──
     const orch = await triggerOrchestrator(analysis.id);

@@ -23,6 +23,8 @@ import developmentPlan from "./_development-plan";
 // Supporting agents
 import vsiCalculator from "./_vsi-calculator";
 import scanDetector from "./_scan-detector";
+// Sprint 7: fatigue report agent
+import fatigueReport from "./_fatigue-report";
 
 export const config = { runtime: "edge" };
 
@@ -45,6 +47,8 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   // Supporting
   "vsi-calculator": vsiCalculator,
   "scan-detector": scanDetector,
+  // Sprint 7: fatigue report
+  "fatigue-report": fatigueReport,
 };
 
 export default async function handler(req: Request): Promise<Response> {

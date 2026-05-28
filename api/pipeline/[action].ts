@@ -5,11 +5,13 @@
 import { errorResponse } from "../_lib/apiResponse";
 
 import start from "./_start";
+import geminiAnalyze from "./_gemini-analyze";
 
 export const config = { runtime: "edge" };
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "start": start,
+  "gemini-analyze": geminiAnalyze,
 };
 
 export default async function handler(req: Request): Promise<Response> {

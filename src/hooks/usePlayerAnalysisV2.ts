@@ -39,7 +39,8 @@ export type AnalysisV2Step =
   | "uploading"
   | "bunny_processing"
   | "queued"
-  | "modal_processing"
+  | "modal_processing"      // @deprecated — kept for backward compat
+  | "gemini_analyzing"      // Sprint 7: Gemini video analysis step
   | "generating_reports"
   | "completed"
   | "error";
