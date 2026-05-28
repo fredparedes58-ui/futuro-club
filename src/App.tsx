@@ -75,6 +75,7 @@ const SharedAnalysisPage = React.lazy(() => import("./pages/SharedAnalysisPage")
 const TermsPage = React.lazy(() => import("./pages/TermsPage"));
 const PrivacyPage = React.lazy(() => import("./pages/PrivacyPage"));
 const UserGuidePage = React.lazy(() => import("./pages/UserGuidePage"));
+const SetPiecePage = React.lazy(() => import("./pages/SetPiecePage"));
 
 // Suspense fallback for lazy routes
 const LazyFallback = () => (
@@ -217,6 +218,7 @@ const App = () => (
                 <Route path="/family/:playerId" element={<P><ParentDashboardPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
                 <Route path="/guide" element={<P><UserGuidePage /></P>} />
+                <Route path="/set-pieces" element={<P><SetPiecePage /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />
