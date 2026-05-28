@@ -346,31 +346,6 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
     "Asegura que duerme 8-9 horas para una buena recuperación",
     "Celebra el esfuerzo y la mejora, no solo los goles o las victorias",
   ];
-// ── Physical Status Card · lenguaje para padres ────────────────────────────
-const ACWR_PARENT_LABELS: Record<string, { label: string; color: string; advice: string }> = {
-  optimal:      { label: "Carga equilibrada", color: "text-green-400", advice: "Su carga de entrenamiento esta en un rango saludable." },
-  caution:      { label: "Carga elevada",     color: "text-amber-400", advice: "Carga algo alta esta semana. Conviene descansar mas." },
-  danger:       { label: "Carga excesiva",    color: "text-red-400",   advice: "Riesgo alto. Recomendamos reducir actividad y hablar con el entrenador." },
-  undertrained: { label: "Poca actividad",    color: "text-blue-400",  advice: "Poca actividad reciente. Conviene retomar entrenamiento gradualmente." },
-};
-
-const FATIGUE_PARENT_LABELS: Record<string, { label: string; color: string }> = {
-  normal:   { label: "Sin fatiga",      color: "text-green-400" },
-  moderate: { label: "Fatiga leve",     color: "text-amber-400" },
-  high:     { label: "Fatiga alta",     color: "text-orange-400" },
-  critical: { label: "Fatiga critica",  color: "text-red-400" },
-};
-
-function PhysicalStatusCard({ playerId }: { playerId: string }) {
-  const snapshot = PlayerTrackingService.get(playerId);
-  const fatigue = snapshot?.fatigueReport;
-
-  if (!fatigue) return null; // No hay datos de tracking aun
-
-  const acwrZone = fatigue.acwr?.zone ?? "optimal";
-  const acwrInfo = ACWR_PARENT_LABELS[acwrZone] ?? ACWR_PARENT_LABELS.optimal;
-  const fatigueSeverity = fatigue.fatigueIndex?.severity ?? "normal";
-  const fatigueInfo = FATIGUE_PARENT_LABELS[fatigueSeverity] ?? FATIGUE_PARENT_LABELS.normal;
 
   return (
     <motion.div
@@ -430,6 +405,40 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
           </p>
         ))}
       </div>
+    </motion.div>
+  );
+}
+
+// ── Physical Status Card · lenguaje para padres ────────────────────────────
+const ACWR_PARENT_LABELS: Record<string, { label: string; color: string; advice: string }> = {
+  optimal:      { label: "Carga equilibrada", color: "text-green-400", advice: "Su carga de entrenamiento esta en un rango saludable." },
+  caution:      { label: "Carga elevada",     color: "text-amber-400", advice: "Carga algo alta esta semana. Conviene descansar mas." },
+  danger:       { label: "Carga excesiva",    color: "text-red-400",   advice: "Riesgo alto. Recomendamos reducir actividad y hablar con el entrenador." },
+  undertrained: { label: "Poca actividad",    color: "text-blue-400",  advice: "Poca actividad reciente. Conviene retomar entrenamiento gradualmente." },
+};
+
+const FATIGUE_PARENT_LABELS: Record<string, { label: string; color: string }> = {
+  normal:   { label: "Sin fatiga",      color: "text-green-400" },
+  moderate: { label: "Fatiga leve",     color: "text-amber-400" },
+  high:     { label: "Fatiga alta",     color: "text-orange-400" },
+  critical: { label: "Fatiga critica",  color: "text-red-400" },
+};
+
+function PhysicalStatusCard({ playerId }: { playerId: string }) {
+  const snapshot = PlayerTrackingService.get(playerId);
+  const fatigue = snapshot?.fatigueReport;
+
+  if (!fatigue) return null;
+
+  const acwrZone = fatigue.acwr?.zone ?? "optimal";
+  const acwrInfo = ACWR_PARENT_LABELS[acwrZone] ?? ACWR_PARENT_LABELS.optimal;
+  const fatigueSeverity = fatigue.fatigueIndex?.severity ?? "normal";
+  const fatigueInfo = FATIGUE_PARENT_LABELS[fatigueSeverity] ?? FATIGUE_PARENT_LABELS.normal;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.11 }}
       className="glass rounded-2xl p-4"
     >
