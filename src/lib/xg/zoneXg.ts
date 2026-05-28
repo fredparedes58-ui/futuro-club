@@ -1,6 +1,12 @@
 /**
  * VITAS · Zone-based Expected Goals (xG)
  *
+ * @deprecated Sprint 6: Use `computeXg()` from `xgModel.ts` for shot xG with
+ * full ShotContext features, or `computeXgSimple()` for position-only xG.
+ * The PHV-adjusted xG is available via `phvXgAdjuster.ts`.
+ * This module is kept for VAEP enrichment (enrichActionWithXg) which uses
+ * positionalThreat/concedeThreat — those are NOT replaced by xgModel.
+ *
  * Modelo xG simple basado en la posición en el campo.
  * No requiere proveedor externo (StatsBomb/Wyscout) — suficiente para MVP
  * y para alimentar VAEPService cuando faltan probabilidades.

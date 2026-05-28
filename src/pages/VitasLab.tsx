@@ -65,6 +65,9 @@ import FatiguePanel from "@/components/FatiguePanel";
 import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
 import VitasLabOneClick from "@/components/VitasLabOneClick";
 import PlayerIdentityOverlay from "@/components/PlayerIdentityOverlay";
+import XgPanel from "@/components/XgPanel";
+import { XgAccumulator } from "@/lib/xg/xgAccumulator";
+import type { XgSummary } from "@/lib/xg/xgAccumulator";
 
 interface CalibrationPoint {
   id: number;
@@ -300,8 +303,10 @@ const VitasLab = () => {
       setShowTracking(true);
       mediaPipe.reset();
       eventEngineRef.current.reset();
+      xgAccumulatorRef.current.reset();
       setEventSummary(null);
       setTacticalEvents([]);
+      setXgSummary(null);
       videoEl.crossOrigin = "anonymous";
       trackingVideoRef.current = videoEl;
       tracking.startTracking(videoEl).then(() => {
@@ -383,6 +388,10 @@ const VitasLab = () => {
   const eventEngineRef = useRef(new EventDetectionEngine({ trackingFps: 8 }));
   const [eventSummary, setEventSummary] = useState<EventSummary | null>(null);
   const [tacticalEvents, setTacticalEvents] = useState<TacticalEvent[]>([]);
+
+  // ── xG Accumulator (Sprint 6) ──
+  const xgAccumulatorRef = useRef(new XgAccumulator());
+  const [xgSummary, setXgSummary] = useState<XgSummary | null>(null);
 
   // ── Auto-calibration via field line detection ──
   const [autoCalibResult, setAutoCalibResult] = useState<FieldDetectionResult | null>(null);
@@ -507,7 +516,26 @@ const VitasLab = () => {
     // Update summary periodically (every 30 frames ≈ 3.75s)
     if (frameIndex % 30 === 0) {
       setEventSummary(eventEngineRef.current.summarize(tracking.state.focusTrackId ?? undefined));
-      setTacticalEvents(eventEngineRef.current.getEvents());
+      const events = eventEngineRef.current.getEvents();
+      setTacticalEvents(events);
+
+      // Feed shot events into xG accumulator (Sprint 6)
+      const shotEvents = events.filter(e => e.type === "shot");
+      if (shotEvents.length > xgAccumulatorRef.current.shotCount) {
+        // New shots detected — add them
+        const newShots = shotEvents.slice(xgAccumulatorRef.current.shotCount);
+        for (const shot of newShots) {
+          xgAccumulatorRef.current.addShotSimple(
+            shot.timestampMs,
+            shot.startPosition,
+            Number(shot.metadata.xgApprox) || 0.05,
+            shot.outcome === "success",
+            shot.actorTrackId,
+            { distanceM: Number(shot.metadata.distanceToGoalM) || 20 },
+          );
+        }
+        setXgSummary(xgAccumulatorRef.current.summarize());
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracking.state.currentTracks]);
@@ -1987,6 +2015,13 @@ const VitasLab = () => {
 
                 {/* ── Fatigue Analysis Panel ── */}
                 <FatiguePanel report={fatigue.report} />
+
+                {/* ── xG Panel (Sprint 6) ── */}
+                <XgPanel
+                  summary={xgSummary}
+                  phvActive={!!selectedPlayerObj?.phvOffset}
+                  phvOffset={selectedPlayerObj?.phvOffset ?? null}
+                />
 
                 {/* Métricas de Eventos (Gemini observation) */}
                 {analysisReport.metricasCuantitativas?.eventos && (

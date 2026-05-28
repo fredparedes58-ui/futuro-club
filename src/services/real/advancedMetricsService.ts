@@ -19,6 +19,7 @@
 import type { Player } from "./playerService";
 import type { PlayerMetrics } from "./metricsService";
 import { enrichActionWithXg } from "@/lib/xg/zoneXg";
+import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import type { MatchEvent, EventType, EventZone } from "./matchEventsService";
 import type { FieldPosition } from "@/lib/yolo/types";
 

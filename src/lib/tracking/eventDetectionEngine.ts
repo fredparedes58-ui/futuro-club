@@ -17,6 +17,7 @@
 
 import type { Track, ScanEvent, DuelEvent, Keypoint } from "@/lib/yolo/types";
 import type { BallEventType } from "./advancedEventTypes";
+import { computeXgSimple } from "@/lib/xg/xgModel";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -600,17 +601,12 @@ export class EventDetectionEngine {
     return Math.atan2(to.fy - from.fy, to.fx - from.fx) * (180 / Math.PI);
   }
 
+  /**
+   * @deprecated Use computeXgSimple() from xgModel.ts (Sprint 6).
+   * Kept as thin delegation for backward compatibility.
+   */
   private estimateXG(pos: { fx: number; fy: number }): number {
-    // Simple xG model based on distance and angle to goal
-    const goalX = this.config.fieldLengthM;
-    const goalY = this.config.fieldWidthM / 2;
-    const dist = Math.sqrt((goalX - pos.fx) ** 2 + (goalY - pos.fy) ** 2);
-    const angle = Math.abs(Math.atan2(goalY - pos.fy, goalX - pos.fx)) * (180 / Math.PI);
-
-    // Logistic regression approximation
-    const distFactor = Math.exp(-dist / 15);
-    const angleFactor = Math.cos(angle * Math.PI / 180);
-    return Math.min(0.95, Math.max(0.01, distFactor * angleFactor * 0.5));
+    return computeXgSimple(pos.fx, pos.fy);
   }
 }
 
