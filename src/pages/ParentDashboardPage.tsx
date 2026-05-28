@@ -386,6 +386,17 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
       <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
         {acwrInfo.advice}
       </p>
+
+      {/* Sprint 11: Injury risk summary for parents */}
+      {(acwrZone === "danger" || fatigueSeverity === "critical" || fatigueSeverity === "high") && (
+        <div className="mt-3 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2">
+          <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium">
+            {acwrZone === "danger"
+              ? "La carga de entrenamiento esta muy alta. Recomendamos descanso activo."
+              : "El nivel de fatiga es elevado. Es bueno que descanse hoy."}
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }

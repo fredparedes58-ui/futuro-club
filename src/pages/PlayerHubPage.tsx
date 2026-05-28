@@ -19,7 +19,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
-  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer,
+  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -53,14 +53,24 @@ import PositionFitRanking from "@/components/role-profile/PositionFitRanking";
 import ArchetypeRanking from "@/components/role-profile/ArchetypeRanking";
 import StrengthsRisksPanel from "@/components/role-profile/StrengthsRisksPanel";
 import ProjectionComparator from "@/components/role-profile/ProjectionComparator";
+// Sprint 11: Injury dashboard
+import InjuryRiskCard from "@/components/injury/InjuryRiskCard";
+import ACWRHistoryChart from "@/components/injury/ACWRHistoryChart";
+import InjuryTimeline from "@/components/injury/InjuryTimeline";
+import InjuryLogForm from "@/components/injury/InjuryLogForm";
+import PhvRiskOverlay from "@/components/injury/PhvRiskOverlay";
+import { useInjuryRisk } from "@/hooks/useInjuryRisk";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
-type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "historico";
+type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "salud" | "historico";
 
 const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
   { key: "resumen",    label: "Resumen",     icon: Sparkles },
   { key: "stats",      label: "Stats",       icon: Activity,    needsAnalysis: true },
   { key: "movimiento", label: "Movimiento",  icon: Compass },
   { key: "rol",        label: "Rol",         icon: Brain,       needsAnalysis: true },
+  { key: "salud",      label: "Salud",       icon: Heart },
   { key: "historico",  label: "Histórico",   icon: Clock,       needsAnalysis: true },
 ];
 
@@ -95,6 +105,25 @@ export default function PlayerHubPage() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [id]);
+
+  // Sprint 11: Injury risk data
+  const { injuries, riskData, saveInjuries: persistInjuries, injuriesLoading } = useInjuryRisk(id);
+  const [localInjuries, setLocalInjuries] = useState(injuries);
+  useEffect(() => { setLocalInjuries(injuries); }, [injuries]);
+  const { canUseInjuryPrediction } = usePlan();
+
+  // ACWR history for chart (from fatigue sessions in tracking snapshot)
+  const acwrChartData = useMemo(() => {
+    if (!snapshot?.fatigueReport?.acwr) return [];
+    const acwr = snapshot.fatigueReport.acwr;
+    // Single point from current session; full history needs fatigue_sessions API
+    return [{
+      date: new Date().toISOString().slice(0, 10),
+      acwr: acwr.value ?? null,
+      load: acwr.acuteLoad ?? 0,
+      zone: (acwr.zone ?? "unknown") as "optimal" | "caution" | "danger" | "undertrained" | "unknown",
+    }];
+  }, [snapshot]);
 
   // Position rollup · agregado de todos los videos por posición
   const [positionRollup, setPositionRollup] = useState<PositionRollupRow[]>([]);
@@ -455,6 +484,68 @@ export default function PlayerHubPage() {
                 <div className="glass rounded-xl p-6 text-center">
                   <Sparkles size={20} className="mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Generando perfil de rol…</p>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {tab === "salud" && (
+            <motion.div
+              key="salud"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {!canUseInjuryPrediction ? (
+                <div className="relative">
+                  <div className="blur-sm pointer-events-none select-none space-y-4">
+                    <div className="glass rounded-2xl p-8 h-48" />
+                    <div className="glass rounded-2xl p-8 h-32" />
+                  </div>
+                  <UpgradePrompt feature="Prediccion de Lesiones" requiredPlan="pro" variant="overlay" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Injury Risk Card */}
+                  {riskData && (
+                    <InjuryRiskCard data={riskData} />
+                  )}
+                  {!riskData && !injuriesLoading && (
+                    <div className="glass rounded-xl p-6 text-center">
+                      <Heart size={20} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Analiza una sesion para ver el riesgo de lesion</p>
+                    </div>
+                  )}
+
+                  {/* PHV Risk */}
+                  {snapshot?.fatigueReport?.thresholds && (
+                    <PhvRiskOverlay
+                      phvOffset={snapshot.fatigueReport.thresholds.phvOffset ?? null}
+                      phvCategory={snapshot.fatigueReport.thresholds.band}
+                      age={player?.age ?? null}
+                    />
+                  )}
+
+                  {/* ACWR Chart */}
+                  <div className="glass rounded-2xl p-4">
+                    <ACWRHistoryChart data={acwrChartData} />
+                  </div>
+
+                  {/* Injury Timeline */}
+                  <div className="glass rounded-2xl p-4">
+                    <InjuryTimeline injuries={localInjuries} />
+                  </div>
+
+                  {/* Injury Log Form */}
+                  <div className="glass rounded-2xl p-4">
+                    <InjuryLogForm
+                      playerId={id ?? ""}
+                      injuries={localInjuries}
+                      onChange={setLocalInjuries}
+                      onSave={(injs) => persistInjuries(injs)}
+                    />
+                  </div>
                 </div>
               )}
             </motion.div>
