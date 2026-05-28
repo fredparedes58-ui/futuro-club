@@ -17,7 +17,7 @@ import type {
   DrillSuggestion,
   WeeklySessionPlan,
 } from "@/lib/shared/sessionTypes";
-import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
+import { DRILLS_LIBRARY, type DrillDocument } from "../../data/drillsLibrary";
 
 // ─── Weakness-to-Drill Mapping ────────────────────────────────────────────
 

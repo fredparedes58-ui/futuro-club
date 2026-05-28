@@ -13,7 +13,7 @@ import type {
   ClassifiedDrill,
   DrillCategory,
 } from "@/lib/shared/sessionTypes";
-import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
+import { DRILLS_LIBRARY, type DrillDocument } from "../../data/drillsLibrary";
 
 // ─── Detection Signal Ranges (for matching with DRILLS_LIBRARY) ────────────
 
