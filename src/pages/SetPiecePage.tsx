@@ -9,21 +9,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles } from "lucide-react";
+import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3 } from "lucide-react";
+import { toast } from "sonner";
 import {
   getAllSetPieces,
   getAggregateStats,
   getRecommendations,
 } from "@/services/real/setPieceService";
-import { SetPieceCustomStorage } from "@/services/real/setPieceCustomStorage";
+import { SetPieceCustomStorage, type CustomSetPieceEvent } from "@/services/real/setPieceCustomStorage";
 // PitchView is rendered inside the SetPieceCard detail panel below
 import PitchView from "@/components/setPiece/PitchView";
 import SetPieceCard from "@/components/setPiece/SetPieceCard";
 import SetPieceStats from "@/components/setPiece/SetPieceStats";
 import RecommendationCard from "@/components/setPiece/RecommendationCard";
 import EventNotesPanel from "@/components/setPiece/EventNotesPanel";
+import TacticalBoardEditor, { type Drawing, type TextNote } from "@/components/setPiece/TacticalBoardEditor";
 import { EventNotesStorage } from "@/services/real/eventNotesStorage";
-import type { SetPieceEvent, SetPieceRecommendation } from "@/lib/setPiece/types";
+import type { SetPieceEvent, SetPieceRecommendation, PlayerOnSetPiece } from "@/lib/setPiece/types";
 
 type Tab = "events" | "stats" | "recommendations";
 type SideFilter = "all" | "offensive" | "defensive";
@@ -78,6 +80,78 @@ export default function SetPiecePage() {
 
   // Bump this counter when notes change to force note-count badges to refresh
   const [notesVersion, setNotesVersion] = useState(0);
+
+  // ── Inline tactical editor state ──────────────────────────────────────
+  // When `editingEvent` is set, the detail panel shows the editor instead of PitchView.
+  const [editingEvent, setEditingEvent] = useState<SetPieceEvent | null>(null);
+  const [editPlayers, setEditPlayers] = useState<PlayerOnSetPiece[]>([]);
+  const [editDrawings, setEditDrawings] = useState<Drawing[]>([]);
+  const [editTexts, setEditTexts] = useState<TextNote[]>([]);
+
+  const startEditing = (event: SetPieceEvent) => {
+    setEditingEvent(event);
+    setEditPlayers(event.players);
+    // Custom events may already carry drawings/texts
+    const customEvent = event as CustomSetPieceEvent;
+    setEditDrawings(customEvent.drawings ?? []);
+    setEditTexts(customEvent.texts ?? []);
+  };
+
+  const cancelEditing = () => {
+    setEditingEvent(null);
+    setEditPlayers([]);
+    setEditDrawings([]);
+    setEditTexts([]);
+  };
+
+  const saveEditing = () => {
+    if (!editingEvent) return;
+    const existingCustom = editingEvent as CustomSetPieceEvent;
+    const isAlreadyCustom = customEvents.some((c) => c.id === editingEvent.id);
+
+    if (isAlreadyCustom) {
+      // Update existing custom event in place
+      const updated: CustomSetPieceEvent = {
+        ...existingCustom,
+        players: editPlayers,
+        drawings: editDrawings,
+        texts: editTexts,
+        isCustom: true,
+        createdAt: existingCustom.createdAt ?? new Date().toISOString(),
+      };
+      SetPieceCustomStorage.saveCustomEvent(updated);
+      toast.success("Pizarrón actualizado");
+    } else {
+      // Mock event → save as new custom copy keeping all metadata
+      const newCustom: CustomSetPieceEvent = {
+        ...editingEvent,
+        // Generate fresh id to avoid clashing with the mock one and so the
+        // mock keeps existing for everyone else; notes carry over via same id ideally
+        id: `event_custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        players: editPlayers,
+        drawings: editDrawings,
+        texts: editTexts,
+        isCustom: true,
+        confidence: 1.0,
+        createdAt: new Date().toISOString(),
+      };
+      SetPieceCustomStorage.saveCustomEvent(newCustom);
+      toast.success("Pizarrón guardado como copia editable");
+      // Refresh custom events list and select the new one
+      const refreshed = SetPieceCustomStorage.getCustomEvents();
+      setCustomEvents(refreshed);
+      setSelectedEvent(newCustom);
+    }
+    cancelEditing();
+    setCustomEvents(SetPieceCustomStorage.getCustomEvents());
+  };
+
+  // Cancel editing if the user navigates to a different event
+  useEffect(() => {
+    if (editingEvent && selectedEvent && editingEvent.id !== selectedEvent.id) {
+      cancelEditing();
+    }
+  }, [selectedEvent, editingEvent]);
 
   // Default selection
   const activeEvent =
@@ -225,21 +299,91 @@ export default function SetPiecePage() {
                 {activeEvent && (
                   <div className="space-y-3 lg:sticky lg:top-32 self-start max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
                     <div className="glass rounded-2xl p-4 space-y-3">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
                         <h3 className="text-sm font-display font-bold text-foreground">
-                          Detalle táctico
+                          {editingEvent ? "Editando pizarrón" : "Detalle táctico"}
                         </h3>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {activeEvent.matchLabel}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {!editingEvent && (
+                            <button
+                              onClick={() => startEditing(activeEvent)}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
+                              title="Mover jugadores, dibujar flechas, añadir texto"
+                            >
+                              <Edit3 size={11} />
+                              Editar pizarrón
+                            </button>
+                          )}
+                          {editingEvent && (
+                            <>
+                              <button
+                                onClick={cancelEditing}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold text-muted-foreground hover:bg-secondary transition-colors"
+                              >
+                                <X size={11} />
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={saveEditing}
+                                className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-semibold hover:bg-primary/90 transition-colors"
+                              >
+                                <Save size={11} />
+                                Guardar
+                              </button>
+                            </>
+                          )}
+                          <span className="text-[10px] text-muted-foreground font-mono">
+                            {activeEvent.matchLabel}
+                          </span>
+                        </div>
                       </div>
-                      <PitchView
-                        players={activeEvent.players}
-                        origin={activeEvent.origin}
-                        endPoint={activeEvent.endPoint}
-                        height={320}
-                      />
-                      {activeEvent.tacticalNotes.length > 0 && (
+
+                      {editingEvent && editingEvent.id === activeEvent.id ? (
+                        <>
+                          {!isCustomEvent(editingEvent) && (
+                            <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-400">
+                              <strong>Editando un evento original:</strong> al guardar se creará una copia personalizada con tus cambios, sin modificar el original.
+                            </div>
+                          )}
+                          <TacticalBoardEditor
+                            players={editPlayers}
+                            drawings={editDrawings}
+                            texts={editTexts}
+                            onPlayersChange={setEditPlayers}
+                            onDrawingsChange={setEditDrawings}
+                            onTextsChange={setEditTexts}
+                            editable
+                            height={360}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {isCustomEvent(activeEvent) &&
+                          ((activeEvent as CustomSetPieceEvent).drawings?.length > 0 ||
+                            (activeEvent as CustomSetPieceEvent).texts?.length > 0) ? (
+                            // Custom event with annotations → show read-only board with drawings & texts
+                            <TacticalBoardEditor
+                              players={activeEvent.players}
+                              drawings={(activeEvent as CustomSetPieceEvent).drawings ?? []}
+                              texts={(activeEvent as CustomSetPieceEvent).texts ?? []}
+                              onPlayersChange={() => {}}
+                              onDrawingsChange={() => {}}
+                              onTextsChange={() => {}}
+                              editable={false}
+                              height={320}
+                            />
+                          ) : (
+                            <PitchView
+                              players={activeEvent.players}
+                              origin={activeEvent.origin}
+                              endPoint={activeEvent.endPoint}
+                              height={320}
+                            />
+                          )}
+                        </>
+                      )}
+
+                      {activeEvent.tacticalNotes.length > 0 && !editingEvent && (
                         <div className="space-y-1.5 pt-2 border-t border-border">
                           <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                             Notas del análisis IA
