@@ -6,20 +6,22 @@
  * 3 tabs: Eventos · Estadísticas · Recomendaciones
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter } from "lucide-react";
+import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles } from "lucide-react";
 import {
   getAllSetPieces,
   getAggregateStats,
   getRecommendations,
 } from "@/services/real/setPieceService";
+import { SetPieceCustomStorage } from "@/services/real/setPieceCustomStorage";
+// PitchView is rendered inside the SetPieceCard detail panel below
 import PitchView from "@/components/setPiece/PitchView";
 import SetPieceCard from "@/components/setPiece/SetPieceCard";
 import SetPieceStats from "@/components/setPiece/SetPieceStats";
 import RecommendationCard from "@/components/setPiece/RecommendationCard";
-import type { SetPieceEvent } from "@/lib/setPiece/types";
+import type { SetPieceEvent, SetPieceRecommendation } from "@/lib/setPiece/types";
 
 type Tab = "events" | "stats" | "recommendations";
 type SideFilter = "all" | "offensive" | "defensive";
@@ -36,7 +38,25 @@ export default function SetPiecePage() {
   const [filter, setFilter] = useState<SideFilter>("all");
   const [selectedEvent, setSelectedEvent] = useState<SetPieceEvent | null>(null);
 
-  const allEvents = useMemo(() => getAllSetPieces(), []);
+  // Custom items state (reloaded when page mounts and on navigation)
+  const [customEvents, setCustomEvents] = useState(() => SetPieceCustomStorage.getCustomEvents());
+  const [customRecs, setCustomRecs] = useState(() => SetPieceCustomStorage.getCustomRecommendations());
+
+  // Refresh when window regains focus (after navigating back from editor)
+  useEffect(() => {
+    const handleFocus = () => {
+      setCustomEvents(SetPieceCustomStorage.getCustomEvents());
+      setCustomRecs(SetPieceCustomStorage.getCustomRecommendations());
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  const allEvents = useMemo(() => {
+    // Custom events first (most recent at top), then generated mock events
+    return [...(customEvents as SetPieceEvent[]), ...getAllSetPieces()];
+  }, [customEvents]);
+
   const filteredEvents = useMemo(() => {
     if (filter === "offensive") return allEvents.filter((e) => e.isOffensive);
     if (filter === "defensive") return allEvents.filter((e) => !e.isOffensive);
@@ -44,7 +64,15 @@ export default function SetPiecePage() {
   }, [allEvents, filter]);
 
   const stats = useMemo(() => getAggregateStats(allEvents), [allEvents]);
-  const recommendations = useMemo(() => getRecommendations(), []);
+  const recommendations = useMemo<SetPieceRecommendation[]>(
+    () => [...customRecs, ...getRecommendations()],
+    [customRecs],
+  );
+
+  const isCustomEvent = (e: SetPieceEvent) =>
+    customEvents.some((c) => c.id === e.id);
+  const isCustomRec = (r: SetPieceRecommendation) =>
+    customRecs.some((c) => c.id === r.id);
 
   // Default selection
   const activeEvent =
@@ -113,8 +141,8 @@ export default function SetPiecePage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              {/* Filter pills */}
-              <div className="flex items-center gap-2">
+              {/* Filter pills + Create button */}
+              <div className="flex items-center gap-2 flex-wrap">
                 <Filter size={14} className="text-muted-foreground" />
                 {[
                   { key: "all" as const, label: "Todas" },
@@ -133,23 +161,51 @@ export default function SetPiecePage() {
                     {f.label}
                   </button>
                 ))}
-                <span className="ml-auto text-[11px] text-muted-foreground font-mono">
+                <span className="text-[11px] text-muted-foreground font-mono">
                   {filteredEvents.length} jugadas
                 </span>
+                <button
+                  onClick={() => navigate("/set-pieces/new")}
+                  className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
+                >
+                  <Plus size={14} />
+                  Nueva jugada
+                </button>
               </div>
 
               {/* Two-column: list + detail */}
               <div className="grid grid-cols-1 lg:grid-cols-[1fr,1.2fr] gap-4">
                 {/* List */}
                 <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 lg:pr-2">
-                  {filteredEvents.map((event) => (
-                    <SetPieceCard
-                      key={event.id}
-                      event={event}
-                      onClick={() => setSelectedEvent(event)}
-                      active={activeEvent?.id === event.id}
-                    />
-                  ))}
+                  {filteredEvents.map((event) => {
+                    const isCustom = isCustomEvent(event);
+                    return (
+                      <div key={event.id} className="relative group">
+                        <SetPieceCard
+                          event={event}
+                          onClick={() => setSelectedEvent(event)}
+                          active={activeEvent?.id === event.id}
+                        />
+                        {isCustom && (
+                          <>
+                            <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
+                              <Sparkles size={8} /> Custom
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/set-pieces/edit/${event.id}`);
+                              }}
+                              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+                              title="Editar"
+                            >
+                              <Pencil size={11} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Detail */}
@@ -214,15 +270,46 @@ export default function SetPiecePage() {
               transition={{ duration: 0.2 }}
               className="space-y-3"
             >
-              <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5">
-                <p className="text-xs text-foreground/80 leading-relaxed">
-                  <strong className="text-primary">Recomendaciones generadas por IA</strong> basadas en el análisis
-                  de jugadas detectadas en tus videos y patrones defensivos de los rivales. Despliega cada una para ver el diagrama y los puntos clave.
-                </p>
+              <div className="flex items-center justify-between gap-3">
+                <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5 flex-1">
+                  <p className="text-xs text-foreground/80 leading-relaxed">
+                    <strong className="text-primary">Recomendaciones generadas por IA</strong> basadas en el análisis
+                    de jugadas detectadas en tus videos y patrones defensivos de los rivales. Despliega cada una para ver el diagrama y los puntos clave.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate("/set-pieces/new?type=recommendation")}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all shrink-0"
+                >
+                  <Plus size={14} />
+                  Nueva
+                </button>
               </div>
-              {recommendations.map((rec) => (
-                <RecommendationCard key={rec.id} rec={rec} />
-              ))}
+              {recommendations.map((rec) => {
+                const isCustom = isCustomRec(rec);
+                return (
+                  <div key={rec.id} className="relative group">
+                    <RecommendationCard rec={rec} />
+                    {isCustom && (
+                      <>
+                        <span className="absolute top-3 right-12 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
+                          <Sparkles size={8} /> Custom
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/set-pieces/edit/${rec.id}?type=recommendation`);
+                          }}
+                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+                          title="Editar"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
