@@ -84,6 +84,24 @@ export const MODELS: Record<string, ModelSpec> = {
     notes: "Target model. ~10cm tracking accuracy. Runs at 4-8 FPS on mobile. Requires ONNX Runtime 1.17+.",
   },
 
+  /** Football-specific detection model: person (0) + ball (1) */
+  "yolov8s-football": {
+    id: "yolov8s-football",
+    name: "YOLOv8 Small Football",
+    family: "yolov8",
+    variant: "s",
+    task: "detect",
+    inputSize: 640,
+    numKeypoints: 0,
+    confThreshold: 0.25,
+    nmsThreshold: 0.3,
+    modelPath: "/models/yolov8s-football.onnx",
+    sizeMb: 22,
+    accuracyFactor: 1.5,
+    dynamicBatch: false,
+    notes: "Football-specific detection model. Classes: person (0), ball (1). mAP@0.50 = 0.92 on football datasets.",
+  },
+
   /** Future custom model fine-tuned on youth football */
   "vitas-pose-v1": {
     id: "vitas-pose-v1",

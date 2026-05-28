@@ -4,6 +4,11 @@
  */
 
 import type { KalmanLite2D } from "./kalmanLite";
+import type { BallDetection } from "./ballDetector";
+import type { BallTrack } from "./ballTracker";
+
+// Re-export ball types for convenience
+export type { BallDetection, BallTrack };
 
 // ─── Coordenadas ──────────────────────────────────────────────────────────────
 
@@ -56,6 +61,14 @@ export interface Track {
   kalman?:          KalmanLite2D;
   /** HSV color histogram of torso region for re-identification */
   histogram?:       Float32Array;
+  /** Stable identity ID (Sprint 4 — Player Re-ID) */
+  stableId?:        string;
+  /** Jersey/dorsal number from OCR */
+  dorsalNumber?:    number;
+  /** Team assignment */
+  team?:            "home" | "away" | "unknown";
+  /** Identity confidence 0-1 */
+  identityConfidence?: number;
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────
@@ -117,7 +130,7 @@ export type WorkerCommand =
 export type WorkerEvent =
   | { type: "READY" }
   | { type: "PROGRESS"; percent: number; message: string }
-  | { type: "RESULT"; frameIndex: number; timestampMs: number; tracks: Track[] }
+  | { type: "RESULT"; frameIndex: number; timestampMs: number; tracks: Track[]; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }> }
   | { type: "ERROR"; message: string }
 
 // ─── Calibración del campo ────────────────────────────────────────────────────
@@ -174,4 +187,18 @@ export interface TrackingSession {
   duelEvents:      DuelEvent[];
   calibrationPreset: FieldAnchorPreset;
   createdAt:       string;
+  /** Ball track data from Sprint 1 — Ball Tracking */
+  ballTrack?:      BallTrack;
 }
+
+// ─── Ball Worker messages (Sprint 1) ─────────────────────────────────────────
+
+export type BallWorkerCommand =
+  | { type: "INIT"; config?: Record<string, unknown> }
+  | { type: "BALL_FRAME"; outputData?: Float32Array; numClasses?: number; imgW: number; imgH: number; modelSize?: number; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }>; homography: number[]; timestampMs: number; frameIndex: number }
+  | { type: "RESET" }
+
+export type BallWorkerEvent =
+  | { type: "BALL_READY" }
+  | { type: "BALL_RESULT"; frameIndex: number; timestampMs: number; ballTrack: BallTrack; detection: BallDetection | null }
+  | { type: "BALL_ERROR"; message: string }

@@ -8,11 +8,28 @@
  * Storage: localStorage `vitas_tracking_snapshot_{playerId}` (uno por jugador,
  * el último prevalece).
  */
-import type { PhysicalMetrics, ScanEvent, DuelEvent } from "@/lib/yolo/types";
+import type { PhysicalMetrics, ScanEvent, DuelEvent, FieldPoint } from "@/lib/yolo/types";
 import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 import type { FatigueReport } from "@/lib/fatigue/types";
 import { getAuthHeaders } from "@/lib/apiAuth";
+
+// ─── Ball / Possession types (Sprint 1) ──────────────────────────────────────
+
+export interface BallPosition {
+  fx: number;
+  fy: number;
+  timestampMs: number;
+  confidence: number;
+  source: "model" | "heuristic" | "predicted";
+}
+
+export interface PossessionSegment {
+  team: "home" | "away" | "contested" | "none";
+  startMs: number;
+  endMs: number;
+  durationMs: number;
+}
 
 const STORAGE_PREFIX = "vitas_tracking_snapshot_";
 
@@ -37,6 +54,10 @@ export interface TrackingSnapshot {
   biomechanicsScore?: BiomechanicsScore;
   /** Fatigue report (Sprint 2 — metabolic power, ACWR, posture signals, PHV-adjusted) */
   fatigueReport?: FatigueReport;
+  /** Ball positions during the session (Sprint 1 — field coordinates, last 500) */
+  ballPositions?: BallPosition[];
+  /** Possession segments (Sprint 1 — team possession timeline) */
+  possessionSegments?: PossessionSegment[];
 }
 
 export const PlayerTrackingService = {
@@ -49,7 +70,9 @@ export const PlayerTrackingService = {
       scanEvents: snapshot.scanEvents.slice(-200),
       duelEvents: snapshot.duelEvents.slice(-200),
       focusPositions: snapshot.focusPositions?.slice(-500),
-      tacticalEvents: snapshot.tacticalEvents?.slice(-300),
+      tacticalEvents: snapshot.tacticalEvents?.slice(-500),
+      ballPositions: snapshot.ballPositions?.slice(-500),
+      possessionSegments: snapshot.possessionSegments?.slice(-100),
     };
     // 1. localStorage (inmediato, nunca falla la app)
     try {

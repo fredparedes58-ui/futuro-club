@@ -135,12 +135,19 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
     const H = new Float64Array(cmd.homography);
     const tracks = tracker.update(detections, H, cmd.timestampMs);
 
+    // 5. Extract person bboxes for ball heuristic detection (Sprint 1)
+    const personBboxes = detections.map(d => ({
+      bbox: d.bbox as [number, number, number, number],
+      confidence: d.confidence,
+    }));
+
     send({
       type:       "RESULT",
       frameIndex: cmd.frameIndex,
       timestampMs: cmd.timestampMs,
       tracks,
-    });
+      personBboxes,
+    } as WorkerEvent);
   } catch (err) {
     send({ type: "ERROR", message: err instanceof Error ? err.message : String(err) });
   }

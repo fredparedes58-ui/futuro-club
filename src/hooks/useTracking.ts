@@ -23,7 +23,10 @@ import {
   type TrackingStatus,
   type FieldAnchorPreset,
   type WorkerEvent,
+  type BallTrack,
 } from "@/lib/yolo/types";
+import { useBallTracking } from "./useBallTracking";
+import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 
 const TARGET_FPS     = 8;
 const VORONOI_INTERVAL_MS = 500;
@@ -42,6 +45,11 @@ export interface TrackingState {
   focusTrackId:    number | null;
   sessionMetrics:  PhysicalMetrics | null;
   error:           string | null;
+  /** Ball tracking state (Sprint 1) */
+  ballTrack:       BallTrack | null;
+  ballVisible:     boolean;
+  ballSpeedMs:     number;
+  possession:      PossessionTeam;
 }
 
 /** Callback for fatigue integration: receives field positions each frame */
@@ -60,6 +68,8 @@ export interface UseTrackingOptions {
   localVideoSrc?:   string; // blob: URL for local videos (no Bunny CDN)
   /** Called every frame with the focused player's field position (for fatigue/useFatigue) */
   onTrackingPosition?: OnTrackingPositionCallback;
+  /** Enable ball tracking in parallel (Sprint 1, default: true) */
+  enableBallTracking?: boolean;
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -74,9 +84,16 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true } = options;
   const onTrackingPositionRef = useRef(onTrackingPosition);
   onTrackingPositionRef.current = onTrackingPosition;
+
+  // Ball tracking (Sprint 1)
+  const { ballState, startBallTracking, stopBallTracking, feedBallFrame, computePossession } = useBallTracking();
+  const enableBallTrackingRef = useRef(enableBallTracking);
+  enableBallTrackingRef.current = enableBallTracking;
+  const feedBallFrameRef = useRef(feedBallFrame);
+  feedBallFrameRef.current = feedBallFrame;
 
   const [state, setState] = useState<TrackingState>({
     status:          "idle",
@@ -89,6 +106,10 @@ export function useTracking(options: UseTrackingOptions) {
     focusTrackId:    null,
     sessionMetrics:  null,
     error:           null,
+    ballTrack:       null,
+    ballVisible:     false,
+    ballSpeedMs:     0,
+    possession:      "none",
   });
 
   const workerRef       = useRef<Worker | null>(null);
@@ -182,6 +203,18 @@ export function useTracking(options: UseTrackingOptions) {
             }
           }
 
+          // Feed ball tracking worker with person bboxes for heuristic detection (Sprint 1)
+          if (enableBallTrackingRef.current && (event as Record<string, unknown>).personBboxes) {
+            feedBallFrameRef.current({
+              personBboxes: (event as Record<string, unknown>).personBboxes as Array<{ bbox: [number, number, number, number]; confidence: number }>,
+              imgW: videoRef.current?.videoWidth ?? 1280,
+              imgH: videoRef.current?.videoHeight ?? 720,
+              homography: Array.from(homographyRef.current),
+              timestampMs: event.timestampMs,
+              frameIndex: event.frameIndex,
+            });
+          }
+
           setState(s => ({
             ...s,
             currentTracks:  tracks,
@@ -222,7 +255,16 @@ export function useTracking(options: UseTrackingOptions) {
       voronoiRegions: [],
       sessionMetrics: null,
       error:         null,
+      ballTrack:     null,
+      ballVisible:   false,
+      ballSpeedMs:   0,
+      possession:    "none",
     }));
+
+    // Start ball tracking worker in parallel (Sprint 1)
+    if (enableBallTracking) {
+      startBallTracking();
+    }
 
     // If the video is already loaded and ready, skip reload
     const isReady = videoEl.readyState >= 2 && videoEl.src && !videoEl.error;
@@ -287,7 +329,7 @@ export function useTracking(options: UseTrackingOptions) {
     });
 
     setState(s => ({ ...s, status: "tracking" }));
-  }, [videoId, cdnHostname, initWorker, localVideoSrc]);
+  }, [videoId, cdnHostname, initWorker, localVideoSrc, enableBallTracking, startBallTracking]);
 
   // ── stopTracking ─────────────────────────────────────────────────────────────
   const stopTracking = useCallback((): PhysicalMetrics => {
@@ -302,9 +344,14 @@ export function useTracking(options: UseTrackingOptions) {
       duelEventsRef.current
     );
 
+    // Stop ball tracking worker (Sprint 1)
+    if (enableBallTracking) {
+      stopBallTracking();
+    }
+
     setState(s => ({ ...s, status: "complete", sessionMetrics: metrics }));
     return metrics;
-  }, []); // no state dependency — uses refs only
+  }, [enableBallTracking, stopBallTracking]); // uses refs + ball tracking
 
   // ── pauseTracking / resumeTracking ───────────────────────────────────────────
   const pauseTracking = useCallback(() => {
@@ -323,13 +370,26 @@ export function useTracking(options: UseTrackingOptions) {
     setState(s => ({ ...s, focusTrackId: id }));
   }, []);
 
+  // ── Sync ball state into tracking state ──────────────────────────────────────
+  useEffect(() => {
+    if (!enableBallTracking) return;
+    setState(s => ({
+      ...s,
+      ballTrack: ballState.ballTrack,
+      ballVisible: ballState.ballVisible,
+      ballSpeedMs: ballState.ballSpeedMs,
+      possession: ballState.possession.team,
+    }));
+  }, [ballState.ballTrack, ballState.ballVisible, ballState.ballSpeedMs, ballState.possession.team, enableBallTracking]);
+
   // ── Cleanup ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       extractorRef.current?.stop();
       workerRef.current?.terminate();
+      stopBallTracking();
     };
-  }, []);
+  }, [stopBallTracking]);
 
   /** Get the focused player's field positions for fatigue analysis */
   const getFocusPositions = useCallback(() => {
@@ -350,6 +410,10 @@ export function useTracking(options: UseTrackingOptions) {
     resumeTracking,
     setFocusTrackId,
     getFocusPositions,
+    /** Ball tracking state (Sprint 1) */
+    ballState,
+    /** Compute possession from ball + player positions (Sprint 1) */
+    computePossession,
   };
 }
 
