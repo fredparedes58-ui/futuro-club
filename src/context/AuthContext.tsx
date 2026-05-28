@@ -79,11 +79,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Escucha cambios de sesión
+    // Escucha cambios de sesion
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
+
+      // Fase 3: Auto-accept pending team invitation after login/signup
+      if (newSession?.user) {
+        const pendingToken = localStorage.getItem("vitas_pending_invite_token");
+        if (pendingToken) {
+          import("@/services/real/teamService").then(({ TeamService }) => {
+            TeamService.acceptInvitation(pendingToken, newSession.user.id)
+              .then(() => {
+                localStorage.removeItem("vitas_pending_invite_token");
+                console.log("[auth] Auto-accepted pending team invitation");
+              })
+              .catch(() => {
+                // Token expired or invalid — clean up silently
+                localStorage.removeItem("vitas_pending_invite_token");
+              });
+          });
+        }
+      }
     });
 
     return () => listener.subscription.unsubscribe();

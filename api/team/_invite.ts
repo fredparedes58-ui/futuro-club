@@ -10,6 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { checkTeamQuota, quotaExceededResponse } from "../_lib/usageGuard";
 
 // Node.js runtime required — Resend SDK uses Node-only APIs
 // export const config = { runtime: "edge" };
@@ -46,6 +47,10 @@ export default withHandler(
     if (!callerProfile || callerProfile.role !== "director") {
       return errorResponse("Solo directores pueden invitar miembros", 403, "FORBIDDEN");
     }
+
+    // ── Fase 3: Team member quota check ──────────────────────────────
+    const teamQuota = await checkTeamQuota(orgOwnerId);
+    if (!teamQuota.allowed) return quotaExceededResponse(teamQuota);
 
     // Verificar que no exista ya una invitación pendiente para este email
     const { data: existing } = await supabase

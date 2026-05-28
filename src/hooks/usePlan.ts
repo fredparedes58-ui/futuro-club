@@ -1,6 +1,8 @@
 /**
- * usePlan — Estado del plan de suscripción del usuario
- * Devuelve plan actual, límites, contadores de uso y feature flags.
+ * usePlan — Estado del plan de suscripcion del usuario
+ * Devuelve plan actual, limites, contadores de uso y feature flags.
+ *
+ * Fase 3: Added teamMemberCount, canInviteMembers, teamMemberLimit.
  */
 
 import { useQuery } from "@tanstack/react-query";
@@ -18,8 +20,11 @@ export interface PlanState {
   limits: PlanLimits;
   playerCount: number;
   analysesUsed: number;
+  teamMemberCount: number;
+  teamMemberLimit: number;
   canAddPlayer: boolean;
   canRunAnalysis: boolean;
+  canInviteMembers: boolean;
   canUseVAEP: boolean;
   canExportPDF: boolean;
   canManageRoles: boolean;
@@ -27,20 +32,35 @@ export interface PlanState {
   canUseBehavioral: boolean;
   canUseWellbeing: boolean;
   canUseTeamWellbeing: boolean;
+  canUseInjuryPrediction: boolean;
+  canUseValuation: boolean;
+  canUseMultiVideoAggregation: boolean;
   isPro: boolean;
   isClub: boolean;
   stripeCustomerId: string | null;
   currentPeriodEnd: string | null;
 }
 
-// Emails de administradores con acceso ilimitado (sin restricción de plan).
-// También se puede definir via VITE_ADMIN_EMAILS="a@b.com,c@d.com"
+// Emails de administradores con acceso ilimitado (sin restriccion de plan).
+// Tambien se puede definir via VITE_ADMIN_EMAILS="a@b.com,c@d.com"
 const ENV_ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
 const ADMIN_EMAILS = new Set([
   ...ENV_ADMIN_EMAILS,
   // Hardcoded fallback — owner siempre tiene acceso total
   "fredparedes58@gmail.com",
 ]);
+
+/** Read team member count from localStorage (cached by TeamService) */
+function getTeamMemberCount(): number {
+  try {
+    const raw = localStorage.getItem("vitas_team_members");
+    if (raw) {
+      const members = JSON.parse(raw);
+      return Array.isArray(members) ? members.length : 0;
+    }
+  } catch { /* ignore */ }
+  return 0;
+}
 
 export function usePlan(): PlanState & { isAdmin: boolean } {
   const { user } = useAuth();
@@ -59,18 +79,22 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
 
   const isAdmin = ADMIN_EMAILS.has((user?.email ?? "").toLowerCase());
   const plan = data?.plan ?? "free";
-  // Admin siempre tiene límites de club (ilimitado)
+  // Admin siempre tiene limites de club (ilimitado)
   const effectiveLimits = isAdmin ? PLAN_LIMITS["club"] : PLAN_LIMITS[plan];
   const playerCount = PlayerService.getAll().length;
   const analysesUsed = SubscriptionService.getAnalysesUsedThisMonth();
+  const teamMemberCount = getTeamMemberCount();
 
   return {
     plan: isAdmin ? "club" : plan,
     limits: effectiveLimits,
     playerCount,
     analysesUsed,
+    teamMemberCount,
+    teamMemberLimit: effectiveLimits.teamMembers,
     canAddPlayer: isAdmin || playerCount < effectiveLimits.players,
     canRunAnalysis: isAdmin || analysesUsed < effectiveLimits.analyses,
+    canInviteMembers: isAdmin || teamMemberCount < effectiveLimits.teamMembers,
     canUseVAEP: isAdmin || effectiveLimits.vaep,
     canExportPDF: isAdmin || effectiveLimits.pdf,
     canManageRoles: isAdmin || effectiveLimits.roles,
@@ -78,6 +102,9 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
     canUseBehavioral: isAdmin || plan === "pro" || plan === "club",
     canUseWellbeing: isAdmin || plan === "pro" || plan === "club",
     canUseTeamWellbeing: isAdmin || plan === "club",
+    canUseInjuryPrediction: isAdmin || effectiveLimits.injuryPrediction,
+    canUseValuation: isAdmin || effectiveLimits.valuation,
+    canUseMultiVideoAggregation: isAdmin || effectiveLimits.multiVideoAggregation,
     isPro: isAdmin || plan === "pro" || plan === "club",
     isClub: isAdmin || plan === "club",
     isAdmin,

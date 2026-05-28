@@ -251,7 +251,101 @@ export const PlayerTrackingService = {
       source: "localStorage" as const,
     }];
   },
+
+  /**
+   * Multi-session aggregation: rolling averages, trends, percentiles.
+   * Sprint 9: foundation for injury + valuation models.
+   */
+  async getSessionAggregation(
+    playerId: string,
+    days = 28,
+  ): Promise<SessionAggregation> {
+    const history = await this.getHistory(playerId, 50);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString();
+
+    const recent = history.filter((s) => s.date >= cutoffStr);
+    if (recent.length === 0) {
+      return {
+        sessionCount: 0,
+        periodDays: days,
+        avgSpeedMs: 0,
+        maxSpeedMs: 0,
+        avgSprintCount: 0,
+        avgDurationSec: 0,
+        totalDistanceEstM: 0,
+        avgScanCount: 0,
+        avgDuelCount: 0,
+        avgEventCount: 0,
+        speedTrend: 0,
+        sprintTrend: 0,
+        consistencyScore: 0,
+        coldStart: true,
+      };
+    }
+
+    const n = recent.length;
+    const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+    const avg = (arr: number[]) => (arr.length > 0 ? sum(arr) / arr.length : 0);
+
+    const speeds = recent.map((s) => s.avgSpeedMs);
+    const sprints = recent.map((s) => s.sprintCount);
+    const durations = recent.map((s) => s.durationSec);
+
+    // Simple linear trend: (last half avg - first half avg) / first half avg
+    const half = Math.floor(n / 2);
+    const speedTrend = half > 0
+      ? (avg(speeds.slice(half)) - avg(speeds.slice(0, half))) / (avg(speeds.slice(0, half)) || 1)
+      : 0;
+    const sprintTrend = half > 0
+      ? (avg(sprints.slice(half)) - avg(sprints.slice(0, half))) / (avg(sprints.slice(0, half)) || 1)
+      : 0;
+
+    // Consistency: coefficient of variation (lower = more consistent)
+    const speedMean = avg(speeds);
+    const speedStdDev = Math.sqrt(avg(speeds.map((s) => (s - speedMean) ** 2)));
+    const cv = speedMean > 0 ? speedStdDev / speedMean : 1;
+    const consistencyScore = Math.max(0, Math.min(100, Math.round((1 - cv) * 100)));
+
+    return {
+      sessionCount: n,
+      periodDays: days,
+      avgSpeedMs: Math.round(avg(speeds) * 100) / 100,
+      maxSpeedMs: Math.max(...recent.map((s) => s.maxSpeedMs)),
+      avgSprintCount: Math.round(avg(sprints) * 10) / 10,
+      avgDurationSec: Math.round(avg(durations)),
+      totalDistanceEstM: Math.round(sum(recent.map((s) => s.avgSpeedMs * s.durationSec))),
+      avgScanCount: Math.round(avg(recent.map((s) => s.scanCount)) * 10) / 10,
+      avgDuelCount: Math.round(avg(recent.map((s) => s.duelCount)) * 10) / 10,
+      avgEventCount: Math.round(avg(recent.map((s) => s.eventCount)) * 10) / 10,
+      speedTrend: Math.round(speedTrend * 100) / 100,
+      sprintTrend: Math.round(sprintTrend * 100) / 100,
+      consistencyScore,
+      coldStart: n < 4,
+    };
+  },
 };
+
+export interface SessionAggregation {
+  sessionCount: number;
+  periodDays: number;
+  avgSpeedMs: number;
+  maxSpeedMs: number;
+  avgSprintCount: number;
+  avgDurationSec: number;
+  totalDistanceEstM: number;
+  avgScanCount: number;
+  avgDuelCount: number;
+  avgEventCount: number;
+  /** Trend: positive = improving, negative = declining (-1 to +1 range) */
+  speedTrend: number;
+  sprintTrend: number;
+  /** 0-100: how consistent performance is across sessions */
+  consistencyScore: number;
+  /** true if <4 sessions — aggregation unreliable */
+  coldStart: boolean;
+}
 
 export interface TrackingSessionSummary {
   id: string;

@@ -49,6 +49,8 @@ const PLAYER_REPORT_AGENTS = [
   { name: "projection", endpoint: "/api/agents/projection-report", model: "haiku" },
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
   { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
+  { name: "injury-risk-report", endpoint: "/api/agents/injury-risk-report", model: "haiku" },
+  { name: "valuation-report", endpoint: "/api/agents/valuation-report", model: "haiku" },
 ] as const;
 
 /** Team-mode report agents (Sprint 8) */
@@ -273,7 +275,58 @@ export default withHandler(
       // Fatigue data is optional — pipeline continues without it
     }
 
-    // ── 5. Disparar 7 reportes LLM EN PARALELO ──────────────────────
+    // ── 4c. Injury risk calculator (deterministic, Sprint 10) ─────────
+    let injuryRiskResult: unknown = null;
+    try {
+      const injuryCalcRes = await callInternal("/api/agents/injury-risk-calculator", {
+        playerId: analysis.player_id,
+        age: anthro?.chronological_age ?? null,
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        acwrValue: (fatigueReport as Record<string, unknown> | null)?.acwr_value ?? null,
+        acwrZone: (fatigueReport as Record<string, unknown> | null)?.acwr_zone ?? null,
+        fatigueIndex: (fatigueReport as Record<string, unknown> | null)?.fatigue_index ?? null,
+        fatigueSeverity: (fatigueReport as Record<string, unknown> | null)?.fatigue_severity ?? null,
+        biomechanicsInjuryRisk: bm.injury_risk ?? null,
+        asymmetryPct: bm.asymmetry_pct ?? null,
+        injuryHistory: [],  // TODO: fetch from player_injuries table when populated
+        daysSinceLastInjury: null,
+        sessionsLast28Days: fatigueHistory.length,
+      });
+      if (injuryCalcRes.success) {
+        injuryRiskResult = injuryCalcRes.data?.data?.report ?? injuryCalcRes.data?.data ?? null;
+      }
+    } catch {
+      // Injury risk is non-blocking — pipeline continues
+    }
+
+    // ── 4d. Valuation model (deterministic, Sprint 12) ────────────────
+    let valuationResult: unknown = null;
+    try {
+      const valuationRes = await callInternal("/api/agents/valuation-model", {
+        playerId: analysis.player_id,
+        age: anthro?.chronological_age ?? null,
+        position: player?.position ?? null,
+        currentVsi: (vsi as { vsi?: number })?.vsi ?? null,
+        vsiHistory: [], // TODO: fetch from player_metric_snapshots
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        biologicalAge: anthro?.biological_age ?? null,
+        injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? null,
+        injuryCategory: (injuryRiskResult as Record<string, unknown> | null)?.riskCategory ?? null,
+        positionFitScores: [],
+        sessionCount: fatigueHistory.length,
+        analysisCount: 1, // Single analysis context
+        competitiveLevel: "academy",
+      });
+      if (valuationRes.success) {
+        valuationResult = valuationRes.data?.data?.report ?? valuationRes.data?.data ?? null;
+      }
+    } catch {
+      // Valuation is non-blocking — pipeline continues
+    }
+
+    // ── 5. Disparar 9 reportes LLM EN PARALELO ──────────────────────
     // Posición jugada en este video específico · default a la principal
     const playedPosition =
       (analysis as { played_position?: string | null }).played_position
@@ -304,6 +357,10 @@ export default withHandler(
       // Sprint 7: fatigue data for fatigue-report agent
       fatigueReport,
       fatigueHistory,
+      // Sprint 10: injury risk calculator result (deterministic)
+      injuryRisk: injuryRiskResult,
+      // Sprint 12: valuation model result (deterministic)
+      valuationModel: valuationResult,
       // Sprint 8: team/rival analysis data (if mode is team or rival)
       teamAnalysis: teamAnalysis ?? null,
       analysisMode: mode,
@@ -337,6 +394,25 @@ export default withHandler(
 
     if (reportInserts.length > 0) {
       await supabase.from("reports").insert(reportInserts);
+    }
+
+    // ── 6b. Save metric snapshot for progression tracking (Sprint 9) ──
+    try {
+      const fatigueData = fatigueReport as Record<string, unknown> | null;
+      await callInternal("/api/agents/progression-tracker", {
+        playerId: analysis.player_id,
+        analysisId: analysis.id,
+        vsi: (vsi as { vsi?: number })?.vsi ?? null,
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? bm.injury_risk ?? null,
+        fatigueIndex: fatigueData?.fatigue_index ?? null,
+        acwr: fatigueData?.acwr_value ?? null,
+        xgAccumulated: null, // xG comes from client-side accumulator
+        source: "video_analysis",
+      });
+    } catch {
+      // Progression tracking is non-blocking — pipeline continues
     }
 
     // ── 7. Marcar analysis completed ───────────────────────────────

@@ -44,6 +44,8 @@ import DrillRecommendations from "@/components/intelligence/DrillRecommendations
 import BenchmarkBadge from "@/components/intelligence/BenchmarkBadge";
 import { calculateReportBenchmark, type ReportBenchmark, DIMENSION_TO_METRIC } from "@/services/real/benchmarkService";
 import { PDFService } from "@/services/real/pdfService";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 // ─── Helpers UI ───────────────────────────────────────────────────────────────
 
@@ -710,6 +712,7 @@ export default function PlayerIntelligencePage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { canUseVAEP } = usePlan();
   const [activeTab, setActiveTab] = useState<"guardado" | "historial">("guardado");
   const [showCard, setShowCard] = useState(false);
 
@@ -959,9 +962,20 @@ export default function PlayerIntelligencePage() {
                   snapshot={trackingSnapshot}
                 />
 
-                {/* Métricas Cuantitativas — vista clásica (se mantiene para compatibilidad) */}
+                {/* Métricas Cuantitativas — vista clásica (VAEP gated) */}
                 {latestReport.metricasCuantitativas && (
-                  <QuantitativeMetricsPanel data={latestReport.metricasCuantitativas} />
+                  <div className="relative">
+                    <div className={!canUseVAEP ? "blur-sm pointer-events-none select-none" : ""}>
+                      <QuantitativeMetricsPanel data={latestReport.metricasCuantitativas} />
+                    </div>
+                    {!canUseVAEP && (
+                      <UpgradePrompt
+                        feature="Métricas VAEP Avanzadas"
+                        requiredPlan="pro"
+                        variant="overlay"
+                      />
+                    )}
+                  </div>
                 )}
 
                 {/* Mapa de Calor */}

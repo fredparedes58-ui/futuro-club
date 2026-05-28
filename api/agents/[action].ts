@@ -28,6 +28,14 @@ import fatigueReport from "./_fatigue-report";
 // Sprint 8: team + rival report agents
 import teamReport from "./_team-report";
 import rivalScoutReport from "./_rival-scout-report";
+// Sprint 9: progression tracking
+import progressionTracker from "./_progression-tracker";
+// Sprint 10: injury risk prediction
+import injuryRiskCalculator from "./_injury-risk-calculator";
+import injuryRiskReport from "./_injury-risk-report";
+// Sprint 12: valuation model
+import valuationModel from "./_valuation-model";
+import valuationReport from "./_valuation-report";
 
 export const config = { runtime: "edge" };
 
@@ -55,6 +63,14 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   // Sprint 8: team + rival reports
   "team-report": teamReport,
   "rival-scout-report": rivalScoutReport,
+  // Sprint 9: progression tracking
+  "progression-tracker": progressionTracker,
+  // Sprint 10: injury risk prediction
+  "injury-risk-calculator": injuryRiskCalculator,
+  "injury-risk-report": injuryRiskReport,
+  // Sprint 12: valuation
+  "valuation-model": valuationModel,
+  "valuation-report": valuationReport,
 };
 
 export default async function handler(req: Request): Promise<Response> {

@@ -130,6 +130,9 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   build: {
     sourcemap: true,
+    rollupOptions: {
+      external: ["@mediapipe/tasks-vision"],
+    },
   },
   resolve: {
     alias: {

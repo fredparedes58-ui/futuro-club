@@ -14,6 +14,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -39,6 +40,12 @@ const schema = z.object({
 export default withHandler(
   { schema, requireAuth: true, maxRequests: 10 },
   async ({ body, userId }) => {
+    // ── Quota check before expensive pipeline ─────────────────────
+    if (userId) {
+      const usage = await checkUsageQuota(userId);
+      if (!usage.allowed) return usageExceededResponse(usage);
+    }
+
     const {
       analysisId: providedId,
       playerId,
@@ -140,6 +147,11 @@ export default withHandler(
     } catch (err) {
       console.error("[generate-reports] Orchestrator dispatch error:", err);
       // Don't fail — analysis is still saved with biomechanics
+    }
+
+    // Increment usage after successful dispatch
+    if (userId) {
+      incrementUsage(userId, "generate-reports").catch(() => {});
     }
 
     return successResponse({

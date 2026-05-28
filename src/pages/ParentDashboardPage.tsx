@@ -27,6 +27,8 @@ import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import PeerBenchmark from "@/components/PeerBenchmark";
 import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
+import { Shield } from "lucide-react";
+import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 
 interface Badge {
   id: string;
@@ -243,6 +245,9 @@ export default function ParentDashboardPage() {
           </div>
         </motion.div>
 
+        {/* Estado Físico · para padres (lenguaje simple) */}
+        <PhysicalStatusCard playerId={playerId!} />
+
         {/* Cross-club benchmark · network effect */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="glass rounded-2xl p-4">
           <PeerBenchmark playerId={playerId!} variant="full" />
@@ -341,6 +346,31 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
     "Asegura que duerme 8-9 horas para una buena recuperación",
     "Celebra el esfuerzo y la mejora, no solo los goles o las victorias",
   ];
+// ── Physical Status Card · lenguaje para padres ────────────────────────────
+const ACWR_PARENT_LABELS: Record<string, { label: string; color: string; advice: string }> = {
+  optimal:      { label: "Carga equilibrada", color: "text-green-400", advice: "Su carga de entrenamiento esta en un rango saludable." },
+  caution:      { label: "Carga elevada",     color: "text-amber-400", advice: "Carga algo alta esta semana. Conviene descansar mas." },
+  danger:       { label: "Carga excesiva",    color: "text-red-400",   advice: "Riesgo alto. Recomendamos reducir actividad y hablar con el entrenador." },
+  undertrained: { label: "Poca actividad",    color: "text-blue-400",  advice: "Poca actividad reciente. Conviene retomar entrenamiento gradualmente." },
+};
+
+const FATIGUE_PARENT_LABELS: Record<string, { label: string; color: string }> = {
+  normal:   { label: "Sin fatiga",      color: "text-green-400" },
+  moderate: { label: "Fatiga leve",     color: "text-amber-400" },
+  high:     { label: "Fatiga alta",     color: "text-orange-400" },
+  critical: { label: "Fatiga critica",  color: "text-red-400" },
+};
+
+function PhysicalStatusCard({ playerId }: { playerId: string }) {
+  const snapshot = PlayerTrackingService.get(playerId);
+  const fatigue = snapshot?.fatigueReport;
+
+  if (!fatigue) return null; // No hay datos de tracking aun
+
+  const acwrZone = fatigue.acwr?.zone ?? "optimal";
+  const acwrInfo = ACWR_PARENT_LABELS[acwrZone] ?? ACWR_PARENT_LABELS.optimal;
+  const fatigueSeverity = fatigue.fatigueIndex?.severity ?? "normal";
+  const fatigueInfo = FATIGUE_PARENT_LABELS[fatigueSeverity] ?? FATIGUE_PARENT_LABELS.normal;
 
   return (
     <motion.div
@@ -400,6 +430,45 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
           </p>
         ))}
       </div>
+      transition={{ delay: 0.11 }}
+      className="glass rounded-2xl p-4"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <Shield size={14} className="text-primary" />
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+          Estado fisico
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-secondary/30 border border-border p-3">
+          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Carga semanal</div>
+          <div className={`text-sm font-display font-bold ${acwrInfo.color}`}>
+            {acwrInfo.label}
+          </div>
+        </div>
+        <div className="rounded-xl bg-secondary/30 border border-border p-3">
+          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Fatiga</div>
+          <div className={`text-sm font-display font-bold ${fatigueInfo.color}`}>
+            {fatigueInfo.label}
+          </div>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+        {acwrInfo.advice}
+      </p>
+
+      {/* Sprint 11: Injury risk summary for parents */}
+      {(acwrZone === "danger" || fatigueSeverity === "critical" || fatigueSeverity === "high") && (
+        <div className="mt-3 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2">
+          <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium">
+            {acwrZone === "danger"
+              ? "La carga de entrenamiento esta muy alta. Recomendamos descanso activo."
+              : "El nivel de fatiga es elevado. Es bueno que descanse hoy."}
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }

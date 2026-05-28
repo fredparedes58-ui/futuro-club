@@ -75,6 +75,32 @@ const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAn
   { key: "mental",     label: "Mental",      icon: Zap,         needsAnalysis: true },
   { key: "bienestar",  label: "Bienestar",   icon: Heart },
   { key: "historico",  label: "Histórico",   icon: Clock,       needsAnalysis: true },
+// Sprint 11: Injury dashboard
+import InjuryRiskCard from "@/components/injury/InjuryRiskCard";
+import ACWRHistoryChart from "@/components/injury/ACWRHistoryChart";
+import InjuryTimeline from "@/components/injury/InjuryTimeline";
+import InjuryLogForm from "@/components/injury/InjuryLogForm";
+import PhvRiskOverlay from "@/components/injury/PhvRiskOverlay";
+import { useInjuryRisk } from "@/hooks/useInjuryRisk";
+import { usePlan } from "@/hooks/usePlan";
+import UpgradePrompt from "@/components/UpgradePrompt";
+// Sprint 13: Valuation dashboard
+import ValuationCard from "@/components/valuation/ValuationCard";
+import TierProgressionChart from "@/components/valuation/TierProgressionChart";
+import ProbabilityDisplay from "@/components/valuation/ProbabilityDisplay";
+import CeilingComparison from "@/components/valuation/CeilingComparison";
+import { useValuation } from "@/hooks/useValuation";
+
+type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "salud" | "valoracion" | "historico";
+
+const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
+  { key: "resumen",     label: "Resumen",      icon: Sparkles },
+  { key: "stats",       label: "Stats",        icon: Activity,    needsAnalysis: true },
+  { key: "movimiento",  label: "Movimiento",   icon: Compass },
+  { key: "rol",         label: "Rol",          icon: Brain,       needsAnalysis: true },
+  { key: "salud",       label: "Salud",        icon: Heart },
+  { key: "valoracion",  label: "Valoracion",   icon: Zap },
+  { key: "historico",   label: "Historico",     icon: Clock,       needsAnalysis: true },
 ];
 
 export default function PlayerHubPage() {
@@ -108,6 +134,28 @@ export default function PlayerHubPage() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [id]);
+
+  // Sprint 11: Injury risk data
+  const { canUseValuation } = usePlan();
+  const { injuries, riskData, saveInjuries: persistInjuries, injuriesLoading } = useInjuryRisk(id);
+  // Sprint 13: Valuation data
+  const { valuationData, valuationLoading } = useValuation(id);
+  const [localInjuries, setLocalInjuries] = useState(injuries);
+  useEffect(() => { setLocalInjuries(injuries); }, [injuries]);
+  const { canUseInjuryPrediction } = usePlan();
+
+  // ACWR history for chart (from fatigue sessions in tracking snapshot)
+  const acwrChartData = useMemo(() => {
+    if (!snapshot?.fatigueReport?.acwr) return [];
+    const acwr = snapshot.fatigueReport.acwr;
+    // Single point from current session; full history needs fatigue_sessions API
+    return [{
+      date: new Date().toISOString().slice(0, 10),
+      acwr: acwr.value ?? null,
+      load: acwr.acuteLoad ?? 0,
+      zone: (acwr.zone ?? "unknown") as "optimal" | "caution" | "danger" | "undertrained" | "unknown",
+    }];
+  }, [snapshot]);
 
   // Position rollup · agregado de todos los videos por posición
   const [positionRollup, setPositionRollup] = useState<PositionRollupRow[]>([]);
@@ -476,6 +524,9 @@ export default function PlayerHubPage() {
           {tab === "mental" && id && (
             <motion.div
               key="mental"
+          {tab === "salud" && (
+            <motion.div
+              key="salud"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
@@ -488,12 +539,104 @@ export default function PlayerHubPage() {
           {tab === "bienestar" && id && (
             <motion.div
               key="bienestar"
+              {!canUseInjuryPrediction ? (
+                <div className="relative">
+                  <div className="blur-sm pointer-events-none select-none space-y-4">
+                    <div className="glass rounded-2xl p-8 h-48" />
+                    <div className="glass rounded-2xl p-8 h-32" />
+                  </div>
+                  <UpgradePrompt feature="Prediccion de Lesiones" requiredPlan="pro" variant="overlay" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Injury Risk Card */}
+                  {riskData && (
+                    <InjuryRiskCard data={riskData} />
+                  )}
+                  {!riskData && !injuriesLoading && (
+                    <div className="glass rounded-xl p-6 text-center">
+                      <Heart size={20} className="mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Analiza una sesion para ver el riesgo de lesion</p>
+                    </div>
+                  )}
+
+                  {/* PHV Risk */}
+                  {snapshot?.fatigueReport?.thresholds && (
+                    <PhvRiskOverlay
+                      phvOffset={snapshot.fatigueReport.thresholds.phvOffset ?? null}
+                      phvCategory={snapshot.fatigueReport.thresholds.band}
+                      age={player?.age ?? null}
+                    />
+                  )}
+
+                  {/* ACWR Chart */}
+                  <div className="glass rounded-2xl p-4">
+                    <ACWRHistoryChart data={acwrChartData} />
+                  </div>
+
+                  {/* Injury Timeline */}
+                  <div className="glass rounded-2xl p-4">
+                    <InjuryTimeline injuries={localInjuries} />
+                  </div>
+
+                  {/* Injury Log Form */}
+                  <div className="glass rounded-2xl p-4">
+                    <InjuryLogForm
+                      playerId={id ?? ""}
+                      injuries={localInjuries}
+                      onChange={setLocalInjuries}
+                      onSave={(injs) => persistInjuries(injs)}
+                    />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {tab === "valoracion" && (
+            <motion.div
+              key="valoracion"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
               <WellbeingTab playerId={id} />
+              {!canUseValuation ? (
+                <div className="relative">
+                  <div className="blur-sm pointer-events-none select-none space-y-4">
+                    <div className="glass rounded-2xl p-8 h-48" />
+                    <div className="glass rounded-2xl p-8 h-32" />
+                  </div>
+                  <UpgradePrompt feature="Valoracion Predictiva" requiredPlan="pro" variant="overlay" />
+                </div>
+              ) : valuationLoading ? (
+                <div className="glass rounded-xl p-6 text-center">
+                  <Zap size={20} className="mx-auto text-muted-foreground mb-2 animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Calculando valoracion...</p>
+                </div>
+              ) : valuationData ? (
+                <div className="space-y-4">
+                  <ValuationCard data={valuationData} />
+                  <div className="glass rounded-2xl p-4">
+                    <ProbabilityDisplay
+                      probabilities={valuationData.probabilities}
+                      tierColor={valuationData.tierColor}
+                    />
+                  </div>
+                  <div className="glass rounded-2xl p-4">
+                    <TierProgressionChart data={[]} />
+                  </div>
+                  <div className="glass rounded-2xl p-4">
+                    <CeilingComparison comparables={[]} tier={valuationData.tier} tierColor={valuationData.tierColor} />
+                  </div>
+                </div>
+              ) : (
+                <div className="glass rounded-xl p-6 text-center">
+                  <Zap size={20} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Analiza una sesion para ver la valoracion</p>
+                </div>
+              )}
             </motion.div>
           )}
 

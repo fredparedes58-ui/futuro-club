@@ -51,6 +51,7 @@ const OnboardingPage = React.lazy(() => import("./pages/OnboardingPage"));
 const DirectorDashboard = React.lazy(() => import("./pages/DirectorDashboard"));
 const PlayerIntelligencePage = React.lazy(() => import("./pages/PlayerIntelligencePage"));
 const AdminDashboardPage = React.lazy(() => import("./pages/AdminDashboardPage"));
+const AdminManagePlanPage = React.lazy(() => import("./pages/AdminManagePlanPage"));
 const BiasAuditDashboard = React.lazy(() => import("./pages/BiasAuditDashboard"));
 const ParentalConsentPage = React.lazy(() => import("./pages/ParentalConsentPage"));
 const PricingPage = React.lazy(() => import("./pages/PricingPage"));
@@ -180,6 +181,7 @@ const App = () => (
                 <Route path="/billing" element={<P><BillingPage /></P>} />
                 <Route path="/director" element={<P><DirectorDashboard /></P>} />
                 <Route path="/admin" element={<P><AdminDashboardPage /></P>} />
+                <Route path="/admin/plans" element={<P><AdminManagePlanPage /></P>} />
                 <Route path="/admin/bias" element={<P><BiasAuditDashboard /></P>} />
                 <Route path="/admin/consent" element={<P><ParentalConsentPage /></P>} />
                 <Route path="/reports" element={<P><ReportsPage /></P>} />
