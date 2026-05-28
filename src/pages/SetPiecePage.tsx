@@ -24,8 +24,25 @@ import SetPieceStats from "@/components/setPiece/SetPieceStats";
 import RecommendationCard from "@/components/setPiece/RecommendationCard";
 import EventNotesPanel from "@/components/setPiece/EventNotesPanel";
 import TacticalBoardEditor, { type Drawing, type TextNote } from "@/components/setPiece/TacticalBoardEditor";
+import FolderPicker from "@/components/setPiece/FolderPicker";
 import { EventNotesStorage } from "@/services/real/eventNotesStorage";
-import type { SetPieceEvent, SetPieceRecommendation, PlayerOnSetPiece } from "@/lib/setPiece/types";
+import {
+  SetPieceFolderStorage,
+  type Folder,
+} from "@/services/real/setPieceFolderStorage";
+import {
+  SET_PIECE_TYPE_LABELS,
+  PATTERN_LABELS,
+} from "@/services/real/setPieceService";
+import type {
+  SetPieceEvent,
+  SetPieceRecommendation,
+  PlayerOnSetPiece,
+  SetPieceType,
+  AttackingPattern,
+  SetPieceOutcome,
+  SetPieceSide,
+} from "@/lib/setPiece/types";
 
 type Tab = "events" | "stats" | "recommendations";
 type SideFilter = "all" | "offensive" | "defensive";
@@ -62,10 +79,17 @@ export default function SetPiecePage() {
   }, [customEvents]);
 
   const filteredEvents = useMemo(() => {
-    if (filter === "offensive") return allEvents.filter((e) => e.isOffensive);
-    if (filter === "defensive") return allEvents.filter((e) => !e.isOffensive);
-    return allEvents;
-  }, [allEvents, filter]);
+    void folderVersion; // recompute when folders change
+    let result = allEvents;
+    if (filter === "offensive") result = result.filter((e) => e.isOffensive);
+    if (filter === "defensive") result = result.filter((e) => !e.isOffensive);
+    if (activeFolderId !== "all") {
+      result = result.filter((e) =>
+        SetPieceFolderStorage.isInFolder(activeFolderId, e.id, "event"),
+      );
+    }
+    return result;
+  }, [allEvents, filter, activeFolderId, folderVersion]);
 
   const stats = useMemo(() => getAggregateStats(allEvents), [allEvents]);
   const recommendations = useMemo<SetPieceRecommendation[]>(
@@ -88,6 +112,38 @@ export default function SetPiecePage() {
   const [editDrawings, setEditDrawings] = useState<Drawing[]>([]);
   const [editTexts, setEditTexts] = useState<TextNote[]>([]);
 
+  // Editable metadata while in edit mode
+  const [editMeta, setEditMeta] = useState<{
+    type: SetPieceType;
+    pattern: AttackingPattern;
+    matchLabel: string;
+    minute: number;
+    side: SetPieceSide;
+    outcome: SetPieceOutcome;
+    tacticalNotes: string;
+  }>({
+    type: "corner",
+    pattern: "near_post",
+    matchLabel: "",
+    minute: 0,
+    side: "right",
+    outcome: "shot_on_target",
+    tacticalNotes: "",
+  });
+
+  // ── Folder state ─────────────────────────────────────────────────────
+  const [folders, setFolders] = useState<Folder[]>(() => SetPieceFolderStorage.getAll());
+  const [activeFolderId, setActiveFolderId] = useState<string | "all">("all");
+  const [folderVersion, setFolderVersion] = useState(0);
+  const refreshFolders = () => {
+    setFolders(SetPieceFolderStorage.getAll());
+    setFolderVersion((v) => v + 1);
+  };
+
+  useEffect(() => {
+    void folderVersion; // dependency to refresh memos
+  }, [folderVersion]);
+
   const startEditing = (event: SetPieceEvent) => {
     setEditingEvent(event);
     setEditPlayers(event.players);
@@ -95,6 +151,15 @@ export default function SetPiecePage() {
     const customEvent = event as CustomSetPieceEvent;
     setEditDrawings(customEvent.drawings ?? []);
     setEditTexts(customEvent.texts ?? []);
+    setEditMeta({
+      type: event.type,
+      pattern: event.pattern,
+      matchLabel: event.matchLabel,
+      minute: event.minute,
+      side: event.side,
+      outcome: event.outcome,
+      tacticalNotes: event.tacticalNotes.join("\n"),
+    });
   };
 
   const cancelEditing = () => {
@@ -109,10 +174,24 @@ export default function SetPiecePage() {
     const existingCustom = editingEvent as CustomSetPieceEvent;
     const isAlreadyCustom = customEvents.some((c) => c.id === editingEvent.id);
 
+    const metaPatch = {
+      type: editMeta.type,
+      pattern: editMeta.pattern,
+      matchLabel: editMeta.matchLabel.trim() || editingEvent.matchLabel,
+      minute: editMeta.minute,
+      side: editMeta.side,
+      outcome: editMeta.outcome,
+      tacticalNotes: editMeta.tacticalNotes
+        .split(/\n/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    };
+
     if (isAlreadyCustom) {
       // Update existing custom event in place
       const updated: CustomSetPieceEvent = {
         ...existingCustom,
+        ...metaPatch,
         players: editPlayers,
         drawings: editDrawings,
         texts: editTexts,
@@ -120,11 +199,12 @@ export default function SetPiecePage() {
         createdAt: existingCustom.createdAt ?? new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomEvent(updated);
-      toast.success("Pizarrón actualizado");
+      toast.success("Evento actualizado");
     } else {
       // Mock event → save as new custom copy keeping all metadata
       const newCustom: CustomSetPieceEvent = {
         ...editingEvent,
+        ...metaPatch,
         // Generate fresh id to avoid clashing with the mock one and so the
         // mock keeps existing for everyone else; notes carry over via same id ideally
         id: `event_custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -136,7 +216,7 @@ export default function SetPiecePage() {
         createdAt: new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomEvent(newCustom);
-      toast.success("Pizarrón guardado como copia editable");
+      toast.success("Evento guardado como copia editable");
       // Refresh custom events list and select the new one
       const refreshed = SetPieceCustomStorage.getCustomEvents();
       setCustomEvents(refreshed);
@@ -252,6 +332,48 @@ export default function SetPiecePage() {
                 </button>
               </div>
 
+              {/* Folder filter bar */}
+              {folders.length > 0 && (
+                <div className="glass rounded-xl p-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-1 shrink-0">
+                    Carpetas:
+                  </span>
+                  <button
+                    onClick={() => setActiveFolderId("all")}
+                    className={`px-2.5 py-1 rounded-md text-[11px] font-display font-semibold whitespace-nowrap transition-all ${
+                      activeFolderId === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {folders.map((f) => {
+                    const count = SetPieceFolderStorage.countByFolder(f.id, "event");
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => setActiveFolderId(f.id)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold whitespace-nowrap transition-all border ${
+                          activeFolderId === f.id
+                            ? "border-primary text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground bg-secondary"
+                        }`}
+                        style={
+                          activeFolderId === f.id
+                            ? { background: `${f.color}25`, borderColor: f.color }
+                            : undefined
+                        }
+                      >
+                        <span>{f.icon}</span>
+                        <span>{f.name}</span>
+                        <span className="text-muted-foreground/70 font-mono">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Two-column: list + detail */}
               <div className="grid grid-cols-1 lg:grid-cols-[1fr,1.2fr] gap-4">
                 {/* List */}
@@ -260,6 +382,7 @@ export default function SetPiecePage() {
                     const isCustom = isCustomEvent(event);
                     // intentionally include notesVersion to refresh counter
                     void notesVersion;
+                    void folderVersion;
                     const noteCount = EventNotesStorage.count(event.id);
                     return (
                       <div key={event.id} className="relative group">
@@ -273,23 +396,20 @@ export default function SetPiecePage() {
                             📝 {noteCount}
                           </span>
                         )}
-                        {isCustom && (
-                          <>
-                            <span className="absolute top-2 right-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
+                        <div className="absolute top-2 right-2 flex items-center gap-1">
+                          {isCustom && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                               <Sparkles size={8} /> Custom
                             </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/set-pieces/edit/${event.id}`);
-                              }}
-                              className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
-                              title="Editar"
-                            >
-                              <Pencil size={11} />
-                            </button>
-                          </>
-                        )}
+                          )}
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <FolderPicker
+                              itemId={event.id}
+                              itemType="event"
+                              onChange={refreshFolders}
+                            />
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -345,6 +465,115 @@ export default function SetPiecePage() {
                               <strong>Editando un evento original:</strong> al guardar se creará una copia personalizada con tus cambios, sin modificar el original.
                             </div>
                           )}
+
+                          {/* Metadata editor */}
+                          <div className="glass rounded-xl p-3 space-y-2 border border-border bg-secondary/10">
+                            <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                              Datos del evento
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <MetaField label="Tipo">
+                                <select
+                                  value={editMeta.type}
+                                  onChange={(e) =>
+                                    setEditMeta({ ...editMeta, type: e.target.value as SetPieceType })
+                                  }
+                                  className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                >
+                                  {Object.entries(SET_PIECE_TYPE_LABELS).map(([k, label]) => (
+                                    <option key={k} value={k}>
+                                      {label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </MetaField>
+                              <MetaField label="Patrón">
+                                <select
+                                  value={editMeta.pattern}
+                                  onChange={(e) =>
+                                    setEditMeta({ ...editMeta, pattern: e.target.value as AttackingPattern })
+                                  }
+                                  className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                >
+                                  {Object.entries(PATTERN_LABELS).map(([k, label]) => (
+                                    <option key={k} value={k}>
+                                      {label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </MetaField>
+                              <MetaField label="Partido">
+                                <input
+                                  type="text"
+                                  value={editMeta.matchLabel}
+                                  onChange={(e) =>
+                                    setEditMeta({ ...editMeta, matchLabel: e.target.value })
+                                  }
+                                  placeholder="vs Rival FC · 12 Abr"
+                                  className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                />
+                              </MetaField>
+                              <div className="grid grid-cols-2 gap-2">
+                                <MetaField label="Minuto">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={120}
+                                    value={editMeta.minute}
+                                    onChange={(e) =>
+                                      setEditMeta({
+                                        ...editMeta,
+                                        minute: parseInt(e.target.value, 10) || 0,
+                                      })
+                                    }
+                                    className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                  />
+                                </MetaField>
+                                <MetaField label="Lado">
+                                  <select
+                                    value={editMeta.side}
+                                    onChange={(e) =>
+                                      setEditMeta({ ...editMeta, side: e.target.value as SetPieceSide })
+                                    }
+                                    className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                  >
+                                    <option value="left">Izquierdo</option>
+                                    <option value="right">Derecho</option>
+                                    <option value="center">Centro</option>
+                                  </select>
+                                </MetaField>
+                              </div>
+                              <MetaField label="Resultado">
+                                <select
+                                  value={editMeta.outcome}
+                                  onChange={(e) =>
+                                    setEditMeta({ ...editMeta, outcome: e.target.value as SetPieceOutcome })
+                                  }
+                                  className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
+                                >
+                                  <option value="goal">Gol</option>
+                                  <option value="shot_on_target">Tiro a puerta</option>
+                                  <option value="shot_off_target">Tiro fuera</option>
+                                  <option value="blocked">Bloqueado</option>
+                                  <option value="cleared">Despejado</option>
+                                  <option value="retained">Posesión retenida</option>
+                                  <option value="lost">Pérdida</option>
+                                </select>
+                              </MetaField>
+                              <MetaField label="Notas tácticas (una por línea)">
+                                <textarea
+                                  value={editMeta.tacticalNotes}
+                                  onChange={(e) =>
+                                    setEditMeta({ ...editMeta, tacticalNotes: e.target.value })
+                                  }
+                                  rows={2}
+                                  placeholder="Bloque efectivo en primer palo"
+                                  className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none resize-none"
+                                />
+                              </MetaField>
+                            </div>
+                          </div>
+
                           <TacticalBoardEditor
                             players={editPlayers}
                             drawings={editDrawings}
@@ -454,26 +683,36 @@ export default function SetPiecePage() {
               </div>
               {recommendations.map((rec) => {
                 const isCustom = isCustomRec(rec);
+                void folderVersion;
                 return (
                   <div key={rec.id} className="relative group">
                     <RecommendationCard rec={rec} />
-                    {isCustom && (
-                      <>
-                        <span className="absolute top-3 right-12 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
+                    <div className="absolute top-3 right-12 flex items-center gap-1">
+                      {isCustom && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                           <Sparkles size={8} /> Custom
                         </span>
+                      )}
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <FolderPicker
+                          itemId={rec.id}
+                          itemType="recommendation"
+                          onChange={refreshFolders}
+                        />
+                      </div>
+                      {isCustom && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/set-pieces/edit/${rec.id}?type=recommendation`);
                           }}
-                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
+                          className="p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
                           title="Editar"
                         >
                           <Pencil size={11} />
                         </button>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -481,6 +720,17 @@ export default function SetPiecePage() {
           )}
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+function MetaField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <label className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold block">
+        {label}
+      </label>
+      {children}
     </div>
   );
 }
