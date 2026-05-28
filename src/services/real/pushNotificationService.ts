@@ -101,7 +101,7 @@ export const PushNotificationService = {
    * Show a local notification immediately (no server needed).
    * Useful for analysis completion events.
    */
-  async showLocal(title: string, body: string, icon = "/pwa-192x192.png"): Promise<void> {
+  async showLocal(title: string, body: string, icon = "/pwa-192x192.png", url = "/"): Promise<void> {
     if (!this.isSupported()) return;
     if (Notification.permission !== "granted") return;
     try {
@@ -111,11 +111,29 @@ export const PushNotificationService = {
         icon,
         badge: "/pwa-64x64.png",
         vibrate: [200, 100, 200],
-        data: { url: "/" },
+        data: { url },
       });
     } catch {
       // Fallback to browser notification
       new Notification(title, { body, icon });
     }
+  },
+
+  /**
+   * Notify coach that session analysis is ready (Sprint 16).
+   * Deduplicates by sessionId — only fires once per session.
+   */
+  async notifySessionAnalysisReady(sessionId: string, teamName?: string): Promise<void> {
+    const key = `vitas_notified_session_${sessionId}`;
+    if (localStorage.getItem(key)) return; // already notified
+    localStorage.setItem(key, Date.now().toString());
+
+    const label = teamName ? ` (${teamName})` : "";
+    await this.showLocal(
+      "Análisis de sesión listo",
+      `Tu análisis de entrenamiento${label} está disponible. Revísalo en el Coaching Assistant.`,
+      "/pwa-192x192.png",
+      "/coach?tab=sesion",
+    );
   },
 };

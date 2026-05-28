@@ -59,12 +59,12 @@ export const ScoutInsightInputSchema = z.object({
     }),
     lastDrills: z.array(z.string()).optional(),
   }),
-  context: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general"]),
+  context: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general", "wellbeing_alert"]),
 });
 
 export const ScoutInsightOutputSchema = z.object({
   playerId: z.string(),
-  type: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general"]),
+  type: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general", "wellbeing_alert"]),
   headline: z.string().max(80),
   body: z.string().max(400),
   metric: z.string(),
@@ -253,7 +253,8 @@ export const VideoIntelligenceOutputSchema = z.object({
     ajusteVSIVideoScore: z.number().min(-15).max(15), // delta sugerido al VSI existente
   }),
 
-  // Sección 1.5: Evaluación Psicológica (opcional — depende del video)
+  /** @deprecated Use BehavioralProfileInputSchema (Contract 10, Sprint 17) instead.
+   *  Kept for backward compatibility with existing reports. */
   evaluacionPsicologica: z.object({
     resiliencia:        z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
     comunicacion:       z.object({ nivel: z.enum(["alto", "medio", "bajo"]), evidencia: z.string() }),
@@ -534,6 +535,117 @@ export const TeamIntelligenceOutputSchema = z.object({
 });
 
 export type TeamIntelligenceOutput = z.infer<typeof TeamIntelligenceOutputSchema>;
+
+// ─────────────────────────────────────────
+// CONTRATO 8: Coaching Assistant Agent (Sprint 15)
+// Genera reporte narrativo de sesión de entrenamiento
+// ─────────────────────────────────────────
+export const CoachingAssistantInputSchema = z.object({
+  teamId: z.string(),
+  teamName: z.string().optional(),
+  sessionAnalysis: z.record(z.unknown()),
+  recentSessions: z.array(z.record(z.unknown())).optional(),
+  recommendation: z.record(z.unknown()).optional(),
+  phvDistribution: z.object({
+    prePhv: z.number().optional(),
+    circaPhv: z.number().optional(),
+    postPhv: z.number().optional(),
+  }).optional(),
+  teamAvgAge: z.number().optional(),
+  playerHighlights: z.array(z.record(z.unknown())).optional(),
+  engagementSnapshots: z.array(z.record(z.unknown())).optional(),
+});
+
+export const CoachingAssistantOutputSchema = z.object({
+  sessionSummary: z.string(),
+  whatWorkedWell: z.array(z.string()).max(3),
+  whatToImprove: z.array(z.string()).max(3),
+  nextSessionPlan: z.object({
+    focus: z.string(),
+    drills: z.array(z.string()),
+    duration: z.string(),
+  }),
+  playerSpotlight: z.array(z.object({
+    playerId: z.string(),
+    reason: z.string(),
+    action: z.string(),
+  })).max(3),
+  weeklyPlan: z.string(),
+  phvAlerts: z.array(z.string()).nullable(),
+});
+
+export type CoachingAssistantInput = z.infer<typeof CoachingAssistantInputSchema>;
+export type CoachingAssistantOutput = z.infer<typeof CoachingAssistantOutputSchema>;
+
+// ─────────────────────────────────────────
+// CONTRATO 9: Parent Report Schema (Sprint 15)
+// Reporte mensual para padres
+// ─────────────────────────────────────────
+export const ParentReportSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  reportMonth: z.string(),
+  summary: z.object({
+    sessionsAttended: z.number(),
+    totalTrainingMinutes: z.number(),
+    avgParticipationScore: z.number(),
+    avgEngagementScore: z.number(),
+  }),
+  trends: z.object({
+    participation: z.enum(["improving", "stable", "declining"]),
+    technique: z.enum(["improving", "stable", "declining"]),
+    physical: z.enum(["improving", "stable", "declining"]),
+    social: z.enum(["improving", "stable", "declining"]),
+  }),
+  growthContext: z.string().nullable(),
+  positives: z.array(z.string()).max(4),
+  developmentAreas: z.array(z.string()).max(2),
+  coachNote: z.string(),
+});
+
+export type ParentReportOutput = z.infer<typeof ParentReportSchema>;
+
+// ─────────────────────────────────────────
+// CONTRATO 10: Behavioral Profile (Sprint 17)
+// Perfil conductual — 7 dimensiones numéricas 0-100
+// REEMPLAZA evaluacionPsicologica textual (marcada @deprecated)
+// ─────────────────────────────────────────
+export const BehavioralProfileInputSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string().optional(),
+  playerAge: z.number(),
+  /** IDs of videos analyzed to compute this profile */
+  videoIds: z.array(z.string()),
+  /** Pre-computed behavioral scores */
+  scores: z.object({
+    decisionSpeed: z.number().min(0).max(100),
+    scanningIntelligence: z.number().min(0).max(100),
+    resilience: z.number().min(0).max(100),
+    clutchFactor: z.number().min(0).max(100),
+    leadership: z.number().min(0).max(100),
+    mentalFatigue: z.number().min(0).max(100),
+    unpredictability: z.number().min(0).max(100),
+    mentalComposite: z.number().min(0).max(100),
+    archetype: z.string(),
+  }),
+  /** Player position for context */
+  position: z.string().optional(),
+  /** Recent match context */
+  recentMatchContext: z.string().optional(),
+});
+
+export const BehavioralProfileOutputSchema = z.object({
+  headline: z.string(),
+  summary: z.string(),
+  archetypeExplanation: z.string(),
+  strengths: z.array(z.string()).max(3),
+  developmentAreas: z.array(z.string()).max(3),
+  comparisonWithPeers: z.string(),
+  coachingTips: z.array(z.string()).max(3),
+});
+
+export type BehavioralProfileInput = z.infer<typeof BehavioralProfileInputSchema>;
+export type BehavioralProfileOutput = z.infer<typeof BehavioralProfileOutputSchema>;
 
 // ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE

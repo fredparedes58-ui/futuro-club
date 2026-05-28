@@ -1,3 +1,13 @@
+/** Detection signals for automatic drill matching by DrillClassifier (Sprint 14) */
+export interface DrillDetectionSignals {
+  /** Expected player spread range in meters [min, max] */
+  playerSpreadRange: [number, number];
+  /** Expected average speed range in m/s [min, max] */
+  intensityRange: [number, number];
+  /** Expected ball touch frequency per minute [min, max] */
+  ballTouchRange: [number, number];
+}
+
 export interface DrillDocument {
   id: string;
   name: string;
@@ -16,6 +26,8 @@ export interface DrillDocument {
   source: string;
   coachingPoints: string[];
   progressions: string[];
+  /** Detection signals for automatic video-to-drill matching (Sprint 14) */
+  detectionSignals?: DrillDetectionSignals;
 }
 
 // Generate rich search text for embedding
@@ -60,6 +72,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Añadir portero en zona central",
       "Ampliar a 5v3 con mayor espacio",
     ],
+    detectionSignals: {
+      playerSpreadRange: [3, 7],
+      intensityRange: [1.0, 2.5],
+      ballTouchRange: [25, 55],
+    },
   },
   {
     id: "TEC-002",
@@ -87,6 +104,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Reducir tiempo de referencia 10%",
       "Dos jugadores en paralelo compitiendo",
     ],
+    detectionSignals: {
+      playerSpreadRange: [5, 12],
+      intensityRange: [1.5, 3.0],
+      ballTouchRange: [15, 35],
+    },
   },
   {
     id: "TEC-003",
@@ -279,6 +301,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Condición: recuperar en 6 segundos",
       "Partido real con pressing como consigna",
     ],
+    detectionSignals: {
+      playerSpreadRange: [10, 20],
+      intensityRange: [3.0, 5.0],
+      ballTouchRange: [8, 18],
+    },
   },
   {
     id: "TAC-002",
@@ -334,6 +361,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Añadir porterías pequeñas para contexto de gol",
       "Condición de máximo 2 toques",
     ],
+    detectionSignals: {
+      playerSpreadRange: [8, 18],
+      intensityRange: [2.0, 3.5],
+      ballTouchRange: [12, 30],
+    },
   },
   {
     id: "TAC-004",
@@ -362,6 +394,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Añadir condición de finalización obligatoria",
       "Desde saque de portero",
     ],
+    detectionSignals: {
+      playerSpreadRange: [12, 30],
+      intensityRange: [3.0, 5.5],
+      ballTouchRange: [8, 20],
+    },
   },
   {
     id: "TAC-005",
@@ -474,6 +511,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Reacción a señal auditiva en lugar de visual",
       "Sprint competitivo en parejas",
     ],
+    detectionSignals: {
+      playerSpreadRange: [5, 15],
+      intensityRange: [4.0, 6.0],
+      ballTouchRange: [0, 3],
+    },
   },
   {
     id: "FIS-002",
@@ -611,6 +653,11 @@ export const DRILLS_LIBRARY: DrillDocument[] = [
       "Desde posición más lejana (16m)",
       "Condición: solo valen disparos a ras de suelo",
     ],
+    detectionSignals: {
+      playerSpreadRange: [5, 15],
+      intensityRange: [2.0, 4.0],
+      ballTouchRange: [5, 15],
+    },
   },
   {
     id: "DIS-002",

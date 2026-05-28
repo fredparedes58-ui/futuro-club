@@ -29,6 +29,9 @@ export interface PlanState {
   canExportPDF: boolean;
   canManageRoles: boolean;
   canUsePush: boolean;
+  canUseBehavioral: boolean;
+  canUseWellbeing: boolean;
+  canUseTeamWellbeing: boolean;
   canUseInjuryPrediction: boolean;
   canUseValuation: boolean;
   canUseMultiVideoAggregation: boolean;
@@ -96,6 +99,9 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
     canExportPDF: isAdmin || effectiveLimits.pdf,
     canManageRoles: isAdmin || effectiveLimits.roles,
     canUsePush: isAdmin || effectiveLimits.pushNotifications,
+    canUseBehavioral: isAdmin || plan === "pro" || plan === "club",
+    canUseWellbeing: isAdmin || plan === "pro" || plan === "club",
+    canUseTeamWellbeing: isAdmin || plan === "club",
     canUseInjuryPrediction: isAdmin || effectiveLimits.injuryPrediction,
     canUseValuation: isAdmin || effectiveLimits.valuation,
     canUseMultiVideoAggregation: isAdmin || effectiveLimits.multiVideoAggregation,
