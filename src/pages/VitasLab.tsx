@@ -500,6 +500,7 @@ const VitasLab = () => {
       timestampMs,
       frameIndex,
       tracking.state.focusTrackId,
+      tracking.state.ballTrack ?? null,
     );
 
     // Update summary periodically (every 30 frames ≈ 3.75s)

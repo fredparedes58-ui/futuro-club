@@ -43,7 +43,7 @@ export interface TrackingSnapshot {
   duelCount:      number;
   tracksCount:    number;
   focusTrackId:   number | null;
-  /** Hasta 200 eventos · suficiente para línea de tiempo · evita storage bloat */
+  /** Hasta 500 eventos (Sprint 3 expansion: 35+ types) · evita storage bloat */
   scanEvents:     ScanEvent[];
   duelEvents:     DuelEvent[];
   /** Posiciones del track enfocado (para heatmap), normalizadas 0-105 x 0-68 */

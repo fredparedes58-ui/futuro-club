@@ -16,10 +16,12 @@
  */
 
 import type { Track, ScanEvent, DuelEvent, Keypoint } from "@/lib/yolo/types";
+import type { BallEventType } from "./advancedEventTypes";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
-export type TacticalEventType =
+/** Base player-only event types (14) */
+export type BaseEventType =
   | "pass"
   | "shot"
   | "duel_aerial"
@@ -34,6 +36,9 @@ export type TacticalEventType =
   | "offside_line_break"
   | "cross"
   | "through_ball";
+
+/** All 35 tactical event types (14 base + 21 ball-aware from Sprint 3) */
+export type TacticalEventType = BaseEventType | BallEventType;
 
 export type EventOutcome = "success" | "fail" | "neutral" | "unknown";
 
@@ -151,12 +156,17 @@ export class EventDetectionEngine {
   /**
    * Process a frame of tracking data and detect tactical events.
    * Call this for each frame in sequence.
+   *
+   * @param ballTrack - Optional ball tracking data (Sprint 3). When provided,
+   *   improves confidence of existing event detections (e.g., pass/shot confirmed
+   *   by ball trajectory).
    */
   processFrame(
     tracks: Track[],
     timestampMs: number,
     frameIndex: number,
     focusTrackId?: number | null,
+    ballTrack?: { fieldPos: { fx: number; fy: number } | null; speedMs: number; visible: boolean } | null,
   ): TacticalEvent[] {
     const frameEvents: TacticalEvent[] = [];
     const dt = (timestampMs - this.previousTimestampMs) / 1000;
@@ -382,6 +392,22 @@ export class EventDetectionEngine {
           this.carryState.delete(track.id);
         } else if (speed <= 2.0) {
           this.carryState.delete(track.id);
+        }
+      }
+    }
+
+    // ── Boost confidence when ball data confirms events (Sprint 3) ──
+    if (ballTrack?.visible && ballTrack.fieldPos) {
+      for (const evt of frameEvents) {
+        if ((evt.type === "pass" || evt.type === "through_ball" || evt.type === "cross") && ballTrack.speedMs > 3) {
+          evt.confidence = Math.min(1.0, evt.confidence + 0.15);
+          (evt.metadata as Record<string, unknown>).ballConfirmed = true;
+          (evt.metadata as Record<string, unknown>).ballSpeedMs = round2(ballTrack.speedMs);
+        }
+        if (evt.type === "shot" && ballTrack.speedMs > 5) {
+          evt.confidence = Math.min(1.0, evt.confidence + 0.2);
+          (evt.metadata as Record<string, unknown>).ballConfirmed = true;
+          (evt.metadata as Record<string, unknown>).ballSpeedMs = round2(ballTrack.speedMs);
         }
       }
     }

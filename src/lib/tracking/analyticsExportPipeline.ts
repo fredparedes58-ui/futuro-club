@@ -434,6 +434,7 @@ export class AnalyticsExporter {
 
 function mapToSPADLType(type: string): string {
   const map: Record<string, string> = {
+    // Base 14 types
     pass: "pass",
     through_ball: "pass",
     cross: "cross",
@@ -448,6 +449,28 @@ function mapToSPADLType(type: string): string {
     press_trigger: "tackle",
     set_piece: "freekick_short",
     offside_line_break: "dribble",
+    // Sprint 3: 21 ball-aware types
+    reception: "receival",
+    dribble: "dribble",
+    clearance: "clearance",
+    goal_kick: "goalkick",
+    corner_kick: "corner_crossed",
+    throw_in: "throw_in",
+    foul: "foul",
+    offside: "offside",
+    goalkeeper_save: "keeper_save",
+    blocked_shot: "shot_block",
+    key_pass: "pass",
+    progressive_pass: "pass",
+    switch_play: "pass",
+    ball_recovery: "interception",
+    turnover: "bad_touch",
+    aerial_won: "take_on",
+    aerial_lost: "take_on",
+    dispossessed: "bad_touch",
+    second_assist: "pass",
+    chance_created: "pass",
+    progressive_carry: "dribble",
   };
   return map[type] ?? "other";
 }
