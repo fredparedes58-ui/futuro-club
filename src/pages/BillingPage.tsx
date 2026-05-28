@@ -1,6 +1,7 @@
 /**
  * BillingPage — /billing
- * Plan actual, uso del mes y gestión de suscripción Stripe.
+ * Plan actual, uso del mes, comparativa de planes.
+ * Fase 3: Stripe-independent — admin assigns plans manually.
  */
 
 import { useState, useEffect } from "react";
@@ -8,12 +9,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Check, Zap, Users, BarChart3,
-  CreditCard, Shield, Loader2,
+  Shield, Mail, UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import { getAuthHeaders } from "@/lib/apiAuth";
 import { usePlan } from "@/hooks/usePlan";
 import { PLAN_PRICES, PLAN_LABELS, type Plan } from "@/services/real/subscriptionService";
 import { useTranslation } from "react-i18next";
@@ -41,15 +40,58 @@ interface PlanFeature {
 
 const FEATURES: PlanFeature[] = [
   { label: "Jugadores",          free: "5",           pro: "25",          club: "Ilimitados"   },
-  { label: "Análisis IA / mes",  free: "3",           pro: "20",          club: "Ilimitados"   },
+  { label: "Analisis IA / mes",  free: "3",           pro: "20",          club: "Ilimitados"   },
+  { label: "Miembros equipo",    free: "2",           pro: "5",           club: "50"           },
   { label: "VAEP · Eventos",     free: false,         pro: true,          club: true           },
   { label: "Exportar PDF",       free: false,         pro: true,          club: true           },
   { label: "Notif. push",        free: false,         pro: true,          club: true           },
   { label: "Roles / multi-user", free: false,         pro: false,         club: true           },
-  { label: "Scout independiente",free: true,          pro: true,          club: true           },
-  { label: "Padre / Academia",   free: "Básico",      pro: "Completo",    club: "Completo"     },
-  { label: "Club profesional",   free: false,         pro: false,         club: true           },
+  { label: "Analisis Equipo",    free: false,         pro: false,         club: true           },
+  { label: "Rival Scouting",     free: false,         pro: false,         club: true           },
 ];
+
+// ─── Usage Bar Component ─────────────────────────────────────────────────────
+
+function UsageBar({
+  icon: Icon, label, used, limit,
+}: {
+  icon: React.ElementType;
+  label: string;
+  used: number;
+  limit: number;
+}) {
+  const isUnlimited = limit >= 9999;
+  const pct = isUnlimited ? 0 : Math.min(100, Math.round((used / limit) * 100));
+  const isWarning = pct >= 80;
+  const isDanger = pct >= 90;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs font-display">
+        <span className="text-muted-foreground flex items-center gap-1">
+          <Icon size={11} /> {label}
+        </span>
+        <span className="text-foreground">
+          {used} / {isUnlimited ? "∞" : limit}
+          {isWarning && !isDanger && (
+            <span className="ml-1.5 text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">80%</span>
+          )}
+          {isDanger && (
+            <span className="ml-1.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">LIMITE</span>
+          )}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${
+            isDanger ? "bg-destructive" : isWarning ? "bg-amber-500" : "bg-primary"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
@@ -59,10 +101,8 @@ const BillingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const planState = usePlan();
-  const [checkoutLoading, setCheckoutLoading] = useState<Plan | null>(null);
-  const [portalLoading, setPortalLoading] = useState(false);
 
-  // Manejar redirect desde Stripe
+  // Manejar redirect desde Stripe (legacy)
   useEffect(() => {
     if (searchParams.get("success")) {
       toast.success(t("toasts.planActivated"));
@@ -72,81 +112,6 @@ const BillingPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  const handleUpgrade = async (plan: Plan) => {
-    if (!user) return;
-
-    const priceId =
-      plan === "pro"
-        ? import.meta.env.VITE_STRIPE_PRO_PRICE_ID
-        : import.meta.env.VITE_STRIPE_CLUB_PRICE_ID;
-
-    if (!priceId) {
-      toast.error(t("toasts.stripeNotConfigured"));
-      return;
-    }
-
-    setCheckoutLoading(plan);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({
-          priceId,
-          userId: user.id,
-          email: user.email,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error(t("toasts.checkoutError"));
-      }
-    } catch {
-      toast.error(t("toasts.stripeError"));
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
-
-  const handleManage = async () => {
-    if (!planState.stripeCustomerId) return;
-    setPortalLoading(true);
-    try {
-      const res = await fetch("/api/stripe/portal", {
-        method: "POST",
-        headers: await getAuthHeaders(),
-        body: JSON.stringify({ customerId: planState.stripeCustomerId }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-      toast.error(t("toasts.billingPortalError"));
-    } finally {
-      setPortalLoading(false);
-    }
-  };
-
-  const playerPct = Math.min(
-    100,
-    planState.limits.players >= 9999
-      ? 0
-      : Math.round((planState.playerCount / planState.limits.players) * 100)
-  );
-  const analysesPct = Math.min(
-    100,
-    planState.limits.analyses >= 9999
-      ? 0
-      : Math.round((planState.analysesUsed / planState.limits.analyses) * 100)
-  );
-
-  // Detect if Stripe is configured (price IDs exist and aren't placeholders)
-  const stripeConfigured = (() => {
-    const proId = import.meta.env.VITE_STRIPE_PRO_PRICE_ID ?? "";
-    const clubId = import.meta.env.VITE_STRIPE_CLUB_PRICE_ID ?? "";
-    return proId && !proId.includes("REEMPLAZA") && clubId && !clubId.includes("REEMPLAZA");
-  })();
 
   const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -174,12 +139,12 @@ const BillingPage = () => {
         </div>
       </motion.div>
 
-      {/* Plan actual */}
+      {/* Plan actual + Usage */}
       <motion.div
         variants={item}
         className={`glass rounded-xl p-4 border ${PLAN_BADGE[planState.plan]}`}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
               {t("billing.currentPlan")}
@@ -189,11 +154,6 @@ const BillingPage = () => {
               <span className={`font-display font-bold text-2xl ${PLAN_COLOR[planState.plan]}`}>
                 {PLAN_LABELS[planState.plan]}
               </span>
-              {planState.plan !== "free" && planState.currentPeriodEnd && (
-                <span className="text-[10px] text-muted-foreground">
-                  · {t("billing.expires", { date: new Date(planState.currentPeriodEnd).toLocaleDateString("es-ES") })}
-                </span>
-              )}
             </div>
           </div>
           {planState.plan !== "free" && (
@@ -204,71 +164,48 @@ const BillingPage = () => {
           )}
         </div>
 
-        {/* Uso: jugadores */}
-        <div className="space-y-1.5 mb-2">
-          <div className="flex items-center justify-between text-xs font-display">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Users size={11} /> {t("billing.usagePlayers")}
-            </span>
-            <span className="text-foreground">
-              {planState.playerCount} / {planState.limits.players >= 9999 ? "∞" : planState.limits.players}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${playerPct >= 90 ? "bg-destructive" : "bg-primary"}`}
-              style={{ width: `${playerPct}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Uso: análisis */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs font-display">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <BarChart3 size={11} /> {t("billing.usageAnalyses")}
-            </span>
-            <span className="text-foreground">
-              {planState.analysesUsed} / {planState.limits.analyses >= 9999 ? "∞" : planState.limits.analyses}
-            </span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all ${analysesPct >= 90 ? "bg-destructive" : "bg-primary"}`}
-              style={{ width: `${analysesPct}%` }}
-            />
-          </div>
+        {/* Usage bars */}
+        <div className="space-y-3">
+          <UsageBar
+            icon={Users}
+            label="Jugadores"
+            used={planState.playerCount}
+            limit={planState.limits.players}
+          />
+          <UsageBar
+            icon={BarChart3}
+            label="Analisis IA este mes"
+            used={planState.analysesUsed}
+            limit={planState.limits.analyses}
+          />
+          <UsageBar
+            icon={UserPlus}
+            label="Miembros equipo"
+            used={planState.teamMemberCount}
+            limit={planState.teamMemberLimit}
+          />
         </div>
       </motion.div>
 
-      {/* Gestionar suscripción (solo si tiene customerId) */}
-      {planState.plan !== "free" && planState.stripeCustomerId && (
-        <motion.div variants={item}>
-          <Button
-            variant="outline"
-            className="w-full gap-2"
-            onClick={handleManage}
-            disabled={portalLoading}
-          >
-            {portalLoading
-              ? <Loader2 size={14} className="animate-spin" />
-              : <CreditCard size={14} />
-            }
-            {t("billing.manageSubscription")}
-          </Button>
-        </motion.div>
-      )}
-
-      {/* Banner: Stripe no configurado */}
-      {!stripeConfigured && (
-        <motion.div variants={item} className="glass rounded-xl p-4 border border-yellow-500/30 bg-yellow-500/5">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield size={14} className="text-yellow-500" />
-            <span className="font-display font-bold text-sm text-yellow-500">{t("billing.stripeNotConfigured")}</span>
+      {/* Upgrade CTA (for non-club users) */}
+      {planState.plan !== "club" && (
+        <motion.div variants={item} className="glass rounded-xl p-4 border border-primary/20 bg-primary/5">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap size={14} className="text-primary" />
+            <span className="font-display font-bold text-sm text-primary">
+              {planState.plan === "free" ? "Desbloquea mas con Pro o Club" : "Upgrade a Club"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("billing.stripeNotConfiguredDesc")}
+          <p className="text-xs text-muted-foreground mb-3">
+            Para cambiar tu plan, contacta al administrador de tu academia o escribe directamente.
           </p>
+          <a
+            href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request&body=Hola%2C%20me%20gustaria%20upgrade%20mi%20plan%20VITAS."
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-xs hover:bg-primary/90 transition-colors"
+          >
+            <Mail size={12} />
+            Solicitar upgrade
+          </a>
         </motion.div>
       )}
 
@@ -281,9 +218,6 @@ const BillingPage = () => {
         {(["free", "pro", "club"] as Plan[]).map((plan) => {
           const isCurrentPlan = planState.plan === plan;
           const price = PLAN_PRICES[plan].monthly;
-          const canUpgrade =
-            (plan === "pro" && planState.plan === "free") ||
-            (plan === "club" && planState.plan !== "club");
 
           return (
             <div
@@ -313,7 +247,7 @@ const BillingPage = () => {
               </div>
 
               {/* Features */}
-              <div className="space-y-1.5 mb-3">
+              <div className="space-y-1.5">
                 {FEATURES.map((f) => {
                   const val = f[plan];
                   if (val === false) return null;
@@ -330,22 +264,6 @@ const BillingPage = () => {
                   );
                 })}
               </div>
-
-              {canUpgrade && (
-                <Button
-                  className="w-full gap-2"
-                  variant={plan === "club" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleUpgrade(plan)}
-                  disabled={checkoutLoading === plan}
-                >
-                  {checkoutLoading === plan
-                    ? <Loader2 size={12} className="animate-spin" />
-                    : <Zap size={12} />
-                  }
-                  {t("billing.upgradeTo", { plan: PLAN_LABELS[plan] })}
-                </Button>
-              )}
             </div>
           );
         })}
@@ -354,10 +272,10 @@ const BillingPage = () => {
       {/* Footer info */}
       <motion.div variants={item} className="glass rounded-xl p-4 text-center space-y-1">
         <p className="text-[10px] font-display text-muted-foreground">
-          {t("billing.footer.stripe")}
+          Los planes son gestionados por el administrador de la plataforma.
         </p>
         <p className="text-[10px] font-display text-muted-foreground">
-          {t("billing.footer.cancelAnytime")}
+          Contacta a tu admin para cambios de plan o preguntas sobre facturacion.
         </p>
       </motion.div>
     </motion.div>

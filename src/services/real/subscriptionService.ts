@@ -15,6 +15,7 @@ export type Plan = "free" | "pro" | "club";
 export interface PlanLimits {
   players: number;        // max jugadores (-1 = unlimited stored as Infinity)
   analyses: number;       // análisis IA por mes
+  teamMembers: number;    // max miembros del equipo (Fase 3)
   vaep: boolean;
   pdf: boolean;
   roles: boolean;
@@ -36,6 +37,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   free: {
     players: 5,
     analyses: 3,
+    teamMembers: 2,
     vaep: false,
     pdf: false,
     roles: false,
@@ -44,6 +46,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   pro: {
     players: 25,
     analyses: 20,
+    teamMembers: 5,
     vaep: true,
     pdf: true,
     roles: false,
@@ -52,6 +55,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   club: {
     players: 9999,        // efectivamente ilimitado
     analyses: 9999,
+    teamMembers: 50,
     vaep: true,
     pdf: true,
     roles: true,

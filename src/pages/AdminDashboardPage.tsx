@@ -109,8 +109,22 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-        {/* Quick links to compliance tools */}
+        {/* Quick links to admin tools */}
         <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate("/admin/plans")}
+            className="glass rounded-xl p-4 border border-border/20 hover:border-primary/30 transition-all text-left group"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <CreditCard size={14} className="text-primary" />
+              <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
+                Gestion de Planes
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Asigna planes, resetea quotas, gestiona organizaciones
+            </p>
+          </button>
           <button
             onClick={() => navigate("/admin/bias")}
             className="glass rounded-xl p-4 border border-border/20 hover:border-primary/30 transition-all text-left group"
@@ -118,11 +132,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2 mb-1">
               <Activity size={14} className="text-primary" />
               <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                Auditoría de Sesgo IA
+                Auditoria de Sesgo IA
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Detecta anomalías por posición, edad, visibilidad y tiempo
+              Detecta anomalias por posicion, edad, visibilidad y tiempo
             </p>
           </button>
           <button

@@ -70,6 +70,7 @@ import { XgAccumulator } from "@/lib/xg/xgAccumulator";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import TeamDashboard from "@/components/TeamDashboard";
 import { useTeamAnalysis } from "@/hooks/useTeamAnalysis";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 interface CalibrationPoint {
   id: number;
@@ -258,7 +259,8 @@ const VitasLab = () => {
   const { t } = useTranslation();
   const navigate  = useNavigate();
   const { user }  = useAuth();
-  const { canRunAnalysis, analysesUsed, limits } = usePlan();
+  const { canRunAnalysis, analysesUsed, limits, isClub, plan } = usePlan();
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showHistorial, setShowHistorial]       = useState(false);
@@ -788,11 +790,7 @@ const VitasLab = () => {
 
   const handleStartAnalysis = async () => {
     if (!canRunAnalysis) {
-      const limitLabel = limits.analyses >= 9999 ? "∞" : limits.analyses;
-      toast.error(t("lab.analysisLimitReached", { used: analysesUsed, limit: limitLabel }), {
-        action: { label: t("lab.upgradePlan"), onClick: () => navigate("/billing") },
-        duration: 5000,
-      });
+      setShowUpgradePrompt(true);
       return;
     }
     if (!selectedVideoId) {
@@ -1002,6 +1000,7 @@ const VitasLab = () => {
   };
 
   return (
+    <>
     <motion.div variants={container} initial="hidden" animate="show" className="min-h-screen flex flex-col">
 
       {/* Top Nav */}
@@ -1287,8 +1286,7 @@ const VitasLab = () => {
                 return;
               }
               if (!canRunAnalysis) {
-                const limitLabel = limits.analyses >= 9999 ? "∞" : limits.analyses;
-                toast.error(t("lab.analysisLimitReached", { used: analysesUsed, limit: limitLabel }));
+                setShowUpgradePrompt(true);
                 return;
               }
               setActionLog([]);
@@ -1403,19 +1401,30 @@ const VitasLab = () => {
               {analysisModes.map((mode) => {
                 const Icon   = mode.icon;
                 const active = selectedMode === mode.id;
+                const isTeamMode = mode.id === "team";
+                const locked = isTeamMode && !isClub;
                 return (
                   <button
                     key={mode.id}
-                    onClick={() => setSelectedMode(mode.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
+                    onClick={() => {
+                      if (locked) {
+                        setShowUpgradePrompt(true);
+                        return;
+                      }
+                      setSelectedMode(mode.id);
+                    }}
+                    className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${locked ? "opacity-60 border-border" : active ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground/30"}`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${active ? "bg-primary/10" : "bg-secondary"}`}>
                       <Icon size={15} className={active ? "text-primary" : "text-muted-foreground"} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-display font-bold text-xs text-foreground">{mode.label}</h4>
                       <p className="text-[9px] text-muted-foreground leading-tight">{mode.desc}</p>
                     </div>
+                    {locked && (
+                      <span className="text-[8px] font-display font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">Club</span>
+                    )}
                   </button>
                 );
               })}
@@ -2301,6 +2310,17 @@ const VitasLab = () => {
         <span>VITAS_STATION_004 // BUILD_3.0.0</span>
       </motion.div>
     </motion.div>
+
+    {/* ── Upgrade Prompt Modal ── */}
+    <UpgradePrompt
+      feature={!canRunAnalysis ? "Análisis IA" : "Modo Equipo Completo"}
+      requiredPlan={!canRunAnalysis ? (plan === "free" ? "pro" : "club") : "club"}
+      currentUsage={!canRunAnalysis ? `${analysesUsed}/${limits.analyses >= 9999 ? "∞" : limits.analyses} análisis usados` : undefined}
+      variant="modal"
+      open={showUpgradePrompt}
+      onClose={() => setShowUpgradePrompt(false)}
+    />
+    </>
   );
 };
 
