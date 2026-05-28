@@ -74,6 +74,18 @@ export default function SetPiecePage() {
   const [videoRecs, setVideoRecs] = useState(() => SetPieceVideoRecommendations.getAll());
   const [generatingRecs, setGeneratingRecs] = useState(false);
 
+  // Folder state (also declared early so memos can read it)
+  const [folders, setFolders] = useState<Folder[]>(() => SetPieceFolderStorage.getAll());
+  const [activeFolderId, setActiveFolderId] = useState<string | "all">("all");
+  const [folderVersion, setFolderVersion] = useState(0);
+  const refreshFolders = () => {
+    setFolders(SetPieceFolderStorage.getAll());
+    setFolderVersion((v) => v + 1);
+  };
+
+  // Notes versioning (for the badge counts)
+  const [notesVersion, setNotesVersion] = useState(0);
+
   // Refresh when window regains focus (after navigating back from editor)
   useEffect(() => {
     const handleFocus = () => {
@@ -116,9 +128,6 @@ export default function SetPiecePage() {
   const isCustomRec = (r: SetPieceRecommendation) =>
     customRecs.some((c) => c.id === r.id);
 
-  // Bump this counter when notes change to force note-count badges to refresh
-  const [notesVersion, setNotesVersion] = useState(0);
-
   // ── Inline tactical editor state ──────────────────────────────────────
   // When `editingEvent` is set, the detail panel shows the editor instead of PitchView.
   const [editingEvent, setEditingEvent] = useState<SetPieceEvent | null>(null);
@@ -144,15 +153,6 @@ export default function SetPiecePage() {
     outcome: "shot_on_target",
     tacticalNotes: "",
   });
-
-  // ── Folder state ─────────────────────────────────────────────────────
-  const [folders, setFolders] = useState<Folder[]>(() => SetPieceFolderStorage.getAll());
-  const [activeFolderId, setActiveFolderId] = useState<string | "all">("all");
-  const [folderVersion, setFolderVersion] = useState(0);
-  const refreshFolders = () => {
-    setFolders(SetPieceFolderStorage.getAll());
-    setFolderVersion((v) => v + 1);
-  };
 
   // ── Video-driven detection handlers ─────────────────────────────────
   const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
