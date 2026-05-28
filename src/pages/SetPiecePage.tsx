@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2 } from "lucide-react";
+import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllSetPieces,
@@ -26,6 +26,7 @@ import EventNotesPanel from "@/components/setPiece/EventNotesPanel";
 import TacticalBoardEditor, { type Drawing, type TextNote } from "@/components/setPiece/TacticalBoardEditor";
 import FolderPicker from "@/components/setPiece/FolderPicker";
 import VideoAnalyzerDialog from "@/components/setPiece/VideoAnalyzerDialog";
+import VideoUploadDialog from "@/components/setPiece/VideoUploadDialog";
 import {
   SetPieceVideoEvents,
   SetPieceVideoRecommendations,
@@ -71,6 +72,7 @@ export default function SetPiecePage() {
 
   // Video-driven detection state (declared early so the memos below can read it)
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [videoRecs, setVideoRecs] = useState(() => SetPieceVideoRecommendations.getAll());
   const [generatingRecs, setGeneratingRecs] = useState(false);
 
@@ -364,7 +366,15 @@ export default function SetPiecePage() {
                 <span className="text-[11px] text-muted-foreground font-mono">
                   {filteredEvents.length} jugadas
                 </span>
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setUploadDialogOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
+                    title="Sube un video desde tu ordenador, móvil o cloud"
+                  >
+                    <Upload size={14} />
+                    Subir video
+                  </button>
                   <button
                     onClick={() => setVideoDialogOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
@@ -797,6 +807,18 @@ export default function SetPiecePage() {
         open={videoDialogOpen}
         onClose={() => setVideoDialogOpen(false)}
         onCompleted={handleVideoDetectionCompleted}
+      />
+
+      {/* Video upload modal */}
+      <VideoUploadDialog
+        open={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        onUploaded={() => {
+          // Close upload and chain into the analyzer
+          setUploadDialogOpen(false);
+          // Slight delay so the success card stays visible briefly
+          setTimeout(() => setVideoDialogOpen(true), 600);
+        }}
       />
     </div>
   );
