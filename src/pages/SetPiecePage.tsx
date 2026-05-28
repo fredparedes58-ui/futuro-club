@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3 } from "lucide-react";
+import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   getAllSetPieces,
@@ -25,6 +25,12 @@ import RecommendationCard from "@/components/setPiece/RecommendationCard";
 import EventNotesPanel from "@/components/setPiece/EventNotesPanel";
 import TacticalBoardEditor, { type Drawing, type TextNote } from "@/components/setPiece/TacticalBoardEditor";
 import FolderPicker from "@/components/setPiece/FolderPicker";
+import VideoAnalyzerDialog from "@/components/setPiece/VideoAnalyzerDialog";
+import {
+  SetPieceVideoEvents,
+  SetPieceVideoRecommendations,
+  generateRecommendationsFromEvents,
+} from "@/services/real/setPieceVideoDetector";
 import { EventNotesStorage } from "@/services/real/eventNotesStorage";
 import {
   SetPieceFolderStorage,
@@ -93,9 +99,12 @@ export default function SetPiecePage() {
 
   const stats = useMemo(() => getAggregateStats(allEvents), [allEvents]);
   const recommendations = useMemo<SetPieceRecommendation[]>(
-    () => [...customRecs, ...getRecommendations()],
-    [customRecs],
+    () => [...customRecs, ...videoRecs, ...getRecommendations()],
+    [customRecs, videoRecs],
   );
+
+  const isVideoRec = (r: SetPieceRecommendation) =>
+    videoRecs.some((vr) => vr.id === r.id);
 
   const isCustomEvent = (e: SetPieceEvent) =>
     customEvents.some((c) => c.id === e.id);
@@ -138,6 +147,37 @@ export default function SetPiecePage() {
   const refreshFolders = () => {
     setFolders(SetPieceFolderStorage.getAll());
     setFolderVersion((v) => v + 1);
+  };
+
+  // ── Video-driven detection ──────────────────────────────────────────
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoRecs, setVideoRecs] = useState(() => SetPieceVideoRecommendations.getAll());
+  const [generatingRecs, setGeneratingRecs] = useState(false);
+
+  const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
+
+  const handleVideoDetectionCompleted = () => {
+    // Reload custom events so the detected ones appear in the list
+    setCustomEvents(SetPieceCustomStorage.getCustomEvents());
+  };
+
+  const handleGenerateRecsFromEvents = async () => {
+    setGeneratingRecs(true);
+    try {
+      const allDetected = SetPieceVideoEvents.getAll();
+      if (allDetected.length < 3) {
+        toast.error("Necesitas al menos 3 jugadas detectadas desde video para generar recomendaciones");
+        return;
+      }
+      // Small delay so the spinner shows
+      await new Promise((r) => setTimeout(r, 800));
+      const recs = generateRecommendationsFromEvents(allDetected);
+      SetPieceVideoRecommendations.set(recs);
+      setVideoRecs(recs);
+      toast.success(`${recs.length} recomendaciones generadas desde tus jugadas`);
+    } finally {
+      setGeneratingRecs(false);
+    }
   };
 
   useEffect(() => {
@@ -323,13 +363,22 @@ export default function SetPiecePage() {
                 <span className="text-[11px] text-muted-foreground font-mono">
                   {filteredEvents.length} jugadas
                 </span>
-                <button
-                  onClick={() => navigate("/set-pieces/new")}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
-                >
-                  <Plus size={14} />
-                  Nueva jugada
-                </button>
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    onClick={() => setVideoDialogOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
+                  >
+                    <Cpu size={14} />
+                    Analizar video
+                  </button>
+                  <button
+                    onClick={() => navigate("/set-pieces/new")}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
+                  >
+                    <Plus size={14} />
+                    Nueva jugada
+                  </button>
+                </div>
               </div>
 
               {/* Folder filter bar */}
@@ -397,11 +446,15 @@ export default function SetPiecePage() {
                           </span>
                         )}
                         <div className="absolute top-2 right-2 flex items-center gap-1">
-                          {isCustom && (
+                          {isVideoEvent(event.id) ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
+                              <Video size={8} /> De video
+                            </span>
+                          ) : isCustom ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                               <Sparkles size={8} /> Custom
                             </span>
-                          )}
+                          ) : null}
                           <div onClick={(e) => e.stopPropagation()}>
                             <FolderPicker
                               itemId={event.id}
@@ -666,29 +719,46 @@ export default function SetPiecePage() {
               transition={{ duration: 0.2 }}
               className="space-y-3"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5 flex-1">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5 flex-1 min-w-[260px]">
                   <p className="text-xs text-foreground/80 leading-relaxed">
                     <strong className="text-primary">Recomendaciones generadas por IA</strong> basadas en el análisis
                     de jugadas detectadas en tus videos y patrones defensivos de los rivales. Despliega cada una para ver el diagrama y los puntos clave.
                   </p>
                 </div>
-                <button
-                  onClick={() => navigate("/set-pieces/new?type=recommendation")}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all shrink-0"
-                >
-                  <Plus size={14} />
-                  Nueva
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleGenerateRecsFromEvents}
+                    disabled={generatingRecs}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Sintetiza recomendaciones desde tus eventos detectados"
+                  >
+                    <Wand2 size={14} className={generatingRecs ? "animate-pulse" : ""} />
+                    {generatingRecs ? "Generando…" : "Generar IA"}
+                  </button>
+                  <button
+                    onClick={() => navigate("/set-pieces/new?type=recommendation")}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
+                  >
+                    <Plus size={14} />
+                    Nueva
+                  </button>
+                </div>
               </div>
               {recommendations.map((rec) => {
                 const isCustom = isCustomRec(rec);
+                const isVideo = isVideoRec(rec);
                 void folderVersion;
                 return (
                   <div key={rec.id} className="relative group">
                     <RecommendationCard rec={rec} />
                     <div className="absolute top-3 right-12 flex items-center gap-1">
-                      {isCustom && (
+                      {isVideo && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
+                          <Wand2 size={8} /> IA · video
+                        </span>
+                      )}
+                      {!isVideo && isCustom && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                           <Sparkles size={8} /> Custom
                         </span>
@@ -720,6 +790,13 @@ export default function SetPiecePage() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Video analyzer modal */}
+      <VideoAnalyzerDialog
+        open={videoDialogOpen}
+        onClose={() => setVideoDialogOpen(false)}
+        onCompleted={handleVideoDetectionCompleted}
+      />
     </div>
   );
 }
