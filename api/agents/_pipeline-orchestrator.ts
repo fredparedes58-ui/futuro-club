@@ -339,6 +339,25 @@ export default withHandler(
       await supabase.from("reports").insert(reportInserts);
     }
 
+    // ── 6b. Save metric snapshot for progression tracking (Sprint 9) ──
+    try {
+      const fatigueData = fatigueReport as Record<string, unknown> | null;
+      await callInternal("/api/agents/progression-tracker", {
+        playerId: analysis.player_id,
+        analysisId: analysis.id,
+        vsi: (vsi as { vsi?: number })?.vsi ?? null,
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        injuryRisk: bm.injury_risk ?? null,
+        fatigueIndex: fatigueData?.fatigue_index ?? null,
+        acwr: fatigueData?.acwr_value ?? null,
+        xgAccumulated: null, // xG comes from client-side accumulator
+        source: "video_analysis",
+      });
+    } catch {
+      // Progression tracking is non-blocking — pipeline continues
+    }
+
     // ── 7. Marcar analysis completed ───────────────────────────────
     const totalLatencyMs = Date.now() - startedAt;
     await supabase
