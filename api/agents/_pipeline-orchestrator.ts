@@ -49,6 +49,7 @@ const PLAYER_REPORT_AGENTS = [
   { name: "projection", endpoint: "/api/agents/projection-report", model: "haiku" },
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
   { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
+  { name: "injury-risk-report", endpoint: "/api/agents/injury-risk-report", model: "haiku" },
 ] as const;
 
 /** Team-mode report agents (Sprint 8) */
@@ -273,7 +274,32 @@ export default withHandler(
       // Fatigue data is optional — pipeline continues without it
     }
 
-    // ── 5. Disparar 7 reportes LLM EN PARALELO ──────────────────────
+    // ── 4c. Injury risk calculator (deterministic, Sprint 10) ─────────
+    let injuryRiskResult: unknown = null;
+    try {
+      const injuryCalcRes = await callInternal("/api/agents/injury-risk-calculator", {
+        playerId: analysis.player_id,
+        age: anthro?.chronological_age ?? null,
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        acwrValue: (fatigueReport as Record<string, unknown> | null)?.acwr_value ?? null,
+        acwrZone: (fatigueReport as Record<string, unknown> | null)?.acwr_zone ?? null,
+        fatigueIndex: (fatigueReport as Record<string, unknown> | null)?.fatigue_index ?? null,
+        fatigueSeverity: (fatigueReport as Record<string, unknown> | null)?.fatigue_severity ?? null,
+        biomechanicsInjuryRisk: bm.injury_risk ?? null,
+        asymmetryPct: bm.asymmetry_pct ?? null,
+        injuryHistory: [],  // TODO: fetch from player_injuries table when populated
+        daysSinceLastInjury: null,
+        sessionsLast28Days: fatigueHistory.length,
+      });
+      if (injuryCalcRes.success) {
+        injuryRiskResult = injuryCalcRes.data?.data?.report ?? injuryCalcRes.data?.data ?? null;
+      }
+    } catch {
+      // Injury risk is non-blocking — pipeline continues
+    }
+
+    // ── 5. Disparar 8 reportes LLM EN PARALELO ──────────────────────
     // Posición jugada en este video específico · default a la principal
     const playedPosition =
       (analysis as { played_position?: string | null }).played_position
@@ -304,6 +330,8 @@ export default withHandler(
       // Sprint 7: fatigue data for fatigue-report agent
       fatigueReport,
       fatigueHistory,
+      // Sprint 10: injury risk calculator result (deterministic)
+      injuryRisk: injuryRiskResult,
       // Sprint 8: team/rival analysis data (if mode is team or rival)
       teamAnalysis: teamAnalysis ?? null,
       analysisMode: mode,
@@ -348,7 +376,7 @@ export default withHandler(
         vsi: (vsi as { vsi?: number })?.vsi ?? null,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
-        injuryRisk: bm.injury_risk ?? null,
+        injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? bm.injury_risk ?? null,
         fatigueIndex: fatigueData?.fatigue_index ?? null,
         acwr: fatigueData?.acwr_value ?? null,
         xgAccumulated: null, // xG comes from client-side accumulator
