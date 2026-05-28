@@ -50,6 +50,7 @@ const PLAYER_REPORT_AGENTS = [
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
   { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
   { name: "injury-risk-report", endpoint: "/api/agents/injury-risk-report", model: "haiku" },
+  { name: "valuation-report", endpoint: "/api/agents/valuation-report", model: "haiku" },
 ] as const;
 
 /** Team-mode report agents (Sprint 8) */
@@ -299,7 +300,33 @@ export default withHandler(
       // Injury risk is non-blocking — pipeline continues
     }
 
-    // ── 5. Disparar 8 reportes LLM EN PARALELO ──────────────────────
+    // ── 4d. Valuation model (deterministic, Sprint 12) ────────────────
+    let valuationResult: unknown = null;
+    try {
+      const valuationRes = await callInternal("/api/agents/valuation-model", {
+        playerId: analysis.player_id,
+        age: anthro?.chronological_age ?? null,
+        position: player?.position ?? null,
+        currentVsi: (vsi as { vsi?: number })?.vsi ?? null,
+        vsiHistory: [], // TODO: fetch from player_metric_snapshots
+        phvOffset: anthro?.maturity_offset ?? null,
+        phvCategory: anthro?.phv_category ?? null,
+        biologicalAge: anthro?.biological_age ?? null,
+        injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? null,
+        injuryCategory: (injuryRiskResult as Record<string, unknown> | null)?.riskCategory ?? null,
+        positionFitScores: [],
+        sessionCount: fatigueHistory.length,
+        analysisCount: 1, // Single analysis context
+        competitiveLevel: "academy",
+      });
+      if (valuationRes.success) {
+        valuationResult = valuationRes.data?.data?.report ?? valuationRes.data?.data ?? null;
+      }
+    } catch {
+      // Valuation is non-blocking — pipeline continues
+    }
+
+    // ── 5. Disparar 9 reportes LLM EN PARALELO ──────────────────────
     // Posición jugada en este video específico · default a la principal
     const playedPosition =
       (analysis as { played_position?: string | null }).played_position
@@ -332,6 +359,8 @@ export default withHandler(
       fatigueHistory,
       // Sprint 10: injury risk calculator result (deterministic)
       injuryRisk: injuryRiskResult,
+      // Sprint 12: valuation model result (deterministic)
+      valuationModel: valuationResult,
       // Sprint 8: team/rival analysis data (if mode is team or rival)
       teamAnalysis: teamAnalysis ?? null,
       analysisMode: mode,
