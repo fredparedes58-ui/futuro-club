@@ -411,24 +411,43 @@ export default function SetPiecePage() {
                   {folders.map((f) => {
                     const count = SetPieceFolderStorage.countByFolder(f.id, "event");
                     return (
-                      <button
-                        key={f.id}
-                        onClick={() => setActiveFolderId(f.id)}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold whitespace-nowrap transition-all border ${
-                          activeFolderId === f.id
-                            ? "border-primary text-foreground"
-                            : "border-transparent text-muted-foreground hover:text-foreground bg-secondary"
-                        }`}
-                        style={
-                          activeFolderId === f.id
-                            ? { background: `${f.color}25`, borderColor: f.color }
-                            : undefined
-                        }
-                      >
-                        <span>{f.icon}</span>
-                        <span>{f.name}</span>
-                        <span className="text-muted-foreground/70 font-mono">({count})</span>
-                      </button>
+                      <div key={f.id} className="flex items-center group">
+                        <button
+                          onClick={() => setActiveFolderId(f.id)}
+                          onDoubleClick={() => navigate(`/set-pieces/folder/${f.id}`)}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-l-md text-[11px] font-display font-semibold whitespace-nowrap transition-all border ${
+                            activeFolderId === f.id
+                              ? "border-primary text-foreground"
+                              : "border-transparent text-muted-foreground hover:text-foreground bg-secondary"
+                          }`}
+                          style={
+                            activeFolderId === f.id
+                              ? { background: `${f.color}25`, borderColor: f.color }
+                              : undefined
+                          }
+                          title="Doble-click para abrir la carpeta"
+                        >
+                          <span>{f.icon}</span>
+                          <span>{f.name}</span>
+                          <span className="text-muted-foreground/70 font-mono">({count})</span>
+                        </button>
+                        <button
+                          onClick={() => navigate(`/set-pieces/folder/${f.id}`)}
+                          className={`px-1.5 py-1 rounded-r-md text-[11px] border-l-0 border transition-all ${
+                            activeFolderId === f.id
+                              ? "border-primary text-foreground"
+                              : "border-transparent text-muted-foreground hover:text-primary bg-secondary opacity-60 group-hover:opacity-100"
+                          }`}
+                          style={
+                            activeFolderId === f.id
+                              ? { background: `${f.color}25`, borderColor: f.color }
+                              : undefined
+                          }
+                          title="Abrir carpeta dedicada"
+                        >
+                          ↗
+                        </button>
+                      </div>
                     );
                   })}
                 </div>

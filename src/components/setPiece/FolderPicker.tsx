@@ -5,8 +5,9 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Folder as FolderIcon, Plus, Check, X } from "lucide-react";
+import { Folder as FolderIcon, Plus, Check, X, ExternalLink } from "lucide-react";
 import {
   SetPieceFolderStorage,
   type Folder,
@@ -23,6 +24,7 @@ interface FolderPickerProps {
 }
 
 export default function FolderPicker({ itemId, itemType, onChange }: FolderPickerProps) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [creating, setCreating] = useState(false);
@@ -136,20 +138,31 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
               {folders.map((f) => {
                 const checked = SetPieceFolderStorage.isInFolder(f.id, itemId, itemType);
                 return (
-                  <button
-                    key={f.id}
-                    onClick={() => toggleFolder(f.id)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] hover:bg-secondary text-left transition-colors"
-                  >
-                    <span
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-[12px] shrink-0"
-                      style={{ background: `${f.color}25`, border: `1px solid ${f.color}55` }}
+                  <div key={f.id} className="flex items-center gap-0.5 group/row">
+                    <button
+                      onClick={() => toggleFolder(f.id)}
+                      className="flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] hover:bg-secondary text-left transition-colors"
                     >
-                      {f.icon}
-                    </span>
-                    <span className="flex-1 truncate font-medium text-foreground">{f.name}</span>
-                    {checked && <Check size={13} className="text-primary shrink-0" />}
-                  </button>
+                      <span
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-[12px] shrink-0"
+                        style={{ background: `${f.color}25`, border: `1px solid ${f.color}55` }}
+                      >
+                        {f.icon}
+                      </span>
+                      <span className="flex-1 truncate font-medium text-foreground">{f.name}</span>
+                      {checked && <Check size={13} className="text-primary shrink-0" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOpen(false);
+                        navigate(`/set-pieces/folder/${f.id}`);
+                      }}
+                      className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary opacity-0 group-hover/row:opacity-100 transition-all"
+                      title="Abrir carpeta"
+                    >
+                      <ExternalLink size={11} />
+                    </button>
+                  </div>
                 );
               })}
             </div>
