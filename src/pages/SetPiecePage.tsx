@@ -69,6 +69,11 @@ export default function SetPiecePage() {
   const [customEvents, setCustomEvents] = useState(() => SetPieceCustomStorage.getCustomEvents());
   const [customRecs, setCustomRecs] = useState(() => SetPieceCustomStorage.getCustomRecommendations());
 
+  // Video-driven detection state (declared early so the memos below can read it)
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoRecs, setVideoRecs] = useState(() => SetPieceVideoRecommendations.getAll());
+  const [generatingRecs, setGeneratingRecs] = useState(false);
+
   // Refresh when window regains focus (after navigating back from editor)
   useEffect(() => {
     const handleFocus = () => {
@@ -149,11 +154,7 @@ export default function SetPiecePage() {
     setFolderVersion((v) => v + 1);
   };
 
-  // ── Video-driven detection ──────────────────────────────────────────
-  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  const [videoRecs, setVideoRecs] = useState(() => SetPieceVideoRecommendations.getAll());
-  const [generatingRecs, setGeneratingRecs] = useState(false);
-
+  // ── Video-driven detection handlers ─────────────────────────────────
   const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
 
   const handleVideoDetectionCompleted = () => {
