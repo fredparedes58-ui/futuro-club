@@ -26,6 +26,7 @@ import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import PeerBenchmark from "@/components/PeerBenchmark";
+import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
 
 interface Badge {
   id: string;
@@ -306,6 +307,9 @@ export default function ParentDashboardPage() {
           </button>
         </div>
 
+        {/* Wellbeing section (Sprint 23) */}
+        <ParentWellbeingSection playerId={playerId ?? ""} />
+
         {/* Empty state si no hay análisis */}
         {totalReports === 0 && (
           <div className="glass rounded-2xl p-5 text-center space-y-2">
@@ -320,6 +324,83 @@ export default function ParentDashboardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Wellbeing for parents (Sprint 23) ───────────────────────────
+
+function ParentWellbeingSection({ playerId }: { playerId: string }) {
+  const { data: risk } = useDropoutRisk(playerId || undefined);
+  const { data: engagement } = useEngagementHistory(playerId || undefined);
+
+  if (!risk || !playerId) return null;
+
+  const engagementTrend = risk.engagement.trend;
+  const tips = [
+    "Pregunta siempre '¿Te has divertido hoy?' en vez de '¿Han ganado?'",
+    "Asegura que duerme 8-9 horas para una buena recuperación",
+    "Celebra el esfuerzo y la mejora, no solo los goles o las victorias",
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass rounded-2xl p-4 space-y-3"
+    >
+      <div className="flex items-center gap-2">
+        <Heart size={14} className="text-rose-400" />
+        <span className="text-[11px] font-display font-bold text-foreground">Bienestar</span>
+      </div>
+
+      {/* Engagement bar */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground">Nivel de disfrute</span>
+          <span className={`text-[10px] font-bold ${
+            engagementTrend === "declining" ? "text-amber-400" :
+            engagementTrend === "improving" ? "text-emerald-400" :
+            "text-muted-foreground"
+          }`}>
+            {engagementTrend === "declining" ? "↓ Bajando" :
+             engagementTrend === "improving" ? "↑ Subiendo" :
+             "→ Estable"}
+          </span>
+        </div>
+        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+          <motion.div
+            className={`h-full rounded-full ${
+              risk.engagement.current >= 65 ? "bg-emerald-500" :
+              risk.engagement.current >= 40 ? "bg-amber-500" :
+              "bg-red-500"
+            }`}
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, risk.engagement.current)}%` }}
+            transition={{ duration: 0.8 }}
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          {risk.engagement.current >= 65
+            ? "Tu hijo está disfrutando de los entrenamientos. ¡Sigue así!"
+            : risk.engagement.current >= 40
+            ? "El disfrute ha bajado un poco. Es normal, pero conviene estar atentos."
+            : "El nivel de disfrute es bajo. Habla con el entrenador si notas cambios en casa."}
+        </p>
+      </div>
+
+      {/* Tips */}
+      <div className="space-y-1.5">
+        <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
+          Consejos para la familia
+        </span>
+        {tips.map((tip, i) => (
+          <p key={i} className="text-[10px] text-muted-foreground/80 flex items-start gap-1.5">
+            <span className="text-emerald-400 shrink-0">✓</span>
+            {tip}
+          </p>
+        ))}
+      </div>
+    </motion.div>
   );
 }
 

@@ -64,6 +64,8 @@ const LiveMatchPage = React.lazy(() => import("./pages/LiveMatchPage"));
 const LiveSummaryPage = React.lazy(() => import("./pages/LiveSummaryPage"));
 const CompareRivalPage = React.lazy(() => import("./pages/CompareRivalPage"));
 const ParentDashboardPage = React.lazy(() => import("./pages/ParentDashboardPage"));
+const CoachDashboardPage = React.lazy(() => import("./pages/CoachDashboardPage"));
+const WellbeingDashboardPage = React.lazy(() => import("./pages/WellbeingDashboardPage"));
 const AcceptInvitationPage = React.lazy(() => import("./pages/AcceptInvitationPage"));
 const PlayerReportsPage = React.lazy(() => import("./pages/PlayerReportsPage"));
 const PlayerEvolutionPage = React.lazy(() => import("./pages/PlayerEvolutionPage"));
@@ -208,6 +210,8 @@ const App = () => (
                 <Route path="/live/:matchId" element={<P><LiveMatchPage /></P>} />
                 <Route path="/live/:matchId/summary" element={<P><LiveSummaryPage /></P>} />
                 <Route path="/equipo/rival" element={<P><CompareRivalPage /></P>} />
+                <Route path="/coach" element={<P><CoachDashboardPage /></P>} />
+                <Route path="/wellbeing" element={<P><WellbeingDashboardPage /></P>} />
                 <Route path="/family/:playerId" element={<P><ParentDashboardPage /></P>} />
                 <Route path="/aceptar-invitacion" element={<AcceptInvitationPage />} />
                 <Route path="/guide" element={<P><UserGuidePage /></P>} />

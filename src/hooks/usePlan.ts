@@ -24,6 +24,9 @@ export interface PlanState {
   canExportPDF: boolean;
   canManageRoles: boolean;
   canUsePush: boolean;
+  canUseBehavioral: boolean;
+  canUseWellbeing: boolean;
+  canUseTeamWellbeing: boolean;
   isPro: boolean;
   isClub: boolean;
   stripeCustomerId: string | null;
@@ -72,6 +75,9 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
     canExportPDF: isAdmin || effectiveLimits.pdf,
     canManageRoles: isAdmin || effectiveLimits.roles,
     canUsePush: isAdmin || effectiveLimits.pushNotifications,
+    canUseBehavioral: isAdmin || plan === "pro" || plan === "club",
+    canUseWellbeing: isAdmin || plan === "pro" || plan === "club",
+    canUseTeamWellbeing: isAdmin || plan === "club",
     isPro: isAdmin || plan === "pro" || plan === "club",
     isClub: isAdmin || plan === "club",
     isAdmin,

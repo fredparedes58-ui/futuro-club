@@ -1,0 +1,237 @@
+/**
+ * VITAS · Burnout Report Agent (Sprint 22)
+ * POST /api/agents/burnout-report
+ *
+ * Claude Haiku agent that generates a narrative burnout/dropout risk report
+ * in Spanish. Input: dropout risk + engagement + overtraining + motivation +
+ * attendance + questionnaires.
+ *
+ * Output: headline, summary, primaryConcern, positiveSignals,
+ *         interventionPlan, loadAdjustment, followUpDate, escalationNeeded.
+ *
+ * Pattern: identical to _behavioral-report.ts / _fatigue-report.ts
+ */
+
+import { z } from "zod";
+import { withHandler } from "../_lib/withHandler";
+import { successResponse } from "../_lib/apiResponse";
+
+export const config = { runtime: "edge" };
+
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
+
+const burnoutReportSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string().optional(),
+  playerAge: z.number(),
+  // Dropout risk
+  riskScore: z.number(),
+  riskLevel: z.enum(["low", "moderate", "high", "critical"]),
+  primaryFactor: z.string(),
+  factors: z.record(z.object({
+    score: z.number(),
+    weight: z.number(),
+  }).nullable()).optional(),
+  // Engagement
+  engagement: z.object({
+    current: z.number(),
+    historical: z.number(),
+    trend: z.string(),
+    consecutiveDeclines: z.number(),
+  }).optional(),
+  // Overtraining
+  overtraining: z.object({
+    risk: z.number(),
+    riskLevel: z.string(),
+    currentLoadAU: z.number(),
+    recommendedLoadAU: z.number(),
+    adjustmentPct: z.number(),
+  }).optional(),
+  // Motivation
+  motivation: z.object({
+    type: z.string(),
+    dropoutRisk: z.number(),
+    confidence: z.number(),
+  }).optional(),
+  // Attendance
+  attendance: z.object({
+    rate: z.number(),
+    consecutiveAbsences: z.number(),
+    recentTrend: z.string(),
+  }).optional(),
+  // Questionnaires
+  questionnaireSummary: z.string().optional(),
+  // Intervention
+  interventionActions: z.array(z.object({
+    audience: z.string(),
+    action: z.string(),
+    priority: z.string(),
+  })).optional(),
+});
+
+const PROMPT_VERSION = "v1.0.0";
+
+function buildPrompt(data: z.infer<typeof burnoutReportSchema>): string {
+  const name = data.playerName ?? "Jugador";
+  const age = data.playerAge;
+  const eng = data.engagement;
+  const ot = data.overtraining;
+  const mot = data.motivation;
+  const att = data.attendance;
+
+  return `Eres un psicólogo deportivo y especialista en bienestar juvenil en fútbol. Generas reportes de riesgo de abandono en español, usando lenguaje profesional pero empático. Tu objetivo es ayudar al entrenador a retener al jugador con intervenciones prácticas.
+
+## DATOS DEL JUGADOR
+- Nombre: ${name}
+- Edad: ${age} años
+
+## RIESGO DE ABANDONO
+- Score: ${data.riskScore}/100
+- Nivel: ${data.riskLevel}
+- Factor principal: ${data.primaryFactor}
+
+## FACTORES DESGLOSADOS
+${data.factors ? Object.entries(data.factors).map(([k, v]) => v ? `- ${k}: ${v.score}/100 (peso: ${(v.weight * 100).toFixed(0)}%)` : `- ${k}: sin datos`).join("\n") : "No disponibles"}
+
+## ENGAGEMENT
+${eng ? `- Actual: ${eng.current}/100 | Histórico: ${eng.historical}/100
+- Tendencia: ${eng.trend}
+- Declives consecutivos: ${eng.consecutiveDeclines}` : "No disponible"}
+
+## SOBREENTRENAMIENTO
+${ot ? `- Riesgo: ${ot.risk}/100 (${ot.riskLevel})
+- Carga actual: ${ot.currentLoadAU} AU | Recomendada: ${ot.recommendedLoadAU} AU
+- Ajuste sugerido: ${ot.adjustmentPct}%` : "No disponible"}
+
+## MOTIVACIÓN
+${mot ? `- Tipo: ${mot.type}
+- Riesgo de dropout inherente: ${mot.dropoutRisk}/100
+- Confianza clasificación: ${(mot.confidence * 100).toFixed(0)}%` : "No disponible"}
+
+## ASISTENCIA
+${att ? `- Tasa: ${att.rate}%
+- Ausencias consecutivas: ${att.consecutiveAbsences}
+- Tendencia reciente: ${att.recentTrend}` : "No disponible"}
+
+## CUESTIONARIOS
+${data.questionnaireSummary ?? "No disponibles"}
+
+## ACCIONES DE INTERVENCIÓN PROPUESTAS
+${data.interventionActions?.map(a => `- [${a.audience}] ${a.action} (${a.priority})`).join("\n") ?? "No disponibles"}
+
+## INSTRUCCIONES
+Genera un reporte de riesgo de abandono en español con las siguientes secciones. Sé empático, concreto y orientado a la acción. Prioriza la retención del jugador.
+
+### Formato JSON:
+{
+  "headline": string (1 frase que resume la situación del jugador — alarmante si es crítico, esperanzadora si es bajo),
+  "summary": string (párrafo de 3-5 oraciones describiendo la situación global),
+  "primaryConcern": string (la preocupación principal y por qué importa),
+  "positiveSignals": string[] (max 3, señales positivas que indican que el jugador puede recuperarse),
+  "interventionPlan": string (párrafo con plan de acción priorizado para las próximas 2 semanas),
+  "loadAdjustment": string (recomendación específica de ajuste de carga si aplica, sino "No aplica"),
+  "followUpDate": string (cuándo revisar la situación),
+  "escalationNeeded": boolean (si se necesita involucrar a dirección/psicólogo externo)
+}`;
+}
+
+export default withHandler(
+  { schema: burnoutReportSchema, requireAuth: false, maxRequests: 50 },
+  async ({ body }) => {
+    const data = body as z.infer<typeof burnoutReportSchema>;
+
+    if (!ANTHROPIC_API_KEY) {
+      return successResponse({
+        report: generateMockReport(data),
+        promptVersion: PROMPT_VERSION,
+        model: "mock",
+        source: "fallback",
+      });
+    }
+
+    try {
+      const prompt = buildPrompt(data);
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-3-5-haiku-20241022",
+          max_tokens: 2000,
+          temperature: 0.3,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => "");
+        console.error("[burnout-report] Anthropic error:", response.status, errText.slice(0, 200));
+        return successResponse({
+          report: generateMockReport(data),
+          promptVersion: PROMPT_VERSION,
+          model: "mock",
+          source: "fallback_api_error",
+        });
+      }
+
+      const result = await response.json() as {
+        content: Array<{ type: string; text: string }>;
+        usage?: { input_tokens: number; output_tokens: number };
+      };
+
+      const text = result.content?.[0]?.text ?? "";
+      let report: Record<string, unknown>;
+
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        report = jsonMatch ? JSON.parse(jsonMatch[0]) : { raw: text };
+      } catch {
+        report = { raw: text };
+      }
+
+      return successResponse({
+        report,
+        promptVersion: PROMPT_VERSION,
+        model: "claude-3-5-haiku-20241022",
+        inputTokens: result.usage?.input_tokens ?? 0,
+        outputTokens: result.usage?.output_tokens ?? 0,
+      });
+    } catch (err) {
+      console.error("[burnout-report] Error:", err);
+      return successResponse({
+        report: generateMockReport(data),
+        promptVersion: PROMPT_VERSION,
+        model: "mock",
+        source: "fallback_exception",
+      });
+    }
+  },
+);
+
+function generateMockReport(data: z.infer<typeof burnoutReportSchema>): Record<string, unknown> {
+  const name = data.playerName ?? "Jugador";
+  const isCritical = data.riskLevel === "critical" || data.riskLevel === "high";
+
+  return {
+    headline: isCritical
+      ? `${name}: Riesgo significativo de abandono — intervención prioritaria necesaria`
+      : `${name}: Bienestar dentro de parámetros normales con áreas de atención`,
+    summary: `${name} (${data.playerAge} años) presenta un riesgo de abandono de ${data.riskScore}/100 (nivel: ${data.riskLevel}). El factor principal es "${data.primaryFactor}". ${isCritical ? "Se recomienda intervención inmediata con el jugador y su familia." : "La situación es manejable con seguimiento regular."} Los indicadores de engagement ${data.engagement ? (data.engagement.trend === "declining" ? "muestran una tendencia descendente que requiere atención" : "se mantienen estables") : "no están disponibles para análisis completo"}.`,
+    primaryConcern: `El factor "${data.primaryFactor}" es la principal señal de alerta. ${data.riskScore > 50 ? "Si no se aborda en las próximas 2 semanas, el riesgo de abandono podría aumentar significativamente." : "Aunque no es urgente, conviene monitorizarlo en las próximas sesiones."}`,
+    positiveSignals: [
+      "El jugador sigue asistiendo a los entrenamientos, lo que indica un vínculo con el equipo",
+      "La edad del jugador permite intervenciones efectivas si se actúa a tiempo",
+      "El entorno del club dispone de recursos para un seguimiento personalizado",
+    ],
+    interventionPlan: `Plan de acción para las próximas 2 semanas: 1) Conversación individual con el jugador para entender su perspectiva. 2) Contacto con la familia para alinear expectativas. 3) Ajuste de la carga de entrenamiento según las recomendaciones del detector de sobreentrenamiento. 4) Revisión del rol del jugador en los ejercicios para maximizar su participación y disfrute.`,
+    loadAdjustment: data.overtraining
+      ? `Reducir la carga de ${data.overtraining.currentLoadAU} AU a ${data.overtraining.recommendedLoadAU} AU (ajuste del ${data.overtraining.adjustmentPct}%). Incluir una sesión de recuperación activa esta semana.`
+      : "No aplica — datos de carga no disponibles",
+    followUpDate: data.riskLevel === "critical" ? "En 3 días" : data.riskLevel === "high" ? "En 1 semana" : "En 2 semanas",
+    escalationNeeded: data.riskLevel === "critical",
+  };
+}

@@ -39,6 +39,11 @@ export class PoseAnalyzer {
   private scanStates  = new Map<number, ScanState>();
   private duelStates  = new Map<string, DuelState>();
 
+  /** Accumulated scan counts per track ID — Sprint 14: used by ParticipationTracker */
+  private scanCounts  = new Map<number, number>();
+  /** Accumulated scan events — Sprint 17: exported for BPE ScanningIntelligenceDetector */
+  private accumulatedScans: ScanEvent[] = [];
+
   analyzeTracks(
     tracks:      Track[],
     timestampMs: number,
@@ -62,12 +67,15 @@ export class PoseAnalyzer {
       } else if (scan && scan !== state.direction) {
         // Nueva dirección de escaneo
         if (state.framesCount >= SCAN_MIN_FRAMES && state.direction) {
-          newScans.push({
+          const scanEvent: ScanEvent = {
             trackId:     track.id,
             timestampMs: state.startMs,
             direction:   state.direction,
             durationMs:  timestampMs - state.startMs,
-          });
+          };
+          newScans.push(scanEvent);
+          this.accumulatedScans.push(scanEvent);
+          this.scanCounts.set(track.id, (this.scanCounts.get(track.id) ?? 0) + 1);
         }
         state.direction  = scan;
         state.framesCount = 1;
@@ -75,12 +83,15 @@ export class PoseAnalyzer {
       } else {
         // Sin escaneo — cerrar si había uno en curso
         if (state.framesCount >= SCAN_MIN_FRAMES && state.direction) {
-          newScans.push({
+          const scanEvent: ScanEvent = {
             trackId:     track.id,
             timestampMs: state.startMs,
             direction:   state.direction,
             durationMs:  timestampMs - state.startMs,
-          });
+          };
+          newScans.push(scanEvent);
+          this.accumulatedScans.push(scanEvent);
+          this.scanCounts.set(track.id, (this.scanCounts.get(track.id) ?? 0) + 1);
         }
         state.direction  = null;
         state.framesCount = 0;
@@ -140,9 +151,36 @@ export class PoseAnalyzer {
     return { scans: newScans, duels: newDuels };
   }
 
+  /**
+   * Get accumulated scan count for a specific track ID.
+   * Sprint 14: Used by ParticipationTracker for per-player scanning metrics.
+   */
+  getTrackScanCount(trackId: number): number {
+    return this.scanCounts.get(trackId) ?? 0;
+  }
+
+  /**
+   * Get all accumulated scan counts as a Map.
+   * Sprint 14: Convenience method for batch participation tracking.
+   */
+  getAllScanCounts(): Map<number, number> {
+    return new Map(this.scanCounts);
+  }
+
+  /**
+   * Get all accumulated scan events.
+   * Sprint 17: Used by BPE ScanningIntelligenceDetector for
+   * correlating scans with decision quality.
+   */
+  getAccumulatedScans(): ScanEvent[] {
+    return [...this.accumulatedScans];
+  }
+
   reset(): void {
     this.scanStates.clear();
     this.duelStates.clear();
+    this.scanCounts.clear();
+    this.accumulatedScans = [];
   }
 }
 

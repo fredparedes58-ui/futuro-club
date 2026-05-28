@@ -19,7 +19,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
-  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer,
+  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -54,13 +54,26 @@ import ArchetypeRanking from "@/components/role-profile/ArchetypeRanking";
 import StrengthsRisksPanel from "@/components/role-profile/StrengthsRisksPanel";
 import ProjectionComparator from "@/components/role-profile/ProjectionComparator";
 
-type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "historico";
+// Sprint 20: Behavioral Profiling Dashboard (lazy loaded)
+import { lazy } from "react";
+const BehavioralDashboard = lazy(() => import("@/components/behavioral/BehavioralDashboard"));
+
+// Sprint 23: Wellbeing — individual player view (lazy loaded)
+import { useDropoutRisk, useEngagementHistory, useAttendance } from "@/hooks/useWellbeing";
+const DropoutRiskGauge = lazy(() => import("@/components/wellbeing/DropoutRiskGauge"));
+const EngagementTimeline = lazy(() => import("@/components/wellbeing/EngagementTimeline"));
+const AttendanceCalendar = lazy(() => import("@/components/wellbeing/AttendanceCalendar"));
+const OvertrainingAlert = lazy(() => import("@/components/wellbeing/OvertrainingAlert"));
+
+type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "mental" | "bienestar" | "historico";
 
 const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
   { key: "resumen",    label: "Resumen",     icon: Sparkles },
   { key: "stats",      label: "Stats",       icon: Activity,    needsAnalysis: true },
   { key: "movimiento", label: "Movimiento",  icon: Compass },
   { key: "rol",        label: "Rol",         icon: Brain,       needsAnalysis: true },
+  { key: "mental",     label: "Mental",      icon: Zap,         needsAnalysis: true },
+  { key: "bienestar",  label: "Bienestar",   icon: Heart },
   { key: "historico",  label: "Histórico",   icon: Clock,       needsAnalysis: true },
 ];
 
@@ -460,6 +473,30 @@ export default function PlayerHubPage() {
             </motion.div>
           )}
 
+          {tab === "mental" && id && (
+            <motion.div
+              key="mental"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <BehavioralDashboard playerId={id} />
+            </motion.div>
+          )}
+
+          {tab === "bienestar" && id && (
+            <motion.div
+              key="bienestar"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <WellbeingTab playerId={id} />
+            </motion.div>
+          )}
+
           {tab === "historico" && (
             <motion.div
               key="historico"
@@ -512,6 +549,62 @@ export default function PlayerHubPage() {
           )}
         </AnimatePresence>
       </main>
+    </div>
+  );
+}
+
+// ── Wellbeing Tab (Sprint 23) ────────────────────────────────────
+
+function WellbeingTab({ playerId }: { playerId: string }) {
+  const { data: risk } = useDropoutRisk(playerId);
+  const { data: engagement } = useEngagementHistory(playerId);
+  const { data: attendance } = useAttendance(playerId);
+
+  if (!risk) {
+    return (
+      <div className="glass rounded-xl p-6 text-center">
+        <Heart size={24} className="text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">Cargando datos de bienestar...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <DropoutRiskGauge
+          score={risk.riskScore}
+          riskLevel={risk.riskLevel}
+          primaryFactor={risk.primaryFactor}
+          factors={risk.factors}
+        />
+        <OvertrainingAlert
+          risk={risk.overtraining.risk}
+          riskLevel={risk.overtraining.riskLevel}
+          currentLoadAU={risk.overtraining.currentLoadAU}
+          recommendedLoadAU={risk.overtraining.recommendedLoadAU}
+          adjustmentPct={risk.overtraining.adjustmentPct}
+        />
+      </div>
+
+      {engagement && engagement.length > 0 && (
+        <EngagementTimeline
+          data={engagement.map(e => ({
+            date: e.date,
+            engagementScore: e.engagementScore,
+            physicalEngagement: e.physicalEngagement,
+            socialEngagement: e.socialEngagement,
+            emotionalEngagement: e.emotionalEngagement,
+          }))}
+        />
+      )}
+
+      {attendance && (
+        <AttendanceCalendar
+          records={attendance.records.map(r => ({ date: r.date, status: r.status }))}
+          rate={attendance.rate}
+        />
+      )}
     </div>
   );
 }
