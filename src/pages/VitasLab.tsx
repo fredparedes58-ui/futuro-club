@@ -64,6 +64,7 @@ import { useFatigue } from "@/hooks/useFatigue";
 import FatiguePanel from "@/components/FatiguePanel";
 import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
 import VitasLabOneClick from "@/components/VitasLabOneClick";
+import PlayerIdentityOverlay from "@/components/PlayerIdentityOverlay";
 
 interface CalibrationPoint {
   id: number;
@@ -1122,6 +1123,20 @@ const VitasLab = () => {
                 focusTrackId={tracking.state.focusTrackId}
               />
             )}
+            {/* Player Identity Overlay (Sprint 4 — Re-ID badges + dorsals) */}
+            {showTracking && tracking.state.identities.size > 0 && containerRef.current && trackingVideoRef.current && (
+              <PlayerIdentityOverlay
+                width={containerRef.current.clientWidth}
+                height={containerRef.current.clientHeight}
+                tracks={tracking.state.currentTracks}
+                identities={tracking.state.identities}
+                focusTrackId={tracking.state.focusTrackId}
+                videoWidth={trackingVideoRef.current.videoWidth || 1280}
+                videoHeight={trackingVideoRef.current.videoHeight || 720}
+                showDorsals={true}
+                showTeamColors={true}
+              />
+            )}
             {/* Action Log Overlay — appears during analysis & playback */}
             {actionLog.length > 0 && (
               <div className="absolute top-3 right-3 w-64 max-h-[200px] overflow-y-auto space-y-1 z-10 pointer-events-none">
@@ -1241,38 +1256,69 @@ const VitasLab = () => {
           >
             {/* ── Advanced Settings (collapsed by default) ── */}
 
-          {/* Identificación del jugador — solo visible en modos que NO tienen su propio panel de config */}
+          {/* Auto-detected player identity (Sprint 4 — Re-ID replaces manual dorsal input) */}
           {(selectedMode === "all" || selectedMode === "team") && (
           <div>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
               {t("lab.identifyPlayer")}
             </span>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.jerseyNumber")}</label>
-                <input
-                  type="text"
-                  maxLength={3}
-                  value={jerseyNumber}
-                  onChange={(e) => setJerseyNumber(e.target.value)}
-                  placeholder={t("lab.jerseyPlaceholder")}
-                  className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                />
+            {tracking.state.identities.size > 0 ? (
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-[10px] font-display text-green-400 font-semibold">
+                    Re-ID activo · {tracking.state.identities.size} jugadores identificados
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {[...tracking.state.identities.entries()].slice(0, 8).map(([trackId, identity]) => (
+                    <span
+                      key={trackId}
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-display font-semibold ${
+                        identity.team === "home" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
+                        identity.team === "away" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                        "bg-muted text-muted-foreground border border-border"
+                      }`}
+                    >
+                      {identity.dorsalNumber ? `#${identity.dorsalNumber}` : identity.stableId.replace("pid_", "P")}
+                      {identity.team !== "unknown" ? ` (${identity.team})` : ""}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[9px] text-muted-foreground leading-tight">
+                  Dorsales y equipos detectados automáticamente · OCR + color histogram
+                </p>
               </div>
-              <div>
-                <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.uniformColor")}</label>
-                <input
-                  type="text"
-                  value={teamColor}
-                  onChange={(e) => setTeamColor(e.target.value)}
-                  placeholder={t("lab.uniformPlaceholder")}
-                  className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                />
+            ) : (
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.jerseyNumber")}</label>
+                  <input
+                    type="text"
+                    maxLength={3}
+                    value={jerseyNumber}
+                    onChange={(e) => setJerseyNumber(e.target.value)}
+                    placeholder={t("lab.jerseyPlaceholder")}
+                    className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.uniformColor")}</label>
+                  <input
+                    type="text"
+                    value={teamColor}
+                    onChange={(e) => setTeamColor(e.target.value)}
+                    placeholder={t("lab.uniformPlaceholder")}
+                    className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+                  />
+                </div>
               </div>
-            </div>
-            <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
-              {t("lab.jerseyHint")}
-            </p>
+            )}
+            {tracking.state.identities.size === 0 && (
+              <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
+                {t("lab.jerseyHint")} · Se detectará automáticamente al iniciar tracking.
+              </p>
+            )}
           </div>
           )}
 

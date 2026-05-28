@@ -12,6 +12,7 @@
 import type { Detection, Track, FieldPosition } from "./types";
 import { pixelToField, fieldDistance } from "./homography";
 import { KalmanLite2D } from "./kalmanLite";
+import type { PlayerIdentity } from "./playerIdentityManager";
 
 const EMA_ALPHA    = 0.35;   // suavizado de velocidad (exponential moving average)
 const MAX_AGE      = 8;       // frames sin match antes de eliminar track
@@ -230,6 +231,26 @@ export class CentroidTracker {
     track.bbox      = det.bbox;
     track.keypoints = det.keypoints;
     track.age       = 0;
+  }
+
+  /**
+   * Apply identity data from PlayerIdentityManager to current tracks.
+   * Called after processFrame() in the main thread with identity results.
+   *
+   * @param identities Map of trackId → PlayerIdentity
+   */
+  applyIdentities(identities: Map<number, PlayerIdentity>): void {
+    for (const [trackId, identity] of identities) {
+      const track = this.tracks.get(trackId);
+      if (!track) continue;
+
+      track.stableId = identity.stableId;
+      track.dorsalNumber = identity.dorsalNumber ?? undefined;
+      track.team = identity.team === "home" || identity.team === "away"
+        ? identity.team
+        : "unknown";
+      track.identityConfidence = identity.confidence;
+    }
   }
 
   reset(): void {

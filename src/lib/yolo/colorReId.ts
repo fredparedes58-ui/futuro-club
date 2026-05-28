@@ -154,6 +154,68 @@ export function compareHistograms(h1: Float32Array, h2: Float32Array): number {
   return Math.sqrt(1 - bc);
 }
 
+// ─── Rate-limited histogram extraction (Sprint 4 optimization) ──────────────
+
+/**
+ * Manages frame-rate-limited histogram extraction with EMA temporal blending.
+ * Call `maybeExtract()` every frame — internally skips frames based on interval.
+ */
+export class HistogramCache {
+  private histograms = new Map<number, Float32Array>();
+  private frameCounts = new Map<number, number>();
+  private readonly interval: number;
+  private readonly emaAlpha: number;
+
+  constructor(frameInterval = 5, emaAlpha = 0.15) {
+    this.interval = frameInterval;
+    this.emaAlpha = emaAlpha;
+  }
+
+  /**
+   * Extract and cache histogram for a track, rate-limited to every Nth frame.
+   * Uses EMA blending for temporal stability.
+   *
+   * @returns The current (blended) histogram, or null if skipped this frame
+   */
+  maybeExtract(
+    trackId: number,
+    imageData: ImageData,
+    bbox: [number, number, number, number],
+    frameIndex: number,
+  ): Float32Array | null {
+    const count = this.frameCounts.get(trackId) ?? 0;
+    if (count > 0 && frameIndex % this.interval !== 0) {
+      return this.histograms.get(trackId) ?? null;
+    }
+
+    const hist = extractTorsoHistogram(imageData, bbox);
+    const existing = this.histograms.get(trackId);
+
+    if (existing) {
+      // EMA blend: new = alpha * current + (1 - alpha) * previous
+      for (let i = 0; i < hist.length; i++) {
+        existing[i] = this.emaAlpha * hist[i] + (1 - this.emaAlpha) * existing[i];
+      }
+    } else {
+      this.histograms.set(trackId, new Float32Array(hist));
+    }
+
+    this.frameCounts.set(trackId, count + 1);
+    return this.histograms.get(trackId) ?? null;
+  }
+
+  /** Get cached histogram for a track */
+  get(trackId: number): Float32Array | null {
+    return this.histograms.get(trackId) ?? null;
+  }
+
+  /** Clear all cached data */
+  reset(): void {
+    this.histograms.clear();
+    this.frameCounts.clear();
+  }
+}
+
 /**
  * Re-ID helper: given lost tracks and new detections, find the best
  * color match for each lost track.

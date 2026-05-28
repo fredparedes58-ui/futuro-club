@@ -27,6 +27,9 @@ import {
 } from "@/lib/yolo/types";
 import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
+import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
+import type { PlayerIdentity } from "@/lib/yolo/playerIdentityManager";
+import type { TeamLabel } from "@/lib/yolo/teamClassifier";
 
 const TARGET_FPS     = 8;
 const VORONOI_INTERVAL_MS = 500;
@@ -50,6 +53,10 @@ export interface TrackingState {
   ballVisible:     boolean;
   ballSpeedMs:     number;
   possession:      PossessionTeam;
+  /** Player identity map: trackId → PlayerIdentity (Sprint 4) */
+  identities:      Map<number, PlayerIdentity>;
+  /** Team assignments: trackId → "home"|"away" (Sprint 4) */
+  teamAssignments: Map<number, "home" | "away">;
 }
 
 /** Callback for fatigue integration: receives field positions each frame */
@@ -70,6 +77,8 @@ export interface UseTrackingOptions {
   onTrackingPosition?: OnTrackingPositionCallback;
   /** Enable ball tracking in parallel (Sprint 1, default: true) */
   enableBallTracking?: boolean;
+  /** Enable player re-identification (Sprint 4, default: true) */
+  enableReId?: boolean;
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -84,7 +93,7 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition, enableBallTracking = true, enableReId = true } = options;
   const onTrackingPositionRef = useRef(onTrackingPosition);
   onTrackingPositionRef.current = onTrackingPosition;
 
@@ -94,6 +103,13 @@ export function useTracking(options: UseTrackingOptions) {
   enableBallTrackingRef.current = enableBallTracking;
   const feedBallFrameRef = useRef(feedBallFrame);
   feedBallFrameRef.current = feedBallFrame;
+
+  // Player Re-ID (Sprint 4)
+  const identityManagerRef = useRef<PlayerIdentityManager>(new PlayerIdentityManager());
+  const enableReIdRef = useRef(enableReId);
+  enableReIdRef.current = enableReId;
+  const identitiesRef = useRef<Map<number, PlayerIdentity>>(new Map());
+  const teamAssignmentsRef = useRef<Map<number, "home" | "away">>(new Map());
 
   const [state, setState] = useState<TrackingState>({
     status:          "idle",
@@ -110,6 +126,8 @@ export function useTracking(options: UseTrackingOptions) {
     ballVisible:     false,
     ballSpeedMs:     0,
     possession:      "none",
+    identities:      new Map(),
+    teamAssignments: new Map(),
   });
 
   const workerRef       = useRef<Worker | null>(null);
@@ -215,12 +233,44 @@ export function useTracking(options: UseTrackingOptions) {
             });
           }
 
+          // Player Re-ID: extract frame imageData and process identities (Sprint 4)
+          let updatedIdentities: Map<number, PlayerIdentity> | undefined;
+          if (enableReIdRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+            try {
+              // Extract imageData from current video frame for identity processing
+              // Rate-limited internally by PlayerIdentityManager (every 5th frame)
+              const vid = videoRef.current;
+              const idCanvas = document.createElement("canvas");
+              idCanvas.width = vid.videoWidth;
+              idCanvas.height = vid.videoHeight;
+              const idCtx = idCanvas.getContext("2d");
+              if (idCtx) {
+                idCtx.drawImage(vid, 0, 0);
+                const frameData = idCtx.getImageData(0, 0, idCanvas.width, idCanvas.height);
+                const identityMap = identityManagerRef.current.processFrame(
+                  tracks,
+                  frameData,
+                  event.timestampMs,
+                );
+                identitiesRef.current = identityMap;
+                teamAssignmentsRef.current = identityManagerRef.current.getTeamMap();
+                updatedIdentities = identityMap;
+              }
+            } catch {
+              // Identity processing is non-critical — silently ignore errors
+            }
+          }
+
           setState(s => ({
             ...s,
             currentTracks:  tracks,
             scanEvents:     scanEventsRef.current,
             duelEvents:     duelEventsRef.current,
             ...(voronoiRegions.length ? { voronoiRegions } : {}),
+            ...(updatedIdentities ? {
+              identities: updatedIdentities,
+              teamAssignments: teamAssignmentsRef.current,
+            } : {}),
           }));
           break;
         }
@@ -259,7 +309,14 @@ export function useTracking(options: UseTrackingOptions) {
       ballVisible:   false,
       ballSpeedMs:   0,
       possession:    "none",
+      identities:    new Map(),
+      teamAssignments: new Map(),
     }));
+
+    // Reset identity manager (Sprint 4)
+    identityManagerRef.current.reset();
+    identitiesRef.current = new Map();
+    teamAssignmentsRef.current = new Map();
 
     // Start ball tracking worker in parallel (Sprint 1)
     if (enableBallTracking) {
