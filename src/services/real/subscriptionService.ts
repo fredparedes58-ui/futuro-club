@@ -20,6 +20,9 @@ export interface PlanLimits {
   pdf: boolean;
   roles: boolean;
   pushNotifications: boolean;
+  injuryPrediction: boolean;   // Injury risk dashboard + ACWR history + narrative report
+  valuation: boolean;          // Valuation tier + probability + narrative report
+  multiVideoAggregation: boolean; // Trends across N analyses
 }
 
 export interface Subscription {
@@ -42,6 +45,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     pdf: false,
     roles: false,
     pushNotifications: false,
+    injuryPrediction: false,
+    valuation: false,
+    multiVideoAggregation: false,
   },
   pro: {
     players: 25,
@@ -51,6 +57,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     pdf: true,
     roles: false,
     pushNotifications: true,
+    injuryPrediction: true,
+    valuation: true,
+    multiVideoAggregation: false,
   },
   club: {
     players: 9999,        // efectivamente ilimitado
@@ -60,6 +69,9 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     pdf: true,
     roles: true,
     pushNotifications: true,
+    injuryPrediction: true,
+    valuation: true,
+    multiVideoAggregation: true,
   },
 };
 

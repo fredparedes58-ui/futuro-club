@@ -29,6 +29,9 @@ export interface PlanState {
   canExportPDF: boolean;
   canManageRoles: boolean;
   canUsePush: boolean;
+  canUseInjuryPrediction: boolean;
+  canUseValuation: boolean;
+  canUseMultiVideoAggregation: boolean;
   isPro: boolean;
   isClub: boolean;
   stripeCustomerId: string | null;
@@ -93,6 +96,9 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
     canExportPDF: isAdmin || effectiveLimits.pdf,
     canManageRoles: isAdmin || effectiveLimits.roles,
     canUsePush: isAdmin || effectiveLimits.pushNotifications,
+    canUseInjuryPrediction: isAdmin || effectiveLimits.injuryPrediction,
+    canUseValuation: isAdmin || effectiveLimits.valuation,
+    canUseMultiVideoAggregation: isAdmin || effectiveLimits.multiVideoAggregation,
     isPro: isAdmin || plan === "pro" || plan === "club",
     isClub: isAdmin || plan === "club",
     isAdmin,

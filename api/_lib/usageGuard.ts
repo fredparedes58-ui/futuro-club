@@ -21,15 +21,18 @@ export interface PlanLimit {
   analyses: number;
   players: number;
   teamMembers: number;
+  injuryPrediction: boolean;
+  valuation: boolean;
+  multiVideoAggregation: boolean;
 }
 
 export const PLAN_LIMITS: Record<string, PlanLimit> = {
-  free:  { analyses: 3,    players: 5,    teamMembers: 2  },
-  pro:   { analyses: 20,   players: 25,   teamMembers: 5  },
-  club:  { analyses: 9999, players: 9999, teamMembers: 50 },
+  free:  { analyses: 3,    players: 5,    teamMembers: 2,  injuryPrediction: false, valuation: false, multiVideoAggregation: false },
+  pro:   { analyses: 20,   players: 25,   teamMembers: 5,  injuryPrediction: true,  valuation: true,  multiVideoAggregation: false },
+  club:  { analyses: 9999, players: 9999, teamMembers: 50, injuryPrediction: true,  valuation: true,  multiVideoAggregation: true  },
 };
 
-const DEFAULT_LIMIT: PlanLimit = { analyses: 3, players: 5, teamMembers: 2 };
+const DEFAULT_LIMIT: PlanLimit = { analyses: 3, players: 5, teamMembers: 2, injuryPrediction: false, valuation: false, multiVideoAggregation: false };
 
 // ── Admin bypass list ───────────────────────────────────────────────────────
 
