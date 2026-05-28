@@ -44,6 +44,13 @@ export interface TrackingState {
   error:           string | null;
 }
 
+/** Callback for fatigue integration: receives field positions each frame */
+export type OnTrackingPositionCallback = (
+  fx: number,
+  fy: number,
+  timestampMs: number,
+) => void;
+
 export interface UseTrackingOptions {
   videoId:          string;
   playerId:         string;
@@ -51,6 +58,8 @@ export interface UseTrackingOptions {
   anchorPreset?:    FieldAnchorPreset;
   cdnHostname?:     string;
   localVideoSrc?:   string; // blob: URL for local videos (no Bunny CDN)
+  /** Called every frame with the focused player's field position (for fatigue/useFatigue) */
+  onTrackingPosition?: OnTrackingPositionCallback;
 }
 
 // ─── Métricas vacías por defecto ──────────────────────────────────────────────
@@ -65,7 +74,9 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
-  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc } = options;
+  const { videoId, playerId, calibrationPoints, anchorPreset = "full_corners", cdnHostname, localVideoSrc, onTrackingPosition } = options;
+  const onTrackingPositionRef = useRef(onTrackingPosition);
+  onTrackingPositionRef.current = onTrackingPosition;
 
   const [state, setState] = useState<TrackingState>({
     status:          "idle",
@@ -160,6 +171,15 @@ export function useTracking(options: UseTrackingOptions) {
           if (event.timestampMs - voronoiTimerRef.current > VORONOI_INTERVAL_MS) {
             voronoiTimerRef.current = event.timestampMs;
             voronoiRegions = computeVoronoi(tracks, homographyInvRef.current);
+          }
+
+          // Emit focused player's field position to fatigue hook (every frame)
+          if (onTrackingPositionRef.current && focusTrackIdRef.current !== null) {
+            const focusTrack = tracks.find(t => t.id === focusTrackIdRef.current);
+            if (focusTrack && focusTrack.positions.length > 0) {
+              const lastPos = focusTrack.positions[focusTrack.positions.length - 1];
+              onTrackingPositionRef.current(lastPos.fx, lastPos.fy, event.timestampMs);
+            }
           }
 
           setState(s => ({
@@ -311,6 +331,16 @@ export function useTracking(options: UseTrackingOptions) {
     };
   }, []);
 
+  /** Get the focused player's field positions for fatigue analysis */
+  const getFocusPositions = useCallback(() => {
+    const focusId = focusTrackIdRef.current;
+    if (!focusId) return [];
+    const focusTracks = allTracksRef.current.filter(t => t.id === focusId);
+    return focusTracks.flatMap(t =>
+      t.positions.map(p => ({ x: p.fx, y: p.fy, timestampMs: p.timestampMs })),
+    );
+  }, []);
+
   return {
     state,
     homographyInv:  homographyInvRef.current,
@@ -319,6 +349,7 @@ export function useTracking(options: UseTrackingOptions) {
     pauseTracking,
     resumeTracking,
     setFocusTrackId,
+    getFocusPositions,
   };
 }
 

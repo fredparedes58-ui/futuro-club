@@ -521,6 +521,43 @@ function defaultBiomechanicsScore(framesAnalyzed: number): BiomechanicsScore {
   };
 }
 
+/* ── Fatigue-specific signal extraction ───────────────────────── */
+
+/**
+ * Extract fatigue-relevant biomechanical signals from joint angle history.
+ * Used by FatiguePostureDetector as a bridge to reuse biomechanics computations.
+ *
+ * Returns per-frame signals useful for fatigue detection:
+ *   - trunkLean: forward lean angle (increases with fatigue)
+ *   - trunkTilt: lateral tilt (instability marker)
+ *   - kneeAsymmetry: bilateral difference (injury risk)
+ *   - armSwingRange: shoulder ROM (decreases with fatigue)
+ *   - strideProxy: ankle-to-ankle angular proxy (decreases with fatigue)
+ */
+export interface FatigueSignalFrame {
+  trunkLean: number;
+  trunkTilt: number;
+  kneeAsymmetry: number;
+  hipAsymmetry: number;
+  armSwingRange: number;
+  strideProxy: number;
+  confidence: number;
+}
+
+export function extractFatigueSignals(frames: JointAngles[]): FatigueSignalFrame[] {
+  return frames
+    .filter(f => f.confidence >= 0.3)
+    .map(f => ({
+      trunkLean: f.trunkLean,
+      trunkTilt: f.trunkTilt,
+      kneeAsymmetry: f.kneeAsymmetry,
+      hipAsymmetry: f.hipAsymmetry,
+      armSwingRange: Math.abs(f.leftShoulder - f.rightShoulder),
+      strideProxy: Math.abs(f.leftAnkle - f.rightAnkle),
+      confidence: f.confidence,
+    }));
+}
+
 /* ── Singleton ─────────────────────────────────────────────────── */
 
 let _analyzer: BiomechanicsAnalyzer | null = null;

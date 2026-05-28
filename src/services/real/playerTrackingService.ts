@@ -11,6 +11,7 @@
 import type { PhysicalMetrics, ScanEvent, DuelEvent } from "@/lib/yolo/types";
 import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
+import type { FatigueReport } from "@/lib/fatigue/types";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STORAGE_PREFIX = "vitas_tracking_snapshot_";
@@ -34,6 +35,8 @@ export interface TrackingSnapshot {
   tacticalEvents?: TacticalEvent[];
   /** MediaPipe biomechanics score (Sprint 2 — real biomechanics) */
   biomechanicsScore?: BiomechanicsScore;
+  /** Fatigue report (Sprint 2 — metabolic power, ACWR, posture signals, PHV-adjusted) */
+  fatigueReport?: FatigueReport;
 }
 
 export const PlayerTrackingService = {
@@ -58,6 +61,12 @@ export const PlayerTrackingService = {
     this._persistToSupabase(trimmed).catch((e) =>
       console.warn("[playerTrackingService] Supabase save failed (non-blocking)", e),
     );
+    // 3. Persist fatigue session separately (async, best-effort)
+    if (trimmed.fatigueReport) {
+      this._persistFatigueSession(trimmed).catch((e) =>
+        console.warn("[playerTrackingService] Fatigue session save failed (non-blocking)", e),
+      );
+    }
   },
 
   /** Fire-and-forget persistence to Supabase via /api/tracking/save */
@@ -85,6 +94,70 @@ export const PlayerTrackingService = {
     } catch {
       // Network error — ignore, localStorage has the data
     }
+  },
+
+  /** Fire-and-forget persistence of fatigue session to Supabase via /api/tracking/fatigue-session */
+  async _persistFatigueSession(snapshot: TrackingSnapshot): Promise<void> {
+    const report = snapshot.fatigueReport;
+    if (!report) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/tracking/fatigue-session", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          playerId: snapshot.playerId,
+          videoId: snapshot.videoId,
+          sessionDate: new Date().toISOString().slice(0, 10),
+          durationMin: report.sessionDurationMin,
+          totalDistanceM: report.windows.reduce((s, w) => s + w.distanceM, 0),
+          totalLoad: report.acwr?.acuteLoad ?? 0,
+          fatigueIndex: report.fatigueIndex.value,
+          fatigueSeverity: report.fatigueIndex.severity,
+          acwrValue: report.acwr?.value ?? null,
+          acwrZone: report.acwr?.zone ?? null,
+          windowMetrics: report.windows,
+          postureSignals: report.posture,
+          decayMetrics: report.fatigueIndex.decay,
+          alerts: report.alerts,
+          phvOffset: report.thresholds.phvOffset,
+          maturationBand: report.thresholds.band,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text().catch(() => "unknown");
+        console.warn("[playerTrackingService] Fatigue session returned", res.status, err);
+      }
+    } catch {
+      // Network error — ignore, localStorage snapshot has the fatigue report
+    }
+  },
+
+  /** Fetch fatigue session history for ACWR computation (last 28 days). */
+  async getFatigueHistory(playerId: string, days = 28): Promise<FatigueSessionSummary[]> {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(
+        `/api/tracking/fatigue-history?playerId=${encodeURIComponent(playerId)}&days=${days}`,
+        { headers },
+      );
+      if (!res.ok) throw new Error(`${res.status}`);
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        return json.data as FatigueSessionSummary[];
+      }
+    } catch {
+      // Fallback: try to build from localStorage
+    }
+    // Fallback: extract from localStorage snapshot (only 1 session)
+    const snap = this.get(playerId);
+    if (!snap?.fatigueReport) return [];
+    const r = snap.fatigueReport;
+    return [{
+      date: r.analyzedAt.slice(0, 10),
+      load: r.acwr?.acuteLoad ?? 0,
+      source: "localStorage" as const,
+    }];
   },
 
   /** Lee el último snapshot guardado · null si no existe o está corrupto. */
@@ -161,5 +234,12 @@ export interface TrackingSessionSummary {
   scanCount: number;
   duelCount: number;
   eventCount: number;
+  source: "supabase" | "localStorage";
+}
+
+/** Minimal session data needed for ACWR computation (SessionLoad format) */
+export interface FatigueSessionSummary {
+  date: string;
+  load: number;
   source: "supabase" | "localStorage";
 }

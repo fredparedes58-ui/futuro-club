@@ -60,6 +60,8 @@ import DrillRecommendations from "@/components/intelligence/DrillRecommendations
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 import { usePlayerAnalysisV2, type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
+import { useFatigue } from "@/hooks/useFatigue";
+import FatiguePanel from "@/components/FatiguePanel";
 
 interface CalibrationPoint {
   id: number;
@@ -265,6 +267,13 @@ const VitasLab = () => {
   const v2 = usePlayerAnalysisV2();
   const analysisReport = v2.isCompleted ? mapV2ToReport(v2.result) : null;
 
+  // ── Fatigue Detection ──
+  const selectedPlayerObj = undefined as { phvOffset?: number } | undefined; // resolved below after players load
+  const fatigue = useFatigue({
+    playerId: selectedPlayerId ?? "",
+    phvOffset: null, // Will be populated from player data when available
+  });
+
   // Historial: análisis completados previos del jugador (tabla analyses)
   const { data: savedAnalyses = [] } = useQuery<Array<{ id: string; created_at: string; vsi: Record<string, unknown> | null }>>({
     queryKey: ["saved-analyses-v2", selectedPlayerId],
@@ -305,6 +314,11 @@ const VitasLab = () => {
     modelComplexity: 1,
     offlineMode: false,
     onFrame: (poses, frameIndex) => {
+      // Feed pose data to fatigue posture detector
+      if (poses.length > 0 && poses[0]) {
+        const timestampMs = (labVideoRef.current?.currentTime ?? 0) * 1000;
+        fatigue.addPoseFrame(poses[0], timestampMs);
+      }
       if (poses.length > 0 && frameIndex % 30 === 0) {
         setActionLog(prev => [...prev.slice(-10), {
           time: Math.floor((labVideoRef.current?.currentTime ?? 0)),
@@ -488,6 +502,19 @@ const VitasLab = () => {
       tacticalEvents:     focusEvents,
       biomechanicsScore:  mediaPipe.biomechanics ?? undefined,
     });
+
+    // ── Generate fatigue report from tracking positions ──
+    if (focusTrack && focusTrack.positions.length > 0) {
+      const durationSec = tracking.state.sessionMetrics.distanceCoveredM > 0
+        ? tracking.state.sessionMetrics.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics.avgSpeedMs)
+        : 0;
+      fatigue.addPositions(
+        focusTrack.positions.map(p => ({ x: p.fx, y: p.fy, timestampMs: p.tMs })),
+      );
+      if (durationSec > 0) {
+        fatigue.generateReport(durationSec);
+      }
+    }
 
     const bioMsg = mediaPipe.biomechanics
       ? ` · DrillScore ${mediaPipe.biomechanics.drillScore}`
@@ -1934,6 +1961,9 @@ const VitasLab = () => {
                     title="Mapa de Calor — Sesión Analizada"
                   />
                 )}
+
+                {/* ── Fatigue Analysis Panel ── */}
+                <FatiguePanel report={fatigue.report} />
 
                 {/* Métricas de Eventos (Gemini observation) */}
                 {analysisReport.metricasCuantitativas?.eventos && (
