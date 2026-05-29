@@ -27,7 +27,11 @@ import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import PeerBenchmark from "@/components/PeerBenchmark";
 import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
-import { Shield } from "lucide-react";
+import {
+  usePlayerConsent,
+  useGrantConsent,
+} from "@/hooks/useParentalConsent";
+import { Shield, CheckCircle2, AlertCircle } from "lucide-react";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 
 interface Badge {
@@ -175,6 +179,9 @@ export default function ParentDashboardPage() {
       </div>
 
       <div className="px-4 py-4 space-y-4 max-w-md mx-auto">
+        {/* Parental Consent banner — RGPD for minors */}
+        <ParentalConsentBanner playerId={player.id} playerAge={player.age} playerName={player.name} />
+
         {/* VSI hero · grande, claro */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -491,5 +498,119 @@ function SimpleStat({
       <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold">{label}</div>
       <div className="text-sm font-display font-bold text-foreground">{value}</div>
     </div>
+  );
+}
+
+// ── Parental Consent Banner (RGPD for <14yo) ────────────────────────────
+function ParentalConsentBanner({
+  playerId,
+  playerAge,
+  playerName,
+}: {
+  playerId: string;
+  playerAge?: number;
+  playerName: string;
+}) {
+  const { data: consent } = usePlayerConsent(playerId);
+  const grant = useGrantConsent();
+  const [showForm, setShowForm] = useState(false);
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianEmail, setGuardianEmail] = useState("");
+
+  // Don't show anything if player is >= 14 (not required)
+  if (playerAge !== undefined && playerAge >= 14) return null;
+  if (!consent) return null;
+
+  if (consent.status === "granted") {
+    return (
+      <div className="glass rounded-2xl p-3 border-l-4 border-emerald-500/60 bg-emerald-500/5 flex items-center gap-2">
+        <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+        <p className="text-[11px] text-foreground/80">
+          Consentimiento parental <strong className="text-emerald-500">concedido</strong>
+          {consent.guardianName && ` por ${consent.guardianName}`}
+        </p>
+      </div>
+    );
+  }
+
+  if (consent.status === "denied") {
+    return (
+      <div className="glass rounded-2xl p-3 border-l-4 border-red-500/60 bg-red-500/5 flex items-center gap-2">
+        <AlertCircle size={14} className="text-red-500 shrink-0" />
+        <p className="text-[11px] text-foreground/80">
+          Consentimiento parental <strong className="text-red-500">denegado</strong> · los datos del menor están anonimizados
+        </p>
+      </div>
+    );
+  }
+
+  // pending — show grant form
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="glass rounded-2xl p-4 border-l-4 border-amber-500/60 bg-amber-500/5 space-y-2"
+    >
+      <div className="flex items-start gap-2">
+        <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-[12px] font-display font-bold text-foreground">
+            Consentimiento parental pendiente
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
+            {playerName} tiene menos de 14 años. Para procesar sus datos según RGPD,
+            necesitamos que un padre/tutor legal apruebe el tratamiento.
+          </p>
+        </div>
+      </div>
+      {!showForm ? (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full px-3 py-1.5 rounded-md bg-amber-500 text-white text-[11px] font-display font-semibold hover:bg-amber-600"
+        >
+          Soy el padre/tutor · dar consentimiento
+        </button>
+      ) : (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={guardianName}
+            onChange={(e) => setGuardianName(e.target.value)}
+            placeholder="Nombre completo del tutor"
+            className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-amber-500 focus:outline-none"
+          />
+          <input
+            type="email"
+            value={guardianEmail}
+            onChange={(e) => setGuardianEmail(e.target.value)}
+            placeholder="Email del tutor"
+            className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-amber-500 focus:outline-none"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowForm(false)}
+              className="flex-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:bg-secondary"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() =>
+                guardianName.trim() &&
+                guardianEmail.trim() &&
+                grant.mutate({
+                  playerId,
+                  guardianName: guardianName.trim(),
+                  guardianEmail: guardianEmail.trim(),
+                })
+              }
+              disabled={!guardianName.trim() || !guardianEmail.trim() || grant.isPending}
+              className="flex-1 px-3 py-1 rounded-md bg-amber-500 text-white text-[11px] font-display font-semibold disabled:opacity-50"
+            >
+              {grant.isPending ? "Guardando…" : "Conceder"}
+            </button>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
