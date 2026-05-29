@@ -504,7 +504,7 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 | `useLegalAcceptance` | Términos legales |
 | `useValuation` | Valoración |
 | `useBusinessAnalytics` | Métricas business |
-| Y otros 8 utilitarios... |
+| Y otros 8 utilitarios... | — |
 
 ---
 
