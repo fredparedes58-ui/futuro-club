@@ -134,6 +134,54 @@ function sanitizeMarkdownLinks(md) {
   return md;
 }
 
+/**
+ * Normalise Markdown tables so every row has exactly as many cells as the
+ * header. Notion rejects tables where a row's cell count differs from the
+ * table width ("Number of cells in table row must match the table width").
+ * Rows with too few cells are padded with empty cells; rows with too many are
+ * trimmed. Pipes are not unescaped here — we only count top-level "|".
+ */
+function normalizeMarkdownTables(md) {
+  const lines = md.split('\n');
+  const out = [];
+  let fixed = 0;
+  let i = 0;
+
+  const splitRow = (line) => {
+    // strip one leading/trailing pipe, then split on unescaped pipes
+    const trimmed = line.trim().replace(/^\|/, '').replace(/\|$/, '');
+    return trimmed.split(/(?<!\\)\|/);
+  };
+
+  while (i < lines.length) {
+    const isTableRow = /^\s*\|/.test(lines[i]);
+    if (!isTableRow) { out.push(lines[i]); i++; continue; }
+
+    // gather the contiguous table block
+    const block = [];
+    while (i < lines.length && /^\s*\|/.test(lines[i])) { block.push(lines[i]); i++; }
+
+    const width = splitRow(block[0]).length;
+    for (let r = 0; r < block.length; r++) {
+      const indent = block[r].match(/^\s*/)[0];
+      const isSeparator = /^\s*\|?\s*:?-{1,}/.test(block[r]) && /-/.test(block[r]) && !/[^\s|:\-]/.test(block[r]);
+      let cells = splitRow(block[r]);
+      if (cells.length !== width) {
+        if (cells.length < width) {
+          while (cells.length < width) cells.push(isSeparator ? '---' : ' ');
+        } else {
+          cells = cells.slice(0, width);
+        }
+        fixed++;
+      }
+      out.push(indent + '| ' + cells.map((c) => c.trim()).join(' | ') + ' |');
+    }
+  }
+
+  if (fixed > 0) console.log(`\uD83E\uDDF0 Normalized ${fixed} malformed table row(s) to match header width`);
+  return out.join('\n');
+}
+
 /** Clear all existing children of a Notion page */
 async function clearPageChildren(pageId) {
   console.log(`🧹 Clearing existing blocks from page ${pageId}…`);
@@ -219,6 +267,7 @@ async function main() {
 
   // 2.5. Sanitize links so Notion's strict URL validator doesn't reject the batch
   combined = sanitizeMarkdownLinks(combined);
+  combined = normalizeMarkdownTables(combined);
 
   // 3. Convert to Notion blocks
   // strictImageUrls=false → allow relative img paths to not break the converter
