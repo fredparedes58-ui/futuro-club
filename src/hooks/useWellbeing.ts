@@ -119,14 +119,67 @@ async function fetchDropoutRisk(playerId: string): Promise<DropoutRiskAssessment
 }
 
 async function fetchEngagementHistory(playerId: string): Promise<EngagementSnapshot[]> {
-  // TODO: fetch from /api/wellbeing/engagement-history?playerId=xxx
-  // For now, return mock data
+  // Try real Supabase-backed service first (graceful fallback to localStorage cache)
+  try {
+    const { WellbeingService } = await import("@/services/real/wellbeingService");
+    const snapshots = await WellbeingService.getEngagement(playerId, 12);
+    if (snapshots.length > 0) {
+      return snapshots.map((s) => ({
+        playerId: s.playerId,
+        sessionId: s.sessionId ?? "",
+        date: s.date,
+        physicalEngagement: s.physicalEngagement,
+        socialEngagement: s.socialEngagement,
+        emotionalEngagement: s.emotionalEngagement,
+        engagementScore: s.engagementScore,
+      }));
+    }
+  } catch (err) {
+    console.warn("[useWellbeing] engagement service failed, using mock:", err);
+  }
   return generateMockEngagementHistory(playerId);
 }
 
 async function fetchAttendance(playerId: string): Promise<AttendanceProfile> {
-  // TODO: fetch from /api/wellbeing/attendance?playerId=xxx
-  // For now, return mock data
+  // Try real Supabase-backed service first (graceful fallback to mock)
+  try {
+    const { WellbeingService } = await import("@/services/real/wellbeingService");
+    const records = await WellbeingService.getAttendance(playerId, 60);
+    if (records.length > 0) {
+      const total = records.length;
+      const attended = records.filter((r) => r.status === "present").length;
+      const absent = records.filter((r) => r.status === "absent").length;
+      const late = records.filter((r) => r.status === "late").length;
+      const excused = records.filter((r) => r.status === "excused").length;
+      // Compute consecutive absences from most recent (sorted desc by date already)
+      let consecutiveAbsences = 0;
+      for (const r of records) {
+        if (r.status === "absent") consecutiveAbsences++;
+        else break;
+      }
+      return {
+        playerId,
+        rate: total > 0 ? attended / total : 0,
+        totalSessions: total,
+        attended,
+        absent,
+        late,
+        excused,
+        consecutiveAbsences,
+        records: records.map((r) => ({
+          playerId: r.playerId,
+          date: r.date,
+          status: r.status,
+          source: (r.source === "auto_detected" ? "auto" : (r.source ?? "manual")) as
+            | "video"
+            | "manual"
+            | "auto",
+        })),
+      };
+    }
+  } catch (err) {
+    console.warn("[useWellbeing] attendance service failed, using mock:", err);
+  }
   return generateMockAttendance(playerId);
 }
 
