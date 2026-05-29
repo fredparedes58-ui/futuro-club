@@ -61,7 +61,7 @@ image = (
 )
 
 # ── App + persistent state ────────────────────────────────────────────
-app = modal.App("vitas-vision")
+app = modal.App("vitas-video-pipeline")
 
 # Volume to cache YOLO weights between runs (no re-download per invocation)
 weights_volume = modal.Volume.from_name("vitas-yolo-weights", create_if_missing=True)
@@ -122,7 +122,7 @@ def health() -> dict:
     """Cheap endpoint to verify the deployment is alive."""
     return {
         "status": "ok",
-        "service": "vitas-vision",
+        "service": "vitas-video-pipeline",
         "modal_app": app.name,
     }
 
