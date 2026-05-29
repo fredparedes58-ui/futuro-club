@@ -17,6 +17,7 @@ import DecisionSpeedTimeline from "./DecisionSpeedTimeline";
 import ClutchHeatmap from "./ClutchHeatmap";
 import MentalFatigueCurveChart from "./MentalFatigueCurveChart";
 import BehavioralTrendChart from "./BehavioralTrendChart";
+import ScanningIntelligenceReport from "./ScanningIntelligenceReport";
 
 interface Props {
   playerId: string;
@@ -107,6 +108,15 @@ export default function BehavioralDashboard({ playerId }: Props) {
 
       {/* Radar */}
       <BehavioralRadar scores={scores} />
+
+      {/* Scanning Intelligence — dedicated report on pre-reception scans */}
+      <div className="glass rounded-2xl p-4">
+        <ScanningIntelligenceReport
+          playerId={playerId}
+          playerName={profile?.playerName}
+          scanningScore={scores.scanningIntelligence}
+        />
+      </div>
 
       {/* Decision Speed + Clutch */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

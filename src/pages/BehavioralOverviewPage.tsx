@@ -22,8 +22,10 @@ import {
   Ghost,
   Sword,
   Compass,
+  Eye,
 } from "lucide-react";
 import { PlayerService, type Player } from "@/services/real/playerService";
+import ScanningIntelligenceReport from "@/components/behavioral/ScanningIntelligenceReport";
 
 interface BehavioralScores {
   decisionSpeed: number;
@@ -149,7 +151,7 @@ function generateScores(player: Player): BehavioralScores {
   };
 }
 
-type SortKey = "composite" | "name" | "age";
+type SortKey = "composite" | "name" | "age" | "scanning";
 
 export default function BehavioralOverviewPage() {
   const navigate = useNavigate();
@@ -157,6 +159,7 @@ export default function BehavioralOverviewPage() {
   const [query, setQuery] = useState("");
   const [archetypeFilter, setArchetypeFilter] = useState<Archetype | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey>("composite");
+  const [scanFocusPlayerId, setScanFocusPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     setPlayers(PlayerService.getAll());
@@ -182,6 +185,7 @@ export default function BehavioralOverviewPage() {
     return [...list].sort((a, b) => {
       if (sortKey === "name") return a.player.name.localeCompare(b.player.name);
       if (sortKey === "age") return b.player.age - a.player.age;
+      if (sortKey === "scanning") return b.scores.scanningIntelligence - a.scores.scanningIntelligence;
       return b.scores.mentalComposite - a.scores.mentalComposite;
     });
   }, [enriched, query, archetypeFilter, sortKey]);
@@ -304,7 +308,7 @@ export default function BehavioralOverviewPage() {
                 <span className="ml-auto text-[10px] text-muted-foreground">
                   Ordenar:
                 </span>
-                {(["composite", "name", "age"] as SortKey[]).map((k) => (
+                {(["composite", "scanning", "name", "age"] as SortKey[]).map((k) => (
                   <button
                     key={k}
                     onClick={() => setSortKey(k)}
@@ -314,7 +318,13 @@ export default function BehavioralOverviewPage() {
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    {k === "composite" ? "Composite" : k === "name" ? "Nombre" : "Edad"}
+                    {k === "composite"
+                      ? "Composite"
+                      : k === "scanning"
+                      ? "Scan IQ"
+                      : k === "name"
+                      ? "Nombre"
+                      : "Edad"}
                   </button>
                 ))}
               </div>
@@ -355,6 +365,51 @@ export default function BehavioralOverviewPage() {
                 />
               )}
             </div>
+
+            {/* Scanning Intelligence focus panel */}
+            {filtered.length > 0 && (
+              <div className="glass rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center">
+                      <Eye size={13} className="text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-display font-bold text-foreground">
+                        Informe de scanning previo a recepción
+                      </h3>
+                      <p className="text-[10px] text-muted-foreground">
+                        Cuántas veces mira el entorno en los 10s antes de recibir el balón
+                      </p>
+                    </div>
+                  </div>
+                  <select
+                    value={scanFocusPlayerId ?? filtered[0]?.player.id ?? ""}
+                    onChange={(e) => setScanFocusPlayerId(e.target.value)}
+                    className="bg-secondary/40 rounded-md px-2 py-1 text-xs border border-border focus:border-primary focus:outline-none"
+                  >
+                    {filtered.map((f) => (
+                      <option key={f.player.id} value={f.player.id}>
+                        {f.player.name} · Scan {f.scores.scanningIntelligence}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {(() => {
+                  const focus =
+                    filtered.find((f) => f.player.id === scanFocusPlayerId) ?? filtered[0];
+                  if (!focus) return null;
+                  return (
+                    <ScanningIntelligenceReport
+                      key={focus.player.id}
+                      playerId={focus.player.id}
+                      playerName={focus.player.name}
+                      scanningScore={focus.scores.scanningIntelligence}
+                    />
+                  );
+                })()}
+              </div>
+            )}
 
             {/* Players grid */}
             {filtered.length === 0 ? (
