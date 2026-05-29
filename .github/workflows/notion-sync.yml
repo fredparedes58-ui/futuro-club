@@ -1,0 +1,51 @@
+name: Sync docs to Notion
+
+# Triggers whenever a Markdown file inside docs/ changes on main.
+# Also runs on manual dispatch (Actions → Run workflow) for testing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**.md"
+      - "scripts/sync-to-notion.mjs"
+      - ".github/workflows/notion-sync.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (no actual changes to Notion)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # Install ONLY the two packages we need for the sync script.
+      # We don't run `npm ci` on the whole repo here because the script
+      # is self-contained and that would be way slower.
+      - name: Install Notion + Markdown converter
+        run: |
+          npm install --no-save @notionhq/client@^2.2.0 @tryfabric/martian@^1.2.0
+
+      - name: Sync to Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+          NOTION_SYNC_FILES: "docs/VITAS_MASTER.md,docs/PHASE_3_STATUS.md,docs/BUNNY_SETUP.md,docs/SUPABASE_SETUP.md"
+          NOTION_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+        run: node scripts/sync-to-notion.mjs
