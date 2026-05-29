@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
+import {
+  uploadToBunny,
+  BunnyNotConfiguredError,
+} from "@/services/real/bunnyStreamService";
 
 interface Props {
   open: boolean;
@@ -143,37 +147,92 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
     setUploadPct(0);
 
     try {
-      // Create a blob URL for the file so it can be played locally
-      const blobUrl = URL.createObjectURL(file);
-
-      // Simulate upload progress (in real app this would track XHR upload)
-      await simulateUpload(2400);
-
-      // Read video metadata (duration, dimensions) via temporary <video> element
+      // Read video metadata up-front (always works on a File object)
       const meta = await readVideoMetadata(file);
+      const finalTitle = title.trim() || inferTitle(file.name);
 
-      const video: VideoRecord = {
-        id: generateVideoId(),
-        title: title.trim() || inferTitle(file.name),
-        playerId: null,
-        status: "finished",
-        statusCode: 4,
-        encodeProgress: 100,
-        duration: meta.duration,
-        width: meta.width,
-        height: meta.height,
-        fps: 30,
-        storageSize: file.size,
-        thumbnailUrl: null,
-        embedUrl: blobUrl,
-        streamUrl: blobUrl,
-        localPath: blobUrl,
-        dateUploaded: new Date().toISOString(),
-      };
+      // ── Try the Bunny pipeline first ──────────────────────────────
+      // If Bunny is configured on Vercel, the video becomes available
+      // at a public URL that Modal / IA pipelines can read.
+      // If it isn't, we fall back to a local blob: URL.
+      let bunnyResult: Awaited<ReturnType<typeof uploadToBunny>> | null = null;
+      let triedBunny = false;
+      try {
+        triedBunny = true;
+        bunnyResult = await uploadToBunny({
+          file,
+          title: finalTitle,
+          onProgress: (p) => {
+            setUploadPct(p.pct);
+          },
+        });
+      } catch (err) {
+        if (err instanceof BunnyNotConfiguredError) {
+          // Expected when env vars aren't set — silent fallback
+          console.info("[VideoUploadDialog] Bunny disabled, using blob: fallback");
+        } else {
+          console.warn("[VideoUploadDialog] Bunny upload failed, fallback to blob:", err);
+          toast.warning("Subida a Bunny falló · guardando localmente");
+        }
+        bunnyResult = null;
+      }
+
+      let video: VideoRecord;
+      if (bunnyResult) {
+        // ── Bunny path: persistent public URLs ──────────────────────
+        video = {
+          id: generateVideoId(),
+          title: finalTitle,
+          playerId: null,
+          status: "finished",
+          statusCode: 4,
+          encodeProgress: 100,
+          duration: meta.duration,
+          width: meta.width,
+          height: meta.height,
+          fps: 30,
+          storageSize: file.size,
+          thumbnailUrl: bunnyResult.thumbnailUrl,
+          // Prefer MP4 for compatibility (Modal, mobile native video, etc.)
+          embedUrl: bunnyResult.embedUrl,
+          streamUrl: bunnyResult.mp4Url,
+          localPath: bunnyResult.streamUrl, // HLS for adaptive playback in browsers that support it
+          dateUploaded: new Date().toISOString(),
+        };
+        toast.success(
+          triedBunny
+            ? "Video subido a Bunny correctamente"
+            : "Video guardado correctamente",
+        );
+      } else {
+        // ── Fallback: local blob: URL ──────────────────────────────
+        const blobUrl = URL.createObjectURL(file);
+        if (!triedBunny) {
+          await simulateUpload(1200);
+        }
+        video = {
+          id: generateVideoId(),
+          title: finalTitle,
+          playerId: null,
+          status: "finished",
+          statusCode: 4,
+          encodeProgress: 100,
+          duration: meta.duration,
+          width: meta.width,
+          height: meta.height,
+          fps: 30,
+          storageSize: file.size,
+          thumbnailUrl: null,
+          embedUrl: blobUrl,
+          streamUrl: blobUrl,
+          localPath: blobUrl,
+          dateUploaded: new Date().toISOString(),
+        };
+        toast.success("Video guardado localmente (Bunny no configurado)");
+      }
 
       VideoService.save(video);
       setResult(video);
-      toast.success("Video subido correctamente");
       onUploaded(video);
     } catch (err) {
       console.error(err);
