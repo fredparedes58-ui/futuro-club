@@ -97,7 +97,7 @@ export default function ScanningIntelligencePage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="font-display font-bold text-base text-foreground">
-              Scanning Intelligence
+              Scanning
             </h1>
             <p className="text-[11px] text-muted-foreground">
               Escaneo previo a la recepción del balón · {ranked.length}{" "}

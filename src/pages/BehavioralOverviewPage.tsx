@@ -243,7 +243,7 @@ export default function BehavioralOverviewPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-bold text-base text-foreground">
-                Behavioral Profiling
+                Perfil Mental
               </h1>
               <p className="text-[11px] text-muted-foreground">
                 Perfil mental del equipo · {enriched.length} jugadores analizados

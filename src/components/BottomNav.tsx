@@ -79,12 +79,12 @@ const EXTRA_GROUPS: ExtraGroup[] = [
     ],
   },
   {
-    title: "IA Mental",
+    title: "Mental",
     items: [
       {
         path: "/behavioral",
         icon: Brain,
-        label: "Behavioral",
+        label: "Mental",
         description: "Perfil mental del equipo · 7 dimensiones",
         color: "from-purple-500 to-indigo-500",
       },
