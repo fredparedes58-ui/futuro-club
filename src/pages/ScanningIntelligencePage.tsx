@@ -9,9 +9,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, Search, Trophy } from "lucide-react";
+import { ArrowLeft, Eye, Search, Trophy, Upload, Cpu, Video as VideoIcon } from "lucide-react";
+import { toast } from "sonner";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import ScanningIntelligenceReport from "@/components/behavioral/ScanningIntelligenceReport";
+import VideoUploadDialog from "@/components/setPiece/VideoUploadDialog";
+import ScanningAnalyzerDialog from "@/components/behavioral/ScanningAnalyzerDialog";
+import {
+  ScanningVideoAnalyses,
+  type ScanningAnalysisResult,
+} from "@/services/real/scanningVideoDetector";
 
 // Same RNG / score generator used in the BehavioralOverviewPage so the same
 // player gets the same Scan IQ value across the app.
@@ -45,10 +52,24 @@ export default function ScanningIntelligencePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [players, setPlayers] = useState<Player[]>([]);
   const [query, setQuery] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [analyzerOpen, setAnalyzerOpen] = useState(false);
+  const [preselectedVideoId, setPreselectedVideoId] = useState<string | undefined>(undefined);
+  const [latestAnalysis, setLatestAnalysis] = useState<ScanningAnalysisResult | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     setPlayers(PlayerService.getAll());
   }, []);
+
+  // When focused player changes, load latest analysis for that player
+  useEffect(() => {
+    void version; // refresh after new analysis
+    const id = searchParams.get("playerId");
+    if (id) {
+      setLatestAnalysis(ScanningVideoAnalyses.getLatestForPlayer(id));
+    }
+  }, [searchParams, version, players]);
 
   const ranked = useMemo(() => {
     return players
@@ -104,6 +125,26 @@ export default function ScanningIntelligencePage() {
               {ranked.length === 1 ? "jugador analizado" : "jugadores analizados"}
             </p>
           </div>
+          <button
+            onClick={() => setUploadOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
+            title="Sube un video y analiza su scanning"
+          >
+            <Upload size={14} />
+            Subir video
+          </button>
+          <button
+            onClick={() => {
+              setPreselectedVideoId(undefined);
+              setAnalyzerOpen(true);
+            }}
+            disabled={!focus}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Analiza el scanning del jugador desde un video"
+          >
+            <Cpu size={14} />
+            Analizar video
+          </button>
         </div>
       </header>
 
@@ -140,6 +181,36 @@ export default function ScanningIntelligencePage() {
                 color="from-purple-500 to-indigo-600"
               />
             </div>
+
+            {/* Latest video analysis banner */}
+            {latestAnalysis && focus && latestAnalysis.playerId === focus.player.id && (
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="glass rounded-xl p-3 border-l-4 border-pink-500 bg-pink-500/5 flex items-center gap-3 flex-wrap"
+              >
+                <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center shrink-0">
+                  <VideoIcon size={14} className="text-pink-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] text-foreground">
+                    <strong>Último análisis de scanning desde video:</strong>{" "}
+                    {latestAnalysis.videoTitle} · {latestAnalysis.receptionsAnalyzed} recepciones
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {new Date(latestAnalysis.createdAt).toLocaleString("es-ES")}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-lg font-display font-bold text-pink-500 leading-none">
+                    {latestAnalysis.scanIQ}
+                  </p>
+                  <p className="text-[8px] uppercase tracking-wider text-muted-foreground">
+                    Scan IQ del video
+                  </p>
+                </div>
+              </motion.div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-4">
               {/* Sidebar — ranked players */}
@@ -243,6 +314,39 @@ export default function ScanningIntelligencePage() {
           </>
         )}
       </main>
+
+      {/* Upload video dialog */}
+      <VideoUploadDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploaded={(video) => {
+          setUploadOpen(false);
+          setPreselectedVideoId(video.id);
+          // Open analyzer with the freshly uploaded video pre-selected
+          setTimeout(() => setAnalyzerOpen(true), 400);
+        }}
+      />
+
+      {/* Scanning analyzer dialog */}
+      {focus && (
+        <ScanningAnalyzerDialog
+          open={analyzerOpen}
+          onClose={() => {
+            setAnalyzerOpen(false);
+            setPreselectedVideoId(undefined);
+          }}
+          playerId={focus.player.id}
+          playerName={focus.player.name}
+          preselectedVideoId={preselectedVideoId}
+          onCompleted={(result) => {
+            setLatestAnalysis(result);
+            setVersion((v) => v + 1);
+            toast.success(
+              `Scan IQ actualizado a ${result.scanIQ}/100 para ${result.playerName}`,
+            );
+          }}
+        />
+      )}
     </div>
   );
 }
