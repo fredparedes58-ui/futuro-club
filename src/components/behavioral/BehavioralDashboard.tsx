@@ -6,8 +6,9 @@
  *          clutch heatmap + mental fatigue curve + trend chart.
  */
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Brain, Loader2 } from "lucide-react";
+import { Loader2, Eye, ArrowRight } from "lucide-react";
 import { useBehavioralProfile } from "@/hooks/useBehavioralProfile";
 
 import BehavioralRadar from "./BehavioralRadar";
@@ -17,13 +18,13 @@ import DecisionSpeedTimeline from "./DecisionSpeedTimeline";
 import ClutchHeatmap from "./ClutchHeatmap";
 import MentalFatigueCurveChart from "./MentalFatigueCurveChart";
 import BehavioralTrendChart from "./BehavioralTrendChart";
-import ScanningIntelligenceReport from "./ScanningIntelligenceReport";
 
 interface Props {
   playerId: string;
 }
 
 export default function BehavioralDashboard({ playerId }: Props) {
+  const navigate = useNavigate();
   const { data: profile, isLoading } = useBehavioralProfile(playerId);
 
   // Mock data for visualizations (will be replaced with real data from profile)
@@ -109,14 +110,24 @@ export default function BehavioralDashboard({ playerId }: Props) {
       {/* Radar */}
       <BehavioralRadar scores={scores} />
 
-      {/* Scanning Intelligence — dedicated report on pre-reception scans */}
-      <div className="glass rounded-2xl p-4">
-        <ScanningIntelligenceReport
-          playerId={playerId}
-          playerName={profile?.playerName}
-          scanningScore={scores.scanningIntelligence}
-        />
-      </div>
+      {/* Scanning Intelligence — link to the dedicated full report */}
+      <button
+        onClick={() => navigate(`/scanning?playerId=${playerId}`)}
+        className="w-full glass rounded-2xl p-4 border border-pink-500/30 bg-gradient-to-r from-pink-500/5 to-fuchsia-500/5 hover:from-pink-500/10 hover:to-fuchsia-500/10 transition-all flex items-center gap-3 group text-left"
+      >
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center shrink-0">
+          <Eye size={18} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-sm font-display font-bold text-foreground">
+            Informe de escaneo previo a recepción
+          </h4>
+          <p className="text-[11px] text-muted-foreground">
+            Scan IQ {scores.scanningIntelligence}/100 · timeline de jugadas, recepciones y correlación con calidad de decisión
+          </p>
+        </div>
+        <ArrowRight size={16} className="text-pink-500 group-hover:translate-x-1 transition-transform shrink-0" />
+      </button>
 
       {/* Decision Speed + Clutch */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

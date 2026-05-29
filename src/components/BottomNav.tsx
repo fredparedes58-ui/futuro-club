@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -87,6 +87,13 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         label: "Behavioral",
         description: "Perfil mental del equipo · 7 dimensiones",
         color: "from-purple-500 to-indigo-500",
+      },
+      {
+        path: "/scanning",
+        icon: Eye,
+        label: "Scanning",
+        description: "Escaneo previo a la recepción del balón",
+        color: "from-pink-500 to-fuchsia-600",
       },
     ],
   },

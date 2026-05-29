@@ -25,7 +25,6 @@ import {
   Eye,
 } from "lucide-react";
 import { PlayerService, type Player } from "@/services/real/playerService";
-import ScanningIntelligenceReport from "@/components/behavioral/ScanningIntelligenceReport";
 
 interface BehavioralScores {
   decisionSpeed: number;
@@ -159,7 +158,6 @@ export default function BehavioralOverviewPage() {
   const [query, setQuery] = useState("");
   const [archetypeFilter, setArchetypeFilter] = useState<Archetype | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey>("composite");
-  const [scanFocusPlayerId, setScanFocusPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     setPlayers(PlayerService.getAll());
@@ -366,49 +364,27 @@ export default function BehavioralOverviewPage() {
               )}
             </div>
 
-            {/* Scanning Intelligence focus panel */}
+            {/* Link to dedicated Scanning page */}
             {filtered.length > 0 && (
-              <div className="glass rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center">
-                      <Eye size={13} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-display font-bold text-foreground">
-                        Informe de scanning previo a recepción
-                      </h3>
-                      <p className="text-[10px] text-muted-foreground">
-                        Cuántas veces mira el entorno en los 10s antes de recibir el balón
-                      </p>
-                    </div>
-                  </div>
-                  <select
-                    value={scanFocusPlayerId ?? filtered[0]?.player.id ?? ""}
-                    onChange={(e) => setScanFocusPlayerId(e.target.value)}
-                    className="bg-secondary/40 rounded-md px-2 py-1 text-xs border border-border focus:border-primary focus:outline-none"
-                  >
-                    {filtered.map((f) => (
-                      <option key={f.player.id} value={f.player.id}>
-                        {f.player.name} · Scan {f.scores.scanningIntelligence}
-                      </option>
-                    ))}
-                  </select>
+              <button
+                onClick={() => navigate("/scanning")}
+                className="w-full glass rounded-2xl p-4 border border-pink-500/30 bg-gradient-to-r from-pink-500/5 to-fuchsia-500/5 hover:from-pink-500/10 hover:to-fuchsia-500/10 transition-all flex items-center gap-3 group text-left"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-fuchsia-600 flex items-center justify-center shrink-0">
+                  <Eye size={18} className="text-white" />
                 </div>
-                {(() => {
-                  const focus =
-                    filtered.find((f) => f.player.id === scanFocusPlayerId) ?? filtered[0];
-                  if (!focus) return null;
-                  return (
-                    <ScanningIntelligenceReport
-                      key={focus.player.id}
-                      playerId={focus.player.id}
-                      playerName={focus.player.name}
-                      scanningScore={focus.scores.scanningIntelligence}
-                    />
-                  );
-                })()}
-              </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-display font-bold text-foreground">
+                    Scanning Intelligence
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Informe completo de escaneo previo a recepción — timeline por jugada, histograma y benchmark por edad
+                  </p>
+                </div>
+                <span className="text-[11px] text-pink-500 font-display font-semibold whitespace-nowrap group-hover:translate-x-1 transition-transform">
+                  Abrir informe →
+                </span>
+              </button>
             )}
 
             {/* Players grid */}
