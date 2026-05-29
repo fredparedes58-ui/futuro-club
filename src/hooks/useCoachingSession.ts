@@ -60,13 +60,41 @@ interface AnalyzeSessionResult {
 const API_BASE = "/api/coaching";
 
 async function fetchCoachingSessions(teamId: string): Promise<CoachingSession[]> {
-  const res = await fetch(`${API_BASE}/sessions?teamId=${encodeURIComponent(teamId)}`);
-  if (!res.ok) {
-    // Fallback: return mock data
+  // Try CoachingSessionService first (Supabase + cache)
+  try {
+    const { CoachingSessionService } = await import(
+      "@/services/real/coachingSessionService"
+    );
+    const sessions = await CoachingSessionService.listSessions(teamId, 30);
+    if (sessions.length > 0) {
+      return sessions.map((s) => ({
+        id: s.id,
+        teamId: s.teamId,
+        date: s.date,
+        durationMin: s.durationMin,
+        videoId: s.videoId,
+        balance: s.balance,
+        load: s.load,
+        // Provide reasonable defaults for fields not present in TrainingSession
+        segments: s.segments ?? [],
+        drills: s.drills ?? [],
+      })) as unknown as CoachingSession[];
+    }
+  } catch (err) {
+    console.warn("[useCoachingSession] service failed, trying API:", err);
+  }
+
+  // Fallback to API endpoint
+  try {
+    const res = await fetch(
+      `${API_BASE}/sessions?teamId=${encodeURIComponent(teamId)}`,
+    );
+    if (!res.ok) return generateMockSessions(teamId);
+    const data = await res.json();
+    return data.data ?? data ?? [];
+  } catch {
     return generateMockSessions(teamId);
   }
-  const data = await res.json();
-  return data.data ?? data ?? [];
 }
 
 async function fetchSessionAnalysis(sessionId: string): Promise<Record<string, unknown>> {
