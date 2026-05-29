@@ -54,15 +54,40 @@ interface ComputeProfileInput {
 const API_BASE = "/api/behavioral";
 
 async function fetchBehavioralProfile(playerId: string): Promise<BehavioralProfileData | null> {
-  const res = await fetch(`${API_BASE}/get-profile?playerId=${encodeURIComponent(playerId)}`);
-  if (!res.ok) {
+  // Try the Supabase-backed service first (graceful fallback to mock)
+  try {
+    const { BehavioralProfileService } = await import(
+      "@/services/real/behavioralProfileService"
+    );
+    const profile = await BehavioralProfileService.getLatest(playerId);
+    if (profile) {
+      return {
+        playerId: profile.playerId,
+        playerName: profile.playerName ?? "Jugador",
+        playerAge: 0,
+        scores: profile.scores,
+        strengths: [],
+        developmentAreas: [],
+        confidence: profile.confidence,
+        videosAnalyzed: profile.videosAnalyzed,
+        analyzedAt: profile.analyzedAt,
+        modelVersion: profile.modelVersion,
+      } as BehavioralProfileData;
+    }
+  } catch (err) {
+    console.warn("[useBehavioralProfile] service failed, trying API:", err);
+  }
+
+  // Fallback to the existing API endpoint (server-side compute)
+  try {
+    const res = await fetch(`${API_BASE}/get-profile?playerId=${encodeURIComponent(playerId)}`);
+    if (!res.ok) return generateMockProfile(playerId);
+    const data = await res.json();
+    if (data.data?.status === "not_implemented") return generateMockProfile(playerId);
+    return data.data ?? data ?? null;
+  } catch {
     return generateMockProfile(playerId);
   }
-  const data = await res.json();
-  if (data.data?.status === "not_implemented") {
-    return generateMockProfile(playerId);
-  }
-  return data.data ?? data ?? null;
 }
 
 async function computeProfileApi(input: ComputeProfileInput): Promise<BehavioralProfileData> {
