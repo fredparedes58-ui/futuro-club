@@ -80,6 +80,7 @@ const SetPieceEditorPage = React.lazy(() => import("./pages/SetPieceEditorPage")
 const SetPieceFolderPage = React.lazy(() => import("./pages/SetPieceFolderPage"));
 const HighlightsPage = React.lazy(() => import("./pages/HighlightsPage"));
 const HighlightDetailPage = React.lazy(() => import("./pages/HighlightDetailPage"));
+const BehavioralOverviewPage = React.lazy(() => import("./pages/BehavioralOverviewPage"));
 
 // Suspense fallback for lazy routes
 const LazyFallback = () => (
@@ -228,6 +229,7 @@ const App = () => (
                 <Route path="/set-pieces/folder/:id" element={<P><SetPieceFolderPage /></P>} />
                 <Route path="/highlights" element={<P><HighlightsPage /></P>} />
                 <Route path="/highlights/:id" element={<P><HighlightDetailPage /></P>} />
+                <Route path="/behavioral" element={<P><BehavioralOverviewPage /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />
