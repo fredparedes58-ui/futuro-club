@@ -62,12 +62,21 @@ export default function ScanningIntelligencePage() {
     setPlayers(PlayerService.getAll());
   }, []);
 
-  // When focused player changes, load latest analysis for that player
+  // Load latest analysis for the focused player whenever focus or version changes
+  // We can't reference `focus` directly here (it's computed later) so we derive
+  // the id from the search param or fall back to the first ranked player.
   useEffect(() => {
     void version; // refresh after new analysis
-    const id = searchParams.get("playerId");
-    if (id) {
-      setLatestAnalysis(ScanningVideoAnalyses.getLatestForPlayer(id));
+    const paramId = searchParams.get("playerId");
+    const all = PlayerService.getAll();
+    const ranked = all
+      .map((p) => ({ id: p.id }))
+      .sort(() => 0);
+    const focusId = paramId ?? ranked[0]?.id ?? null;
+    if (focusId) {
+      setLatestAnalysis(ScanningVideoAnalyses.getLatestForPlayer(focusId));
+    } else {
+      setLatestAnalysis(null);
     }
   }, [searchParams, version, players]);
 
