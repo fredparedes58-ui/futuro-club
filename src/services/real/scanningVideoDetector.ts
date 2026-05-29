@@ -1,13 +1,22 @@
 /**
  * VITAS · Scanning Video Detector
  *
- * Phase 1: simulates a focused scanning-detection pipeline on a video.
- * Independent from other detectors (set pieces, highlights, behavioral) —
- * stores results in its own localStorage key and only updates Scan IQ.
+ * Two execution modes:
  *
- * Phase 2 hook: replace runScanningDetection() with a call to
- * /api/behavioral/_detect-scanning that runs the pose pipeline.
+ * 1. REAL pipeline (Phase 2) — calls /api/behavioral/_detect-scanning which
+ *    proxies to a Modal GPU worker running YOLOv11 + ByteTrack + MediaPipe
+ *    Pose. Only used if the env var MODAL_SCANNING_URL is configured on
+ *    Vercel and a real video URL is available.
+ *
+ * 2. MOCK pipeline (Phase 1 fallback) — deterministic simulation with a
+ *    6-stage progress sequence. Used when the real pipeline is not
+ *    configured or the request fails (graceful degradation).
+ *
+ * The caller doesn't need to know which path runs — runScanningDetection()
+ * tries real first and silently falls back.
  */
+
+import { VideoService } from "./videoService";
 
 const STORAGE_KEY = "vitas_scanning_video_analyses";
 
@@ -93,18 +102,130 @@ function genId(): string {
   return `scan_analysis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Try the real Modal pipeline first, fall back to mock on failure */
 export async function runScanningDetection(
   options: { playerId: string; playerName: string; videoId: string; videoTitle: string },
   onProgress?: ScanningDetectionListener,
 ): Promise<ScanningAnalysisResult> {
-  for (const step of STAGE_FLOW) {
-    onProgress?.({ stage: step.stage, pct: step.pct, message: step.message });
-    if (step.duration > 0) {
-      await new Promise((r) => setTimeout(r, step.duration));
+  // Look up the real video URL from the VideoService cache
+  const videoUrl = (() => {
+    try {
+      const v = VideoService.getById(options.videoId);
+      return v?.streamUrl ?? v?.embedUrl ?? v?.localPath ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  // Attempt real pipeline if we have a public-looking URL (not blob:)
+  const isPublicUrl = !!videoUrl && /^https?:\/\//i.test(videoUrl);
+
+  if (isPublicUrl) {
+    try {
+      // Drive a faster progress simulation in parallel with the real call
+      // so the user sees feedback even during the actual GPU run.
+      const progressPromise = (async () => {
+        for (const step of STAGE_FLOW.slice(0, -1)) {
+          onProgress?.({ stage: step.stage, pct: step.pct, message: step.message });
+          if (step.duration > 0) {
+            await new Promise((r) => setTimeout(r, step.duration));
+          }
+        }
+      })();
+
+      const realPromise = fetch("/api/behavioral/_detect-scanning", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: options.videoId,
+          videoUrl,
+          playerId: options.playerId,
+          playerName: options.playerName,
+          sampleFps: 10,
+        }),
+      });
+
+      // Wait for both progress UI + actual call
+      const [, resp] = await Promise.all([progressPromise, realPromise]);
+
+      if (resp.status === 503) {
+        // Not configured — fall through to mock
+        console.info("[scanningVideoDetector] real inference disabled, using mock");
+        return runMockDetection(options, onProgress, true);
+      }
+
+      if (!resp.ok) {
+        const detail = await resp.text().catch(() => "");
+        console.warn(
+          `[scanningVideoDetector] real inference failed (${resp.status}): ${detail}. Falling back to mock.`,
+        );
+        return runMockDetection(options, onProgress, true);
+      }
+
+      onProgress?.({ stage: "finished", pct: 100, message: "Reel listo" });
+
+      const data = (await resp.json()) as {
+        source: string;
+        scanIQ: number;
+        receptionsAnalyzed: number;
+        avgScansPreReception: number;
+        scansUnderPressure: number;
+        successWithScan: number;
+        successWithoutScan: number;
+        forwardOrientedPct: number;
+      };
+
+      const result: ScanningAnalysisResult = {
+        id: genId(),
+        playerId: options.playerId,
+        playerName: options.playerName,
+        videoId: options.videoId,
+        videoTitle: options.videoTitle,
+        scanIQ: data.scanIQ,
+        receptionsAnalyzed: data.receptionsAnalyzed,
+        avgScansPreReception: data.avgScansPreReception,
+        scansUnderPressure: data.scansUnderPressure,
+        successWithScan: data.successWithScan,
+        successWithoutScan: data.successWithoutScan,
+        forwardOrientedPct: data.forwardOrientedPct,
+        createdAt: new Date().toISOString(),
+      };
+
+      const all = readAll();
+      all.unshift(result);
+      writeAll(all.slice(0, 50));
+
+      return result;
+    } catch (err) {
+      console.warn(
+        "[scanningVideoDetector] real inference threw, using mock:",
+        err,
+      );
+      return runMockDetection(options, onProgress, true);
     }
   }
 
-  // Derive a new Scan IQ based on player + video seed so re-runs are stable
+  // No public URL → mock
+  return runMockDetection(options, onProgress, false);
+}
+
+/** Deterministic mock used as fallback or for demo videos */
+async function runMockDetection(
+  options: { playerId: string; playerName: string; videoId: string; videoTitle: string },
+  onProgress: ScanningDetectionListener | undefined,
+  skipProgress: boolean,
+): Promise<ScanningAnalysisResult> {
+  if (!skipProgress) {
+    for (const step of STAGE_FLOW) {
+      onProgress?.({ stage: step.stage, pct: step.pct, message: step.message });
+      if (step.duration > 0) {
+        await new Promise((r) => setTimeout(r, step.duration));
+      }
+    }
+  } else {
+    onProgress?.({ stage: "finished", pct: 100, message: "Análisis completado" });
+  }
+
   const rng = seededRng(`${options.playerId}_${options.videoId}`);
   const scanIQ = Math.round(45 + rng() * 50);
 
@@ -124,7 +245,6 @@ export async function runScanningDetection(
     createdAt: new Date().toISOString(),
   };
 
-  // Persist (keep at most 50 latest analyses)
   const all = readAll();
   all.unshift(result);
   writeAll(all.slice(0, 50));
