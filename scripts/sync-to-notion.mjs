@@ -65,6 +65,75 @@ function summaryHeader(filename, sizeBytes) {
   return `\n\n---\n\n📄 **Synced from:** \`${filename}\` · ${(sizeBytes / 1024).toFixed(1)} KB · Last synced: ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC\n\n---\n\n`;
 }
 
+/**
+ * Sanitize Markdown links that Notion's API rejects.
+ *
+ * Notion only accepts links with an absolute http(s):// or mailto: URL.
+ * It rejects:
+ *   - Internal anchors:           [foo](#section)
+ *   - Empty href:                 [foo]()
+ *   - Relative file links:        [foo](./bar.md)  [foo](../bar.md)
+ *   - Bare paths/domains:         [foo](bar)       [foo](www.x.com)
+ *   - File scheme:                [foo](file://…)
+ *
+ * Strategy: strip the broken link wrapper but KEEP the visible text.
+ *   - For #anchor links → render as **bold** text (looks intentional)
+ *   - For everything else → plain text
+ *
+ * Also normalises bare domains (www.x.com) to https://www.x.com so they
+ * stay clickable.
+ */
+function sanitizeMarkdownLinks(md) {
+  const stats = { anchors: 0, empty: 0, relative: 0, bareDomain: 0 };
+
+  // 1. [text](#anchor) — drop link, keep text as **bold**
+  md = md.replace(/\[([^\]]+)\]\(\s*#[^)]*\)/g, (_, text) => {
+    stats.anchors++;
+    return `**${text}**`;
+  });
+
+  // 2. [text]() — empty href, just keep the text
+  md = md.replace(/\[([^\]]+)\]\(\s*\)/g, (_, text) => {
+    stats.empty++;
+    return text;
+  });
+
+  // 3. [text](./foo) or [text](../foo) or [text](foo.md) — relative
+  md = md.replace(
+    /\[([^\]]+)\]\(\s*(?:\.{1,2}\/|[a-zA-Z0-9_-]+\.md(?:#[^)]*)?)[^)]*\)/g,
+    (_, text) => {
+      stats.relative++;
+      return text;
+    },
+  );
+
+  // 4. [text](bare-path-without-scheme) — drop link, keep text
+  //    Anything that doesn't start with http(s):// or mailto: is dropped.
+  md = md.replace(/\[([^\]]+)\]\(\s*([^)]+?)\s*\)/g, (full, text, url) => {
+    const trimmed = url.trim();
+    if (/^https?:\/\//i.test(trimmed)) return full; // keep as is
+    if (/^mailto:/i.test(trimmed)) return full; // keep mailto
+    // www.foo.com → upgrade to https://
+    if (/^www\./i.test(trimmed)) {
+      stats.bareDomain++;
+      return `[${text}](https://${trimmed})`;
+    }
+    // Anything else → drop the link, keep text
+    stats.relative++;
+    return text;
+  });
+
+  const total = stats.anchors + stats.empty + stats.relative + stats.bareDomain;
+  if (total > 0) {
+    console.log(
+      `🧽 Sanitized ${total} links: ` +
+        `${stats.anchors} #anchors, ${stats.empty} empty, ` +
+        `${stats.relative} relative, ${stats.bareDomain} bare-domain upgraded`,
+    );
+  }
+  return md;
+}
+
 /** Clear all existing children of a Notion page */
 async function clearPageChildren(pageId) {
   console.log(`🧹 Clearing existing blocks from page ${pageId}…`);
@@ -147,6 +216,9 @@ async function main() {
   combined = combined.trim();
 
   console.log(`📖 Combined markdown: ${combined.length} chars from ${sources.length} files`);
+
+  // 2.5. Sanitize links so Notion's strict URL validator doesn't reject the batch
+  combined = sanitizeMarkdownLinks(combined);
 
   // 3. Convert to Notion blocks
   // strictImageUrls=false → allow relative img paths to not break the converter
