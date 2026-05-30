@@ -3,9 +3,10 @@
 > 📌 **Documento maestro de VITAS Football Intelligence**
 > Estado completo, arquitectura, catálogo de servicios, agentes IA, RAG, backlog, roadmap y costes.
 >
-> Actualizado: **2026-05-30**
+> Actualizado: **2026-05-31**
 > Repo: https://github.com/fredparedes58-ui/futuro-club
 > Producción: https://futuro-club.vercel.app
+> Última sesión: Modal pipeline ACTIVADO + Vercel env vars + GitHub Action Notion sync funcionando
 
 ---
 
@@ -60,8 +61,17 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 ### Fase del producto
 **Fase 2 + 3 en transición:**
 - ✅ Fase 1 (localStorage + Claude API) → completa, en producción
-- ✅ Fase 2 (Video upload + análisis Modal + Bunny CDN) → **infraestructura lista, requiere activación usuario**
+- ✅ Fase 2 (Video upload + análisis Modal + Bunny CDN) → **Modal ACTIVO en producción · Bunny pendiente activación usuario**
 - 🟡 Fase 3 (Supabase multi-tenant + auth + Stripe) → **código listo, requiere activación usuario**
+
+### Highlights de la sesión 2026-05-31
+- ✅ Modal `vitas-video-pipeline` desplegado (T4 GPU, YOLOv11 + ByteTrack)
+- ✅ Health endpoint vivo: `https://fredparedes58-ui--vitas-video-pipeline-health.modal.run`
+- ✅ Track endpoint vivo: `https://fredparedes58-ui--vitas-video-pipeline-track.modal.run`
+- ✅ `MODAL_TRACK_URL` + `MODAL_API_KEY` en Vercel production
+- ✅ Vercel redeploy ejecutado (commit `bdc3704`)
+- ✅ GitHub Action Notion Sync funcionando (`docs/*.md` → Notion page)
+- ✅ URL sanitizer en `scripts/sync-to-notion.mjs` (anchors/relative/empty links)
 
 ### Lo que funciona hoy sin tocar nada
 | Módulo | Estado |
@@ -78,16 +88,19 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 | Pipeline orchestrator (9 agentes paralelos) | ✅ con Claude API |
 | PWA offline | ✅ con Service Worker |
 | Sentry error tracking | ✅ |
+| **Modal tracking (YOLOv11 + ByteTrack)** | ✅ **vivo en producción (T4 GPU)** |
+| Notion sync automatizado vía GitHub Action | ✅ |
 
 ### Lo que requiere activación tuya
-| Servicio | Tiempo setup | Desbloquea |
-|---|---|---|
-| **Bunny Stream** | ~10 min | Videos a CDN público |
-| **Supabase** | ~90-120 min | Auth + multi-device + persistencia |
-| **Modal** | ~15 min | Tracking real 22 jugadores + balón |
-| **Stripe** | ~15 min | Billing Pro/Club |
-| **Resend** (email) | ~10 min | Recordatorios consentimiento RGPD |
-| **Sentry DSN** | ~5 min | Ya activado (recibes alertas) |
+| Servicio | Tiempo setup | Desbloquea | Estado |
+|---|---|---|---|
+| **Bunny Stream** | ~10 min | Videos a CDN público | 🟡 código listo, falta config |
+| **Supabase** | ~90-120 min | Auth + multi-device + persistencia | 🟡 código listo, falta config |
+| **Modal** | ~15 min | Tracking real 22 jugadores + balón | ✅ **ACTIVO 2026-05-31** |
+| **Stripe** | ~15 min | Billing Pro/Club | 🟡 código listo, falta config |
+| **Resend** (email) | ~10 min | Recordatorios consentimiento RGPD | 🟡 endpoint pendiente |
+| **Sentry DSN** | ~5 min | Ya activado (recibes alertas) | ✅ activo |
+| **Modal spend cap** | ~1 min | Protección anti-runaway costs | ⚠️ pendiente fijar `$50/mo` en dashboard |
 
 ---
 
@@ -655,6 +668,12 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 - [x] PlayerHub Mental tab con scanning embebido
 - [x] BottomNav "Más" mega-menú con 5 grupos
 - [x] Sentry stale-chunk fix (NetworkFirst + lazyWithRetry)
+- [x] **Modal `vitas-video-pipeline` desplegado (T4 GPU, YOLOv11 + ByteTrack)**
+- [x] **Vercel env vars `MODAL_TRACK_URL` + `MODAL_API_KEY` configuradas**
+- [x] **`api/coaching/_track-players.ts` proxy operativo**
+- [x] **GitHub Action `notion-sync.yml` auto-sincronizando `docs/*.md`**
+- [x] **`scripts/sync-to-notion.mjs` con sanitización de URLs inválidas**
+- [x] **Tabla de Hooks normalizada para Notion (header width)**
 
 #### Servicios Supabase preparados
 - [x] behavioralProfileService
@@ -678,7 +697,8 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 
 - [ ] **Bunny env vars** en Vercel → activa CDN
 - [ ] **Supabase setup completo** → activa auth + multi-device + persistencia
-- [ ] **Modal deploy** → activa pipeline IA real
+- [x] ~~**Modal deploy**~~ → ✅ HECHO 2026-05-31 (`vitas-video-pipeline` en T4)
+- [ ] **Modal spend cap** `$50/mo` en https://modal.com/settings/billing (1 min, ÚNICA acción manual restante para Modal)
 - [ ] **Stripe env vars** → activa billing real
 - [ ] **Resend** (opcional) → activa emails
 
@@ -748,12 +768,14 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 - ✅ Servicios Supabase preparados
 - ✅ Bunny + Modal templates
 - ✅ Sentry fix
+- ✅ **Modal pipeline LIVE en producción**
+- ✅ **Notion sync automatizado vía GitHub Action**
 
 ### Próximo sprint (1-2 semanas)
-1. **Tú activas** Bunny + Supabase (3h)
+1. **Tú activas** Bunny + Supabase (3h) + Modal spend cap (1 min)
 2. **Yo cableo** /director, /live, /admin/consent (8h)
 3. **Yo construyo** push notifications real + email reminders (5h)
-4. **Validación** end-to-end juntos (2h)
+4. **Validación** end-to-end juntos (2h) incluyendo test del flujo Modal real
 
 ### Sprint +1 (2-3 semanas)
 - Servicios Supabase para Highlights + Set Pieces
@@ -826,11 +848,42 @@ TELEGRAM_BOT_TOKEN
 
 ### Orden recomendado de activación
 1. **Sentry** ✅ ya activo
-2. **Bunny** → desbloquea videos a CDN
-3. **Supabase** → desbloquea TODO el resto (auth, multi-device, persistencia, billing)
-4. **Modal** → desbloquea análisis IA real de equipo
+2. **Modal** ✅ **ACTIVO 2026-05-31** (falta fijar spend cap manual en dashboard)
+3. **Bunny** → desbloquea videos a CDN
+4. **Supabase** → desbloquea TODO el resto (auth, multi-device, persistencia, billing)
 5. **Stripe** → desbloquea monetización
 6. **Resend** → desbloquea emails RGPD
+
+### Infraestructura Modal activa
+```
+App name:           vitas-video-pipeline
+Workspace:          fredparedes58-ui
+GPU:                T4 (cheapest viable)
+Timeout:            900s (15 min hard cap)
+Retries:            2
+Weights cache:      modal.Volume "vitas-yolo-weights"
+Secret:             vitas-api-key (API_KEY)
+Health URL:         https://fredparedes58-ui--vitas-video-pipeline-health.modal.run
+Track URL (POST):   https://fredparedes58-ui--vitas-video-pipeline-track.modal.run
+Dashboard:          https://modal.com/apps/fredparedes58-ui/main/deployed/vitas-video-pipeline
+Vercel proxy:       api/coaching/_track-players.ts
+Cliente TS:         src/services/real/videoTrackingService.ts
+```
+
+### Flujo end-to-end de un video
+```
+Usuario sube video (/scanning, /set-pieces, /coach)
+   ↓ tus-js-client (TUS upload)
+Bunny Stream
+   ↓ public HTTPS URL
+Vercel Edge: /api/coaching/track-players
+   ↓ bearer auth
+Modal: vitas-video-pipeline → track endpoint
+   ↓ T4 GPU → YOLOv11 + ByteTrack → ball+player tracks
+Vercel Edge: respuesta JSON
+   ↓
+Cliente: cache + render UI
+```
 
 ---
 
@@ -957,11 +1010,39 @@ Para mantener Notion siempre sincronizado con tu repo:
 
 ## 🎯 Top 3 prioridades inmediatas
 
-1. **TÚ** activa Bunny + Supabase (3h tu tiempo) → desbloquea 70% del producto
+1. **TÚ** activa Bunny + Supabase (3h tu tiempo) + Modal spend cap (1 min) → desbloquea 70% del producto
 2. **YO** cableo /director + /live + push notifications (15h) → cierra módulos pendientes
-3. **JUNTOS** validación end-to-end + onboarding del primer beta (4h) → ready para vender
+3. **JUNTOS** validación end-to-end del flujo Modal real con video de partido (1h) + onboarding del primer beta (4h) → ready para vender
 
 ---
 
-*Documento generado el 2026-05-30. Actualizado por Claude tras sesión de Phase 3 prep.*
-*Para feedback o cambios, edita este archivo y haz commit.*
+## 🚧 Bloqueos actuales
+
+| Bloqueo | Severidad | Bloquea | Acción para desbloquear |
+|---|---|---|---|
+| Bunny credentials no en Vercel | 🟡 medio | Upload de video real (cae a fallback localStorage) | 10 min: dashboard Bunny → copiar Library ID + API Key → `vercel env add` |
+| Supabase no configurado | 🟠 alto | Multi-device, auth real, billing real, RLS | 90-120 min: crear proyecto → correr 54 migraciones → env vars en Vercel |
+| Modal spend cap no fijado | 🟡 medio | Riesgo de runaway costs si bug en pipeline | 1 min: https://modal.com/settings/billing → hard limit `$50/mo` |
+| Stripe keys no configuradas | 🟡 medio | Billing UI funciona en modo demo | 15 min: crear products + webhook → env vars |
+| Resend API key | 🟢 bajo | Emails de consent reminders RGPD | 10 min: signup Resend → API key → env var |
+| Tests E2E inexistentes | 🟡 medio | Confianza para releases automáticos | 2-3 sprints de inversión |
+
+## 🔁 Estado de cada flujo crítico end-to-end
+
+| Flujo | Estado | Notas |
+|---|---|---|
+| Login demo → PlayerHub completo | ✅ | localStorage funciona standalone |
+| Upload video → análisis Modal → tracking real | ✅ | Modal vivo. Falta Bunny para CDN; mientras tanto la URL puede ser cualquier HTTPS pública |
+| Scanning con MediaPipe Web (cliente) | ✅ | No depende de Modal |
+| Pipeline orchestrator (10 agentes paralelos) | ✅ | Claude API directo |
+| Notion sync de `docs/*.md` | ✅ | GitHub Action en cada push a main |
+| Sentry alerts a fredparedes58@gmail.com | ✅ | DSN configurado |
+| Multi-device sync de datos | 🔴 | Bloqueado por Supabase |
+| Billing real Stripe | 🔴 | Bloqueado por Supabase + Stripe |
+| Live match tagger | 🟡 | Código listo, falta Supabase Realtime |
+| Push notifications | 🔴 | Falta `/api/push/_subscribe.ts` + `/api/push/_send.ts` |
+
+---
+
+*Documento generado el 2026-05-30. Última actualización 2026-05-31 tras activación de Modal + Notion sync.*
+*Para feedback o cambios, edita este archivo y haz commit — GitHub Action sincroniza Notion automáticamente.*
