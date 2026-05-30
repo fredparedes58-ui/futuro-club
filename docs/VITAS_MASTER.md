@@ -345,6 +345,21 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 > Cada agente vive en `api/agents/_<name>.ts` y es una Vercel Edge Function.
 > Pattern común: Zod input → Claude Haiku/Sonnet/Opus → Zod output validado → persist.
 
+### Arquitectura actual: single-shot completions con contratos Zod
+Los 28 agentes son **single-shot completions** validados por contratos Zod (17 schemas en `src/agents/contracts.ts`). Cada llamada:
+1. Valida input con Zod (`schema.parse(req.body)` → 400 si malformed).
+2. Construye prompt determinista en `buildPrompt(data)`.
+3. Llama Claude (Haiku/Sonnet/Opus según coste).
+4. Valida output con Zod antes de devolver.
+5. Versionado vía `PROMPT_VERSION` en `_promptVersionRegistry.ts`.
+
+### ⚠️ Capacidades que NO tienen aún (ver backlog sección 12)
+- 🔴 **Tool use / function calling** — Claude no puede llamar funciones para pedir datos. Hoy se le precarga todo el contexto. Sprint D planificado.
+- 🔴 **Multi-turn (conversación)** — cada llamada parte de cero, no hay memoria entre turnos. Sprint E planificado.
+- 🔴 **Streaming** — respuestas llegan completas, no token a token. Útil para chatbot (Sprint F).
+
+**Decisión arquitectónica:** los 28 agentes actuales SE QUEDAN como single-shot. Tool use + multi-turn solo se añadirán para el futuro "VITAS Coach Chat" (Sprint D-F, post-RAG).
+
 | # | Agente | Modelo | Función |
 |---|---|---|---|
 | 1 | `_phv-calculator.ts` | Haiku | Calcula PHV (Mirwald formula) con explicación natural |
@@ -551,6 +566,21 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 - `rag_documents` (002 + 039)
 - `rag_feedback` (014)
 - `agent_response_cache` (022)
+
+### Estado de activación RAG
+| Componente | Estado | Bloqueo |
+|---|---|---|
+| Infra pgvector (`002_rag_knowledge_base.sql`) | ✅ código listo | Supabase no activado |
+| Función `match_knowledge()` con similarity coseno | ✅ código listo | Supabase no activado |
+| Fallback full-text search | ✅ código listo | Supabase no activado |
+| Embeddings service (Voyage AI / OpenAI) | 🔴 pendiente | — |
+| Endpoints `/api/rag/embed` y `/api/rag/search` | 🔴 pendiente | — |
+| Script de ingestion masiva del KB | 🔴 pendiente | — |
+| Integración en agentes (`_scout-insight`, `_coaching-assistant`) | 🔴 pendiente | — |
+
+**Plan de activación:** ver Sprint A/B/C en sección 12 (Backlog → RAG y base de datos vectorial).
+
+**Decisión pendiente:** modelo de embeddings. Recomendado **Voyage AI `voyage-3-large`** (1024 dim, $0.18/1M tokens, supera a OpenAI text-embedding-3-large en benchmarks 2025). Alternativa: seguir con OpenAI `text-embedding-3-small` que ya está mencionado en el código actual (más barato pero peor calidad).
 
 ---
 
@@ -759,6 +789,176 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 - [ ] BalanceChart polígono casi vacío en Coach Dashboard
 - [ ] YouTube/Vimeo iframes no soportan seek programado (esperado)
 
+#### 🧠 RAG y base de datos vectorial (3 sprints, ~15h)
+
+**Estado actual:**
+- ✅ Infra pgvector ya creada en `supabase/migrations/002_rag_knowledge_base.sql`
+- ✅ Tabla `knowledge_base` con `embedding vector(1024)` + índice ivfflat
+- ✅ Función `match_knowledge(query_embedding, threshold, count)` lista
+- ✅ Fallback full-text search incluido
+- 🔴 Bloqueado por: activación de Supabase (necesario para deployar la migration)
+
+**Modelo de embeddings recomendado:** Voyage AI `voyage-3-large` (1024 dim, ~$0.18 / 1M tokens, supera a OpenAI text-embedding-3-large en benchmarks retrieval 2025).
+
+**Datasets a indexar (orden de prioridad):**
+
+| Dataset | Volumen | Valor | Sprint |
+|---|---|---|---|
+| Knowledge base actual (LTAD, PHV, benchmarks, drills — 9 docs en `src/data/knowledgeBase/`) | ~100k tokens | 🟢 alto | A |
+| Drills library (`src/data/drillsLibrary.ts`, ~120 ejercicios) | ~30k tokens | 🟢 alto | A |
+| Reports históricos del jugador (`player_reports` JSONB) | crece con uso | 🟢 alto | B |
+| Behavioral profiles (045 table) | 1 row/jugador | 🟡 medio | B |
+| Transcripts de scout insights | crece con uso | 🟡 medio | C |
+| Docs externas FIFA/UEFA/papers PHV | externo | 🟢 alto | C |
+
+**Sprint A — Fundamentos (5h)**
+- [ ] `src/lib/rag/embeddingsService.ts` con Voyage AI client
+- [ ] `api/rag/_embed.ts` endpoint (texto → vector)
+- [ ] `api/rag/_search.ts` endpoint (query → top-k + similarity)
+- [ ] Env var `VOYAGE_API_KEY` en Vercel
+- [ ] Tests unitarios del embedder con golden samples
+
+**Sprint B — Ingestion del knowledge base existente (5h)**
+- [ ] `scripts/ingest-knowledge-base.mjs` — recorre 9 docs, chunks 500/50, embebe, inserta
+- [ ] Ingestion de `drillsLibrary` (cada drill → 1 row con metadata)
+- [ ] Hash de contenido (`metadata.content_hash`) para re-embed selectivo
+- [ ] Reindexar ivfflat tras ingestion masiva
+- [ ] Cap diario de embeddings + cola con dedup
+
+**Sprint C — Integración en agentes (5h)**
+- [ ] `_scout-insight.ts` → retrieve top-5 KB + drills relevantes → inyectar como `## CONTEXTO RAG`
+- [ ] `_coaching-assistant.ts` → semantic search en drills antes de recomendar
+- [ ] `dnaProfileService` y `findSimilarPlayer` → versión semántica vector-based
+- [ ] Hook `useRAGSearch` para futuro chatbot
+- [ ] A/B test: agente con RAG vs sin RAG (golden samples)
+
+**Casos de uso desbloqueados:**
+- "Encuentra 5 jugadores con perfil mental similar a X" (hoy heurística simple → semántica real)
+- "¿Qué drill recomiendas para esta debilidad?" → semantic search vs keyword match
+- Chatbot interno de coach con citas del knowledge base
+- ScoutInsightAgent que cita fuentes en vez de inventar
+- Versión semántica de `player-similarity` y `dna-profile`
+
+**Coste estimado (escala 50-100 partidos/mes):**
+- Embeddings: ~$2/mes (ingestion incremental)
+- Storage pgvector: $0 (incluido en Supabase Pro $25/mo)
+- Latencia: <50ms por query con ivfflat sobre <100k filas
+
+**Riesgos y mitigación:**
+
+| Riesgo | Mitigación |
+|---|---|
+| Embeddings stale tras editar KB | Hash en `metadata.content_hash`, re-embed solo si cambia |
+| Coste runaway si ingestionas todo | Cap diario + ingestion en cola con dedup |
+| ivfflat degrada >1M filas | Migrar a HNSW (pgvector ≥0.5) cuando haga falta |
+| Drift contract agente ↔ RAG context | Versionar prompts + contracts juntos (mismo `PROMPT_VERSION`) |
+
+#### 🤖 Tool use, function calling y multi-turn (post-RAG, ~25h)
+
+**Estado actual de los 28 agentes:** todos son **single-shot completions**.
+
+```
+[Agente] ──prompt + datos precargados──▶ [Claude] ──respuesta JSON──▶ [Agente]
+```
+
+Una llamada, una respuesta. Claude recibe TODO el contexto de golpe. No tiene memoria entre llamadas, no puede pedir datos adicionales que no le hayas pasado.
+
+**Lo que NO tienen aún:**
+
+##### a) Tool use / function calling
+Claude recibe un menú de funciones y decide cuáles llamar cuando le hagan falta datos. El backend ejecuta la función, devuelve el resultado, Claude continúa razonando.
+
+Ejemplo de cómo se vería `_fatigue-report.ts` con tools:
+```typescript
+const tools = [
+  { name: "get_player_acwr",        input_schema: { playerId: "string" } },
+  { name: "get_fatigue_history",    input_schema: { playerId: "string", weeks: "number" } },
+  { name: "get_similar_players",    input_schema: { playerId: "string", limit: "number" } },
+  { name: "search_knowledge_base",  input_schema: { query: "string", topK: "number" } },
+];
+// Claude decide en runtime qué tools usar, en qué orden
+```
+
+**Ventajas:**
+- Menos tokens (solo pide lo que necesita, no precargas "por si acaso")
+- Datos siempre frescos
+- Lógica condicional dentro del agente ("si ACWR > 1.3, busco historial; si no, no")
+- Sinergia natural con RAG: `search_knowledge_base` y `search_drills` como tools
+
+**Desventajas:**
+- Más latencia (3-4 round-trips Claude↔servidor)
+- Más complejo de testear
+- Riesgo de loops si el prompt está mal
+
+**Candidatos VITAS donde brilla:**
+- 🟢 **Chatbot del coach** ("¿cómo va Pedro este mes?") — caso de uso natural
+- 🟢 **Agentes RAG** — search_drills, search_knowledge, get_similar como tools
+- 🟡 **`_pipeline-orchestrator.ts`** — refactor opcional; hoy 9 paralelos funciona bien
+- 🔴 **Reports deterministas** (player-report, injury-risk-report, fatigue-report) — NO migrar; single-shot es más barato y predecible
+
+##### b) Multi-turn (conversación)
+Claude recuerda lo que se dijo antes. Cada llamada incluye el historial.
+
+```
+Turn 1: "¿Cómo va Pedro?" → "ACWR 1.4, en precaución..."
+Turn 2: "¿Y vs semana pasada?" → (sabe que es Pedro) "Subió desde 1.1..."
+Turn 3: "Recomienda drills" → (sabe Pedro + precaución) "Drills X, Y, Z..."
+```
+
+**Ventajas:**
+- UX conversacional ("y ahora dime", "hazlo más corto", "explícalo a un padre")
+- Refinamiento iterativo
+- Razonamiento incremental complejo
+
+**Desventajas:**
+- Coste crece con cada turn (todo el historial cuenta)
+- Hay que persistir conversaciones (nueva tabla Supabase `chat_sessions` + `chat_messages`)
+- Context window se llena rápido si no truncas/resumes
+
+**Candidatos VITAS:**
+- 🟢 **Coach chatbot** dentro de la app (sería el "VITAS Coach Chat")
+- 🟢 **Onboarding wizard inteligente** (preguntas adaptativas vs form estático)
+- 🟢 **Parent Q&A** ("¿por qué mi hijo no juega?" → conversación amable)
+- 🔴 **Reports** — single-shot es suficiente
+
+##### Plan de implementación (post-RAG)
+
+**Sprint D — Tool use foundation (8h)**
+- [ ] `src/lib/agents/toolRegistry.ts` — registry tipado de tools disponibles
+- [ ] 6 tools core: `search_knowledge`, `search_drills`, `get_player`, `get_acwr`, `get_fatigue_history`, `get_similar_players`
+- [ ] `api/chat/_with-tools.ts` — endpoint genérico con tool-use loop (max 5 iteraciones, anti-loop)
+- [ ] Validación Zod en cada tool input/output
+- [ ] Tests de tool execution con mocks
+
+**Sprint E — Multi-turn infra (8h)**
+- [ ] Migration `055_chat_sessions.sql` — tablas `chat_sessions`, `chat_messages` (con RLS por user_id)
+- [ ] `src/services/real/chatSessionService.ts` — CRUD + offline-first
+- [ ] `api/chat/_send-message.ts` — append message + retrieve historial + llamar Claude con context
+- [ ] Truncado inteligente cuando supere 100k tokens (resumir turnos antiguos)
+- [ ] Hook `useChatSession(sessionId)` con streaming
+
+**Sprint F — VITAS Coach Chat UI (9h)**
+- [ ] Página `/chat` con UI conversacional (mensajes + streaming + tool calls visibles)
+- [ ] Componente `<ChatMessage>` con render de markdown + citas RAG
+- [ ] Componente `<ToolCallIndicator>` que muestra "🔍 buscando jugadores similares..."
+- [ ] Side panel con historial de conversaciones
+- [ ] Feature gate: Pro+ (`canUseChatAssistant`)
+- [ ] Tour de onboarding "Pregúntame algo sobre tu equipo"
+
+##### Decisión de cuándo migrar
+| Capacidad | Mantener | Migrar |
+|---|---|---|
+| Reports estructurados (PDF, dashboards) | ✅ single-shot | ❌ |
+| Pipeline orchestrator (10 agentes paralelos) | ✅ single-shot | ❌ |
+| Chatbot conversacional | ❌ | ✅ tool use + multi-turn |
+| Onboarding wizard | ❌ | ✅ multi-turn |
+| Agentes que consultan RAG | parcial | ✅ tool use |
+
+**Coste estimado adicional (con chatbot activo, escala media):**
+- Multi-turn aumenta tokens ~3x vs single-shot por la naturaleza del historial
+- Estimado: +$20-40/mes en facturación Anthropic si usuarios usan el chatbot intensivamente
+- Cap por usuario: 50 mensajes/día Pro, 200/día Club
+
 ---
 
 ## 13. Roadmap
@@ -782,18 +982,27 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 - Stripe billing UI completa
 - Multi-tenant onboarding
 - Tests E2E
+- **RAG Sprint A — embeddings service + endpoints** (5h, requiere Supabase activo)
 
 ### Sprint +2 (1 mes)
 - Transfer Intelligence module
 - Heatmap táctico
 - Plan de desarrollo IDP
 - Telegram bot
+- **RAG Sprint B — ingestion del knowledge base + drills** (5h)
+- **RAG Sprint C — integración en `_scout-insight` + `_coaching-assistant` + `dnaProfile`** (5h)
 
 ### Sprint +3 (2 meses)
 - Polish, i18n, dark mode
 - Onboarding tours
 - Marketing copy / landing pages
 - Launch beta cerrado
+- **Tool use Sprint D — toolRegistry + 6 tools core + endpoint genérico** (8h, post-RAG)
+
+### Sprint +4 (3 meses)
+- **Multi-turn Sprint E — migration `chat_sessions` + service + endpoint** (8h)
+- **VITAS Coach Chat Sprint F — UI conversacional + streaming + tool indicators** (9h)
+- Feature gate Pro+ y cap de mensajes por plan
 
 ---
 
