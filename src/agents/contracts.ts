@@ -828,6 +828,96 @@ export type TacticalPatternInput = z.infer<typeof TacticalPatternInputSchema>;
 export type TacticalPatternOutput = z.infer<typeof TacticalPatternOutputSchema>;
 
 // ─────────────────────────────────────────
+// CONTRACT 13: TRANSFER MATCH AGENT
+// ─────────────────────────────────────────
+// Rankea listings del marketplace contra una necesidad del club comprador.
+
+const TransferQuerySchema = z.object({
+  positions: z.array(z.string()).optional(),
+  minAge: z.number().int().optional(),
+  maxAge: z.number().int().optional(),
+  foot: z.enum(["left", "right", "both"]).optional(),
+  minVSI: z.number().optional(),
+  vsiMinByDimension: z
+    .object({
+      technical: z.number().optional(),
+      tactical: z.number().optional(),
+      physical: z.number().optional(),
+      mental: z.number().optional(),
+    })
+    .optional(),
+  phvCategory: z
+    .array(z.enum(["early", "on-time", "late"]))
+    .optional(),
+  listingTypes: z.array(z.enum(["sale", "loan", "trial"])).optional(),
+  maxPriceEur: z.number().optional(),
+  tags: z.array(z.string()).optional(),
+  text: z.string().optional(),
+});
+
+const ListingCandidateSchema = z.object({
+  listingId: z.string(),
+  listingType: z.enum(["sale", "loan", "trial"]),
+  askingPriceEur: z.number().nullable(),
+  player: z.object({
+    name: z.string().optional(),
+    age: z.number().optional(),
+    position: z.string().optional(),
+    foot: z.string().optional(),
+    vsi: z.number().optional(),
+    vsiBreakdown: z
+      .object({
+        technical: z.number(),
+        tactical: z.number(),
+        physical: z.number(),
+        mental: z.number(),
+      })
+      .optional(),
+    phvOffset: z.number().optional(),
+    phvCategory: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    description: z.string().optional(),
+  }),
+});
+
+export const TransferMatchInputSchema = z.object({
+  buyerNeed: z.object({
+    /** Free-text del comprador: "necesito un central zurdo sub-19 con liderazgo" */
+    description: z.string().min(10).max(1000),
+    /** Filtros estructurados (opcionales — pueden venir vacíos si solo hay texto) */
+    query: TransferQuerySchema.optional(),
+    /** Contexto opcional del club comprador para refinar match. */
+    buyerContext: z
+      .object({
+        teamLevel: z.enum(["weak", "average", "strong", "elite"]).optional(),
+        formation: z.string().optional(),
+        currentRoster: z.array(z.string()).optional(),
+      })
+      .optional(),
+  }),
+  candidates: z.array(ListingCandidateSchema).min(1).max(50),
+});
+
+export const TransferMatchOutputSchema = z.object({
+  topMatches: z
+    .array(
+      z.object({
+        listingId: z.string(),
+        score: z.number().min(0).max(100),
+        reasoning: z.string().min(10).max(500),
+        matchedCriteria: z.array(z.string()),
+        missingCriteria: z.array(z.string()),
+      }),
+    )
+    .min(0)
+    .max(20),
+  summary: z.string().min(10).max(500),
+});
+
+export type TransferMatchInput = z.infer<typeof TransferMatchInputSchema>;
+export type TransferMatchOutput = z.infer<typeof TransferMatchOutputSchema>;
+
+// ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE
 // ─────────────────────────────────────────
 export interface AgentResponse<T> {

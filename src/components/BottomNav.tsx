@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target, Briefcase } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -120,6 +120,18 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         label: "Highlights",
         description: "Reels automáticos de mejores momentos",
         color: "from-emerald-500 to-teal-500",
+      },
+    ],
+  },
+  {
+    title: "Mercado",
+    items: [
+      {
+        path: "/transfer",
+        icon: Briefcase,
+        label: "Transfer",
+        description: "Marketplace de fichajes con matchmaking IA",
+        color: "from-cyan-500 to-purple-500",
       },
     ],
   },
