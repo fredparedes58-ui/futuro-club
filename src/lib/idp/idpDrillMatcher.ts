@@ -11,7 +11,7 @@
  * the same so swapping is a one-liner.
  */
 
-import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
+import { DRILLS_LIBRARY, type DrillDocument } from "../../data/drillsLibrary";
 import type { IDPDimension } from "./idpTypes";
 
 const DIMENSION_TO_CATEGORIES: Record<IDPDimension, DrillDocument["category"][]> = {

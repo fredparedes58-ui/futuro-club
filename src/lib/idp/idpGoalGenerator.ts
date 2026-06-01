@@ -10,7 +10,7 @@
  * source produced the plan.
  */
 
-import type { IDPArchitectInput, IDPArchitectOutput } from "@/agents/contracts";
+import type { IDPArchitectInput, IDPArchitectOutput } from "../../agents/contracts";
 import type { IDPDimension } from "./idpTypes";
 import { suggestDrillIds } from "./idpDrillMatcher";
 

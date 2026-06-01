@@ -8,7 +8,7 @@
  * Keep both callers in sync — version the prompt here.
  */
 
-import type { IDPArchitectInput } from "@/agents/contracts";
+import type { IDPArchitectInput } from "../../agents/contracts";
 
 export const IDP_PROMPT_VERSION = "v1.0.0";
 
