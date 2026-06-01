@@ -740,6 +740,94 @@ export type IDPArchitectInput = z.infer<typeof IDPArchitectInputSchema>;
 export type IDPArchitectOutput = z.infer<typeof IDPArchitectOutputSchema>;
 
 // ─────────────────────────────────────────
+// CONTRACT 12: TACTICAL PATTERN AGENT
+// ─────────────────────────────────────────
+// Interpreta heatmaps de 6 fases tácticas + zonas calientes + posesión y
+// genera insights tácticos (qué pasa por fase, riesgos, sugerencias).
+
+const GamePhaseEnum = z.enum([
+  "build_up",
+  "attacking",
+  "defending",
+  "defensive_transition",
+  "offensive_transition",
+  "set_piece",
+]);
+
+const HotZoneSchema = z.object({
+  centroidX: z.number().min(0).max(100),
+  centroidY: z.number().min(0).max(100),
+  radius: z.number().min(0),
+  share: z.number().min(0).max(1),
+  label: z.string().optional(),
+});
+
+export const TacticalPatternInputSchema = z.object({
+  match: z.object({
+    id: z.string(),
+    matchDate: z.string().optional(),
+    durationMin: z.number().optional(),
+    score: z
+      .object({ ours: z.number(), theirs: z.number() })
+      .optional(),
+  }),
+  team: z.object({
+    id: z.string().optional(),
+    formation: z.string().optional(),
+    averageAge: z.number().optional(),
+    style: z
+      .enum(["possession", "direct", "counter", "pressing"])
+      .optional(),
+  }),
+  phaseDurations: z.object({
+    build_up: z.number(),
+    attacking: z.number(),
+    defending: z.number(),
+    defensive_transition: z.number(),
+    offensive_transition: z.number(),
+    set_piece: z.number(),
+  }),
+  possessionPct: z.number().min(0).max(100),
+  teamHotZonesByPhase: z.array(
+    z.object({
+      phase: GamePhaseEnum,
+      zones: z.array(HotZoneSchema),
+    }),
+  ),
+  coverageGaps: z
+    .array(
+      z.object({
+        phase: GamePhaseEnum,
+        zone: z.object({ x: z.number(), y: z.number() }),
+        label: z.string(),
+      }),
+    )
+    .optional(),
+});
+
+export const TacticalPatternOutputSchema = z.object({
+  headline: z.string().min(10).max(200),
+  summary: z.string().min(20),
+  byPhase: z
+    .array(
+      z.object({
+        phase: GamePhaseEnum,
+        observation: z.string().min(10),
+        risk: z.enum(["low", "moderate", "high"]),
+        suggestion: z.string().min(10),
+      }),
+    )
+    .min(3)
+    .max(6),
+  strengths: z.array(z.string()).max(4),
+  weaknesses: z.array(z.string()).max(4),
+  coachingTips: z.array(z.string()).max(4),
+});
+
+export type TacticalPatternInput = z.infer<typeof TacticalPatternInputSchema>;
+export type TacticalPatternOutput = z.infer<typeof TacticalPatternOutputSchema>;
+
+// ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE
 // ─────────────────────────────────────────
 export interface AgentResponse<T> {

@@ -52,6 +52,13 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         description: "Tracking en directo",
         color: "from-fuchsia-500 to-pink-500",
       },
+      {
+        path: "/tactical",
+        icon: Activity,
+        label: "Heatmap",
+        description: "Heatmap por 6 fases tácticas + insights IA",
+        color: "from-cyan-500 to-purple-500",
+      },
     ],
   },
   {

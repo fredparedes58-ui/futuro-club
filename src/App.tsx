@@ -84,6 +84,8 @@ const HighlightDetailPage = lazyWithRetry(() => import("./pages/HighlightDetailP
 const BehavioralOverviewPage = lazyWithRetry(() => import("./pages/BehavioralOverviewPage"));
 const IDPPage = lazyWithRetry(() => import("./pages/IDPPage"));
 const IDPIndexPage = lazyWithRetry(() => import("./pages/IDPIndexPage"));
+const TacticalIndexPage = lazyWithRetry(() => import("./pages/TacticalIndexPage"));
+const TacticalMatchPage = lazyWithRetry(() => import("./pages/TacticalMatchPage"));
 const ScanningIntelligencePage = lazyWithRetry(() => import("./pages/ScanningIntelligencePage"));
 
 // Suspense fallback for lazy routes
@@ -237,6 +239,8 @@ const App = () => (
                 <Route path="/scanning" element={<P><ScanningIntelligencePage /></P>} />
                 <Route path="/idp" element={<P><IDPIndexPage /></P>} />
                 <Route path="/idp/:playerId" element={<P><IDPPage /></P>} />
+                <Route path="/tactical" element={<P><TacticalIndexPage /></P>} />
+                <Route path="/tactical/:matchId" element={<P><TacticalMatchPage /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />

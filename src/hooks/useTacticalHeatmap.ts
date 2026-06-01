@@ -1,0 +1,187 @@
+/**
+ * VITAS · Tactical Heatmap Hooks
+ *
+ * Queries:
+ *   useTacticalMatch(matchId)        → TacticalMatchSummary fully hydrated
+ *   useTacticalMatchList()           → matches con heatmap (selector)
+ *
+ * Mutations:
+ *   useComputeTacticalHeatmap()      → POST /compute-heatmap
+ *   useGenerateTacticalInsights()    → POST /generate-insights
+ *   useDeleteTacticalMatch()         → local-only cascade
+ */
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
+import type {
+  TacticalInsights,
+  TacticalMatchSummary,
+} from "@/lib/tactical/tacticalTypes";
+
+const STALE_MATCH = 1000 * 60 * 5;          // 5 min
+const STALE_LIST = 1000 * 60 * 2;           // 2 min
+
+const apiBase = "/api/tactical";
+
+export const tacticalKeys = {
+  all: ["tactical"] as const,
+  match: (matchId: string) => [...tacticalKeys.all, "match", matchId] as const,
+  list: () => [...tacticalKeys.all, "list"] as const,
+};
+
+// ── Queries ────────────────────────────────────────────────────────
+export function useTacticalMatch(matchId: string | undefined) {
+  return useQuery<TacticalMatchSummary | null>({
+    queryKey: tacticalKeys.match(matchId ?? "none"),
+    queryFn: () =>
+      matchId ? TacticalHeatmapService.getMatchSummary(matchId) : Promise.resolve(null),
+    enabled: Boolean(matchId),
+    staleTime: STALE_MATCH,
+  });
+}
+
+export function useTacticalMatchList() {
+  return useQuery({
+    queryKey: tacticalKeys.list(),
+    queryFn: () => TacticalHeatmapService.listMatchesWithHeatmap(),
+    staleTime: STALE_LIST,
+  });
+}
+
+// ── Mutations ──────────────────────────────────────────────────────
+interface ComputeInput {
+  matchId: string;
+  videoId?: string;
+  samples: Array<{
+    timestampMs: number;
+    ball: { x: number; y: number };
+    players: Array<{ id: string; x: number; y: number; team: "ours" | "theirs" }>;
+    isSetPiece?: boolean;
+  }>;
+}
+
+interface ComputeResult {
+  matchId: string;
+  phasesDetected: number;
+  heatmapsComputed: number;
+  playerCount: number;
+}
+
+export function useComputeTacticalHeatmap() {
+  const qc = useQueryClient();
+  return useMutation<ComputeResult, Error, ComputeInput>({
+    mutationFn: async (input) => {
+      const res = await fetch(`${apiBase}/compute-heatmap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`compute-heatmap ${res.status}: ${text.slice(0, 200)}`);
+      }
+      const payload = (await res.json()) as { data: ComputeResult };
+      return payload.data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: tacticalKeys.match(data.matchId) });
+      qc.invalidateQueries({ queryKey: tacticalKeys.list() });
+    },
+  });
+}
+
+interface GenerateInsightsInput {
+  matchId: string;
+  team?: {
+    id?: string;
+    formation?: string;
+    averageAge?: number;
+    style?: "possession" | "direct" | "counter" | "pressing";
+  };
+  matchInfo?: {
+    matchDate?: string;
+    durationMin?: number;
+    score?: { ours: number; theirs: number };
+  };
+}
+
+export function useGenerateTacticalInsights() {
+  const qc = useQueryClient();
+  return useMutation<TacticalInsights, Error, GenerateInsightsInput>({
+    mutationFn: async (input) => {
+      const res = await fetch(`${apiBase}/generate-insights`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`generate-insights ${res.status}: ${text.slice(0, 200)}`);
+      }
+      const payload = (await res.json()) as { data: { insights: TacticalInsights } };
+      // Persist also via service for offline cache
+      await TacticalHeatmapService.saveInsights(input.matchId, payload.data.insights);
+      return payload.data.insights;
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: tacticalKeys.match(vars.matchId) });
+    },
+  });
+}
+
+export function useDeleteTacticalMatch() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (matchId) => TacticalHeatmapService.deleteMatch(matchId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tacticalKeys.all });
+    },
+  });
+}
+
+interface ComputeFromVideoInput {
+  matchId: string;
+  videoUrl: string;
+  videoId?: string;
+  frameWidth?: number;
+  frameHeight?: number;
+}
+
+export function useComputeFromVideo() {
+  const qc = useQueryClient();
+  return useMutation<
+    {
+      matchId: string;
+      phasesDetected: number;
+      heatmapsComputed: number;
+      playerCount: number;
+    },
+    Error,
+    ComputeFromVideoInput
+  >({
+    mutationFn: async (input) => {
+      const res = await fetch(`${apiBase}/compute-from-video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`compute-from-video ${res.status}: ${text.slice(0, 200)}`);
+      }
+      const payload = (await res.json()) as {
+        data: {
+          matchId: string;
+          phasesDetected: number;
+          heatmapsComputed: number;
+          playerCount: number;
+        };
+      };
+      return payload.data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: tacticalKeys.match(data.matchId) });
+      qc.invalidateQueries({ queryKey: tacticalKeys.list() });
+    },
+  });
+}

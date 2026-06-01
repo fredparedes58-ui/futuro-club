@@ -89,6 +89,36 @@ async function triggerOrchestrator(
   }
 }
 
+/**
+ * Dispara el cómputo del heatmap táctico desde el video.
+ * Fire-and-forget: no esperamos a que termine (puede tardar minutos).
+ * El frontend hará polling vía /api/tactical/get-heatmap.
+ */
+async function triggerTacticalCompute(
+  analysisId: string,
+  videoUrl: string,
+  videoId: string,
+): Promise<void> {
+  try {
+    // No await — fire and forget
+    void fetch(`${PUBLIC_URL}/api/tactical/compute-from-video`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        matchId: analysisId, // reusing analysisId as matchId
+        videoUrl,
+        videoId,
+        sampleFps: 5,
+      }),
+    }).catch((err) => {
+      console.error(`[modal-callback] Tactical trigger failed:`, err);
+    });
+    console.log(`[modal-callback] Tactical compute dispatched for ${analysisId}`);
+  } catch (err) {
+    console.error(`[modal-callback] Tactical dispatch error:`, err);
+  }
+}
+
 export default withHandler(
   { schema: callbackSchema, requireAuth: false, maxRequests: 100 },
   async ({ body }) => {
@@ -111,7 +141,7 @@ export default withHandler(
     // ── Verificar que analysis existe ──────────────────────
     const { data: analysis, error: queryError } = await supabase
       .from("analyses")
-      .select("id, status, tenant_id, player_id, video_id")
+      .select("id, status, tenant_id, player_id, video_id, videos(cdn_url, bunny_hls_url)")
       .eq("id", input.analysisId)
       .single();
 
@@ -168,6 +198,25 @@ export default withHandler(
         message: updateError.message,
         status: 500,
       });
+    }
+
+    // ── Disparar tactical heatmap compute (fire-and-forget) ──
+    // Necesitamos el video URL para que Modal pueda re-procesar el video.
+    // Esto puede tardar minutos extra pero corre en paralelo a los reportes
+    // Claude — no bloquea.
+    const videoRec = (analysis as unknown as {
+      videos?:
+        | { cdn_url?: string; bunny_hls_url?: string }
+        | Array<{ cdn_url?: string; bunny_hls_url?: string }>;
+    }).videos;
+    const videoRecord = Array.isArray(videoRec) ? videoRec[0] : videoRec;
+    const videoUrl = videoRecord?.cdn_url ?? videoRecord?.bunny_hls_url;
+    if (videoUrl && analysis.video_id) {
+      void triggerTacticalCompute(analysis.id, videoUrl, analysis.video_id);
+    } else {
+      console.warn(
+        `[modal-callback] No video URL for ${analysis.id}, skipping tactical compute`,
+      );
     }
 
     // ── Disparar pipeline-orchestrator (6 reportes LLM en paralelo) ──
