@@ -1,0 +1,234 @@
+/**
+ * VITAS · useIDPArchitectInput
+ *
+ * Construye el `IDPArchitectInput` requerido por el agente IDP a partir de
+ * TODAS las fuentes de datos del jugador:
+ *
+ *   - PlayerService          → identidad, edad, posición, VSI overall, PHV
+ *   - BehavioralProfile      → 7 dimensiones mentales + arquetipo (de video)
+ *   - SavedAnalyses (video)  → dimensiones técnico/táctico/físico observadas
+ *                              en partido (escala 0-10 → 0-100), reemplazan
+ *                              el VSI overall plano con breakdown real
+ *   - InjuryRisk             → ACWR + fatigueIndex + overallRisk
+ *
+ * Cuanto más rico el dataset, más preciso el plan que propone Claude.
+ * El agente maneja gracefully campos faltantes (fallback determinista).
+ *
+ * Compartido entre IDPPage (/idp/:playerId) y el tab "Plan" del PlayerHubPage.
+ *
+ * Devuelve también:
+ *   - `liveMetrics`         → dict para `computeSummary` (progress en vivo)
+ *   - `dataRichness`        → meta para el badge UI "basado en N análisis"
+ */
+import { useMemo } from "react";
+import { usePlayerById } from "@/hooks/usePlayers";
+import { useBehavioralProfile } from "@/hooks/useBehavioralProfile";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
+import { useInjuryRisk } from "@/hooks/useInjuryRisk";
+import type { IDPArchitectInput } from "@/lib/idp/idpTypes";
+
+export interface IDPDataRichness {
+  /** True si tenemos al menos 1 análisis de video. */
+  hasVideoAnalysis: boolean;
+  /** Nº de análisis de video disponibles. */
+  videoAnalysisCount: number;
+  /** True si hay perfil conductual (requiere video). */
+  hasBehavioralProfile: boolean;
+  /** True si hay datos antropométricos para PHV. */
+  hasPHV: boolean;
+  /** True si hay datos de fatiga/lesión. */
+  hasFatigueData: boolean;
+  /** 0-100 — qué tan rico es el dataset que alimenta al agente. */
+  richnessScore: number;
+}
+
+export interface IDPInputBundle {
+  architectInput: IDPArchitectInput | null;
+  liveMetrics: Record<string, number>;
+  playerName: string | undefined;
+  loading: boolean;
+  dataRichness: IDPDataRichness;
+}
+
+/**
+ * Convierte un score 0-10 (escala del agente video-intelligence)
+ * a 0-100 (escala VSI / IDP).
+ */
+function scale10to100(v: number | undefined): number | undefined {
+  if (typeof v !== "number" || !isFinite(v)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(v * 10)));
+}
+
+/**
+ * Extrae VSI breakdown del último análisis de video disponible.
+ * Mapeo: dimensiones del agente (0-10) → buckets VSI (0-100).
+ */
+function extractVSIFromAnalyses(analyses: unknown[] | undefined): {
+  technical?: number;
+  tactical?: number;
+  physical?: number;
+  mental?: number;
+} | null {
+  if (!analyses || analyses.length === 0) return null;
+  const latest = analyses[0] as { report?: { estadoActual?: { dimensiones?: Record<string, { score?: number }> } } };
+  const dim = latest?.report?.estadoActual?.dimensiones;
+  if (!dim) return null;
+
+  return {
+    technical: scale10to100(dim.tecnicaConBalon?.score),
+    tactical: scale10to100(dim.inteligenciaTactica?.score),
+    physical: scale10to100(dim.capacidadFisica?.score),
+    // Mental como mejor signal disponible (BPE > eficaciaCompetitiva > liderazgo)
+    mental: scale10to100(
+      dim.eficaciaCompetitiva?.score ?? dim.liderazgoPresencia?.score,
+    ),
+  };
+}
+
+export function useIDPArchitectInput(playerId: string | undefined): IDPInputBundle {
+  const { data: player, isLoading: loadingPlayer } = usePlayerById(playerId);
+  const { data: behavioralProfile } = useBehavioralProfile(playerId);
+  const { data: savedAnalyses } = useSavedAnalysesV2(playerId ?? "");
+  const { riskData: injuryRisk, injuries } = useInjuryRisk(playerId);
+  const hasInjuries = Array.isArray(injuries) && injuries.length > 0;
+
+  // ── Data richness signal ──
+  const dataRichness: IDPDataRichness = useMemo(() => {
+    const p = player as unknown as Record<string, unknown> | undefined;
+    const videoAnalysisCount = Array.isArray(savedAnalyses) ? savedAnalyses.length : 0;
+    const hasVideoAnalysis = videoAnalysisCount > 0;
+    const hasBehavioralProfile = Boolean(behavioralProfile);
+    const hasPHV =
+      typeof p?.phvOffset === "number" && typeof p?.phvCategory === "string";
+    const hasFatigueData = Boolean(injuryRisk) || hasInjuries;
+
+    // Weighted richness: video analyses + BPE matter most
+    const score =
+      (hasVideoAnalysis ? Math.min(40, videoAnalysisCount * 10) : 0) +
+      (hasBehavioralProfile ? 30 : 0) +
+      (hasPHV ? 15 : 0) +
+      (hasFatigueData ? 15 : 0);
+
+    return {
+      hasVideoAnalysis,
+      videoAnalysisCount,
+      hasBehavioralProfile,
+      hasPHV,
+      hasFatigueData,
+      richnessScore: Math.min(100, score),
+    };
+  }, [player, behavioralProfile, savedAnalyses, injuryRisk, hasInjuries]);
+
+  // ── Architect input ──
+  const architectInput: IDPArchitectInput | null = useMemo(() => {
+    if (!player) return null;
+    const p = player as unknown as Record<string, unknown>;
+    const ageYears = typeof p.age === "number" ? p.age : 14;
+    const overallVsi = typeof p.vsi === "number" ? p.vsi : 0;
+    const phvOffset = typeof p.phvOffset === "number" ? p.phvOffset : null;
+    const phvCategory = typeof p.phvCategory === "string" ? p.phvCategory : null;
+
+    // VSI breakdown: priorizamos lo más reciente del análisis de video
+    // (escala 0-10 → 0-100). Si no hay video, fallback al overall plano.
+    const videoVSI = extractVSIFromAnalyses(savedAnalyses);
+    const bpeMental = behavioralProfile?.scores.mentalComposite;
+
+    const vsi = overallVsi > 0 || videoVSI
+      ? {
+          overall: overallVsi || 60,
+          technical: videoVSI?.technical ?? overallVsi,
+          tactical: videoVSI?.tactical ?? overallVsi,
+          physical: videoVSI?.physical ?? overallVsi,
+          mental: bpeMental ?? videoVSI?.mental ?? overallVsi,
+        }
+      : undefined;
+
+    // Fatigue: extraemos del injury risk data si está disponible (cast via unknown
+    // porque InjuryRiskData no expone estos campos directamente en su tipo).
+    const ir = injuryRisk as unknown as Record<string, unknown> | null;
+    const recentFatigue =
+      ir
+        ? {
+            acwr: typeof ir.acwrValue === "number" ? ir.acwrValue : undefined,
+            fatigueIndex: typeof ir.fatigueIndex === "number" ? ir.fatigueIndex : undefined,
+            injuryRisk: typeof ir.overallRisk === "number" ? ir.overallRisk : undefined,
+          }
+        : undefined;
+
+    return {
+      player: {
+        id: String(p.id ?? playerId ?? ""),
+        name: String(p.name ?? "Jugador"),
+        position: String(p.position ?? p.positionShort ?? "MID"),
+        chronologicalAge: ageYears,
+        foot: typeof p.foot === "string" ? p.foot : undefined,
+      },
+      vsi,
+      phv:
+        phvOffset !== null && phvCategory
+          ? { offset: phvOffset, category: phvCategory }
+          : null,
+      behavioralProfile: behavioralProfile
+        ? {
+            decisionSpeed: behavioralProfile.scores.decisionSpeed,
+            scanning: behavioralProfile.scores.scanningIntelligence,
+            resilience: behavioralProfile.scores.resilience,
+            leadership: behavioralProfile.scores.leadership,
+            mentalComposite: behavioralProfile.scores.mentalComposite,
+            archetype: behavioralProfile.scores.archetype,
+          }
+        : undefined,
+      recentFatigue,
+      // teamContext + wellbeing + previousPlanSummary wired in future iteration
+    };
+  }, [player, behavioralProfile, savedAnalyses, injuryRisk, playerId]);
+
+  // ── Live metrics dict ──
+  const liveMetrics: Record<string, number> = useMemo(() => {
+    const out: Record<string, number> = {};
+    const p = player as unknown as Record<string, unknown> | undefined;
+
+    // Start with player record overall VSI
+    if (typeof p?.vsi === "number") {
+      out.vsi_overall = p.vsi;
+    }
+
+    // Override with video-derived breakdown if available
+    const videoVSI = extractVSIFromAnalyses(savedAnalyses);
+    if (videoVSI) {
+      if (videoVSI.technical != null) out.vsi_technical = videoVSI.technical;
+      if (videoVSI.tactical != null) out.vsi_tactical = videoVSI.tactical;
+      if (videoVSI.physical != null) out.vsi_physical = videoVSI.physical;
+      if (videoVSI.mental != null) out.vsi_mental = videoVSI.mental;
+    } else if (typeof p?.vsi === "number") {
+      // Fallback: flatten overall across dimensions
+      out.vsi_technical = p.vsi;
+      out.vsi_tactical = p.vsi;
+      out.vsi_physical = p.vsi;
+      out.vsi_mental = p.vsi;
+    }
+
+    // Behavioral profile metrics (highest signal for mental dimension)
+    if (behavioralProfile) {
+      out.mental_composite = behavioralProfile.scores.mentalComposite;
+      out.scanning = behavioralProfile.scores.scanningIntelligence;
+      out.decision_speed = behavioralProfile.scores.decisionSpeed;
+    }
+
+    // Injury risk for maturation dimension
+    const ir2 = injuryRisk as unknown as Record<string, unknown> | null;
+    if (ir2 && typeof ir2.overallRisk === "number") {
+      out.injury_risk = ir2.overallRisk;
+    }
+
+    return out;
+  }, [player, behavioralProfile, savedAnalyses, injuryRisk]);
+
+  return {
+    architectInput,
+    liveMetrics,
+    playerName: player?.name,
+    loading: loadingPlayer,
+    dataRichness,
+  };
+}

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -63,6 +63,13 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         label: "Coach",
         description: "Planificación de sesiones",
         color: "from-blue-500 to-cyan-500",
+      },
+      {
+        path: "/idp",
+        icon: Target,
+        label: "Plan IDP",
+        description: "Plan de Desarrollo Individual mensual con IA",
+        color: "from-cyan-500 to-purple-500",
       },
     ],
   },

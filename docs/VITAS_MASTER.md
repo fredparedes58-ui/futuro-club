@@ -345,20 +345,39 @@ Detecta talento oculto en academias juveniles usando IA y visión computacional.
 > Cada agente vive en `api/agents/_<name>.ts` y es una Vercel Edge Function.
 > Pattern común: Zod input → Claude Haiku/Sonnet/Opus → Zod output validado → persist.
 
-### Arquitectura actual: single-shot completions con contratos Zod
-Los 28 agentes son **single-shot completions** validados por contratos Zod (17 schemas en `src/agents/contracts.ts`). Cada llamada:
+### Arquitectura actual: single-shot completions con contratos Zod (28 agentes web)
+Los 28 agentes web son **single-shot completions** validados por contratos Zod (17 schemas en `src/agents/contracts.ts`). Cada llamada:
 1. Valida input con Zod (`schema.parse(req.body)` → 400 si malformed).
 2. Construye prompt determinista en `buildPrompt(data)`.
 3. Llama Claude (Haiku/Sonnet/Opus según coste).
 4. Valida output con Zod antes de devolver.
 5. Versionado vía `PROMPT_VERSION` en `_promptVersionRegistry.ts`.
 
-### ⚠️ Capacidades que NO tienen aún (ver backlog sección 12)
-- 🔴 **Tool use / function calling** — Claude no puede llamar funciones para pedir datos. Hoy se le precarga todo el contexto. Sprint D planificado.
-- 🔴 **Multi-turn (conversación)** — cada llamada parte de cero, no hay memoria entre turnos. Sprint E planificado.
-- 🔴 **Streaming** — respuestas llegan completas, no token a token. Útil para chatbot (Sprint F).
+### ✅ Capacidades avanzadas YA implementadas en el bot de Telegram
+El **Telegram Coach Copilot** (`api/telegram/webhook.ts`, 916 LOC) es de facto el agente #29 y ya usa todas las capacidades avanzadas que faltan en los 28 web:
 
-**Decisión arquitectónica:** los 28 agentes actuales SE QUEDAN como single-shot. Tool use + multi-turn solo se añadirán para el futuro "VITAS Coach Chat" (Sprint D-F, post-RAG).
+- ✅ **Tool use / function calling** — 7 tools registradas con Claude Haiku:
+  `list_players`, `get_player`, `get_latest_match`, `get_match_stats`,
+  `get_team_stats`, `get_drill_recommendations`, `get_phv_advice`.
+  Claude decide qué tool llamar en runtime, el endpoint las ejecuta y devuelve resultados.
+- ✅ **Multi-turn (conversación)** — historial persistido en tabla `telegram_messages`,
+  context window gestionada por conversación.
+- ✅ **Estado por usuario** — `coach_telegram_mapping` vincula `telegram_chat_id ↔ user_id`
+  para que cada coach hable solo sobre sus datos (con RLS).
+- 🟡 **Streaming** — no aplica en Telegram (mensajes son atómicos); pendiente para futura UI web.
+
+### Decisión arquitectónica revisada
+- Los 28 agentes web SE QUEDAN como single-shot (más barato, predecible, ideal para informes).
+- El bot Telegram YA ES el "VITAS Coach Chat" conversacional, solo en otro canal.
+- El futuro "Coach Chat web" (Sprint F en backlog) **reutilizará el toolRegistry del bot**
+  con la misma firma de tools — no se reimplementa desde cero.
+
+### ⚠️ Lo único pendiente del bot Telegram
+- 🔴 **`TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET`** en Vercel env vars
+- 🔴 **`setWebhook` en Telegram** apuntando a `/api/telegram/webhook`
+- 🔴 **Supabase activo** para que las tablas 033 (`coach_telegram_mapping`,
+  `telegram_link_tokens`, `telegram_messages`) existan
+- ⏱️ Tiempo de activación: ~5 min una vez Supabase esté arriba
 
 | # | Agente | Modelo | Función |
 |---|---|---|---|
@@ -723,6 +742,17 @@ Los 28 agentes son **single-shot completions** validados por contratos Zod (17 s
 #### Páginas wired
 - [x] /family/:playerId con consent banner RGPD
 
+#### 🤖 Telegram Coach Copilot (Sprint B5 — completo en código, falta solo activación)
+- [x] Migration `033_telegram_coach.sql` con 3 tablas + RLS
+- [x] `api/telegram/webhook.ts` (916 LOC) — webhook con Claude Haiku + tool use
+- [x] 7 tools registradas: `list_players`, `get_player`, `get_latest_match`, `get_match_stats`, `get_team_stats`, `get_drill_recommendations`, `get_phv_advice`
+- [x] `api/telegram/connect.ts` — endpoint de onboarding con tokens UUID TTL 10min
+- [x] `src/components/TelegramConnect.tsx` (300 LOC) — UI de vinculación
+- [x] Integración en `/settings` y referencia en landing pública
+- [x] Multi-turn vía tabla `telegram_messages` (context window persistido)
+- [x] Mapping persistente coach↔chat con soft-delete (`unlinked_at`)
+- [x] **PRIMERA implementación de tool use + multi-turn en VITAS** (referencia para futuro Coach Chat web)
+
 ### 🟡 IN PROGRESS / REQUIERE ACTIVACIÓN USUARIO
 
 - [ ] **Bunny env vars** en Vercel → activa CDN
@@ -853,17 +883,34 @@ Los 28 agentes son **single-shot completions** validados por contratos Zod (17 s
 | ivfflat degrada >1M filas | Migrar a HNSW (pgvector ≥0.5) cuando haga falta |
 | Drift contract agente ↔ RAG context | Versionar prompts + contracts juntos (mismo `PROMPT_VERSION`) |
 
-#### 🤖 Tool use, function calling y multi-turn (post-RAG, ~25h)
+#### 🤖 Tool use, function calling y multi-turn
 
-**Estado actual de los 28 agentes:** todos son **single-shot completions**.
+**Estado real (corrección de versiones previas del documento):**
+
+✅ **YA implementado en el bot de Telegram** (`api/telegram/webhook.ts`, 916 LOC):
+- Tool use con 7 herramientas (`list_players`, `get_player`, `get_latest_match`, `get_match_stats`, `get_team_stats`, `get_drill_recommendations`, `get_phv_advice`)
+- Multi-turn con historial persistido en `telegram_messages`
+- Mapping persistente coach↔chat en `coach_telegram_mapping`
+- Onboarding con tokens efímeros TTL 10 min en `telegram_link_tokens`
+- UI de conexión en `src/components/TelegramConnect.tsx` + integración en `/settings`
+- Migration `033_telegram_coach.sql` con RLS por user_id
+
+🔴 **Pendiente solo activación operativa del bot Telegram (~5 min):**
+- [ ] Crear `TELEGRAM_BOT_TOKEN` + `TELEGRAM_WEBHOOK_SECRET` en Vercel env vars
+- [ ] `setWebhook` en Telegram apuntando a `https://futuro-club.vercel.app/api/telegram/webhook`
+- [ ] Requiere Supabase activo (para que existan las tablas 033)
+
+🟡 **Pendiente futuro — VITAS Coach Chat web (~25h, reutilizando el toolRegistry del bot):**
+
+**Estado actual de los 28 agentes web:** todos son **single-shot completions**.
 
 ```
-[Agente] ──prompt + datos precargados──▶ [Claude] ──respuesta JSON──▶ [Agente]
+[Agente web] ──prompt + datos precargados──▶ [Claude] ──respuesta JSON──▶ [Agente]
 ```
 
-Una llamada, una respuesta. Claude recibe TODO el contexto de golpe. No tiene memoria entre llamadas, no puede pedir datos adicionales que no le hayas pasado.
+Una llamada, una respuesta. Claude recibe TODO el contexto de golpe. No tiene memoria entre llamadas, no puede pedir datos adicionales que no le hayas pasado. Decisión: estos 28 se quedan así (más baratos, predecibles, ideales para informes estructurados).
 
-**Lo que NO tienen aún:**
+**Lo que falta en la web (NO en el bot, que ya lo tiene):**
 
 ##### a) Tool use / function calling
 Claude recibe un menú de funciones y decide cuáles llamar cuando le hagan falta datos. El backend ejecuta la función, devuelve el resultado, Claude continúa razonando.
@@ -923,17 +970,17 @@ Turn 3: "Recomienda drills" → (sabe Pedro + precaución) "Drills X, Y, Z..."
 
 ##### Plan de implementación (post-RAG)
 
-**Sprint D — Tool use foundation (8h)**
-- [ ] `src/lib/agents/toolRegistry.ts` — registry tipado de tools disponibles
-- [ ] 6 tools core: `search_knowledge`, `search_drills`, `get_player`, `get_acwr`, `get_fatigue_history`, `get_similar_players`
+**Sprint D — Tool use foundation web (8h)**
+- [ ] `src/lib/agents/toolRegistry.ts` — extraer toolRegistry tipado del bot Telegram + añadir 3 web-only: `search_knowledge`, `search_drills`, `get_acwr`
+- [ ] Reutilizar los 7 tools del bot Telegram (ya implementados): `list_players`, `get_player`, `get_latest_match`, `get_match_stats`, `get_team_stats`, `get_drill_recommendations`, `get_phv_advice`
 - [ ] `api/chat/_with-tools.ts` — endpoint genérico con tool-use loop (max 5 iteraciones, anti-loop)
 - [ ] Validación Zod en cada tool input/output
-- [ ] Tests de tool execution con mocks
+- [ ] Tests de tool execution con mocks (golden samples ya disponibles del bot)
 
-**Sprint E — Multi-turn infra (8h)**
-- [ ] Migration `055_chat_sessions.sql` — tablas `chat_sessions`, `chat_messages` (con RLS por user_id)
+**Sprint E — Multi-turn infra web (8h, patrón ya validado en bot Telegram)**
+- [ ] Migration `055_chat_sessions.sql` — tablas `chat_sessions`, `chat_messages` (mismo patrón que `telegram_messages` con RLS por user_id)
 - [ ] `src/services/real/chatSessionService.ts` — CRUD + offline-first
-- [ ] `api/chat/_send-message.ts` — append message + retrieve historial + llamar Claude con context
+- [ ] `api/chat/_send-message.ts` — append message + retrieve historial + llamar Claude con context (lógica idéntica a webhook.ts del bot)
 - [ ] Truncado inteligente cuando supere 100k tokens (resumir turnos antiguos)
 - [ ] Hook `useChatSession(sessionId)` con streaming
 
@@ -988,7 +1035,7 @@ Turn 3: "Recomienda drills" → (sabe Pedro + precaución) "Drills X, Y, Z..."
 - Transfer Intelligence module
 - Heatmap táctico
 - Plan de desarrollo IDP
-- Telegram bot
+- ~~Telegram bot~~ ✅ HECHO (código completo, falta solo `TELEGRAM_BOT_TOKEN` en Vercel + `setWebhook` cuando Supabase esté activo)
 - **RAG Sprint B — ingestion del knowledge base + drills** (5h)
 - **RAG Sprint C — integración en `_scout-insight` + `_coaching-assistant` + `dnaProfile`** (5h)
 
@@ -1234,6 +1281,7 @@ Para mantener Notion siempre sincronizado con tu repo:
 | Modal spend cap no fijado | 🟡 medio | Riesgo de runaway costs si bug en pipeline | 1 min: https://modal.com/settings/billing → hard limit `$50/mo` |
 | Stripe keys no configuradas | 🟡 medio | Billing UI funciona en modo demo | 15 min: crear products + webhook → env vars |
 | Resend API key | 🟢 bajo | Emails de consent reminders RGPD | 10 min: signup Resend → API key → env var |
+| `TELEGRAM_BOT_TOKEN` no en Vercel | 🟢 bajo | Bot Telegram (código completo, 916 LOC ya escrito) | 5 min: BotFather → token → `vercel env add` → `setWebhook` |
 | Tests E2E inexistentes | 🟡 medio | Confianza para releases automáticos | 2-3 sprints de inversión |
 
 ## 🔁 Estado de cada flujo crítico end-to-end
@@ -1250,6 +1298,7 @@ Para mantener Notion siempre sincronizado con tu repo:
 | Billing real Stripe | 🔴 | Bloqueado por Supabase + Stripe |
 | Live match tagger | 🟡 | Código listo, falta Supabase Realtime |
 | Push notifications | 🔴 | Falta `/api/push/_subscribe.ts` + `/api/push/_send.ts` |
+| **Telegram Coach Copilot (tool use + multi-turn)** | 🟡 | Código 100% listo (916 LOC). Bloqueado solo por `TELEGRAM_BOT_TOKEN` en Vercel + Supabase activo |
 
 ---
 

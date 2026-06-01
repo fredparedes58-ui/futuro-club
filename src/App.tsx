@@ -82,6 +82,8 @@ const SetPieceFolderPage = lazyWithRetry(() => import("./pages/SetPieceFolderPag
 const HighlightsPage = lazyWithRetry(() => import("./pages/HighlightsPage"));
 const HighlightDetailPage = lazyWithRetry(() => import("./pages/HighlightDetailPage"));
 const BehavioralOverviewPage = lazyWithRetry(() => import("./pages/BehavioralOverviewPage"));
+const IDPPage = lazyWithRetry(() => import("./pages/IDPPage"));
+const IDPIndexPage = lazyWithRetry(() => import("./pages/IDPIndexPage"));
 const ScanningIntelligencePage = lazyWithRetry(() => import("./pages/ScanningIntelligencePage"));
 
 // Suspense fallback for lazy routes
@@ -233,6 +235,8 @@ const App = () => (
                 <Route path="/highlights/:id" element={<P><HighlightDetailPage /></P>} />
                 <Route path="/behavioral" element={<P><BehavioralOverviewPage /></P>} />
                 <Route path="/scanning" element={<P><ScanningIntelligencePage /></P>} />
+                <Route path="/idp" element={<P><IDPIndexPage /></P>} />
+                <Route path="/idp/:playerId" element={<P><IDPPage /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />

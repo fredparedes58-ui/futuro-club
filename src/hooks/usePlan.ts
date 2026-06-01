@@ -32,6 +32,7 @@ export interface PlanState {
   canUseBehavioral: boolean;
   canUseWellbeing: boolean;
   canUseTeamWellbeing: boolean;
+  canUseIDP: boolean;
   canUseInjuryPrediction: boolean;
   canUseValuation: boolean;
   canUseMultiVideoAggregation: boolean;
@@ -102,6 +103,7 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
     canUseBehavioral: isAdmin || plan === "pro" || plan === "club",
     canUseWellbeing: isAdmin || plan === "pro" || plan === "club",
     canUseTeamWellbeing: isAdmin || plan === "club",
+    canUseIDP: isAdmin || plan === "pro" || plan === "club",
     canUseInjuryPrediction: isAdmin || effectiveLimits.injuryPrediction,
     canUseValuation: isAdmin || effectiveLimits.valuation,
     canUseMultiVideoAggregation: isAdmin || effectiveLimits.multiVideoAggregation,

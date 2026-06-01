@@ -27,6 +27,8 @@ import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import PeerBenchmark from "@/components/PeerBenchmark";
 import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
+import { useCurrentIDP } from "@/hooks/useIDP";
+import { IDPParentView } from "@/components/idp/IDPParentView";
 import {
   usePlayerConsent,
   useGrantConsent,
@@ -251,6 +253,9 @@ export default function ParentDashboardPage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Plan del mes · IDP versión padre */}
+        <ParentIDPSection playerId={playerId!} />
 
         {/* Estado Físico · para padres (lenguaje simple) */}
         <PhysicalStatusCard playerId={playerId!} />
@@ -485,6 +490,32 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
           </p>
         </div>
       )}
+    </motion.div>
+  );
+}
+
+// ── ParentIDPSection ──────────────────────────────────────────────
+// Plan de Desarrollo Individual mensual, en vista light para padres.
+// Sin terminología técnica, solo emojis + barras de progreso.
+
+function ParentIDPSection({ playerId }: { playerId: string }) {
+  const { data: plan } = useCurrentIDP(playerId);
+  const player = PlayerService.getById(playerId);
+
+  // Solo renderiza si hay un plan activo. Si no, ocultamos la sección
+  // (los padres no generan planes — eso lo hace el coach).
+  if (!plan || (plan.status !== "active" && plan.status !== "completed")) {
+    return null;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.14 }}
+      className="glass rounded-2xl p-4"
+    >
+      <IDPParentView plan={plan} playerName={player?.name} />
     </motion.div>
   );
 }

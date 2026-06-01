@@ -648,6 +648,98 @@ export type BehavioralProfileInput = z.infer<typeof BehavioralProfileInputSchema
 export type BehavioralProfileOutput = z.infer<typeof BehavioralProfileOutputSchema>;
 
 // ─────────────────────────────────────────
+// CONTRACT 11: IDP ARCHITECT (Sprint IDP - 2026)
+// ─────────────────────────────────────────
+// AI-proposed monthly Individual Development Plan. Hybrid workflow:
+// agent proposes 3-5 goals across 5 dimensions, coach edits + approves.
+
+const IDPDimensionEnum = z.enum([
+  "technical",
+  "tactical",
+  "physical",
+  "mental",
+  "maturation",
+]);
+
+const IDPMetricRefSchema = z.object({
+  metric: z.string(),
+  value: z.number(),
+  label: z.string().optional(),
+  unit: z.string().optional(),
+});
+
+export const IDPArchitectInputSchema = z.object({
+  player: z.object({
+    id: z.string(),
+    name: z.string(),
+    position: z.string(),
+    chronologicalAge: z.number().min(6).max(50),
+    foot: z.string().optional(),
+  }),
+  vsi: z.object({
+    overall: z.number(),
+    technical: z.number(),
+    tactical: z.number(),
+    physical: z.number(),
+    mental: z.number(),
+  }).optional(),
+  phv: z.object({
+    offset: z.number(),
+    category: z.string(),
+  }).nullable().optional(),
+  behavioralProfile: z.object({
+    decisionSpeed: z.number().optional(),
+    scanning: z.number().optional(),
+    resilience: z.number().optional(),
+    leadership: z.number().optional(),
+    mentalComposite: z.number().optional(),
+    archetype: z.string().optional(),
+  }).optional(),
+  recentFatigue: z.object({
+    acwr: z.number().optional(),
+    fatigueIndex: z.number().optional(),
+    injuryRisk: z.number().optional(),
+  }).optional(),
+  wellbeing: z.object({
+    engagementTrend: z.enum(["rising", "stable", "declining"]).optional(),
+    dropoutRisk: z.number().optional(),
+  }).optional(),
+  teamContext: z.object({
+    avgVsi: z.number().optional(),
+    teamLevel: z.enum(["weak", "average", "strong", "elite"]).optional(),
+    upcomingFixtures: z.number().optional(),
+  }).optional(),
+  previousPlanSummary: z.object({
+    achievedDimensions: z.array(IDPDimensionEnum),
+    missedDimensions: z.array(IDPDimensionEnum),
+    coachNotes: z.string().optional(),
+  }).optional(),
+});
+
+export const IDPArchitectOutputSchema = z.object({
+  overallFocus: z.string().min(10).max(200),
+  agentSummary: z.string().min(20),
+  goals: z
+    .array(
+      z.object({
+        dimension: IDPDimensionEnum,
+        title: z.string().min(5).max(120),
+        description: z.string().min(10),
+        rationale: z.string().min(10),
+        baselineMetric: IDPMetricRefSchema,
+        targetMetric: IDPMetricRefSchema,
+        suggestedDrills: z.array(z.string()),
+        weight: z.number().int().min(1).max(5),
+      }),
+    )
+    .min(3)
+    .max(5),
+});
+
+export type IDPArchitectInput = z.infer<typeof IDPArchitectInputSchema>;
+export type IDPArchitectOutput = z.infer<typeof IDPArchitectOutputSchema>;
+
+// ─────────────────────────────────────────
 // TIPO GENÉRICO DE RESPUESTA DE AGENTE
 // ─────────────────────────────────────────
 export interface AgentResponse<T> {

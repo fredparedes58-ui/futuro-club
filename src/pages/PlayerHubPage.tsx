@@ -19,7 +19,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
-  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart, Shield, TrendingUp,
+  Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart, Shield, TrendingUp, Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -65,6 +65,12 @@ const EngagementTimeline = lazy(() => import("@/components/wellbeing/EngagementT
 const AttendanceCalendar = lazy(() => import("@/components/wellbeing/AttendanceCalendar"));
 const OvertrainingAlert = lazy(() => import("@/components/wellbeing/OvertrainingAlert"));
 
+// IDP — Individual Development Plan (lazy loaded)
+import { useIDPArchitectInput } from "@/hooks/useIDPArchitectInput";
+const IDPDashboard = lazy(() =>
+  import("@/components/idp/IDPDashboard").then((m) => ({ default: m.IDPDashboard })),
+);
+
 // Sprint 11: Injury dashboard
 import InjuryRiskCard from "@/components/injury/InjuryRiskCard";
 import ACWRHistoryChart from "@/components/injury/ACWRHistoryChart";
@@ -81,7 +87,7 @@ import ProbabilityDisplay from "@/components/valuation/ProbabilityDisplay";
 import CeilingComparison from "@/components/valuation/CeilingComparison";
 import { useValuation } from "@/hooks/useValuation";
 
-type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "mental" | "salud" | "bienestar" | "valoracion" | "historico";
+type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "mental" | "salud" | "bienestar" | "plan" | "valoracion" | "historico";
 
 const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
   { key: "resumen",     label: "Resumen",      icon: Sparkles },
@@ -91,6 +97,7 @@ const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAn
   { key: "mental",      label: "Mental",       icon: Zap,         needsAnalysis: true },
   { key: "salud",       label: "Salud",        icon: Heart },
   { key: "bienestar",   label: "Bienestar",    icon: Shield },
+  { key: "plan",        label: "Plan IDP",     icon: Target },
   { key: "valoracion",  label: "Valoración",   icon: TrendingUp },
   { key: "historico",   label: "Histórico",    icon: Clock,       needsAnalysis: true },
 ];
@@ -591,6 +598,19 @@ export default function PlayerHubPage() {
             </motion.div>
           )}
 
+          {/* IDP: Plan de Desarrollo Individual mensual */}
+          {tab === "plan" && id && (
+            <motion.div
+              key="plan"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <IDPTab playerId={id} />
+            </motion.div>
+          )}
+
           {/* Sprint 13: Valoracion */}
           {tab === "valoracion" && (
             <motion.div
@@ -747,6 +767,32 @@ function WellbeingTab({ playerId }: { playerId: string }) {
         />
       )}
     </div>
+  );
+}
+
+// ── IDP Tab (Plan de Desarrollo Individual) ───────────────────────
+
+function IDPTab({ playerId }: { playerId: string }) {
+  const { architectInput, liveMetrics, playerName, loading, dataRichness } =
+    useIDPArchitectInput(playerId);
+
+  if (loading || !architectInput) {
+    return (
+      <div className="glass rounded-xl p-6 text-center">
+        <Target size={24} className="text-muted-foreground mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">Cargando datos del jugador...</p>
+      </div>
+    );
+  }
+
+  return (
+    <IDPDashboard
+      playerId={playerId}
+      playerName={playerName}
+      architectInput={architectInput}
+      liveMetrics={liveMetrics}
+      dataRichness={dataRichness}
+    />
   );
 }
 
