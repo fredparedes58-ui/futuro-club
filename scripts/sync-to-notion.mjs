@@ -182,33 +182,64 @@ function normalizeMarkdownTables(md) {
   return out.join('\n');
 }
 
-/** Clear all existing children of a Notion page */
+/**
+ * Clear all existing children of a Notion page.
+ *
+ * Notion API rate-limit is ~3 req/s. With sequential deletes a 800-block page
+ * takes ~4.5 min just to clear, blowing past CI timeouts. We:
+ *   1. Page through all children collecting IDs (fast, batched 100 at a time)
+ *   2. Delete in parallel with a concurrency of 3 (saturates the rate limit
+ *      without getting 429s)
+ */
 async function clearPageChildren(pageId) {
   console.log(`🧹 Clearing existing blocks from page ${pageId}…`);
-  let cursor;
-  let deleted = 0;
 
+  // 1. Collect all block IDs first
+  const ids = [];
+  let cursor;
   do {
     const resp = await notion.blocks.children.list({
       block_id: pageId,
       start_cursor: cursor,
       page_size: 100,
     });
-
     for (const block of resp.results) {
-      if (!isFullBlock(block)) continue;
-      try {
-        await notion.blocks.delete({ block_id: block.id });
-        deleted++;
-      } catch (err) {
-        console.warn(`   ⚠️  Could not delete block ${block.id}: ${err.message}`);
-      }
+      if (isFullBlock(block)) ids.push(block.id);
     }
-
     cursor = resp.has_more ? resp.next_cursor : undefined;
   } while (cursor);
 
-  console.log(`   Deleted ${deleted} blocks`);
+  console.log(`   Found ${ids.length} blocks to delete`);
+  if (ids.length === 0) return;
+
+  // 2. Delete with concurrency 3 (Notion rate-limit is ~3 req/s)
+  const CONCURRENCY = 3;
+  let deleted = 0;
+  let failed = 0;
+
+  async function worker(slice) {
+    for (const id of slice) {
+      try {
+        await notion.blocks.delete({ block_id: id });
+        deleted++;
+        if (deleted % 100 === 0) {
+          console.log(`   Deleted ${deleted}/${ids.length}`);
+        }
+      } catch (err) {
+        failed++;
+        if (failed <= 5) {
+          console.warn(`   ⚠️  Could not delete block ${id}: ${err.message}`);
+        }
+      }
+    }
+  }
+
+  // Split ids into N slices and run them concurrently
+  const slices = Array.from({ length: CONCURRENCY }, () => []);
+  ids.forEach((id, i) => slices[i % CONCURRENCY].push(id));
+  await Promise.all(slices.map(worker));
+
+  console.log(`   Deleted ${deleted}/${ids.length} blocks (${failed} failed)`);
 }
 
 /** Append blocks in batches of 100 (Notion API limit) */
