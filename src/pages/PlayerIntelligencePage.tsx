@@ -1107,7 +1107,7 @@ export default function PlayerIntelligencePage() {
                       <Star size={10} /> VITAS Card
                     </button>
                     <button
-                      onClick={() => setActiveTab("nuevo")}
+                      onClick={() => navigate(`/lab?playerId=${id}`)}
                       className="flex items-center gap-1.5 text-[10px] text-primary"
                     >
                       <RefreshCw size={10} /> Nuevo análisis

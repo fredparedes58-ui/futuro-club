@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target, Briefcase } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target, Briefcase, BookOpen, CreditCard } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -324,10 +324,18 @@ const BottomNav = () => {
                 {t("dashboard.quickAccess.config")}
               </button>
               <button
-                onClick={() => { setShowUserMenu(false); navigate("/welcome"); }}
+                onClick={() => { setShowUserMenu(false); navigate("/guide"); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
               >
-                Sobre VITAS · Landing
+                <BookOpen size={12} />
+                Guía de uso
+              </button>
+              <button
+                onClick={() => { setShowUserMenu(false); navigate("/billing"); }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
+              >
+                <CreditCard size={12} />
+                Facturación y plan
               </button>
               {configured && user && (
                 <button

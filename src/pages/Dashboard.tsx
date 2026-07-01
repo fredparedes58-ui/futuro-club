@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy, Swords, Grid3x3, Sparkles, BarChart3, FileText } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { DemoDataService } from "@/services/real/demoDataService";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
 import { DashboardStatsSkeleton, MatchesSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import LiveMatchCard from "@/components/LiveMatchCard";
@@ -42,7 +44,19 @@ const statSubLabelKeys = ["dashboard.stats.activePlayersDesc", "dashboard.stats.
 const Dashboard = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { isDirector } = useUserProfile();
+
+  function handleLoadDemo() {
+    const created = DemoDataService.reseed();
+    if (created > 0) {
+      queryClient.invalidateQueries({ queryKey: ["trending-players"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast.success(`${created} jugadores de ejemplo cargados`);
+    } else {
+      toast.info("Ya tienes jugadores. Los datos de ejemplo solo se cargan en una cuenta vacía.");
+    }
+  }
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats();
   const { data: players, isLoading: playersLoading, isError: playersError } = useTrendingPlayers();
   const { data: matches, isLoading: matchesLoading, isError: matchesError } = useLiveMatches();
@@ -253,9 +267,14 @@ const Dashboard = () => {
             <Users size={32} className="text-muted-foreground mx-auto" />
             <p className="font-display font-bold text-base text-foreground">{t("dashboard.noPlayers.title")}</p>
             <p className="text-xs text-muted-foreground">{t("dashboard.noPlayers.description")}</p>
-            <Button size="sm" className="gap-1.5" onClick={() => navigate("/players/new")}>
-              <Plus size={14} /> {t("dashboard.noPlayers.cta")}
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <Button size="sm" className="gap-1.5" onClick={() => navigate("/players/new")}>
+                <Plus size={14} /> {t("dashboard.noPlayers.cta")}
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleLoadDemo}>
+                <Sparkles size={14} /> Cargar datos de ejemplo
+              </Button>
+            </div>
           </div>
         )}
       </motion.div>

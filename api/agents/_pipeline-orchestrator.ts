@@ -275,6 +275,57 @@ export default withHandler(
       // Fatigue data is optional — pipeline continues without it
     }
 
+    // ── 4b-bis. Historial de lesiones + snapshots de VSI ──────────────
+    // Alimentan al injury calculator (historial) y al valuation model (VSI trend).
+    let injuryHistory: Array<{ type: string; severity: string; daysOut: number | null; date: string; bodyPart?: string }> = [];
+    let daysSinceLastInjury: number | null = null;
+    let vsiHistory: Array<{ date: string; vsi: number }> = [];
+    try {
+      const { data: injuries } = await supabase
+        .from("player_injuries")
+        .select("injury_type, severity, days_out, injury_date, body_part")
+        .eq("player_id", analysis.player_id)
+        .order("injury_date", { ascending: false })
+        .limit(20);
+      if (injuries && injuries.length > 0) {
+        injuryHistory = injuries.map((i: Record<string, unknown>) => ({
+          type: String(i.injury_type ?? "other"),
+          severity: String(i.severity ?? "minor"),
+          daysOut: typeof i.days_out === "number" ? i.days_out : null,
+          date: String(i.injury_date ?? ""),
+          bodyPart: i.body_part ? String(i.body_part) : undefined,
+        }));
+        const lastDate = injuries[0]?.injury_date as string | undefined;
+        if (lastDate) {
+          daysSinceLastInjury = Math.max(
+            0,
+            Math.round((Date.now() - new Date(lastDate).getTime()) / 86_400_000),
+          );
+        }
+      }
+    } catch {
+      // Historial de lesiones opcional — la pipeline continúa
+    }
+    try {
+      const { data: snapshots } = await supabase
+        .from("player_metric_snapshots")
+        .select("snapshot_date, vsi")
+        .eq("player_id", analysis.player_id)
+        .not("vsi", "is", null)
+        .order("snapshot_date", { ascending: false })
+        .limit(12);
+      if (snapshots && snapshots.length > 0) {
+        vsiHistory = snapshots
+          .filter((s: Record<string, unknown>) => typeof s.vsi === "number")
+          .map((s: Record<string, unknown>) => ({
+            date: String(s.snapshot_date ?? ""),
+            vsi: s.vsi as number,
+          }));
+      }
+    } catch {
+      // Snapshots de VSI opcionales — la pipeline continúa
+    }
+
     // ── 4c. Injury risk calculator (deterministic, Sprint 10) ─────────
     let injuryRiskResult: unknown = null;
     try {
@@ -289,8 +340,8 @@ export default withHandler(
         fatigueSeverity: (fatigueReport as Record<string, unknown> | null)?.fatigue_severity ?? null,
         biomechanicsInjuryRisk: bm.injury_risk ?? null,
         asymmetryPct: bm.asymmetry_pct ?? null,
-        injuryHistory: [],  // TODO: fetch from player_injuries table when populated
-        daysSinceLastInjury: null,
+        injuryHistory,
+        daysSinceLastInjury,
         sessionsLast28Days: fatigueHistory.length,
       });
       if (injuryCalcRes.success) {
@@ -308,7 +359,7 @@ export default withHandler(
         age: anthro?.chronological_age ?? null,
         position: player?.position ?? null,
         currentVsi: (vsi as { vsi?: number })?.vsi ?? null,
-        vsiHistory: [], // TODO: fetch from player_metric_snapshots
+        vsiHistory,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
         biologicalAge: anthro?.biological_age ?? null,

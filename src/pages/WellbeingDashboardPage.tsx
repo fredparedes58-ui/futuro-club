@@ -10,11 +10,28 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WellbeingDashboard from "@/components/wellbeing/WellbeingDashboard";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function WellbeingDashboardPage() {
   const navigate = useNavigate();
 
   return (
+    <RoleGuard
+      roles={["coach", "director"]}
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+          <div className="text-center space-y-3">
+            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="text-sm text-muted-foreground">
+              Solo entrenadores y directores pueden ver el bienestar del equipo.
+            </p>
+            <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
+              Volver al dashboard
+            </button>
+          </div>
+        </div>
+      }
+    >
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-30 glass-strong border-b border-border">
@@ -43,5 +60,6 @@ export default function WellbeingDashboardPage() {
         <WellbeingDashboard />
       </main>
     </div>
+    </RoleGuard>
   );
 }

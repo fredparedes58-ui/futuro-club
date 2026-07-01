@@ -126,6 +126,22 @@ export const DemoDataService = {
     return toDelete.length;
   },
 
+  /**
+   * Carga demo bajo petición explícita del usuario (botón "cargar datos de
+   * ejemplo"). A diferencia de seed(), ignora el flag isSeeded para que
+   * funcione aunque el usuario ya haya visto/borrado datos antes. Solo carga
+   * si NO hay jugadores reales.
+   */
+  reseed(): number {
+    if (PlayerService.getAll().length > 0) return 0;
+    try {
+      localStorage.removeItem(DEMO_SEEDED_KEY);
+    } catch {
+      // Silent
+    }
+    return this.seed();
+  },
+
   /** Marca como seeded sin crear datos (útil si el usuario ya tiene jugadores). */
   markSeeded(): void {
     try {

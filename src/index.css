@@ -226,3 +226,19 @@
   background: linear-gradient(135deg, hsl(var(--primary) / 0.15), hsl(var(--accent) / 0.1));
   border-color: hsl(var(--primary) / 0.3);
 }
+
+/* ── Accesibilidad: respetar prefers-reduced-motion ──────────────────
+   Usuarios con sensibilidad al movimiento (y ahorro de batería) ven la
+   app sin animaciones en loop (login con balones/scan-line, orbes del
+   dashboard, spinners infinitos). Neutraliza animaciones/transiciones
+   globalmente pero mantiene la UI funcional. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

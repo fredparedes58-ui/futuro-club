@@ -21,6 +21,7 @@
 
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
 
 export const config = { runtime: "edge" };
 
@@ -63,11 +64,18 @@ async function purgeOldVideos(supabase: any, retentionDays: number) {
     .update({ deleted_at: new Date().toISOString() })
     .in("id", ids);
 
-  // TODO: cleanup Bunny Stream (llamar a Bunny API delete por cada bunny_video_id)
-  // const bunnyApiKey = process.env.BUNNY_API_KEY;
-  // for (const v of videosToDelete) await fetch(`https://video.bunnycdn.com/library/${LIB}/videos/${v.bunny_video_id}`, ...)
+  // Cleanup real en Bunny Stream (borrado del fichero en el CDN)
+  const bunnyIds = videosToDelete.map(
+    (v: { bunny_video_id: string | null }) => v.bunny_video_id,
+  );
+  const bunnyResult = await deleteBunnyVideos(bunnyIds);
 
-  return { count: ids.length, bunny_pending: ids.length };
+  return {
+    count: ids.length,
+    bunny_deleted: bunnyResult.deleted,
+    bunny_failed: bunnyResult.failed,
+    bunny_configured: bunnyResult.configured,
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,6 +101,15 @@ async function executePendingDeletions(supabase: any) {
       // Borrar todo (cascade vía RLS + manual)
       const summary: Record<string, number> = {};
 
+      // Capturar bunny_video_id ANTES de borrar (el delete pierde la referencia)
+      const { data: reqVideos } = await supabase
+        .from("videos")
+        .select("bunny_video_id")
+        .eq("tenant_id", req.tenant_id);
+      const reqBunnyIds: Array<string | null> = (reqVideos ?? []).map(
+        (v: { bunny_video_id: string | null }) => v.bunny_video_id,
+      );
+
       const tables = ["players", "videos", "analyses", "reports", "subscriptions", "parental_consents"];
       for (const t of tables) {
         const { count } = await supabase
@@ -101,6 +118,11 @@ async function executePendingDeletions(supabase: any) {
           .eq("tenant_id", req.tenant_id);
         summary[`${t}_deleted`] = count ?? 0;
       }
+
+      // Bunny Stream cleanup (borrado real del CDN)
+      const bunnyRes = await deleteBunnyVideos(reqBunnyIds);
+      summary.bunny_deleted = bunnyRes.deleted;
+      summary.bunny_failed = bunnyRes.failed;
 
       // Auth user
       await supabase.auth.admin.deleteUser(req.user_id);
@@ -191,7 +213,9 @@ export default async function handler(req: Request) {
       success: true,
       executedAt: new Date().toISOString(),
       videosPurged: videoPurge.count,
-      bunnyPending: videoPurge.bunny_pending,
+      bunnyDeleted: videoPurge.bunny_deleted,
+      bunnyFailed: videoPurge.bunny_failed,
+      bunnyConfigured: videoPurge.bunny_configured,
       deletionsExecuted: deletionExecution.count,
       retentionDays,
     });

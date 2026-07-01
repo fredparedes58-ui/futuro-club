@@ -17,6 +17,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { randomHex } from "../_lib/edgeCrypto";
+import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
 
 export const config = { runtime: "edge" };
 
@@ -68,6 +69,16 @@ async function sendDeletionEmail(to: string, cancellationLink: string, scheduled
 async function deleteUserDataCompletely(supabase: any, userId: string, tenantId: string) {
   const summary: Record<string, number> = {};
 
+  // 0. Capturar bunny_video_id ANTES de borrar players (el cascade elimina
+  //    la fila videos y perderíamos la referencia al fichero en Bunny).
+  const { data: tenantVideos } = await supabase
+    .from("videos")
+    .select("bunny_video_id")
+    .eq("tenant_id", tenantId);
+  const bunnyVideoIds: Array<string | null> = (tenantVideos ?? []).map(
+    (v: { bunny_video_id: string | null }) => v.bunny_video_id,
+  );
+
   // 1. Players (cascade a videos, analyses, reports via FK ON DELETE CASCADE)
   const { count: playersCount } = await supabase
     .from("players")
@@ -96,9 +107,15 @@ async function deleteUserDataCompletely(supabase: any, userId: string, tenantId:
     .eq("tenant_id", tenantId);
   summary.consents_deleted = consentCount ?? 0;
 
-  // 5. Bunny Stream cleanup (vídeos)
-  // TODO: llamar a Bunny API para eliminar vídeos del library
-  summary.bunny_pending = 1;
+  // 5. Bunny Stream cleanup (vídeos) — borrado real del library
+  const bunnyResult = await deleteBunnyVideos(bunnyVideoIds);
+  summary.bunny_deleted = bunnyResult.deleted;
+  summary.bunny_failed = bunnyResult.failed;
+  if (!bunnyResult.configured && bunnyVideoIds.length > 0) {
+    console.warn(
+      `[delete-me] Bunny sin configurar: ${bunnyVideoIds.length} vídeos NO borrados del CDN para tenant ${tenantId}`,
+    );
+  }
 
   // 6. Auth user (último paso)
   await supabase.auth.admin.deleteUser(userId);

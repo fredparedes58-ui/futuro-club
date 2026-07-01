@@ -4,19 +4,44 @@
  * Page at /coach. Visible for "coach" and "director" roles.
  * Wraps CoachDashboard with page chrome (header, back button).
  */
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ClipboardList } from "lucide-react";
 import CoachDashboard from "@/components/coaching/CoachDashboard";
+import { useAuth, getUserDisplayName } from "@/context/AuthContext";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export default function CoachDashboardPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, orgId } = useAuth();
 
-  // TODO: get teamId from auth context or URL params when multi-team support is added
-  const teamId = "default-team";
-  const teamName = "Equipo Sub-14";
+  // teamId real: prioridad URL (?teamId=) → organización del coach → id de
+  // usuario → fallback demo. Así /coach opera sobre el equipo del coach
+  // autenticado en lugar de un equipo ficticio.
+  const teamId =
+    searchParams.get("teamId") ?? orgId ?? user?.id ?? "default-team";
+  const teamName =
+    searchParams.get("teamName") ??
+    (user ? `Equipo de ${getUserDisplayName(user)}` : "Mi equipo");
 
   return (
+    <RoleGuard
+      roles={["coach", "director"]}
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center px-4">
+          <div className="text-center space-y-3">
+            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="text-sm text-muted-foreground">
+              Solo entrenadores y directores pueden acceder al Coaching Assistant.
+            </p>
+            <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
+              Volver al dashboard
+            </button>
+          </div>
+        </div>
+      }
+    >
     <motion.div
       className="min-h-screen pb-24 px-4 pt-4 max-w-6xl mx-auto"
       initial={{ opacity: 0 }}
@@ -46,5 +71,6 @@ export default function CoachDashboardPage() {
 
       <CoachDashboard teamId={teamId} teamName={teamName} />
     </motion.div>
+    </RoleGuard>
   );
 }
