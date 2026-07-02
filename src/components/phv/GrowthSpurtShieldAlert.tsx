@@ -1,0 +1,73 @@
+/**
+ * VITAS · GrowthSpurtShieldAlert (Sprint 2.5 💎)
+ *
+ * Escudo de Estirón — alerta PHV × lesión. Dos audiencias:
+ *   audience="coach"  → mensaje técnico + reducción de carga + lesiones a vigilar
+ *   audience="parent" → mensaje llano y tranquilizador (canal B2C Plan Familia)
+ */
+import { motion } from "framer-motion";
+import { ShieldAlert, ShieldCheck, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { GrowthSpurtShield } from "@/lib/phv";
+
+interface Props {
+  shield: GrowthSpurtShield;
+  audience?: "coach" | "parent";
+  /** Si true, no renderiza nada cuando el escudo está inactivo. */
+  hideWhenInactive?: boolean;
+}
+
+const LEVEL_STYLE = {
+  peak: { border: "border-rose-500/40", bg: "bg-rose-500/10", text: "text-rose-300", label: "Pico de estirón" },
+  high: { border: "border-orange-500/40", bg: "bg-orange-500/10", text: "text-orange-300", label: "Ventana de estirón" },
+  moderate: { border: "border-amber-500/30", bg: "bg-amber-500/5", text: "text-amber-300", label: "Cerca del estirón" },
+  low: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", label: "Riesgo bajo" },
+  minimal: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", label: "Fuera de ventana" },
+} as const;
+
+export function GrowthSpurtShieldAlert({ shield, audience = "coach", hideWhenInactive = false }: Props) {
+  if (hideWhenInactive && !shield.active) return null;
+
+  const style = LEVEL_STYLE[shield.level];
+  const message = audience === "parent" ? shield.parentMessage : shield.coachMessage;
+  const Icon = shield.active ? ShieldAlert : ShieldCheck;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={cn("rounded-xl border p-4", style.border, style.bg)}
+    >
+      <div className="flex items-start gap-3">
+        <div className={cn("p-1.5 rounded-md shrink-0", style.bg)}>
+          <Icon className={cn("size-4", style.text)} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h3 className={cn("text-sm font-semibold", style.text)}>
+              🛡️ Escudo de Estirón
+            </h3>
+            <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", style.border, style.text)}>
+              {style.label}
+            </span>
+            {shield.active && shield.loadReductionPct > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-foreground">
+                −{shield.loadReductionPct}% carga · {shield.windowWeeks} sem
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground leading-snug">{message}</p>
+
+          {audience === "coach" && shield.watchInjuries.length > 0 && (
+            <div className="mt-2 flex items-start gap-1.5">
+              <Activity className="size-3 text-muted-foreground shrink-0 mt-0.5" />
+              <p className="text-[10px] text-muted-foreground">
+                Vigilar: {shield.watchInjuries.join(" · ")}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}

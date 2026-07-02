@@ -81,6 +81,18 @@ const ScanIQCard = lazy(() =>
   import("@/components/dmscore/ScanIQCard").then((m) => ({ default: m.ScanIQCard })),
 );
 
+// Sprint 2: PHV como producto
+import { usePHVProduct } from "@/hooks/usePHVProduct";
+const PHVProductCard = lazy(() =>
+  import("@/components/phv/PHVProductCard").then((m) => ({ default: m.PHVProductCard })),
+);
+const MaturityProjectionChart = lazy(() =>
+  import("@/components/phv/MaturityProjectionChart").then((m) => ({ default: m.MaturityProjectionChart })),
+);
+const GrowthSpurtShieldAlert = lazy(() =>
+  import("@/components/phv/GrowthSpurtShieldAlert").then((m) => ({ default: m.GrowthSpurtShieldAlert })),
+);
+
 // Sprint 11: Injury dashboard
 import InjuryRiskCard from "@/components/injury/InjuryRiskCard";
 import ACWRHistoryChart from "@/components/injury/ACWRHistoryChart";
@@ -323,6 +335,9 @@ export default function PlayerHubPage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
+              {/* Sprint 2: PHV como producto — titular arriba del resumen */}
+              {id && <PHVProductSection playerId={id} />}
+
               {/* Empty state grande si no hay análisis · ilustración + CTAs */}
               {!hasAnalysis && (
                 <motion.div
@@ -573,6 +588,8 @@ export default function PlayerHubPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Sprint 2.5: Escudo de Estirón (PHV × lesión) */}
+                  {id && <GrowthSpurtShieldSection playerId={id} />}
                   {riskData && <InjuryRiskCard data={riskData} />}
                   {!riskData && !injuriesLoading && (
                     <div className="glass rounded-xl p-6 text-center">
@@ -819,6 +836,25 @@ function DMScoreSection({ playerId }: { playerId: string }) {
       )}
     </div>
   );
+}
+
+// ── PHV como producto (Sprint 2) ──────────────────────────────────
+
+function PHVProductSection({ playerId }: { playerId: string }) {
+  const phv = usePHVProduct(playerId);
+  if (!phv) return null;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <PHVProductCard data={phv} />
+      <MaturityProjectionChart projection={phv.projection} />
+    </div>
+  );
+}
+
+function GrowthSpurtShieldSection({ playerId }: { playerId: string }) {
+  const phv = usePHVProduct(playerId);
+  if (!phv) return null;
+  return <GrowthSpurtShieldAlert shield={phv.shield} audience="coach" />;
 }
 
 // ── IDP Tab (Plan de Desarrollo Individual) ───────────────────────

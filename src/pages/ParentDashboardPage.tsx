@@ -29,6 +29,8 @@ import PeerBenchmark from "@/components/PeerBenchmark";
 import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
 import { useCurrentIDP } from "@/hooks/useIDP";
 import { IDPParentView } from "@/components/idp/IDPParentView";
+import { usePHVProduct } from "@/hooks/usePHVProduct";
+import { GrowthSpurtShieldAlert } from "@/components/phv/GrowthSpurtShieldAlert";
 import {
   usePlayerConsent,
   useGrantConsent,
@@ -253,6 +255,9 @@ export default function ParentDashboardPage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Escudo de Estirón · versión padre (canal B2C Plan Familia) */}
+        <ParentGrowthSpurtSection playerId={playerId!} />
 
         {/* Plan del mes · IDP versión padre */}
         <ParentIDPSection playerId={playerId!} />
@@ -490,6 +495,19 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
           </p>
         </div>
       )}
+    </motion.div>
+  );
+}
+
+// ── ParentGrowthSpurtSection (Escudo de Estirón, versión padre) ────
+
+function ParentGrowthSpurtSection({ playerId }: { playerId: string }) {
+  const phv = usePHVProduct(playerId);
+  // Solo mostramos al padre cuando el escudo está activo (evita ruido).
+  if (!phv || !phv.shield.active) return null;
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.11 }}>
+      <GrowthSpurtShieldAlert shield={phv.shield} audience="parent" />
     </motion.div>
   );
 }
