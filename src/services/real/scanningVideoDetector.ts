@@ -446,4 +446,42 @@ export const ScanningVideoAnalyses = {
   delete(id: string): void {
     writeAll(readAll().filter((a) => a.id !== id));
   },
+
+  /**
+   * Genera un análisis de scanning DEMO para poder ver el Scan IQ sin subir
+   * un vídeo real (mismo patrón que los seeders de Tactical/Transfer).
+   * avgScansPreReception realista para que la calibración por edad se note.
+   * No-op si ya hay un análisis para ese jugador (no duplica).
+   */
+  seedDemo(playerId: string, playerName: string): ScanningAnalysisResult {
+    const existing = this.getLatestForPlayer(playerId);
+    if (existing) return existing;
+
+    const rng = seededRng(playerId);
+    const avgScansPreReception = Math.round((1.8 + rng() * 2.2) * 10) / 10; // 1.8-4.0
+    const receptionsAnalyzed = 28 + Math.floor(rng() * 20);
+    const successWithScan = Math.round((0.68 + rng() * 0.2) * 100) / 100;
+    const successWithoutScan = Math.round((0.4 + rng() * 0.18) * 100) / 100;
+    const scanIQ = Math.min(99, Math.max(20, Math.round(25 + avgScansPreReception * 22)));
+
+    const result: ScanningAnalysisResult = {
+      id: genId(),
+      playerId,
+      playerName,
+      videoId: `demo-scan-${playerId}`,
+      videoTitle: "Partido de demo · 2ª parte",
+      scanIQ,
+      receptionsAnalyzed,
+      avgScansPreReception,
+      scansUnderPressure: Math.round(avgScansPreReception * 0.7 * 10) / 10,
+      successWithScan,
+      successWithoutScan,
+      forwardOrientedPct: Math.round((0.5 + rng() * 0.3) * 100),
+      createdAt: new Date().toISOString(),
+      source: "mock",
+    };
+
+    writeAll([result, ...readAll()]);
+    return result;
+  },
 };

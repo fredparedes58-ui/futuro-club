@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Eye, Search, Trophy, Upload, Cpu, Video as VideoIcon } from "lucide-react";
+import { ArrowLeft, Eye, Search, Trophy, Upload, Cpu, Video as VideoIcon, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import ScanningIntelligenceReport from "@/components/behavioral/ScanningIntelligenceReport";
@@ -136,6 +136,24 @@ export default function ScanningIntelligencePage() {
               {ranked.length === 1 ? "jugador analizado" : "jugadores analizados"}
             </p>
           </div>
+          <button
+            onClick={() => {
+              const target = focus?.player ?? players[0];
+              if (!target) {
+                toast.error("Crea un jugador primero.");
+                return;
+              }
+              const r = ScanningVideoAnalyses.seedDemo(target.id, target.name);
+              setLatestAnalysis(r);
+              setVersion((v) => v + 1);
+              toast.success(`Scan IQ de demo cargado para ${target.name} (${r.scanIQ}/100)`);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pink-500/40 text-pink-400 text-xs font-display font-semibold hover:bg-pink-500/10 transition-all"
+            title="Ver el Scan IQ con datos de ejemplo (sin subir vídeo)"
+          >
+            <Wand2 size={14} />
+            Datos de demo
+          </button>
           <button
             onClick={() => setUploadOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
