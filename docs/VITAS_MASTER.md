@@ -1006,50 +1006,295 @@ Turn 3: "Recomienda drills" → (sabe Pedro + precaución) "Drills X, Y, Z..."
 - Estimado: +$20-40/mes en facturación Anthropic si usuarios usan el chatbot intensivamente
 - Cap por usuario: 50 mensajes/día Pro, 200/día Club
 
+#### ⚔️ Roadmap competitivo vs aiScout (documento estratégico jul-2026)
+
+> Fuente: "VITAS vs aiScout — Roadmap Técnico". Los 21 archivos que cita fueron
+> verificados contra el código real: todos existen. Tesis: aiScout mide quién
+> corre rápido hoy; VITAS dice quién será mejor a los 21. Su punto ciego
+> estructural es la maduración biológica (PHV) — nuestro foso.
+>
+> **Mejora total estimada ejecutando el plan completo: ≈ +100% (duplica la
+> posición competitiva)** en el segmento academias/clubes mid-tier.
+> Corto plazo (Tier 1+2, ~6-8 semanas dev): **+70-90%**.
+
+**Resumen por tier (% = capacidad de ganar deals vs aiScout en mid-tier):**
+
+| Tier | Mejora | Esfuerzo | Estado actual | Horizonte |
+|---|---|---|---|---|
+| **Tier 1 — Profundizar el foso** ⭐ | **+55-75%** | 4-6 semanas | 55-80% ya construido | Inmediato |
+| **Tier 2 — Ciclo de vida** | +12-18% | 1-2 semanas | ~90% construido | 1-3 meses |
+| **Tier 3 — Foso futuro** | +25-35% | código 2-3 sem + meses gestión | 0-5% | 12-18 meses |
+| **Tier 0 — Paridad captura** | +10-12% (defensivo) | 4-8 sem (o 1 sem vía ingestión) | 50-70% parcial | Cuando un deal lo exija |
+
+**Tier 1 — detalle (la palanca principal):**
+- [ ] **1.1 PHV como producto** (+30-40%) — capa que normaliza CADA métrica por edad biológica, "PHV-adjusted score" + proyección a madurez (p40 hoy → p80 a los 21), bio-banding automático. Base ya existente: `_phv-calculator` (Mirwald) + VSI PHV-corregido. FALTA: bio-banding (0%), proyección visible, validación empírica con cohorte real
+- [ ] **1.2 Decision-making score** (+15-20%) — empaquetar `decisionSpeedDetector` (BPE) + scanning + tactical heatmaps en UN score vendible. 80% ya existe, ~1 semana. aiScout NO puede medirlo (solo graba drills aislados)
+- [ ] **1.3 Explicabilidad calibrada** (+5-8%) — intervalos de incertidumbre por métrica sobre `ConfidenceBadge` existente
+- [ ] **1.4 Bias audit como compliance** (+5-7%) — convertir `BiasAuditDashboard` en informe de equidad por cohorte de maduración exportable para federaciones
+
+**Tier 2 — detalle:**
+- [x] IDP mensual + alertas — **HECHO** (IDPDashboard + milestones + checkins + IDPAlertService)
+- [ ] Curvas longitudinales visibles (+3-4%) — requiere Supabase activo + `player_metric_snapshots` poblado
+- [ ] Validación clínica injury model / comparables reales valuation — requiere piloto academias
+
+**Tier 3 — detalle (el único foso no copiable con capital):**
+- [ ] 3.1 Dataset propietario etiquetado (+12-18%) — flywheel donde cada análisis alimenta los modelos (enabler `parentalConsentService` ya existe)
+- [ ] 3.2 Partner académico + paper de validación PHV (+10-15%) — gestión, no código
+- [ ] 3.3 Activar Supabase — prerequisito de curvas, snapshots y flywheel
+
+**Tier 0 — detalle (defensivo):**
+- [ ] 0.1 Pipeline drills estandarizados O adaptador de ingestión del output de aiScout (jugada recomendada: ingerir, no replicar — 1 semana vs 4-8)
+- [ ] 0.2 Validación en vivo durante grabación (sobre `RecordingGuide` existente)
+- [ ] 0.3 Detección proactiva de condiciones de cámara
+
+**Orden de ataque acordado:**
+1. Decision-making score (1 semana, quick win)
+2. PHV como producto (2-3 semanas, bala de plata)
+3. Activar Supabase (prerequisito transversal)
+4. Explicabilidad + bias packaging (1-2 semanas)
+5. Arrancar partner académico en paralelo (gestión, lead time de meses)
+6. Tier 0 solo si un deal concreto lo exige
+
 ---
 
-## 13. Roadmap
+## 13. Roadmap — PLAN MAESTRO DE SPRINTS (consolidado jun-2026)
 
-### Sprint actual (mayo 2026)
-- ✅ Set Pieces, Highlights, Scanning, Behavioral
-- ✅ Servicios Supabase preparados
-- ✅ Bunny + Modal templates
-- ✅ Sentry fix
-- ✅ **Modal pipeline LIVE en producción**
-- ✅ **Notion sync automatizado vía GitHub Action**
+> Plan integral que consolida: auditoría de código (backend/frontend/UX),
+> roadmap competitivo vs aiScout, activaciones pendientes, deuda técnica,
+> tests y pilotos. **Cada gap conocido está asignado a un sprint** —
+> ver matriz de cobertura al final de la sección.
+>
+> Cadencia: sprints de 2 semanas. Dependencia transversal: **Supabase**
+> (Sprint 0). Sin Sprint 0 completado, los Sprints 1, 5 y 6 pierden ~50%
+> de su valor.
 
-### Próximo sprint (1-2 semanas)
-1. **Tú activas** Bunny + Supabase (3h) + Modal spend cap (1 min)
-2. **Yo cableo** /director, /live, /admin/consent (8h)
-3. **Yo construyo** push notifications real + email reminders (5h)
-4. **Validación** end-to-end juntos (2h) incluyendo test del flujo Modal real
+### ✅ Completado hasta hoy (no repetir)
+Fase 1+2 completas · Sprints 0-23 · Modal LIVE · IDP con alertas · Heatmap
+táctico 6 fases · Transfer Intelligence · Bot Telegram (código 100%) ·
+Notion sync · Fixes auditoría A-E (wellbeing persist, Bunny GDPR, RoleGuards,
+teamId real, reduced-motion, demo seeder, limpieza código muerto).
 
-### Sprint +1 (2-3 semanas)
-- Servicios Supabase para Highlights + Set Pieces
-- Stripe billing UI completa
-- Multi-tenant onboarding
-- Tests E2E
-- **RAG Sprint A — embeddings service + endpoints** (5h, requiere Supabase activo)
+### 💎 Estrategia de productización — los "PHVs escondidos"
 
-### Sprint +2 (1 mes)
-- Transfer Intelligence module
-- Heatmap táctico
-- Plan de desarrollo IDP
-- ~~Telegram bot~~ ✅ HECHO (código completo, falta solo `TELEGRAM_BOT_TOKEN` en Vercel + `setWebhook` cuando Supabase esté activo)
-- **RAG Sprint B — ingestion del knowledge base + drills** (5h)
-- **RAG Sprint C — integración en `_scout-insight` + `_coaching-assistant` + `dnaProfile`** (5h)
+> Patrón detectado: VITAS tiene tecnología de primera enterrada como "un tab
+> más" o "un agente interno". El coste de elevarla a producto-titular es
+> **naming + packaging + visibilidad**, no I+D. Cada activo 💎 está integrado
+> en su sprint natural (suma ~2 semanas repartidas, sin sprints extra).
 
-### Sprint +3 (2 meses)
-- Polish, i18n, dark mode
-- Onboarding tours
-- Marketing copy / landing pages
-- Launch beta cerrado
-- **Tool use Sprint D — toolRegistry + 6 tools core + endpoint genérico** (8h, post-RAG)
+| 💎 Activo → Producto | Único en mercado | % existe | Sprint | Vende a |
+|---|---|---|---|---|
+| Scanning → **"Scan IQ"** | ✅ nadie lo mide en youth desde vídeo | 85% | 1 | Clubes/scouts |
+| PHV×Injury → **"Escudo de Estirón"** | ✅ cruce único | 85% | 2 | **Padres** |
+| BPE → **"ADN Mental"** (6 arquetipos) | ✅ nadie hace mental desde vídeo | 90% | 3 | Clubes+padres |
+| Dropout → **"Radar de Retención"** | ✅ único con ROI en euros demostrable | 90% | 3 | **Clubes** |
+| Similarity → **"Clon Pro" + VITAS Card viral** | 🟡 loop viral B2C inexistente en el sector | 80% | 4 | **Padres (adquisición)** |
+| Todo lo anterior → **"Plan Familia" B2C** | ✅ 2º canal de revenue (aiScout regala; VITAS cobra al padre) | Stripe listo | 6 | Padres |
+| Copilot + "sin hardware" + "10 informes/25s" | ✅ | 100% | Pitch deck | Todos |
 
-### Sprint +4 (3 meses)
-- **Multi-turn Sprint E — migration `chat_sessions` + service + endpoint** (8h)
-- **VITAS Coach Chat Sprint F — UI conversacional + streaming + tool indicators** (9h)
-- Feature gate Pro+ y cap de mensajes por plan
+**Innovación clave del plan:** doble canal de ingresos (club B2B + padre B2C)
+con loop viral de adquisición (VITAS Card compartida en WhatsApp del equipo
+→ registro). Ningún competidor monetiza al padre ni tiene viral loop.
+
+---
+
+### 🔑 SPRINT 0 — "Encender la luz" (esta semana · ~4h Pedro + 4h dev)
+**El prerequisito de todo. Sin esto, la mitad del código construido no opera.**
+
+| # | Tarea | Quién | Tiempo |
+|---|---|---|---|
+| 0.1 | Crear proyecto Supabase + aplicar 54 migraciones + verificar RLS | Pedro + Claude | 90-120 min |
+| 0.2 | Env vars Supabase en Vercel (URL, ANON, SERVICE_ROLE, JWT) | Pedro | 10 min |
+| 0.3 | Bunny Stream: library + env vars | Pedro | 10 min |
+| 0.4 | `TELEGRAM_BOT_TOKEN` + `WEBHOOK_SECRET` + `setWebhook` script | Pedro + Claude | 5 min |
+| 0.5 | VAPID keys (push) + Resend API key | Pedro | 15 min |
+| 0.6 | Spend caps: Modal $50/mo + Anthropic $30/mo | Pedro | 5 min |
+| 0.7 | Stripe: productos + precios + webhook + env vars | Pedro | 15 min |
+| 0.8 | Smoke tests post-activación: auth, upload, bot, RLS isolation | Claude | 3h |
+| 0.9 | Sanear docs: `.env.example` (bloque Modal), header `process-analyses-queue` (decidir Gemini vs Modal), PLAN_MAESTRO desfasado | Claude | 1h |
+
+**Exit criteria:** login real funciona · un vídeo sube a Bunny y se analiza E2E · bot Telegram responde · RLS verificado con 2 cuentas.
+
+---
+
+### ⚔️ SPRINT 1 (sem 1-2) — Decision-Making Score + validación E2E real
+*Impacto competitivo: +15-20%. 80% del código ya existe.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 1.1 | **Decision-Making Score** | Compositor: `decisionSpeedDetector` (BPE) + scanning + heatmap táctico → un score 0-100 vendible con breakdown. UI card + sección PDF |
+| 1.2 | 💎 **"Scan IQ" como producto** | Elevar `scanningVideoDetector` a métrica con nombre propio (Scan IQ 0-100) + benchmark por edad + narrativa "escanea como un jugador 2 años mayor". Respaldo científico: investigación Jordet (Premier League). Componente estrella del DM-Score. aiScout NO puede medirlo (~3 días, 85% existe) |
+| 1.3 | Validación E2E flujo completo | upload → Modal → 10 agentes → tactical → IDP con datos REALES post-Supabase |
+| 1.4 | Test migración localStorage → Supabase | El servicio existe; nunca se probó con datos reales |
+| 1.5 | `api/consent/_send-reminder.ts` | Recordatorios consent RGPD vía Resend (ya activo desde Sprint 0) |
+| 1.6 | Push notifications E2E | VAPID activo + handler en SW + probar alertas injury/burnout/IDP reales |
+| 1.7 | Endpoint `dropout-risk` real | Sustituir mock por lectura real de engagement/attendance/questionnaires (ya persisten desde fix A) |
+
+**Exit criteria:** demo completa con datos reales de punta a punta · primer push recibido en móvil · un informe muestra "Scan IQ 74 — percentil 85 de su edad".
+
+---
+
+### ⚔️ SPRINT 2 (sem 3-4) — PHV como producto (la bala de plata)
+*Impacto competitivo: +30-40%. El único que aiScout no puede copiar sin rehacer su modelo.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 2.1 | Capa normalizadora PHV | Módulo `phvNormalizer` que ajusta CADA métrica por edad biológica (no solo el VSI) |
+| 2.2 | Bio-banding automático | Agrupar jugadores por edad biológica (no cronológica) en rankings/comparaciones. Hoy: 0% construido |
+| 2.3 | Proyección a madurez | Entregable "p40 hoy → p80 proyectado a los 21" con curva visible en PlayerHub + PDF |
+| 2.4 | PHV como titular de producto | Rediseñar cards/reports para que "PHV-adjusted" sea el mensaje principal, no una nota al pie |
+| 2.5 | 💎 **"Escudo de Estirón" (Growth-Spurt Shield)** | Cruce único PHV × injury: alerta automática "⚠️ [jugador] ha entrado en ventana PHV — reducir carga 20% estas 8 semanas" al coach Y al padre + sección en parent dashboard. La seguridad del hijo es el botón emocional #1 del padre pagador (~3 días, 85% existe) |
+| 2.6 | Preparar protocolo validación Mirwald | Definir qué datos recolecta el piloto para calibrar (diseño, no ejecución) |
+
+**Exit criteria:** un director deportivo ve "score ajustado por maduración + proyección" sin que nadie se lo explique · un padre recibe su primera alerta de Escudo de Estirón.
+
+---
+
+### 🛡️ SPRINT 3 (sem 5-6) — Confianza, compliance y seguridad
+*Impacto competitivo: +10-15%. Ataca la caja negra de aiScout.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 3.1 | Explicabilidad calibrada | Intervalos de incertidumbre por métrica sobre `ConfidenceBadge` — sistemático en todos los reports |
+| 3.2 | Bias audit exportable | `BiasAuditDashboard` → informe PDF de equidad por cohorte de maduración para federaciones |
+| 3.3 | Hardening autorización server-side | `requireAuth` + verificación de plan en endpoints premium (hoy varios confían solo en gates de cliente) |
+| 3.4 | Sprint accesibilidad (D4 auditoría) | aria-labels (~30 sitios), aria-current en nav, focus-trap en modales, skip-link |
+| 3.5 | `advancedMetricsService`: activar VAEP | Con eventos+xG reales acumulándose desde Sprint 0, quitar stub de VAEP (los de GPS quedan hasta tener wearables) |
+| 3.6 | 💎 **"ADN Mental" — arquetipos como producto** | Card visual compartible del arquetipo (Commander/Creator/Engine/Ghost/Warrior/Architect) + vista "composición mental de la plantilla" para el club ("tienes 4 Warriors y ningún Architect") + sección PDF. Efecto test-de-personalidad = identificación emocional (~1 semana, 90% existe) |
+| 3.7 | 💎 **"Radar de Retención" — el módulo con ROI en euros** | Dashboard director con semáforos dropout + alerta mensual "jugadores en riesgo" + argumento de venta: "~70% de los niños abandonan antes de los 13; si retienes 3 al año, VITAS se paga solo". Único módulo con ROI directo demostrable (~4 días, 90% existe) |
+
+**Exit criteria:** informe de equidad descargable · axe-core sin errores críticos · endpoints premium rechazan peticiones sin plan · el director ve su primer "3 jugadores en riesgo este mes".
+
+---
+
+### 🌍 SPRINT 4 (sem 7-8) — i18n completo + conversión + descubribilidad
+*Cierra los gaps de UX severidad ALTA/MEDIA de la auditoría.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 4.1 | i18n sweep completo | Traducir los ~33 componentes con español hardcodeado (28/57 páginas → 57/57). QA cambiando idioma |
+| 4.2 | Landing pública en `/` | Hoy `/` → /login directo. Visitante frío debe ver propuesta de valor antes del login |
+| 4.3 | Skeleton de ruta genérico | Sustituir spinner pelado del Suspense fallback en las 40+ rutas lazy |
+| 4.4 | Glosario in-context | Tooltips VSI/PHV/VAEP/ACWR donde aparecen por primera vez |
+| 4.5 | GlobalSearch descubrible | Trigger visible con etiqueta "Buscar ⌘K" + indexar páginas/reportes además de jugadores |
+| 4.6 | Tours onboarding módulos nuevos | IDP, Tactical, Transfer no están en el OnboardingTour actual |
+| 4.7 | 💎 **"Clon Pro" + VITAS Card viral** | Card estilo FIFA: foto + arquetipo + clon pro (`_player-similarity` + `_best-match-narrator`: "juega como Pedri") + Scan IQ + rating PHV-adjusted. Exportable a imagen con marca de agua + link de registro → **el padre la comparte en el WhatsApp del equipo = adquisición orgánica gratis**. Ningún competidor tiene loop viral B2C (~1 semana, 80% existe) |
+
+**Exit criteria:** app 100% bilingüe · un visitante sin cuenta entiende VITAS en 30 segundos · Lighthouse a11y ≥90 · primera VITAS Card compartida genera un registro.
+
+---
+
+### 🧠 SPRINT 5 (sem 9-10) — RAG activo + flywheel de datos
+*Arranca el foso Tier 3. La infra RAG YA existe (rag/_embed, _ingest, _query con Voyage) — falta encenderla y alimentarla.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 5.1 | Seed knowledge base | Ejecutar `rag/_seed-knowledge` con los 10 docs (LTAD, PHV, drills, benchmarks) + `VOYAGE_API_KEY` |
+| 5.2 | RAG en agentes | `_scout-insight` + `_coaching-assistant` + drill matcher del IDP con retrieve semántico (citando fuentes) |
+| 5.3 | **Flywheel dataset propietario** | Pipeline: cada análisis de cliente (con consent — `parentalConsentService`) alimenta dataset etiquetado para modelos futuros |
+| 5.4 | Curvas longitudinales visibles | `player_metric_snapshots` poblándose desde Sprint 0 → gráficas de evolución en PlayerHub/Evolution |
+| 5.5 | Poblar historial orchestrator | Verificar que injury/vsi history (fix Sprint B auditoría) fluye a reports con datos reales |
+
+**Exit criteria:** un agente cita el knowledge base en un informe · el flywheel acumula su primera semana de datos.
+
+---
+
+### 💰 SPRINT 6 (sem 11-12) — Monetización E2E + suite de tests
+*Cierra Fase 4 SaaS y la deuda de tests de la auditoría.*
+
+| # | Tarea | Detalle |
+|---|---|---|
+| 6.1 | Stripe E2E live | Checkout → webhook → plan activo → portal. Probado con tarjeta test y real |
+| 6.2 | Multi-tenant onboarding flow | Alta de academia completa: org → equipos → invitaciones → roles |
+| 6.3 | Email templates | Welcome, reset, consent, burnout alert, inquiry de transfer (Resend) |
+| 6.4 | Tests E2E Playwright | signup→upload→analyze→results · flujo IDP · flujo transfer inquiry |
+| 6.5 | Tests de aislamiento RLS | 2 tenants no se ven entre sí (automatizado en CI) |
+| 6.6 | Golden samples agentes | Fixtures de regresión para los 6 agentes principales |
+| 6.7 | Arreglar CI rojo | El workflow "CI — VITAS" lleva fallando desde antes de esta sesión |
+| 6.8 | 💎 **"Plan Familia" B2C (innovación de revenue)** | Nuevo tier Stripe para PADRES (~6-9€/mes): Escudo de Estirón + informe mensual del hijo + VITAS Card + vista /family premium. aiScout regala la app al jugador; VITAS monetiza al padre. Segundo canal de ingresos independiente del club — si el club no paga, los padres sí |
+
+**Exit criteria:** se puede cobrar a un cliente real (club Y padre) · CI verde con cobertura de flujos críticos ≥60%.
+
+---
+
+### 🔄 PARALELO CONTINUO (no-sprint · gestión Pedro · arranca YA)
+
+| Workstream | Detalle | Lead time |
+|---|---|---|
+| **Piloto 2-3 academias** | Recolectar lesiones + progresiones reales → calibrar injury (r≥0.55), valuation (r≥0.45) y Mirwald. Arrancar reclutamiento en Sprint 1 | 3-6 meses |
+| **Partner académico** | Universidad con dept. ciencias del deporte (equivalente a su Loughborough) → paper de validación PHV | 6-12 meses |
+| **Pitch deck** | Actualizar con las capas nuevas (IDP, Tactical, Transfer, DM-score, PHV producto) + los 3 activos que son argumento sin dev: **"10 informes en 25 segundos"** (orchestrator paralelo), **"sin hardware, funciona offline"** (homografía + cámara única + PWA — Veo exige su cámara, GPS exige chalecos, los campos no tienen wifi), **Coach Copilot conversacional** (ningún incumbente lo tiene) | 1-2 semanas |
+
+### ⏸️ CONDICIONALES (trigger-based, no calendarizar)
+
+| Trabajo | Trigger |
+|---|---|
+| Tier 0: drill capture propio O adaptador ingestión aiScout | Un deal concreto lo exige |
+| Coach Chat web (Sprints D-F: chat_sessions + UI streaming) | Bot Telegram demuestra demanda real (>50 msg/día) |
+| YOLOv11M propio fine-tuned PHV | Dataset flywheel ≥1000 imágenes etiquetadas |
+| Upstash rate limiting | Primer incidente de abuso o >100 usuarios activos |
+| i18n portugués | Primer cliente de mercado lusófono |
+
+---
+
+### 📋 Matriz de cobertura — todo gap conocido → su sprint
+
+| Gap detectado (auditoría/roadmap) | Severidad | Sprint |
+|---|---|---|
+| Supabase/Bunny/Stripe/Resend/Telegram/VAPID sin activar | 🔴 | **0** |
+| Docs desfasados (.env.example, PLAN_MAESTRO, cron header) | 🟢 | 0 |
+| dropout-risk devuelve mock | 🟡 | 1 |
+| Push E2E sin probar · consent reminder inexistente | 🟡 | 1 |
+| Migración localStorage→Supabase sin probar | 🟡 | 1 |
+| Bio-banding 0% · proyección madurez invisible · Mirwald sin validar | 🔴 competitivo | 2 (+piloto) |
+| Endpoints premium sin auth server-side | 🟡 seguridad | 3 |
+| Accesibilidad (27 aria-labels, sin focus-trap) | 🔴 UX | 3 |
+| VAEP stub en advancedMetricsService | 🟡 | 3 |
+| i18n a medias (33 componentes hardcodeados) | 🔴 UX | 4 |
+| Landing pública inaccesible ('/'→login) | 🟡 conversión | 4 |
+| Spinner pelado en rutas lazy · glosario · search | 🟡 UX | 4 |
+| KB sin seed · RAG no integrado en agentes | 🟡 | 5 |
+| Dataset propietario 0% (foso Tier 3) | 🔴 estratégico | 5 |
+| Curvas longitudinales sin datos | 🟡 | 5 (dep. Sprint 0) |
+| Stripe sin probar E2E · sin onboarding multi-tenant | 🔴 negocio | 6 |
+| Tests E2E/RLS/golden inexistentes · CI rojo | 🔴 calidad | 6 |
+| Modelos injury/valuation sin validación empírica | 🔴 credibilidad | Piloto (paralelo) |
+| GPS/biomecánica stubs | 🟢 | Condicional (wearables) |
+| agentCache no-op · fatigue router propio | 🟢 | Backlog (no bloquea) |
+| 💎 Scanning enterrado como página suelta | 🟡 valor oculto | 1 (Scan IQ) |
+| 💎 Cruce PHV×injury sin alerta al padre | 🟡 valor oculto | 2 (Escudo Estirón) |
+| 💎 Arquetipos BPE sin card compartible ni vista plantilla | 🟡 valor oculto | 3 (ADN Mental) |
+| 💎 Dropout sin narrativa ROI para directores | 🟡 valor oculto | 3 (Radar Retención) |
+| 💎 Similarity/Card sin loop viral de adquisición | 🟡 crecimiento | 4 (Clon Pro) |
+| 💎 Padres como canal de pago sin explotar | 🔴 revenue | 6 (Plan Familia) |
+| Assets de pitch sin comunicar (offline, 25s, Copilot) | 🟢 | Pitch deck (paralelo) |
+
+### ⚠️ Registro de riesgos del plan
+
+| Riesgo | Prob. | Mitigación |
+|---|---|---|
+| Las 54 migraciones no aplican limpias en Supabase nuevo | Media | Sprint 0.1 con Claude en vivo; orden de migraciones ya versionado |
+| Piloto de academias no arranca → modelos sin calibrar | Media | Los % competitivos de Tier 1 no dependen del piloto; solo la *validación* |
+| HUMAIN cierra acceso a exports de aiScout | Alta | La ingestión (Tier 0) es táctica, nunca fue el foso; PHV+táctica no dependen de ellos |
+| Costes IA al escalar usuarios | Baja | Spend caps (Sprint 0.6) + prompt caching + Haiku en agentes de volumen |
+| Un solo desarrollador (bus factor) | Alta | Docs actualizados cada sprint + Notion sync + tests desde Sprint 6 |
+| GDPR menores (datos médicos Art. 9) | Media | RLS verificado Sprint 0.8 + Bunny cleanup ya arreglado + consent flow existente |
+
+### 📅 Línea temporal resumen
+
+```
+Semana 0        Sprint 0  — Activaciones (Supabase = llave maestra)
+Semanas 1-2     Sprint 1  — DM-score + 💎Scan IQ + E2E real        ┐
+Semanas 3-4     Sprint 2  — PHV producto + 💎Escudo de Estirón     ├─ Tier 1
+Semanas 5-6     Sprint 3  — Confianza + 💎ADN Mental + 💎Retención ┘ (+55-75%)
+Semanas 7-8     Sprint 4  — i18n + landing + 💎Clon Pro/Card viral
+Semanas 9-10    Sprint 5  — RAG + flywheel (foso Tier 3 arranca)
+Semanas 11-12   Sprint 6  — Stripe E2E (club + 💎Plan Familia B2C) + tests
+────────────────────────────────────────────────────────────────
+En paralelo:    Piloto academias · Partner académico · Pitch deck
+                (con assets: offline, "10 informes/25s", Copilot)
+Resultado:      ~3 meses → +70-90% competitivo · SaaS cobrable en
+                DOS canales (club B2B + padre B2C) · loop viral activo
+```
 
 ---
 
