@@ -71,6 +71,16 @@ const IDPDashboard = lazy(() =>
   import("@/components/idp/IDPDashboard").then((m) => ({ default: m.IDPDashboard })),
 );
 
+// Sprint 1: Decision-Making Score + Scan IQ
+import { useDMScore } from "@/hooks/useDMScore";
+import { ScanningVideoAnalyses } from "@/services/real/scanningVideoDetector";
+const DMScoreCard = lazy(() =>
+  import("@/components/dmscore/DMScoreCard").then((m) => ({ default: m.DMScoreCard })),
+);
+const ScanIQCard = lazy(() =>
+  import("@/components/dmscore/ScanIQCard").then((m) => ({ default: m.ScanIQCard })),
+);
+
 // Sprint 11: Injury dashboard
 import InjuryRiskCard from "@/components/injury/InjuryRiskCard";
 import ACWRHistoryChart from "@/components/injury/ACWRHistoryChart";
@@ -529,7 +539,7 @@ export default function PlayerHubPage() {
             </motion.div>
           )}
 
-          {/* Sprint 20: Mental / Behavioral Profiling */}
+          {/* Sprint 20: Mental / Behavioral Profiling + Sprint 1: DM-Score */}
           {tab === "mental" && id && (
             <motion.div
               key="mental"
@@ -537,7 +547,9 @@ export default function PlayerHubPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
+              className="space-y-4"
             >
+              <DMScoreSection playerId={id} />
               <BehavioralDashboard playerId={id} />
             </motion.div>
           )}
@@ -773,6 +785,36 @@ function WellbeingTab({ playerId }: { playerId: string }) {
         <AttendanceCalendar
           records={attendance.records.map(r => ({ date: r.date, status: r.status }))}
           rate={attendance.rate}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── DM-Score Section (Sprint 1: Decision-Making + Scan IQ) ────────
+
+function DMScoreSection({ playerId }: { playerId: string }) {
+  const { data } = useDMScore(playerId);
+  if (!data) return null;
+
+  const latestScan = ScanningVideoAnalyses.getLatestForPlayer(playerId);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <DMScoreCard result={data.dmScore} />
+      {data.scanIQ && (
+        <ScanIQCard
+          result={data.scanIQ}
+          source={data.scanSource}
+          stats={
+            latestScan
+              ? {
+                  receptionsAnalyzed: latestScan.receptionsAnalyzed,
+                  successWithScan: latestScan.successWithScan,
+                  successWithoutScan: latestScan.successWithoutScan,
+                }
+              : undefined
+          }
         />
       )}
     </div>

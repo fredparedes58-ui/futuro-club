@@ -13,6 +13,8 @@ import { ArrowLeft, Eye, Search, Trophy, Upload, Cpu, Video as VideoIcon } from 
 import { toast } from "sonner";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import ScanningIntelligenceReport from "@/components/behavioral/ScanningIntelligenceReport";
+import { ScanIQCard } from "@/components/dmscore/ScanIQCard";
+import { computeScanIQ } from "@/lib/dmscore";
 import VideoUploadDialog from "@/components/setPiece/VideoUploadDialog";
 import ScanningAnalyzerDialog from "@/components/behavioral/ScanningAnalyzerDialog";
 import {
@@ -219,6 +221,22 @@ export default function ScanningIntelligencePage() {
                   </p>
                 </div>
               </motion.div>
+            )}
+
+            {/* Sprint 1.2 — Scan IQ productizado: calibrado por edad + narrativa */}
+            {latestAnalysis && focus && latestAnalysis.playerId === focus.player.id && (
+              <ScanIQCard
+                result={computeScanIQ(
+                  latestAnalysis.avgScansPreReception,
+                  focus.player.age ?? 14,
+                )}
+                source={latestAnalysis.source ?? "mock"}
+                stats={{
+                  receptionsAnalyzed: latestAnalysis.receptionsAnalyzed,
+                  successWithScan: latestAnalysis.successWithScan,
+                  successWithoutScan: latestAnalysis.successWithoutScan,
+                }}
+              />
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-[280px,1fr] gap-4">
