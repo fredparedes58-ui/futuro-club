@@ -21,6 +21,7 @@ apuntaban a columnas inexistentes (`team_members.org_id/user_id`, `players.paren
 | 08 | `08_048_tactical_heatmaps.sql` | Heatmap táctico | ✅ listo (se crea OK; tipado de ids = Fase 2) |
 | 09 | `09_049_transfer_market.sql` | Transfer market | ✅ corregido |
 | 10 | `10_rls_behavioral_wellbeing.sql` | **Policies** ADN Mental + Retención (lectura cliente) | ✅ idempotente (re-ejecutable) |
+| 11 | `11_051_labeled_datasets.sql` | **Flywheel** dataset etiquetado (Sprint 5.3) | ✅ idempotente (RLS solo service_role) |
 
 **Ejecuta:** 01 → 09 en orden (todas listas ya). Re-ejecuta 02 y 03 (corregidos).
 

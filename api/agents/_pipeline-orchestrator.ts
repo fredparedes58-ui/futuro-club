@@ -447,6 +447,54 @@ export default withHandler(
       await supabase.from("reports").insert(reportInserts);
     }
 
+    // ── 6a. Flywheel: muestra etiquetada del dataset propietario (Sprint 5.3) ──
+    // Base legal: ≥14 años (not_required) o consent parental verificado. No bloqueante.
+    try {
+      const dsAge = typeof anthro?.chronological_age === "number" ? anthro.chronological_age : null;
+      let consentBasis: "not_required" | "parental_verified" | null =
+        dsAge != null && dsAge >= 14 ? "not_required" : null;
+      if (!consentBasis) {
+        const { data: consent } = await supabase
+          .from("parental_consents")
+          .select("id")
+          .eq("player_id", analysis.player_id)
+          .eq("email_verified", true)
+          .limit(1)
+          .maybeSingle();
+        if (consent) consentBasis = "parental_verified";
+      }
+      if (consentBasis) {
+        await supabase.from("labeled_datasets").upsert(
+          {
+            tenant_id: analysis.tenant_id,
+            analysis_id: analysis.id,
+            player_id: analysis.player_id,
+            chronological_age: dsAge,
+            biological_age: anthro?.biological_age ?? null,
+            phv_offset: anthro?.maturity_offset ?? null,
+            phv_category: anthro?.phv_category ?? null,
+            position: player?.position ?? null,
+            features: {
+              biomechanics: analysis.biomechanics ?? null,
+              scanning: scanResult ?? null,
+              similarity: similarityRes.success ? (similarityRes.data?.data ?? similarityRes.data) : null,
+              subscores,
+            },
+            labels: {
+              vsi: (vsi as { vsi?: number } | null)?.vsi ?? null,
+              injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? null,
+              valuation: valuationResult ?? null,
+              reportTypes: successfulReports.map((r) => r.name),
+            },
+            consent_basis: consentBasis,
+          },
+          { onConflict: "analysis_id" },
+        );
+      }
+    } catch {
+      // Flywheel es no bloqueante — la pipeline continúa
+    }
+
     // ── 6b. Save metric snapshot for progression tracking (Sprint 9) ──
     try {
       const fatigueData = fatigueReport as Record<string, unknown> | null;
