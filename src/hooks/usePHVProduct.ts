@@ -12,7 +12,7 @@
  * Devuelve null si el jugador no tiene datos antropométricos mínimos.
  */
 import { useMemo } from "react";
-import { usePlayerById } from "@/hooks/usePlayers";
+import { useRawPlayerById } from "@/hooks/usePlayers";
 import {
   computeMirwald,
   canComputeMirwald,
@@ -48,7 +48,7 @@ function vsiToPercentile(vsi: number): number {
 }
 
 export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
-  const { data: player } = usePlayerById(playerId);
+  const { data: player } = useRawPlayerById(playerId);
 
   return useMemo(() => {
     if (!player) return null;
