@@ -23,6 +23,7 @@ import {
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
 import EmptyState from "@/components/EmptyState";
+import { SnapshotHistoryChart } from "@/components/evolution/SnapshotHistoryChart";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import RadarChartComponent from "@/components/RadarChart";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
@@ -472,6 +473,9 @@ export default function PlayerEvolutionPage() {
             <Loader2 size={24} className="animate-spin text-primary" />
           </div>
         )}
+
+        {/* Curva longitudinal desde snapshots (Sprint 5.4) — independiente de reportes */}
+        {id && <SnapshotHistoryChart playerId={id} />}
 
         {/* Not enough data · empty state mejorado */}
         {!isLoading && total < 2 && (

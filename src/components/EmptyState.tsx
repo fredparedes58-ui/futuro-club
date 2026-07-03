@@ -17,13 +17,13 @@ import type { ReactNode } from "react";
 
 export interface EmptyStateAction {
   label: string;
-  Icon?: React.ComponentType<{ size?: number; className?: string }>;
+  Icon?: React.ElementType;
   onClick: () => void;
   variant?: "primary" | "secondary";
 }
 
 export interface EmptyStateProps {
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   title: string;
   description?: string | ReactNode;
   primary?: EmptyStateAction;

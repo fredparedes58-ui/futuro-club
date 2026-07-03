@@ -36,7 +36,7 @@ const coachingAssistantSchema = z.object({
 
 const PROMPT_VERSION = "v1.0.0";
 
-function buildPrompt(data: z.infer<typeof coachingAssistantSchema>): string {
+function buildPrompt(data: z.infer<typeof coachingAssistantSchema>, ragContext = ""): string {
   const teamName = data.teamName ?? "Equipo";
   const avgAge = data.teamAvgAge ?? 13;
   const phv = data.phvDistribution;
@@ -62,9 +62,9 @@ ${JSON.stringify(recommendation, null, 2)}
 
 ## HISTORIAL DE ÚLTIMAS SESIONES
 ${data.recentSessions ? JSON.stringify(data.recentSessions.slice(-4), null, 2) : "Sin historial"}
-
+${ragContext ? `\n## BASE DE CONOCIMIENTO (metodología LTAD / drills)\n${ragContext}\n` : ""}
 ## INSTRUCCIONES
-Genera un reporte de coaching en español con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y adapta las recomendaciones a la edad del equipo y su fase LTAD.
+Genera un reporte de coaching en español con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y adapta las recomendaciones a la edad del equipo y su fase LTAD. Cuando apliques metodología o drills de la BASE DE CONOCIMIENTO, cita la fuente (atributo source del contexto).
 
 ### 1. Resumen de la Sesión
 Párrafo de 2-3 oraciones resumiendo lo que funcionó y el balance general.
@@ -101,7 +101,7 @@ Formato JSON:
 
 export default withHandler(
   { schema: coachingAssistantSchema, requireAuth: true, maxRequests: 50, allowServiceToken: true, requiredPlan: "pro,club" },
-  async ({ body }) => {
+  async ({ body, req }) => {
     const data = body as z.infer<typeof coachingAssistantSchema>;
 
     if (!ANTHROPIC_API_KEY) {
@@ -113,8 +113,28 @@ export default withHandler(
       });
     }
 
+    // ── RAG: metodología LTAD + drills (no bloqueante · cae a vacío si falla) ──
+    let ragContext = "";
     try {
-      const prompt = buildPrompt(data);
+      const authHeader = req.headers.get("Authorization") ?? "";
+      const baseUrl = new URL(req.url).origin;
+      const weak = (data.recommendation as { weakestDimension?: string } | undefined)?.weakestDimension ?? "";
+      const ragQuery = `entrenamiento fútbol juvenil ${data.teamAvgAge ?? 13} años metodología LTAD ${weak} drills sesión`;
+      const ragRes = await fetch(`${baseUrl}/api/rag/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: authHeader },
+        body: JSON.stringify({ query: ragQuery, limit: 5 }),
+      });
+      if (ragRes.ok) {
+        const rd = (await ragRes.json()) as { data?: { context?: string }; context?: string };
+        ragContext = rd.data?.context ?? rd.context ?? "";
+      }
+    } catch {
+      /* RAG no bloqueante */
+    }
+
+    try {
+      const prompt = buildPrompt(data, ragContext);
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
@@ -161,6 +181,7 @@ export default withHandler(
         report,
         promptVersion: PROMPT_VERSION,
         model: "claude-3-5-haiku-20241022",
+        ragEnriched: !!ragContext,
         inputTokens: result.usage?.input_tokens ?? 0,
         outputTokens: result.usage?.output_tokens ?? 0,
       });
