@@ -23,7 +23,7 @@ export type IngestRequest = z.infer<typeof IngestDocSchema>;
 
 export default withHandler(
   { optionalAuth: true, maxRequests: 20, rawBody: true },
-  async ({ req, userId }) => {
+  async ({ req, userId, rawBody: rawBodyStr }) => {
     // Allow authenticated users OR service role (for seed endpoints)
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
@@ -45,9 +45,11 @@ export default withHandler(
       return errorResponse("Supabase not configured", 503);
     }
 
+    // withHandler ya consumió el body (rawBody: true) y nos pasa el texto crudo.
+    // Re-leer req.json() aquí fallaría (el stream ya está consumido en edge runtime).
     let rawBody: unknown;
     try {
-      rawBody = await req.json();
+      rawBody = rawBodyStr && rawBodyStr.trim() ? JSON.parse(rawBodyStr) : null;
     } catch {
       return errorResponse("Invalid JSON", 400);
     }
