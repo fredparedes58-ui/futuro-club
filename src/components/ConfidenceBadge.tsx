@@ -14,7 +14,8 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Shield, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
 import type { Player } from "@/services/real/playerService";
 
 interface Props {
@@ -23,14 +24,16 @@ interface Props {
   player: Player;
 }
 
+type I18nRef = { key: string; params?: Record<string, unknown> };
+
 interface ConfidenceResult {
   score: number;
   level: "high" | "medium" | "low";
-  label: string;
-  description: string;
+  labelKey: string;
+  desc: I18nRef;
   color: string;
   Icon: React.ElementType;
-  factors: string[];
+  factors: I18nRef[];
 }
 
 function calculateConfidence(videosCount: number, hasTracking: boolean, player: Player): ConfidenceResult {
@@ -63,43 +66,47 @@ function calculateConfidence(videosCount: number, hasTracking: boolean, player: 
   // Final score
   const score = Math.round(baseConfidence * dataFactor * trackingFactor);
 
-  // Build factors explanation
-  const factors: string[] = [];
-  if (videosCount === 0) factors.push("Sin videos analizados");
-  else if (videosCount === 1) factors.push("Solo 1 video analizado");
-  else factors.push(`${videosCount} videos analizados`);
+  // Build factors explanation (i18n keys + params)
+  const factors: I18nRef[] = [];
+  if (videosCount === 0) factors.push({ key: "confidence.factorNoVideos" });
+  else if (videosCount === 1) factors.push({ key: "confidence.factorOneVideo" });
+  else factors.push({ key: "confidence.factorVideos", params: { count: videosCount } });
 
-  if (!hasTracking) factors.push("Sin datos de tracking (Lab)");
-  if (!player.phvAge) factors.push("Sin datos PHV (añadir medidas)");
+  if (!hasTracking) factors.push({ key: "confidence.factorNoTracking" });
+  if (!player.phvAge) factors.push({ key: "confidence.factorNoPhv" });
   if (completeDimensions < totalDimensions * 0.7)
-    factors.push(`${totalDimensions - completeDimensions} dimensiones sin datos`);
+    factors.push({ key: "confidence.factorMissingDims", params: { count: totalDimensions - completeDimensions } });
 
   // Level
   if (score > 80) {
     return {
       score, level: "high",
-      label: "Confianza Alta",
-      description: `Evaluación sólida basada en ${videosCount} video${videosCount !== 1 ? "s" : ""} y datos completos.`,
+      labelKey: "confidence.high",
+      desc: {
+        key: videosCount === 1 ? "confidence.descHighOne" : "confidence.descHighOther",
+        params: { count: videosCount },
+      },
       color: "#22c55e", Icon: ShieldCheck, factors,
     };
   } else if (score >= 50) {
     return {
       score, level: "medium",
-      label: "Confianza Media",
-      description: "Evaluación parcial. Más videos y datos mejorarían la precisión.",
+      labelKey: "confidence.medium",
+      desc: { key: "confidence.descMedium" },
       color: "#f59e0b", Icon: ShieldAlert, factors,
     };
   } else {
     return {
       score, level: "low",
-      label: "Confianza Baja",
-      description: "Datos insuficientes para una evaluación confiable. Sube videos para mejorar.",
+      labelKey: "confidence.low",
+      desc: { key: "confidence.descLow" },
       color: "#ef4444", Icon: ShieldX, factors,
     };
   }
 }
 
 export default function ConfidenceBadge({ videosCount, hasTracking, player }: Props) {
+  const { t } = useTranslation();
   const conf = useMemo(
     () => calculateConfidence(videosCount, hasTracking, player),
     [videosCount, hasTracking, player]
@@ -123,7 +130,7 @@ export default function ConfidenceBadge({ videosCount, hasTracking, player }: Pr
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-display font-bold text-xs text-foreground">{conf.label}</span>
+          <span className="font-display font-bold text-xs text-foreground">{t(conf.labelKey)}</span>
           <span
             className="px-1.5 py-0.5 rounded-full text-[9px] font-bold"
             style={{ backgroundColor: `${conf.color}20`, color: conf.color }}
@@ -132,7 +139,7 @@ export default function ConfidenceBadge({ videosCount, hasTracking, player }: Pr
           </span>
         </div>
         <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
-          {conf.description}
+          {t(conf.desc.key, conf.desc.params)}
         </p>
       </div>
 
@@ -143,7 +150,7 @@ export default function ConfidenceBadge({ videosCount, hasTracking, player }: Pr
             {conf.factors.map((f, i) => (
               <p key={i} className="flex items-center gap-1">
                 <span className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: conf.color }} />
-                {f}
+                {t(f.key, f.params)}
               </p>
             ))}
           </div>

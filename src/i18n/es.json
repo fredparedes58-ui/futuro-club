@@ -61,7 +61,59 @@
     "videos": "Vídeos",
     "team": "Equipo",
     "equipo": "Equipo",
-    "me": "Yo"
+    "me": "Yo",
+    "more": "Más"
+  },
+
+  "moreMenu": {
+    "title": "Más secciones",
+    "subtitle": "Análisis avanzado, planificación y bienestar",
+    "soon": "Pronto",
+    "comingSoon": "{{label}} llega próximamente",
+    "groups": {
+      "tactics": "Tácticas",
+      "training": "Entrenamiento",
+      "health": "Salud y bienestar",
+      "mental": "Mental",
+      "multimedia": "Multimedia",
+      "market": "Mercado"
+    },
+    "items": {
+      "setPieces": "Análisis de balón parado",
+      "live": "Tracking en directo",
+      "tactical": "Heatmap por 6 fases tácticas + insights IA",
+      "coach": "Planificación de sesiones",
+      "idp": "Plan de Desarrollo Individual mensual con IA",
+      "wellbeing": "Riesgo de abandono · engagement",
+      "behavioral": "Perfil mental del equipo · 7 dimensiones",
+      "scanning": "Escaneo previo a la recepción del balón",
+      "highlights": "Reels automáticos de mejores momentos",
+      "transfer": "Marketplace de fichajes con matchmaking IA"
+    }
+  },
+
+  "userMenu": {
+    "language": "Idioma",
+    "guide": "Guía de uso",
+    "billing": "Facturación y plan",
+    "menu": "Menú de usuario",
+    "mainNav": "Navegación principal"
+  },
+
+  "confidence": {
+    "high": "Confianza Alta",
+    "medium": "Confianza Media",
+    "low": "Confianza Baja",
+    "descHighOne": "Evaluación sólida basada en {{count}} vídeo y datos completos.",
+    "descHighOther": "Evaluación sólida basada en {{count}} vídeos y datos completos.",
+    "descMedium": "Evaluación parcial. Más vídeos y datos mejorarían la precisión.",
+    "descLow": "Datos insuficientes para una evaluación confiable. Sube vídeos para mejorar.",
+    "factorNoVideos": "Sin vídeos analizados",
+    "factorOneVideo": "Solo 1 vídeo analizado",
+    "factorVideos": "{{count}} vídeos analizados",
+    "factorNoTracking": "Sin datos de tracking (Lab)",
+    "factorNoPhv": "Sin datos PHV (añadir medidas)",
+    "factorMissingDims": "{{count}} dimensiones sin datos"
   },
 
   "landing": {

@@ -12,6 +12,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { SyncProvider } from "@/context/SyncContext";
 import OfflineBanner from "@/components/OfflineBanner";
 import CookieConsent from "@/components/CookieConsent";
+import RouteSkeleton from "@/components/shared/RouteSkeleton";
 
 // Pages — Auth (static — small, needed immediately)
 import LoginPage from "./pages/LoginPage";
@@ -91,12 +92,8 @@ const ListingDetailPage = lazyWithRetry(() => import("./pages/ListingDetailPage"
 const CreateListingPage = lazyWithRetry(() => import("./pages/CreateListingPage"));
 const ScanningIntelligencePage = lazyWithRetry(() => import("./pages/ScanningIntelligencePage"));
 
-// Suspense fallback for lazy routes
-const LazyFallback = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-  </div>
-);
+// Suspense fallback for lazy routes — branded skeleton (Sprint 4.3)
+const LazyFallback = () => <RouteSkeleton />;
 
 // Health check + purge — diagnóstico automático al iniciar
 // (Sync is now handled by SyncProvider)

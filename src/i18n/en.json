@@ -61,7 +61,59 @@
     "videos": "Videos",
     "team": "Team",
     "equipo": "Team",
-    "me": "Me"
+    "me": "Me",
+    "more": "More"
+  },
+
+  "moreMenu": {
+    "title": "More sections",
+    "subtitle": "Advanced analysis, planning and wellbeing",
+    "soon": "Soon",
+    "comingSoon": "{{label}} coming soon",
+    "groups": {
+      "tactics": "Tactics",
+      "training": "Training",
+      "health": "Health & wellbeing",
+      "mental": "Mental",
+      "multimedia": "Multimedia",
+      "market": "Market"
+    },
+    "items": {
+      "setPieces": "Set piece analysis",
+      "live": "Live tracking",
+      "tactical": "Heatmap across 6 tactical phases + AI insights",
+      "coach": "Session planning",
+      "idp": "Monthly Individual Development Plan with AI",
+      "wellbeing": "Dropout risk · engagement",
+      "behavioral": "Team mental profile · 7 dimensions",
+      "scanning": "Pre-reception ball scanning",
+      "highlights": "Automatic highlight reels",
+      "transfer": "Transfer marketplace with AI matchmaking"
+    }
+  },
+
+  "userMenu": {
+    "language": "Language",
+    "guide": "User guide",
+    "billing": "Billing & plan",
+    "menu": "User menu",
+    "mainNav": "Main navigation"
+  },
+
+  "confidence": {
+    "high": "High Confidence",
+    "medium": "Medium Confidence",
+    "low": "Low Confidence",
+    "descHighOne": "Solid assessment based on {{count}} video and complete data.",
+    "descHighOther": "Solid assessment based on {{count}} videos and complete data.",
+    "descMedium": "Partial assessment. More videos and data would improve accuracy.",
+    "descLow": "Insufficient data for a reliable assessment. Upload videos to improve.",
+    "factorNoVideos": "No videos analyzed",
+    "factorOneVideo": "Only 1 video analyzed",
+    "factorVideos": "{{count}} videos analyzed",
+    "factorNoTracking": "No tracking data (Lab)",
+    "factorNoPhv": "No PHV data (add measurements)",
+    "factorMissingDims": "{{count}} dimensions without data"
   },
 
   "landing": {

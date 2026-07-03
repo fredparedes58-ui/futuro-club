@@ -24,12 +24,12 @@ const hiddenOnRoutes = ["/login", "/register", "/forgot-password", "/welcome", "
 // Extra sections — opened from the "Más" mega-menu, grouped by area.
 // Each item has its route, icon, label, color hint, and optional "soon" badge.
 type ExtraGroup = {
-  title: string;
+  titleKey: string;
   items: Array<{
     path: string;
     icon: React.ElementType;
     label: string;
-    description: string;
+    descKey: string;
     color: string;
     soon?: boolean;
   }>;
@@ -37,101 +37,101 @@ type ExtraGroup = {
 
 const EXTRA_GROUPS: ExtraGroup[] = [
   {
-    title: "Tácticas",
+    titleKey: "moreMenu.groups.tactics",
     items: [
       {
         path: "/set-pieces",
         icon: Crosshair,
         label: "Set Pieces",
-        description: "Análisis de balón parado",
+        descKey: "moreMenu.items.setPieces",
         color: "from-amber-500 to-orange-500",
       },
       {
         path: "/live",
         icon: Sparkles,
         label: "Live Match",
-        description: "Tracking en directo",
+        descKey: "moreMenu.items.live",
         color: "from-fuchsia-500 to-pink-500",
       },
       {
         path: "/tactical",
         icon: Activity,
         label: "Heatmap",
-        description: "Heatmap por 6 fases tácticas + insights IA",
+        descKey: "moreMenu.items.tactical",
         color: "from-cyan-500 to-purple-500",
       },
     ],
   },
   {
-    title: "Entrenamiento",
+    titleKey: "moreMenu.groups.training",
     items: [
       {
         path: "/coach",
         icon: ClipboardList,
         label: "Coach",
-        description: "Planificación de sesiones",
+        descKey: "moreMenu.items.coach",
         color: "from-blue-500 to-cyan-500",
       },
       {
         path: "/idp",
         icon: Target,
         label: "Plan IDP",
-        description: "Plan de Desarrollo Individual mensual con IA",
+        descKey: "moreMenu.items.idp",
         color: "from-cyan-500 to-purple-500",
       },
     ],
   },
   {
-    title: "Salud y bienestar",
+    titleKey: "moreMenu.groups.health",
     items: [
       {
         path: "/wellbeing",
         icon: Heart,
         label: "Bienestar",
-        description: "Riesgo de abandono · engagement",
+        descKey: "moreMenu.items.wellbeing",
         color: "from-rose-500 to-red-500",
       },
     ],
   },
   {
-    title: "Mental",
+    titleKey: "moreMenu.groups.mental",
     items: [
       {
         path: "/behavioral",
         icon: Brain,
         label: "Mental",
-        description: "Perfil mental del equipo · 7 dimensiones",
+        descKey: "moreMenu.items.behavioral",
         color: "from-purple-500 to-indigo-500",
       },
       {
         path: "/scanning",
         icon: Eye,
         label: "Scanning",
-        description: "Escaneo previo a la recepción del balón",
+        descKey: "moreMenu.items.scanning",
         color: "from-pink-500 to-fuchsia-600",
       },
     ],
   },
   {
-    title: "Multimedia",
+    titleKey: "moreMenu.groups.multimedia",
     items: [
       {
         path: "/highlights",
         icon: Film,
         label: "Highlights",
-        description: "Reels automáticos de mejores momentos",
+        descKey: "moreMenu.items.highlights",
         color: "from-emerald-500 to-teal-500",
       },
     ],
   },
   {
-    title: "Mercado",
+    titleKey: "moreMenu.groups.market",
     items: [
       {
         path: "/transfer",
         icon: Briefcase,
         label: "Transfer",
-        description: "Marketplace de fichajes con matchmaking IA",
+        descKey: "moreMenu.items.transfer",
         color: "from-cyan-500 to-purple-500",
       },
     ],
@@ -211,17 +211,17 @@ const BottomNav = () => {
             >
               <div className="px-4 pt-4 pb-2 border-b border-border sticky top-0 glass-strong">
                 <h3 className="text-sm font-display font-bold text-foreground">
-                  Más secciones
+                  {t("moreMenu.title")}
                 </h3>
                 <p className="text-[10px] text-muted-foreground">
-                  Análisis avanzado, planificación y bienestar
+                  {t("moreMenu.subtitle")}
                 </p>
               </div>
               <div className="p-3 space-y-4">
                 {EXTRA_GROUPS.map((group) => (
-                  <div key={group.title}>
+                  <div key={group.titleKey}>
                     <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 px-1">
-                      {group.title}
+                      {t(group.titleKey)}
                     </h4>
                     <div className="grid grid-cols-2 gap-2">
                       {group.items.map((it) => {
@@ -234,7 +234,7 @@ const BottomNav = () => {
                             onClick={() => {
                               if (it.soon) {
                                 toast.info(
-                                  `${it.label} llega próximamente`,
+                                  t("moreMenu.comingSoon", { label: it.label }),
                                 );
                                 return;
                               }
@@ -259,12 +259,12 @@ const BottomNav = () => {
                                 </p>
                                 {it.soon && (
                                   <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600 font-bold">
-                                    Pronto
+                                    {t("moreMenu.soon")}
                                   </span>
                                 )}
                               </div>
                               <p className="text-[10px] text-muted-foreground leading-snug truncate">
-                                {it.description}
+                                {t(it.descKey)}
                               </p>
                             </div>
                           </button>
@@ -310,7 +310,7 @@ const BottomNav = () => {
 
               {/* Idioma (Sprint 4.1) */}
               <div className="px-3 py-2 border-b border-border flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground font-display">Idioma</span>
+                <span className="text-[10px] text-muted-foreground font-display">{t("userMenu.language")}</span>
                 <LanguageSwitcher />
               </div>
 
@@ -335,14 +335,14 @@ const BottomNav = () => {
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
               >
                 <BookOpen size={12} />
-                Guía de uso
+                {t("userMenu.guide")}
               </button>
               <button
                 onClick={() => { setShowUserMenu(false); navigate("/billing"); }}
                 className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-display text-foreground hover:bg-secondary transition-colors"
               >
                 <CreditCard size={12} />
-                Facturación y plan
+                {t("userMenu.billing")}
               </button>
               {configured && user && (
                 <button
@@ -359,7 +359,7 @@ const BottomNav = () => {
       </AnimatePresence>
 
       {/* Nav bar */}
-      <nav aria-label="Navegación principal" className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{
+      <nav aria-label={t("userMenu.mainNav")} className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{
         background: "linear-gradient(180deg, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0.98))",
         backdropFilter: "blur(24px)",
         borderTop: "1px solid hsl(214 32% 88%)",
@@ -421,8 +421,8 @@ const BottomNav = () => {
           <button
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
-            title="Más secciones"
-            aria-label="Más secciones"
+            title={t("moreMenu.title")}
+            aria-label={t("moreMenu.title")}
             aria-haspopup="menu"
             aria-expanded={showMoreMenu}
           >
@@ -460,7 +460,7 @@ const BottomNav = () => {
                 isExtraActive || showMoreMenu ? "text-primary" : "text-muted-foreground"
               }`}
             >
-              Más
+              {t("nav.more")}
             </span>
           </button>
 
@@ -495,7 +495,7 @@ const BottomNav = () => {
           {/* Avatar de usuario */}
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            aria-label="Menú de usuario"
+            aria-label={t("userMenu.menu")}
             aria-haspopup="menu"
             aria-expanded={showUserMenu}
             className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"

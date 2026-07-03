@@ -13,6 +13,7 @@ import {
   CartesianGrid, Legend,
 } from "recharts";
 import { useMetricSnapshots } from "@/hooks/useMetricSnapshots";
+import { TermTooltip } from "@/components/shared/TermTooltip";
 
 interface Props {
   playerId: string;
@@ -51,7 +52,9 @@ export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="font-display font-semibold text-sm text-foreground">Evolución longitudinal</h2>
-          <p className="text-[10px] text-muted-foreground">VSI · riesgo de lesión · PHV offset por análisis</p>
+          <p className="text-[10px] text-muted-foreground">
+            <TermTooltip termKey="vsi" /> · riesgo de lesión · <TermTooltip termKey="phv" /> offset por análisis
+          </p>
         </div>
         {snapshots.length > 0 && (
           <span className="text-[10px] text-muted-foreground">{snapshots.length} registros</span>
