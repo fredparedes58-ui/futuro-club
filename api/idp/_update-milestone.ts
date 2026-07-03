@@ -33,7 +33,9 @@ export default withHandler(
   {
     method: "POST",
     schema: UpdateMilestoneSchema,
-    requireAuth: false,
+    requireAuth: true,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
     maxRequests: 100,
   },
   async ({ body }) => {

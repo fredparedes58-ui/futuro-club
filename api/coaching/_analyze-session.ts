@@ -39,6 +39,8 @@ export default withHandler(
     method: "POST",
     schema: AnalyzeSessionSchema,
     requireAuth: true,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
     maxRequests: 10,
   },
   async ({ body, userId }) => {

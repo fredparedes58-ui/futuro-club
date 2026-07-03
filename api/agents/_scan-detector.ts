@@ -149,7 +149,7 @@ function percentile(value: number, p25: number, p50: number, p75: number, pro: n
 }
 
 export default withHandler(
-  { schema: scanSchema, requireAuth: true, maxRequests: 100 },
+  { schema: scanSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },
   async ({ body }) => {
     const input = body as z.infer<typeof scanSchema>;
 

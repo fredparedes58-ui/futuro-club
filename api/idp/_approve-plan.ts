@@ -28,7 +28,9 @@ export default withHandler(
   {
     method: "POST",
     schema: ApprovePlanSchema,
-    requireAuth: false,
+    requireAuth: true,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
     maxRequests: 50,
   },
   async ({ body, userId }) => {

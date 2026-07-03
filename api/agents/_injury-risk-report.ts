@@ -109,7 +109,7 @@ REGLAS:
 }
 
 export default withHandler(
-  { schema: injuryReportSchema, requireAuth: false, maxRequests: 50 },
+  { schema: injuryReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof injuryReportSchema>;
 

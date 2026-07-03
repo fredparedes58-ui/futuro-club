@@ -113,7 +113,7 @@ async function callClaude(systemPrompt: string, userMessage: string, apiKey: str
 }
 
 export default withHandler(
-  { schema: labSchema, requireAuth: true, maxRequests: 50 },
+  { schema: labSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

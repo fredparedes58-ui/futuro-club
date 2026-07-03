@@ -102,7 +102,7 @@ export function computeVsi(subs: VsiInput["subscores"]): number {
 }
 
 export default withHandler(
-  { schema: vsiSchema, requireAuth: true, maxRequests: 200 },
+  { schema: vsiSchema, requireAuth: true, allowServiceToken: true, maxRequests: 200 },
   async ({ body }) => {
     try {
       const input = body as VsiInput;

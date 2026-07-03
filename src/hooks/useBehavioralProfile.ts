@@ -12,6 +12,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE_TIME = 1000 * 60 * 10; // 10 minutes (profiles don't change often)
 
@@ -93,7 +94,7 @@ async function fetchBehavioralProfile(playerId: string): Promise<BehavioralProfi
 async function computeProfileApi(input: ComputeProfileInput): Promise<BehavioralProfileData> {
   const res = await fetch(`${API_BASE}/compute-profile`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(input),
   });
   if (!res.ok) {

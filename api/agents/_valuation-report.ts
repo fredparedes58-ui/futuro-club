@@ -116,7 +116,7 @@ REGLAS:
 }
 
 export default withHandler(
-  { schema: valuationReportSchema, requireAuth: false, maxRequests: 50 },
+  { schema: valuationReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof valuationReportSchema>;
 

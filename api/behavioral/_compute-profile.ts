@@ -29,7 +29,7 @@ const computeProfileSchema = z.object({
 });
 
 export default withHandler(
-  { schema: computeProfileSchema, requireAuth: false, maxRequests: 20 },
+  { schema: computeProfileSchema, requireAuth: true, maxRequests: 20, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body }) => {
     const data = body as z.infer<typeof computeProfileSchema>;
     const age = data.playerAge ?? 14;

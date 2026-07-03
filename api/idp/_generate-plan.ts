@@ -124,8 +124,10 @@ export default withHandler(
   {
     method: "POST",
     schema: GeneratePlanInputSchema,
-    requireAuth: false,
+    requireAuth: true,
     maxRequests: 20,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
   },
   async ({ body, userId }) => {
     const input = body as z.infer<typeof GeneratePlanInputSchema>;

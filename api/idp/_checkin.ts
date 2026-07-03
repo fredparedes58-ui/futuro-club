@@ -46,7 +46,9 @@ export default withHandler(
   {
     method: "POST",
     schema: CheckinSchema,
-    requireAuth: false,
+    requireAuth: true,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
     maxRequests: 60,
   },
   async ({ body, userId }) => {

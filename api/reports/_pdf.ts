@@ -19,7 +19,7 @@ const PdfRequestSchema = z.object({
 });
 
 export default withHandler(
-  { schema: PdfRequestSchema, requireAuth: true, maxRequests: 10 },
+  { schema: PdfRequestSchema, requireAuth: true, maxRequests: 10, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body, userId }) => {
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

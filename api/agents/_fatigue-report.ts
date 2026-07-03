@@ -100,7 +100,7 @@ Formato: JSON con estructura:
 }
 
 export default withHandler(
-  { schema: fatigueReportSchema, requireAuth: false, maxRequests: 50 },
+  { schema: fatigueReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof fatigueReportSchema>;
 

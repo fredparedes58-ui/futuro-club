@@ -136,7 +136,7 @@ Genera un reporte de riesgo de abandono en español con las siguientes secciones
 }
 
 export default withHandler(
-  { schema: burnoutReportSchema, requireAuth: false, maxRequests: 50 },
+  { schema: burnoutReportSchema, requireAuth: true, maxRequests: 50, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body }) => {
     const data = body as z.infer<typeof burnoutReportSchema>;
 

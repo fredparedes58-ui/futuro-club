@@ -122,7 +122,7 @@ async function callSonnet(systemPrompt: string, userMessage: string, apiKey: str
 }
 
 export default withHandler(
-  { schema: playerReportSchema, requireAuth: true, maxRequests: 50 },
+  { schema: playerReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

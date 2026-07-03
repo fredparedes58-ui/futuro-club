@@ -140,7 +140,7 @@ async function callHaiku(systemPrompt: string, userMessage: string, apiKey: stri
 }
 
 export default withHandler(
-  { schema: projectionSchema, requireAuth: true, maxRequests: 100 },
+  { schema: projectionSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },
   async ({ body }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

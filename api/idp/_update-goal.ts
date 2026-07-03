@@ -48,8 +48,10 @@ export default withHandler(
   {
     method: "POST",
     schema: UpdateGoalSchema,
-    requireAuth: false,
+    requireAuth: true,
     maxRequests: 100,
+    allowServiceToken: true,
+    requiredPlan: "pro,club",
   },
   async ({ body }) => {
     const input = body as z.infer<typeof UpdateGoalSchema>;

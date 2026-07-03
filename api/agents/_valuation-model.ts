@@ -268,7 +268,7 @@ function calculateProbabilities(
 // ── Main handler ────────────────────────────────────────────────────────────
 
 export default withHandler(
-  { schema: valuationSchema, requireAuth: false, maxRequests: 200 },
+  { schema: valuationSchema, requireAuth: true, maxRequests: 200, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body }) => {
     const input = body as z.infer<typeof valuationSchema>;
 

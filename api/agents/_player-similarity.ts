@@ -219,7 +219,7 @@ function diverseTopN(scored: SimilarityMatch[], topN: number): SimilarityMatch[]
 // ─── Handler ───────────────────────────────────────────────────────────────────
 
 export default withHandler(
-  { requireAuth: true, schema: similaritySchema },
+  { requireAuth: true, allowServiceToken: true, schema: similaritySchema },
   async ({ body }) => {
     const { metrics, position, youthAge, phvOffset = 0, options = {} } = body;
     const {

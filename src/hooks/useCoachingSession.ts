@@ -14,6 +14,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -118,7 +119,7 @@ async function fetchSessionRecommendation(teamId: string): Promise<Record<string
 async function analyzeSessionApi(input: AnalyzeSessionInput): Promise<AnalyzeSessionResult> {
   const res = await fetch(`${API_BASE}/analyze-session`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(input),
   });
   if (!res.ok) {

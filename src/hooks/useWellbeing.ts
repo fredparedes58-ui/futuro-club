@@ -15,6 +15,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -109,7 +110,9 @@ const API_BASE = "/api/wellbeing";
 
 async function fetchDropoutRisk(playerId: string): Promise<DropoutRiskAssessment> {
   try {
-    const res = await fetch(`${API_BASE}/dropout-risk?playerId=${encodeURIComponent(playerId)}`);
+    const res = await fetch(`${API_BASE}/dropout-risk?playerId=${encodeURIComponent(playerId)}`, {
+      headers: await getAuthHeaders(),
+    });
     if (!res.ok) return generateMockRiskAssessment(playerId);
     const data = await res.json();
     return data.data?.assessment ?? generateMockRiskAssessment(playerId);

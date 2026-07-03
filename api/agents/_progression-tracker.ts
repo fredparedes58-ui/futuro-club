@@ -39,7 +39,7 @@ const snapshotSchema = z.object({
 });
 
 export default withHandler(
-  { schema: snapshotSchema, requireAuth: false, maxRequests: 100 },
+  { schema: snapshotSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },
   async ({ body }) => {
     const input = body as z.infer<typeof snapshotSchema>;
 

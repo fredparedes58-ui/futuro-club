@@ -155,7 +155,7 @@ async function callClaudeHaiku(systemPrompt: string, userMessage: string, apiKey
 }
 
 export default withHandler(
-  { schema: planSchema, requireAuth: true, maxRequests: 50 },
+  { schema: planSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const baseUrl = process.env.VITAS_PUBLIC_URL

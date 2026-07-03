@@ -100,7 +100,7 @@ Formato JSON:
 }
 
 export default withHandler(
-  { schema: coachingAssistantSchema, requireAuth: false, maxRequests: 50 },
+  { schema: coachingAssistantSchema, requireAuth: true, maxRequests: 50, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body }) => {
     const data = body as z.infer<typeof coachingAssistantSchema>;
 

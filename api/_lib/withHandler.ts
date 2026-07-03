@@ -15,6 +15,58 @@ import { checkRateLimit, getClientIP, rateLimitHeaders } from "./rateLimit";
 import { successResponse, errorResponse, corsPreflightResponse } from "./apiResponse";
 import { verifyAuth } from "./auth";
 
+// ── Admin allowlist (mirrors frontend usePlan ADMIN_EMAILS) ────────────────
+// Los admins/owners omiten los checks de plan server-side, igual que en el cliente.
+const ADMIN_EMAILS = new Set(
+  `${process.env.ADMIN_EMAILS ?? process.env.VITE_ADMIN_EMAILS ?? ""}`
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .concat("fredparedes58@gmail.com"),
+);
+
+/**
+ * Comparación en tiempo constante (mitiga timing side-channels al validar secretos).
+ * Recorre siempre la longitud máxima y no cortocircuita.
+ */
+function constantTimeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aB = enc.encode(a);
+  const bB = enc.encode(b);
+  let diff = aB.length ^ bB.length;
+  const len = Math.max(aB.length, bB.length);
+  for (let i = 0; i < len; i++) {
+    diff |= (aB[i] ?? 0) ^ (bB[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+/**
+ * Comprueba si el Authorization header trae un token de servicio válido
+ * (llamada interna del orchestrator, cron, o herramienta admin).
+ * Usa comparación en tiempo constante para no filtrar el secreto por timing.
+ * (Preserva el comportamiento previo de serviceOnly: acepta CRON_SECRET /
+ *  ADMIN_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY.)
+ */
+function hasValidServiceToken(req: Request): boolean {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return false;
+  const token = authHeader.slice(7).trim();
+  if (!token) return false;
+  const secrets = [
+    process.env.CRON_SECRET,
+    process.env.ADMIN_SECRET,
+    process.env.INTERNAL_API_TOKEN,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+  ].filter((s): s is string => Boolean(s));
+  // No cortocircuitar: evaluamos todos los candidatos para no filtrar cuál coincide.
+  let matched = false;
+  for (const s of secrets) {
+    if (constantTimeEqual(token, s)) matched = true;
+  }
+  return matched;
+}
+
 interface HandlerOptions<T extends z.ZodSchema | undefined> {
   /** HTTP method(s) permitidos. Default: "POST" */
   method?: string | string[];
@@ -36,6 +88,13 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
   requiredPlan?: string;
   /** Required user role (from user_profiles.user_type). Returns 403 if mismatch. */
   requiredRole?: string;
+  /**
+   * Permite que una llamada interna con token de servicio
+   * (CRON_SECRET / ADMIN_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY)
+   * pase la puerta de auth y omita los checks de plan/rol.
+   * Úsalo en agentes premium que TAMBIÉN llama el orchestrator/cron server-to-server.
+   */
+  allowServiceToken?: boolean;
 }
 
 type InferBody<T> = T extends z.ZodSchema ? z.infer<T> : unknown;
@@ -90,38 +149,55 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
 
     // 4. Auth check
     let userId: string | null = null;
+    let userEmail: string | null = null;
+    let isServiceCall = false;
+
+    const serviceTokenValid = hasValidServiceToken(req);
 
     if (options.serviceOnly) {
-      const authHeader = req.headers.get("Authorization") ?? "";
-      const cronSecret = process.env.CRON_SECRET;
-      const adminSecret = process.env.ADMIN_SECRET;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const token = authHeader.replace("Bearer ", "");
-
-      const isValid =
-        (cronSecret && token === cronSecret) ||
-        (adminSecret && token === adminSecret) ||
-        (serviceKey && token === serviceKey);
-
-      if (!isValid) {
+      if (!serviceTokenValid) {
         return errorResponse("Acceso denegado: se requiere service role", 403, "FORBIDDEN", rateLimitHeaders(rl));
       }
+      isServiceCall = true;
+    } else if (options.allowServiceToken && serviceTokenValid) {
+      // Llamada interna de confianza (orchestrator / cron) — omite auth de usuario y plan/rol.
+      isServiceCall = true;
     } else if (options.requireAuth) {
       const auth = await verifyAuth(req);
       if (!auth.userId) {
         return errorResponse(auth.error ?? "No autenticado", 401, "UNAUTHORIZED", rateLimitHeaders(rl));
       }
       userId = auth.userId;
+      userEmail = auth.email;
     } else if (options.optionalAuth) {
       const auth = await verifyAuth(req);
       userId = auth.userId; // puede ser null, y eso esta bien
+      userEmail = auth.email;
     }
 
-    // 4b. Plan & Role checks
-    if (userId && (options.requiredPlan || options.requiredRole)) {
-      const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-      const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      if (sbUrl && sbKey) {
+    // 4a-bis. Fail-closed: si el endpoint exige plan/rol pero no hay ni llamada de
+    // servicio ni usuario autenticado (p.ej. configurado solo con optionalAuth),
+    // NO servimos la feature premium — rechazamos en vez de dejar pasar silenciosamente.
+    if (!isServiceCall && !userId && (options.requiredPlan || options.requiredRole)) {
+      return errorResponse("No autenticado", 401, "UNAUTHORIZED", rateLimitHeaders(rl));
+    }
+
+    // 4b. Plan & Role checks (se omiten para llamadas de servicio y para admins)
+    if (!isServiceCall && userId && (options.requiredPlan || options.requiredRole)) {
+      const isAdmin = userEmail ? ADMIN_EMAILS.has(userEmail.toLowerCase()) : false;
+
+      if (!isAdmin) {
+        const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+        const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        // Sin Supabase no podemos verificar el plan de una feature premium → fail-closed.
+        if (!sbUrl || !sbKey) {
+          return errorResponse(
+            "Verificación de plan no disponible. Contacte al administrador.",
+            503, "PLAN_CHECK_UNAVAILABLE", rateLimitHeaders(rl),
+          );
+        }
+
         const sbHeaders = { apikey: sbKey, Authorization: `Bearer ${sbKey}` };
 
         if (options.requiredPlan) {
@@ -130,16 +206,19 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
               `${sbUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=plan,status`,
               { headers: sbHeaders }
             );
-            if (planRes.ok) {
-              const rows = await planRes.json() as Array<{ plan: string; status: string }>;
-              const active = rows.find(r => r.status === "active" || r.status === "trialing");
-              const allowed = options.requiredPlan.split(",").map(p => p.trim());
-              if (!active || !allowed.includes(active.plan)) {
-                return errorResponse(
-                  `Plan requerido: ${options.requiredPlan}`,
-                  403, "PLAN_REQUIRED", rateLimitHeaders(rl)
-                );
-              }
+            // No-ok (tabla/permiso/red) → fail-closed: NO servimos la feature de pago.
+            if (!planRes.ok) {
+              console.error(`[withHandler] Plan query non-ok (${planRes.status}) — blocking for safety`);
+              return errorResponse("No se pudo verificar el plan. Intenta de nuevo.", 503, "PLAN_CHECK_FAILED", rateLimitHeaders(rl));
+            }
+            const rows = await planRes.json() as Array<{ plan: string; status: string }>;
+            const active = rows.find(r => r.status === "active" || r.status === "trialing");
+            const allowed = options.requiredPlan.split(",").map(p => p.trim());
+            if (!active || !allowed.includes(active.plan)) {
+              return errorResponse(
+                `Plan requerido: ${options.requiredPlan}`,
+                403, "PLAN_REQUIRED", rateLimitHeaders(rl)
+              );
             }
           } catch (planErr) {
             console.error("[withHandler] Plan check failed — blocking request for safety:", planErr);
@@ -153,15 +232,17 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
               `${sbUrl}/rest/v1/user_profiles?user_id=eq.${userId}&select=user_type`,
               { headers: sbHeaders }
             );
-            if (roleRes.ok) {
-              const rows = await roleRes.json() as Array<{ user_type: string }>;
-              const allowed = options.requiredRole.split(",").map(r => r.trim());
-              if (rows.length === 0 || !allowed.includes(rows[0].user_type)) {
-                return errorResponse(
-                  `Rol requerido: ${options.requiredRole}`,
-                  403, "ROLE_REQUIRED", rateLimitHeaders(rl)
-                );
-              }
+            if (!roleRes.ok) {
+              console.error(`[withHandler] Role query non-ok (${roleRes.status}) — blocking for safety`);
+              return errorResponse("No se pudo verificar el rol. Intenta de nuevo.", 503, "ROLE_CHECK_FAILED", rateLimitHeaders(rl));
+            }
+            const rows = await roleRes.json() as Array<{ user_type: string }>;
+            const allowed = options.requiredRole.split(",").map(r => r.trim());
+            if (rows.length === 0 || !allowed.includes(rows[0].user_type)) {
+              return errorResponse(
+                `Rol requerido: ${options.requiredRole}`,
+                403, "ROLE_REQUIRED", rateLimitHeaders(rl)
+              );
             }
           } catch (roleErr) {
             console.error("[withHandler] Role check failed — blocking request for safety:", roleErr);

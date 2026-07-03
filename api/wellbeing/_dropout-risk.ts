@@ -20,7 +20,7 @@ const dropoutRiskQuerySchema = z.object({
 });
 
 export default withHandler(
-  { method: "GET", requireAuth: false, maxRequests: 60 },
+  { method: "GET", requireAuth: true, maxRequests: 60, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ query }) => {
     const parsed = dropoutRiskQuerySchema.safeParse(query);
     if (!parsed.success) {

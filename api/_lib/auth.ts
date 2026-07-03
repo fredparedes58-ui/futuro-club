@@ -9,6 +9,8 @@
 
 export interface AuthResult {
   userId: string | null;
+  /** User email (from JWT `email` claim or Supabase user record). Used for admin allowlist. */
+  email: string | null;
   error: string | null;
 }
 
@@ -19,14 +21,14 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get("Authorization") ?? "";
 
   if (!authHeader.startsWith("Bearer ")) {
-    return { userId: null, error: "No autenticado" };
+    return { userId: null, email: null, error: "No autenticado" };
   }
 
   const token = authHeader.slice(7);
   const parts = token.split(".");
 
   if (parts.length !== 3) {
-    return { userId: null, error: "Token inválido" };
+    return { userId: null, email: null, error: "Token inválido" };
   }
 
   // ── Strategy 1: Local HMAC-SHA256 verification ──────────────────────────
@@ -35,10 +37,11 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
     try {
       const payload = JSON.parse(atob(parts[1]));
       const userId = payload.sub ?? null;
-      if (!userId) return { userId: null, error: "Token sin subject" };
+      const email = (payload.email as string | undefined) ?? null;
+      if (!userId) return { userId: null, email: null, error: "Token sin subject" };
 
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        return { userId: null, error: "Token expirado" };
+        return { userId: null, email: null, error: "Token expirado" };
       }
 
       const encoder = new TextEncoder();
@@ -59,9 +62,9 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
         console.warn("[auth] HMAC mismatch — trying Supabase API fallback");
       } else {
         if (payload.iss && !payload.iss.includes("supabase")) {
-          return { userId: null, error: "Emisor no reconocido" };
+          return { userId: null, email: null, error: "Emisor no reconocido" };
         }
-        return { userId, error: null };
+        return { userId, email, error: null };
       }
     } catch {
       // Decode/verify failed — fall through
@@ -83,9 +86,9 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
       });
 
       if (res.ok) {
-        const user = (await res.json()) as { id?: string };
+        const user = (await res.json()) as { id?: string; email?: string };
         if (user.id) {
-          return { userId: user.id, error: null };
+          return { userId: user.id, email: user.email ?? null, error: null };
         }
       }
 
@@ -95,7 +98,7 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
         try { return (JSON.parse(errBody) as { msg?: string; message?: string }).msg ?? (JSON.parse(errBody) as { message?: string }).message ?? `HTTP ${res.status}`; }
         catch { return `HTTP ${res.status}`; }
       })();
-      return { userId: null, error: `Token rechazado: ${errMsg}` };
+      return { userId: null, email: null, error: `Token rechazado: ${errMsg}` };
     } catch (fetchErr) {
       console.warn("[auth] Supabase API fallback failed:", fetchErr);
       // Network error — fall through to Strategy 3
@@ -106,5 +109,5 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
   // In production, SUPABASE_JWT_SECRET or SUPABASE_URL must be configured.
   // We never accept tokens without signature verification.
   console.error("[auth] CRITICAL: No JWT_SECRET and no Supabase API available — cannot verify tokens");
-  return { userId: null, error: "Servidor no puede verificar autenticación. Contacte al administrador." };
+  return { userId: null, email: null, error: "Servidor no puede verificar autenticación. Contacte al administrador." };
 }

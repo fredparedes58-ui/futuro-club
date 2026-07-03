@@ -62,7 +62,7 @@ Responde como JSON:
 }`;
 
 export default withHandler(
-  { schema: inputSchema, requireAuth: false, maxRequests: 100 },
+  { schema: inputSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },
   async ({ body }) => {
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 

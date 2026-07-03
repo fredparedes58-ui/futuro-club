@@ -23,6 +23,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import { IDPService } from "@/services/real/idpService";
 import {
   computeSummary,
@@ -113,7 +114,7 @@ export function useGenerateIDP() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/generate-plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {
@@ -150,7 +151,7 @@ export function useApproveIDP() {
     mutationFn: async ({ planId, coachId, playerId: _playerId }) => {
       const res = await fetch(`${apiBase}/approve-plan`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ planId, coachId }),
       });
       if (!res.ok) {
@@ -210,7 +211,7 @@ export function useUpdateIDPGoal() {
       // Server sync
       const res = await fetch(`${apiBase}/update-goal`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ goalId, ...changes }),
       });
       if (!res.ok) {
@@ -259,7 +260,7 @@ export function useUpdateIDPMilestone() {
 
       const res = await fetch(`${apiBase}/update-milestone`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({ milestoneId, status, evidence }),
       });
       if (!res.ok) {
@@ -312,7 +313,7 @@ export function useIDPCheckin() {
 
       const res = await fetch(`${apiBase}/checkin`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(payload),
       });
       if (!res.ok) {

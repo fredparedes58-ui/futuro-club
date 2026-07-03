@@ -218,7 +218,7 @@ function generateRecommendations(
 // ── Main handler ────────────────────────────────────────────────────────────
 
 export default withHandler(
-  { schema: injuryRiskSchema, requireAuth: false, maxRequests: 200 },
+  { schema: injuryRiskSchema, requireAuth: true, maxRequests: 200, allowServiceToken: true, requiredPlan: "pro,club" },
   async ({ body }) => {
     const input = body as z.infer<typeof injuryRiskSchema>;
 
