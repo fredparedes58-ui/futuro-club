@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleProfileData, getConfidenceLabel, getConfidenceColor } from "@/lib/roleProfileData";
 import { Brain, Crosshair, Zap } from "lucide-react";
 import type { RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
+import { MetricWithInterval } from "@/components/MetricWithInterval";
 
 interface Props {
   data: RoleProfileData;
@@ -55,7 +56,11 @@ export default function CapabilityCards({ data, filters }: Props) {
               <div>
                 <div className="flex items-baseline justify-between mb-1">
                   <span className="text-xs text-muted-foreground">Actual</span>
-                  <span className="text-2xl font-display font-bold">{current[key].toFixed(1)}</span>
+                  <MetricWithInterval
+                    value={current[key]}
+                    input={{ reliability: conf, metricType: key, dataSource: "ai" }}
+                    valueClassName="text-2xl"
+                  />
                 </div>
                 <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                   <div className="h-full bg-primary rounded-full" style={{ width: `${current[key]}%` }} />
