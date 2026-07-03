@@ -185,9 +185,10 @@ const App = () => (
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/share/analysis/:analysisId" element={<SharedAnalysisPage />} />
 
-                {/* ── Root redirect → login (no public landing) ────── */}
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                <Route path="/welcome" element={<Navigate to="/login" replace />} />
+                {/* ── Landing pública (visitante frío ve la propuesta de valor). ──
+                    PublicLanding auto-redirige a /pulse si ya hay sesión. ── */}
+                <Route path="/" element={<PublicLanding />} />
+                <Route path="/welcome" element={<Navigate to="/" replace />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
                 <Route path="/onboarding" element={<P><OnboardingPage /></P>} />

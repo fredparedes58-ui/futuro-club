@@ -6,9 +6,10 @@
 
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Share2, Loader2, Zap, Star } from "lucide-react";
+import { Download, Share2, Loader2, Zap, Star, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 
@@ -126,15 +127,15 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
     }
   };
 
+  const shareText = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? ` | juega como ${cloneName} (${cloneScore?.toFixed(0)}%)` : ""} — descúbrelo con VITAS`;
+
   const handleShare = async () => {
-    const text = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? ` | Se parece a ${cloneName} (${cloneScore?.toFixed(0)}%)` : ""} — Generado con VITAS Football Intelligence`;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Texto copiado al portapapeles");
-    } catch {
-      toast.error("No se pudo copiar");
-    }
+    const r = await shareNative({ title: "Mi VITAS Card", text: shareText, ref: "vitas-card" });
+    if (r === "copied") toast.success("Texto + enlace copiados");
+    else if (r === "failed") toast.error("No se pudo compartir");
   };
+
+  const handleWhatsApp = () => shareToWhatsApp(shareText, "vitas-card");
 
   return (
     <div className="space-y-4">
@@ -142,7 +143,10 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleExport} disabled={exporting}>
           {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          Exportar PNG
+          PNG
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleWhatsApp}>
+          <MessageCircle size={14} className="text-emerald-500" /> WhatsApp
         </Button>
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleShare}>
           <Share2 size={14} /> Compartir
@@ -273,10 +277,10 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
         {/* Footer */}
         <div className="px-5 pb-4 flex items-center justify-between">
           <span className="text-[8px] font-mono text-white/20">
-            Generado con VITAS · Football Intelligence
+            VITAS · {new Date().toLocaleDateString("es-ES")}
           </span>
-          <span className="text-[8px] font-mono text-white/20">
-            {new Date().toLocaleDateString("es-ES")}
+          <span className="text-[9px] font-mono font-bold text-indigo-400">
+            ⚡ Descubre el tuyo → futuro-club.vercel.app
           </span>
         </div>
       </motion.div>

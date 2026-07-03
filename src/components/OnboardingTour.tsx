@@ -13,13 +13,13 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ChevronLeft, ChevronRight, Activity, Swords, Grid3x3, Sparkles,
-  Search, Brain, Trophy,
+  Search, Brain, Trophy, Target, Briefcase,
 } from "lucide-react";
 
 const SEEN_KEY = "vitas_onboarding_seen_v1";
 
 interface Slide {
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   color: string;
   title: string;
   description: string;
@@ -53,6 +53,27 @@ const SLIDES: Slide[] = [
     title: "Análisis táctico de equipo",
     description: "5 reportes IA + grid de 9 cuadrantes con eficacia ofensiva/defensiva por zona del campo. Sin necesidad de vídeo.",
     cta: { label: "Ver demo", to: "/equipo/baseline" },
+  },
+  {
+    Icon: Target,
+    color: "#06b6d4",
+    title: "Plan de Desarrollo (IDP)",
+    description: "Cada jugador tiene un plan mensual con objetivos por dimensión y drills, propuesto por IA y ajustado por el coach. Seguimiento semanal + check-in a fin de mes.",
+    cta: { label: "Ver IDP", to: "/idp" },
+  },
+  {
+    Icon: Brain,
+    color: "#a855f7",
+    title: "ADN Mental + Heatmap táctico",
+    description: "Perfil mental por 7 dimensiones (6 arquetipos) y heatmap táctico por 6 fases del juego. Comparte el ADN Mental de tu jugador como una card.",
+    cta: { label: "Ver Mental", to: "/behavioral" },
+  },
+  {
+    Icon: Briefcase,
+    color: "#0ea5e9",
+    title: "Transfer Market",
+    description: "Publica jugadores y encuentra fichajes con matchmaking IA. El marketplace de talento juvenil con corrección PHV.",
+    cta: { label: "Ver mercado", to: "/transfer" },
   },
   {
     Icon: Search,

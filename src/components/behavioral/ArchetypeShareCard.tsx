@@ -7,10 +7,11 @@
  */
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, Share2, Loader2 } from "lucide-react";
+import { Download, Share2, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ARCHETYPE_META, type Archetype } from "@/lib/behavioral/archetypeMeta";
+import { shareToWhatsApp, shareNative } from "@/lib/share";
 
 export interface ArchetypeShareDimensions {
   decisionSpeed: number;
@@ -83,22 +84,25 @@ export function ArchetypeShareCard({
     }
   };
 
+  const shareText = `${m.emoji} ${playerName} es un ${m.label} — "${m.tagline}" · ADN Mental ${mentalComposite}/100 · descúbrelo con VITAS`;
+
   const handleShare = async () => {
-    const text = `${m.emoji} ${playerName} es un ${m.label} — "${m.tagline}" · ADN Mental ${mentalComposite}/100 · Generado con VITAS Football Intelligence`;
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Texto copiado al portapapeles");
-    } catch {
-      toast.error("No se pudo copiar");
-    }
+    const r = await shareNative({ title: "ADN Mental · VITAS", text: shareText, ref: "archetype-card" });
+    if (r === "copied") toast.success("Texto + enlace copiados");
+    else if (r === "failed") toast.error("No se pudo compartir");
   };
+
+  const handleWhatsApp = () => shareToWhatsApp(shareText, "archetype-card");
 
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleExport} disabled={exporting}>
           {exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-          Exportar PNG
+          PNG
+        </Button>
+        <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleWhatsApp}>
+          <MessageCircle size={14} className="text-emerald-500" /> WhatsApp
         </Button>
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleShare}>
           <Share2 size={14} /> Compartir
@@ -191,9 +195,11 @@ export function ArchetypeShareCard({
         {/* Footer / marca de agua */}
         <div className="px-5 pb-4 flex items-center justify-between">
           <span className="text-[8px] font-mono text-white/25">
-            {confidence != null ? `Confianza ${Math.round(confidence * 100)}% · ` : ""}Generado con VITAS
+            {confidence != null ? `Confianza ${Math.round(confidence * 100)}%` : "VITAS"}
           </span>
-          <span className="text-[8px] font-mono text-white/25">futuro-club.vercel.app</span>
+          <span className="text-[9px] font-mono font-bold" style={{ color: m.color }}>
+            ⚡ Descubre el tuyo → futuro-club.vercel.app
+          </span>
         </div>
       </motion.div>
     </div>

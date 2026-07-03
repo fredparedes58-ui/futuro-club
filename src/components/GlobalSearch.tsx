@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/command";
 import {
   Users, Activity, Swords, Grid3x3, Zap, BarChart3, Target,
-  Sparkles, Trophy, FileText, Search, Heart,
+  Sparkles, Trophy, FileText, Search, Heart, Briefcase, Brain, Eye,
 } from "lucide-react";
 import { useAllPlayers } from "@/hooks/usePlayers";
 
@@ -32,7 +32,7 @@ interface QuickAction {
   id: string;
   label: string;
   hint: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   to: string;
   keywords?: string[];
 }
@@ -46,6 +46,12 @@ const QUICK_ACTIONS: QuickAction[] = [
   { id: "scout",      label: "Scout",              hint: "Insights IA tiempo real",   Icon: Target,   to: "/scout",           keywords: ["scout","insights","feed"] },
   { id: "pulse",      label: "Pulse",              hint: "Centro de inteligencia",    Icon: Sparkles, to: "/pulse",           keywords: ["dashboard","home","inicio"] },
   { id: "team-mgmt",  label: "Mi equipo",          hint: "Miembros + invitaciones",   Icon: Users,    to: "/equipo",          keywords: ["miembros","equipo","gestion"] },
+  { id: "idp",        label: "Plan IDP",           hint: "Plan de desarrollo mensual", Icon: Target,  to: "/idp",             keywords: ["idp","plan","desarrollo","objetivos","goals","metas"] },
+  { id: "tactical",   label: "Heatmap táctico",    hint: "6 fases + insights IA",     Icon: Activity, to: "/tactical",        keywords: ["tactico","heatmap","fases","calor","mapa"] },
+  { id: "transfer",   label: "Transfer Market",    hint: "Marketplace + matchmaking IA", Icon: Briefcase, to: "/transfer",     keywords: ["transfer","fichaje","mercado","marketplace","cesion"] },
+  { id: "mental",     label: "ADN Mental",         hint: "Perfil mental · 7 dimensiones", Icon: Brain, to: "/behavioral",      keywords: ["mental","arquetipo","adn","comportamiento","psicologia"] },
+  { id: "wellbeing",  label: "Bienestar",          hint: "Riesgo de abandono · engagement", Icon: Heart, to: "/wellbeing",    keywords: ["bienestar","retencion","abandono","dropout","engagement"] },
+  { id: "scanning",   label: "Scanning IQ",        hint: "Escaneo previo a recepción", Icon: Eye,     to: "/scanning",        keywords: ["scanning","escaneo","scan","vision","cabeza"] },
 ];
 
 export default function GlobalSearch() {

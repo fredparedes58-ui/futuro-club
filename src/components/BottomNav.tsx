@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useSupabaseSync } from "@/hooks/useSupabaseSync";
 import { usePlan } from "@/hooks/usePlan";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const BASE_NAV = [
   { path: "/pulse",    icon: Activity,      label: "nav.pulse" },
@@ -305,6 +306,12 @@ const BottomNav = () => {
                 {!configured && (
                   <p className="text-[9px] text-gold mt-0.5">{t("auth.login.offlineMode")}</p>
                 )}
+              </div>
+
+              {/* Idioma (Sprint 4.1) */}
+              <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground font-display">Idioma</span>
+                <LanguageSwitcher />
               </div>
 
               {/* Actions */}
