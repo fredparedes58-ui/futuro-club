@@ -352,7 +352,7 @@ const BottomNav = () => {
       </AnimatePresence>
 
       {/* Nav bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{
+      <nav aria-label="Navegación principal" className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom" style={{
         background: "linear-gradient(180deg, hsl(0 0% 100% / 0.95), hsl(0 0% 100% / 0.98))",
         backdropFilter: "blur(24px)",
         borderTop: "1px solid hsl(214 32% 88%)",
@@ -372,6 +372,8 @@ const BottomNav = () => {
               <button
                 key={navItem.path}
                 onClick={() => navigate(navItem.path)}
+                aria-label={t(navItem.label)}
+                aria-current={isActive ? "page" : undefined}
                 className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
               >
                 <div className="relative">
@@ -413,6 +415,9 @@ const BottomNav = () => {
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
             title="Más secciones"
+            aria-label="Más secciones"
+            aria-haspopup="menu"
+            aria-expanded={showMoreMenu}
           >
             <div className="relative">
               <LayoutGrid
@@ -483,6 +488,9 @@ const BottomNav = () => {
           {/* Avatar de usuario */}
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
+            aria-label="Menú de usuario"
+            aria-haspopup="menu"
+            aria-expanded={showUserMenu}
             className="relative flex flex-col items-center gap-0.5 px-2 py-1 transition-colors"
           >
             <div

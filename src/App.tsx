@@ -161,9 +161,17 @@ const App = () => (
           <AuthProvider>
             <SyncProvider>
             <SyncManager />
+            {/* A11y (Sprint 3.4): salto al contenido para navegación por teclado/lector */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-display focus:text-sm focus:shadow-lg"
+            >
+              Saltar al contenido
+            </a>
             <OfflineBanner />
             <CookieConsent />
             <AcceptTermsGate>
+            <main id="main-content" tabIndex={-1}>
             <ErrorBoundary>
               <Suspense fallback={<LazyFallback />}>
               <Routes>
@@ -260,6 +268,7 @@ const App = () => (
               </Routes>
               </Suspense>
             </ErrorBoundary>
+            </main>
             </AcceptTermsGate>
             <BottomNav />
             <GlobalSearch />
