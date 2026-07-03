@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Shield, AlertTriangle, CheckCircle2, Info,
-  BarChart3, Users, Calendar, Eye, Clock, RefreshCw, Loader2,
+  BarChart3, Users, Calendar, Eye, Clock, RefreshCw, Loader2, Download,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -22,6 +22,8 @@ import {
 } from "recharts";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { BiasEquityReport } from "@/components/bias/BiasEquityReport";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -120,6 +122,7 @@ async function fetchRecency(): Promise<RecencyRow[]> {
 export default function BiasAuditDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<"overview" | "position" | "age" | "visibility" | "recency">("overview");
 
   const { data: dashboard, isLoading: loadingDash, refetch: refetchDash } = useQuery({
@@ -170,10 +173,11 @@ export default function BiasAuditDashboard() {
   ];
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-background pb-24"
+      className="min-h-screen bg-background pb-24 print:hidden"
     >
       {/* Header */}
       <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/40">
@@ -186,8 +190,19 @@ export default function BiasAuditDashboard() {
             Auditoría de Sesgo IA
           </h1>
           <button
+            onClick={() => window.print()}
+            disabled={isLoading || !dashboard}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40 text-xs font-display font-semibold"
+            title="Exportar informe de equidad (PDF)"
+            aria-label="Exportar informe de equidad en PDF"
+          >
+            <Download size={14} />
+            <span className="hidden sm:inline">Exportar PDF</span>
+          </button>
+          <button
             onClick={() => refetchDash()}
             className="p-2 rounded-xl hover:bg-muted/50 transition-colors"
+            aria-label="Actualizar datos"
           >
             <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
           </button>
@@ -520,5 +535,18 @@ export default function BiasAuditDashboard() {
         )}
       </div>
     </motion.div>
+
+    {/* Informe de equidad imprimible (Sprint 3.2) — solo visible en @media print */}
+    <div className="hidden print:block">
+      <BiasEquityReport
+        dashboard={dashboard ?? []}
+        visibility={visibility ?? []}
+        recency={recency ?? []}
+        orgName={profile?.organizationName}
+        generatedBy={user?.email ?? undefined}
+        generatedAt={new Date().toISOString()}
+      />
+    </div>
+    </>
   );
 }
