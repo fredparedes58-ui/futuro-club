@@ -2,7 +2,12 @@
  * VITAS · Cron Worker · Process Analyses Queue (v2 · Gemini)
  * Vercel Cron: GET /api/crons/process-analyses-queue
  *
- * v2: Reemplaza Modal GPU (no desplegado) con Gemini video-observation.
+ * DECISIÓN Gemini vs Modal (Sprint 0.9): el ANÁLISIS de vídeo de este worker usa
+ * Gemini video-observation (más barato/rápido para observación estructurada, sin
+ * GPU). Modal (MODAL_TRACK_URL) queda reservado para el TRACKING de jugadores/balón
+ * del heatmap táctico y set-pieces (api/coaching/_track-players.ts,
+ * api/tactical/_compute-from-video.ts) — no lo usa este worker.
+ *
  * Gemini analiza el video completo y devuelve observaciones estructuradas.
  * Luego dispara pipeline-orchestrator para los 6 reportes Claude.
  *

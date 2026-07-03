@@ -21,7 +21,7 @@
 7. [Servicios deterministas (59 servicios)](#7-servicios-deterministas-59-servicios)
 8. [Hooks (42)](#8-hooks-42)
 9. [RAG Knowledge Base](#9-rag-knowledge-base)
-10. [Base de datos (54 migraciones)](#10-base-de-datos-54-migraciones)
+10. [Base de datos (57 migraciones)](#10-base-de-datos-57-migraciones)
 11. [Páginas y rutas (62 pages)](#11-páginas-y-rutas-62-pages)
 12. [Backlog completo](#12-backlog-completo)
 13. [Roadmap](#13-roadmap)
@@ -603,7 +603,7 @@ El **Telegram Coach Copilot** (`api/telegram/webhook.ts`, 916 LOC) es de facto e
 
 ---
 
-## 10. Base de datos (54 migraciones)
+## 10. Base de datos (57 migraciones)
 
 > Vive en `supabase/migrations/*.sql`. Aplicar con `supabase db push`.
 
@@ -1102,7 +1102,7 @@ con loop viral de adquisición (VITAS Card compartida en WhatsApp del equipo
 
 | # | Tarea | Quién | Tiempo |
 |---|---|---|---|
-| 0.1 | Crear proyecto Supabase + aplicar 54 migraciones + verificar RLS | Pedro + Claude | 90-120 min |
+| 0.1 | Crear proyecto Supabase + aplicar 57 migraciones + verificar RLS | Pedro + Claude | 90-120 min |
 | 0.2 | Env vars Supabase en Vercel (URL, ANON, SERVICE_ROLE, JWT) | Pedro | 10 min |
 | 0.3 | Bunny Stream: library + env vars | Pedro | 10 min |
 | 0.4 | `TELEGRAM_BOT_TOKEN` + `WEBHOOK_SECRET` + `setWebhook` script | Pedro + Claude | 5 min |
@@ -1272,7 +1272,7 @@ con loop viral de adquisición (VITAS Card compartida en WhatsApp del equipo
 
 | Riesgo | Prob. | Mitigación |
 |---|---|---|
-| Las 54 migraciones no aplican limpias en Supabase nuevo | Media | Sprint 0.1 con Claude en vivo; orden de migraciones ya versionado |
+| Las 57 migraciones no aplican limpias en Supabase nuevo | Media | Sprint 0.1 con Claude en vivo; orden de migraciones ya versionado |
 | Piloto de academias no arranca → modelos sin calibrar | Media | Los % competitivos de Tier 1 no dependen del piloto; solo la *validación* |
 | HUMAIN cierra acceso a exports de aiScout | Alta | La ingestión (Tier 0) es táctica, nunca fue el foso; PHV+táctica no dependen de ellos |
 | Costes IA al escalar usuarios | Baja | Spend caps (Sprint 0.6) + prompt caching + Haiku en agentes de volumen |
@@ -1522,7 +1522,7 @@ Para mantener Notion siempre sincronizado con tu repo:
 | Bloqueo | Severidad | Bloquea | Acción para desbloquear |
 |---|---|---|---|
 | Bunny credentials no en Vercel | 🟡 medio | Upload de video real (cae a fallback localStorage) | 10 min: dashboard Bunny → copiar Library ID + API Key → `vercel env add` |
-| Supabase no configurado | 🟠 alto | Multi-device, auth real, billing real, RLS | 90-120 min: crear proyecto → correr 54 migraciones → env vars en Vercel |
+| Supabase no configurado | 🟠 alto | Multi-device, auth real, billing real, RLS | 90-120 min: crear proyecto → correr 57 migraciones → env vars en Vercel |
 | Modal spend cap no fijado | 🟡 medio | Riesgo de runaway costs si bug en pipeline | 1 min: https://modal.com/settings/billing → hard limit `$50/mo` |
 | Stripe keys no configuradas | 🟡 medio | Billing UI funciona en modo demo | 15 min: crear products + webhook → env vars |
 | Resend API key | 🟢 bajo | Emails de consent reminders RGPD | 10 min: signup Resend → API key → env var |
