@@ -30,25 +30,26 @@ import {
   Sparkles, FileText, Heart, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useAllPlayers, useCreatePlayer } from "@/hooks/usePlayers";
 
 const DONE_KEY = "vitas_first_run_done_v1";
 const TOUR_KEY = "vitas_onboarding_seen_v1";
 
 const POSITIONS = [
-  { value: "Portero", emoji: "🥅" },
-  { value: "Defensa Central", emoji: "🛡️" },
-  { value: "Lateral Derecho", emoji: "↗️" },
-  { value: "Lateral Izquierdo", emoji: "↖️" },
-  { value: "Mediocentro", emoji: "⚙️" },
-  { value: "Extremo", emoji: "⚡" },
-  { value: "Delantero", emoji: "🎯" },
+  { value: "Portero", labelKey: "firstRun.posGoalkeeper", emoji: "🥅" },
+  { value: "Defensa Central", labelKey: "firstRun.posCenterBack", emoji: "🛡️" },
+  { value: "Lateral Derecho", labelKey: "firstRun.posRightBack", emoji: "↗️" },
+  { value: "Lateral Izquierdo", labelKey: "firstRun.posLeftBack", emoji: "↖️" },
+  { value: "Mediocentro", labelKey: "firstRun.posMidfielder", emoji: "⚙️" },
+  { value: "Extremo", labelKey: "firstRun.posWinger", emoji: "⚡" },
+  { value: "Delantero", labelKey: "firstRun.posForward", emoji: "🎯" },
 ];
 
-const FOOT_OPTIONS: Array<{ value: "right" | "left" | "both"; label: string; emoji: string }> = [
-  { value: "right", label: "Diestro",     emoji: "🦵" },
-  { value: "left",  label: "Zurdo",       emoji: "🦵" },
-  { value: "both",  label: "Ambidiestro", emoji: "✨" },
+const FOOT_OPTIONS: Array<{ value: "right" | "left" | "both"; labelKey: string; emoji: string }> = [
+  { value: "right", labelKey: "firstRun.footRight",     emoji: "🦵" },
+  { value: "left",  labelKey: "firstRun.footLeft",      emoji: "🦵" },
+  { value: "both",  labelKey: "firstRun.footBoth",      emoji: "✨" },
 ];
 
 interface FormState {
@@ -86,6 +87,7 @@ function defaultsForAge(age: number) {
 }
 
 export default function FirstRunWizard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: players, isLoading } = useAllPlayers();
   const createPlayer = useCreatePlayer();
@@ -143,9 +145,9 @@ export default function FirstRunWizard() {
 
       setCreatedPlayerId(player.id);
       setStep(4);
-      toast.success(`¡${player.name} añadido!`);
+      toast.success(t("firstRun.playerAddedToast", { name: player.name }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error creando jugador");
+      toast.error(err instanceof Error ? err.message : t("firstRun.createError"));
     } finally {
       setSubmitting(false);
     }
@@ -154,15 +156,15 @@ export default function FirstRunWizard() {
   function handleNextStep() {
     if (step === 1) {
       if (!form.name.trim() || !form.age) {
-        toast.error("Necesito nombre y edad");
+        toast.error(t("firstRun.needNameAge"));
         return;
       }
       const age = Number(form.age);
-      if (age < 8 || age > 21) { toast.error("Edad entre 8 y 21"); return; }
+      if (age < 8 || age > 21) { toast.error(t("firstRun.ageRange")); return; }
       setStep(2);
     } else if (step === 2) {
-      if (!form.position) { toast.error("Elige una posición"); return; }
-      if (!form.foot)     { toast.error("Elige pie dominante"); return; }
+      if (!form.position) { toast.error(t("firstRun.choosePosition")); return; }
+      if (!form.foot)     { toast.error(t("firstRun.chooseFoot")); return; }
       setStep(3);
     } else if (step === 3) {
       void handleCreate(false);
@@ -211,8 +213,8 @@ export default function FirstRunWizard() {
             <button
               onClick={dismiss}
               className="absolute top-3 right-3 p-1.5 rounded-full bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Saltar configuración"
-              title="Configurar más tarde"
+              aria-label={t("firstRun.skipSetup")}
+              title={t("firstRun.setupLater")}
             >
               <X size={14} />
             </button>
@@ -240,20 +242,20 @@ export default function FirstRunWizard() {
                   <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/40 flex items-center justify-center mx-auto">
                     <User size={26} className="text-primary" />
                   </div>
-                  <h2 className="font-display font-bold text-lg text-foreground">Empecemos por lo básico</h2>
-                  <p className="text-xs text-muted-foreground">Solo 3 pasos · ~30 segundos</p>
+                  <h2 className="font-display font-bold text-lg text-foreground">{t("firstRun.step1Title")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("firstRun.step1Subtitle")}</p>
                 </div>
 
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Nombre del jugador
+                      {t("firstRun.playerNameLabel")}
                     </label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                      placeholder="ej. Samu"
+                      placeholder={t("firstRun.playerNamePlaceholder")}
                       autoFocus
                       maxLength={60}
                       className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-base text-foreground focus:border-primary focus:outline-none"
@@ -261,7 +263,7 @@ export default function FirstRunWizard() {
                   </div>
                   <div>
                     <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Edad (años)
+                      {t("firstRun.ageLabel")}
                     </label>
                     <input
                       type="number"
@@ -283,14 +285,14 @@ export default function FirstRunWizard() {
                   <div className="w-14 h-14 rounded-2xl bg-electric/20 border border-electric/40 flex items-center justify-center mx-auto">
                     <MapPin size={26} className="text-electric" />
                   </div>
-                  <h2 className="font-display font-bold text-lg text-foreground">¿En qué posición juega?</h2>
-                  <p className="text-xs text-muted-foreground">Y su pie dominante</p>
+                  <h2 className="font-display font-bold text-lg text-foreground">{t("firstRun.step2Title")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("firstRun.step2Subtitle")}</p>
                 </div>
 
                 <div className="space-y-3">
                   <div>
                     <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Posición
+                      {t("firstRun.positionLabel")}
                     </label>
                     <div className="grid grid-cols-2 gap-1.5">
                       {POSITIONS.map((p) => (
@@ -303,14 +305,14 @@ export default function FirstRunWizard() {
                               : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          {p.emoji} {p.value}
+                          {p.emoji} {t(p.labelKey)}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
                     <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                      Pie dominante
+                      {t("firstRun.dominantFootLabel")}
                     </label>
                     <div className="grid grid-cols-3 gap-1.5">
                       {FOOT_OPTIONS.map((opt) => (
@@ -323,7 +325,7 @@ export default function FirstRunWizard() {
                               : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          {opt.emoji} {opt.label}
+                          {opt.emoji} {t(opt.labelKey)}
                         </button>
                       ))}
                     </div>
@@ -339,41 +341,41 @@ export default function FirstRunWizard() {
                   <div className="w-14 h-14 rounded-2xl bg-gold/20 border border-gold/40 flex items-center justify-center mx-auto">
                     <Ruler size={26} className="text-gold" />
                   </div>
-                  <h2 className="font-display font-bold text-lg text-foreground">Medidas (opcional)</h2>
-                  <p className="text-xs text-muted-foreground">Puedes saltarlo · se añade después</p>
+                  <h2 className="font-display font-bold text-lg text-foreground">{t("firstRun.step3Title")}</h2>
+                  <p className="text-xs text-muted-foreground">{t("firstRun.step3Subtitle")}</p>
                 </div>
 
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Altura (cm)
+                        {t("firstRun.heightLabel")}
                       </label>
                       <input
                         type="number"
                         value={form.height}
                         onChange={(e) => setForm((f) => ({ ...f, height: e.target.value }))}
-                        placeholder="ej. 145"
+                        placeholder={t("firstRun.heightPlaceholder")}
                         min={100} max={220}
                         className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:outline-none"
                       />
                     </div>
                     <div>
                       <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
-                        Peso (kg)
+                        {t("firstRun.weightLabel")}
                       </label>
                       <input
                         type="number"
                         value={form.weight}
                         onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
-                        placeholder="ej. 38"
+                        placeholder={t("firstRun.weightPlaceholder")}
                         min={20} max={120}
                         className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:outline-none"
                       />
                     </div>
                   </div>
                   <div className="rounded-lg bg-electric/10 border border-electric/30 p-2.5 text-[11px] text-foreground leading-relaxed">
-                    💡 Estos datos desbloquean el cálculo <strong>PHV</strong> (edad biológica) que ajusta el VSI · si no los tienes ahora, los añades cuando midas.
+                    {t("firstRun.phvTipStart")} <strong>PHV</strong> {t("firstRun.phvTipEnd")}
                   </div>
                 </div>
               </motion.div>
@@ -391,10 +393,10 @@ export default function FirstRunWizard() {
                 </motion.div>
                 <div className="space-y-1">
                   <h2 className="font-display font-bold text-lg text-foreground">
-                    ¡{form.name} añadido!
+                    {t("firstRun.playerAddedTitle", { name: form.name })}
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    ¿Qué quieres hacer ahora?
+                    {t("firstRun.whatNext")}
                   </p>
                 </div>
 
@@ -408,11 +410,11 @@ export default function FirstRunWizard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-display font-bold text-foreground flex items-center gap-1.5">
-                        Generar primer informe
+                        {t("firstRun.generateReport")}
                         <Sparkles size={11} className="text-primary" />
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        6 reportes Claude en 25-40s · sube un vídeo para análisis real
+                        {t("firstRun.generateReportDesc")}
                       </div>
                     </div>
                     <span className="text-primary text-lg">→</span>
@@ -426,9 +428,9 @@ export default function FirstRunWizard() {
                       <Trophy size={16} className="text-electric" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-display font-bold text-foreground">Ver perfil completo</div>
+                      <div className="text-sm font-display font-bold text-foreground">{t("firstRun.viewProfile")}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        Antropometría, PHV, evolución
+                        {t("firstRun.viewProfileDesc")}
                       </div>
                     </div>
                     <span className="text-electric">→</span>
@@ -442,9 +444,9 @@ export default function FirstRunWizard() {
                       <Heart size={16} className="text-pink-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-display font-bold text-foreground">Vista para familia</div>
+                      <div className="text-sm font-display font-bold text-foreground">{t("firstRun.familyView")}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        Compartible con padre/madre por WhatsApp
+                        {t("firstRun.familyViewDesc")}
                       </div>
                     </div>
                     <span className="text-pink-400">→</span>
@@ -455,7 +457,7 @@ export default function FirstRunWizard() {
                   onClick={dismiss}
                   className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Más tarde · cierra esto
+                  {t("firstRun.laterClose")}
                 </button>
               </motion.div>
             )}
@@ -470,7 +472,7 @@ export default function FirstRunWizard() {
                   disabled={submitting}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
                 >
-                  <ChevronLeft size={12} /> Atrás
+                  <ChevronLeft size={12} /> {t("firstRun.back")}
                 </button>
               ) : <div />}
 
@@ -481,7 +483,7 @@ export default function FirstRunWizard() {
                     disabled={submitting}
                     className="px-3 py-2 text-xs font-display font-bold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    Saltar
+                    {t("firstRun.skip")}
                   </button>
                   <button
                     onClick={handleNextStep}
@@ -489,7 +491,7 @@ export default function FirstRunWizard() {
                     className="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {submitting ? <Loader2 size={12} className="animate-spin" /> : <Trophy size={12} />}
-                    Crear jugador
+                    {t("firstRun.createPlayer")}
                   </button>
                 </div>
               ) : (
@@ -497,7 +499,7 @@ export default function FirstRunWizard() {
                   onClick={handleNextStep}
                   className="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
                 >
-                  Siguiente <ChevronRight size={12} />
+                  {t("firstRun.next")} <ChevronRight size={12} />
                 </button>
               )}
             </div>

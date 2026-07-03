@@ -46,7 +46,6 @@
     "perMonth": "/month",
     "free": "Free"
   },
-
   "nav": {
     "pulse": "Pulse",
     "master": "Master",
@@ -64,7 +63,6 @@
     "me": "Me",
     "more": "More"
   },
-
   "moreMenu": {
     "title": "More sections",
     "subtitle": "Advanced analysis, planning and wellbeing",
@@ -91,7 +89,6 @@
       "transfer": "Transfer marketplace with AI matchmaking"
     }
   },
-
   "userMenu": {
     "language": "Language",
     "guide": "User guide",
@@ -99,7 +96,6 @@
     "menu": "User menu",
     "mainNav": "Main navigation"
   },
-
   "confidence": {
     "high": "High Confidence",
     "medium": "Medium Confidence",
@@ -115,7 +111,6 @@
     "factorNoPhv": "No PHV data (add measurements)",
     "factorMissingDims": "{{count}} dimensions without data"
   },
-
   "landing": {
     "heroDescription": "Sports intelligence platform for youth talent detection, evaluation, and projection.",
     "enter": "Enter the system",
@@ -126,7 +121,6 @@
     },
     "footer": "© 2026 VITAS Intelligence"
   },
-
   "auth": {
     "login": {
       "title": "Access your academy",
@@ -219,7 +213,6 @@
     },
     "captchaFailed": "Security verification failed. Please try again."
   },
-
   "dashboard": {
     "title": "VITAS.",
     "subtitle": "Intelligence Center",
@@ -254,7 +247,6 @@
       "cta": "Add player"
     }
   },
-
   "players": {
     "form": {
       "newTitle": "New Player",
@@ -436,7 +428,6 @@
       "percentileLabel": "Percentile in group"
     }
   },
-
   "scout": {
     "title": "ScoutFeed",
     "subtitleInsights": "AI Insights · Real time",
@@ -481,7 +472,6 @@
       "milestone": "MILESTONE"
     }
   },
-
   "lab": {
     "title": "VITAS.LAB",
     "pitchSetup": "Pitch Homography Setup",
@@ -545,7 +535,6 @@
     "presetAppliedDesc": "Adjust the points if needed.",
     "historial": "History"
   },
-
   "reports": {
     "title": "Reports and Videos",
     "videoCenter": "Video center",
@@ -574,7 +563,6 @@
     "selectPlayerFirst": "Select a player first",
     "deleteConfirm": "Delete {name}?"
   },
-
   "billing": {
     "title": "Plan.",
     "subtitle": "Subscription and usage",
@@ -606,7 +594,6 @@
       "cancelAnytime": "Cancel anytime · No commitment"
     }
   },
-
   "master": {
     "activePlayers": "Active Players",
     "hiddenTalents": "Hidden Talents",
@@ -631,7 +618,6 @@
     "expertDeskDesc": "Our biomechanics and scouting experts are available for detailed report reviews.",
     "contactExpert": "Contact Expert Desk"
   },
-
   "director": {
     "title": "Director.",
     "myOrg": "My organization",
@@ -659,7 +645,6 @@
     },
     "loadingAnalytics": "Loading analytics…"
   },
-
   "settings": {
     "title": "Settings.",
     "subtitle": "Platform settings",
@@ -699,7 +684,6 @@
     "signOut": "Sign out",
     "footer": "VITAS PLATFORM · BUILD 2.1.0 · © 2026 PROPHET HORIZON TECHNOLOGY"
   },
-
   "onboarding": {
     "welcome": "Welcome to VITAS.",
     "welcomeDesc": "The sports intelligence platform for scouts, coaches, and football academies.",
@@ -729,7 +713,6 @@
       "playerName": "E.g.: Lucas Moreno"
     }
   },
-
   "drill": {
     "title": "Solo Drill",
     "subtitle": "Individual training sessions",
@@ -784,7 +767,6 @@
       "avanzado": "advanced"
     }
   },
-
   "compare": {
     "needMinPlayers": "You need at least 2 players",
     "needMinDesc": "Add players in Rankings to compare.",
@@ -812,7 +794,6 @@
     "positionSpecificPhv": "Position-specific PHV",
     "weightedSimilarity": "Weighted similarity"
   },
-
   "intelligence": {
     "currentState": "Current State",
     "currentStateDesc": "Observational evaluation from video",
@@ -851,7 +832,6 @@
     },
     "peakProjected": "Projected peak: {age} years"
   },
-
   "team": {
     "title": "Team.",
     "myOrg": "My organization",
@@ -876,7 +856,6 @@
     "expires": "expires",
     "inviteInfo": "Invitees will receive an email with a link to join. Upon accepting, they will be able to access VITAS with the assigned role."
   },
-
   "invitation": {
     "processing": "Processing invitation…",
     "needsLogin": "You need to sign in to accept the invitation.",
@@ -889,7 +868,6 @@
     "invalidToken": "Invalid invitation token",
     "backToHome": "Back to home"
   },
-
   "teamAnalysis": {
     "teamSummary": "Team Summary",
     "playersAnalyzed": "{{count}} players analyzed",
@@ -918,7 +896,6 @@
     "toWork": "To work on",
     "coachRecommendations": "Recommendations for the coach"
   },
-
   "roleProfile": {
     "title": "Role Profile",
     "subtitle": "Profile, Role and Projection Engine",
@@ -948,25 +925,21 @@
       }
     }
   },
-
   "analysis": {
     "printTitle": "VITAS — Analysis Report Print Layout",
     "playerReport": "VITAS — Player Report Print Layout"
   },
-
   "notFound": {
     "title": "404",
     "message": "Oops! Page not found",
     "backHome": "Return to Home"
   },
-
   "liveMatch": {
     "live": "LIVE",
     "upcoming": "Upcoming",
     "finished": "Finished",
     "playersTracked": "{{count}} players tracked"
   },
-
   "liveFixtures": {
     "inPlay": "In Play",
     "paused": "Paused",
@@ -974,7 +947,6 @@
     "finished": "Finished",
     "fetchError": "Error fetching matches"
   },
-
   "components": {
     "pageHeader": {
       "backLabel": "Back"
@@ -995,12 +967,10 @@
       }
     }
   },
-
   "offline": {
     "banner": "Offline — Data will sync when reconnected",
     "reconnected": "Reconnected — Syncing data..."
   },
-
   "toasts": {
     "sessionStarted": "Session started",
     "accountCreated": "Account created! Check your email to confirm.",
@@ -1058,7 +1028,6 @@
     "statsError": "Could not load statistics",
     "trendingError": "Could not load trending players",
     "matchesError": "Could not load matches",
-    "regeneratingInsights": "Regenerating insights…",
     "analysisStarting": "Starting VITAS Intelligence analysis…",
     "analysisStartingDesc": "Extracting keyframes and sending to AI",
     "extractingFrames": "Extracting video frames…",
@@ -1070,14 +1039,12 @@
     "auditLoadError": "Error loading audit: {{error}}",
     "compareLoadError": "Error loading comparison: {{error}}"
   },
-
   "cookies": {
     "banner": "We use essential cookies for app functionality and analytics cookies to improve your experience.",
     "accept": "Accept",
     "essential": "Essential only",
     "moreInfo": "More info"
   },
-
   "account": {
     "dangerZone": "Danger zone",
     "deleteWarning": "This action is irreversible. All your data, players, analyses, and history will be permanently deleted.",
@@ -1085,12 +1052,273 @@
     "deleteConfirm": "Type DELETE to confirm the permanent deletion of your account and all your data.",
     "deleted": "Account deleted successfully. See you soon."
   },
-
   "errors": {
     "unknownError": "Unknown error",
     "videoOrPlayerNotFound": "Video or player not found",
     "analysisNoResult": "The analysis did not produce a result",
     "frameExtractError": "Could not extract frames from video",
     "pipelineError": "Pipeline error"
+  },
+  "anthroForm": {
+    "phvCategory": {
+      "early": "Pre-growth spurt",
+      "ontime": "In growth spurt",
+      "late": "Post-growth spurt"
+    },
+    "pendingChangeOne": "pending change",
+    "pendingChangeMany": "pending changes",
+    "syncingSuffix": " · syncing…",
+    "offlineSuffix": " · offline",
+    "latestLabel": "Latest:",
+    "noMeasurements": "No measurements recorded. Add the first one to calculate PHV.",
+    "newButton": "New",
+    "phvCalcTitle": "PHV Calculation (Mirwald)",
+    "maturationLabel": "Maturation",
+    "yearsUnit": "years",
+    "bioAgeLabel": "Biological age",
+    "editMeasurement": "Edit measurement",
+    "newMeasurement": "New measurement",
+    "fieldHeight": "Height (cm)",
+    "fieldWeight": "Weight (kg)",
+    "fieldSitting": "Sitting height (cm)",
+    "fieldLeg": "Leg (cm)",
+    "hintRequiredPhv": "required for PHV",
+    "saving": "Saving…",
+    "updateMeasurementBtn": "Update measurement",
+    "saveAndCalcBtn": "Save and calculate PHV",
+    "historyTitle": "History ({{count}})",
+    "offsetAbbr": "off",
+    "sittingAbbr": "sit",
+    "legAbbr": "leg",
+    "editAction": "Edit",
+    "deleteAction": "Delete",
+    "hintBefore": "Repeat these measurements every 3-4 months to detect the pubertal spurt. The",
+    "hintAfter": "formula automatically calculates biological age and adjusts the VSI based on the development phase.",
+    "errHeightWeightRequired": "Height and weight are required",
+    "errSittingLegRequired": "Sitting height and leg length are required to calculate PHV with real precision",
+    "queueLabelUpdate": "Update measurement",
+    "queueLabelNew": "New anthropometric measurement",
+    "toastUpdated": "Measurement updated",
+    "toastSaved": "Measurement saved · PHV recalculated",
+    "toastQueuedSave": "📡 Saved to queue · will sync when the network returns",
+    "errUnknown": "Unknown error",
+    "confirmDelete": "Delete this measurement? The historical PHV for this date will be lost.",
+    "queueLabelDelete": "Delete measurement",
+    "toastDeleted": "Measurement deleted",
+    "toastQueuedDelete": "📡 Deletion queued · will apply when the connection is restored",
+    "errDelete": "Error deleting"
+  },
+  "biasAudit": {
+    "title": "AI Bias Audit",
+    "exportPdf": "Export PDF",
+    "exportPdfTitle": "Export equity report (PDF)",
+    "exportPdfAria": "Export equity report as PDF",
+    "refresh": "Refresh data",
+    "tabOverview": "Overview",
+    "tabPosition": "Position",
+    "tabAge": "Age",
+    "tabVisibility": "Visibility",
+    "tabRecency": "Recency",
+    "mockBanner": "Sample data — connect Supabase to see real data from your academy",
+    "severityHigh": "High",
+    "severityHighDesc": "Require investigation",
+    "severityMedium": "Medium",
+    "severityMediumDesc": "Monitor",
+    "severityLow": "Low",
+    "severityLowDesc": "No action",
+    "allCategories": "All categories",
+    "allCategoriesDesc": "Deviation from the global VSI average",
+    "badgePosition": "Position",
+    "badgeAge": "Age",
+    "categoryStats": "{{count}} players · Avg VSI: {{avgVsi}} · σ {{stddev}}",
+    "howToInterpret": "How to interpret?",
+    "interpretHighRange": "(>10 pts)",
+    "interpretHighDesc": "— The AI scores this category significantly differently. Review prompts and criteria.",
+    "interpretMediumRange": "(5-10 pts)",
+    "interpretMediumDesc": "— Notable deviation. Monitor over the coming weeks.",
+    "interpretLowRange": "(<5 pts)",
+    "interpretLowDesc": "— Within the normal range. No action required.",
+    "positionChartTitle": "Average VSI by position",
+    "positionChartDesc": "Do forwards always score higher than defenders?",
+    "ageChartTitle": "Average VSI by age group",
+    "ageChartDesc": "Does the AI favor certain age groups?",
+    "seriesAvgVsi": "Avg VSI",
+    "seriesPlayers": "Players",
+    "seriesAnalyses": "Analyses",
+    "statPlayers": "Players",
+    "statAvgVsi": "Avg VSI",
+    "statStddev": "Deviation σ",
+    "statVsGlobal": "vs Global",
+    "visibilityChartTitle": "VSI vs number of videos",
+    "visibilityChartDesc": "More videos = inflated score? (visibility bias)",
+    "correlationMsgHigh": "Difference of {{diff}} pts between extremes — possible visibility bias",
+    "correlationMsgMedium": "Difference of {{diff}} pts — monitor the trend",
+    "correlationMsgLow": "Difference of {{diff}} pts — within normal range",
+    "correlationLabel": "Correlation: {{level}}",
+    "visibilityDetailTitle": "Detail by data volume",
+    "playersCount": "{{count}} players",
+    "recencyChartTitle": "VSI trend over time",
+    "recencyChartDesc": "Are scores rising/falling over time? (prompt drift)",
+    "recencyDetailTitle": "Monthly detail",
+    "analysesCount": "{{count}} analyses",
+    "promptDriftTitle": "What is prompt drift?",
+    "promptDriftDesc": "If scores rise consistently month over month with no real changes in the players, it may indicate that the AI agents' prompts are drifting toward more generous evaluations. This is normal and is corrected by periodically adjusting the scoring rules."
+  },
+  "coachDash": {
+    "tabSesion": "Last Session",
+    "tabPlanificacion": "Planning",
+    "tabProgresion": "Progression",
+    "tabReportes": "Parent Reports",
+    "playerLabel": "Player {{number}}",
+    "sessionLoad": "Session Load",
+    "loadOptimal": "Optimal — 68% of max",
+    "statistics": "Statistics",
+    "statPlayers": "Players",
+    "statDrills": "Drills",
+    "statDuration": "Duration",
+    "statBalance": "Balance",
+    "alerts": "Alerts",
+    "alertLowParticipation": "2 players with low participation in tactical work",
+    "alertTechniqueBelowLtad": "Technique 10% below LTAD ideal",
+    "weeklyEvolution": "Weekly Evolution",
+    "colWeek": "Week",
+    "colBalance": "Balance",
+    "colLoad": "Load",
+    "colEngagement": "Engagement",
+    "colParticipation": "Participation",
+    "avgBalance": "Average Balance",
+    "avgLoad": "Average Load",
+    "avgEngagement": "Engagement",
+    "sessions": "Sessions",
+    "unitWeeks": "weeks",
+    "playerSelector": "Player:"
+  },
+  "firstRun": {
+    "footRight": "Right-footed",
+    "footLeft": "Left-footed",
+    "footBoth": "Both-footed",
+    "posGoalkeeper": "Goalkeeper",
+    "posCenterBack": "Center Back",
+    "posRightBack": "Right Back",
+    "posLeftBack": "Left Back",
+    "posMidfielder": "Midfielder",
+    "posWinger": "Winger",
+    "posForward": "Forward",
+    "playerAddedToast": "{{name}} added!",
+    "createError": "Error creating player",
+    "needNameAge": "I need a name and age",
+    "ageRange": "Age between 8 and 21",
+    "choosePosition": "Choose a position",
+    "chooseFoot": "Choose a dominant foot",
+    "skipSetup": "Skip setup",
+    "setupLater": "Set up later",
+    "step1Title": "Let's start with the basics",
+    "step1Subtitle": "Just 3 steps · ~30 seconds",
+    "playerNameLabel": "Player name",
+    "playerNamePlaceholder": "e.g. Samu",
+    "ageLabel": "Age (years)",
+    "step2Title": "What position does he play?",
+    "step2Subtitle": "And his dominant foot",
+    "positionLabel": "Position",
+    "dominantFootLabel": "Dominant foot",
+    "step3Title": "Measurements (optional)",
+    "step3Subtitle": "You can skip it · add it later",
+    "heightLabel": "Height (cm)",
+    "heightPlaceholder": "e.g. 145",
+    "weightLabel": "Weight (kg)",
+    "weightPlaceholder": "e.g. 38",
+    "phvTipStart": "💡 This data unlocks the",
+    "phvTipEnd": "calculation (biological age) that adjusts the VSI · if you don't have it now, add it when you measure.",
+    "playerAddedTitle": "{{name}} added!",
+    "whatNext": "What do you want to do now?",
+    "generateReport": "Generate first report",
+    "generateReportDesc": "6 Claude reports in 25-40s · upload a video for real analysis",
+    "viewProfile": "View full profile",
+    "viewProfileDesc": "Anthropometry, PHV, progression",
+    "familyView": "Family view",
+    "familyViewDesc": "Shareable with parents via WhatsApp",
+    "laterClose": "Later · close this",
+    "back": "Back",
+    "skip": "Skip",
+    "createPlayer": "Create player",
+    "next": "Next"
+  },
+  "videoUploader": {
+    "errorTooLarge": "The video exceeds 500 MB · use a shorter one",
+    "errorTooSmall": "The video is too small · was it recorded properly?",
+    "errorNotVideo": "The file is not a video",
+    "defaultTitle": "Analysis {{date}}",
+    "statusPreparing": "Preparing upload...",
+    "errorCreatingUpload": "Error creating upload",
+    "statusUploading": "Uploading video...",
+    "statusBunnyProcessing": "Bunny processing video...",
+    "statusBunnyProgress": "Bunny processing... ({{attempts}}/12)",
+    "errorBunnyTimeout": "Bunny took too long to process",
+    "statusQueued": "Analysis queued...",
+    "statusAnalyzing": "AI analyzing video on GPU...",
+    "statusCompleted": "Analysis complete!",
+    "errorAnalysisFailed": "Analysis failed",
+    "statusTakingLong": "Analysis is taking a while · check back in a few minutes",
+    "errorUnknown": "Unknown error",
+    "eyebrow": "Upload video",
+    "heading": "Analysis of {{name}}",
+    "playerFallback": "player",
+    "subheading": "Upload a 30 sec - 5 min video. Ideal: full body visible, good lighting, 720p+ resolution.",
+    "titleLabel": "Analysis title",
+    "titlePlaceholder": "e.g. Technical training - May 3",
+    "videoLabel": "Video",
+    "formatsHint": "MP4, MOV, M4V · max 500 MB",
+    "uploadButton": "Upload and analyze",
+    "viewReports": "View reports →",
+    "uploadAnother": "Upload another video"
+  },
+  "wellbeingForm": {
+    "playerEnjoyment": "How much do you enjoy training?",
+    "playerEnjoymentYoung": "Do you have fun training?",
+    "playerEnergy": "How is your energy after training?",
+    "playerEnergyYoung": "Are you tired after training?",
+    "playerFriends": "Do you feel good with your teammates?",
+    "playerFriendsYoung": "Do you get along with your team friends?",
+    "playerConfidence": "Do you feel confident when you play?",
+    "playerConfidenceYoung": "Do you feel brave when you play?",
+    "playerWantToCome": "Do you look forward to coming to training?",
+    "playerWantToComeYoung": "Do you want to come to training?",
+    "playerSleep": "Do you sleep well at night?",
+    "playerSleepYoung": "Do you sleep well?",
+    "coachMotivation": "How would you rate the player's motivation in recent sessions?",
+    "coachIntegration": "What is their level of social integration with the group?",
+    "coachProgress": "Are they showing technical/tactical progression?",
+    "coachAttitude": "How is their attitude toward mistakes and corrections?",
+    "coachEffort": "Is their effort level consistent with their ability?",
+    "coachConcern": "Do you have any concerns about their overall wellbeing?",
+    "parentEnjoyment": "Does your child enjoy going to training?",
+    "parentStress": "Do you notice signs of stress or anxiety related to football?",
+    "parentSleep": "Do they sleep well and get enough rest?",
+    "parentAppetite": "Do they eat well and have a good appetite?",
+    "parentSocialLife": "Do they maintain good relationships with teammates off the field?",
+    "parentBalance": "Do they manage to balance football with studies and social life?",
+    "emojiVeryBad": "Very bad",
+    "emojiBad": "Bad",
+    "emojiNormal": "Normal",
+    "emojiGood": "Good",
+    "emojiGreat": "Great!",
+    "likertVeryLittle": "Very little",
+    "likertLittle": "Little",
+    "likertNormal": "Normal",
+    "likertQuiteALot": "Quite a lot",
+    "likertALot": "A lot",
+    "thankYouTitle": "Thanks for completing the questionnaire!",
+    "responsesSaved": "Your responses have been saved successfully.",
+    "helloPlayer": "Hi {{name}}!",
+    "titlePlayer": "Wellbeing questionnaire",
+    "titleCoach": "Coach evaluation",
+    "titleParent": "Questionnaire for parents",
+    "subtitleYoung": "Tap the emoji that best represents you",
+    "subtitleAbout": "About: {{name}}",
+    "subtitleEvaluating": "Evaluating: {{name}}",
+    "cancel": "Cancel",
+    "previous": "← Previous",
+    "next": "Next →",
+    "submit": "Submit"
   }
 }

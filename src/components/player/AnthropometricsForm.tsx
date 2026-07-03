@@ -18,6 +18,7 @@ import {
   AlertCircle, Sparkles, WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 
@@ -69,6 +70,7 @@ const PHV_LABELS = {
 const EMPTY_FORM = { height: "", weight: "", sitting: "", leg: "" };
 
 export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", fallback, onSaved }: Props) {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<AnthroRow[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -171,13 +173,13 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
     const legLengthCm = form.leg ? Number(form.leg) : 0;
 
     if (!heightCm || !weightKg) {
-      setError("Altura y peso son obligatorios");
+      setError(t("anthroForm.errHeightWeightRequired"));
       setSubmitting(false);
       return;
     }
 
     if (!sittingHeightCm || !legLengthCm) {
-      setError("Altura sentado y longitud de pierna son obligatorios para calcular el PHV con precisión real");
+      setError(t("anthroForm.errSittingLegRequired"));
       setSubmitting(false);
       return;
     }
@@ -202,21 +204,21 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
         url,
         method,
         payload,
-        label: editingId ? "Actualizar medición" : "Nueva medición antropométrica",
+        label: editingId ? t("anthroForm.queueLabelUpdate") : t("anthroForm.queueLabelNew"),
       });
 
       if (result.sent) {
-        toast.success(editingId ? "Medida actualizada" : "Medida guardada · PHV recalculado");
+        toast.success(editingId ? t("anthroForm.toastUpdated") : t("anthroForm.toastSaved"));
         await loadHistory();
       } else if (result.queued) {
-        toast.info("📡 Guardado en cola · se sincronizará al volver la red", { duration: 5000 });
+        toast.info(t("anthroForm.toastQueuedSave"), { duration: 5000 });
       }
 
       setShowForm(false);
       setEditingId(null);
       setForm(EMPTY_FORM);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error desconocido";
+      const msg = err instanceof Error ? err.message : t("anthroForm.errUnknown");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -225,27 +227,30 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar esta medición? El PHV histórico de esta fecha se perderá.")) return;
+    if (!confirm(t("anthroForm.confirmDelete"))) return;
     try {
       const result = await offline.run({
         url: `/api/players/anthropometrics?id=${id}`,
         method: "DELETE",
-        label: "Eliminar medición",
+        label: t("anthroForm.queueLabelDelete"),
       });
       if (result.sent) {
-        toast.success("Medición eliminada");
+        toast.success(t("anthroForm.toastDeleted"));
         await loadHistory();
       } else if (result.queued) {
-        toast.info("📡 Eliminación en cola · se aplicará al recuperar conexión");
+        toast.info(t("anthroForm.toastQueuedDelete"));
         // Optimistic UI · quitar de history local
         setHistory((prev) => prev.filter((r) => r.id !== id));
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al eliminar");
+      toast.error(err instanceof Error ? err.message : t("anthroForm.errDelete"));
     }
   }
 
   const latest = history[0];
+
+  const phvLabel = (category: AnthroRow["phv_category"]) =>
+    t(`anthroForm.phvCategory.${category}`);
 
   return (
     <div className="space-y-3">
@@ -258,8 +263,8 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
             <WifiOff size={11} className="text-amber-400 shrink-0" />
           )}
           <span className="text-[10px] text-amber-400 font-display font-bold">
-            {offline.queueSize} {offline.queueSize === 1 ? "cambio pendiente" : "cambios pendientes"}
-            {offline.online ? " · sincronizando…" : " · sin conexión"}
+            {offline.queueSize} {offline.queueSize === 1 ? t("anthroForm.pendingChangeOne") : t("anthroForm.pendingChangeMany")}
+            {offline.online ? t("anthroForm.syncingSuffix") : t("anthroForm.offlineSuffix")}
           </span>
         </div>
       )}
@@ -269,13 +274,13 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
         <div className="flex items-center justify-between gap-3">
           {latest ? (
             <div className="flex-1 text-[11px] text-muted-foreground">
-              Última:{" "}
+              {t("anthroForm.latestLabel")}{" "}
               <span className="text-foreground font-medium">
                 {latest.height_cm}cm · {latest.weight_kg}kg
               </span>
               {" · "}
               <span style={{ color: PHV_LABELS[latest.phv_category].color }}>
-                {PHV_LABELS[latest.phv_category].emoji} {PHV_LABELS[latest.phv_category].label}
+                {PHV_LABELS[latest.phv_category].emoji} {phvLabel(latest.phv_category)}
               </span>
               {" · "}
               <span className="text-[10px]">
@@ -284,7 +289,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
             </div>
           ) : (
             <div className="flex-1 text-[11px] text-muted-foreground">
-              Sin mediciones registradas. Añade la primera para calcular el PHV.
+              {t("anthroForm.noMeasurements")}
             </div>
           )}
           {!showForm && (
@@ -292,7 +297,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
               onClick={startNew}
               className="flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary/80 transition-colors"
             >
-              <Plus size={12} /> Nueva
+              <Plus size={12} /> {t("anthroForm.newButton")}
             </button>
           )}
         </div>
@@ -311,17 +316,17 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
             <div className="flex items-center gap-2 mb-1">
               <Sparkles size={12} className="text-primary" />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                Cálculo PHV (Mirwald)
+                {t("anthroForm.phvCalcTitle")}
               </span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-2xl">{PHV_LABELS[lastResult.category].emoji}</span>
               <div>
                 <div className="font-display font-bold text-lg" style={{ color: PHV_LABELS[lastResult.category].color }}>
-                  {PHV_LABELS[lastResult.category].label}
+                  {phvLabel(lastResult.category)}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
-                  Maduración {lastResult.offset > 0 ? "+" : ""}{lastResult.offset} años · Edad biológica {lastResult.biologicalAge}a
+                  {t("anthroForm.maturationLabel")} {lastResult.offset > 0 ? "+" : ""}{lastResult.offset} {t("anthroForm.yearsUnit")} · {t("anthroForm.bioAgeLabel")} {lastResult.biologicalAge}a
                 </div>
               </div>
             </div>
@@ -341,7 +346,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
           >
             <div className="flex items-center justify-between">
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                {editingId ? "Editar medición" : "Nueva medición"}
+                {editingId ? t("anthroForm.editMeasurement") : t("anthroForm.newMeasurement")}
               </span>
               <button
                 type="button"
@@ -354,7 +359,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
 
             <div className="grid grid-cols-2 gap-2">
               <Field
-                label="Altura (cm)"
+                label={t("anthroForm.fieldHeight")}
                 value={form.height}
                 onChange={(v) => setForm((f) => ({ ...f, height: v }))}
                 min={80} max={230}
@@ -362,7 +367,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
                 placeholder="165.5"
               />
               <Field
-                label="Peso (kg)"
+                label={t("anthroForm.fieldWeight")}
                 value={form.weight}
                 onChange={(v) => setForm((f) => ({ ...f, weight: v }))}
                 min={15} max={150}
@@ -370,22 +375,22 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
                 placeholder="55.2"
               />
               <Field
-                label="Altura sentado (cm)"
+                label={t("anthroForm.fieldSitting")}
                 value={form.sitting}
                 onChange={(v) => setForm((f) => ({ ...f, sitting: v }))}
                 min={40} max={130}
                 required
                 placeholder="86.0"
-                hint="obligatorio para PHV"
+                hint={t("anthroForm.hintRequiredPhv")}
               />
               <Field
-                label="Pierna (cm)"
+                label={t("anthroForm.fieldLeg")}
                 value={form.leg}
                 onChange={(v) => setForm((f) => ({ ...f, leg: v }))}
                 min={30} max={130}
                 required
                 placeholder="79.5"
-                hint="obligatorio para PHV"
+                hint={t("anthroForm.hintRequiredPhv")}
               />
             </div>
 
@@ -402,9 +407,9 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
               className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-display font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
             >
               {submitting ? (
-                <><Loader2 size={12} className="animate-spin" /> Guardando…</>
+                <><Loader2 size={12} className="animate-spin" /> {t("anthroForm.saving")}</>
               ) : (
-                <><Save size={12} /> {editingId ? "Actualizar medición" : "Guardar y calcular PHV"}</>
+                <><Save size={12} /> {editingId ? t("anthroForm.updateMeasurementBtn") : t("anthroForm.saveAndCalcBtn")}</>
               )}
             </button>
           </motion.form>
@@ -416,7 +421,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground font-bold pt-1">
             <Calendar size={10} />
-            Histórico ({history.length})
+            {t("anthroForm.historyTitle", { count: history.length })}
           </div>
           <div className="space-y-1">
             {history.map((row) => {
@@ -428,18 +433,18 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
                   className="flex items-center justify-between gap-2 rounded-lg bg-secondary/30 px-2.5 py-2 border border-border/50"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-base shrink-0" title={phv.label}>{phv.emoji}</span>
+                    <span className="text-base shrink-0" title={phvLabel(row.phv_category)}>{phv.emoji}</span>
                     <div className="min-w-0">
                       <div className="text-[11px] text-foreground font-medium truncate">
                         {row.height_cm}cm · {row.weight_kg}kg
                         <span className="text-muted-foreground ml-2 text-[10px]">
-                          off {row.maturity_offset > 0 ? "+" : ""}{row.maturity_offset}
+                          {t("anthroForm.offsetAbbr")} {row.maturity_offset > 0 ? "+" : ""}{row.maturity_offset}
                         </span>
                       </div>
                       <div className="text-[9px] text-muted-foreground">
                         {date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
-                        {row.sitting_height_cm && ` · sent ${row.sitting_height_cm}`}
-                        {row.leg_length_cm     && ` · pierna ${row.leg_length_cm}`}
+                        {row.sitting_height_cm && ` · ${t("anthroForm.sittingAbbr")} ${row.sitting_height_cm}`}
+                        {row.leg_length_cm     && ` · ${t("anthroForm.legAbbr")} ${row.leg_length_cm}`}
                       </div>
                     </div>
                   </div>
@@ -447,14 +452,14 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
                     <button
                       onClick={() => startEdit(row)}
                       className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                      title="Editar"
+                      title={t("anthroForm.editAction")}
                     >
                       <Pencil size={11} />
                     </button>
                     <button
                       onClick={() => handleDelete(row.id)}
                       className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                      title="Eliminar"
+                      title={t("anthroForm.deleteAction")}
                     >
                       <Trash2 size={11} />
                     </button>
@@ -476,8 +481,8 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
       {!loading && (
         <p className="text-[10px] text-muted-foreground leading-relaxed pt-1 border-t border-border/40">
           <Ruler size={10} className="inline mr-1" />
-          Repite estas mediciones cada 3-4 meses para detectar el salto puberal. La fórmula <strong>Mirwald</strong>{" "}
-          calcula automáticamente la edad biológica y ajusta el VSI según la fase de desarrollo.
+          {t("anthroForm.hintBefore")} <strong>Mirwald</strong>{" "}
+          {t("anthroForm.hintAfter")}
         </p>
       )}
     </div>

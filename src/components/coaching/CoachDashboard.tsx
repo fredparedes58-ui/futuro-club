@@ -11,6 +11,7 @@
  */
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ClipboardList, Calendar, TrendingUp, Users, Loader2, AlertCircle,
@@ -40,11 +41,11 @@ import type {
 
 type TabKey = "sesion" | "planificacion" | "progresion" | "reportes";
 
-const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType }> = [
-  { key: "sesion",        label: "Última Sesión",   icon: ClipboardList },
-  { key: "planificacion", label: "Planificación",   icon: Calendar },
-  { key: "progresion",    label: "Progresión",      icon: TrendingUp },
-  { key: "reportes",      label: "Reportes Padres", icon: Users },
+const TABS: Array<{ key: TabKey; labelKey: string; icon: React.ElementType }> = [
+  { key: "sesion",        labelKey: "coachDash.tabSesion",        icon: ClipboardList },
+  { key: "planificacion", labelKey: "coachDash.tabPlanificacion", icon: Calendar },
+  { key: "progresion",    labelKey: "coachDash.tabProgresion",    icon: TrendingUp },
+  { key: "reportes",      labelKey: "coachDash.tabReportes",      icon: Users },
 ];
 
 interface Props {
@@ -169,6 +170,7 @@ function generateMockParentReport(): ParentReport {
 // ─── Component ────────────────────────────────────────────────────────────
 
 export default function CoachDashboard({ teamId, teamName }: Props) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = (searchParams.get("tab") as TabKey) || "sesion";
   const [tab, setTab] = useState<TabKey>(tabParam);
@@ -193,15 +195,15 @@ export default function CoachDashboard({ teamId, teamName }: Props) {
 
   const playerNames = useMemo(() => {
     const names: Record<string, string> = {};
-    for (let i = 1; i <= 14; i++) names[`player-${i}`] = `Jugador ${i}`;
+    for (let i = 1; i <= 14; i++) names[`player-${i}`] = t("coachDash.playerLabel", { number: i });
     return names;
-  }, []);
+  }, [t]);
 
   return (
     <div className="space-y-4">
       {/* Tab bar */}
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-        {TABS.map(({ key, label, icon: Icon }) => {
+        {TABS.map(({ key, labelKey, icon: Icon }) => {
           const active = tab === key;
           return (
             <button
@@ -217,7 +219,7 @@ export default function CoachDashboard({ teamId, teamName }: Props) {
               `}
             >
               <Icon size={14} />
-              {label}
+              {t(labelKey)}
             </button>
           );
         })}
@@ -267,6 +269,7 @@ function TabSesion({
   engagement: EngagementSnapshot;
   playerNames: Record<string, string>;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       {/* Top row: timeline + balance */}
@@ -291,7 +294,7 @@ function TabSesion({
         {/* Load indicator */}
         <div className="glass rounded-xl p-4 space-y-2">
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Carga de Sesión
+            {t("coachDash.sessionLoad")}
           </span>
           <div className="text-2xl font-black font-mono text-foreground">
             278 <span className="text-xs text-muted-foreground font-normal">AU</span>
@@ -304,20 +307,20 @@ function TabSesion({
               transition={{ duration: 0.8 }}
             />
           </div>
-          <div className="text-[9px] text-emerald-400">Óptima — 68% del máximo</div>
+          <div className="text-[9px] text-emerald-400">{t("coachDash.loadOptimal")}</div>
         </div>
 
         {/* Session stats */}
         <div className="glass rounded-xl p-4 space-y-2">
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Estadísticas
+            {t("coachDash.statistics")}
           </span>
           <div className="space-y-1">
             {[
-              { label: "Jugadores", value: "16" },
-              { label: "Ejercicios", value: "4" },
-              { label: "Duración", value: "75′" },
-              { label: "Balance", value: `${balance.overallScore}/100` },
+              { label: t("coachDash.statPlayers"), value: "16" },
+              { label: t("coachDash.statDrills"), value: "4" },
+              { label: t("coachDash.statDuration"), value: "75′" },
+              { label: t("coachDash.statBalance"), value: `${balance.overallScore}/100` },
             ].map(s => (
               <div key={s.label} className="flex justify-between text-[10px]">
                 <span className="text-muted-foreground">{s.label}</span>
@@ -330,16 +333,16 @@ function TabSesion({
         {/* Alerts */}
         <div className="glass rounded-xl p-4 space-y-2">
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Alertas
+            {t("coachDash.alerts")}
           </span>
           <div className="space-y-1.5">
             <div className="flex items-start gap-1.5 text-[10px]">
               <AlertCircle size={10} className="text-amber-400 mt-0.5 shrink-0" />
-              <span className="text-foreground/70">2 jugadores con baja participación en táctica</span>
+              <span className="text-foreground/70">{t("coachDash.alertLowParticipation")}</span>
             </div>
             <div className="flex items-start gap-1.5 text-[10px]">
               <Activity size={10} className="text-blue-400 mt-0.5 shrink-0" />
-              <span className="text-foreground/70">Técnica 10% bajo el ideal LTAD</span>
+              <span className="text-foreground/70">{t("coachDash.alertTechniqueBelowLtad")}</span>
             </div>
           </div>
         </div>
@@ -369,6 +372,7 @@ function TabPlanificacion({ recommendation }: { recommendation: SessionRecommend
 // ─── Tab: Progresión ─────────────────────────────────────────────────────
 
 function TabProgresion() {
+  const { t } = useTranslation();
   // Session-over-session trends — charts will be enriched in future iterations
   const weeks = useMemo(() => {
     return Array.from({ length: 8 }, (_, i) => {
@@ -388,7 +392,7 @@ function TabProgresion() {
     <div className="space-y-4">
       <div className="glass rounded-xl p-4 space-y-3">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Evolución Semanal
+          {t("coachDash.weeklyEvolution")}
         </span>
 
         {/* Simple table-based progression */}
@@ -396,11 +400,11 @@ function TabProgresion() {
           <table className="min-w-full text-[10px]">
             <thead>
               <tr className="text-muted-foreground">
-                <th className="text-left font-normal pb-2">Semana</th>
-                <th className="text-center font-normal pb-2">Balance</th>
-                <th className="text-center font-normal pb-2">Carga</th>
-                <th className="text-center font-normal pb-2">Engagement</th>
-                <th className="text-center font-normal pb-2">Participación</th>
+                <th className="text-left font-normal pb-2">{t("coachDash.colWeek")}</th>
+                <th className="text-center font-normal pb-2">{t("coachDash.colBalance")}</th>
+                <th className="text-center font-normal pb-2">{t("coachDash.colLoad")}</th>
+                <th className="text-center font-normal pb-2">{t("coachDash.colEngagement")}</th>
+                <th className="text-center font-normal pb-2">{t("coachDash.colParticipation")}</th>
               </tr>
             </thead>
             <tbody>
@@ -443,10 +447,10 @@ function TabProgresion() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Balance Promedio", value: "72", unit: "/100", color: "text-violet-400" },
-          { label: "Carga Media", value: "285", unit: "AU", color: "text-blue-400" },
-          { label: "Engagement", value: "61", unit: "/100", color: "text-rose-400" },
-          { label: "Sesiones", value: "8", unit: "semanas", color: "text-emerald-400" },
+          { label: t("coachDash.avgBalance"), value: "72", unit: "/100", color: "text-violet-400" },
+          { label: t("coachDash.avgLoad"), value: "285", unit: "AU", color: "text-blue-400" },
+          { label: t("coachDash.avgEngagement"), value: "61", unit: "/100", color: "text-rose-400" },
+          { label: t("coachDash.sessions"), value: "8", unit: t("coachDash.unitWeeks"), color: "text-emerald-400" },
         ].map(c => (
           <div key={c.label} className="glass rounded-xl p-3 text-center space-y-1">
             <div className={`text-xl font-black font-mono ${c.color}`}>
@@ -464,6 +468,7 @@ function TabProgresion() {
 // ─── Tab: Reportes Padres ────────────────────────────────────────────────
 
 function TabReportes({ report }: { report: ParentReport }) {
+  const { t } = useTranslation();
   const [selectedPlayer, setSelectedPlayer] = useState("player-1");
 
   return (
@@ -471,7 +476,7 @@ function TabReportes({ report }: { report: ParentReport }) {
       {/* Player selector */}
       <div className="glass rounded-xl p-3">
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">Jugador:</span>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{t("coachDash.playerSelector")}</span>
           {Array.from({ length: 5 }, (_, i) => {
             const pid = `player-${i + 1}`;
             const active = selectedPlayer === pid;
@@ -487,7 +492,7 @@ function TabReportes({ report }: { report: ParentReport }) {
                   }
                 `}
               >
-                Jugador {i + 1}
+                {t("coachDash.playerLabel", { number: i + 1 })}
               </button>
             );
           })}

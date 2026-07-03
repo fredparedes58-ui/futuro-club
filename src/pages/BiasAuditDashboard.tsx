@@ -11,6 +11,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft, Shield, AlertTriangle, CheckCircle2, Info,
@@ -120,6 +121,7 @@ async function fetchRecency(): Promise<RecencyRow[]> {
 /* ── Component ─────────────────────────────────────────────────── */
 
 export default function BiasAuditDashboard() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useUserProfile();
@@ -159,17 +161,17 @@ export default function BiasAuditDashboard() {
     if (!visibility || visibility.length < 2) return null;
     const sorted = [...visibility].sort((a, b) => a.avg_vsi - b.avg_vsi);
     const diff = sorted[sorted.length - 1].avg_vsi - sorted[0].avg_vsi;
-    if (diff > 15) return { level: "HIGH" as const, msg: `Diferencia de ${diff.toFixed(1)} pts entre extremos — posible sesgo por visibilidad` };
-    if (diff > 8) return { level: "MEDIUM" as const, msg: `Diferencia de ${diff.toFixed(1)} pts — monitorizar tendencia` };
-    return { level: "LOW" as const, msg: `Diferencia de ${diff.toFixed(1)} pts — dentro de rango normal` };
-  }, [visibility]);
+    if (diff > 15) return { level: "HIGH" as const, msg: t("biasAudit.correlationMsgHigh", { diff: diff.toFixed(1) }) };
+    if (diff > 8) return { level: "MEDIUM" as const, msg: t("biasAudit.correlationMsgMedium", { diff: diff.toFixed(1) }) };
+    return { level: "LOW" as const, msg: t("biasAudit.correlationMsgLow", { diff: diff.toFixed(1) }) };
+  }, [visibility, t]);
 
   const tabs = [
-    { id: "overview" as const, label: "Resumen", icon: <BarChart3 size={14} /> },
-    { id: "position" as const, label: "Posición", icon: <Users size={14} /> },
-    { id: "age" as const, label: "Edad", icon: <Calendar size={14} /> },
-    { id: "visibility" as const, label: "Visibilidad", icon: <Eye size={14} /> },
-    { id: "recency" as const, label: "Temporal", icon: <Clock size={14} /> },
+    { id: "overview" as const, label: t("biasAudit.tabOverview"), icon: <BarChart3 size={14} /> },
+    { id: "position" as const, label: t("biasAudit.tabPosition"), icon: <Users size={14} /> },
+    { id: "age" as const, label: t("biasAudit.tabAge"), icon: <Calendar size={14} /> },
+    { id: "visibility" as const, label: t("biasAudit.tabVisibility"), icon: <Eye size={14} /> },
+    { id: "recency" as const, label: t("biasAudit.tabRecency"), icon: <Clock size={14} /> },
   ];
 
   return (
@@ -187,22 +189,22 @@ export default function BiasAuditDashboard() {
           </button>
           <Shield size={18} className="text-primary" />
           <h1 className="font-display font-bold text-sm uppercase tracking-wider flex-1">
-            Auditoría de Sesgo IA
+            {t("biasAudit.title")}
           </h1>
           <button
             onClick={() => window.print()}
             disabled={isLoading || !dashboard}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-40 text-xs font-display font-semibold"
-            title="Exportar informe de equidad (PDF)"
-            aria-label="Exportar informe de equidad en PDF"
+            title={t("biasAudit.exportPdfTitle")}
+            aria-label={t("biasAudit.exportPdfAria")}
           >
             <Download size={14} />
-            <span className="hidden sm:inline">Exportar PDF</span>
+            <span className="hidden sm:inline">{t("biasAudit.exportPdf")}</span>
           </button>
           <button
             onClick={() => refetchDash()}
             className="p-2 rounded-xl hover:bg-muted/50 transition-colors"
-            aria-label="Actualizar datos"
+            aria-label={t("biasAudit.refresh")}
           >
             <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
           </button>
@@ -232,7 +234,7 @@ export default function BiasAuditDashboard() {
         {!SUPABASE_CONFIGURED && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
             <Info size={14} />
-            <span>Datos de ejemplo — conecta Supabase para ver datos reales de tu academia</span>
+            <span>{t("biasAudit.mockBanner")}</span>
           </div>
         )}
 
@@ -250,34 +252,34 @@ export default function BiasAuditDashboard() {
                   <div className={`glass rounded-xl p-4 border ${severityColor.HIGH.border}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle size={16} className="text-red-400" />
-                      <span className="text-xs font-display font-bold text-red-400 uppercase">Alto</span>
+                      <span className="text-xs font-display font-bold text-red-400 uppercase">{t("biasAudit.severityHigh")}</span>
                     </div>
                     <p className="text-2xl font-display font-bold text-foreground">{highCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Requieren investigación</p>
+                    <p className="text-[10px] text-muted-foreground">{t("biasAudit.severityHighDesc")}</p>
                   </div>
                   <div className={`glass rounded-xl p-4 border ${severityColor.MEDIUM.border}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <Info size={16} className="text-amber-400" />
-                      <span className="text-xs font-display font-bold text-amber-400 uppercase">Medio</span>
+                      <span className="text-xs font-display font-bold text-amber-400 uppercase">{t("biasAudit.severityMedium")}</span>
                     </div>
                     <p className="text-2xl font-display font-bold text-foreground">{mediumCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Monitorizar</p>
+                    <p className="text-[10px] text-muted-foreground">{t("biasAudit.severityMediumDesc")}</p>
                   </div>
                   <div className={`glass rounded-xl p-4 border ${severityColor.LOW.border}`}>
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle2 size={16} className="text-emerald-400" />
-                      <span className="text-xs font-display font-bold text-emerald-400 uppercase">Bajo</span>
+                      <span className="text-xs font-display font-bold text-emerald-400 uppercase">{t("biasAudit.severityLow")}</span>
                     </div>
                     <p className="text-2xl font-display font-bold text-foreground">{lowCount}</p>
-                    <p className="text-[10px] text-muted-foreground">Sin acción</p>
+                    <p className="text-[10px] text-muted-foreground">{t("biasAudit.severityLowDesc")}</p>
                   </div>
                 </div>
 
                 {/* All bias rows */}
                 <div className="glass rounded-xl overflow-hidden">
                   <div className="p-4 border-b border-border/40">
-                    <h2 className="text-sm font-display font-bold text-foreground">Todas las categorías</h2>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">Desviación respecto a la media global de VSI</p>
+                    <h2 className="text-sm font-display font-bold text-foreground">{t("biasAudit.allCategories")}</h2>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t("biasAudit.allCategoriesDesc")}</p>
                   </div>
                   <div className="divide-y divide-border/20">
                     {dashboard?.map((row, i) => (
@@ -289,11 +291,11 @@ export default function BiasAuditDashboard() {
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-display font-semibold text-foreground">{row.category}</span>
                             <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase">
-                              {row.bias_type === "position" ? "Posición" : "Edad"}
+                              {row.bias_type === "position" ? t("biasAudit.badgePosition") : t("biasAudit.badgeAge")}
                             </span>
                           </div>
                           <p className="text-[10px] text-muted-foreground">
-                            {row.player_count} jugadores · VSI medio: {row.avg_vsi} · σ {row.stddev_vsi}
+                            {t("biasAudit.categoryStats", { count: row.player_count, avgVsi: row.avg_vsi, stddev: row.stddev_vsi })}
                           </p>
                         </div>
                         <div className="text-right">
@@ -313,11 +315,11 @@ export default function BiasAuditDashboard() {
 
                 {/* Explanation */}
                 <div className="glass rounded-xl p-4 space-y-2">
-                  <h3 className="text-xs font-display font-bold text-foreground">¿Cómo interpretar?</h3>
+                  <h3 className="text-xs font-display font-bold text-foreground">{t("biasAudit.howToInterpret")}</h3>
                   <ul className="text-[10px] text-muted-foreground space-y-1 leading-relaxed">
-                    <li><span className="text-red-400 font-bold">HIGH (&gt;10 pts)</span> — La IA puntúa esta categoría significativamente diferente. Revisa prompts y criterios.</li>
-                    <li><span className="text-amber-400 font-bold">MEDIUM (5-10 pts)</span> — Desviación notable. Monitoriza en las próximas semanas.</li>
-                    <li><span className="text-emerald-400 font-bold">LOW (&lt;5 pts)</span> — Dentro del rango normal. No requiere acción.</li>
+                    <li><span className="text-red-400 font-bold">HIGH {t("biasAudit.interpretHighRange")}</span> {t("biasAudit.interpretHighDesc")}</li>
+                    <li><span className="text-amber-400 font-bold">MEDIUM {t("biasAudit.interpretMediumRange")}</span> {t("biasAudit.interpretMediumDesc")}</li>
+                    <li><span className="text-emerald-400 font-bold">LOW {t("biasAudit.interpretLowRange")}</span> {t("biasAudit.interpretLowDesc")}</li>
                   </ul>
                 </div>
               </div>
@@ -327,8 +329,8 @@ export default function BiasAuditDashboard() {
             {activeTab === "position" && (
               <div className="space-y-6">
                 <div className="glass rounded-xl p-4">
-                  <h2 className="text-sm font-display font-bold text-foreground mb-1">VSI medio por posición</h2>
-                  <p className="text-[10px] text-muted-foreground mb-4">¿Los delanteros siempre puntúan más que los defensas?</p>
+                  <h2 className="text-sm font-display font-bold text-foreground mb-1">{t("biasAudit.positionChartTitle")}</h2>
+                  <p className="text-[10px] text-muted-foreground mb-4">{t("biasAudit.positionChartDesc")}</p>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={positionData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -339,7 +341,7 @@ export default function BiasAuditDashboard() {
                           contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11 }}
                           labelStyle={{ color: "#e2e8f0", fontWeight: 700 }}
                         />
-                        <Bar dataKey="avg_vsi" name="VSI medio" radius={[6, 6, 0, 0]}>
+                        <Bar dataKey="avg_vsi" name={t("biasAudit.seriesAvgVsi")} radius={[6, 6, 0, 0]}>
                           {positionData.map((row, i) => (
                             <Cell key={i} fill={severityColor[row.severity].bar} />
                           ))}
@@ -358,10 +360,10 @@ export default function BiasAuditDashboard() {
                       <span className={`text-xs font-display font-bold ${severityColor[row.severity].text}`}>{row.severity}</span>
                     </div>
                     <div className="grid grid-cols-4 gap-2 mt-3">
-                      <div><p className="text-[9px] text-muted-foreground">Jugadores</p><p className="text-sm font-bold text-foreground">{row.player_count}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">VSI medio</p><p className="text-sm font-bold text-foreground">{row.avg_vsi}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">Desviación σ</p><p className="text-sm font-bold text-foreground">{row.stddev_vsi}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">vs Global</p><p className={`text-sm font-bold ${row.deviation_from_global_avg > 0 ? "text-emerald-400" : "text-red-400"}`}>{row.deviation_from_global_avg > 0 ? "+" : ""}{row.deviation_from_global_avg}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statPlayers")}</p><p className="text-sm font-bold text-foreground">{row.player_count}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statAvgVsi")}</p><p className="text-sm font-bold text-foreground">{row.avg_vsi}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statStddev")}</p><p className="text-sm font-bold text-foreground">{row.stddev_vsi}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statVsGlobal")}</p><p className={`text-sm font-bold ${row.deviation_from_global_avg > 0 ? "text-emerald-400" : "text-red-400"}`}>{row.deviation_from_global_avg > 0 ? "+" : ""}{row.deviation_from_global_avg}</p></div>
                     </div>
                   </div>
                 ))}
@@ -372,8 +374,8 @@ export default function BiasAuditDashboard() {
             {activeTab === "age" && (
               <div className="space-y-6">
                 <div className="glass rounded-xl p-4">
-                  <h2 className="text-sm font-display font-bold text-foreground mb-1">VSI medio por grupo de edad</h2>
-                  <p className="text-[10px] text-muted-foreground mb-4">¿La IA favorece a ciertos grupos de edad?</p>
+                  <h2 className="text-sm font-display font-bold text-foreground mb-1">{t("biasAudit.ageChartTitle")}</h2>
+                  <p className="text-[10px] text-muted-foreground mb-4">{t("biasAudit.ageChartDesc")}</p>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={ageData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -384,7 +386,7 @@ export default function BiasAuditDashboard() {
                           contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11 }}
                           labelStyle={{ color: "#e2e8f0", fontWeight: 700 }}
                         />
-                        <Bar dataKey="avg_vsi" name="VSI medio" radius={[6, 6, 0, 0]}>
+                        <Bar dataKey="avg_vsi" name={t("biasAudit.seriesAvgVsi")} radius={[6, 6, 0, 0]}>
                           {ageData.map((row, i) => (
                             <Cell key={i} fill={severityColor[row.severity].bar} />
                           ))}
@@ -403,10 +405,10 @@ export default function BiasAuditDashboard() {
                       <span className={`text-xs font-display font-bold ${severityColor[row.severity].text}`}>{row.severity}</span>
                     </div>
                     <div className="grid grid-cols-4 gap-2 mt-3">
-                      <div><p className="text-[9px] text-muted-foreground">Jugadores</p><p className="text-sm font-bold text-foreground">{row.player_count}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">VSI medio</p><p className="text-sm font-bold text-foreground">{row.avg_vsi}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">Desviación σ</p><p className="text-sm font-bold text-foreground">{row.stddev_vsi}</p></div>
-                      <div><p className="text-[9px] text-muted-foreground">vs Global</p><p className={`text-sm font-bold ${row.deviation_from_global_avg > 0 ? "text-emerald-400" : "text-red-400"}`}>{row.deviation_from_global_avg > 0 ? "+" : ""}{row.deviation_from_global_avg}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statPlayers")}</p><p className="text-sm font-bold text-foreground">{row.player_count}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statAvgVsi")}</p><p className="text-sm font-bold text-foreground">{row.avg_vsi}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statStddev")}</p><p className="text-sm font-bold text-foreground">{row.stddev_vsi}</p></div>
+                      <div><p className="text-[9px] text-muted-foreground">{t("biasAudit.statVsGlobal")}</p><p className={`text-sm font-bold ${row.deviation_from_global_avg > 0 ? "text-emerald-400" : "text-red-400"}`}>{row.deviation_from_global_avg > 0 ? "+" : ""}{row.deviation_from_global_avg}</p></div>
                     </div>
                   </div>
                 ))}
@@ -417,8 +419,8 @@ export default function BiasAuditDashboard() {
             {activeTab === "visibility" && (
               <div className="space-y-6">
                 <div className="glass rounded-xl p-4">
-                  <h2 className="text-sm font-display font-bold text-foreground mb-1">VSI vs cantidad de videos</h2>
-                  <p className="text-[10px] text-muted-foreground mb-4">¿Más videos = score inflado? (sesgo de visibilidad)</p>
+                  <h2 className="text-sm font-display font-bold text-foreground mb-1">{t("biasAudit.visibilityChartTitle")}</h2>
+                  <p className="text-[10px] text-muted-foreground mb-4">{t("biasAudit.visibilityChartDesc")}</p>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={visibility} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -430,8 +432,8 @@ export default function BiasAuditDashboard() {
                           labelStyle={{ color: "#e2e8f0", fontWeight: 700 }}
                         />
                         <Legend wrapperStyle={{ fontSize: 10 }} />
-                        <Bar dataKey="avg_vsi" name="VSI medio" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
-                        <Bar dataKey="player_count" name="Jugadores" fill="#334155" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="avg_vsi" name={t("biasAudit.seriesAvgVsi")} fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="player_count" name={t("biasAudit.seriesPlayers")} fill="#334155" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -442,7 +444,7 @@ export default function BiasAuditDashboard() {
                     <div className="flex items-center gap-2 mb-1">
                       {severityIcon[visCorrelation.level]}
                       <span className={`text-xs font-display font-bold ${severityColor[visCorrelation.level].text}`}>
-                        Correlación: {visCorrelation.level}
+                        {t("biasAudit.correlationLabel", { level: visCorrelation.level })}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">{visCorrelation.msg}</p>
@@ -450,13 +452,13 @@ export default function BiasAuditDashboard() {
                 )}
 
                 <div className="glass rounded-xl p-4">
-                  <h3 className="text-xs font-display font-bold text-foreground mb-2">Detalle por volumen de datos</h3>
+                  <h3 className="text-xs font-display font-bold text-foreground mb-2">{t("biasAudit.visibilityDetailTitle")}</h3>
                   <div className="divide-y divide-border/20">
                     {visibility?.map((row, i) => (
                       <div key={i} className="flex items-center justify-between py-2">
                         <span className="text-xs font-display text-foreground">{row.data_volume}</span>
                         <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                          <span>{row.player_count} jugadores</span>
+                          <span>{t("biasAudit.playersCount", { count: row.player_count })}</span>
                           <span className="font-bold text-foreground">VSI {row.avg_vsi}</span>
                           <span>σ {row.stddev_vsi}</span>
                         </div>
@@ -471,8 +473,8 @@ export default function BiasAuditDashboard() {
             {activeTab === "recency" && (
               <div className="space-y-6">
                 <div className="glass rounded-xl p-4">
-                  <h2 className="text-sm font-display font-bold text-foreground mb-1">Tendencia temporal del VSI</h2>
-                  <p className="text-[10px] text-muted-foreground mb-4">¿Los scores suben/bajan con el tiempo? (prompt drift)</p>
+                  <h2 className="text-sm font-display font-bold text-foreground mb-1">{t("biasAudit.recencyChartTitle")}</h2>
+                  <p className="text-[10px] text-muted-foreground mb-4">{t("biasAudit.recencyChartDesc")}</p>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={[...(recency ?? [])].reverse()} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -494,15 +496,15 @@ export default function BiasAuditDashboard() {
                           }}
                         />
                         <Legend wrapperStyle={{ fontSize: 10 }} />
-                        <Line type="monotone" dataKey="avg_vsi" name="VSI medio" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} />
-                        <Line type="monotone" dataKey="analysis_count" name="Análisis" stroke="#334155" strokeWidth={1} strokeDasharray="4 4" dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="avg_vsi" name={t("biasAudit.seriesAvgVsi")} stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="analysis_count" name={t("biasAudit.seriesAnalyses")} stroke="#334155" strokeWidth={1} strokeDasharray="4 4" dot={{ r: 3 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
                 <div className="glass rounded-xl p-4">
-                  <h3 className="text-xs font-display font-bold text-foreground mb-2">Detalle mensual</h3>
+                  <h3 className="text-xs font-display font-bold text-foreground mb-2">{t("biasAudit.recencyDetailTitle")}</h3>
                   <div className="divide-y divide-border/20">
                     {recency?.map((row, i) => {
                       const d = new Date(row.month);
@@ -511,7 +513,7 @@ export default function BiasAuditDashboard() {
                         <div key={i} className="flex items-center justify-between py-2">
                           <span className="text-xs font-display text-foreground capitalize">{label}</span>
                           <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-                            <span>{row.analysis_count} análisis</span>
+                            <span>{t("biasAudit.analysesCount", { count: row.analysis_count })}</span>
                             <span className="font-bold text-foreground">VSI {row.avg_vsi}</span>
                             <span>σ {row.stddev_vsi}</span>
                           </div>
@@ -522,11 +524,9 @@ export default function BiasAuditDashboard() {
                 </div>
 
                 <div className="glass rounded-xl p-4 space-y-2">
-                  <h3 className="text-xs font-display font-bold text-foreground">¿Qué es prompt drift?</h3>
+                  <h3 className="text-xs font-display font-bold text-foreground">{t("biasAudit.promptDriftTitle")}</h3>
                   <p className="text-[10px] text-muted-foreground leading-relaxed">
-                    Si los scores suben consistentemente mes a mes sin cambios reales en los jugadores,
-                    puede indicar que los prompts de los agentes IA están derivando hacia evaluaciones más generosas.
-                    Esto es normal y se corrige ajustando las reglas de scoring periódicamente.
+                    {t("biasAudit.promptDriftDesc")}
                   </p>
                 </div>
               </div>

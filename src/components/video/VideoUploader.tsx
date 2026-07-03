@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as tus from "tus-js-client";
 
 interface Props {
@@ -45,6 +46,7 @@ interface VideoMeta {
 }
 
 export function VideoUploader({ playerId, playerName, onComplete }: Props) {
+  const { t } = useTranslation();
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
@@ -68,9 +70,9 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
   // Validación cliente del archivo
   function validateFile(f: File): string | null {
-    if (f.size > 500 * 1024 * 1024) return "El vídeo supera 500 MB · usa uno más corto";
-    if (f.size < 100 * 1024) return "El vídeo es muy pequeño · ¿se grabó bien?";
-    if (!f.type.startsWith("video/")) return "El archivo no es un vídeo";
+    if (f.size > 500 * 1024 * 1024) return t("videoUploader.errorTooLarge");
+    if (f.size < 100 * 1024) return t("videoUploader.errorTooSmall");
+    if (!f.type.startsWith("video/")) return t("videoUploader.errorNotVideo");
     return null;
   }
 
@@ -87,7 +89,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
     if (!title) {
       // Sugerir título basado en fecha
       const today = new Date().toLocaleDateString("es-ES");
-      setTitle(`Análisis ${today}`);
+      setTitle(t("videoUploader.defaultTitle", { date: today }));
     }
   }
 
@@ -95,7 +97,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
     if (!file || !title) return;
     setError(null);
     setState("creating");
-    setStatusMessage("Preparando subida...");
+    setStatusMessage(t("videoUploader.statusPreparing"));
 
     try {
       // 1. Crear video en Bunny + obtener credenciales TUS
@@ -112,14 +114,14 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
       const createData = await createRes.json();
       if (!createRes.ok || !createData.success) {
-        throw new Error(createData?.error?.message ?? "Error creando upload");
+        throw new Error(createData?.error?.message ?? t("videoUploader.errorCreatingUpload"));
       }
 
       const meta: VideoMeta = createData.data;
 
       // 2. Subir con TUS protocol
       setState("uploading");
-      setStatusMessage("Subiendo vídeo...");
+      setStatusMessage(t("videoUploader.statusUploading"));
 
       await new Promise<void>((resolve, reject) => {
         const upload = new tus.Upload(file, {
@@ -148,7 +150,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
       // 3. Finalizar (consulta Bunny + dispara webhook)
       setState("processing_bunny");
-      setStatusMessage("Bunny procesando vídeo...");
+      setStatusMessage(t("videoUploader.statusBunnyProcessing"));
       setProgress(100);
 
       let attempts = 0;
@@ -172,14 +174,14 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
           finalized = true;
           break;
         }
-        setStatusMessage(`Bunny procesando... (${attempts}/12)`);
+        setStatusMessage(t("videoUploader.statusBunnyProgress", { attempts }));
       }
 
-      if (!finalized) throw new Error("Bunny tardó demasiado en procesar");
+      if (!finalized) throw new Error(t("videoUploader.errorBunnyTimeout"));
 
       // 4. Polling al análisis
       setState("queued");
-      setStatusMessage("Análisis encolado...");
+      setStatusMessage(t("videoUploader.statusQueued"));
 
       let analysisCompleted = false;
       let pollAttempts = 0;
@@ -198,26 +200,26 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
             setAnalysisId(a.id);
             if (a.status === "processing") {
               setState("analyzing");
-              setStatusMessage("IA analizando vídeo en GPU...");
+              setStatusMessage(t("videoUploader.statusAnalyzing"));
             } else if (a.status === "completed") {
               analysisCompleted = true;
               setState("completed");
-              setStatusMessage("¡Análisis completo!");
+              setStatusMessage(t("videoUploader.statusCompleted"));
               onComplete?.(a.id);
               break;
             } else if (a.status === "failed") {
-              throw new Error(a.status_message ?? "Análisis falló");
+              throw new Error(a.status_message ?? t("videoUploader.errorAnalysisFailed"));
             }
           }
         }
       }
 
       if (!analysisCompleted) {
-        setStatusMessage("Análisis tardando · revisa en unos minutos");
+        setStatusMessage(t("videoUploader.statusTakingLong"));
       }
     } catch (err) {
       setState("error");
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : t("videoUploader.errorUnknown"));
     }
   }
 
@@ -225,31 +227,31 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
     <div className="max-w-2xl mx-auto space-y-5">
       <header>
         <div className="text-xs uppercase tracking-widest text-purple-600 font-bold mb-1">
-          Subir vídeo
+          {t("videoUploader.eyebrow")}
         </div>
         <h2 className="font-rajdhani text-2xl font-bold mb-2">
-          Análisis de {playerName ?? "jugador"}
+          {t("videoUploader.heading", { name: playerName ?? t("videoUploader.playerFallback") })}
         </h2>
         <p className="text-sm text-slate-600">
-          Sube un vídeo de 30 seg - 5 min. Ideal: cuerpo entero visible, buena luz, resolución 720p+.
+          {t("videoUploader.subheading")}
         </p>
       </header>
 
       {state === "idle" && (
         <>
           <div>
-            <label className="block text-sm font-semibold mb-1">Título del análisis</label>
+            <label className="block text-sm font-semibold mb-1">{t("videoUploader.titleLabel")}</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="ej. Entrenamiento técnico - 3 mayo"
+              placeholder={t("videoUploader.titlePlaceholder")}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-1">Vídeo</label>
+            <label className="block text-sm font-semibold mb-1">{t("videoUploader.videoLabel")}</label>
             <input
               ref={fileInputRef}
               type="file"
@@ -258,7 +260,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
               className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="text-xs text-slate-500 mt-1">
-              MP4, MOV, M4V · máximo 500 MB
+              {t("videoUploader.formatsHint")}
             </p>
           </div>
 
@@ -282,7 +284,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
             disabled={!file || !title}
             className="w-full py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold disabled:opacity-50"
           >
-            Subir y analizar
+            {t("videoUploader.uploadButton")}
           </button>
         </>
       )}
@@ -314,7 +316,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
               href={`/player/${playerId}/analysis/${analysisId}`}
               className="block text-center w-full py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold"
             >
-              Ver reportes →
+              {t("videoUploader.viewReports")}
             </a>
           )}
 
@@ -323,7 +325,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
               onClick={reset}
               className="w-full py-2.5 rounded-full border border-slate-300 text-sm font-semibold hover:bg-slate-50"
             >
-              Subir otro vídeo
+              {t("videoUploader.uploadAnother")}
             </button>
           )}
 

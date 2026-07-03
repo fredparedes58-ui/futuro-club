@@ -12,6 +12,7 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -36,55 +37,55 @@ export interface QuestionnaireResult {
 
 interface Question {
   id: string;
-  text: string;
-  textYoung?: string; // simplified text for <10
+  textKey: string;
+  textYoungKey?: string; // simplified text key for <10
 }
 
 // ─── Questions ──────────────────────────────────────────────────────────
 
 const PLAYER_QUESTIONS: Question[] = [
-  { id: "enjoyment", text: "¿Cuánto disfrutas los entrenamientos?", textYoung: "¿Te diviertes entrenando?" },
-  { id: "energy", text: "¿Cómo te sientes de energía después de entrenar?", textYoung: "¿Estás cansado después de entrenar?" },
-  { id: "friends", text: "¿Te sientes bien con tus compañeros de equipo?", textYoung: "¿Te llevas bien con los amigos del equipo?" },
-  { id: "confidence", text: "¿Te sientes seguro cuando juegas?", textYoung: "¿Te sientes valiente cuando juegas?" },
-  { id: "wantToCome", text: "¿Tienes ganas de venir a entrenar?", textYoung: "¿Quieres venir a entrenar?" },
-  { id: "sleep", text: "¿Duermes bien por las noches?", textYoung: "¿Duermes bien?" },
+  { id: "enjoyment", textKey: "wellbeingForm.playerEnjoyment", textYoungKey: "wellbeingForm.playerEnjoymentYoung" },
+  { id: "energy", textKey: "wellbeingForm.playerEnergy", textYoungKey: "wellbeingForm.playerEnergyYoung" },
+  { id: "friends", textKey: "wellbeingForm.playerFriends", textYoungKey: "wellbeingForm.playerFriendsYoung" },
+  { id: "confidence", textKey: "wellbeingForm.playerConfidence", textYoungKey: "wellbeingForm.playerConfidenceYoung" },
+  { id: "wantToCome", textKey: "wellbeingForm.playerWantToCome", textYoungKey: "wellbeingForm.playerWantToComeYoung" },
+  { id: "sleep", textKey: "wellbeingForm.playerSleep", textYoungKey: "wellbeingForm.playerSleepYoung" },
 ];
 
 const COACH_QUESTIONS: Question[] = [
-  { id: "motivation", text: "¿Cómo calificarías la motivación del jugador en las últimas sesiones?" },
-  { id: "integration", text: "¿Cómo es su nivel de integración social con el grupo?" },
-  { id: "progress", text: "¿Está mostrando progresión técnica/táctica?" },
-  { id: "attitude", text: "¿Cómo es su actitud ante errores y correcciones?" },
-  { id: "effort", text: "¿El nivel de esfuerzo es consistente con su capacidad?" },
-  { id: "concern", text: "¿Tienes alguna preocupación sobre su bienestar general?" },
+  { id: "motivation", textKey: "wellbeingForm.coachMotivation" },
+  { id: "integration", textKey: "wellbeingForm.coachIntegration" },
+  { id: "progress", textKey: "wellbeingForm.coachProgress" },
+  { id: "attitude", textKey: "wellbeingForm.coachAttitude" },
+  { id: "effort", textKey: "wellbeingForm.coachEffort" },
+  { id: "concern", textKey: "wellbeingForm.coachConcern" },
 ];
 
 const PARENT_QUESTIONS: Question[] = [
-  { id: "enjoyment", text: "¿Su hijo/a disfruta yendo a los entrenamientos?" },
-  { id: "stress", text: "¿Nota signos de estrés o ansiedad relacionados con el fútbol?" },
-  { id: "sleep", text: "¿Duerme bien y descansa lo suficiente?" },
-  { id: "appetite", text: "¿Come bien y tiene buen apetito?" },
-  { id: "socialLife", text: "¿Mantiene buenas relaciones con los compañeros fuera del campo?" },
-  { id: "balance", text: "¿Consigue equilibrar el fútbol con los estudios y la vida social?" },
+  { id: "enjoyment", textKey: "wellbeingForm.parentEnjoyment" },
+  { id: "stress", textKey: "wellbeingForm.parentStress" },
+  { id: "sleep", textKey: "wellbeingForm.parentSleep" },
+  { id: "appetite", textKey: "wellbeingForm.parentAppetite" },
+  { id: "socialLife", textKey: "wellbeingForm.parentSocialLife" },
+  { id: "balance", textKey: "wellbeingForm.parentBalance" },
 ];
 
 // ─── Emojis for young players ──────────────────────────────────────────
 
 const EMOJI_SCALE = [
-  { emoji: "😢", label: "Muy mal", value: 1 },
-  { emoji: "😕", label: "Mal", value: 2 },
-  { emoji: "😐", label: "Normal", value: 3 },
-  { emoji: "😊", label: "Bien", value: 4 },
-  { emoji: "🤩", label: "¡Genial!", value: 5 },
+  { emoji: "😢", labelKey: "wellbeingForm.emojiVeryBad", value: 1 },
+  { emoji: "😕", labelKey: "wellbeingForm.emojiBad", value: 2 },
+  { emoji: "😐", labelKey: "wellbeingForm.emojiNormal", value: 3 },
+  { emoji: "😊", labelKey: "wellbeingForm.emojiGood", value: 4 },
+  { emoji: "🤩", labelKey: "wellbeingForm.emojiGreat", value: 5 },
 ];
 
 const LIKERT_SCALE = [
-  { label: "Muy poco", value: 1 },
-  { label: "Poco", value: 2 },
-  { label: "Normal", value: 3 },
-  { label: "Bastante", value: 4 },
-  { label: "Mucho", value: 5 },
+  { labelKey: "wellbeingForm.likertVeryLittle", value: 1 },
+  { labelKey: "wellbeingForm.likertLittle", value: 2 },
+  { labelKey: "wellbeingForm.likertNormal", value: 3 },
+  { labelKey: "wellbeingForm.likertQuiteALot", value: 4 },
+  { labelKey: "wellbeingForm.likertALot", value: 5 },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────
@@ -97,6 +98,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
   onSubmit,
   onCancel,
 }) => {
+  const { t } = useTranslation();
   const isYoungPlayer = respondent === "player" && playerAge < 10;
   const questions =
     respondent === "player" ? PLAYER_QUESTIONS :
@@ -146,10 +148,10 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
       >
         <div className="text-4xl mb-3">✅</div>
         <h3 className="text-lg font-semibold text-white mb-2">
-          ¡Gracias por completar el cuestionario!
+          {t("wellbeingForm.thankYouTitle")}
         </h3>
         <p className="text-sm text-gray-400">
-          Las respuestas se han guardado correctamente.
+          {t("wellbeingForm.responsesSaved")}
         </p>
       </motion.div>
     );
@@ -161,13 +163,13 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">
-            {respondent === "player" ? (isYoungPlayer ? `¡Hola ${playerName}!` : "Cuestionario de bienestar") :
-             respondent === "coach" ? "Evaluación del entrenador" :
-             "Cuestionario para padres"}
+            {respondent === "player" ? (isYoungPlayer ? t("wellbeingForm.helloPlayer", { name: playerName }) : t("wellbeingForm.titlePlayer")) :
+             respondent === "coach" ? t("wellbeingForm.titleCoach") :
+             t("wellbeingForm.titleParent")}
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-            {respondent === "player" ? (isYoungPlayer ? "Toca el emoji que mejor te represente" : `Sobre: ${playerName}`) :
-             `Evaluando a: ${playerName}`}
+            {respondent === "player" ? (isYoungPlayer ? t("wellbeingForm.subtitleYoung") : t("wellbeingForm.subtitleAbout", { name: playerName })) :
+             t("wellbeingForm.subtitleEvaluating", { name: playerName })}
           </p>
         </div>
         {onCancel && (
@@ -175,7 +177,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
             onClick={onCancel}
             className="text-gray-500 hover:text-gray-300 text-sm"
           >
-            Cancelar
+            {t("wellbeingForm.cancel")}
           </button>
         )}
       </div>
@@ -220,8 +222,8 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
         >
           <p className={`text-center mb-6 ${isYoungPlayer ? "text-xl font-medium text-white" : "text-base text-gray-200"}`}>
             {isYoungPlayer
-              ? (questions[currentQ].textYoung ?? questions[currentQ].text)
-              : questions[currentQ].text}
+              ? t(questions[currentQ].textYoungKey ?? questions[currentQ].textKey)
+              : t(questions[currentQ].textKey)}
           </p>
 
           {/* Answer options */}
@@ -239,7 +241,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
                   }`}
                 >
                   <span className="text-3xl sm:text-4xl">{opt.emoji}</span>
-                  <span className="text-[10px] text-gray-400">{opt.label}</span>
+                  <span className="text-[10px] text-gray-400">{t(opt.labelKey)}</span>
                 </button>
               ))}
             </div>
@@ -260,7 +262,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
                     <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-xs">
                       {opt.value}
                     </span>
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </span>
                 </button>
               ))}
@@ -276,7 +278,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
           disabled={currentQ === 0}
           className="text-sm text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          ← Anterior
+          {t("wellbeingForm.previous")}
         </button>
 
         {currentQ < questions.length - 1 ? (
@@ -284,7 +286,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
             onClick={() => setCurrentQ(currentQ + 1)}
             className="text-sm text-emerald-400 hover:text-emerald-300"
           >
-            Siguiente →
+            {t("wellbeingForm.next")}
           </button>
         ) : (
           <button
@@ -296,7 +298,7 @@ export const WellbeingQuestionnaireForm: React.FC<QuestionnaireProps> = ({
                 : "bg-gray-700 text-gray-500 cursor-not-allowed"
             }`}
           >
-            Enviar
+            {t("wellbeingForm.submit")}
           </button>
         )}
       </div>
