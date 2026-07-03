@@ -9,6 +9,7 @@
 import { useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   ArrowRight, Zap, Brain, Activity, Shield, Sparkles, Check,
   TrendingUp, Eye, Target, Send, Play, Star, BarChart3, Users,
@@ -49,6 +50,7 @@ function FloatingOrbs() {
 
 // ── Phone mockup with app screens ─────────────────────────────
 function PhoneMockup() {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 40, rotateY: -5 }}
@@ -91,15 +93,15 @@ function PhoneMockup() {
             {/* PULSE LIVE */}
             <div className="mb-3">
               <h3 className="text-[11px] font-bold text-primary tracking-wide">PULSE LIVE</h3>
-              <p className="text-[7px] text-gray-400">Inteligencia futbolística en tiempo real</p>
+              <p className="text-[7px] text-gray-400">{t("publicLanding.pulseSubtitle")}</p>
             </div>
 
             {/* Stat cards */}
             <div className="grid grid-cols-3 gap-1.5 mb-3">
               {[
                 { icon: BarChart3, label: "VSI AVG", value: "72.4", color: "text-primary" },
-                { icon: Zap, label: "ACTIVOS", value: "342", color: "text-purple-600" },
-                { icon: Shield, label: "ALERTAS", value: "18", color: "text-amber-500" },
+                { icon: Zap, label: t("publicLanding.statActive"), value: "342", color: "text-purple-600" },
+                { icon: Shield, label: t("publicLanding.statAlerts"), value: "18", color: "text-amber-500" },
               ].map((s) => (
                 <div key={s.label} className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
                   <s.icon size={10} className={`${s.color} mx-auto mb-0.5`} />
@@ -114,14 +116,14 @@ function PhoneMockup() {
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1">
                   <Star size={8} className="text-amber-500" />
-                  <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider">Ranking Top</span>
+                  <span className="text-[8px] font-bold text-gray-700 uppercase tracking-wider">{t("publicLanding.rankingTop")}</span>
                 </div>
-                <span className="text-[7px] text-primary font-semibold">Ver todos →</span>
+                <span className="text-[7px] text-primary font-semibold">{t("publicLanding.seeAll")}</span>
               </div>
               {[
-                { initials: "LR", name: "L. Rodríguez", pos: "CAM · 16 años", score: 94, tags: ["SUB-17", "ELITE"], color: "bg-emerald-500" },
-                { initials: "MF", name: "M. Fernández", pos: "ST · 17 años", score: 91, tags: ["SUB-17"], color: "bg-blue-500" },
-                { initials: "AG", name: "A. García", pos: "ST · 15 años", score: 88, tags: ["PRO+"], color: "bg-emerald-500" },
+                { initials: "LR", name: "L. Rodríguez", pos: `CAM · ${t("publicLanding.years", { count: 16 })}`, score: 94, tags: ["SUB-17", "ELITE"], color: "bg-emerald-500" },
+                { initials: "MF", name: "M. Fernández", pos: `ST · ${t("publicLanding.years", { count: 17 })}`, score: 91, tags: ["SUB-17"], color: "bg-blue-500" },
+                { initials: "AG", name: "A. García", pos: `ST · ${t("publicLanding.years", { count: 15 })}`, score: 88, tags: ["PRO+"], color: "bg-emerald-500" },
               ].map((p) => (
                 <div key={p.initials} className="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
                   <div className={`w-7 h-7 rounded-full ${p.color} text-white flex items-center justify-center text-[8px] font-bold shrink-0`}>
@@ -145,9 +147,9 @@ function PhoneMockup() {
             <div className="bg-gray-50 rounded-lg p-2 border border-gray-100">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[7px] text-gray-500 flex items-center gap-1">
-                  <Activity size={7} /> Maduración PHV
+                  <Activity size={7} /> {t("publicLanding.phvMaturation")}
                 </span>
-                <span className="text-[7px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded-full">Madurador tardío</span>
+                <span className="text-[7px] text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded-full">{t("publicLanding.lateMaturer")}</span>
               </div>
               <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                 <motion.div
@@ -183,6 +185,7 @@ function AnimatedStat({ value, label, color }: { value: string; label: string; c
 
 // ── Main component ────────────────────────────────────────────
 export default function PublicLanding() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, configured } = useAuth();
@@ -194,7 +197,7 @@ export default function PublicLanding() {
   }, [shouldRedirect, navigate]);
 
   useEffect(() => {
-    document.title = "VITAS · Inteligencia futbolística con corrección PHV";
+    document.title = t("publicLanding.pageTitle");
     const set = (name: string, content: string, property?: boolean) => {
       const sel = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
       let el = document.querySelector(sel) as HTMLMetaElement | null;
@@ -206,13 +209,13 @@ export default function PublicLanding() {
       }
       el.setAttribute("content", content);
     };
-    set("description", "Detecta talento oculto en academias juveniles con IA. Único modelo del mercado con corrección de maduración biológica (PHV).");
+    set("description", t("publicLanding.metaDescription"));
     set("og:title", "VITAS · Football Intelligence", true);
-    set("og:description", "Análisis IA para academias juveniles · corrección PHV · VAEP · escaneo · drills personalizados.", true);
+    set("og:description", t("publicLanding.ogDescription"), true);
     set("og:image", "/og-image.png", true);
     set("og:url", "https://futuro-club.vercel.app", true);
     set("twitter:card", "summary_large_image");
-  }, []);
+  }, [t]);
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">
@@ -234,9 +237,9 @@ export default function PublicLanding() {
             <span className="text-[10px] font-display text-muted-foreground hidden sm:block">FOOTBALL INTELLIGENCE</span>
           </div>
           <nav className="hidden md:flex items-center gap-5 text-xs font-display font-semibold text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Funciones</a>
+            <a href="#features" className="hover:text-foreground transition-colors">{t("publicLanding.navFeatures")}</a>
             <a href="#phv" className="hover:text-foreground transition-colors">PHV</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Planes</a>
+            <a href="#pricing" className="hover:text-foreground transition-colors">{t("publicLanding.navPlans")}</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <nav className="flex items-center gap-3">
@@ -246,19 +249,19 @@ export default function PublicLanding() {
                 className="px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5"
                 style={{ background: "linear-gradient(135deg, #0059B3, #A855F7)" }}
               >
-                Dashboard <ArrowRight size={12} />
+                {t("publicLanding.dashboard")} <ArrowRight size={12} />
               </Link>
             ) : (
               <>
                 <Link to="/login" className="text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                  Iniciar sesión
+                  {t("publicLanding.login")}
                 </Link>
                 <Link
                   to="/register"
                   className="px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5 hover:opacity-90 transition-opacity"
                   style={{ background: "linear-gradient(135deg, #0059B3, #A855F7)" }}
                 >
-                  Empezar gratis <ArrowRight size={12} />
+                  {t("publicLanding.startFree")} <ArrowRight size={12} />
                 </Link>
               </>
             )}
@@ -278,23 +281,20 @@ export default function PublicLanding() {
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-display font-bold uppercase tracking-wider"
               style={{ background: "linear-gradient(90deg, rgba(0,89,179,0.1), rgba(168,85,247,0.1))", borderColor: "rgba(0,89,179,0.2)", color: "#0059B3" }}
             >
-              <Sparkles size={12} /> V1.0 · Software · App Nativa · Web · iOS · Android
+              <Sparkles size={12} /> {t("publicLanding.heroBadge")}
             </div>
             <h1 className="font-display font-black text-4xl md:text-[3.5rem] text-foreground leading-[1.05]">
-              Detecta el talento que{" "}
+              {t("publicLanding.heroTitleStart")}{" "}
               <span style={{
                 background: "linear-gradient(135deg, #3B82F6, #A855F7, #E6197A, #F59E0B)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}>
-                los demás no ven.
+                {t("publicLanding.heroTitleAccent")}
               </span>
             </h1>
             <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-lg">
-              VITAS es la primera plataforma de Football Intelligence con corrección
-              de maduración biológica (PHV). Detecta talento oculto en academias
-              juveniles que sistemas tradicionales clasifican erróneamente por su
-              físico actual. Scouting, análisis táctico con IA y gestión integral.
+              {t("publicLanding.heroDescription")}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link
@@ -302,20 +302,20 @@ export default function PublicLanding() {
                 className="px-6 py-3.5 rounded-xl font-display font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
                 style={{ background: "linear-gradient(135deg, #E6197A, #A855F7)", boxShadow: "0 8px 30px rgba(230,25,122,0.3)" }}
               >
-                <Play size={14} /> VER DEMO
+                <Play size={14} /> {t("publicLanding.watchDemo")}
               </Link>
               <Link
                 to="/login"
                 className="px-6 py-3.5 rounded-xl border border-border bg-white/80 font-display font-bold text-sm text-foreground flex items-center justify-center gap-2 hover:bg-white transition-colors"
               >
-                Solicitar demo
+                {t("publicLanding.requestDemo")}
               </Link>
             </div>
             {/* Stats row */}
             <div className="flex gap-8 pt-4">
-              <AnimatedStat value="12.847" label="Jugadores" color="text-cyan-600" />
-              <AnimatedStat value="342" label="Sesiones Live" color="text-cyan-600" />
-              <AnimatedStat value="1.893" label="Insights/Día" color="text-cyan-600" />
+              <AnimatedStat value="12.847" label={t("publicLanding.statPlayers")} color="text-cyan-600" />
+              <AnimatedStat value="342" label={t("publicLanding.statLiveSessions")} color="text-cyan-600" />
+              <AnimatedStat value="1.893" label={t("publicLanding.statInsightsPerDay")} color="text-cyan-600" />
             </div>
           </motion.div>
 
@@ -352,42 +352,37 @@ export default function PublicLanding() {
             <div className="space-y-5">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-display font-bold uppercase tracking-wider"
                 style={{ background: "rgba(212,148,10,0.1)", color: "#D4940A", border: "1px solid rgba(212,148,10,0.2)" }}>
-                Diferenciador único
+                {t("publicLanding.uniqueDifferentiator")}
               </div>
               <h2 className="font-display font-black text-2xl md:text-4xl text-foreground leading-tight">
-                Tu mejor jugador no es el más alto.{" "}
+                {t("publicLanding.phvHeadingStart")}{" "}
                 <span style={{
                   background: "linear-gradient(135deg, #0059B3, #A855F7)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}>
-                  Es el que aún no ha crecido.
+                  {t("publicLanding.phvHeadingAccent")}
                 </span>
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                El 70% de los seleccionados en academias juveniles nacen en el
-                primer trimestre del año. Son más grandes, más fuertes, pero no
-                necesariamente más talentosos. VITAS aplica la fórmula Mirwald
-                de Peak Height Velocity (PHV) para corregir esa ventaja
-                biológica y ver al jugador real debajo.
+                {t("publicLanding.phvParagraph")}
               </p>
               <ul className="space-y-2.5 text-sm">
-                <FeatureLine text="Cálculo PHV con datos antropométricos · sin necesidad de radiografía" />
-                <FeatureLine text="VSI corregido por edad biológica, no cronológica" />
-                <FeatureLine text="Predicción ventana neuromotora · cuándo cargarle gym, cuándo no" />
+                <FeatureLine text={t("publicLanding.phvFeature1")} />
+                <FeatureLine text={t("publicLanding.phvFeature2")} />
+                <FeatureLine text={t("publicLanding.phvFeature3")} />
               </ul>
             </div>
             <div className="rounded-2xl p-6 space-y-3 border"
               style={{ background: "linear-gradient(135deg, rgba(0,89,179,0.03), rgba(168,85,247,0.03))", borderColor: "rgba(0,89,179,0.15)" }}>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Ejemplo real</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("publicLanding.realExample")}</span>
                 <span className="text-[10px] font-bold" style={{ color: "#0059B3" }}>Sub-12</span>
               </div>
               <ComparisonRow name="Pablo (Q1, 1.62m)" vsiClassic={78} vsiCorrected={62} />
               <ComparisonRow name="Hugo (Q4, 1.42m)" vsiClassic={64} vsiCorrected={81} highlight />
               <p className="text-[11px] text-muted-foreground border-t border-border pt-3 leading-relaxed">
-                Sin VITAS, Pablo se queda en el equipo y Hugo se queda en casa.
-                Con VITAS, ves que Hugo es 19 puntos mejor cuando crezca.
+                {t("publicLanding.exampleConclusion")}
               </p>
             </div>
           </motion.div>
@@ -397,21 +392,20 @@ export default function PublicLanding() {
       {/* ── 4 features ────────────────────────────────────────── */}
       <section id="features" className="max-w-7xl mx-auto px-4 py-14 md:py-20 relative z-10">
         <h2 className="font-display font-black text-2xl md:text-4xl text-center text-foreground mb-3">
-          Todo lo que un coach moderno necesita
+          {t("publicLanding.featuresHeading")}
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-          Análisis automático de video con IA · escaneo · perfil de rol · drills
-          personalizados por edad · copilot Telegram. Cero manual de instrucciones.
+          {t("publicLanding.featuresSubtitle")}
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <FeatureCard icon={Brain} title="Análisis IA" color="#A855F7"
-            description="Sube un video · 5 min después tienes pases, duelos, recuperaciones, escaneo, mapa de calor y perfil de rol." />
+          <FeatureCard icon={Brain} title={t("publicLanding.featureAiTitle")} color="#A855F7"
+            description={t("publicLanding.featureAiDesc")} />
           <FeatureCard icon={Activity} title="VSI + PHV" color="#0059B3"
-            description="Score 0-100 corregido por madurez biológica. Detecta diamantes ocultos por la timing del nacimiento." />
-          <FeatureCard icon={Eye} title="Escaneo + Voronoi" color="#158585"
-            description="Cuántas veces gira la cabeza antes de recibir. Cuánto espacio controla. Métricas de élite con un móvil." />
-          <FeatureCard icon={Send} title="Copilot Telegram" color="#E6197A"
-            description="Pregúntale al bot 'cómo va Samu' o '/drill pase' y respuesta en 5s sin abrir la app." />
+            description={t("publicLanding.featureVsiDesc")} />
+          <FeatureCard icon={Eye} title={t("publicLanding.featureScanTitle")} color="#158585"
+            description={t("publicLanding.featureScanDesc")} />
+          <FeatureCard icon={Send} title={t("publicLanding.featureTelegramTitle")} color="#E6197A"
+            description={t("publicLanding.featureTelegramDesc")} />
         </div>
       </section>
 
@@ -419,15 +413,15 @@ export default function PublicLanding() {
       <section className="border-y border-border/50 relative">
         <div className="max-w-7xl mx-auto px-4 py-14 md:py-20">
           <h2 className="font-display font-black text-2xl md:text-4xl text-center text-foreground mb-12">
-            En 3 pasos
+            {t("publicLanding.stepsHeading")}
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <StepCard num={1} title="Registra a tus jugadores" icon={Target} color="#0059B3"
-              description="Antropometría básica (altura, peso, edad). El sistema calcula PHV automáticamente." />
-            <StepCard num={2} title="Sube un video del partido" icon={Zap} color="#A855F7"
-              description="MP4 desde el móvil. La IA detecta jugadores, eventos y posiciones sin necesidad de cámara profesional." />
-            <StepCard num={3} title="Recibe insights accionables" icon={TrendingUp} color="#158585"
-              description="VSI corregido, drills personalizados, comparativa con referentes pro y plan de carga adaptado a la fase PHV." />
+            <StepCard num={1} title={t("publicLanding.step1Title")} icon={Target} color="#0059B3"
+              description={t("publicLanding.step1Desc")} />
+            <StepCard num={2} title={t("publicLanding.step2Title")} icon={Zap} color="#A855F7"
+              description={t("publicLanding.step2Desc")} />
+            <StepCard num={3} title={t("publicLanding.step3Title")} icon={TrendingUp} color="#158585"
+              description={t("publicLanding.step3Desc")} />
           </div>
         </div>
       </section>
@@ -435,21 +429,21 @@ export default function PublicLanding() {
       {/* ── Planes ────────────────────────────────────────────── */}
       <section id="pricing" className="max-w-7xl mx-auto px-4 py-14 md:py-20">
         <h2 className="font-display font-black text-2xl md:text-4xl text-center text-foreground mb-3">
-          Tres planes para tres momentos
+          {t("publicLanding.pricingHeading")}
         </h2>
         <p className="text-sm text-muted-foreground text-center mb-12">
-          Free para probar · Pro para coaches independientes · Club para academias completas.
+          {t("publicLanding.pricingSubtitle")}
         </p>
         <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-          <PlanTier name="Free" description="Para probar la plataforma"
-            features={["1 jugador", "1 análisis IA al mes", "Acceso a la base de +365 jugadores de La Liga", "VSI corregido por PHV"]} />
-          <PlanTier name="Pro" description="Para coaches independientes" highlight
-            features={["Hasta 25 jugadores", "Análisis IA ilimitados", "Match-day Live (etiqueta eventos en directo)", "Telegram Copilot personal", "PHV plan personalizado", "Drills personalizados por edad", "Mapa de calor + escaneo + Voronoi"]} />
-          <PlanTier name="Club" description="Para academias completas"
-            features={["Jugadores ilimitados", "Equipo: scouts + directores invitables", "Benchmark cross-club anónimo", "Compare-vs-rival con plan táctico", "Dashboard de padres", "API + integraciones (white-label)", "Soporte prioritario"]} />
+          <PlanTier name="Free" description={t("publicLanding.planFreeDesc")}
+            features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
+          <PlanTier name="Pro" description={t("publicLanding.planProDesc")} highlight
+            features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
+          <PlanTier name="Club" description={t("publicLanding.planClubDesc")}
+            features={[t("publicLanding.planClubFeature1"), t("publicLanding.planClubFeature2"), t("publicLanding.planClubFeature3"), t("publicLanding.planClubFeature4"), t("publicLanding.planClubFeature5"), t("publicLanding.planClubFeature6"), t("publicLanding.planClubFeature7")]} />
         </div>
         <p className="text-xs text-muted-foreground text-center mt-8">
-          Empieza gratis sin tarjeta · cambia de plan o cancela cuando quieras
+          {t("publicLanding.pricingNote")}
         </p>
       </section>
 
@@ -467,18 +461,17 @@ export default function PublicLanding() {
         >
           <Shield size={36} className="mx-auto mb-4" style={{ color: "#A855F7" }} />
           <h2 className="font-display font-black text-2xl md:text-4xl text-foreground mb-4">
-            Empieza esta tarde con 1 video
+            {t("publicLanding.ctaHeading")}
           </h2>
           <p className="text-sm text-muted-foreground mb-8 max-w-xl mx-auto">
-            Cero credenciales de tarjeta. Cero contrato. 5 minutos para subir tu primer
-            video y ver de qué hablamos.
+            {t("publicLanding.ctaParagraph")}
           </p>
           <Link
             to="/register"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-display font-bold text-sm text-white hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
             style={{ background: "linear-gradient(135deg, #E6197A, #A855F7)", boxShadow: "0 8px 30px rgba(230,25,122,0.3)" }}
           >
-            Empezar gratis <ArrowRight size={14} />
+            {t("publicLanding.startFree")} <ArrowRight size={14} />
           </Link>
         </motion.div>
       </section>
@@ -494,9 +487,9 @@ export default function PublicLanding() {
             <span className="text-xs text-muted-foreground">VITAS · Football Intelligence © 2026</span>
           </div>
           <nav className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link to="/terms" className="hover:text-foreground transition-colors">Términos</Link>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacidad</Link>
-            <Link to="/login" className="hover:text-foreground transition-colors">Acceso</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">{t("publicLanding.footerTerms")}</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">{t("publicLanding.footerPrivacy")}</Link>
+            <Link to="/login" className="hover:text-foreground transition-colors">{t("publicLanding.footerAccess")}</Link>
           </nav>
         </div>
         {/* Bottom gradient bar */}
@@ -520,6 +513,7 @@ function FeatureLine({ text }: { text: string }) {
 function ComparisonRow({ name, vsiClassic, vsiCorrected, highlight }: {
   name: string; vsiClassic: number; vsiCorrected: number; highlight?: boolean;
 }) {
+  const { t } = useTranslation();
   const diff = vsiCorrected - vsiClassic;
   return (
     <div className={`p-3.5 rounded-xl border ${highlight ? "border-primary/40 bg-primary/5" : "border-border bg-white/50"}`}>
@@ -532,7 +526,7 @@ function ComparisonRow({ name, vsiClassic, vsiCorrected, highlight }: {
       </div>
       <div className="grid grid-cols-2 gap-3 text-xs">
         <div>
-          <p className="text-[9px] uppercase text-muted-foreground">VSI clásico</p>
+          <p className="text-[9px] uppercase text-muted-foreground">{t("publicLanding.vsiClassic")}</p>
           <p className="font-mono text-foreground">{vsiClassic}</p>
         </div>
         <div>
@@ -589,6 +583,7 @@ function StepCard({ num, title, description, icon: Icon, color }: {
 function PlanTier({ name, description, features, highlight }: {
   name: string; description: string; features: string[]; highlight?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       whileHover={{ y: -4 }}
@@ -605,7 +600,7 @@ function PlanTier({ name, description, features, highlight }: {
     >
       {highlight && (
         <span className="inline-block text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white font-bold border border-white/30">
-          Más popular
+          {t("publicLanding.mostPopular")}
         </span>
       )}
       <div>
@@ -629,7 +624,7 @@ function PlanTier({ name, description, features, highlight }: {
         }`}
         style={!highlight ? { background: "linear-gradient(135deg, #0059B3, #A855F7)" } : undefined}
       >
-        Empezar
+        {t("publicLanding.getStarted")}
       </Link>
     </motion.div>
   );

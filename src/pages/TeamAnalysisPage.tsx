@@ -323,7 +323,7 @@ export default function TeamAnalysisPage() {
       return;
     }
     if (!teamColor.trim()) {
-      toast.error(t("reports.selectVideoFirst", "Indica el color del uniforme del equipo"));
+      toast.error(t("teamAnalysisPage.indicateTeamColor"));
       return;
     }
     const video = allVideos.find(v => v.id === selectedVideoId);
@@ -342,7 +342,7 @@ export default function TeamAnalysisPage() {
         localVideoSrc: localSrc,
         analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
-      toast.success("¡Análisis de equipo completado!");
+      toast.success(t("teamAnalysisPage.analysisCompleted"));
       setActiveTab("informe");
     } catch (err) {
       const { title, description } = getErrorDetails(err, "team-analysis");
@@ -359,7 +359,7 @@ export default function TeamAnalysisPage() {
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-display font-black text-foreground">Análisis de Equipo</h1>
+            <h1 className="text-sm font-display font-black text-foreground">{t("teamAnalysisPage.pageTitle")}</h1>
             <p className="text-[10px] text-muted-foreground">Team Intelligence Report</p>
           </div>
           <div className="flex items-center gap-1">
@@ -383,7 +383,7 @@ export default function TeamAnalysisPage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "informe" ? "Informe" : "Nuevo Análisis"}
+              {tab === "informe" ? t("teamAnalysisPage.tabReport") : t("teamAnalysisPage.tabNewAnalysis")}
             </button>
           ))}
         </div>
@@ -394,11 +394,11 @@ export default function TeamAnalysisPage() {
             {/* Upload */}
             <div className="glass rounded-2xl p-4">
               <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-3">
-                Subir video del partido
+                {t("teamAnalysisPage.uploadMatchVideo")}
               </p>
               <VideoUpload
                 onDone={(videoId) => {
-                  toast.success("Video listo");
+                  toast.success(t("teamAnalysisPage.videoReady"));
                   setSelectedVideoId(videoId);
                 }}
               />
@@ -408,7 +408,7 @@ export default function TeamAnalysisPage() {
             {allVideos.length > 0 && (
               <div className="glass rounded-2xl p-4">
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-3">
-                  Selecciona video
+                  {t("teamAnalysisPage.selectVideo")}
                 </p>
                 <div className="space-y-2">
                   {allVideos.filter(v => v.status === "finished" || v.status === "uploaded" || !!v.embedUrl || (v.localPath && !v.localPath.startsWith("http"))).map(v => (
@@ -422,7 +422,7 @@ export default function TeamAnalysisPage() {
                       <Play size={14} className="text-primary shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{v.title ?? v.id}</p>
-                        <p className="text-[10px] text-muted-foreground">{v.duration ? `${Math.round(v.duration)}s` : "Listo"}</p>
+                        <p className="text-[10px] text-muted-foreground">{v.duration ? `${Math.round(v.duration)}s` : t("teamAnalysisPage.ready")}</p>
                       </div>
                     </button>
                   ))}
@@ -433,36 +433,36 @@ export default function TeamAnalysisPage() {
             {/* Identificación del equipo */}
             <div className="glass rounded-2xl p-4 space-y-3">
               <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                Identificar equipo en el video
+                {t("teamAnalysisPage.identifyTeamInVideo")}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                    Color equipo *
+                    {t("teamAnalysisPage.teamColorLabel")}
                   </label>
                   <input
                     type="text"
                     value={teamColor}
                     onChange={(e) => setTeamColor(e.target.value)}
-                    placeholder="ej: rojo, blanco"
+                    placeholder={t("teamAnalysisPage.teamColorPlaceholder")}
                     className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider">
-                    Color rival
+                    {t("teamAnalysisPage.opponentColorLabel")}
                   </label>
                   <input
                     type="text"
                     value={opponentColor}
                     onChange={(e) => setOpponentColor(e.target.value)}
-                    placeholder="ej: azul"
+                    placeholder={t("teamAnalysisPage.opponentColorPlaceholder")}
                     className="w-full px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
                   />
                 </div>
               </div>
               <p className="text-[9px] text-muted-foreground leading-relaxed">
-                La IA analizará a todo el equipo con ese color de uniforme: formación, posesión, pressing, métricas por jugador.
+                {t("teamAnalysisPage.aiAnalysisHint")}
               </p>
             </div>
 
@@ -501,9 +501,9 @@ export default function TeamAnalysisPage() {
               disabled={!selectedVideoId || !teamColor.trim() || isAnalyzing}
             >
               {isAnalyzing ? (
-                <><Loader2 size={16} className="animate-spin" /> Analizando equipo...</>
+                <><Loader2 size={16} className="animate-spin" /> {t("teamAnalysisPage.analyzingTeam")}</>
               ) : (
-                <><Users size={16} /> Analizar Equipo Completo</>
+                <><Users size={16} /> {t("teamAnalysisPage.analyzeFullTeam")}</>
               )}
             </Button>
           </div>
@@ -522,7 +522,7 @@ export default function TeamAnalysisPage() {
                       <div className="flex items-center gap-2">
                         <Video size={14} className="text-primary" />
                         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                          Análisis guardados ({savedAnalyses.length})
+                          {t("teamAnalysisPage.savedAnalyses", { count: savedAnalyses.length })}
                         </span>
                       </div>
                       <button
@@ -532,7 +532,7 @@ export default function TeamAnalysisPage() {
                         }`}
                       >
                         <GitCompare size={10} />
-                        {compareMode ? "Cerrar" : "Comparar"}
+                        {compareMode ? t("teamAnalysisPage.close") : t("teamAnalysisPage.compare")}
                       </button>
                     </div>
                     <div className="space-y-1.5">
@@ -540,7 +540,7 @@ export default function TeamAnalysisPage() {
                         const r = a.report as TeamIntelligenceOutput | null;
                         const videoTitle = a.video_id
                           ? VideoService.getById(a.video_id)?.title ?? a.video_id
-                          : `Análisis ${savedAnalyses.length - idx}`;
+                          : t("teamAnalysisPage.analysisNumber", { number: savedAnalyses.length - idx });
                         const date = a.created_at ? new Date(a.created_at).toLocaleDateString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
                         const isSelected = selectedAnalysisIdx === idx;
                         const isCompare = compareMode && compareIdx === idx;
@@ -569,14 +569,14 @@ export default function TeamAnalysisPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-medium text-foreground truncate">
-                                {r?.equipoAnalizado?.colorUniforme ? `Equipo ${r.equipoAnalizado.colorUniforme}` : videoTitle}
+                                {r?.equipoAnalizado?.colorUniforme ? t("teamAnalysisPage.teamNamed", { color: r.equipoAnalizado.colorUniforme }) : videoTitle}
                               </p>
                               <p className="text-[9px] text-muted-foreground">
-                                {date} · {r?.formacion?.sistema ?? "?"} · Confianza {Math.round((r?.confianza ?? 0) * 100)}%
+                                {date} · {r?.formacion?.sistema ?? "?"} · {t("teamAnalysisPage.confidence")} {Math.round((r?.confianza ?? 0) * 100)}%
                               </p>
                             </div>
-                            {isSelected && <Badge variant="secondary" className="text-[8px]">Actual</Badge>}
-                            {isCompare && <Badge className="text-[8px] bg-amber-500">Comparar</Badge>}
+                            {isSelected && <Badge variant="secondary" className="text-[8px]">{t("teamAnalysisPage.current")}</Badge>}
+                            {isCompare && <Badge className="text-[8px] bg-amber-500">{t("teamAnalysisPage.compare")}</Badge>}
                           </button>
                         );
                       })}
@@ -590,15 +590,15 @@ export default function TeamAnalysisPage() {
                     <div className="flex items-center gap-2">
                       <GitCompare size={14} className="text-primary" />
                       <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                        Comparativa entre análisis
+                        {t("teamAnalysisPage.comparisonBetweenAnalyses")}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { label: "Compacidad", cur: report.metricasColectivas?.compacidad, prev: compareReport.metricasColectivas?.compacidad },
-                        { label: "Amplitud", cur: report.metricasColectivas?.amplitud, prev: compareReport.metricasColectivas?.amplitud },
-                        { label: "Sincronización", cur: report.metricasColectivas?.sincronizacion, prev: compareReport.metricasColectivas?.sincronizacion },
-                        { label: "Posesión %", cur: report.posesion?.porcentaje, prev: compareReport.posesion?.porcentaje },
+                        { label: t("teamAnalysisPage.compactness"), cur: report.metricasColectivas?.compacidad, prev: compareReport.metricasColectivas?.compacidad },
+                        { label: t("teamAnalysisPage.width"), cur: report.metricasColectivas?.amplitud, prev: compareReport.metricasColectivas?.amplitud },
+                        { label: t("teamAnalysisPage.synchronization"), cur: report.metricasColectivas?.sincronizacion, prev: compareReport.metricasColectivas?.sincronizacion },
+                        { label: t("teamAnalysisPage.possessionPct"), cur: report.posesion?.porcentaje, prev: compareReport.posesion?.porcentaje },
                       ].map(({ label, cur, prev }) => {
                         const delta = (cur ?? 0) - (prev ?? 0);
                         const DeltaIcon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
@@ -617,11 +617,11 @@ export default function TeamAnalysisPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="rounded-lg bg-secondary/50 p-2">
-                        <p className="text-[9px] text-muted-foreground">Formación anterior</p>
+                        <p className="text-[9px] text-muted-foreground">{t("teamAnalysisPage.previousFormation")}</p>
                         <p className="text-[11px] font-bold">{compareReport.formacion?.sistema ?? "?"}</p>
                       </div>
                       <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
-                        <p className="text-[9px] text-primary">Formación actual</p>
+                        <p className="text-[9px] text-primary">{t("teamAnalysisPage.currentFormation")}</p>
                         <p className="text-[11px] font-bold">{report.formacion?.sistema ?? "?"}</p>
                       </div>
                     </div>
@@ -640,13 +640,13 @@ export default function TeamAnalysisPage() {
                 {/* Meta */}
                 <div className="glass rounded-xl p-3 flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground">
-                    Confianza: {Math.round((report.confianza ?? 0) * 100)}%
+                    {t("teamAnalysisPage.confidence")}: {Math.round((report.confianza ?? 0) * 100)}%
                   </span>
                   <button
                     onClick={() => setActiveTab("nuevo")}
                     className="flex items-center gap-1.5 text-[10px] text-primary"
                   >
-                    <Zap size={10} /> Nuevo análisis
+                    <Zap size={10} /> {t("teamAnalysisPage.newAnalysisShort")}
                   </button>
                 </div>
               </div>
@@ -654,13 +654,13 @@ export default function TeamAnalysisPage() {
               <div className="glass rounded-2xl p-8 text-center">
                 <Users size={32} className="mx-auto mb-3 text-primary/50" />
                 <h3 className="text-sm font-display font-bold text-foreground mb-1">
-                  Sin análisis de equipo
+                  {t("teamAnalysisPage.noTeamAnalysis")}
                 </h3>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Sube un video de partido y genera el primer informe táctico
+                  {t("teamAnalysisPage.noTeamAnalysisDesc")}
                 </p>
                 <Button size="sm" onClick={() => setActiveTab("nuevo")} className="gap-2">
-                  <Zap size={14} /> Nuevo Análisis
+                  <Zap size={14} /> {t("teamAnalysisPage.tabNewAnalysis")}
                 </Button>
               </div>
             )}
@@ -693,7 +693,7 @@ export default function TeamAnalysisPage() {
 
               {/* Rol y resumen */}
               <div>
-                <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-1">Rol</p>
+                <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("teamAnalysisPage.role")}</p>
                 <p className="text-xs text-foreground">{selectedPlayer.rol}</p>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">{selectedPlayer.resumen}</p>
@@ -703,7 +703,7 @@ export default function TeamAnalysisPage() {
                 <div className="glass rounded-xl p-3">
                   <div className="flex items-center gap-1 mb-1">
                     <Target size={10} className="text-green-400" />
-                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">Pases</span>
+                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.passes")}</span>
                   </div>
                   <span className="font-display font-bold text-lg text-foreground">
                     {(selectedPlayer.pases.completados + selectedPlayer.pases.fallados) > 0
@@ -716,19 +716,19 @@ export default function TeamAnalysisPage() {
                 <div className="glass rounded-xl p-3">
                   <div className="flex items-center gap-1 mb-1">
                     <Swords size={10} className="text-red-400" />
-                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">Duelos</span>
+                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.duels")}</span>
                   </div>
                   <span className="font-display font-bold text-lg text-foreground">
-                    {selectedPlayer.duelos.ganados}G / {selectedPlayer.duelos.perdidos}P
+                    {selectedPlayer.duelos.ganados}{t("teamAnalysisPage.wonAbbr")} / {selectedPlayer.duelos.perdidos}{t("teamAnalysisPage.lostAbbr")}
                   </span>
-                  <p className="text-[9px] text-muted-foreground">{selectedPlayer.recuperaciones} recuperaciones</p>
+                  <p className="text-[9px] text-muted-foreground">{t("teamAnalysisPage.recoveriesCount", { count: selectedPlayer.recuperaciones })}</p>
                 </div>
 
                 {selectedPlayer.velocidadMaxKmh != null && (
                   <div className="glass rounded-xl p-3">
                     <div className="flex items-center gap-1 mb-1">
                       <Zap size={10} className="text-yellow-400" />
-                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">Velocidad</span>
+                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.speed")}</span>
                     </div>
                     <span className="font-display font-bold text-lg text-foreground">
                       {selectedPlayer.velocidadMaxKmh.toFixed(1)}
@@ -741,7 +741,7 @@ export default function TeamAnalysisPage() {
                   <div className="glass rounded-xl p-3">
                     <div className="flex items-center gap-1 mb-1">
                       <MapPin size={10} className="text-blue-400" />
-                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">Distancia</span>
+                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.distance")}</span>
                     </div>
                     <span className="font-display font-bold text-lg text-foreground">
                       {selectedPlayer.distanciaM.toFixed(0)}
@@ -755,7 +755,7 @@ export default function TeamAnalysisPage() {
               {selectedPlayer.heatmapPositions && selectedPlayer.heatmapPositions.length > 0 && (
                 <PlayerHeatmap
                   positions={selectedPlayer.heatmapPositions}
-                  title={`Mapa de Calor — #${selectedPlayer.dorsalEstimado ?? "?"}`}
+                  title={t("teamAnalysisPage.heatmapTitle", { number: selectedPlayer.dorsalEstimado ?? "?" })}
                 />
               )}
             </div>

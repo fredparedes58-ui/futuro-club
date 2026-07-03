@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Heart, Trophy, Star, TrendingUp, TrendingDown,
@@ -47,13 +48,14 @@ interface Badge {
   date?: string;
 }
 
-const PHV_LABELS: Record<string, string> = {
-  early: "🌱 Pre-estirón",
-  ontime: "🚀 En estirón",
-  late: "🏆 Post-estirón",
+const PHV_EMOJIS: Record<string, string> = {
+  early: "🌱",
+  ontime: "🚀",
+  late: "🏆",
 };
 
 export default function ParentDashboardPage() {
+  const { t } = useTranslation();
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
   const player = playerId ? PlayerService.getById(playerId) : null;
@@ -66,8 +68,8 @@ export default function ParentDashboardPage() {
       <div className="min-h-screen flex items-center justify-center px-6 text-center">
         <div className="space-y-3">
           <Heart size={32} className="text-muted-foreground mx-auto" />
-          <p className="text-sm text-muted-foreground">Jugador no encontrado</p>
-          <button onClick={() => navigate("/")} className="text-xs text-primary font-bold">← Inicio</button>
+          <p className="text-sm text-muted-foreground">{t("parentDashboardPage.playerNotFound")}</p>
+          <button onClick={() => navigate("/")} className="text-xs text-primary font-bold">← {t("parentDashboardPage.home")}</button>
         </div>
       </div>
     );
@@ -88,43 +90,43 @@ export default function ParentDashboardPage() {
     {
       id: "first-measurement",
       emoji: "📏",
-      title: "Primera medición",
-      description: "Has registrado las primeras medidas antropométricas",
+      title: t("parentDashboardPage.badgeFirstMeasurementTitle"),
+      description: t("parentDashboardPage.badgeFirstMeasurementDesc"),
       unlocked: !!rawPlayer?.height && !!rawPlayer?.weight,
     },
     {
       id: "phv-tracked",
       emoji: "🧬",
-      title: "PHV calculado",
-      description: "Tu hijo tiene su edad biológica medida",
+      title: t("parentDashboardPage.badgePhvTrackedTitle"),
+      description: t("parentDashboardPage.badgePhvTrackedDesc"),
       unlocked: !!rawPlayer?.phvCategory,
     },
     {
       id: "first-report",
       emoji: "📋",
-      title: "Primer informe",
-      description: "Has generado tu primer reporte de análisis",
+      title: t("parentDashboardPage.badgeFirstReportTitle"),
+      description: t("parentDashboardPage.badgeFirstReportDesc"),
       unlocked: totalReports >= 1,
     },
     {
       id: "consistent",
       emoji: "🔥",
-      title: "Constancia",
-      description: "5 o más informes generados",
+      title: t("parentDashboardPage.badgeConsistentTitle"),
+      description: t("parentDashboardPage.badgeConsistentDesc"),
       unlocked: totalReports >= 5,
     },
     {
       id: "improving",
       emoji: "📈",
-      title: "Subiendo",
-      description: "El VSI ha subido +2 o más puntos",
+      title: t("parentDashboardPage.badgeImprovingTitle"),
+      description: t("parentDashboardPage.badgeImprovingDesc"),
       unlocked: vsiDelta >= 2,
     },
     {
       id: "elite",
       emoji: "👑",
-      title: "Talento",
-      description: "VSI alcanzó 70+",
+      title: t("parentDashboardPage.badgeEliteTitle"),
+      description: t("parentDashboardPage.badgeEliteDesc"),
       unlocked: vsiCurrent >= 70,
     },
   ];
@@ -134,7 +136,7 @@ export default function ParentDashboardPage() {
   // ─── Compartir ─────────────────────────────────────────────────
   async function handleShare() {
     if (!latestAnalysis?.id || sharing) {
-      toast.info("Sin reportes aún · genera el primero para compartir");
+      toast.info(t("parentDashboardPage.noReportsShareInfo"));
       return;
     }
     setSharing(true);
@@ -146,18 +148,26 @@ export default function ParentDashboardPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "No se pudo generar link");
+        throw new Error(data?.error?.message ?? t("parentDashboardPage.linkGenerationError"));
       }
       const fullUrl = `${window.location.origin}${data.data.url}`;
-      const text = `¡Mira el progreso de ${player.name}! 🏆\n\nVSI: ${vsiCurrent}${vsiDelta >= 0 ? " (↗ +" : " (↘ "}${Math.abs(vsiDelta)} pts)\n${unlockedCount}/${badges.length} logros desbloqueados\n\nVer análisis completo:\n${fullUrl}\n\n_Compartido desde VITAS · Football Intelligence_`;
+      const deltaLabel = vsiDelta >= 0 ? ` (↗ +${Math.abs(vsiDelta)} pts)` : ` (↘ ${Math.abs(vsiDelta)} pts)`;
+      const text = t("parentDashboardPage.shareText", {
+        name: player.name,
+        vsi: vsiCurrent,
+        delta: deltaLabel,
+        unlockedCount,
+        totalBadges: badges.length,
+        url: fullUrl,
+      });
 
       if (navigator.share) {
-        try { await navigator.share({ title: `${player.name} · VITAS`, text, url: fullUrl }); toast.success("Compartido"); return; } catch { /* canceled */ }
+        try { await navigator.share({ title: `${player.name} · VITAS`, text, url: fullUrl }); toast.success(t("parentDashboardPage.shared")); return; } catch { /* canceled */ }
       }
       await navigator.clipboard.writeText(text);
-      toast.success("Texto WhatsApp copiado · pega en grupo familia");
+      toast.success(t("parentDashboardPage.whatsappCopied"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : t("parentDashboardPage.genericError"));
     } finally {
       setSharing(false);
     }
@@ -176,7 +186,7 @@ export default function ParentDashboardPage() {
             <h1 className="text-sm font-display font-bold text-foreground truncate">
               {player.name}
             </h1>
-            <p className="text-[10px] text-muted-foreground">Vista familia · progreso</p>
+            <p className="text-[10px] text-muted-foreground">{t("parentDashboardPage.familyViewProgress")}</p>
           </div>
           <Heart size={16} className="text-pink-400" />
         </div>
@@ -193,12 +203,12 @@ export default function ParentDashboardPage() {
           className="glass rounded-3xl p-6 text-center bg-gradient-to-br from-primary/15 via-electric/10 to-transparent"
         >
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
-            Su nivel actual
+            {t("parentDashboardPage.currentLevel")}
           </div>
           <div className="font-display font-bold text-6xl text-foreground leading-none">
             {Math.round(vsiCurrent)}
           </div>
-          <div className="text-[10px] text-muted-foreground mt-1">de 100 · VSI Score</div>
+          <div className="text-[10px] text-muted-foreground mt-1">{t("parentDashboardPage.outOf100VsiScore")}</div>
 
           {vsiHistory.length >= 2 && (
             <div className={`mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-display font-bold ${
@@ -207,22 +217,22 @@ export default function ParentDashboardPage() {
               : "bg-secondary text-muted-foreground"
             }`}>
               {vsiDelta > 0 ? <TrendingUp size={12} /> : vsiDelta < 0 ? <TrendingDown size={12} /> : null}
-              {vsiDelta >= 0 ? "+" : ""}{vsiDelta} pts vs hace 1 mes
+              {vsiDelta >= 0 ? "+" : ""}{vsiDelta} {t("parentDashboardPage.ptsVsOneMonthAgo")}
             </div>
           )}
 
           {rawPlayer?.phvCategory && (
             <div className="mt-3 text-[11px] text-foreground">
-              Fase: <span className="font-display font-bold">{PHV_LABELS[rawPlayer.phvCategory] ?? rawPlayer.phvCategory}</span>
+              {t("parentDashboardPage.phaseLabel")} <span className="font-display font-bold">{PHV_EMOJIS[rawPlayer.phvCategory] ? `${PHV_EMOJIS[rawPlayer.phvCategory]} ${t(`parentDashboardPage.phv_${rawPlayer.phvCategory}`)}` : rawPlayer.phvCategory}</span>
             </div>
           )}
         </motion.div>
 
         {/* Quick stats simples */}
         <div className="grid grid-cols-3 gap-2">
-          <SimpleStat label="Edad" value={`${rawPlayer?.age ?? "—"}a`} Icon={Calendar} />
-          <SimpleStat label="Posición" value={rawPlayer?.position?.split(" ")[0] ?? "—"} Icon={Activity} />
-          <SimpleStat label="Reportes" value={String(totalReports)} Icon={Star} />
+          <SimpleStat label={t("parentDashboardPage.statAge")} value={`${rawPlayer?.age ?? "—"}a`} Icon={Calendar} />
+          <SimpleStat label={t("parentDashboardPage.statPosition")} value={rawPlayer?.position?.split(" ")[0] ?? "—"} Icon={Activity} />
+          <SimpleStat label={t("parentDashboardPage.statReports")} value={String(totalReports)} Icon={Star} />
         </div>
 
         {/* Logros · gamification */}
@@ -230,7 +240,7 @@ export default function ParentDashboardPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Award size={14} className="text-gold" />
-              <span className="text-xs font-display font-bold text-foreground">Logros</span>
+              <span className="text-xs font-display font-bold text-foreground">{t("parentDashboardPage.achievements")}</span>
             </div>
             <span className="text-[11px] font-display font-bold text-gold">
               {unlockedCount} / {badges.length}
@@ -276,7 +286,7 @@ export default function ParentDashboardPage() {
             <div className="flex items-center gap-2 mb-2">
               <Sparkles size={13} className="text-primary" />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                Resumen del último análisis
+                {t("parentDashboardPage.latestAnalysisSummary")}
               </span>
             </div>
             <p className="text-sm text-foreground leading-relaxed">
@@ -286,7 +296,7 @@ export default function ParentDashboardPage() {
               onClick={() => navigate(`/players/${playerId}/reports`)}
               className="mt-3 text-xs text-primary font-bold hover:text-primary/80"
             >
-              Ver todos los reportes →
+              {t("parentDashboardPage.viewAllReports")} →
             </button>
           </motion.div>
         )}
@@ -304,9 +314,9 @@ export default function ParentDashboardPage() {
             {sharing ? <Loader2 size={18} className="animate-spin text-primary" /> : <Share2 size={18} className="text-primary" />}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-display font-bold text-foreground">Compartir progreso</div>
+            <div className="text-sm font-display font-bold text-foreground">{t("parentDashboardPage.shareProgress")}</div>
             <div className="text-[10px] text-muted-foreground leading-tight">
-              Mensaje listo para WhatsApp grupo familia
+              {t("parentDashboardPage.shareProgressSubtitle")}
             </div>
           </div>
         </motion.button>
@@ -318,14 +328,14 @@ export default function ParentDashboardPage() {
             className="rounded-xl bg-secondary/30 border border-border p-3 hover:bg-secondary/50 text-center transition-colors"
           >
             <Activity size={14} className="text-electric mx-auto mb-1" />
-            <div className="text-[11px] font-display font-bold text-foreground">Perfil completo</div>
+            <div className="text-[11px] font-display font-bold text-foreground">{t("parentDashboardPage.fullProfile")}</div>
           </button>
           <button
             onClick={() => navigate(`/players/${playerId}/evolution`)}
             className="rounded-xl bg-secondary/30 border border-border p-3 hover:bg-secondary/50 text-center transition-colors"
           >
             <TrendingUp size={14} className="text-green-400 mx-auto mb-1" />
-            <div className="text-[11px] font-display font-bold text-foreground">Evolución</div>
+            <div className="text-[11px] font-display font-bold text-foreground">{t("parentDashboardPage.evolution")}</div>
           </button>
         </div>
 
@@ -337,10 +347,10 @@ export default function ParentDashboardPage() {
           <div className="glass rounded-2xl p-5 text-center space-y-2">
             <Trophy size={28} className="text-muted-foreground mx-auto" />
             <p className="text-xs font-display font-bold text-foreground">
-              Aún no hay análisis
+              {t("parentDashboardPage.noAnalysisYet")}
             </p>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Cuando el coach genere el primer reporte, aparecerá aquí su resumen y se desbloquearán logros.
+              {t("parentDashboardPage.noAnalysisYetDesc")}
             </p>
           </div>
         )}
@@ -352,6 +362,7 @@ export default function ParentDashboardPage() {
 // ── Wellbeing for parents (Sprint 23) ───────────────────────────
 
 function ParentWellbeingSection({ playerId }: { playerId: string }) {
+  const { t } = useTranslation();
   const { data: risk } = useDropoutRisk(playerId || undefined);
   const { data: engagement } = useEngagementHistory(playerId || undefined);
 
@@ -359,9 +370,9 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
 
   const engagementTrend = risk.engagement.trend;
   const tips = [
-    "Pregunta siempre '¿Te has divertido hoy?' en vez de '¿Han ganado?'",
-    "Asegura que duerme 8-9 horas para una buena recuperación",
-    "Celebra el esfuerzo y la mejora, no solo los goles o las victorias",
+    t("parentDashboardPage.tip1"),
+    t("parentDashboardPage.tip2"),
+    t("parentDashboardPage.tip3"),
   ];
 
   return (
@@ -372,21 +383,21 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
     >
       <div className="flex items-center gap-2">
         <Heart size={14} className="text-rose-400" />
-        <span className="text-[11px] font-display font-bold text-foreground">Bienestar</span>
+        <span className="text-[11px] font-display font-bold text-foreground">{t("parentDashboardPage.wellbeing")}</span>
       </div>
 
       {/* Engagement bar */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground">Nivel de disfrute</span>
+          <span className="text-[10px] text-muted-foreground">{t("parentDashboardPage.enjoymentLevel")}</span>
           <span className={`text-[10px] font-bold ${
             engagementTrend === "declining" ? "text-amber-400" :
             engagementTrend === "improving" ? "text-emerald-400" :
             "text-muted-foreground"
           }`}>
-            {engagementTrend === "declining" ? "↓ Bajando" :
-             engagementTrend === "improving" ? "↑ Subiendo" :
-             "→ Estable"}
+            {engagementTrend === "declining" ? `↓ ${t("parentDashboardPage.trendDeclining")}` :
+             engagementTrend === "improving" ? `↑ ${t("parentDashboardPage.trendImproving")}` :
+             `→ ${t("parentDashboardPage.trendStable")}`}
           </span>
         </div>
         <div className="h-2 rounded-full bg-white/10 overflow-hidden">
@@ -403,17 +414,17 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
         </div>
         <p className="text-[10px] text-muted-foreground">
           {risk.engagement.current >= 65
-            ? "Tu hijo está disfrutando de los entrenamientos. ¡Sigue así!"
+            ? t("parentDashboardPage.enjoymentHigh")
             : risk.engagement.current >= 40
-            ? "El disfrute ha bajado un poco. Es normal, pero conviene estar atentos."
-            : "El nivel de disfrute es bajo. Habla con el entrenador si notas cambios en casa."}
+            ? t("parentDashboardPage.enjoymentMedium")
+            : t("parentDashboardPage.enjoymentLow")}
         </p>
       </div>
 
       {/* Tips */}
       <div className="space-y-1.5">
         <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-          Consejos para la familia
+          {t("parentDashboardPage.familyTips")}
         </span>
         {tips.map((tip, i) => (
           <p key={i} className="text-[10px] text-muted-foreground/80 flex items-start gap-1.5">
@@ -427,30 +438,34 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
 }
 
 // ── Physical Status Card · lenguaje para padres ────────────────────────────
-const ACWR_PARENT_LABELS: Record<string, { label: string; color: string; advice: string }> = {
-  optimal:      { label: "Carga equilibrada", color: "text-green-400", advice: "Su carga de entrenamiento esta en un rango saludable." },
-  caution:      { label: "Carga elevada",     color: "text-amber-400", advice: "Carga algo alta esta semana. Conviene descansar mas." },
-  danger:       { label: "Carga excesiva",    color: "text-red-400",   advice: "Riesgo alto. Recomendamos reducir actividad y hablar con el entrenador." },
-  undertrained: { label: "Poca actividad",    color: "text-blue-400",  advice: "Poca actividad reciente. Conviene retomar entrenamiento gradualmente." },
+const ACWR_PARENT_COLORS: Record<string, string> = {
+  optimal:      "text-green-400",
+  caution:      "text-amber-400",
+  danger:       "text-red-400",
+  undertrained: "text-blue-400",
 };
 
-const FATIGUE_PARENT_LABELS: Record<string, { label: string; color: string }> = {
-  normal:   { label: "Sin fatiga",      color: "text-green-400" },
-  moderate: { label: "Fatiga leve",     color: "text-amber-400" },
-  high:     { label: "Fatiga alta",     color: "text-orange-400" },
-  critical: { label: "Fatiga critica",  color: "text-red-400" },
+const FATIGUE_PARENT_COLORS: Record<string, string> = {
+  normal:   "text-green-400",
+  moderate: "text-amber-400",
+  high:     "text-orange-400",
+  critical: "text-red-400",
 };
 
 function PhysicalStatusCard({ playerId }: { playerId: string }) {
+  const { t } = useTranslation();
   const snapshot = PlayerTrackingService.get(playerId);
   const fatigue = snapshot?.fatigueReport;
 
   if (!fatigue) return null;
 
   const acwrZone = fatigue.acwr?.zone ?? "optimal";
-  const acwrInfo = ACWR_PARENT_LABELS[acwrZone] ?? ACWR_PARENT_LABELS.optimal;
+  const acwrColor = ACWR_PARENT_COLORS[acwrZone] ?? ACWR_PARENT_COLORS.optimal;
+  const acwrLabel = t(`parentDashboardPage.acwr_${acwrZone}_label`, t("parentDashboardPage.acwr_optimal_label"));
+  const acwrAdvice = t(`parentDashboardPage.acwr_${acwrZone}_advice`, t("parentDashboardPage.acwr_optimal_advice"));
   const fatigueSeverity = fatigue.fatigueIndex?.severity ?? "normal";
-  const fatigueInfo = FATIGUE_PARENT_LABELS[fatigueSeverity] ?? FATIGUE_PARENT_LABELS.normal;
+  const fatigueColor = FATIGUE_PARENT_COLORS[fatigueSeverity] ?? FATIGUE_PARENT_COLORS.normal;
+  const fatigueLabel = t(`parentDashboardPage.fatigue_${fatigueSeverity}_label`, t("parentDashboardPage.fatigue_normal_label"));
 
   return (
     <motion.div
@@ -462,27 +477,27 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
       <div className="flex items-center gap-2 mb-3">
         <Shield size={14} className="text-primary" />
         <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-          Estado fisico
+          {t("parentDashboardPage.physicalStatus")}
         </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-xl bg-secondary/30 border border-border p-3">
-          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Carga semanal</div>
-          <div className={`text-sm font-display font-bold ${acwrInfo.color}`}>
-            {acwrInfo.label}
+          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">{t("parentDashboardPage.weeklyLoad")}</div>
+          <div className={`text-sm font-display font-bold ${acwrColor}`}>
+            {acwrLabel}
           </div>
         </div>
         <div className="rounded-xl bg-secondary/30 border border-border p-3">
-          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Fatiga</div>
-          <div className={`text-sm font-display font-bold ${fatigueInfo.color}`}>
-            {fatigueInfo.label}
+          <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold mb-1">{t("parentDashboardPage.fatigue")}</div>
+          <div className={`text-sm font-display font-bold ${fatigueColor}`}>
+            {fatigueLabel}
           </div>
         </div>
       </div>
 
       <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
-        {acwrInfo.advice}
+        {acwrAdvice}
       </p>
 
       {/* Sprint 11: Injury risk summary for parents */}
@@ -490,8 +505,8 @@ function PhysicalStatusCard({ playerId }: { playerId: string }) {
         <div className="mt-3 rounded-lg bg-orange-500/10 border border-orange-500/20 px-3 py-2">
           <p className="text-[11px] text-orange-600 dark:text-orange-400 font-medium">
             {acwrZone === "danger"
-              ? "La carga de entrenamiento esta muy alta. Recomendamos descanso activo."
-              : "El nivel de fatiga es elevado. Es bueno que descanse hoy."}
+              ? t("parentDashboardPage.injuryRiskLoadHigh")
+              : t("parentDashboardPage.injuryRiskFatigueHigh")}
           </p>
         </div>
       )}
@@ -560,6 +575,7 @@ function ParentalConsentBanner({
   playerAge?: number;
   playerName: string;
 }) {
+  const { t } = useTranslation();
   const { data: consent } = usePlayerConsent(playerId);
   const grant = useGrantConsent();
   const [showForm, setShowForm] = useState(false);
@@ -575,8 +591,8 @@ function ParentalConsentBanner({
       <div className="glass rounded-2xl p-3 border-l-4 border-emerald-500/60 bg-emerald-500/5 flex items-center gap-2">
         <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
         <p className="text-[11px] text-foreground/80">
-          Consentimiento parental <strong className="text-emerald-500">concedido</strong>
-          {consent.guardianName && ` por ${consent.guardianName}`}
+          {t("parentDashboardPage.consentParental")} <strong className="text-emerald-500">{t("parentDashboardPage.consentGranted")}</strong>
+          {consent.guardianName && ` ${t("parentDashboardPage.consentBy", { name: consent.guardianName })}`}
         </p>
       </div>
     );
@@ -587,7 +603,7 @@ function ParentalConsentBanner({
       <div className="glass rounded-2xl p-3 border-l-4 border-red-500/60 bg-red-500/5 flex items-center gap-2">
         <AlertCircle size={14} className="text-red-500 shrink-0" />
         <p className="text-[11px] text-foreground/80">
-          Consentimiento parental <strong className="text-red-500">denegado</strong> · los datos del menor están anonimizados
+          {t("parentDashboardPage.consentParental")} <strong className="text-red-500">{t("parentDashboardPage.consentDenied")}</strong> {t("parentDashboardPage.consentDeniedNote")}
         </p>
       </div>
     );
@@ -604,11 +620,10 @@ function ParentalConsentBanner({
         <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="text-[12px] font-display font-bold text-foreground">
-            Consentimiento parental pendiente
+            {t("parentDashboardPage.consentPending")}
           </p>
           <p className="text-[10px] text-muted-foreground leading-relaxed mt-0.5">
-            {playerName} tiene menos de 14 años. Para procesar sus datos según RGPD,
-            necesitamos que un padre/tutor legal apruebe el tratamiento.
+            {t("parentDashboardPage.consentPendingDesc", { name: playerName })}
           </p>
         </div>
       </div>
@@ -617,7 +632,7 @@ function ParentalConsentBanner({
           onClick={() => setShowForm(true)}
           className="w-full px-3 py-1.5 rounded-md bg-amber-500 text-white text-[11px] font-display font-semibold hover:bg-amber-600"
         >
-          Soy el padre/tutor · dar consentimiento
+          {t("parentDashboardPage.iAmGuardianGrant")}
         </button>
       ) : (
         <div className="space-y-2">
@@ -625,14 +640,14 @@ function ParentalConsentBanner({
             type="text"
             value={guardianName}
             onChange={(e) => setGuardianName(e.target.value)}
-            placeholder="Nombre completo del tutor"
+            placeholder={t("parentDashboardPage.guardianNamePlaceholder")}
             className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-amber-500 focus:outline-none"
           />
           <input
             type="email"
             value={guardianEmail}
             onChange={(e) => setGuardianEmail(e.target.value)}
-            placeholder="Email del tutor"
+            placeholder={t("parentDashboardPage.guardianEmailPlaceholder")}
             className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-amber-500 focus:outline-none"
           />
           <div className="flex items-center gap-2">
@@ -640,7 +655,7 @@ function ParentalConsentBanner({
               onClick={() => setShowForm(false)}
               className="flex-1 px-2 py-1 rounded-md text-[11px] text-muted-foreground hover:bg-secondary"
             >
-              Cancelar
+              {t("parentDashboardPage.cancel")}
             </button>
             <button
               onClick={() =>
@@ -655,7 +670,7 @@ function ParentalConsentBanner({
               disabled={!guardianName.trim() || !guardianEmail.trim() || grant.isPending}
               className="flex-1 px-3 py-1 rounded-md bg-amber-500 text-white text-[11px] font-display font-semibold disabled:opacity-50"
             >
-              {grant.isPending ? "Guardando…" : "Conceder"}
+              {grant.isPending ? t("parentDashboardPage.saving") : t("parentDashboardPage.grant")}
             </button>
           </div>
         </div>

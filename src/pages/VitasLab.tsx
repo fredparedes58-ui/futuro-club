@@ -80,34 +80,34 @@ interface CalibrationPoint {
 }
 
 const steps = [
-  { id: 1, label: "SUBIR", done: true },
-  { id: 2, label: "MAPEO", active: true },
-  { id: 3, label: "PROCESAR", done: false },
+  { id: 1, labelKey: "vitasLab.stepUpload", done: true },
+  { id: 2, labelKey: "vitasLab.stepMapping", active: true },
+  { id: 3, labelKey: "vitasLab.stepProcess", done: false },
 ];
 
 const analysisModes = [
   {
     id: "all",
-    label: "Todos los Jugadores",
-    desc: "Cobertura global del campo y mapas de calor",
+    labelKey: "vitasLab.modeAllPlayers",
+    descKey: "vitasLab.modeAllPlayersDesc",
     icon: Users,
   },
   {
     id: "click",
-    label: "Seguimiento Manual",
-    desc: "Enfoque en selección individual manual",
+    labelKey: "vitasLab.modeManualTracking",
+    descKey: "vitasLab.modeManualTrackingDesc",
     icon: ScanSearch,
   },
   {
     id: "team",
-    label: "Equipo Completo",
-    desc: "Comparar bloques tácticos local vs visitante",
+    labelKey: "vitasLab.modeFullTeam",
+    descKey: "vitasLab.modeFullTeamDesc",
     icon: Swords,
   },
   {
     id: "player",
-    label: "Jugador Específico",
-    desc: "Filtrar por dorsal y posición",
+    labelKey: "vitasLab.modeSpecificPlayer",
+    descKey: "vitasLab.modeSpecificPlayerDesc",
     icon: UserRound,
   },
 ];
@@ -297,8 +297,8 @@ const VitasLab = () => {
         })));
         toast.success(
           result.autoDetected
-            ? `Auto-calibración exitosa (${Math.round(result.confidence * 100)}%)`
-            : "Calibración por heurística aplicada",
+            ? t("vitasLab.autoCalibSuccessPct", { pct: Math.round(result.confidence * 100) })
+            : t("vitasLab.calibHeuristicApplied"),
           { duration: 3000 },
         );
       }
@@ -316,14 +316,14 @@ const VitasLab = () => {
       tracking.startTracking(videoEl).then(() => {
         oneClick.advanceStep("tracking");
       }).catch((err) => {
-        oneClick.markError("Error iniciando tracking: " + err.message);
+        oneClick.markError(t("vitasLab.trackingStartError") + " " + err.message);
       });
     },
     onError: (error) => {
-      toast.error("Error en análisis 1-Click", { description: error });
+      toast.error(t("vitasLab.oneClickError"), { description: error });
     },
     onComplete: () => {
-      toast.success("Análisis 1-Click completado");
+      toast.success(t("vitasLab.oneClickComplete"));
     },
   });
 
@@ -381,8 +381,8 @@ const VitasLab = () => {
       }
     },
     onComplete: (bio) => {
-      toast.success("Biomecánica completada", {
-        description: `DrillScore: ${bio.drillScore}/100 · Simetría: ${bio.bilateralSymmetry}% · ${bio.framesAnalyzed} frames`,
+      toast.success(t("vitasLab.biomechanicsComplete"), {
+        description: `DrillScore: ${bio.drillScore}/100 · ${t("vitasLab.symmetry")}: ${bio.bilateralSymmetry}% · ${bio.framesAnalyzed} frames`,
         duration: 6000,
       });
     },
@@ -438,23 +438,23 @@ const VitasLab = () => {
           label: `P${i + 1}`,
         }));
         setPoints(newPoints);
-        toast.success("Auto-calibración exitosa", {
-          description: `${result.lines.length} líneas detectadas · Confianza ${Math.round(result.confidence * 100)}%`,
+        toast.success(t("vitasLab.autoCalibSuccess"), {
+          description: t("vitasLab.autoCalibSuccessDesc", { lines: result.lines.length, pct: Math.round(result.confidence * 100) }),
           duration: 5000,
         });
       } else {
-        toast.info("Auto-calibración parcial", {
-          description: `Confianza ${Math.round(result.confidence * 100)}% (necesita ≥60%). Ajusta manualmente.`,
+        toast.info(t("vitasLab.autoCalibPartial"), {
+          description: t("vitasLab.autoCalibPartialDesc", { pct: Math.round(result.confidence * 100) }),
           duration: 4000,
         });
       }
     } catch (err) {
-      toast.error("Error en auto-detección de líneas");
+      toast.error(t("vitasLab.fieldLineDetectError"));
       console.error("[FieldLineDetector]", err);
     } finally {
       setAutoCalibRunning(false);
     }
-  }, []);
+  }, [t]);
 
   // points DEBE declararse ANTES de useTracking (que lo usa en calibrationPoints)
   const [points, setPoints] = useState<CalibrationPoint[]>([
@@ -622,9 +622,9 @@ const VitasLab = () => {
       ? ` · DrillScore ${mediaPipe.biomechanics.drillScore}`
       : "";
     const evtMsg = finalEventSummary
-      ? ` · ${finalEventSummary.totalEvents} eventos`
+      ? ` · ${finalEventSummary.totalEvents} ${t("vitasLab.events")}`
       : "";
-    toast.success(`📊 Snapshot guardado${bioMsg}${evtMsg}`);
+    toast.success(`📊 ${t("vitasLab.snapshotSaved")}${bioMsg}${evtMsg}`);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracking.state.status, selectedPlayerId, selectedVideoId]);
 
@@ -803,14 +803,14 @@ const VitasLab = () => {
     }
 
     const video = videos.find((v) => v.id === selectedVideoId);
-    if (!video) { toast.error("Video no encontrado"); return; }
+    if (!video) { toast.error(t("vitasLab.videoNotFound")); return; }
 
     // Extraer bunnyVideoId desde embedUrl: https://iframe.mediadelivery.net/embed/{libId}/{guid}
     const bunnyVideoId = video.embedUrl?.split("/").pop() ?? selectedVideoId;
 
     setActionLog([]);
     v2.reset();
-    const toastId = toast.loading("Iniciando análisis GPU (MediaPipe + Claude)...");
+    const toastId = toast.loading(t("vitasLab.startingGpuAnalysis"));
 
     try {
       const selectedPlayer = players?.find((p) => p.id === selectedPlayerId);
@@ -874,15 +874,15 @@ const VitasLab = () => {
       toast.dismiss(toastId);
       toast.success(t("lab.analysisComplete"), {
         description: hasClientData
-          ? "Client-side pipeline completado · biomecánica + eventos + reportes IA"
-          : "Pipeline GPU completado · 6 reportes generados",
+          ? t("vitasLab.clientPipelineDone")
+          : t("vitasLab.gpuPipelineDone"),
         duration: 5000,
       });
       setShowResultsPanel(true);
     } catch (err) {
       toast.dismiss(toastId);
       toast.error(t("lab.analysisError"), {
-        description: err instanceof Error ? err.message : "Error desconocido",
+        description: err instanceof Error ? err.message : t("vitasLab.unknownError"),
       });
     }
   };
@@ -890,7 +890,7 @@ const VitasLab = () => {
   // Presets de perspectiva comunes para calibración rápida
   const CALIBRATION_PRESETS: Record<string, { label: string; points: CalibrationPoint[] }> = {
     lateral: {
-      label: "Vista Lateral",
+      label: t("vitasLab.viewLateral"),
       points: [
         { id: 1, x: 15, y: 55, label: "P1" },
         { id: 2, x: 85, y: 55, label: "P2" },
@@ -899,7 +899,7 @@ const VitasLab = () => {
       ],
     },
     aerial: {
-      label: "Vista Aérea",
+      label: t("vitasLab.viewAerial"),
       points: [
         { id: 1, x: 10, y: 10, label: "P1" },
         { id: 2, x: 90, y: 10, label: "P2" },
@@ -908,7 +908,7 @@ const VitasLab = () => {
       ],
     },
     tribuna: {
-      label: "Vista Tribuna",
+      label: t("vitasLab.viewStand"),
       points: [
         { id: 1, x: 20, y: 45, label: "P1" },
         { id: 2, x: 80, y: 45, label: "P2" },
@@ -1019,10 +1019,10 @@ const VitasLab = () => {
           </div>
           <nav className="hidden md:flex items-center gap-6 ml-6">
             {[
-              { label: "PANEL",    action: () => navigate("/")         },
-              { label: "NUEVO ANÁLISIS", action: () => setShowUploadPanel(true) },
-              { label: "ARCHIVO",      action: () => navigate("/reports")  },
-              { label: "MODELOS",       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
+              { label: t("vitasLab.navPanel"),    action: () => navigate("/")         },
+              { label: t("vitasLab.navNewAnalysis"), action: () => setShowUploadPanel(true) },
+              { label: t("vitasLab.navArchive"),      action: () => navigate("/reports")  },
+              { label: t("vitasLab.navModels"),       action: () => toast.info(t("lab.modelsComingSoon"), { description: t("lab.modelsComingSoonDesc") }) },
             ].map(({ label, action }, i) => (
               <button key={label} onClick={action} className={`text-xs font-display font-semibold tracking-wider transition-colors ${i === 1 ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                 {label}
@@ -1033,11 +1033,11 @@ const VitasLab = () => {
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
             <span className="text-[10px] font-display text-primary uppercase tracking-wider">
-              ESTADO_SISTEMA: <span className="text-primary">{v2.isProcessing ? "ANALIZANDO" : "ACTIVO"}</span>
+              {t("vitasLab.systemStatus")}: <span className="text-primary">{v2.isProcessing ? t("vitasLab.statusAnalyzing") : t("vitasLab.statusActive")}</span>
             </span>
             <br />
             <span className="text-[10px] font-display text-muted-foreground tracking-wider">
-              {selectedVideo ? `VIDEO: ${selectedVideo.title.slice(0, 20)}` : "Sin video seleccionado"}
+              {selectedVideo ? `${t("vitasLab.videoLabel")}: ${selectedVideo.title.slice(0, 20)}` : t("vitasLab.noVideoSelected")}
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center">
@@ -1051,7 +1051,7 @@ const VitasLab = () => {
         <div className="px-4 py-1.5 bg-yellow-500/10 border-b border-yellow-500/30 flex items-center gap-2">
           <AlertTriangle size={14} className="text-yellow-500 shrink-0" />
           <span className="text-[11px] font-display text-yellow-500">
-            Supabase no configurado — análisis IA y persistencia deshabilitados. Tracking + biomecánica client-side disponible.
+            {t("vitasLab.supabaseNotConfigured")}
           </span>
         </div>
       )}
@@ -1059,7 +1059,7 @@ const VitasLab = () => {
         <div className="px-4 py-1.5 bg-blue-500/10 border-b border-blue-500/30 flex items-center gap-2">
           <Activity size={14} className="text-blue-400 shrink-0" />
           <span className="text-[11px] font-display text-blue-400">
-            Bunny CDN no configurado — sube videos locales o configura VITE_BUNNY_CDN_HOSTNAME para streaming.
+            {t("vitasLab.bunnyCdnNotConfigured")}
           </span>
         </div>
       )}
@@ -1075,7 +1075,7 @@ const VitasLab = () => {
                 {step.done ? <CheckCircle2 size={18} /> : step.id}
               </div>
               <span className={`text-[9px] font-display font-semibold uppercase tracking-widest mt-1 ${step.done || step.active ? "text-primary" : "text-muted-foreground"}`}>
-                {step.label}
+                {t(step.labelKey)}
               </span>
               {i < steps.length - 1 && (
                 <div className={`w-0.5 h-10 my-1 ${step.done ? "bg-primary" : "bg-border"}`} />
@@ -1219,10 +1219,10 @@ const VitasLab = () => {
               <div className={`w-2 h-2 rounded-full ${v2.isProcessing ? "bg-yellow-400" : labVideoUrl ? "bg-green-400" : "bg-destructive"} animate-pulse`} />
               <span className="text-[11px] font-display font-semibold text-foreground tracking-wider">
                 {v2.isProcessing
-                  ? `ANALIZANDO… ${v2.state.message || "GPU PIPELINE"}`
+                  ? `${t("vitasLab.analyzingEllipsis")} ${v2.state.message || "GPU PIPELINE"}`
                   : labVideoUrl
-                  ? `VIDEO CARGADO · ${points.length} PUNTOS DE CALIBRACIÓN · ${formatTime(videoDuration)}`
-                  : `CALIBRACI\u00d3N ACTIVA: ${points.length} DE 4 PUNTOS ASIGNADOS`}
+                  ? `${t("vitasLab.videoLoaded")} · ${t("vitasLab.calibPointsCount", { count: points.length })} · ${formatTime(videoDuration)}`
+                  : t("vitasLab.calibActive", { count: points.length })}
               </span>
             </div>
             {/* Analysis running overlay */}
@@ -1282,7 +1282,7 @@ const VitasLab = () => {
             onSelectVideo={(id) => setSelectedVideoId(id)}
             onStartAnalysis={() => {
               if (!selectedVideoId || !selectedPlayerId || !labVideoRef.current) {
-                toast.error("Selecciona jugador y video primero");
+                toast.error(t("vitasLab.selectPlayerAndVideoFirst"));
                 return;
               }
               if (!canRunAnalysis) {
@@ -1320,7 +1320,7 @@ const VitasLab = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                   <span className="text-[10px] font-display text-green-400 font-semibold">
-                    Re-ID activo · {tracking.state.identities.size} jugadores identificados
+                    {t("vitasLab.reIdActive", { count: tracking.state.identities.size })}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-1">
@@ -1339,7 +1339,7 @@ const VitasLab = () => {
                   ))}
                 </div>
                 <p className="text-[9px] text-muted-foreground leading-tight">
-                  Dorsales y equipos detectados automáticamente · OCR + color histogram
+                  {t("vitasLab.dorsalsAutoDetected")}
                 </p>
               </div>
             ) : (
@@ -1369,7 +1369,7 @@ const VitasLab = () => {
             )}
             {tracking.state.identities.size === 0 && (
               <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
-                {t("lab.jerseyHint")} · Se detectará automáticamente al iniciar tracking.
+                {t("lab.jerseyHint")} · {t("vitasLab.autoDetectOnTracking")}
               </p>
             )}
           </div>
@@ -1419,8 +1419,8 @@ const VitasLab = () => {
                       <Icon size={15} className={active ? "text-primary" : "text-muted-foreground"} />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-display font-bold text-xs text-foreground">{mode.label}</h4>
-                      <p className="text-[9px] text-muted-foreground leading-tight">{mode.desc}</p>
+                      <h4 className="font-display font-bold text-xs text-foreground">{t(mode.labelKey)}</h4>
+                      <p className="text-[9px] text-muted-foreground leading-tight">{t(mode.descKey)}</p>
                     </div>
                     {locked && (
                       <span className="text-[8px] font-display font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">Club</span>
@@ -1436,16 +1436,16 @@ const VitasLab = () => {
               {/* ALL PLAYERS — colores de equipos */}
               {selectedMode === "all" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Configuración equipos</p>
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.teamsConfig")}</p>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Color equipo local</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.homeTeamColor")}</label>
                     <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
-                      placeholder="Ej: Blanco, Azul..." className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                      placeholder={t("vitasLab.homeColorPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                   </div>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Color equipo visitante</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.awayTeamColor")}</label>
                     <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                      placeholder="Ej: Rojo, Granate..." className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                      placeholder={t("vitasLab.awayColorPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                   </div>
                 </div>
               )}
@@ -1453,45 +1453,45 @@ const VitasLab = () => {
               {/* CLICK-TO-TRACK — jugador específico manual */}
               {selectedMode === "click" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Jugador a seguir</p>
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.playerToTrack")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Nº Camiseta</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.jerseyNumber")}</label>
                       <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
                         placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Color uniforme</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.uniformColor")}</label>
                       <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
-                        placeholder="Rojo" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                        placeholder={t("vitasLab.colorRedPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Nombre del jugador (opcional)</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.playerNameOptional")}</label>
                     <input value={playerName} onChange={e => setPlayerName(e.target.value)}
-                      placeholder="Ej: Samu García" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                      placeholder={t("vitasLab.playerNamePlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                   </div>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Posición en campo</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.fieldPosition")}</label>
                     <select value={playerPosition} onChange={e => setPlayerPosition(e.target.value)}
                       className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
-                      <option value="">Seleccionar...</option>
+                      <option value="">{t("vitasLab.selectOption")}</option>
                       {["POR","LI","LD","CB","MCD","MC","MCO","EI","ED","DC","SD"].map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
                   </div>
-                  <p className="text-[9px] text-muted-foreground">El sistema rastreará automáticamente a este jugador durante todo el video.</p>
+                  <p className="text-[9px] text-muted-foreground">{t("vitasLab.autoTrackHint")}</p>
                 </div>
               )}
 
               {/* FULL TEAM — formaciones de ambos equipos */}
               {selectedMode === "team" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Contexto táctico</p>
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.tacticalContext")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Formación local</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.homeFormation")}</label>
                       <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
                         className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
                         {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2","4-1-4-1","3-4-3"].map(f => (
@@ -1500,7 +1500,7 @@ const VitasLab = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Formación visitante</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.awayFormation")}</label>
                       <select value={awayFormation} onChange={e => setAwayFormation(e.target.value)}
                         className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
                         {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2","4-1-4-1","3-4-3"].map(f => (
@@ -1511,46 +1511,46 @@ const VitasLab = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Color local</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.homeColor")}</label>
                       <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
-                        placeholder="Blanco" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                        placeholder={t("vitasLab.colorWhitePlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Color visitante</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.awayColor")}</label>
                       <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                        placeholder="Rojo" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                        placeholder={t("vitasLab.colorRedPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground">Analiza bloques tácticos, presión, líneas defensivas y transiciones de ambos equipos.</p>
+                  <p className="text-[9px] text-muted-foreground">{t("vitasLab.fullTeamHint")}</p>
                 </div>
               )}
 
               {/* SPECIFIC PLAYER — jugador identificado por dorsal */}
               {selectedMode === "player" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">Perfil del jugador</p>
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.playerProfile")}</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Nº Camiseta *</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.jerseyNumberRequired")}</label>
                       <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
                         placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Color uniforme *</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.uniformColorRequired")}</label>
                       <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
-                        placeholder="Granate" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                        placeholder={t("vitasLab.colorMaroonPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Nombre</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.name")}</label>
                     <input value={playerName} onChange={e => setPlayerName(e.target.value)}
-                      placeholder="Nombre del jugador" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                      placeholder={t("vitasLab.playerNameFieldPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                   </div>
                   <div>
-                    <label className="text-[9px] text-muted-foreground">Posición</label>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.position")}</label>
                     <select value={playerPosition} onChange={e => setPlayerPosition(e.target.value)}
                       className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
-                      <option value="">Seleccionar...</option>
+                      <option value="">{t("vitasLab.selectOption")}</option>
                       {["POR","LI","LD","CB","MCD","MC","MCO","EI","ED","DC","SD"].map(p => (
                         <option key={p} value={p}>{p}</option>
                       ))}
@@ -1558,12 +1558,12 @@ const VitasLab = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Equipo rival (color)</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.rivalTeamColor")}</label>
                       <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                        placeholder="Azul" className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
+                        placeholder={t("vitasLab.colorBluePlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
                     </div>
                     <div>
-                      <label className="text-[9px] text-muted-foreground">Formación propia</label>
+                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.ownFormation")}</label>
                       <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
                         className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
                         {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2"].map(f => (
@@ -1572,7 +1572,7 @@ const VitasLab = () => {
                       </select>
                     </div>
                   </div>
-                  <p className="text-[9px] text-muted-foreground">* Obligatorio para identificar al jugador en el video con precisión.</p>
+                  <p className="text-[9px] text-muted-foreground">{t("vitasLab.specificPlayerRequiredHint")}</p>
                 </div>
               )}
 
@@ -1589,7 +1589,7 @@ const VitasLab = () => {
                 return (
                   <div className="space-y-2">
                     <p className="text-[10px] uppercase tracking-wider font-display font-bold text-muted-foreground">
-                      Posición jugada en este video
+                      {t("vitasLab.playedPositionInVideo")}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {declared.map((p) => (
@@ -1611,14 +1611,14 @@ const VitasLab = () => {
                         onChange={(e) => setPlayedPosition(e.target.value)}
                         className="px-2 py-1 rounded-md text-[11px] font-display bg-secondary border border-border text-foreground"
                       >
-                        <option value="">+ Otra posición</option>
+                        <option value="">{t("vitasLab.otherPosition")}</option>
                         {POSITIONS_FULL.filter((p) => !declared.includes(p)).map((p) => (
                           <option key={p} value={p}>{p}</option>
                         ))}
                       </select>
                     </div>
                     <p className="text-[9px] text-muted-foreground">
-                      Default: posición principal (⭐). Selecciona otra si jugó en posición diferente.
+                      {t("vitasLab.defaultPositionHint")}
                     </p>
                   </div>
                 );
@@ -1656,9 +1656,9 @@ const VitasLab = () => {
                     "bg-muted text-muted-foreground border border-border"
                   }`}>
                     {mediaPipe.status === "processing" ? `${mediaPipe.fps} FPS` :
-                     mediaPipe.status === "loading" ? "Cargando..." :
-                     mediaPipe.status === "complete" ? "Completado" :
-                     mediaPipe.status === "error" ? "Error" : "Esperando"}
+                     mediaPipe.status === "loading" ? t("vitasLab.loading") :
+                     mediaPipe.status === "complete" ? t("vitasLab.completed") :
+                     mediaPipe.status === "error" ? t("vitasLab.error") : t("vitasLab.waiting")}
                   </span>
                 </div>
                 {mediaPipe.biomechanics && (
@@ -1668,32 +1668,32 @@ const VitasLab = () => {
                       <p className="text-sm font-display font-black text-primary">{mediaPipe.biomechanics.drillScore}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[8px] text-muted-foreground uppercase">Simetría</p>
+                      <p className="text-[8px] text-muted-foreground uppercase">{t("vitasLab.symmetry")}</p>
                       <p className="text-sm font-display font-black text-green-500">{mediaPipe.biomechanics.bilateralSymmetry}%</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[8px] text-muted-foreground uppercase">Riesgo</p>
+                      <p className="text-[8px] text-muted-foreground uppercase">{t("vitasLab.risk")}</p>
                       <p className={`text-sm font-display font-black ${mediaPipe.biomechanics.injuryRisk > 50 ? "text-red-500" : "text-green-500"}`}>{mediaPipe.biomechanics.injuryRisk}</p>
                     </div>
                   </div>
                 )}
                 {eventSummary && eventSummary.totalEvents > 0 && (
                   <div className="pt-1 border-t border-border/50">
-                    <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">Eventos Tácticos</p>
+                    <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">{t("vitasLab.tacticalEvents")}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {eventSummary.passesAttempted > 0 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">
-                          Pases {eventSummary.passesCompleted}/{eventSummary.passesAttempted}
+                          {t("vitasLab.passesLabel")} {eventSummary.passesCompleted}/{eventSummary.passesAttempted}
                         </span>
                       )}
                       {eventSummary.duelsWon + eventSummary.duelsLost > 0 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
-                          Duelos {eventSummary.duelsWon}G/{eventSummary.duelsLost}P
+                          {t("vitasLab.duelsLabel")} {eventSummary.duelsWon}{t("vitasLab.wonAbbr")}/{eventSummary.duelsLost}{t("vitasLab.lostAbbr")}
                         </span>
                       )}
                       {eventSummary.recoveries > 0 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">
-                          Recup. {eventSummary.recoveries}
+                          {t("vitasLab.recoveriesAbbr")} {eventSummary.recoveries}
                         </span>
                       )}
                       {eventSummary.sprintBursts > 0 && (
@@ -1703,7 +1703,7 @@ const VitasLab = () => {
                       )}
                       {eventSummary.shots > 0 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400">
-                          Tiros {eventSummary.shots}
+                          {t("vitasLab.shotsLabel")} {eventSummary.shots}
                         </span>
                       )}
                     </div>
@@ -1722,7 +1722,7 @@ const VitasLab = () => {
                   return positions.length > 0 ? (
                     <PlayerHeatmap
                       positions={positions}
-                      title={`Mapa de Calor — Jugador #${tracking.state.focusTrackId}`}
+                      title={t("vitasLab.heatmapPlayer", { id: tracking.state.focusTrackId })}
                     />
                   ) : null;
                 }
@@ -1731,7 +1731,7 @@ const VitasLab = () => {
                 return allPositions.length > 0 ? (
                   <PlayerHeatmap
                     positions={allPositions}
-                    title={`Mapa de Calor — Equipo (${tracking.state.currentTracks.length} jugadores)`}
+                    title={t("vitasLab.heatmapTeam", { count: tracking.state.currentTracks.length })}
                   />
                 ) : null;
               })()}
@@ -1752,7 +1752,7 @@ const VitasLab = () => {
                       metadata: {
                         sessionId: `session_${Date.now()}`,
                         playerId: selectedPlayerId ?? "unknown",
-                        playerName: selectedPlayer?.name ?? "Jugador",
+                        playerName: selectedPlayer?.name ?? t("vitasLab.playerFallback"),
                         videoId: selectedVideoId,
                         date: new Date().toISOString().slice(0, 10),
                         durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
@@ -1776,7 +1776,7 @@ const VitasLab = () => {
                     };
                     const exporter = new AnalyticsExporter(exportData);
                     exporter.download(fmt);
-                    toast.success(`Exportado como ${fmt.toUpperCase()}`);
+                    toast.success(t("vitasLab.exportedAs", { format: fmt.toUpperCase() }));
                   }}
                   className="flex-1 py-1.5 rounded-lg border border-border text-[10px] font-display font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors uppercase"
                 >
@@ -1806,7 +1806,7 @@ const VitasLab = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div className="flex items-center gap-2">
                   <Video size={16} className="text-primary" />
-                  <span className="font-display font-bold text-foreground">Videos VITAS.LAB</span>
+                  <span className="font-display font-bold text-foreground">{t("vitasLab.videosVitasLab")}</span>
                 </div>
                 <button onClick={() => setShowUploadPanel(false)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X size={18} />
@@ -1814,18 +1814,18 @@ const VitasLab = () => {
               </div>
               <div className="flex-1 overflow-y-auto p-5 space-y-6">
                 <div>
-                  <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">Subir nuevo video</p>
-                  <VideoUpload onDone={(id) => { setSelectedVideoId(id); toast.success("Video listo para análisis"); }} />
+                  <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("vitasLab.uploadNewVideo")}</p>
+                  <VideoUpload onDone={(id) => { setSelectedVideoId(id); toast.success(t("vitasLab.videoReadyForAnalysis")); }} />
                 </div>
                 {videos.length > 0 && (
                   <div>
                     <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                      Videos guardados ({videos.length})
+                      {t("vitasLab.savedVideos", { count: videos.length })}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       {videos.map((video) => (
                         <div key={video.id}
-                          onClick={() => { setSelectedVideoId(video.id); setShowUploadPanel(false); toast.info(`Video seleccionado: ${video.title}`); }}
+                          onClick={() => { setSelectedVideoId(video.id); setShowUploadPanel(false); toast.info(t("vitasLab.videoSelected", { title: video.title })); }}
                           className={`cursor-pointer rounded-xl border-2 transition-all ${selectedVideoId === video.id ? "border-primary" : "border-transparent"}`}
                         >
                           <VideoCard video={video} playerName={video.playerId ? players?.find(p => p.id === video.playerId)?.name : undefined} />
@@ -1839,14 +1839,14 @@ const VitasLab = () => {
                   if (!vid) return null;
                   return (
                     <div>
-                      <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">Preview seleccionado</p>
+                      <p className="text-xs font-display font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("vitasLab.selectedPreview")}</p>
                       <VideoPlayer video={vid} />
                       <button
                         onClick={() => { setShowUploadPanel(false); handleStartAnalysis(); }}
                         className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-colors"
                       >
                         <Rocket size={14} />
-                        Analizar este video
+                        {t("vitasLab.analyzeThisVideo")}
                       </button>
                     </div>
                   );
@@ -1894,8 +1894,8 @@ const VitasLab = () => {
                       const tempId = `temp-${Date.now()}`;
                       sessionStorage.setItem(`vitas-analysis-report-${tempId}`, JSON.stringify({
                         report: analysisReport,
-                        playerName: playerName || "Jugador",
-                        playerPosition: playerPosition || "Sin posición",
+                        playerName: playerName || t("vitasLab.playerFallback"),
+                        playerPosition: playerPosition || t("vitasLab.noPosition"),
                       }));
                       window.open(`/analysis-report/${tempId}`, "_blank");
                     }}
@@ -1913,7 +1913,7 @@ const VitasLab = () => {
               {/* Dropdown Historial */}
               {showHistorial && savedAnalyses.length > 0 && (
                 <div className="border-b border-border bg-muted/30 px-5 py-3 max-h-48 overflow-y-auto">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">Análisis Guardados</p>
+                  <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">{t("vitasLab.savedAnalyses")}</p>
                   <div className="space-y-1.5">
                     {savedAnalyses.map((sa) => (
                       <button
@@ -1932,7 +1932,7 @@ const VitasLab = () => {
                           </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                          Análisis completado · cargar resultados…
+                          {t("vitasLab.analysisCompletedLoad")}
                         </p>
                       </button>
                     ))}
@@ -1945,7 +1945,7 @@ const VitasLab = () => {
 
                 {/* Resumen ejecutivo */}
                 <div className="glass rounded-xl p-4">
-                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">Resumen Ejecutivo</p>
+                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">{t("vitasLab.executiveSummary")}</p>
                   <p className="text-sm text-foreground leading-relaxed">{analysisReport.estadoActual.resumenEjecutivo}</p>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
@@ -1959,7 +1959,7 @@ const VitasLab = () => {
 
                 {/* Dimensiones */}
                 <div>
-                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">Dimensiones de Análisis</p>
+                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">{t("vitasLab.analysisDimensions")}</p>
                   <div className="space-y-2">
                     {Object.entries(analysisReport.estadoActual.dimensiones).map(([key, dim]) => (
                       <div key={key} className="glass rounded-lg px-4 py-3">
@@ -1986,21 +1986,21 @@ const VitasLab = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Activity size={14} className="text-green-500" />
-                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Métricas Físicas</p>
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.physicalMetrics")}</p>
                       <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
                         YOLO Tracking
                       </span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="glass rounded-lg p-3 text-center">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Vel. Máx</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.maxSpeed")}</p>
                         <p className="text-lg font-display font-black text-yellow-500">{analysisReport.metricasCuantitativas.fisicas.velocidadMaxKmh}</p>
                         <p className="text-[9px] text-muted-foreground">km/h</p>
                       </div>
                       <div className="glass rounded-lg p-3 text-center">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Distancia</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.distance")}</p>
                         <p className="text-lg font-display font-black text-blue-500">{analysisReport.metricasCuantitativas.fisicas.distanciaM}</p>
-                        <p className="text-[9px] text-muted-foreground">metros</p>
+                        <p className="text-[9px] text-muted-foreground">{t("vitasLab.meters")}</p>
                       </div>
                       <div className="glass rounded-lg p-3 text-center">
                         <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Sprints</p>
@@ -2010,11 +2010,11 @@ const VitasLab = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <div className="glass rounded-lg p-3 text-center">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Vel. Prom</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.avgSpeed")}</p>
                         <p className="text-base font-display font-bold text-foreground">{analysisReport.metricasCuantitativas.fisicas.velocidadPromKmh} <span className="text-[9px] text-muted-foreground">km/h</span></p>
                       </div>
                       <div className="glass rounded-lg p-3">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">Intensidad</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("vitasLab.intensity")}</p>
                         <div className="flex h-2 rounded-full overflow-hidden gap-px">
                           {(() => {
                             const z = analysisReport.metricasCuantitativas!.fisicas!.zonasIntensidad;
@@ -2028,7 +2028,7 @@ const VitasLab = () => {
                           })()}
                         </div>
                         <div className="flex justify-between mt-1">
-                          {[{l:"Cam",c:"bg-slate-400"},{l:"Tro",c:"bg-blue-400"},{l:"Cor",c:"bg-orange-400"},{l:"Spr",c:"bg-red-400"}].map(z => (
+                          {[{l:t("vitasLab.zoneWalk"),c:"bg-slate-400"},{l:t("vitasLab.zoneJog"),c:"bg-blue-400"},{l:t("vitasLab.zoneRun"),c:"bg-orange-400"},{l:t("vitasLab.zoneSprint"),c:"bg-red-400"}].map(z => (
                             <div key={z.l} className="flex items-center gap-0.5">
                               <div className={`w-1 h-1 rounded-full ${z.c}`} />
                               <span className="text-[7px] text-muted-foreground">{z.l}</span>
@@ -2045,7 +2045,7 @@ const VitasLab = () => {
                  analysisReport.metricasCuantitativas.heatmapPositions.length > 0 && (
                   <PlayerHeatmap
                     positions={analysisReport.metricasCuantitativas.heatmapPositions}
-                    title="Mapa de Calor — Sesión Analizada"
+                    title={t("vitasLab.heatmapSession")}
                   />
                 )}
 
@@ -2062,13 +2062,13 @@ const VitasLab = () => {
                 {/* ── Analysis View Mode Toggle (Sprint 8) ── */}
                 <div className="glass rounded-xl p-3">
                   <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                    Modo de Análisis
+                    {t("vitasLab.analysisMode")}
                   </p>
                   <div className="flex gap-1">
                     {([
-                      { id: "player" as const, label: "Jugador", icon: "👤" },
-                      { id: "team" as const, label: "Equipo", icon: "👥" },
-                      { id: "rival" as const, label: "Rival Scout", icon: "🔍" },
+                      { id: "player" as const, label: t("vitasLab.viewModePlayer"), icon: "👤" },
+                      { id: "team" as const, label: t("vitasLab.viewModeTeam"), icon: "👥" },
+                      { id: "rival" as const, label: t("vitasLab.viewModeRivalScout"), icon: "🔍" },
                     ]).map(m => (
                       <button
                         key={m.id}
@@ -2107,15 +2107,15 @@ const VitasLab = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <Target size={14} className="text-blue-500" />
-                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Eventos del Partido</p>
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.matchEvents")}</p>
                       <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20">
-                        {analysisReport.metricasCuantitativas.fuente === "yolo+gemini" ? "Tracking + IA" : "Observación IA"}
+                        {analysisReport.metricasCuantitativas.fuente === "yolo+gemini" ? t("vitasLab.trackingPlusIa") : t("vitasLab.iaObservation")}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {/* Pases */}
                       <div className="glass rounded-lg p-3">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Pases</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.passes")}</p>
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-lg font-display font-black text-green-500">
                             {analysisReport.metricasCuantitativas.eventos.pasesCompletados}
@@ -2127,36 +2127,36 @@ const VitasLab = () => {
                         <div className="h-1 bg-muted rounded-full mt-1 overflow-hidden">
                           <div className="h-full bg-green-500 rounded-full" style={{ width: `${analysisReport.metricasCuantitativas.eventos.precisionPases}%` }} />
                         </div>
-                        <p className="text-[8px] text-muted-foreground mt-0.5">{analysisReport.metricasCuantitativas.eventos.precisionPases}% precisión</p>
+                        <p className="text-[8px] text-muted-foreground mt-0.5">{analysisReport.metricasCuantitativas.eventos.precisionPases}% {t("vitasLab.accuracy")}</p>
                       </div>
                       {/* Duelos */}
                       <div className="glass rounded-lg p-3">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Duelos</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.duels")}</p>
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-lg font-display font-black text-orange-500">
-                            {analysisReport.metricasCuantitativas.eventos.duelosGanados}G
+                            {analysisReport.metricasCuantitativas.eventos.duelosGanados}{t("vitasLab.wonAbbr")}
                           </span>
                           <span className="text-[9px] text-red-400">
-                            / {analysisReport.metricasCuantitativas.eventos.duelosPerdidos}P
+                            / {analysisReport.metricasCuantitativas.eventos.duelosPerdidos}{t("vitasLab.lostAbbr")}
                           </span>
                         </div>
                       </div>
                       {/* Recuperaciones */}
                       <div className="glass rounded-lg p-3">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Recuperaciones</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.recoveries")}</p>
                         <span className="text-lg font-display font-black text-blue-500">
                           {analysisReport.metricasCuantitativas.eventos.recuperaciones}
                         </span>
                       </div>
                       {/* Disparos */}
                       <div className="glass rounded-lg p-3">
-                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Disparos</p>
+                        <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.shots")}</p>
                         <div className="flex items-baseline gap-1 mt-1">
                           <span className="text-lg font-display font-black text-purple-500">
                             {analysisReport.metricasCuantitativas.eventos.disparosAlArco}
                           </span>
                           <span className="text-[9px] text-muted-foreground">
-                            al arco / {analysisReport.metricasCuantitativas.eventos.disparosFuera} fuera
+                            {t("vitasLab.onTarget")} / {analysisReport.metricasCuantitativas.eventos.disparosFuera} {t("vitasLab.offTarget")}
                           </span>
                         </div>
                       </div>
@@ -2168,7 +2168,7 @@ const VitasLab = () => {
 
                 {/* ADN Futbolístico */}
                 <div className="glass rounded-xl p-4">
-                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">ADN Futbolístico</p>
+                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">{t("vitasLab.footballDna")}</p>
                   <div className="flex flex-wrap gap-2 mb-2">
                     <span className="text-[10px] font-display px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
                       {analysisReport.adnFutbolistico.arquetipoTactico}
@@ -2183,7 +2183,7 @@ const VitasLab = () => {
                   <div className="glass rounded-xl p-4 border border-primary/20">
                     <div className="flex items-center gap-2 mb-2">
                       <Star size={14} className="text-yellow-500" />
-                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Jugador Referencia</p>
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.referencePlayer")}</p>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
@@ -2200,16 +2200,16 @@ const VitasLab = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <TrendingUp size={14} className="text-primary" />
-                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Proyección de Carrera</p>
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.careerProjection")}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="glass rounded-xl p-3 border border-green-500/20">
-                      <p className="text-[9px] font-display uppercase tracking-wider text-green-600 mb-1">Optimista</p>
+                      <p className="text-[9px] font-display uppercase tracking-wider text-green-600 mb-1">{t("vitasLab.optimistic")}</p>
                       <p className="text-xs font-display font-bold text-foreground">{analysisReport.proyeccionCarrera.escenarioOptimista.nivelProyecto}</p>
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{analysisReport.proyeccionCarrera.escenarioOptimista.descripcion}</p>
                     </div>
                     <div className="glass rounded-xl p-3 border border-border">
-                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">Realista</p>
+                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("vitasLab.realistic")}</p>
                       <p className="text-xs font-display font-bold text-foreground">{analysisReport.proyeccionCarrera.escenarioRealista.nivelProyecto}</p>
                       <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{analysisReport.proyeccionCarrera.escenarioRealista.descripcion}</p>
                     </div>
@@ -2220,15 +2220,15 @@ const VitasLab = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Target size={14} className="text-primary" />
-                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Plan de Desarrollo</p>
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.developmentPlan")}</p>
                   </div>
                   <div className="space-y-2 mb-3">
                     <div className="glass rounded-lg px-3 py-2">
-                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Objetivo 6 meses</p>
+                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.goal6Months")}</p>
                       <p className="text-xs text-foreground mt-0.5">{analysisReport.planDesarrollo.objetivo6meses}</p>
                     </div>
                     <div className="glass rounded-lg px-3 py-2">
-                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">Objetivo 18 meses</p>
+                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("vitasLab.goal18Months")}</p>
                       <p className="text-xs text-foreground mt-0.5">{analysisReport.planDesarrollo.objetivo18meses}</p>
                     </div>
                   </div>
@@ -2260,7 +2260,7 @@ const VitasLab = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Zap size={14} className="text-electric" />
-                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Buscar Ejercicios</p>
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.searchDrills")}</p>
                   </div>
                   <KnowledgeSearch
                     compact
@@ -2274,7 +2274,7 @@ const VitasLab = () => {
                   <div className="glass rounded-xl p-4 border border-yellow-500/20">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertTriangle size={14} className="text-yellow-500" />
-                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">Riesgos Identificados</p>
+                      <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.identifiedRisks")}</p>
                     </div>
                     <ul className="space-y-1">
                       {analysisReport.proyeccionCarrera.riesgos.map((r, i) => (
@@ -2313,9 +2313,9 @@ const VitasLab = () => {
 
     {/* ── Upgrade Prompt Modal ── */}
     <UpgradePrompt
-      feature={!canRunAnalysis ? "Análisis IA" : "Modo Equipo Completo"}
+      feature={!canRunAnalysis ? t("vitasLab.featureIaAnalysis") : t("vitasLab.featureFullTeamMode")}
       requiredPlan={!canRunAnalysis ? (plan === "free" ? "pro" : "club") : "club"}
-      currentUsage={!canRunAnalysis ? `${analysesUsed}/${limits.analyses >= 9999 ? "∞" : limits.analyses} análisis usados` : undefined}
+      currentUsage={!canRunAnalysis ? t("vitasLab.analysesUsed", { used: analysesUsed, total: limits.analyses >= 9999 ? "∞" : limits.analyses }) : undefined}
       variant="modal"
       open={showUpgradePrompt}
       onClose={() => setShowUpgradePrompt(false)}

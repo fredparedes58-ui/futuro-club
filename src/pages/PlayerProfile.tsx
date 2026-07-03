@@ -136,7 +136,7 @@ const PlayerProfile = () => {
 
   useEffect(() => {
     if (phvResult) {
-      toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? "Precoz" : phvResult.category === "late" ? "Tardío" : "Normal", offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
+      toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? t("playerProfile.phvCategoryEarly") : phvResult.category === "late" ? t("playerProfile.phvCategoryLate") : t("playerProfile.phvCategoryNormal"), offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phvResult]);
@@ -156,7 +156,7 @@ const PlayerProfile = () => {
   const handleDelete = async () => {
     if (!id) return;
     await deletePlayer.mutateAsync(id);
-    toast.success(t("toasts.playerDeleted", { name: player?.name ?? "Jugador" }));
+    toast.success(t("toasts.playerDeleted", { name: player?.name ?? t("playerProfile.defaultPlayerName") }));
     navigate("/rankings");
   };
 
@@ -276,7 +276,7 @@ const PlayerProfile = () => {
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="text-electric font-display font-semibold">{player.position}</span>
             <span>·</span>
-            <span>{player.age} años</span>
+            <span>{t("playerProfile.yearsOld", { count: player.age })}</span>
             <span>·</span>
             <span>{player.academy}</span>
           </div>
@@ -322,7 +322,7 @@ const PlayerProfile = () => {
         ) : (
           <div className="mt-2">
             <p className="text-xs text-amber-600">
-              ⚠ Registra las 4 mediciones antropométricas (altura, peso, altura sentado, pierna) en la sección inferior para calcular el PHV con datos reales.
+              {t("playerProfile.phvAnthropometricsWarning")}
             </p>
           </div>
         )}
@@ -333,7 +333,7 @@ const PlayerProfile = () => {
         <motion.div variants={item} className="glass rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Ruler size={14} className="text-primary" />
-            <h2 className="font-display font-semibold text-sm text-foreground">Antropometría</h2>
+            <h2 className="font-display font-semibold text-sm text-foreground">{t("playerProfile.anthropometrics")}</h2>
             <span className="text-[10px] text-muted-foreground ml-auto">PHV · Mirwald</span>
           </div>
           <AnthropometricsForm
@@ -418,7 +418,7 @@ const PlayerProfile = () => {
               <div className="flex items-center gap-1.5">
                 <Zap size={12} className="text-primary" />
                 <span className="text-[10px] font-display text-muted-foreground uppercase tracking-wider">
-                  Ultimo Analisis IA
+                  {t("playerProfile.lastAiAnalysis")}
                 </span>
               </div>
               <span
@@ -434,10 +434,10 @@ const PlayerProfile = () => {
                     latestAnalysis.estadoActual.nivelActual === "medio" ? "#F59E0B" : "#8B5CF6",
                 }}
               >
-                Nivel: {latestAnalysis.estadoActual.nivelActual === "elite" ? "Elite" :
-                  latestAnalysis.estadoActual.nivelActual === "alto" ? "Alto" :
-                  latestAnalysis.estadoActual.nivelActual === "medio_alto" ? "Medio-Alto" :
-                  latestAnalysis.estadoActual.nivelActual === "medio" ? "Medio" : "En Desarrollo"}
+                {t("playerProfile.levelLabel")}: {latestAnalysis.estadoActual.nivelActual === "elite" ? t("playerProfile.levelElite") :
+                  latestAnalysis.estadoActual.nivelActual === "alto" ? t("playerProfile.levelHigh") :
+                  latestAnalysis.estadoActual.nivelActual === "medio_alto" ? t("playerProfile.levelMediumHigh") :
+                  latestAnalysis.estadoActual.nivelActual === "medio" ? t("playerProfile.levelMedium") : t("playerProfile.levelDeveloping")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2 mb-2">
@@ -447,7 +447,7 @@ const PlayerProfile = () => {
               onClick={() => navigate(`/players/${id}/intelligence`)}
               className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
             >
-              Ver informe completo →
+              {t("playerProfile.viewFullReport")}
             </button>
           </div>
         )}
@@ -541,7 +541,7 @@ const PlayerProfile = () => {
                   />
                 </div>
                 <span className="text-[9px] text-muted-foreground font-display shrink-0">
-                  {Math.round(advancedMetrics.truthFilter.confidence * 100)}% conf.
+                  {t("playerProfile.confidenceShort", { pct: Math.round(advancedMetrics.truthFilter.confidence * 100) })}
                 </span>
               </div>
             </div>
@@ -551,13 +551,13 @@ const PlayerProfile = () => {
                 <div className="flex items-center gap-1.5">
                   <Filter size={11} className="text-muted-foreground" />
                   <span className="text-[11px] font-display font-semibold text-muted-foreground">
-                    VSI Ajustado (TruthFilter)
+                    {t("playerProfile.adjustedVsiTruthFilter")}
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">— Pendiente</span>
+                <span className="text-[10px] text-muted-foreground">{t("playerProfile.pendingDash")}</span>
               </div>
               <p className="text-[10px] text-amber-600 leading-relaxed">
-                ⚠ Registra mediciones antropométricas (altura, peso, altura sentado) para calcular el PHV y activar el VSI ajustado.
+                {t("playerProfile.truthFilterPendingWarning")}
               </p>
             </div>
           )}
@@ -589,12 +589,12 @@ const PlayerProfile = () => {
             <div className="rounded-lg bg-secondary/40 border border-amber-200 p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[11px] font-display font-semibold text-muted-foreground">
-                  UBI (Índice de Sesgo)
+                  {t("playerProfile.ubiBiasIndexTitle")}
                 </span>
-                <span className="text-[10px] text-muted-foreground">Pendiente</span>
+                <span className="text-[10px] text-muted-foreground">{t("playerProfile.pending")}</span>
               </div>
               <p className="text-[10px] text-amber-600 leading-relaxed">
-                ⚠ Necesita datos PHV para calcular el índice de sesgo unificado.
+                {t("playerProfile.ubiPendingWarning")}
               </p>
             </div>
           )}
@@ -620,12 +620,13 @@ const PlayerProfile = () => {
                   const ps = advancedMetrics.dominantFeatures.playStyle;
                   const top = advancedMetrics.dominantFeatures.dominant[0];
                   const specIdx = Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100);
-                  const profileDesc = ps === "ofensivo" ? "perfil claramente ofensivo, orientado a generar peligro en el tercio final"
-                    : ps === "defensivo" ? "perfil defensivo sólido, con fortalezas en recuperación y posicionamiento"
-                    : ps === "técnico" ? "perfil técnico destacado, con capacidad de manejar el balón bajo presión"
-                    : ps === "físico" ? "perfil físico dominante, con ventaja en intensidad y desplazamientos"
-                    : "perfil equilibrado sin una especialización marcada — versátil pero sin un diferencial claro";
-                  return `${player.name} muestra un ${profileDesc}. Su característica más fuerte es ${top?.label ?? "N/A"} (${top?.value ?? 0}/100). Índice de especialización: ${specIdx}% ${specIdx < 30 ? "— necesita desarrollar un diferencial claro para destacar" : specIdx < 60 ? "— perfil en desarrollo con potencial de especialización" : "— perfil bien definido con especialización clara"}.`;
+                  const profileDesc = ps === "ofensivo" ? t("playerProfile.profileDescOffensive")
+                    : ps === "defensivo" ? t("playerProfile.profileDescDefensive")
+                    : ps === "técnico" ? t("playerProfile.profileDescTechnical")
+                    : ps === "físico" ? t("playerProfile.profileDescPhysical")
+                    : t("playerProfile.profileDescBalanced");
+                  const specNote = specIdx < 30 ? t("playerProfile.specNoteLow") : specIdx < 60 ? t("playerProfile.specNoteMedium") : t("playerProfile.specNoteHigh");
+                  return t("playerProfile.profileSummary", { name: player.name, profileDesc, topLabel: top?.label ?? "N/A", topValue: top?.value ?? 0, specIdx, specNote });
                 })()}
               </p>
             </div>
@@ -633,7 +634,7 @@ const PlayerProfile = () => {
             {/* Especialización visual */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[9px] text-muted-foreground font-display font-semibold uppercase tracking-wider">Índice de Especialización</span>
+                <span className="text-[9px] text-muted-foreground font-display font-semibold uppercase tracking-wider">{t("playerProfile.specializationIndex")}</span>
                 <span className="text-[11px] font-display font-black text-primary">
                   {Math.round(advancedMetrics.dominantFeatures.specializationIndex * 100)}%
                 </span>
@@ -645,15 +646,15 @@ const PlayerProfile = () => {
                 />
               </div>
               <div className="flex justify-between mt-0.5">
-                <span className="text-[8px] text-muted-foreground">Generalista</span>
-                <span className="text-[8px] text-muted-foreground">Especialista</span>
+                <span className="text-[8px] text-muted-foreground">{t("playerProfile.generalist")}</span>
+                <span className="text-[8px] text-muted-foreground">{t("playerProfile.specialist")}</span>
               </div>
             </div>
 
             {/* Top 3 Fortalezas */}
             <div>
               <span className="text-[9px] font-display font-bold uppercase tracking-wider text-green-600 flex items-center gap-1 mb-2">
-                <TrendingUp size={10} /> Fortalezas Principales
+                <TrendingUp size={10} /> {t("playerProfile.mainStrengths")}
               </span>
               <div className="space-y-3">
                 {advancedMetrics.dominantFeatures.dominant.map((feat, i) => {
@@ -692,12 +693,12 @@ const PlayerProfile = () => {
                         <div
                           className="absolute top-0 bottom-0 w-0.5 bg-foreground/30"
                           style={{ left: `${ref}%` }}
-                          title={`Promedio grupo: ${ref}`}
+                          title={t("playerProfile.groupAverageTitle", { ref })}
                         />
                       </div>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[8px] text-muted-foreground">
-                          vs. promedio grupo ({ref}): <span className={diff >= 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
+                          {t("playerProfile.vsGroupAverage", { ref })} <span className={diff >= 0 ? "text-green-600 font-bold" : "text-red-500 font-bold"}>
                             {diff >= 0 ? "+" : ""}{diff} ({pct >= 0 ? "+" : ""}{pct}%)
                           </span>
                         </span>
@@ -715,7 +716,7 @@ const PlayerProfile = () => {
             {advancedMetrics.dominantFeatures.underdeveloped.length > 0 && (
               <div>
                 <span className="text-[9px] font-display font-bold uppercase tracking-wider text-amber-600 flex items-center gap-1 mb-2">
-                  <AlertCircle size={10} /> Áreas a Desarrollar
+                  <AlertCircle size={10} /> {t("playerProfile.areasToDevelop")}
                 </span>
                 <div className="space-y-2.5">
                   {advancedMetrics.dominantFeatures.underdeveloped.map((feat) => {
@@ -733,7 +734,7 @@ const PlayerProfile = () => {
                           </span>
                           <span className="text-[8px] text-muted-foreground">/100</span>
                           <span className="text-[9px] font-display font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600">
-                            {"\u2212"}{feat.gap} vs grupo
+                            {"\u2212"}{feat.gap} {t("playerProfile.vsGroup")}
                           </span>
                         </div>
                         <div className="relative h-2 rounded-full bg-muted overflow-hidden mb-1.5">
@@ -747,7 +748,7 @@ const PlayerProfile = () => {
                           />
                         </div>
                         <p className="text-[9px] text-muted-foreground leading-relaxed">
-                          <span className="font-semibold text-amber-700">Déficit de {Math.abs(diff)} puntos vs promedio.</span>{" "}
+                          <span className="font-semibold text-amber-700">{t("playerProfile.deficitVsAverage", { count: Math.abs(diff) })}</span>{" "}
                           {feat.description}
                         </p>
                       </div>
@@ -1019,8 +1020,8 @@ const PlayerProfile = () => {
             <FileText size={14} className="text-primary" />
           </div>
           <div className="text-left">
-            <p className="text-[11px] font-display font-semibold text-foreground">Reportes</p>
-            <p className="text-[9px] text-muted-foreground">Historial completo</p>
+            <p className="text-[11px] font-display font-semibold text-foreground">{t("playerProfile.reports")}</p>
+            <p className="text-[9px] text-muted-foreground">{t("playerProfile.reportsHistory")}</p>
           </div>
         </button>
         <button
@@ -1031,8 +1032,8 @@ const PlayerProfile = () => {
             <TrendingUp size={14} className="text-green-400" />
           </div>
           <div className="text-left">
-            <p className="text-[11px] font-display font-semibold text-foreground">Evolucion</p>
-            <p className="text-[9px] text-muted-foreground">Progreso en el tiempo</p>
+            <p className="text-[11px] font-display font-semibold text-foreground">{t("playerProfile.evolution")}</p>
+            <p className="text-[9px] text-muted-foreground">{t("playerProfile.evolutionProgress")}</p>
           </div>
         </button>
       </motion.div>
@@ -1085,7 +1086,7 @@ const PlayerProfile = () => {
         <div className="p-3 rounded-xl bg-card border border-border/50 space-y-2">
           <p className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
             <Save size={10} className="inline mr-1" />
-            Guardar y Exportar
+            {t("playerProfile.saveAndExport")}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <Button
@@ -1095,7 +1096,7 @@ const PlayerProfile = () => {
               onClick={() => PDFService.exportPlayerReport(id!)}
             >
               <FileDown size={13} />
-              Exportar PDF
+              {t("playerProfile.exportPdf")}
             </Button>
             <Button
               variant="outline"
@@ -1104,7 +1105,7 @@ const PlayerProfile = () => {
               onClick={() => PDFService.exportAsImage(id!)}
             >
               <Image size={13} />
-              Exportar Imagen
+              {t("playerProfile.exportImage")}
             </Button>
             <Button
               variant="outline"
@@ -1128,11 +1129,11 @@ const PlayerProfile = () => {
                 link.download = `vitas-${player.name.replace(/\s/g, "-")}-data.json`;
                 link.click();
                 URL.revokeObjectURL(url);
-                toast.success("Datos exportados correctamente");
+                toast.success(t("playerProfile.dataExportedToast"));
               }}
             >
               <FileText size={13} />
-              Exportar Datos (JSON)
+              {t("playerProfile.exportDataJson")}
             </Button>
             {trackingSnapshot && (
               <Button
@@ -1163,11 +1164,11 @@ const PlayerProfile = () => {
                   };
                   const exporter = new AnalyticsExporter(sessionData);
                   exporter.download("csv", { filename: `vitas-tracking-${player.name.replace(/\s/g, "-")}` });
-                  toast.success("Tracking CSV exportado");
+                  toast.success(t("playerProfile.trackingCsvExportedToast"));
                 }}
               >
                 <Activity size={13} />
-                Exportar Tracking (CSV)
+                {t("playerProfile.exportTrackingCsv")}
               </Button>
             )}
             <Button
@@ -1177,19 +1178,19 @@ const PlayerProfile = () => {
               onClick={async () => {
                 const shareData = {
                   title: `VITAS — ${player.name}`,
-                  text: `Perfil de ${player.name}: VSI ${player.vsi ?? "N/A"} · ${player.position} · ${player.age} años`,
+                  text: t("playerProfile.shareText", { name: player.name, vsi: player.vsi ?? "N/A", position: player.position, age: player.age }),
                   url: window.location.href,
                 };
                 if (navigator.share) {
                   await navigator.share(shareData).catch(() => {});
                 } else {
                   await navigator.clipboard.writeText(window.location.href);
-                  toast.success("Enlace copiado al portapapeles");
+                  toast.success(t("playerProfile.linkCopiedToast"));
                 }
               }}
             >
               <Share2 size={13} />
-              Compartir
+              {t("playerProfile.share")}
             </Button>
           </div>
         </div>

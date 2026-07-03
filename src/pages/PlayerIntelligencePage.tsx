@@ -167,7 +167,7 @@ function EstadoActual({ data, benchmark }: {
         </div>
         {benchmark && benchmark.sampleSize > 0 && (
           <p className="text-[9px] text-muted-foreground text-center mt-2">
-            Benchmark: {benchmark.groupDescription}
+            {t("playerIntelligencePage.benchmarkLabel", { group: benchmark.groupDescription })}
           </p>
         )}
         {/* Observaciones expandibles */}
@@ -361,14 +361,15 @@ function ProbabilityBar({ value, size = "sm" }: { value: number; size?: "sm" | "
 }
 
 function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOutput["proyeccionCompetitiva"]> }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
 
   return (
     <div className="glass rounded-2xl p-4">
       <SectionHeader
         icon={Trophy}
-        title="Proyección Competitiva"
-        subtitle="Nivel recomendado y roadmap por categoría de edad"
+        title={t("playerIntelligencePage.competitiveProjection")}
+        subtitle={t("playerIntelligencePage.competitiveProjectionDesc")}
       />
 
       {/* Nivel Actual Recomendado */}
@@ -377,7 +378,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
           <div className="flex items-center gap-2">
             <Shield size={14} className="text-primary" />
             <span className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">
-              Nivel Actual Recomendado
+              {t("playerIntelligencePage.currentRecommendedLevel")}
             </span>
           </div>
           <Badge
@@ -399,7 +400,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
         <div className="flex items-center gap-1.5 mb-1.5">
           <Target size={11} className="text-gold" />
           <span className="text-[10px] font-display uppercase tracking-wider text-gold">
-            Tipo de Jugador Proyectado
+            {t("playerIntelligencePage.projectedPlayerType")}
           </span>
         </div>
         <p className="text-xs text-foreground font-medium leading-relaxed">{data.tipoJugadorProyectado}</p>
@@ -411,7 +412,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
         className="flex items-center gap-1.5 text-[10px] text-muted-foreground w-full mb-3"
       >
         {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        Roadmap por Categoría ({data.roadmapPorCategoria.length} etapas)
+        {t("playerIntelligencePage.roadmapByCategory", { count: data.roadmapPorCategoria.length })}
       </button>
 
       <AnimatePresence>
@@ -442,7 +443,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
                           <span className="text-xs font-display font-bold text-foreground">
                             {CATEGORIA_LABELS[etapa.categoria] ?? etapa.categoria}
                           </span>
-                          <span className="text-[9px] text-muted-foreground ml-1.5">({etapa.edadRango} años)</span>
+                          <span className="text-[9px] text-muted-foreground ml-1.5">{t("playerIntelligencePage.ageRangeYears", { range: etapa.edadRango })}</span>
                         </div>
                       </div>
                       <Badge
@@ -485,19 +486,19 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
       <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-gold/5 to-transparent p-3 mb-3">
         <div className="flex items-center gap-1.5 mb-2">
           <TrendingUp size={11} className="text-gold" />
-          <span className="text-[10px] font-display uppercase tracking-wider text-gold">Techo Competitivo</span>
+          <span className="text-[10px] font-display uppercase tracking-wider text-gold">{t("playerIntelligencePage.competitiveCeiling")}</span>
         </div>
         <div className="flex items-center justify-between mb-2">
           <div>
             <span className="text-sm font-display font-bold text-foreground">{data.techoCompetitivo.nivel}</span>
             <span className="text-[10px] text-muted-foreground ml-2">
-              ~{data.techoCompetitivo.edadEstimada} años
+              {t("playerIntelligencePage.approxAgeYears", { age: data.techoCompetitivo.edadEstimada })}
             </span>
           </div>
           <span className="text-xs font-bold" style={{
             color: data.techoCompetitivo.probabilidad >= 0.5 ? "#22C55E" : "#F59E0B"
           }}>
-            {Math.round(data.techoCompetitivo.probabilidad * 100)}% prob.
+            {t("playerIntelligencePage.probabilityShort", { pct: Math.round(data.techoCompetitivo.probabilidad * 100) })}
           </span>
         </div>
         <ProbabilityBar value={data.techoCompetitivo.probabilidad} size="md" />
@@ -513,7 +514,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
         <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-2.5">
           <div className="flex items-center gap-1 mb-1.5">
             <ArrowUpRight size={10} className="text-green-400" />
-            <span className="text-[9px] font-display uppercase tracking-wider text-green-400">Factores de Ascenso</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-green-400">{t("playerIntelligencePage.ascentFactors")}</span>
           </div>
           {data.factoresAscenso.map((f, i) => (
             <p key={i} className="text-[10px] text-muted-foreground leading-relaxed">• {f}</p>
@@ -522,7 +523,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-2.5">
           <div className="flex items-center gap-1 mb-1.5">
             <ArrowDownRight size={10} className="text-red-400" />
-            <span className="text-[9px] font-display uppercase tracking-wider text-red-400">Factores de Riesgo</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-red-400">{t("playerIntelligencePage.riskFactors")}</span>
           </div>
           {data.factoresRiesgo.map((f, i) => (
             <p key={i} className="text-[10px] text-muted-foreground leading-relaxed">• {f}</p>
@@ -534,7 +535,7 @@ function ProyeccionCompetitiva({ data }: { data: NonNullable<VideoIntelligenceOu
       <div className="rounded-xl bg-primary/5 border border-primary/20 p-4">
         <div className="flex items-center gap-1.5 mb-2">
           <Brain size={11} className="text-primary" />
-          <span className="text-[10px] font-display uppercase tracking-wider text-primary">Recomendación Scout</span>
+          <span className="text-[10px] font-display uppercase tracking-wider text-primary">{t("playerIntelligencePage.scoutRecommendation")}</span>
         </div>
         <p className="text-xs text-foreground leading-relaxed italic">
           "{data.recomendacionFinal}"
@@ -559,14 +560,14 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
         <div className="rounded-xl border border-border p-2.5">
           <div className="flex items-center gap-1.5 mb-1">
             <Clock size={10} className="text-primary" />
-            <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">6 meses</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("playerIntelligencePage.sixMonths")}</span>
           </div>
           <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo6meses ?? "—"}</p>
         </div>
         <div className="rounded-xl border border-border p-2.5">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={10} className="text-gold" />
-            <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">18 meses</span>
+            <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("playerIntelligencePage.eighteenMonths")}</span>
           </div>
           <p className="text-[11px] text-foreground leading-relaxed">{data.objetivo18meses ?? "—"}</p>
         </div>
@@ -591,7 +592,7 @@ function PlanDesarrollo({ data }: { data: VideoIntelligenceOutput["planDesarroll
 
       <div className="border-t border-border pt-3">
         <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-1">
-          Para el entrenador
+          {t("playerIntelligencePage.forTheCoach")}
         </p>
         <p className="text-xs text-foreground leading-relaxed italic">
           "{data.recomendacionEntrenador ?? "—"}"
@@ -628,17 +629,18 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
   currentDate: string;
   previousDate: string;
 }) {
+  const { t } = useTranslation();
   const dims = current.estadoActual?.dimensiones;
   const prevDims = previous.estadoActual?.dimensiones;
   if (!dims || !prevDims) return null;
 
   const dimensionLabels: Record<string, string> = {
-    velocidadDecision: "Velocidad decisión",
-    tecnicaConBalon: "Técnica con balón",
-    inteligenciaTactica: "Inteligencia táctica",
-    capacidadFisica: "Capacidad física",
-    liderazgoPresencia: "Liderazgo",
-    eficaciaCompetitiva: "Eficacia competitiva",
+    velocidadDecision: t("playerIntelligencePage.dimVelocidadDecision"),
+    tecnicaConBalon: t("playerIntelligencePage.dimTecnicaConBalon"),
+    inteligenciaTactica: t("playerIntelligencePage.dimInteligenciaTactica"),
+    capacidadFisica: t("playerIntelligencePage.dimCapacidadFisica"),
+    liderazgoPresencia: t("playerIntelligencePage.dimLiderazgo"),
+    eficaciaCompetitiva: t("playerIntelligencePage.dimEficaciaCompetitiva"),
   };
 
   // Calcular evolución general
@@ -651,7 +653,7 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
       <div className="flex items-center gap-2">
         <GitCompare size={14} className="text-primary" />
         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-          Comparativa entre análisis
+          {t("playerIntelligencePage.comparisonBetweenAnalyses")}
         </span>
       </div>
 
@@ -660,11 +662,11 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
         <div className="flex items-center gap-2 mb-1">
           {avgDelta >= 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
           <span className="text-xs font-bold text-foreground">
-            {avgDelta > 0 ? "Progreso detectado" : avgDelta < 0 ? "Regresión detectada" : "Sin cambios"}
+            {avgDelta > 0 ? t("playerIntelligencePage.progressDetected") : avgDelta < 0 ? t("playerIntelligencePage.regressionDetected") : t("playerIntelligencePage.noChanges")}
           </span>
         </div>
         <p className="text-[10px] text-muted-foreground">
-          Promedio: {prevAvg.toFixed(1)} → {currentAvg.toFixed(1)} ({avgDelta >= 0 ? "+" : ""}{avgDelta.toFixed(1)})
+          {t("playerIntelligencePage.averageChange", { prev: prevAvg.toFixed(1), current: currentAvg.toFixed(1), delta: `${avgDelta >= 0 ? "+" : ""}${avgDelta.toFixed(1)}` })}
         </p>
         <p className="text-[9px] text-muted-foreground mt-1">
           {new Date(previousDate).toLocaleDateString("es")} vs {new Date(currentDate).toLocaleDateString("es")}
@@ -683,14 +685,14 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
       {/* Proyección comparada */}
       {current.proyeccionCarrera?.escenarioRealista && previous.proyeccionCarrera?.escenarioRealista && (
         <div className="border-t border-border pt-3 space-y-1.5">
-          <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">Proyección</p>
+          <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">{t("playerIntelligencePage.projection")}</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="rounded-lg bg-secondary/50 p-2">
-              <p className="text-[9px] text-muted-foreground">Anterior</p>
+              <p className="text-[9px] text-muted-foreground">{t("playerIntelligencePage.previous")}</p>
               <p className="text-[11px] font-bold text-foreground">{previous.proyeccionCarrera.escenarioRealista.nivelProyecto ?? "—"}</p>
             </div>
             <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
-              <p className="text-[9px] text-primary">Actual</p>
+              <p className="text-[9px] text-primary">{t("playerIntelligencePage.current")}</p>
               <p className="text-[11px] font-bold text-foreground">{current.proyeccionCarrera.escenarioRealista.nivelProyecto ?? "—"}</p>
             </div>
           </div>
@@ -699,8 +701,8 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
 
       {/* Confianza comparada */}
       <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-1">
-        <span>Confianza anterior: {Math.round((previous.confianza ?? 0) * 100)}%</span>
-        <span>Confianza actual: {Math.round((current.confianza ?? 0) * 100)}%</span>
+        <span>{t("playerIntelligencePage.previousConfidence", { pct: Math.round((previous.confianza ?? 0) * 100) })}</span>
+        <span>{t("playerIntelligencePage.currentConfidence", { pct: Math.round((current.confianza ?? 0) * 100) })}</span>
       </div>
     </div>
   );
@@ -794,14 +796,14 @@ export default function PlayerIntelligencePage() {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "guardado" ? "Informe" : "Historial"}
+              {tab === "guardado" ? t("playerIntelligencePage.tabReport") : t("playerIntelligencePage.tabHistory")}
             </button>
           ))}
           <button
             onClick={() => navigate(`/lab?playerId=${id}`)}
             className="flex-1 py-1.5 rounded-lg text-[10px] font-display font-bold uppercase tracking-wider text-muted-foreground hover:text-primary transition-all flex items-center justify-center gap-1"
           >
-            <Zap size={9} /> Nuevo
+            <Zap size={9} /> {t("playerIntelligencePage.new")}
           </button>
         </div>
 
@@ -828,19 +830,19 @@ export default function PlayerIntelligencePage() {
                       <div className="flex items-center gap-2">
                         <Video size={14} className="text-primary" />
                         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                          Análisis guardados ({analyses.length})
+                          {t("playerIntelligencePage.savedAnalyses", { count: analyses.length })}
                         </span>
                         <button
                           onClick={() => navigate(`/players/${id}/reports`)}
                           className="text-[9px] text-primary/70 hover:text-primary underline ml-1"
                         >
-                          Ver todos
+                          {t("playerIntelligencePage.viewAll")}
                         </button>
                         <button
                           onClick={() => navigate(`/players/${id}/evolution`)}
                           className="text-[9px] text-green-400/70 hover:text-green-400 underline"
                         >
-                          Evolución
+                          {t("playerIntelligencePage.evolution")}
                         </button>
                       </div>
                       <button
@@ -850,7 +852,7 @@ export default function PlayerIntelligencePage() {
                         }`}
                       >
                         <GitCompare size={10} />
-                        {compareMode ? "Cerrar" : "Comparar"}
+                        {compareMode ? t("playerIntelligencePage.close") : t("playerIntelligencePage.compare")}
                       </button>
                     </div>
                     <div className="space-y-1.5">
@@ -858,7 +860,7 @@ export default function PlayerIntelligencePage() {
                         const report = a.report as VideoIntelligenceOutput | null;
                         const videoTitle = report?.videoId && report.videoId !== "unknown"
                           ? VideoService.getById(report.videoId)?.title ?? report.videoId
-                          : `Análisis ${analyses.length - idx}`;
+                          : t("playerIntelligencePage.analysisNumber", { num: analyses.length - idx });
                         const date = a.created_at ? new Date(a.created_at).toLocaleDateString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
                         const isSelected = selectedAnalysisIdx === idx;
                         const isCompare = compareMode && compareIdx === idx;
@@ -887,17 +889,17 @@ export default function PlayerIntelligencePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-medium text-foreground truncate">{videoTitle}</p>
-                              <p className="text-[9px] text-muted-foreground">{date} · Confianza {Math.round(((report?.confianza ?? 0)) * 100)}%</p>
+                              <p className="text-[9px] text-muted-foreground">{date} · {t("playerIntelligencePage.confidenceInline", { pct: Math.round(((report?.confianza ?? 0)) * 100) })}</p>
                             </div>
-                            {isSelected && <Badge variant="secondary" className="text-[8px]">Actual</Badge>}
-                            {isCompare && <Badge className="text-[8px] bg-amber-500">Comparar</Badge>}
+                            {isSelected && <Badge variant="secondary" className="text-[8px]">{t("playerIntelligencePage.current")}</Badge>}
+                            {isCompare && <Badge className="text-[8px] bg-amber-500">{t("playerIntelligencePage.compare")}</Badge>}
                           </button>
                         );
                       })}
                     </div>
                     {compareMode && (
                       <p className="text-[9px] text-muted-foreground text-center">
-                        Selecciona <span className="text-primary font-bold">A</span> (actual) y <span className="text-amber-500 font-bold">B</span> (comparar)
+                        {t("playerIntelligencePage.selectHintStart")} <span className="text-primary font-bold">A</span> {t("playerIntelligencePage.selectHintA")} <span className="text-amber-500 font-bold">B</span> {t("playerIntelligencePage.selectHintB")}
                       </p>
                     )}
                   </div>
@@ -927,7 +929,7 @@ export default function PlayerIntelligencePage() {
                 {latestReport.metricasCuantitativas ? (
                   <MatchStatsPanel
                     data={latestReport.metricasCuantitativas}
-                    title={`Estadísticas — ${player.name}`}
+                    title={t("playerIntelligencePage.statsFor", { name: player.name })}
                   />
                 ) : (
                   <div className="glass rounded-2xl p-4 border border-amber-500/30 bg-amber-500/5">
@@ -937,10 +939,10 @@ export default function PlayerIntelligencePage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-display font-bold text-foreground mb-1">
-                          Panel de Estadísticas no disponible
+                          {t("playerIntelligencePage.statsPanelUnavailable")}
                         </p>
                         <p className="text-[11px] text-muted-foreground mb-3">
-                          Este análisis fue generado antes de la actualización del pipeline de métricas cuantitativas (velocidad, pases, duelos, recuperaciones). Para ver los KPIs completos, genera un nuevo análisis de vídeo.
+                          {t("playerIntelligencePage.statsPanelUnavailableDesc")}
                         </p>
                         <Button
                           size="sm"
@@ -949,7 +951,7 @@ export default function PlayerIntelligencePage() {
                           onClick={() => navigate(`/lab?playerId=${id}`)}
                         >
                           <Zap size={13} />
-                          Generar nuevo análisis
+                          {t("playerIntelligencePage.generateNewAnalysis")}
                         </Button>
                       </div>
                     </div>
@@ -970,7 +972,7 @@ export default function PlayerIntelligencePage() {
                     </div>
                     {!canUseVAEP && (
                       <UpgradePrompt
-                        feature="Métricas VAEP Avanzadas"
+                        feature={t("playerIntelligencePage.advancedVAEPMetrics")}
                         requiredPlan="pro"
                         variant="overlay"
                       />
@@ -983,7 +985,7 @@ export default function PlayerIntelligencePage() {
                   latestReport.metricasCuantitativas.heatmapPositions.length > 0 && (
                   <PlayerHeatmap
                     positions={latestReport.metricasCuantitativas.heatmapPositions}
-                    title={`Mapa de Calor — ${player.name}`}
+                    title={t("playerIntelligencePage.heatmapFor", { name: player.name })}
                   />
                 )}
 
@@ -996,7 +998,7 @@ export default function PlayerIntelligencePage() {
                     <div className="flex items-center gap-2">
                       <Star size={12} className="text-gold" />
                       <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                        Jugadores Referencia
+                        {t("playerIntelligencePage.referencePlayers")}
                       </span>
                     </div>
                     <ProPlayerMatch top5={top5Matches} bestMatch={bestMatchData} />
@@ -1024,10 +1026,10 @@ export default function PlayerIntelligencePage() {
                 <div className="glass rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
-                      Guardar y Exportar
+                      {t("playerIntelligencePage.saveAndExport")}
                     </p>
                     <span className="text-[10px] text-muted-foreground">
-                      Confianza: {Math.round((latestReport.confianza ?? 0) * 100)}%
+                      {t("playerIntelligencePage.confidenceLabel", { pct: Math.round((latestReport.confianza ?? 0) * 100) })}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -1040,7 +1042,7 @@ export default function PlayerIntelligencePage() {
                       }}
                     >
                       <FileText size={13} />
-                      Exportar PDF
+                      {t("playerIntelligencePage.exportPDF")}
                     </Button>
                     <Button
                       variant="outline"
@@ -1051,7 +1053,7 @@ export default function PlayerIntelligencePage() {
                       }}
                     >
                       <ArrowDownRight size={13} />
-                      Exportar Imagen
+                      {t("playerIntelligencePage.exportImage")}
                     </Button>
                     <Button
                       variant="outline"
@@ -1071,11 +1073,11 @@ export default function PlayerIntelligencePage() {
                         link.download = `vitas-intelligence-${player?.name?.replace(/\s/g, "-") ?? "report"}.json`;
                         link.click();
                         URL.revokeObjectURL(url);
-                        toast.success("Datos exportados correctamente");
+                        toast.success(t("playerIntelligencePage.dataExportedSuccess"));
                       }}
                     >
                       <ClipboardList size={13} />
-                      Exportar JSON
+                      {t("playerIntelligencePage.exportJSON")}
                     </Button>
                     <Button
                       variant="outline"
@@ -1084,19 +1086,19 @@ export default function PlayerIntelligencePage() {
                       onClick={async () => {
                         const shareData = {
                           title: `VITAS Intelligence — ${player?.name ?? ""}`,
-                          text: `Informe de ${player?.name ?? ""}: Nivel ${latestReport.estadoActual?.nivelActual ?? "N/A"}`,
+                          text: t("playerIntelligencePage.shareText", { name: player?.name ?? "", level: latestReport.estadoActual?.nivelActual ?? "N/A" }),
                           url: window.location.href,
                         };
                         if (navigator.share) {
                           await navigator.share(shareData).catch(() => {});
                         } else {
                           await navigator.clipboard.writeText(window.location.href);
-                          toast.success("Enlace copiado al portapapeles");
+                          toast.success(t("playerIntelligencePage.linkCopied"));
                         }
                       }}
                     >
                       <Target size={13} />
-                      Compartir
+                      {t("playerIntelligencePage.share")}
                     </Button>
                   </div>
                   <div className="flex items-center justify-center gap-4 pt-1">
@@ -1110,7 +1112,7 @@ export default function PlayerIntelligencePage() {
                       onClick={() => navigate(`/lab?playerId=${id}`)}
                       className="flex items-center gap-1.5 text-[10px] text-primary"
                     >
-                      <RefreshCw size={10} /> Nuevo análisis
+                      <RefreshCw size={10} /> {t("playerIntelligencePage.newAnalysis")}
                     </button>
                   </div>
                 </div>
@@ -1121,13 +1123,13 @@ export default function PlayerIntelligencePage() {
                 <div className="glass rounded-2xl p-8 text-center">
                   <Brain size={32} className="mx-auto mb-3 text-primary/50" />
                   <h3 className="text-sm font-display font-bold text-foreground mb-1">
-                    Sin análisis todavía
+                    {t("playerIntelligencePage.noAnalysisYet")}
                   </h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    Genera el primer informe de inteligencia para {player.name}
+                    {t("playerIntelligencePage.generateFirstReport", { name: player.name })}
                   </p>
                   <Button size="sm" onClick={() => navigate(`/lab?playerId=${id}`)} className="gap-2">
-                    <Zap size={14} /> Generar Informe
+                    <Zap size={14} /> {t("playerIntelligencePage.generateReport")}
                   </Button>
                 </div>
               </div>

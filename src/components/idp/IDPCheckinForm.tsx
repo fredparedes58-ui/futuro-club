@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Save, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -38,23 +39,24 @@ interface Props {
   submitting?: boolean;
 }
 
-const LIKERT = [
-  { value: 1, label: "Nada" },
-  { value: 2, label: "Poco" },
-  { value: 3, label: "Algo" },
-  { value: 4, label: "Bastante" },
-  { value: 5, label: "Mucho" },
+const LIKERT: { value: number; labelKey: string }[] = [
+  { value: 1, labelKey: "likertNada" },
+  { value: 2, labelKey: "likertPoco" },
+  { value: 3, labelKey: "likertAlgo" },
+  { value: 4, labelKey: "likertBastante" },
+  { value: 5, labelKey: "likertMucho" },
 ];
 
-const DIMENSIONS: { key: IDPDimension; label: string; question: string }[] = [
-  { key: "technical",  label: "Técnico",   question: "¿Mejoró el control y precisión técnica?" },
-  { key: "tactical",   label: "Táctico",   question: "¿Tomó mejores decisiones tácticas?" },
-  { key: "physical",   label: "Físico",    question: "¿Ganó capacidad física?" },
-  { key: "mental",     label: "Mental",    question: "¿Mostró progreso mental (decisión, resiliencia)?" },
-  { key: "maturation", label: "Maduración",question: "¿Se gestionó bien su carga vs su PHV?" },
+const DIMENSIONS: { key: IDPDimension; labelKey: string; questionKey: string }[] = [
+  { key: "technical",  labelKey: "dimTechnical",  questionKey: "questionTechnical" },
+  { key: "tactical",   labelKey: "dimTactical",   questionKey: "questionTactical" },
+  { key: "physical",   labelKey: "dimPhysical",   questionKey: "questionPhysical" },
+  { key: "mental",     labelKey: "dimMental",     questionKey: "questionMental" },
+  { key: "maturation", labelKey: "dimMaturation", questionKey: "questionMaturation" },
 ];
 
 export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props) {
+  const { t } = useTranslation();
   const [progressScore, setProgressScore] = useState(70);
   const [likert, setLikert] = useState<Partial<Record<IDPDimension, number>>>({});
   const [notes, setNotes] = useState("");
@@ -94,7 +96,7 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
       {/* Overall score */}
       <section>
         <div className="flex items-baseline justify-between mb-2">
-          <h3 className="text-sm font-medium text-white">Progreso global del plan</h3>
+          <h3 className="text-sm font-medium text-white">{t("idpCheckinForm.progressTitle")}</h3>
           <span className="text-2xl font-bold text-white tabular-nums">
             {progressScore}
             <span className="text-sm text-slate-500">/100</span>
@@ -108,20 +110,20 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
           step={5}
         />
         <p className="text-xs text-slate-500 mt-1">
-          Tu evaluación holística del mes para este jugador.
+          {t("idpCheckinForm.progressHint")}
         </p>
       </section>
 
       {/* Per-dimension Likert */}
       <section>
-        <h3 className="text-sm font-medium text-white mb-3">Por dimensión</h3>
+        <h3 className="text-sm font-medium text-white mb-3">{t("idpCheckinForm.perDimensionTitle")}</h3>
         <div className="space-y-3">
           {relevantDims.map((d) => (
             <div key={d.key} className="rounded-lg border border-white/10 p-3 bg-white/[0.02]">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-xs">{d.label}</Badge>
-                  <span className="text-xs text-slate-300">{d.question}</span>
+                  <Badge variant="outline" className="text-xs">{t(`idpCheckinForm.${d.labelKey}`)}</Badge>
+                  <span className="text-xs text-slate-300">{t(`idpCheckinForm.${d.questionKey}`)}</span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1">
@@ -135,7 +137,7 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
                         : "bg-white/[0.02] border-white/10 text-slate-400 hover:border-white/20"
                     }`}
                   >
-                    {opt.value} · {opt.label}
+                    {opt.value} · {t(`idpCheckinForm.${opt.labelKey}`)}
                   </button>
                 ))}
               </div>
@@ -146,11 +148,11 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
 
       {/* Next month focus */}
       <section>
-        <h3 className="text-sm font-medium text-white mb-2">Foco para el próximo mes</h3>
+        <h3 className="text-sm font-medium text-white mb-2">{t("idpCheckinForm.nextFocusTitle")}</h3>
         <Textarea
           value={nextFocus}
           onChange={(e) => setNextFocus(e.target.value)}
-          placeholder="Ej: consolidar lo trabajado en mental, pasar a alta intensidad en físico..."
+          placeholder={t("idpCheckinForm.nextFocusPlaceholder")}
           className="bg-white/[0.02] border-white/10 text-sm"
           rows={2}
         />
@@ -158,7 +160,7 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
 
       {/* Dimensions to boost */}
       <section>
-        <h3 className="text-sm font-medium text-white mb-2">Dimensiones a reforzar</h3>
+        <h3 className="text-sm font-medium text-white mb-2">{t("idpCheckinForm.dimensionsToBoostTitle")}</h3>
         <div className="flex flex-wrap gap-2">
           {DIMENSIONS.map((d) => (
             <button
@@ -170,7 +172,7 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
                   : "bg-white/[0.02] border-white/10 text-slate-400 hover:border-white/20"
               }`}
             >
-              {d.label}
+              {t(`idpCheckinForm.${d.labelKey}`)}
             </button>
           ))}
         </div>
@@ -178,11 +180,11 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
 
       {/* Notes */}
       <section>
-        <h3 className="text-sm font-medium text-white mb-2">Notas adicionales</h3>
+        <h3 className="text-sm font-medium text-white mb-2">{t("idpCheckinForm.notesTitle")}</h3>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Comentarios cualitativos del mes, lesiones, contexto personal..."
+          placeholder={t("idpCheckinForm.notesPlaceholder")}
           className="bg-white/[0.02] border-white/10 text-sm"
           rows={3}
         />
@@ -199,10 +201,10 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
           <div className="text-sm">
             <div className="flex items-center gap-2">
               <Lock className="size-3 text-amber-400" />
-              <span className="font-medium text-amber-200">Cerrar mes</span>
+              <span className="font-medium text-amber-200">{t("idpCheckinForm.closeMonthLabel")}</span>
             </div>
             <p className="text-xs text-amber-300/70 mt-0.5">
-              Marca el plan como completado. El próximo plan se generará automáticamente con el contexto de este checkin.
+              {t("idpCheckinForm.closeMonthHint")}
             </p>
           </div>
         </label>
@@ -210,7 +212,7 @@ export function IDPCheckinForm({ plan, reviewerId, onSubmit, submitting }: Props
 
       <Button onClick={handleSubmit} disabled={submitting} className="w-full" size="lg">
         <Save className="size-4 mr-2" />
-        {submitting ? "Guardando..." : "Guardar checkin"}
+        {submitting ? t("idpCheckinForm.submitting") : t("idpCheckinForm.submit")}
       </Button>
     </div>
   );

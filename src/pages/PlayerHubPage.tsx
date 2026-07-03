@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
@@ -111,20 +112,21 @@ import { useValuation } from "@/hooks/useValuation";
 
 type TabKey = "resumen" | "stats" | "movimiento" | "rol" | "mental" | "salud" | "bienestar" | "plan" | "valoracion" | "historico";
 
-const TABS: Array<{ key: TabKey; label: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
-  { key: "resumen",     label: "Resumen",      icon: Sparkles },
-  { key: "stats",       label: "Stats",        icon: Activity,    needsAnalysis: true },
-  { key: "movimiento",  label: "Movimiento",   icon: Compass },
-  { key: "rol",         label: "Rol",          icon: Brain,       needsAnalysis: true },
-  { key: "mental",      label: "Mental",       icon: Zap,         needsAnalysis: true },
-  { key: "salud",       label: "Salud",        icon: Heart },
-  { key: "bienestar",   label: "Bienestar",    icon: Shield },
-  { key: "plan",        label: "Plan IDP",     icon: Target },
-  { key: "valoracion",  label: "Valoración",   icon: TrendingUp },
-  { key: "historico",   label: "Histórico",    icon: Clock,       needsAnalysis: true },
+const TABS: Array<{ key: TabKey; labelKey: string; icon: React.ElementType; needsAnalysis?: boolean }> = [
+  { key: "resumen",     labelKey: "playerHubPage.tabResumen",     icon: Sparkles },
+  { key: "stats",       labelKey: "playerHubPage.tabStats",       icon: Activity,    needsAnalysis: true },
+  { key: "movimiento",  labelKey: "playerHubPage.tabMovimiento",  icon: Compass },
+  { key: "rol",         labelKey: "playerHubPage.tabRol",         icon: Brain,       needsAnalysis: true },
+  { key: "mental",      labelKey: "playerHubPage.tabMental",      icon: Zap,         needsAnalysis: true },
+  { key: "salud",       labelKey: "playerHubPage.tabSalud",       icon: Heart },
+  { key: "bienestar",   labelKey: "playerHubPage.tabBienestar",   icon: Shield },
+  { key: "plan",        labelKey: "playerHubPage.tabPlan",        icon: Target },
+  { key: "valoracion",  labelKey: "playerHubPage.tabValoracion",  icon: TrendingUp },
+  { key: "historico",   labelKey: "playerHubPage.tabHistorico",   icon: Clock,       needsAnalysis: true },
 ];
 
 export default function PlayerHubPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -216,17 +218,17 @@ export default function PlayerHubPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 px-8 text-center">
         <AlertCircle size={40} className="text-destructive" />
-        <p className="font-display font-bold text-lg text-foreground">Jugador no encontrado</p>
+        <p className="font-display font-bold text-lg text-foreground">{t("playerHubPage.playerNotFound")}</p>
         <Button variant="outline" onClick={() => navigate("/equipo")}>
           <ArrowLeft size={16} className="mr-2" />
-          Volver
+          {t("playerHubPage.back")}
         </Button>
       </div>
     );
   }
 
   const phvIcon = player.phvCategory === "early" ? "🟢" : player.phvCategory === "late" ? "🔵" : player.phvCategory ? "🟡" : "⚪";
-  const phvLabel = player.phvCategory === "early" ? "Pre-PHV" : player.phvCategory === "late" ? "Post-PHV" : player.phvCategory ? "En PHV" : "Sin datos PHV";
+  const phvLabel = player.phvCategory === "early" ? t("playerHubPage.phvPre") : player.phvCategory === "late" ? t("playerHubPage.phvPost") : player.phvCategory ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -237,7 +239,7 @@ export default function PlayerHubPage() {
             <button
               onClick={() => navigate(-1)}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              aria-label="Volver"
+              aria-label={t("playerHubPage.back")}
             >
               <ArrowLeft size={16} />
             </button>
@@ -251,7 +253,7 @@ export default function PlayerHubPage() {
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-bold text-base text-foreground truncate">{player.name}</h1>
               <p className="text-[11px] text-muted-foreground truncate">
-                {player.age}a · {player.position}
+                {t("playerHubPage.ageYears", { count: player.age })} · {player.position}
                 {player.secondaryPositions && player.secondaryPositions.length > 0 && (
                   <span className="text-muted-foreground/70"> / {player.secondaryPositions.join(" / ")}</span>
                 )}
@@ -270,7 +272,7 @@ export default function PlayerHubPage() {
               size="sm"
               onClick={() => window.open(`/players/${id}/print?auto=1`, "_blank", "noopener")}
               className="gap-1.5 text-xs"
-              title="Descargar PDF · 2 páginas, listo para compartir"
+              title={t("playerHubPage.pdfTitle")}
             >
               <Printer size={12} /> <span className="hidden sm:inline">PDF</span>
             </Button>
@@ -279,9 +281,9 @@ export default function PlayerHubPage() {
               size="sm"
               onClick={() => navigate(`/transfer/new?playerId=${id}`)}
               className="gap-1.5 text-xs"
-              title="Publicar este jugador en Transfer Market"
+              title={t("playerHubPage.listTitle")}
             >
-              <Briefcase size={12} /> <span className="hidden sm:inline">Listar</span>
+              <Briefcase size={12} /> <span className="hidden sm:inline">{t("playerHubPage.list")}</span>
             </Button>
             <Button
               variant="outline"
@@ -289,20 +291,20 @@ export default function PlayerHubPage() {
               onClick={() => navigate(`/players/${id}/edit`)}
               className="gap-1.5 text-xs"
             >
-              <Edit size={12} /> <span className="hidden sm:inline">Editar</span>
+              <Edit size={12} /> <span className="hidden sm:inline">{t("playerHubPage.edit")}</span>
             </Button>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-1 mt-3 overflow-x-auto no-scrollbar">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const isActive = tab === t.key;
-              const isLocked = t.needsAnalysis && !hasAnalysis;
+            {TABS.map((tabItem) => {
+              const Icon = tabItem.icon;
+              const isActive = tab === tabItem.key;
+              const isLocked = tabItem.needsAnalysis && !hasAnalysis;
               return (
                 <button
-                  key={t.key}
-                  onClick={() => !isLocked && setTab(t.key)}
+                  key={tabItem.key}
+                  onClick={() => !isLocked && setTab(tabItem.key)}
                   disabled={isLocked}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-all whitespace-nowrap ${
                     isActive
@@ -311,10 +313,10 @@ export default function PlayerHubPage() {
                         ? "text-muted-foreground/50 cursor-not-allowed"
                         : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                   }`}
-                  title={isLocked ? "Requiere un análisis de video" : undefined}
+                  title={isLocked ? t("playerHubPage.requiresVideoAnalysis") : undefined}
                 >
                   <Icon size={12} />
-                  {t.label}
+                  {t(tabItem.labelKey)}
                   {isLocked && <span className="text-[8px]">🔒</span>}
                 </button>
               );
@@ -349,19 +351,18 @@ export default function PlayerHubPage() {
                   <EmptyVideo className="w-44 mx-auto" />
                   <div className="space-y-2 max-w-md mx-auto">
                     <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                      Sube tu primer video de {player.name}
+                      {t("playerHubPage.uploadFirstVideo", { name: player.name })}
                     </h2>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      Desbloquea pases, duelos, recuperaciones, escaneo, mapa de calor,
-                      VAEP, cobertura de campo, DrillScore y perfil de rol.
+                      {t("playerHubPage.unlockDescription")}
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
                     <Button onClick={() => navigate(`/lab?playerId=${id}`)} className="flex-1 gap-2">
-                      <FlaskConical size={14} /> Analizar en VITAS Lab
+                      <FlaskConical size={14} /> {t("playerHubPage.analyzeInLab")}
                     </Button>
                     <Button variant="outline" onClick={() => navigate(`/reports?playerId=${id}`)} className="gap-2">
-                      <Video size={14} /> Subir video
+                      <Video size={14} /> {t("playerHubPage.uploadVideo")}
                     </Button>
                   </div>
                 </motion.div>
@@ -380,17 +381,17 @@ export default function PlayerHubPage() {
               {/* VSI + métricas avanzadas siempre visibles */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="glass rounded-xl p-6 flex flex-col items-center justify-center gap-3">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">VSI Global</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-bold">{t("playerHubPage.vsiGlobal")}</p>
                   <VsiGauge value={player.vsi} size="xl" showTier />
                   {player.vsiHistory && player.vsiHistory.length > 1 && (
                     <p className="text-[11px] text-muted-foreground">
-                      {player.vsiHistory.length} actualizaciones registradas
+                      {t("playerHubPage.updatesRecorded", { count: player.vsiHistory.length })}
                     </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-                    Métricas base
+                    {t("playerHubPage.baseMetrics")}
                   </h3>
                   {(["speed", "technique", "vision", "stamina", "shooting", "defending"] as const).map((k) => {
                     const v = player.metrics[k] ?? 0;
@@ -435,17 +436,17 @@ export default function PlayerHubPage() {
               {latestReport?.metricasCuantitativas ? (
                 <>
                   <p className="text-[11px] text-muted-foreground">
-                    Estadísticas del último video analizado el {new Date(latestAnalysis!.created_at).toLocaleDateString("es-ES")}
+                    {t("playerHubPage.statsFromLastVideo", { date: new Date(latestAnalysis!.created_at).toLocaleDateString("es-ES") })}
                   </p>
                   <MatchStatsPanel
                     data={latestReport.metricasCuantitativas}
-                    title={`Estadísticas — ${player.name}`}
+                    title={t("playerHubPage.statsTitle", { name: player.name })}
                   />
                   {latestReport.metricasCuantitativas.heatmapPositions &&
                     latestReport.metricasCuantitativas.heatmapPositions.length > 0 && (
                     <PlayerHeatmap
                       positions={latestReport.metricasCuantitativas.heatmapPositions}
-                      title={`Mapa de Calor — ${player.name}`}
+                      title={t("playerHubPage.heatmapTitle", { name: player.name })}
                     />
                   )}
                 </>
@@ -453,7 +454,7 @@ export default function PlayerHubPage() {
                 <EmptyAnalysisState
                   playerId={id ?? ""}
                   playerName={player.name}
-                  message="Este análisis es antiguo y no incluye stats. Genera uno nuevo."
+                  message={t("playerHubPage.oldAnalysisNoStats")}
                 />
               )}
             </motion.div>
@@ -491,12 +492,12 @@ export default function PlayerHubPage() {
                       roleData.sample_tier === "silver" ? "bg-gray-100 text-gray-700" :
                       "bg-orange-100 text-orange-700"
                     }`}>
-                      {roleData.sample_tier === "platinum" ? "💎 Platino" : roleData.sample_tier === "gold" ? "🥇 Oro" : roleData.sample_tier === "silver" ? "🥈 Plata" : "🥉 Bronce"}
+                      {roleData.sample_tier === "platinum" ? t("playerHubPage.tierPlatinum") : roleData.sample_tier === "gold" ? t("playerHubPage.tierGold") : roleData.sample_tier === "silver" ? t("playerHubPage.tierSilver") : t("playerHubPage.tierBronze")}
                       {" · "}{Math.round(roleData.overall_confidence * 100)}%
                     </span>
                     {roleData.source_videos && roleData.source_videos.length > 0 && (
                       <span className="text-[11px] text-muted-foreground">
-                        Basado en {roleData.source_videos.length} video{roleData.source_videos.length > 1 ? "s" : ""} · último análisis {new Date(roleData.source_videos[0].analyzed_at).toLocaleDateString("es-ES")}
+                        {t("playerHubPage.basedOnVideos", { count: roleData.source_videos.length, date: new Date(roleData.source_videos[0].analyzed_at).toLocaleDateString("es-ES") })}
                       </span>
                     )}
                   </div>
@@ -532,14 +533,13 @@ export default function PlayerHubPage() {
                   {/* Cita explícita de los videos fuente al final del informe */}
                   {roleData.source_videos && roleData.source_videos.length > 0 && (
                     <div className="glass rounded-xl p-4 border-l-4 border-primary/40 text-xs text-muted-foreground">
-                      <p className="font-display font-semibold text-foreground mb-1">📹 Fuente del informe</p>
+                      <p className="font-display font-semibold text-foreground mb-1">{t("playerHubPage.reportSource")}</p>
                       <p>
-                        Este perfil de rol está construido sobre el análisis de {roleData.source_videos.length} video{roleData.source_videos.length > 1 ? "s" : ""} de {player.name}.
-                        Si subes más videos en VITAS Lab, la confianza del informe sube y el sample tier mejora (Bronce → Plata → Oro → Platino).
+                        {t("playerHubPage.reportSourceDescription", { count: roleData.source_videos.length, name: player.name })}
                       </p>
                       <ul className="mt-2 space-y-0.5">
                         {roleData.source_videos.slice(0, 3).map((v, i) => (
-                          <li key={i}>• Video {v.video_id.slice(0, 8)} · analizado {new Date(v.analyzed_at).toLocaleString("es-ES")}</li>
+                          <li key={i}>{t("playerHubPage.videoAnalyzedItem", { id: v.video_id.slice(0, 8), date: new Date(v.analyzed_at).toLocaleString("es-ES") })}</li>
                         ))}
                       </ul>
                     </div>
@@ -548,7 +548,7 @@ export default function PlayerHubPage() {
               ) : (
                 <div className="glass rounded-xl p-6 text-center">
                   <Sparkles size={20} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Generando perfil de rol…</p>
+                  <p className="text-sm text-muted-foreground">{t("playerHubPage.generatingRoleProfile")}</p>
                 </div>
               )}
             </motion.div>
@@ -584,7 +584,7 @@ export default function PlayerHubPage() {
                     <div className="glass rounded-2xl p-8 h-48" />
                     <div className="glass rounded-2xl p-8 h-32" />
                   </div>
-                  <UpgradePrompt feature="Prediccion de Lesiones" requiredPlan="pro" variant="overlay" />
+                  <UpgradePrompt feature={t("playerHubPage.injuryPredictionFeature")} requiredPlan="pro" variant="overlay" />
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -594,7 +594,7 @@ export default function PlayerHubPage() {
                   {!riskData && !injuriesLoading && (
                     <div className="glass rounded-xl p-6 text-center">
                       <Heart size={20} className="mx-auto text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">Analiza una sesion para ver el riesgo de lesion</p>
+                      <p className="text-sm text-muted-foreground">{t("playerHubPage.analyzeSessionForRisk")}</p>
                     </div>
                   )}
                   {snapshot?.fatigueReport?.thresholds && (
@@ -664,12 +664,12 @@ export default function PlayerHubPage() {
                     <div className="glass rounded-2xl p-8 h-48" />
                     <div className="glass rounded-2xl p-8 h-32" />
                   </div>
-                  <UpgradePrompt feature="Valoracion Predictiva" requiredPlan="pro" variant="overlay" />
+                  <UpgradePrompt feature={t("playerHubPage.valuationFeature")} requiredPlan="pro" variant="overlay" />
                 </div>
               ) : valuationLoading ? (
                 <div className="glass rounded-xl p-6 text-center">
                   <Zap size={20} className="mx-auto text-muted-foreground mb-2 animate-pulse" />
-                  <p className="text-sm text-muted-foreground">Calculando valoracion...</p>
+                  <p className="text-sm text-muted-foreground">{t("playerHubPage.calculatingValuation")}</p>
                 </div>
               ) : valuationData ? (
                 <div className="space-y-4">
@@ -690,7 +690,7 @@ export default function PlayerHubPage() {
               ) : (
                 <div className="glass rounded-xl p-6 text-center">
                   <Zap size={20} className="mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Analiza una sesion para ver la valoracion</p>
+                  <p className="text-sm text-muted-foreground">{t("playerHubPage.analyzeSessionForValuation")}</p>
                 </div>
               )}
             </motion.div>
@@ -710,7 +710,7 @@ export default function PlayerHubPage() {
                     <button
                       key={a.id}
                       onClick={() => {
-                        toast.info(`Análisis #${a.id.slice(0, 6)} · ${new Date(a.created_at).toLocaleString("es-ES")}`);
+                        toast.info(t("playerHubPage.analysisToast", { id: a.id.slice(0, 6), date: new Date(a.created_at).toLocaleString("es-ES") }));
                       }}
                       className="w-full flex items-center gap-3 p-4 hover:bg-secondary/30 transition-colors text-left"
                     >
@@ -719,10 +719,10 @@ export default function PlayerHubPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-display font-semibold text-foreground">
-                          Análisis · {new Date(a.created_at).toLocaleDateString("es-ES")}
+                          {t("playerHubPage.analysisDate", { date: new Date(a.created_at).toLocaleDateString("es-ES") })}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          VSI {a.report?.vsi ?? "—"} · {a.report?.metricasCuantitativas ? "con stats" : "sin stats"}
+                          VSI {a.report?.vsi ?? "—"} · {a.report?.metricasCuantitativas ? t("playerHubPage.withStats") : t("playerHubPage.withoutStats")}
                         </p>
                       </div>
                       <ChevronRight size={14} className="text-muted-foreground" />
@@ -755,6 +755,7 @@ export default function PlayerHubPage() {
 // ── Wellbeing Tab (Sprint 23) ────────────────────────────────────
 
 function WellbeingTab({ playerId }: { playerId: string }) {
+  const { t } = useTranslation();
   const { data: risk } = useDropoutRisk(playerId);
   const { data: engagement } = useEngagementHistory(playerId);
   const { data: attendance } = useAttendance(playerId);
@@ -763,7 +764,7 @@ function WellbeingTab({ playerId }: { playerId: string }) {
     return (
       <div className="glass rounded-xl p-6 text-center">
         <Heart size={24} className="text-muted-foreground mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground">Cargando datos de bienestar...</p>
+        <p className="text-xs text-muted-foreground">{t("playerHubPage.loadingWellbeing")}</p>
       </div>
     );
   }
@@ -860,6 +861,7 @@ function GrowthSpurtShieldSection({ playerId }: { playerId: string }) {
 // ── IDP Tab (Plan de Desarrollo Individual) ───────────────────────
 
 function IDPTab({ playerId }: { playerId: string }) {
+  const { t } = useTranslation();
   const { architectInput, liveMetrics, playerName, loading, dataRichness } =
     useIDPArchitectInput(playerId);
 
@@ -867,7 +869,7 @@ function IDPTab({ playerId }: { playerId: string }) {
     return (
       <div className="glass rounded-xl p-6 text-center">
         <Target size={24} className="text-muted-foreground mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground">Cargando datos del jugador...</p>
+        <p className="text-xs text-muted-foreground">{t("playerHubPage.loadingPlayerData")}</p>
       </div>
     );
   }
@@ -888,6 +890,7 @@ function IDPTab({ playerId }: { playerId: string }) {
 function EmptyAnalysisState({
   playerId, playerName, message,
 }: { playerId: string; playerName: string; message?: string }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   return (
     <div className="glass rounded-2xl p-6 border border-dashed border-border space-y-4">
@@ -897,15 +900,15 @@ function EmptyAnalysisState({
         </div>
         <div className="flex-1">
           <h3 className="font-display font-bold text-base text-foreground">
-            {message ?? `Aún no hay análisis de video para ${playerName}`}
+            {message ?? t("playerHubPage.noAnalysisYet", { name: playerName })}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Cuando subas y analices un video, aquí verás pases, duelos, recuperaciones, mapa de calor y perfil de rol.
+            {t("playerHubPage.emptyAnalysisDescription")}
           </p>
         </div>
       </div>
       <Button onClick={() => navigate(`/lab?playerId=${playerId}`)} className="w-full gap-2">
-        <FlaskConical size={14} /> Analizar en VITAS Lab
+        <FlaskConical size={14} /> {t("playerHubPage.analyzeInLab")}
       </Button>
     </div>
   );

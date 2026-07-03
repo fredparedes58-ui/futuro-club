@@ -293,7 +293,7 @@ const PlayerForm = () => {
     const fields = STEP_FIELDS[currentStep] as readonly (keyof FormValues)[];
     const valid = await trigger(fields as (keyof FormValues)[]);
     if (!valid) {
-      toast.error(t("players.form.fixErrors") ?? "Revisa los campos antes de continuar");
+      toast.error(t("players.form.fixErrors") ?? t("playerForm.fixErrorsFallback"));
       return;
     }
     if (currentStep < 3) setCurrentStep((s) => Math.min(3, (s + 1)) as 1 | 2 | 3);
@@ -417,10 +417,10 @@ const PlayerForm = () => {
           <motion.div variants={item} className="space-y-2">
             <div className="flex items-center justify-between text-[10px] uppercase tracking-widest font-bold">
               <span className="text-muted-foreground">
-                Paso {currentStep} de 3
+                {t("playerForm.stepProgress", { current: currentStep })}
               </span>
               <span className="text-primary">
-                {currentStep === 1 ? "Identidad" : currentStep === 2 ? "Físico" : "Métricas"}
+                {currentStep === 1 ? t("playerForm.stepIdentity") : currentStep === 2 ? t("playerForm.stepPhysical") : t("playerForm.stepMetrics")}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -437,7 +437,7 @@ const PlayerForm = () => {
             </div>
             {watchedName && watchedAge && currentStep > 1 && (
               <p className="text-[10px] text-muted-foreground">
-                Creando · <span className="text-foreground font-bold">{watchedName}</span> ({watchedAge}a)
+                {t("playerForm.creatingLabel")} · <span className="text-foreground font-bold">{watchedName}</span> ({t("playerForm.ageShort", { age: watchedAge })})
               </p>
             )}
           </motion.div>
@@ -485,7 +485,7 @@ const PlayerForm = () => {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="position" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-                {t("common.position")} principal
+                {t("playerForm.primaryPosition")}
               </Label>
               <select
                 id="position"
@@ -506,7 +506,7 @@ const PlayerForm = () => {
           {/* Posiciones secundarias · jugadores polivalentes */}
           <div className="space-y-1.5">
             <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
-              Posiciones secundarias <span className="text-[9px] normal-case text-muted-foreground/70">(opcional · marca las que también puede jugar)</span>
+              {t("playerForm.secondaryPositions")} <span className="text-[9px] normal-case text-muted-foreground/70">{t("playerForm.secondaryPositionsNote")}</span>
             </Label>
             <Controller
               name="secondaryPositions"
@@ -763,7 +763,7 @@ const PlayerForm = () => {
                   onClick={handlePrevStep}
                 >
                   <ChevronLeft size={14} />
-                  Atrás
+                  {t("playerForm.back")}
                 </Button>
               ) : (
                 <Button
@@ -782,7 +782,7 @@ const PlayerForm = () => {
                   className="flex-1 gap-1.5"
                   onClick={handleNextStep}
                 >
-                  Siguiente
+                  {t("playerForm.next")}
                   <ChevronRight size={14} />
                 </Button>
               ) : (

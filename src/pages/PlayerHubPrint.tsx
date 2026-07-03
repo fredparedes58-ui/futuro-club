@@ -15,22 +15,24 @@
  */
 import { useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
 import VsiGauge from "@/components/VsiGauge";
 
-const METRIC_LABELS: Record<keyof Player["metrics"], string> = {
-  speed:     "Velocidad",
-  technique: "Técnica",
-  vision:    "Visión de juego",
-  stamina:   "Resistencia",
-  shooting:  "Disparo",
-  defending: "Defensa",
-};
-
 export default function PlayerHubPrint() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const { t } = useTranslation();
+
+  const METRIC_LABELS: Record<keyof Player["metrics"], string> = {
+    speed:     t("playerHubPrint.metricSpeed"),
+    technique: t("playerHubPrint.metricTechnique"),
+    vision:    t("playerHubPrint.metricVision"),
+    stamina:   t("playerHubPrint.metricStamina"),
+    shooting:  t("playerHubPrint.metricShooting"),
+    defending: t("playerHubPrint.metricDefending"),
+  };
 
   const player = useMemo(() => (id ? PlayerService.getById(id) : null), [id]);
   const metrics = useMemo(() => {
@@ -41,19 +43,19 @@ export default function PlayerHubPrint() {
   // Auto print si ?auto=1
   useEffect(() => {
     if (searchParams.get("auto") === "1") {
-      const t = setTimeout(() => window.print(), 800);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => window.print(), 800);
+      return () => clearTimeout(timer);
     }
   }, [searchParams]);
 
   if (!player) {
-    return <div className="p-8 text-center">Jugador no encontrado</div>;
+    return <div className="p-8 text-center">{t("playerHubPrint.playerNotFound")}</div>;
   }
 
   const phvLabel =
-    player.phvCategory === "early" ? "Pre-PHV (estirón pendiente)" :
-    player.phvCategory === "late" ? "Post-PHV (consolidado)" :
-    player.phvCategory ? "En PHV (estirón en curso)" : "Sin datos PHV";
+    player.phvCategory === "early" ? t("playerHubPrint.phvLabelEarly") :
+    player.phvCategory === "late" ? t("playerHubPrint.phvLabelLate") :
+    player.phvCategory ? t("playerHubPrint.phvLabelOntime") : t("playerHubPrint.phvLabelNone");
 
   const phvColor =
     player.phvCategory === "early" ? "#10b981" :
@@ -72,10 +74,10 @@ export default function PlayerHubPrint() {
   const gaps = sortedMetrics.slice(-2).reverse();
 
   // Tier badge
-  const tier = player.vsi >= 85 ? { label: "ÉLITE", color: "#3b82f6" } :
-               player.vsi >= 70 ? { label: "PRO", color: "#a855f7" } :
-               player.vsi >= 50 ? { label: "TALENTO", color: "#f59e0b" } :
-               { label: "DESARROLLO", color: "#ef4444" };
+  const tier = player.vsi >= 85 ? { label: t("playerHubPrint.tierElite"), color: "#3b82f6" } :
+               player.vsi >= 70 ? { label: t("playerHubPrint.tierPro"), color: "#a855f7" } :
+               player.vsi >= 50 ? { label: t("playerHubPrint.tierTalent"), color: "#f59e0b" } :
+               { label: t("playerHubPrint.tierDevelopment"), color: "#ef4444" };
 
   return (
     <>
@@ -110,20 +112,20 @@ export default function PlayerHubPrint() {
       <div className="no-print sticky top-0 z-50 bg-slate-900 text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded bg-blue-500 flex items-center justify-center font-black text-xs">V</div>
-          <span className="font-bold text-sm">VITAS · Vista de impresión</span>
+          <span className="font-bold text-sm">{t("playerHubPrint.toolbarTitle")}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
             className="px-4 py-1.5 rounded bg-blue-500 hover:bg-blue-600 text-sm font-bold"
           >
-            🖨 Descargar PDF / Imprimir
+            🖨 {t("playerHubPrint.downloadPdfPrint")}
           </button>
           <button
             onClick={() => window.close()}
             className="px-3 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-sm"
           >
-            Cerrar
+            {t("playerHubPrint.close")}
           </button>
         </div>
       </div>
@@ -141,7 +143,7 @@ export default function PlayerHubPrint() {
               </div>
             </div>
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 9, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>Informe</div>
+              <div style={{ fontSize: 9, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>{t("playerHubPrint.report")}</div>
               <div style={{ fontSize: 11, color: "#0f172a", fontWeight: 600 }}>{today}</div>
             </div>
           </div>
@@ -150,19 +152,19 @@ export default function PlayerHubPrint() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 32, marginTop: 32, alignItems: "center" }}>
             <div>
               <div style={{ fontSize: 11, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.18em", fontWeight: 700, marginBottom: 6 }}>
-                Análisis del jugador
+                {t("playerHubPrint.playerAnalysis")}
               </div>
               <h1 style={{ fontSize: 56, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, margin: 0, color: "#0f172a" }}>
                 {player.name}
               </h1>
               <div style={{ display: "flex", gap: 18, marginTop: 14, flexWrap: "wrap" }}>
-                <Stat label="Edad" value={`${player.age} años`} />
-                <Stat label="Posición" value={player.position} />
+                <Stat label={t("playerHubPrint.statAge")} value={t("playerHubPrint.ageValue", { count: player.age })} />
+                <Stat label={t("playerHubPrint.statPosition")} value={player.position} />
                 {player.secondaryPositions && player.secondaryPositions.length > 0 && (
-                  <Stat label="Polivalencia" value={player.secondaryPositions.join(", ")} />
+                  <Stat label={t("playerHubPrint.statVersatility")} value={player.secondaryPositions.join(", ")} />
                 )}
-                <Stat label="Pie hábil" value={player.foot === "right" ? "Derecho" : player.foot === "left" ? "Izquierdo" : "Ambidiestro"} />
-                <Stat label="Nivel" value={player.competitiveLevel} />
+                <Stat label={t("playerHubPrint.statPreferredFoot")} value={player.foot === "right" ? t("playerHubPrint.footRight") : player.foot === "left" ? t("playerHubPrint.footLeft") : t("playerHubPrint.footBoth")} />
+                <Stat label={t("playerHubPrint.statLevel")} value={player.competitiveLevel} />
               </div>
               <div style={{ marginTop: 20, display: "flex", gap: 8 }}>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: tier.color, color: "white", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em" }}>
@@ -184,7 +186,7 @@ export default function PlayerHubPrint() {
           {/* Métricas base · barras horizontales */}
           <div style={{ marginTop: 36 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#0f172a", margin: 0, marginBottom: 14, paddingBottom: 6, borderBottom: "1px solid #e2e8f0" }}>
-              Perfil técnico-físico
+              {t("playerHubPrint.technicalPhysicalProfile")}
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 24px" }}>
               {(Object.keys(player.metrics) as Array<keyof Player["metrics"]>).map((k) => {
@@ -208,7 +210,7 @@ export default function PlayerHubPrint() {
           <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
             <div>
               <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#10b981", margin: 0, marginBottom: 10 }}>
-                ✓ Fortalezas
+                ✓ {t("playerHubPrint.strengths")}
               </h3>
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {strengths.map((s) => (
@@ -221,7 +223,7 @@ export default function PlayerHubPrint() {
             </div>
             <div>
               <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#f59e0b", margin: 0, marginBottom: 10 }}>
-                ↗ Áreas de desarrollo
+                ↗ {t("playerHubPrint.developmentAreas")}
               </h3>
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {gaps.map((g) => (
@@ -236,8 +238,8 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 1 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS · Football Intelligence · Edad madurativa: {player.phvAge ? `${player.phvAge.toFixed(1)} años` : "No disponible"} · {phvLabel}</span>
-            <span>Página 1/2 · {player.name} · {today}</span>
+            <span>VITAS · Football Intelligence · {t("playerHubPrint.maturationalAge")}: {player.phvAge ? t("playerHubPrint.yearsValue", { count: player.phvAge.toFixed(1) }) : t("playerHubPrint.notAvailable")} · {phvLabel}</span>
+            <span>{t("playerHubPrint.pageOf", { current: 1, total: 2 })} · {player.name} · {today}</span>
           </div>
         </div>
 
@@ -248,7 +250,7 @@ export default function PlayerHubPrint() {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ width: 28, height: 28, borderRadius: 6, background: "#3b82f6", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: 14 }}>V</div>
               <span style={{ fontWeight: 800, fontSize: 14 }}>{player.name}</span>
-              <span style={{ fontSize: 10, color: "#64748b" }}>· Análisis avanzado</span>
+              <span style={{ fontSize: 10, color: "#64748b" }}>· {t("playerHubPrint.advancedAnalysis")}</span>
             </div>
             <div style={{ fontSize: 10, color: "#64748b" }}>
               VSI <strong style={{ color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{player.vsi}</strong>
@@ -258,18 +260,18 @@ export default function PlayerHubPrint() {
           {/* PHV section */}
           <div style={{ marginTop: 24 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#0f172a", margin: 0, marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid #e2e8f0" }}>
-              Madurez biológica · PHV
+              {t("playerHubPrint.biologicalMaturity")} · PHV
             </h2>
             <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 16, fontSize: 12, lineHeight: 1.7, color: "#334155" }}>
               <strong style={{ color: phvColor }}>{phvLabel}</strong>
               {player.phvCategory === "early" && (
-                <p style={{ margin: "8px 0 0 0" }}>El estirón está pendiente. La ventana neuromotora está abierta para desarrollar técnica fina y coordinación. Evitar gym pesado.</p>
+                <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyEarly")}</p>
               )}
               {player.phvCategory === "late" && (
-                <p style={{ margin: "8px 0 0 0" }}>Post-estirón. Trabajo de fuerza progresiva y consolidación de patrones técnicos a alta intensidad.</p>
+                <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyLate")}</p>
               )}
               {(player.phvCategory === "ontme" || !player.phvCategory) && (
-                <p style={{ margin: "8px 0 0 0" }}>Periodo de transformación corporal acelerada. Reducir cargas, monitorizar fatiga, priorizar movilidad y técnica controlada.</p>
+                <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyOntime")}</p>
               )}
             </div>
           </div>
@@ -278,14 +280,14 @@ export default function PlayerHubPrint() {
           {metrics && (
             <div style={{ marginTop: 24 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#0f172a", margin: 0, marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid #e2e8f0" }}>
-                Identidad dominante
+                {t("playerHubPrint.dominantIdentity")}
               </h2>
               <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 16, fontSize: 12, lineHeight: 1.6 }}>
                 <strong style={{ fontSize: 16, color: "#0f172a", textTransform: "capitalize" }}>{metrics.dominantFeatures.playStyle}</strong>
                 <p style={{ margin: "6px 0 0 0", color: "#475569" }}>
-                  Especialización: <strong>{Math.round(metrics.dominantFeatures.specializationIndex * 100)}%</strong>
+                  {t("playerHubPrint.specialization")}: <strong>{Math.round(metrics.dominantFeatures.specializationIndex * 100)}%</strong>
                   {" · "}
-                  Atributos dominantes: {metrics.dominantFeatures.dominant.slice(0, 2).join(" + ")}
+                  {t("playerHubPrint.dominantAttributes")}: {metrics.dominantFeatures.dominant.slice(0, 2).join(" + ")}
                 </p>
               </div>
             </div>
@@ -294,17 +296,17 @@ export default function PlayerHubPrint() {
           {/* Recomendación próximas 4 semanas */}
           <div style={{ marginTop: 24 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#0f172a", margin: 0, marginBottom: 12, paddingBottom: 6, borderBottom: "1px solid #e2e8f0" }}>
-              Plan próximas 4 semanas
+              {t("playerHubPrint.planNext4Weeks")}
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <PlanCard
-                title="Mantener fortalezas"
-                items={strengths.map((s) => `Drills semanales de ${s.label.toLowerCase()}`)}
+                title={t("playerHubPrint.planMaintainStrengths")}
+                items={strengths.map((s) => t("playerHubPrint.planWeeklyDrills", { skill: s.label.toLowerCase() }))}
                 color="#10b981"
               />
               <PlanCard
-                title="Trabajar áreas"
-                items={gaps.map((g) => `Bloque específico: ${g.label.toLowerCase()}`)}
+                title={t("playerHubPrint.planWorkAreas")}
+                items={gaps.map((g) => t("playerHubPrint.planSpecificBlock", { skill: g.label.toLowerCase() }))}
                 color="#f59e0b"
               />
             </div>
@@ -313,11 +315,11 @@ export default function PlayerHubPrint() {
           {/* CTA final */}
           <div style={{ marginTop: 32, padding: 20, background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)", borderRadius: 8, color: "white", textAlign: "center" }}>
             <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 700, marginBottom: 6 }}>
-              Análisis generado por
+              {t("playerHubPrint.analysisGeneratedBy")}
             </div>
             <div style={{ fontSize: 22, fontWeight: 900, letterSpacing: "-0.02em" }}>VITAS Football Intelligence</div>
             <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 4 }}>
-              Plataforma de scouting juvenil con corrección de maduración biológica
+              {t("playerHubPrint.platformTagline")}
             </div>
             <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 12, fontWeight: 700 }}>
               futuro-club.vercel.app
@@ -326,8 +328,8 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 2 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS v2.0 · Evaluación con corrección PHV Mirwald · Confianza: {player.phvAge ? "Media-Alta" : "Parcial (sin PHV)"}</span>
-            <span>Página 2/2 · {player.name} · {today}</span>
+            <span>VITAS v2.0 · {t("playerHubPrint.mirwaldEvaluation")} · {t("playerHubPrint.confidence")}: {player.phvAge ? t("playerHubPrint.confidenceMediumHigh") : t("playerHubPrint.confidencePartial")}</span>
+            <span>{t("playerHubPrint.pageOf", { current: 2, total: 2 })} · {player.name} · {today}</span>
           </div>
         </div>
       </div>

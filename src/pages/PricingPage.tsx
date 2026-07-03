@@ -15,6 +15,7 @@
  */
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   Check, X, ArrowRight, Zap, Shield, BarChart3,
   Brain, Video, TrendingUp, Star, Quote,
@@ -176,6 +177,7 @@ const CASE_STUDIES: CaseStudy[] = [
 
 export default function PricingPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-background">
@@ -193,13 +195,13 @@ export default function PricingPage() {
               onClick={() => navigate("/login")}
               className="text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
-              Iniciar sesión
+              {t("pricingPage.login")}
             </button>
             <button
               onClick={() => navigate("/register")}
               className="text-xs font-display font-semibold px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              Empezar gratis
+              {t("pricingPage.startFree")}
             </button>
           </div>
         </div>
@@ -215,16 +217,15 @@ export default function PricingPage() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/5">
             <Zap size={11} className="text-primary" />
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
-              Football Intelligence Platform
+              {t("pricingPage.heroBadge")}
             </span>
           </div>
           <h1 className="font-display font-black text-4xl md:text-6xl tracking-tight">
-            Scouting de élite,{" "}
-            <span className="gradient-text">sin hardware</span>
+            {t("pricingPage.heroTitlePart1")}{" "}
+            <span className="gradient-text">{t("pricingPage.heroTitleHighlight")}</span>
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            VITAS extrae métricas VAEP, SPADL y biomecánica desde cualquier video
-            de partido. Ajuste biológico PHV integrado. Desde €19/mes.
+            {t("pricingPage.heroSubtitle")}
           </p>
         </motion.section>
 
@@ -232,10 +233,10 @@ export default function PricingPage() {
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
-              Planes transparentes
+              {t("pricingPage.plansTitle")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Sin permanencia. Cancela cuando quieras.
+              {t("pricingPage.plansSubtitle")}
             </p>
           </div>
 
@@ -256,10 +257,10 @@ export default function PricingPage() {
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
-              Comparativa con la competencia
+              {t("pricingPage.competitorsTitle")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Datos basados en planes públicos oficiales de cada proveedor.
+              {t("pricingPage.competitorsSubtitle")}
             </p>
           </div>
 
@@ -268,7 +269,7 @@ export default function PricingPage() {
               <thead>
                 <tr className="border-b border-border/40">
                   <th className="py-3 text-[10px] font-display font-semibold text-muted-foreground uppercase tracking-wider pr-4">
-                    Feature
+                    {t("pricingPage.tableHeaderFeature")}
                   </th>
                   <th className="py-3 text-[10px] font-display font-semibold text-primary uppercase tracking-wider px-2">
                     VITAS
@@ -305,7 +306,7 @@ export default function PricingPage() {
               </tbody>
             </table>
             <p className="text-[10px] text-muted-foreground mt-4 italic">
-              Precios y features orientativos obtenidos de sitios oficiales. Última revisión: {new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" })}.
+              {t("pricingPage.competitorsFootnote", { date: new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" }) })}
             </p>
           </div>
         </section>
@@ -314,10 +315,10 @@ export default function PricingPage() {
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
-              Lo que dicen clubes como el tuyo
+              {t("pricingPage.testimonialsTitle")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Testimonios de clientes reales (placeholder — rellenar con citas autorizadas).
+              {t("pricingPage.testimonialsSubtitle")}
             </p>
           </div>
 
@@ -353,10 +354,10 @@ export default function PricingPage() {
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
-              Casos de uso reales
+              {t("pricingPage.caseStudiesTitle")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Resultados documentados de clubes que usan VITAS.
+              {t("pricingPage.caseStudiesSubtitle")}
             </p>
           </div>
 
@@ -381,32 +382,32 @@ export default function PricingPage() {
         {/* FAQ short */}
         <section className="space-y-4">
           <h2 className="font-display font-bold text-2xl md:text-3xl text-center">
-            Preguntas frecuentes
+            {t("pricingPage.faqTitle")}
           </h2>
           <div className="grid md:grid-cols-2 gap-3 max-w-4xl mx-auto">
             <FaqItem
-              q="¿Necesito GPS o cámaras especiales?"
-              a="No. VITAS analiza cualquier video grabado con celular. La IA extrae métricas biomecánicas desde el video, sin hardware adicional."
+              q={t("pricingPage.faq1Q")}
+              a={t("pricingPage.faq1A")}
             />
             <FaqItem
-              q="¿Qué es el ajuste PHV?"
-              a="Peak Height Velocity (Mirwald). VITAS ajusta el score VSI según la madurez biológica del jugador para no comparar un niño de 12 con desarrollo temprano contra uno tardío. Ninguna otra plataforma lo hace."
+              q={t("pricingPage.faq2Q")}
+              a={t("pricingPage.faq2A")}
             />
             <FaqItem
-              q="¿Es seguro para menores de edad?"
-              a="Sí. VITAS cumple RGPD y LOPD Art. 7. Los menores de 14 años requieren consentimiento parental verificado antes de procesar sus datos con IA. Incluye panel de gestión DSAR (derecho de acceso y eliminación)."
+              q={t("pricingPage.faq3Q")}
+              a={t("pricingPage.faq3A")}
             />
             <FaqItem
-              q="¿La IA puede equivocarse?"
-              a="Sí, y VITAS lo dice. Cada evaluación muestra su nivel de confianza (Alto/Medio/Bajo) y lista qué dimensiones NO pudo evaluar. Además, un dashboard de auditoría detecta si la IA favorece ciertos perfiles."
+              q={t("pricingPage.faq4Q")}
+              a={t("pricingPage.faq4A")}
             />
             <FaqItem
-              q="¿Puedo exportar informes?"
-              a="Sí. Los planes Pro y Club incluyen exportación a PDF con métricas, radar chart, análisis táctico y recomendaciones de desarrollo."
+              q={t("pricingPage.faq5Q")}
+              a={t("pricingPage.faq5A")}
             />
             <FaqItem
-              q="¿Hay permanencia?"
-              a="No. Cancela cuando quieras desde tu panel de facturación. Tus datos se mantienen 90 días después de cancelar."
+              q={t("pricingPage.faq6Q")}
+              a={t("pricingPage.faq6A")}
             />
           </div>
         </section>
@@ -414,24 +415,24 @@ export default function PricingPage() {
         {/* CTA final */}
         <section className="text-center space-y-4 py-12">
           <h2 className="font-display font-bold text-3xl md:text-4xl">
-            Empieza en 5 minutos
+            {t("pricingPage.ctaTitle")}
           </h2>
           <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-            Sin tarjeta de crédito. El plan Free incluye 3 análisis IA al mes.
+            {t("pricingPage.ctaSubtitle")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={() => navigate("/register")}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:shadow-[0_0_40px_hsl(var(--primary)/0.4)] transition-all"
             >
-              Empezar gratis
+              {t("pricingPage.startFree")}
               <ArrowRight size={14} />
             </button>
             <button
               onClick={() => navigate("/billing")}
               className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border/40 text-foreground font-display font-semibold text-sm uppercase tracking-wider hover:bg-muted/40 transition-colors"
             >
-              Ver planes Pro/Club
+              {t("pricingPage.viewProClubPlans")}
             </button>
           </div>
         </section>
@@ -446,14 +447,14 @@ export default function PricingPage() {
               onClick={() => navigate("/terms")}
               className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
             >
-              Términos
+              {t("pricingPage.footerTerms")}
             </button>
             <span className="text-muted-foreground/30">·</span>
             <button
               onClick={() => navigate("/privacy")}
               className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
             >
-              Privacidad
+              {t("pricingPage.footerPrivacy")}
             </button>
           </div>
         </footer>
@@ -472,6 +473,7 @@ function PlanCard({
   onCta: () => void;
   index: number;
 }) {
+  const { t } = useTranslation();
   const label = PLAN_LABELS[plan];
   const price = PLAN_PRICES[plan];
   const limits = PLAN_LIMITS[plan];
@@ -491,7 +493,7 @@ function PlanCard({
       {featured && (
         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary text-primary-foreground text-[9px] font-display font-bold uppercase tracking-wider">
           <Star size={9} />
-          Más elegido
+          {t("pricingPage.mostChosen")}
         </div>
       )}
 
@@ -501,7 +503,7 @@ function PlanCard({
           <span className="font-display font-black text-3xl text-foreground">
             €{price.monthly}
           </span>
-          <span className="text-xs text-muted-foreground">/mes</span>
+          <span className="text-xs text-muted-foreground">{t("pricingPage.perMonth")}</span>
         </div>
       </div>
 
@@ -512,7 +514,7 @@ function PlanCard({
             ? value
             : typeof value === "number" && value > 0;
           const display = typeof value === "number"
-            ? value >= 9999 ? "Ilimitado" : `${value}`
+            ? value >= 9999 ? t("pricingPage.unlimited") : `${value}`
             : null;
 
           return (
@@ -541,7 +543,7 @@ function PlanCard({
             : "border border-border/40 text-foreground hover:bg-muted/40"
         }`}
       >
-        {plan === "free" ? "Empezar gratis" : `Elegir ${label}`}
+        {plan === "free" ? t("pricingPage.startFree") : t("pricingPage.choosePlan", { plan: label })}
       </button>
     </motion.div>
   );
