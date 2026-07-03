@@ -140,10 +140,12 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
       return errorResponse("Method not allowed", 405);
     }
 
-    // 3. Rate limit
+    // 3. Rate limit — las llamadas internas con token de servicio
+    // (cron / orchestrator / seed → ingest → embed) NO se estrangulan por IP.
     const ip = getClientIP(req);
+    const serviceTokenValid = hasValidServiceToken(req);
     const rl = await checkRateLimit(ip, { windowMs, max: maxRequests });
-    if (!rl.allowed) {
+    if (!serviceTokenValid && !rl.allowed) {
       return errorResponse("Rate limit exceeded", 429, "RATE_LIMITED", rateLimitHeaders(rl));
     }
 
@@ -151,8 +153,6 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
     let userId: string | null = null;
     let userEmail: string | null = null;
     let isServiceCall = false;
-
-    const serviceTokenValid = hasValidServiceToken(req);
 
     if (options.serviceOnly) {
       if (!serviceTokenValid) {

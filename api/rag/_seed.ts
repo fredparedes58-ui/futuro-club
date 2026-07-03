@@ -137,7 +137,8 @@ export default withHandler(
         });
 
         if (res.ok) {
-          const data = await res.json() as { indexed?: number; errors?: string[] };
+          const raw = await res.json() as { data?: { indexed?: number; errors?: string[] }; indexed?: number; errors?: string[] };
+          const data = raw.data ?? raw;
           totalIndexed += data.indexed ?? 0;
           if (data.errors?.length) {
             errors.push(...data.errors.map(e => `Batch ${batchCount}: ${e}`));
