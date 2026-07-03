@@ -20,6 +20,7 @@ apuntaban a columnas inexistentes (`team_members.org_id/user_id`, `players.paren
 | 07 | `07_047_development_plans.sql` | **IDP** | ✅ corregido |
 | 08 | `08_048_tactical_heatmaps.sql` | Heatmap táctico | ✅ listo (se crea OK; tipado de ids = Fase 2) |
 | 09 | `09_049_transfer_market.sql` | Transfer market | ✅ corregido |
+| 10 | `10_rls_behavioral_wellbeing.sql` | **Policies** ADN Mental + Retención (lectura cliente) | ✅ idempotente (re-ejecutable) |
 
 **Ejecuta:** 01 → 09 en orden (todas listas ya). Re-ejecuta 02 y 03 (corregidos).
 
