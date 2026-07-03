@@ -132,7 +132,7 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
 
   let resp: Response;
   try {
-    resp = await fetch("/api/coaching/_track-players", {
+    resp = await fetch("/api/coaching/track-players", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ videoUrl, sampleFps }),

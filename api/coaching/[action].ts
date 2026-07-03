@@ -20,6 +20,7 @@
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import analyzeSession from "./_analyze-session";
 import coachingAssistant from "../agents/_coaching-assistant";
+import trackPlayers from "./_track-players";
 
 export const config = { runtime: "edge" };
 
@@ -47,6 +48,7 @@ interface SessionRow {
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "analyze-session": analyzeSession,
   "coaching-report": coachingAssistant,
+  "track-players": trackPlayers,
 
   "session-analysis": async (req: Request) => {
     const sessionId = new URL(req.url).searchParams.get("sessionId");

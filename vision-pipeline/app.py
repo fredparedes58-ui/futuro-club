@@ -39,6 +39,7 @@ import time
 from typing import Optional
 
 import modal
+from fastapi import Header  # leer el header Authorization (no query param)
 from pydantic import BaseModel, Field
 
 # ── Container image ───────────────────────────────────────────────────
@@ -61,7 +62,7 @@ image = (
 )
 
 # ── App + persistent state ────────────────────────────────────────────
-app = modal.App("vitas-video-pipeline")
+app = modal.App("vitas-vision")  # distinto de modal/modal_app.py para no sobreescribirlo
 
 # Volume to cache YOLO weights between runs (no re-download per invocation)
 weights_volume = modal.Volume.from_name("vitas-yolo-weights", create_if_missing=True)
@@ -122,7 +123,7 @@ def health() -> dict:
     """Cheap endpoint to verify the deployment is alive."""
     return {
         "status": "ok",
-        "service": "vitas-video-pipeline",
+        "service": "vitas-vision",
         "modal_app": app.name,
     }
 
@@ -336,7 +337,7 @@ def track_video(req: TrackingRequest) -> dict:
 # ── Public HTTP endpoint ──────────────────────────────────────────────
 @app.function(image=image, secrets=[api_secret], timeout=900)
 @modal.fastapi_endpoint(method="POST")
-def track(payload: dict, authorization: Optional[str] = None) -> dict:
+def track(payload: dict, authorization: Optional[str] = Header(default=None)) -> dict:
     """Public POST endpoint. Validates the bearer token, dispatches to GPU."""
     expected = os.environ.get("API_KEY", "")
     if not expected:
