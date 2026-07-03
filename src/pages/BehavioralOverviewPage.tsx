@@ -23,8 +23,12 @@ import {
   Sword,
   Compass,
   Eye,
+  Share2,
+  X,
 } from "lucide-react";
 import { PlayerService, type Player } from "@/services/real/playerService";
+import { SquadMentalComposition } from "@/components/behavioral/SquadMentalComposition";
+import { ArchetypeShareCard } from "@/components/behavioral/ArchetypeShareCard";
 
 interface BehavioralScores {
   decisionSpeed: number;
@@ -158,6 +162,7 @@ export default function BehavioralOverviewPage() {
   const [query, setQuery] = useState("");
   const [archetypeFilter, setArchetypeFilter] = useState<Archetype | "all">("all");
   const [sortKey, setSortKey] = useState<SortKey>("composite");
+  const [shareEntry, setShareEntry] = useState<{ player: Player; scores: BehavioralScores } | null>(null);
 
   useEffect(() => {
     setPlayers(PlayerService.getAll());
@@ -364,6 +369,9 @@ export default function BehavioralOverviewPage() {
               )}
             </div>
 
+            {/* 💎 Composición mental de la plantilla (Sprint 3.6) */}
+            <SquadMentalComposition counts={archetypeCounts} total={enriched.length} />
+
             {/* Link to dedicated Scanning page */}
             {filtered.length > 0 && (
               <button
@@ -403,6 +411,7 @@ export default function BehavioralOverviewPage() {
                       rank={idx + 1}
                       entry={entry}
                       onOpen={() => navigate(`/players/${entry.player.id}?tab=mental`)}
+                      onShare={() => setShareEntry(entry)}
                     />
                   ))}
                 </AnimatePresence>
@@ -411,6 +420,45 @@ export default function BehavioralOverviewPage() {
           </>
         )}
       </main>
+
+      {/* 💎 Modal: card compartible de ADN Mental (Sprint 3.6) */}
+      {shareEntry && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setShareEntry(null)}
+        >
+          <div
+            className="w-full max-w-sm max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-end mb-2">
+              <button
+                onClick={() => setShareEntry(null)}
+                aria-label="Cerrar"
+                className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <ArchetypeShareCard
+              playerName={shareEntry.player.name}
+              position={shareEntry.player.position}
+              age={shareEntry.player.age}
+              archetype={shareEntry.scores.archetype}
+              mentalComposite={shareEntry.scores.mentalComposite}
+              dimensions={{
+                decisionSpeed: shareEntry.scores.decisionSpeed,
+                scanningIntelligence: shareEntry.scores.scanningIntelligence,
+                resilience: shareEntry.scores.resilience,
+                clutchFactor: shareEntry.scores.clutchFactor,
+                leadership: shareEntry.scores.leadership,
+                mentalFatigue: shareEntry.scores.mentalFatigue,
+                unpredictability: shareEntry.scores.unpredictability,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -454,10 +502,12 @@ function PlayerCard({
   rank,
   entry,
   onOpen,
+  onShare,
 }: {
   rank: number;
   entry: { player: Player; scores: BehavioralScores };
   onOpen: () => void;
+  onShare: () => void;
 }) {
   const meta = ARCHETYPE_META[entry.scores.archetype];
   const Icon = meta.icon;
@@ -519,6 +569,16 @@ function PlayerCard({
           </p>
           <p className="text-[8px] uppercase tracking-wider text-muted-foreground">composite</p>
         </div>
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={`Compartir ADN Mental de ${entry.player.name}`}
+          onClick={(e) => { e.stopPropagation(); onShare(); }}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onShare(); } }}
+          className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+        >
+          <Share2 size={14} />
+        </span>
       </div>
 
       {/* Archetype */}

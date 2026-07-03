@@ -19,6 +19,7 @@ import { ROLE_LABELS } from "@/services/real/userProfileService";
 import { useTranslation } from "react-i18next";
 import UsageMeter from "@/components/UsageMeter";
 import BusinessMetricsPanel from "@/components/BusinessMetricsPanel";
+import { RetentionRadarCard } from "@/components/retention/RetentionRadarCard";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,6 +164,11 @@ const DirectorDashboard = () => {
               </p>
               <p className="text-[10px] text-muted-foreground">{t("director.stats.activePlayersData")}</p>
             </div>
+          </motion.div>
+
+          {/* 💎 Radar de Retención — riesgo de abandono + ROI en € (Sprint 3.7) */}
+          <motion.div variants={item}>
+            <RetentionRadarCard />
           </motion.div>
 
           {/* Uso del mes */}
