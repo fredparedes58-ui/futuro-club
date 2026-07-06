@@ -17,6 +17,7 @@ import {
   TrendingUp, Eye, ListChecks, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 interface Plan {
@@ -55,6 +56,7 @@ interface Props {
 }
 
 export function PhvWindowPlan({ playerId, hasPhv }: Props) {
+  const { t } = useTranslation();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,13 +75,13 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "No se pudo generar el plan");
+        throw new Error(data?.error?.message ?? t("phvWindowPlan.errorGenerate"));
       }
       setPlan(data.data.plan as Plan);
       setExpanded(true);
-      toast.success("✓ Plan PHV generado");
+      toast.success(t("phvWindowPlan.toastGenerated"));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error";
+      const msg = err instanceof Error ? err.message : t("phvWindowPlan.errorGeneric");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -94,10 +96,10 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
         <AlertCircle size={14} className="text-muted-foreground shrink-0 mt-0.5" />
         <div>
           <p className="text-[11px] font-display font-bold text-foreground">
-            Plan PHV no disponible
+            {t("phvWindowPlan.unavailableTitle")}
           </p>
           <p className="text-[10px] text-muted-foreground leading-relaxed">
-            Registra una medición antropométrica arriba para calcular el PHV y desbloquear el plan periodizado.
+            {t("phvWindowPlan.unavailableDesc")}
           </p>
         </div>
       </div>
@@ -111,15 +113,14 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
         <div className="flex items-center gap-1.5">
           <Sparkles size={12} className="text-primary" />
           <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-            Plan PHV periodizado
+            {t("phvWindowPlan.periodizedTitle")}
           </span>
           <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ml-auto">
-            Único en el mercado
+            {t("phvWindowPlan.uniqueBadge")}
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground leading-relaxed">
-          Genera un plan de carga de entrenamiento ajustado a la fase de maduración biológica del jugador.
-          Identifica la ventana neuromotora, riesgos a evitar y métricas a monitorizar.
+          {t("phvWindowPlan.periodizedDesc")}
         </p>
         {error && (
           <div className="flex items-center gap-1.5 text-[10px] text-destructive">
@@ -130,7 +131,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           onClick={handleGenerate}
           className="w-full py-2 rounded-lg bg-primary text-primary-foreground text-[11px] font-display font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
         >
-          <Sparkles size={11} /> Generar plan PHV
+          <Sparkles size={11} /> {t("phvWindowPlan.generateButton")}
         </button>
       </div>
     );
@@ -141,7 +142,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
     return (
       <div className="rounded-xl bg-secondary/30 border border-border p-4 flex items-center justify-center gap-2">
         <Loader2 size={14} className="animate-spin text-primary" />
-        <span className="text-[11px] text-muted-foreground">Claude generando plan…</span>
+        <span className="text-[11px] text-muted-foreground">{t("phvWindowPlan.loadingPlan")}</span>
       </div>
     );
   }
@@ -163,7 +164,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <span className="text-2xl shrink-0">{meta.emoji}</span>
           <div className="min-w-0">
             <div className="text-[9px] uppercase tracking-wider font-bold" style={{ color: meta.color }}>
-              Fase actual
+              {t("phvWindowPlan.currentPhase")}
             </div>
             <div className="font-display font-bold text-sm text-foreground">
               {plan.phase_label}
@@ -173,9 +174,9 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
         <button
           onClick={() => setExpanded(!expanded)}
           className="text-[10px] text-muted-foreground hover:text-foreground p-1"
-          aria-label={expanded ? "Colapsar" : "Expandir"}
+          aria-label={expanded ? t("phvWindowPlan.collapse") : t("phvWindowPlan.expand")}
         >
-          {expanded ? <X size={12} /> : "Ver"}
+          {expanded ? <X size={12} /> : t("phvWindowPlan.view")}
         </button>
       </div>
       <p className="text-[11px] text-foreground/90 leading-relaxed">
@@ -188,11 +189,11 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-1">
             <Eye size={11} className={plan.neuromotor_window.is_open ? "text-green-400" : "text-muted-foreground"} />
             <span className={`text-[10px] uppercase tracking-wider font-bold ${plan.neuromotor_window.is_open ? "text-green-400" : "text-muted-foreground"}`}>
-              Ventana neuromotora · {plan.neuromotor_window.is_open ? "ABIERTA" : "cerrada"}
+              {t("phvWindowPlan.neuromotorWindow")} · {plan.neuromotor_window.is_open ? t("phvWindowPlan.windowOpen") : t("phvWindowPlan.windowClosed")}
             </span>
             {plan.neuromotor_window.is_open && plan.neuromotor_window.months_remaining > 0 && (
               <span className="ml-auto text-[10px] font-display font-bold text-green-400">
-                ~{plan.neuromotor_window.months_remaining} meses
+                {t("phvWindowPlan.monthsApprox", { count: plan.neuromotor_window.months_remaining })}
               </span>
             )}
           </div>
@@ -208,16 +209,16 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-2">
             <Zap size={11} className="text-electric" />
             <span className="text-[10px] uppercase tracking-wider text-electric font-bold">
-              Carga recomendada
+              {t("phvWindowPlan.recommendedLoad")}
             </span>
           </div>
           <div className="grid grid-cols-3 gap-2 mb-2">
-            <Stat label="Intensidad" value={`${plan.training_load.intensity}/10`} />
-            <Stat label="Volumen" value={plan.training_load.volume} />
-            <Stat label="Frecuencia" value={plan.training_load.frequency} small />
+            <Stat label={t("phvWindowPlan.statIntensity")} value={`${plan.training_load.intensity}/10`} />
+            <Stat label={t("phvWindowPlan.statVolume")} value={plan.training_load.volume} />
+            <Stat label={t("phvWindowPlan.statFrequency")} value={plan.training_load.frequency} small />
           </div>
           <p className="text-[10px] text-foreground/90 leading-relaxed pt-2 border-t border-border/40">
-            <strong className="text-electric">Foco:</strong> {plan.training_load.main_focus}
+            <strong className="text-electric">{t("phvWindowPlan.focusLabel")}</strong> {plan.training_load.main_focus}
           </p>
         </div>
       )}
@@ -228,7 +229,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-1.5">
             <Activity size={11} className="text-green-400" />
             <span className="text-[10px] uppercase tracking-wider text-green-400 font-bold">
-              Hacer ({plan.do.length})
+              {t("phvWindowPlan.doTitle", { count: plan.do.length })}
             </span>
           </div>
           <ul className="space-y-1">
@@ -248,14 +249,14 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-1.5">
             <Shield size={11} className="text-amber-400" />
             <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">
-              Evitar ({plan.avoid.length})
+              {t("phvWindowPlan.avoidTitle", { count: plan.avoid.length })}
             </span>
           </div>
           <ul className="space-y-1">
             {plan.avoid.map((a, i) => (
               <li key={i} className="text-[10px] leading-relaxed">
                 <span className="text-foreground font-semibold">{a.action}</span>
-                <span className="text-amber-400/80"> · riesgo: {a.risk}</span>
+                <span className="text-amber-400/80"> · {t("phvWindowPlan.riskLabel")} {a.risk}</span>
               </li>
             ))}
           </ul>
@@ -268,10 +269,10 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-1.5">
             <ListChecks size={11} className="text-primary" />
             <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-              Monitorizar
+              {t("phvWindowPlan.monitorTitle")}
             </span>
             <span className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Calendar size={10} /> Re-medir en {plan.monitoring.remeasure_in_months}m
+              <Calendar size={10} /> {t("phvWindowPlan.remeasureIn", { count: plan.monitoring.remeasure_in_months })}
             </span>
           </div>
           {plan.monitoring.metrics_to_track && plan.monitoring.metrics_to_track.length > 0 && (
@@ -292,7 +293,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={11} className="text-electric" />
             <span className="text-[10px] uppercase tracking-wider text-electric font-bold">
-              Qué viene
+              {t("phvWindowPlan.whatsNext")}
             </span>
           </div>
           <p className="text-[10px] text-foreground/90 leading-relaxed">
@@ -307,7 +308,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
           disabled={loading}
           className="w-full py-1.5 rounded-md text-[10px] text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-foreground/30 transition-colors flex items-center justify-center gap-1"
         >
-          <Sparkles size={9} /> Regenerar plan
+          <Sparkles size={9} /> {t("phvWindowPlan.regenerateButton")}
         </button>
       )}
     </motion.div>

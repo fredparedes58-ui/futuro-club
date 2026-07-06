@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { StepSignup } from "./StepSignup";
 import { StepConsent } from "./StepConsent";
 import { StepFirstUpload } from "./StepFirstUpload";
@@ -62,14 +63,15 @@ interface Props {
 
 // ── Inline step: plan info (shown between step 1 and step 2/3) ──
 function StepPlanInfo({ onContinue }: { onContinue: () => void }) {
+  const { t } = useTranslation();
   const { plan, limits, analysesUsed, playerCount, isPro, isClub } = usePlan();
   const planLabel = PLAN_LABELS[plan];
   const features = [
-    { label: "Análisis IA/mes", value: limits.analyses >= 9999 ? "∞" : limits.analyses, used: analysesUsed },
-    { label: "Jugadores", value: limits.players >= 9999 ? "∞" : limits.players, used: playerCount },
-    { label: "Miembros equipo", value: limits.teamMembers >= 9999 ? "∞" : limits.teamMembers },
-    { label: "VAEP avanzado", value: limits.vaep ? "✓" : "—" },
-    { label: "Export PDF", value: limits.pdf ? "✓" : "—" },
+    { label: t("onboardingWizard.featureAnalysesPerMonth"), value: limits.analyses >= 9999 ? "∞" : limits.analyses, used: analysesUsed },
+    { label: t("onboardingWizard.featurePlayers"), value: limits.players >= 9999 ? "∞" : limits.players, used: playerCount },
+    { label: t("onboardingWizard.featureTeamMembers"), value: limits.teamMembers >= 9999 ? "∞" : limits.teamMembers },
+    { label: t("onboardingWizard.featureVaepAdvanced"), value: limits.vaep ? "✓" : "—" },
+    { label: t("onboardingWizard.featureExportPdf"), value: limits.pdf ? "✓" : "—" },
   ];
 
   return (
@@ -78,11 +80,11 @@ function StepPlanInfo({ onContinue }: { onContinue: () => void }) {
         <Zap size={24} className="text-blue-500" />
       </div>
       <div>
-        <h2 className="text-xl font-rajdhani font-bold">Tu plan actual: <span className="text-blue-600">{planLabel}</span></h2>
+        <h2 className="text-xl font-rajdhani font-bold">{t("onboardingWizard.currentPlanLabel")} <span className="text-blue-600">{planLabel}</span></h2>
         <p className="text-sm text-slate-500 mt-1">
           {isPro || isClub
-            ? "Tienes acceso a funcionalidades avanzadas."
-            : "El admin de tu academia puede upgradearte en cualquier momento."}
+            ? t("onboardingWizard.planAdvancedAccess")
+            : t("onboardingWizard.planUpgradeByAdmin")}
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 text-left max-w-sm mx-auto">
@@ -100,15 +102,15 @@ function StepPlanInfo({ onContinue }: { onContinue: () => void }) {
           <div className="flex items-start gap-3">
             <Lock size={16} className="text-blue-500 mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs font-semibold text-blue-900">¿Necesitas más?</p>
+              <p className="text-xs font-semibold text-blue-900">{t("onboardingWizard.needMore")}</p>
               <p className="text-[11px] text-blue-700 mt-1">
-                Contacta al admin de tu academia para desbloquear análisis ilimitados, VAEP avanzado y más.
+                {t("onboardingWizard.needMoreDescription")}
               </p>
               <a
                 href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request"
                 className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800"
               >
-                <Mail size={11} /> Solicitar upgrade
+                <Mail size={11} /> {t("onboardingWizard.requestUpgrade")}
               </a>
             </div>
           </div>
@@ -118,13 +120,14 @@ function StepPlanInfo({ onContinue }: { onContinue: () => void }) {
         onClick={onContinue}
         className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-rajdhani font-bold text-sm hover:opacity-90 transition-opacity"
       >
-        Continuar →
+        {t("onboardingWizard.continue")}
       </button>
     </div>
   );
 }
 
 export function OnboardingWizard({ onComplete }: Props) {
+  const { t } = useTranslation();
   const [showPlanStep, setShowPlanStep] = useState(false);
   const [state, setState] = useState<OnboardingState>(() => {
     if (typeof window === "undefined") return INITIAL_STATE;
@@ -177,10 +180,10 @@ export function OnboardingWizard({ onComplete }: Props) {
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="text-xs uppercase tracking-widest text-purple-600 font-bold">
-                Bienvenida a VITAS
+                {t("onboardingWizard.welcomeToVitas")}
               </div>
               <h1 className="font-rajdhani text-2xl sm:text-3xl font-bold mt-1">
-                Configura tu cuenta · {Math.min(state.step, 4)}/4
+                {t("onboardingWizard.setUpAccount", { step: Math.min(state.step, 4) })}
               </h1>
             </div>
           </div>
@@ -207,16 +210,16 @@ export function OnboardingWizard({ onComplete }: Props) {
 
           <div className="flex justify-between text-xs text-slate-500 mt-2">
             <span className={state.step === 1 ? "font-semibold text-slate-900" : ""}>
-              1. Tu cuenta
+              {t("onboardingWizard.stepAccount")}
             </span>
             <span className={state.step === 2 ? "font-semibold text-slate-900" : ""}>
-              2. Consentimiento
+              {t("onboardingWizard.stepConsent")}
             </span>
             <span className={state.step === 3 ? "font-semibold text-slate-900" : ""}>
-              3. Primer vídeo
+              {t("onboardingWizard.stepFirstVideo")}
             </span>
             <span className={state.step === 4 ? "font-semibold text-slate-900" : ""}>
-              4. Tu reporte
+              {t("onboardingWizard.stepReport")}
             </span>
           </div>
         </header>
@@ -279,7 +282,7 @@ export function OnboardingWizard({ onComplete }: Props) {
             onClick={finish}
             className="text-xs text-slate-500 hover:text-slate-700 underline"
           >
-            Saltar onboarding · ir al dashboard
+            {t("onboardingWizard.skipOnboarding")}
           </button>
         </div>
       </div>

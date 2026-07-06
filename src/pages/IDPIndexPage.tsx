@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Target, UserPlus, ChevronRight, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
@@ -24,6 +25,7 @@ import { PlayerService } from "@/services/real/playerService";
 import { usePlan } from "@/hooks/usePlan";
 
 export default function IDPIndexPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { canUseIDP } = usePlan();
 
@@ -47,18 +49,17 @@ export default function IDPIndexPage() {
             </Button>
             <div className="flex items-center gap-2">
               <Target size={18} className="text-cyan-400" />
-              <h1 className="text-lg font-display font-bold">Plan de Desarrollo</h1>
+              <h1 className="text-lg font-display font-bold">{t("idpIndexPage.title")}</h1>
             </div>
           </div>
         </header>
         <main className="max-w-3xl mx-auto px-4 py-16 text-center">
           <Sparkles className="size-8 text-amber-400 mx-auto mb-3" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">Función Pro+</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">{t("idpIndexPage.proFeature")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Los Planes de Desarrollo Individual con IA están disponibles en el plan
-            Pro y Club.
+            {t("idpIndexPage.proFeatureDescription")}
           </p>
-          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+          <Button onClick={() => navigate("/billing")}>{t("idpIndexPage.viewPlans")}</Button>
         </main>
       </div>
     );
@@ -73,7 +74,7 @@ export default function IDPIndexPage() {
           </Button>
           <div className="flex items-center gap-2">
             <Target size={18} className="text-cyan-400" />
-            <h1 className="text-lg font-display font-bold">Plan de Desarrollo</h1>
+            <h1 className="text-lg font-display font-bold">{t("idpIndexPage.title")}</h1>
           </div>
         </div>
       </header>
@@ -84,14 +85,13 @@ export default function IDPIndexPage() {
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
             <UserPlus className="size-10 text-cyan-400 mx-auto mb-3" />
             <h2 className="text-lg font-semibold text-foreground mb-2">
-              Aún no tienes jugadores
+              {t("idpIndexPage.noPlayersTitle")}
             </h2>
             <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
-              Crea un jugador para empezar a generar planes de desarrollo individuales
-              con IA.
+              {t("idpIndexPage.noPlayersDescription")}
             </p>
             <Button onClick={() => navigate("/players/new")}>
-              Crear primer jugador
+              {t("idpIndexPage.createFirstPlayer")}
             </Button>
           </div>
         ) : (
@@ -99,10 +99,10 @@ export default function IDPIndexPage() {
           <div>
             <div className="mb-5">
               <h2 className="text-base font-semibold text-foreground">
-                Selecciona un jugador
+                {t("idpIndexPage.selectPlayer")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Cada jugador tiene un plan de desarrollo mensual con IA.
+                {t("idpIndexPage.selectPlayerDescription")}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -128,7 +128,7 @@ export default function IDPIndexPage() {
                         <Badge variant="outline" className="text-[10px] capitalize px-1.5 py-0">
                           {p.position}
                         </Badge>
-                        {p.age && <span>{p.age} años</span>}
+                        {p.age && <span>{t("idpIndexPage.years", { count: p.age })}</span>}
                         {typeof p.vsi === "number" && (
                           <span>· VSI {Math.round(p.vsi)}</span>
                         )}

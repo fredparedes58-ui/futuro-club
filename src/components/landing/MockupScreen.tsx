@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Activity, BarChart3, Users, TrendingUp, Zap, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 function MiniBars({ count = 5 }: { count?: number }) {
   return (
@@ -118,6 +119,7 @@ export function RankingsScreen() {
 }
 
 export function ScoutScreen() {
+  const { t } = useTranslation();
   return (
     <div className="w-full h-full p-3 flex flex-col gap-2">
       <div className="flex items-center gap-1.5 mb-1">
@@ -125,9 +127,9 @@ export function ScoutScreen() {
         <span className="text-[8px] font-display font-bold text-foreground/70 uppercase tracking-wider">Scout Feed</span>
       </div>
       {[
-        { name: "Nuevo talento Sub-15", tag: "ALERT" },
-        { name: "Rendimiento semanal", tag: "REPORT" },
-        { name: "Comparación táctica", tag: "INSIGHT" },
+        { name: t("mockupScreen.scoutNewTalent"), tag: "ALERT" },
+        { name: t("mockupScreen.scoutWeeklyPerformance"), tag: "REPORT" },
+        { name: t("mockupScreen.scoutTacticalComparison"), tag: "INSIGHT" },
       ].map((item) => (
         <div key={item.name} className="flex items-center gap-2 p-1.5 rounded-md bg-secondary/30 border border-border/20">
           <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">

@@ -81,7 +81,7 @@ export default function RoleProfile() {
               className="gap-1.5 text-xs"
               onClick={() => {
                 if (!data) {
-                  toast.error("No hay perfil cargado para exportar");
+                  toast.error(t("roleProfilePage.noProfileToExport"));
                   return;
                 }
                 // Exporta JSON con todo el perfil · sirve para coach + dev
@@ -92,7 +92,7 @@ export default function RoleProfile() {
                 a.download = `role-profile-${id ?? "player"}-${Date.now()}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
-                toast.success("Perfil exportado");
+                toast.success(t("roleProfilePage.profileExported"));
               }}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -131,17 +131,17 @@ export default function RoleProfile() {
               <Zap className="w-7 h-7 text-primary" />
             </div>
             <h3 className="font-display text-lg font-bold mb-2">
-              No se pudo generar el perfil de rol
+              {t("roleProfilePage.cannotGenerateProfile")}
             </h3>
             <p className="text-sm text-muted-foreground max-w-md mb-4 leading-relaxed">
-              Verifica que el jugador tiene métricas registradas.
+              {t("roleProfilePage.verifyPlayerMetrics")}
             </p>
             <div className="flex gap-3">
               <Button variant="default" size="sm" className="gap-1.5" onClick={() => refetch()}>
-                Reintentar
+                {t("roleProfilePage.retry")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => window.history.back()}>
-                Volver
+                {t("roleProfilePage.goBack")}
               </Button>
             </div>
           </div>
@@ -162,12 +162,12 @@ export default function RoleProfile() {
                   "bg-orange-100 text-orange-700"
                 }`}>
                   {data.sample_tier === "platinum" ? "💎" : data.sample_tier === "gold" ? "🥇" : data.sample_tier === "silver" ? "🥈" : "🥉"}
-                  {data.sample_tier === "platinum" ? "Platino" : data.sample_tier === "gold" ? "Oro" : data.sample_tier === "silver" ? "Plata" : "Bronce"}
+                  {data.sample_tier === "platinum" ? t("roleProfilePage.tierPlatinum") : data.sample_tier === "gold" ? t("roleProfilePage.tierGold") : data.sample_tier === "silver" ? t("roleProfilePage.tierSilver") : t("roleProfilePage.tierBronze")}
                   {" · "}{Math.round(data.overall_confidence * 100)}%
                 </span>
                 {data.sample_tier === "bronze" && (
                   <span className="text-xs text-muted-foreground">
-                    Sube un video y genera un informe IA para subir la precisión
+                    {t("roleProfilePage.bronzeTierHint")}
                   </span>
                 )}
               </div>
@@ -210,7 +210,7 @@ export default function RoleProfile() {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
                 <p className="text-sm text-amber-700">
                   {data.risks.some(r => r.code === "NO_VIDEO_ANALYSIS")
-                    ? "⚠ Perfil basado solo en métricas manuales. Genera un informe VITAS Intelligence para un análisis más preciso."
+                    ? t("roleProfilePage.manualMetricsOnlyWarning")
                     : t("roleProfile.lowConfidenceWarning")}
                 </p>
                 {data.risks.some(r => r.code === "NO_VIDEO_ANALYSIS") && (
@@ -221,7 +221,7 @@ export default function RoleProfile() {
                     onClick={() => navigate(`/players/${id}/intelligence`)}
                   >
                     <Zap className="w-3.5 h-3.5" />
-                    Generar Informe IA
+                    {t("roleProfilePage.generateAiReport")}
                   </Button>
                 )}
               </div>
@@ -231,7 +231,7 @@ export default function RoleProfile() {
             {data.risks.some(r => r.code === "tracking_physical_partial") && (
               <div className="p-2 bg-muted/50 border border-border rounded-md">
                 <p className="text-xs text-muted-foreground">
-                  ℹ️ Datos de tracking/GPS parciales — las métricas físicas pueden estar subestimadas.
+                  {t("roleProfilePage.trackingPartialWarning")}
                 </p>
               </div>
             )}
@@ -260,23 +260,22 @@ export default function RoleProfile() {
             {/* Cita explícita de los videos fuente */}
             {data.source_videos && data.source_videos.length > 0 && (
               <div className="p-4 rounded-md border-l-4 border-primary/40 bg-muted/30 text-xs text-muted-foreground">
-                <p className="font-semibold text-foreground mb-1">📹 Fuente del informe</p>
+                <p className="font-semibold text-foreground mb-1">{t("roleProfilePage.reportSource")}</p>
                 <p>
-                  Este perfil de rol se construye sobre {data.source_videos.length} análisis de video.
-                  Sube más videos en VITAS Lab para mejorar la confianza y el sample tier.
+                  {t("roleProfilePage.reportSourceDescription", { count: data.source_videos.length })}
                 </p>
                 <ul className="mt-2 space-y-0.5">
                   {data.source_videos.slice(0, 3).map((v, i) => (
-                    <li key={i}>• Video {v.video_id.slice(0, 8)} · {new Date(v.analyzed_at).toLocaleString("es-ES")}</li>
+                    <li key={i}>• {t("roleProfilePage.videoLabel", { id: v.video_id.slice(0, 8) })} · {new Date(v.analyzed_at).toLocaleString("es-ES")}</li>
                   ))}
                 </ul>
               </div>
             )}
 
             <div className="text-xs text-muted-foreground border-t border-border pt-4 flex items-center gap-4">
-              <span>Run: <span className="font-mono">{data.run_id}</span></span>
-              <span>Confianza global: {Math.round(data.overall_confidence * 100)}%</span>
-              <span>Muestra: {data.sample_tier}</span>
+              <span>{t("roleProfilePage.runLabel")}: <span className="font-mono">{data.run_id}</span></span>
+              <span>{t("roleProfilePage.globalConfidence")}: {Math.round(data.overall_confidence * 100)}%</span>
+              <span>{t("roleProfilePage.sampleLabel")}: {data.sample_tier}</span>
             </div>
           </>
         )}

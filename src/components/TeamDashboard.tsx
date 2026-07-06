@@ -11,6 +11,7 @@
  */
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { TeamAnalysisReport, PossessionStat, TeamMetrics } from "@/lib/tracking/teamAnalysisEngine";
 import type { FormationTimeline, DetectedFormation } from "@/lib/tracking/formationDetector";
 import type { RivalScoutReport } from "@/lib/tracking/rivalAnalysisEngine";
@@ -77,13 +78,14 @@ const FormationViz: React.FC<{
   label: string;
   color: string;
 }> = ({ formation, label, color }) => {
+  const { t } = useTranslation();
   if (!formation || formation.lines.length === 0) {
     return (
       <div className="glass rounded-lg p-3 text-center">
         <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
           {label}
         </p>
-        <p className="text-xs text-muted-foreground mt-1">No detectada</p>
+        <p className="text-xs text-muted-foreground mt-1">{t("teamDashboard.notDetected")}</p>
       </div>
     );
   }
@@ -148,7 +150,7 @@ const FormationViz: React.FC<{
         )}
       </div>
       <p className="text-[8px] text-muted-foreground mt-1 text-center">
-        Confianza: {Math.round(formation.confidence * 100)}%
+        {t("teamDashboard.confidence")}: {Math.round(formation.confidence * 100)}%
       </p>
     </div>
   );
@@ -163,14 +165,15 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
   rivalReport,
   mode,
 }) => {
+  const { t } = useTranslation();
   if (!teamReport) {
     return (
       <div className="glass rounded-xl p-4 space-y-2">
         <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-          {mode === "team" ? "Análisis de Equipo" : "Scouting Rival"}
+          {mode === "team" ? t("teamDashboard.teamAnalysis") : t("teamDashboard.rivalScouting")}
         </h3>
         <p className="text-[11px] text-muted-foreground">
-          Inicia tracking en modo equipo para ver métricas tácticas.
+          {t("teamDashboard.startTrackingHint")}
         </p>
       </div>
     );
@@ -188,7 +191,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
         {/* Header */}
         <div className="glass rounded-xl p-4">
           <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-            Análisis Táctico de Equipo
+            {t("teamDashboard.tacticalTeamAnalysis")}
           </h3>
 
           {/* Possession Bar */}
@@ -198,7 +201,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
                 {poss.homePct}%
               </span>
               <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
-                Posesión
+                {t("teamDashboard.possession")}
               </span>
               <span className="text-xs font-display font-bold text-red-400">
                 {poss.awayPct}%
@@ -215,37 +218,37 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
           <div className="space-y-0">
             <div className="flex items-center justify-between pb-1.5 mb-1 border-b border-border">
               <span className="text-[10px] font-display font-bold text-blue-400 uppercase">
-                Local
+                {t("teamDashboard.home")}
               </span>
               <span className="text-[10px] font-display font-bold text-red-400 uppercase">
-                Visitante
+                {t("teamDashboard.away")}
               </span>
             </div>
             <CompareRow
-              label="Jugadores"
+              label={t("teamDashboard.players")}
               homeVal={home.playerCount}
               awayVal={away.playerCount}
             />
             <CompareRow
-              label="Vel. Prom"
+              label={t("teamDashboard.avgSpeed")}
               homeVal={`${(home.avgSpeedMs * 3.6).toFixed(1)} km/h`}
               awayVal={`${(away.avgSpeedMs * 3.6).toFixed(1)} km/h`}
               highlight={home.avgSpeedMs > away.avgSpeedMs ? "home" : "away"}
             />
             <CompareRow
-              label="Compactación"
+              label={t("teamDashboard.compactness")}
               homeVal={`${home.compactnessM}m`}
               awayVal={`${away.compactnessM}m`}
               highlight={home.compactnessM < away.compactnessM ? "home" : "away"}
             />
             <CompareRow
-              label="Amplitud"
+              label={t("teamDashboard.width")}
               homeVal={`${home.widthM}m`}
               awayVal={`${away.widthM}m`}
               highlight={home.widthM > away.widthM ? "home" : "away"}
             />
             <CompareRow
-              label="Línea Def."
+              label={t("teamDashboard.defensiveLine")}
               homeVal={`${home.defensiveLineX}m`}
               awayVal={`${away.defensiveLineX}m`}
             />
@@ -260,7 +263,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
               }
             />
             <CompareRow
-              label="Terr. Final"
+              label={t("teamDashboard.finalThird")}
               homeVal={`${poss.homeFinalThirdPct}%`}
               awayVal={`${poss.awayFinalThirdPct}%`}
               highlight={
@@ -274,12 +277,12 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <FormationViz
             formation={homeFormation?.formations[homeFormation.formations.length - 1] ?? null}
-            label={`Local · ${homeFormation?.dominant ?? "?"}`}
+            label={t("teamDashboard.homeFormationLabel", { formation: homeFormation?.dominant ?? "?" })}
             color="bg-blue-500/10 text-blue-400 border border-blue-500/20"
           />
           <FormationViz
             formation={awayFormation?.formations[awayFormation.formations.length - 1] ?? null}
-            label={`Visitante · ${awayFormation?.dominant ?? "?"}`}
+            label={t("teamDashboard.awayFormationLabel", { formation: awayFormation?.dominant ?? "?" })}
             color="bg-red-500/10 text-red-400 border border-red-500/20"
           />
         </div>
@@ -288,24 +291,24 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
         <div className="grid grid-cols-2 gap-3">
           <div className="glass rounded-lg p-3">
             <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">
-              Red de Pases (Local)
+              {t("teamDashboard.passNetworkHome")}
             </p>
             <p className="text-sm font-display font-bold text-blue-400">
-              {teamReport.homePassNetwork.totalPasses} pases
+              {t("teamDashboard.passesCount", { count: teamReport.homePassNetwork.totalPasses })}
             </p>
             <p className="text-[9px] text-muted-foreground">
-              {teamReport.homePassNetwork.completionPct}% completados
+              {t("teamDashboard.completedPct", { pct: teamReport.homePassNetwork.completionPct })}
             </p>
           </div>
           <div className="glass rounded-lg p-3">
             <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">
-              Red de Pases (Visitante)
+              {t("teamDashboard.passNetworkAway")}
             </p>
             <p className="text-sm font-display font-bold text-red-400">
-              {teamReport.awayPassNetwork.totalPasses} pases
+              {t("teamDashboard.passesCount", { count: teamReport.awayPassNetwork.totalPasses })}
             </p>
             <p className="text-[9px] text-muted-foreground">
-              {teamReport.awayPassNetwork.completionPct}% completados
+              {t("teamDashboard.completedPct", { pct: teamReport.awayPassNetwork.completionPct })}
             </p>
           </div>
         </div>
@@ -319,25 +322,25 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
       <div className="glass rounded-xl p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-            Scouting Report — Rival
+            {t("teamDashboard.scoutingReportRival")}
           </h3>
           {rivalReport && (
             <span className="text-[9px] font-display px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-              {Math.round(rivalReport.confidence * 100)}% confianza
+              {t("teamDashboard.confidencePct", { pct: Math.round(rivalReport.confidence * 100) })}
             </span>
           )}
         </div>
 
         {!rivalReport ? (
           <p className="text-[11px] text-muted-foreground">
-            Generando informe de scouting...
+            {t("teamDashboard.generatingScoutingReport")}
           </p>
         ) : (
           <div className="space-y-3">
             {/* Formation */}
             <FormationViz
               formation={rivalReport.formation}
-              label={`Formación Rival · ${rivalReport.formation?.label ?? "?"}`}
+              label={t("teamDashboard.rivalFormationLabel", { formation: rivalReport.formation?.label ?? "?" })}
               color="bg-red-500/10 text-red-400 border border-red-500/20"
             />
 
@@ -347,19 +350,19 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
                 label="PPDA"
                 value={rivalReport.pressing?.ppda ?? "—"}
                 color="text-orange-400"
-                sub="Intensidad presión"
+                sub={t("teamDashboard.pressingIntensity")}
               />
               <StatCard
-                label="Pases"
+                label={t("teamDashboard.passes")}
                 value={rivalReport.passNetwork?.totalPasses ?? 0}
                 color="text-blue-400"
                 sub={`${rivalReport.passNetwork?.completionPct ?? 0}%`}
               />
               <StatCard
-                label="Jugadores"
+                label={t("teamDashboard.players")}
                 value={rivalReport.metrics?.playerCount ?? 0}
                 color="text-foreground"
-                sub="Detectados"
+                sub={t("teamDashboard.detected")}
               />
             </div>
 
@@ -367,7 +370,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
             {rivalReport.vulnerabilities.length > 0 && (
               <div>
                 <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                  Vulnerabilidades
+                  {t("teamDashboard.vulnerabilities")}
                 </p>
                 <div className="space-y-2">
                   {rivalReport.vulnerabilities.map((v, i) => (
@@ -391,7 +394,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
             {rivalReport.keyPlayers.length > 0 && (
               <div>
                 <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                  Jugadores Clave (Rival)
+                  {t("teamDashboard.keyPlayersRival")}
                 </p>
                 <div className="space-y-1.5">
                   {rivalReport.keyPlayers.map((kp) => (
@@ -420,7 +423,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
             {rivalReport.buildUpPatterns.length > 0 && (
               <div>
                 <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                  Patrones de Juego
+                  {t("teamDashboard.playPatterns")}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {rivalReport.buildUpPatterns.map((p, i) => (
@@ -439,7 +442,7 @@ const TeamDashboard: React.FC<TeamDashboardProps> = ({
             {rivalReport.gaps.length > 0 && (
               <div>
                 <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-2">
-                  Zonas Descubiertas
+                  {t("teamDashboard.uncoveredZones")}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {rivalReport.gaps.map((g, i) => (

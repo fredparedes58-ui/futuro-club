@@ -6,6 +6,7 @@
  * Used in /wellbeing page for coaches and directors.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useDropoutRisk, useEngagementHistory, useAttendance } from "@/hooks/useWellbeing";
@@ -66,6 +67,7 @@ function generateMockHeatmapData() {
 // ─── Player Detail View ──────────────────────────────────────────────────
 
 function PlayerDetail({ playerId, onBack }: { playerId: string; onBack: () => void }) {
+  const { t } = useTranslation();
   const { data: risk } = useDropoutRisk(playerId);
   const { data: engagement } = useEngagementHistory(playerId);
   const { data: attendance } = useAttendance(playerId);
@@ -82,7 +84,7 @@ function PlayerDetail({ playerId, onBack }: { playerId: string; onBack: () => vo
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         <ArrowLeft size={14} />
-        Volver al equipo
+        {t("wellbeingDashboard.backToTeam")}
       </button>
 
       {risk && (
@@ -147,6 +149,7 @@ function PlayerDetail({ playerId, onBack }: { playerId: string; onBack: () => vo
 // ─── Main Dashboard ──────────────────────────────────────────────────────
 
 export default function WellbeingDashboard() {
+  const { t } = useTranslation();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const teamRisk = generateMockTeamRisk();
@@ -172,7 +175,7 @@ export default function WellbeingDashboard() {
             {/* Team risk overview */}
             <div className="glass rounded-xl p-4 space-y-4">
               <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                Panel de Bienestar del Equipo
+                {t("wellbeingDashboard.teamWellbeingPanel")}
               </span>
               <TeamRiskOverview
                 players={teamRisk}

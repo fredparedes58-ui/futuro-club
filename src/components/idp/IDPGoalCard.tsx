@@ -11,6 +11,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Brain, Dumbbell, Target, Sparkles, Activity,
@@ -36,21 +37,21 @@ interface Props {
 
 const DIMENSION_META: Record<
   IDPDimension,
-  { label: string; color: string; icon: React.ComponentType<{ className?: string }> }
+  { labelKey: string; color: string; icon: React.ComponentType<{ className?: string }> }
 > = {
-  technical:  { label: "Técnico",   color: "bg-blue-500/10 text-blue-300 border-blue-500/30",   icon: Target },
-  tactical:   { label: "Táctico",   color: "bg-purple-500/10 text-purple-300 border-purple-500/30", icon: Brain },
-  physical:   { label: "Físico",    color: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", icon: Dumbbell },
-  mental:     { label: "Mental",    color: "bg-amber-500/10 text-amber-300 border-amber-500/30", icon: Sparkles },
-  maturation: { label: "Maduración", color: "bg-rose-500/10 text-rose-300 border-rose-500/30",  icon: Activity },
+  technical:  { labelKey: "idpGoalCard.dimensionTechnical",   color: "bg-blue-500/10 text-blue-300 border-blue-500/30",   icon: Target },
+  tactical:   { labelKey: "idpGoalCard.dimensionTactical",   color: "bg-purple-500/10 text-purple-300 border-purple-500/30", icon: Brain },
+  physical:   { labelKey: "idpGoalCard.dimensionPhysical",    color: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30", icon: Dumbbell },
+  mental:     { labelKey: "idpGoalCard.dimensionMental",    color: "bg-amber-500/10 text-amber-300 border-amber-500/30", icon: Sparkles },
+  maturation: { labelKey: "idpGoalCard.dimensionMaturation", color: "bg-rose-500/10 text-rose-300 border-rose-500/30",  icon: Activity },
 };
 
-const STATUS_META: Record<IDPGoal["status"], { label: string; color: string }> = {
-  pending:     { label: "Pendiente",     color: "bg-slate-500/15 text-slate-300" },
-  in_progress: { label: "En progreso",   color: "bg-blue-500/15 text-blue-300" },
-  achieved:    { label: "Logrado",       color: "bg-emerald-500/15 text-emerald-300" },
-  missed:      { label: "No logrado",    color: "bg-rose-500/15 text-rose-300" },
-  cancelled:   { label: "Cancelado",     color: "bg-slate-500/15 text-slate-400" },
+const STATUS_META: Record<IDPGoal["status"], { labelKey: string; color: string }> = {
+  pending:     { labelKey: "idpGoalCard.statusPending",     color: "bg-slate-500/15 text-slate-300" },
+  in_progress: { labelKey: "idpGoalCard.statusInProgress",   color: "bg-blue-500/15 text-blue-300" },
+  achieved:    { labelKey: "idpGoalCard.statusAchieved",       color: "bg-emerald-500/15 text-emerald-300" },
+  missed:      { labelKey: "idpGoalCard.statusMissed",    color: "bg-rose-500/15 text-rose-300" },
+  cancelled:   { labelKey: "idpGoalCard.statusCancelled",     color: "bg-slate-500/15 text-slate-400" },
 };
 
 export function IDPGoalCard({
@@ -61,6 +62,7 @@ export function IDPGoalCard({
   onMarkAchieved,
   onMarkMissed,
 }: Props) {
+  const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
 
   const meta = DIMENSION_META[goal.dimension];
@@ -88,19 +90,19 @@ export function IDPGoalCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <Badge variant="outline" className={cn("text-xs", meta.color)}>
-                {meta.label}
+                {t(meta.labelKey)}
               </Badge>
               <Badge className={cn("text-xs", STATUS_META[goal.status].color)}>
-                {STATUS_META[goal.status].label}
+                {t(STATUS_META[goal.status].labelKey)}
               </Badge>
               {goal.coachEdited && (
                 <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-300 border-violet-500/30">
-                  Editado
+                  {t("idpGoalCard.badgeEdited")}
                 </Badge>
               )}
               {goal.aiProposed && !goal.coachEdited && (
                 <Badge variant="outline" className="text-xs bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
-                  IA
+                  {t("idpGoalCard.badgeAi")}
                 </Badge>
               )}
             </div>
@@ -143,7 +145,7 @@ export function IDPGoalCard({
           </span>
         </div>
         <Progress value={progress} className="h-1.5" />
-        <div className="text-[10px] text-slate-500 mt-1 text-right">{progress}% del objetivo</div>
+        <div className="text-[10px] text-slate-500 mt-1 text-right">{t("idpGoalCard.percentOfTarget", { progress })}</div>
       </div>
 
       {/* Drills assigned (collapsible) */}
@@ -160,7 +162,7 @@ export function IDPGoalCard({
             ))}
             {goal.drillsAssigned.length > 3 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400">
-                +{goal.drillsAssigned.length - 3} más
+                {t("idpGoalCard.moreDrills", { count: goal.drillsAssigned.length - 3 })}
               </span>
             )}
           </div>
@@ -174,7 +176,7 @@ export function IDPGoalCard({
           onClick={() => setShowDetails(!showDetails)}
         >
           {showDetails ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-          {showDetails ? "Ocultar contexto" : "Ver contexto"}
+          {showDetails ? t("idpGoalCard.hideContext") : t("idpGoalCard.showContext")}
         </button>
       )}
 
@@ -186,13 +188,13 @@ export function IDPGoalCard({
         >
           {goal.description && (
             <p>
-              <span className="text-slate-500 uppercase tracking-wide mr-1">Qué:</span>
+              <span className="text-slate-500 uppercase tracking-wide mr-1">{t("idpGoalCard.labelWhat")}</span>
               {goal.description}
             </p>
           )}
           {goal.rationale && (
             <p>
-              <span className="text-slate-500 uppercase tracking-wide mr-1">Por qué:</span>
+              <span className="text-slate-500 uppercase tracking-wide mr-1">{t("idpGoalCard.labelWhy")}</span>
               {goal.rationale}
             </p>
           )}

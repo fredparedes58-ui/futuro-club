@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { useTranslation } from "react-i18next";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
@@ -147,7 +148,9 @@ const RedirectToHub = ({ tab }: { tab: string }) => {
   return <Navigate to={`/players/${id}?tab=${tab}`} replace />;
 };
 
-const App = () => (
+const App = () => {
+  const { t } = useTranslation();
+  return (
   <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
     <QueryClientProvider client={queryClient}>
@@ -163,7 +166,7 @@ const App = () => (
               href="#main-content"
               className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-primary focus:text-primary-foreground focus:font-display focus:text-sm focus:shadow-lg"
             >
-              Saltar al contenido
+              {t("appRoot.skipToContent")}
             </a>
             <OfflineBanner />
             <CookieConsent />
@@ -280,6 +283,7 @@ const App = () => (
     </QueryClientProvider>
     </ThemeProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

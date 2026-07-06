@@ -7,6 +7,7 @@
  * Reusa los datos del rollup pero los presenta en formato comparativo.
  */
 import { TrendingUp, Trophy, BarChart3 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PositionRollupRow } from "./PositionRollup";
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function PositionComparison({ rows }: Props) {
+  const { t } = useTranslation();
   // Solo posiciones con al menos 1 video (rendimiento real)
   const withVideos = rows.filter((r) => r.videoCount > 0 && r.avgVsi !== null);
   if (withVideos.length < 2) return null; // Necesita al menos 2 para comparar
@@ -31,7 +33,7 @@ export default function PositionComparison({ rows }: Props) {
       <div className="flex items-center gap-2">
         <BarChart3 size={13} className="text-primary" />
         <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-foreground">
-          Comparativa por posición
+          {t("positionComparison.title")}
         </h3>
       </div>
 
@@ -39,13 +41,13 @@ export default function PositionComparison({ rows }: Props) {
       <div className="rounded-lg p-3 bg-primary/5 border border-primary/30 flex items-center gap-3">
         <Trophy size={16} className="text-primary shrink-0" />
         <div className="flex-1">
-          <p className="text-[10px] uppercase tracking-wider text-primary font-bold">Mejor encaje</p>
+          <p className="text-[10px] uppercase tracking-wider text-primary font-bold">{t("positionComparison.bestFit")}</p>
           <p className="text-sm font-display font-bold text-foreground">
-            Rinde mejor como {best.positionName}
+            {t("positionComparison.bestAs", { position: best.positionName })}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            VSI {best.avgVsi?.toFixed(0)} ({best.videoCount} video{best.videoCount > 1 ? "s" : ""})
-            {spread >= 5 && ` · ${spread.toFixed(0)} pts por encima de su peor posición`}
+            VSI {best.avgVsi?.toFixed(0)} ({t("positionComparison.videoCount", { count: best.videoCount })})
+            {spread >= 5 && ` · ${t("positionComparison.ptsAboveWorst", { pts: spread.toFixed(0) })}`}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ export default function PositionComparison({ rows }: Props) {
                   {r.isPrimary && "⭐ "}{r.positionName}
                   {!r.isDeclared && (
                     <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-electric/20 text-electric font-bold ml-1">
-                      descubierto
+                      {t("positionComparison.discovered")}
                     </span>
                   )}
                 </span>
@@ -83,8 +85,8 @@ export default function PositionComparison({ rows }: Props) {
                 />
               </div>
               <p className="text-[9px] text-muted-foreground">
-                {r.videoCount} video{r.videoCount > 1 ? "s" : ""}
-                {r.lastVideoAt && ` · último ${new Date(r.lastVideoAt).toLocaleDateString("es-ES")}`}
+                {t("positionComparison.videoCount", { count: r.videoCount })}
+                {r.lastVideoAt && ` · ${t("positionComparison.lastVideo", { date: new Date(r.lastVideoAt).toLocaleDateString("es-ES") })}`}
               </p>
             </div>
           );
@@ -96,8 +98,9 @@ export default function PositionComparison({ rows }: Props) {
         <div className="flex items-start gap-2 text-[11px] text-muted-foreground border-t border-border pt-2.5">
           <TrendingUp size={11} className="text-emerald-500 shrink-0 mt-0.5" />
           <p>
-            Diferencia significativa ({spread.toFixed(0)} pts VSI). Considera dar más minutos
-            como <strong className="text-foreground">{best.positionName}</strong> si la disponibilidad táctica lo permite.
+            {t("positionComparison.significantDiffPrefix", { pts: spread.toFixed(0) })}{" "}
+            <strong className="text-foreground">{best.positionName}</strong>{" "}
+            {t("positionComparison.significantDiffSuffix")}
           </p>
         </div>
       )}

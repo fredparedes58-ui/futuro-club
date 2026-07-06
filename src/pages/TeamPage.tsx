@@ -88,7 +88,7 @@ export default function TeamPage() {
   const handleRemove = async (memberId: string, name?: string) => {
     try {
       await removeMutation.mutateAsync(memberId);
-      toast.success(t("toasts.memberRemoved", { name: name ?? "Miembro" }));
+      toast.success(t("toasts.memberRemoved", { name: name ?? t("teamPage.memberFallback") }));
     } catch {
       toast.error(t("toasts.memberRemoveError"));
     }
@@ -112,8 +112,8 @@ export default function TeamPage() {
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
           <div className="text-center space-y-3">
             <Users size={32} className="text-muted-foreground mx-auto" />
-            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
-            <p className="text-sm text-muted-foreground">Solo directores y scouts pueden gestionar el equipo.</p>
+            <p className="font-display font-bold text-lg text-foreground">{t("teamPage.accessRestricted")}</p>
+            <p className="text-sm text-muted-foreground">{t("teamPage.accessRestrictedDesc")}</p>
           </div>
         </div>
       }
@@ -206,11 +206,11 @@ export default function TeamPage() {
             <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
               Match-day Live
               <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-electric/20 text-electric border border-electric/40">
-                Killer feature
+                {t("teamPage.killerFeature")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground leading-tight">
-              Etiqueta eventos en directo desde el móvil · análisis al pitido final
+              {t("teamPage.liveModeDesc")}
             </p>
           </div>
           <span className="text-[10px] text-electric font-bold">→</span>
@@ -229,11 +229,11 @@ export default function TeamPage() {
             <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
               Plan vs Rival
               <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40">
-                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />Nuevo
+                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />{t("teamPage.new")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground leading-tight">
-              Describe al rival · Claude genera plan de partido + drills semana
+              {t("teamPage.rivalPlanDesc")}
             </p>
           </div>
           <span className="text-[10px] text-amber-400 font-bold">→</span>
@@ -250,13 +250,13 @@ export default function TeamPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
-              Análisis táctico
+              {t("teamPage.tacticalAnalysis")}
               <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />Nuevo
+                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />{t("teamPage.new")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground leading-tight">
-              5 reportes IA · 9 cuadrantes · sin necesidad de vídeo
+              {t("teamPage.tacticalAnalysisDesc")}
             </p>
           </div>
           <span className="text-[10px] text-primary font-bold">→</span>
@@ -266,13 +266,13 @@ export default function TeamPage() {
         <motion.div variants={item}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Users size={13} /> Tus jugadores ({myPlayers.length})
+              <Users size={13} /> {t("teamPage.yourPlayers", { count: myPlayers.length })}
             </h2>
             <button
               onClick={() => navigate("/players/new")}
               className="text-[10px] text-primary font-display font-bold flex items-center gap-1 hover:text-primary/80 transition-colors"
             >
-              <Plus size={11} /> Nuevo
+              <Plus size={11} /> {t("teamPage.new")}
             </button>
           </div>
           {myPlayers.length === 0 ? (
@@ -282,8 +282,8 @@ export default function TeamPage() {
             >
               <EmptyPlayers className="w-32 mx-auto" />
               <div>
-                <p className="text-base font-bold text-foreground">Añade tu primer jugador</p>
-                <p className="text-xs text-muted-foreground mt-0.5">VSI · PHV · análisis IA</p>
+                <p className="text-base font-bold text-foreground">{t("teamPage.addFirstPlayer")}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("teamPage.playerMetrics")}</p>
               </div>
             </button>
           ) : (
@@ -303,7 +303,7 @@ export default function TeamPage() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       VSI {Number(p.vsi || 0).toFixed(0)} {phvIcon(p.phvCategory)}
-                      {p.phvCategory && ` · ${p.phvCategory === "early" ? "Pre-PHV" : p.phvCategory === "late" ? "Post-PHV" : "En PHV"}`}
+                      {p.phvCategory && ` · ${p.phvCategory === "early" ? t("teamPage.prePhv") : p.phvCategory === "late" ? t("teamPage.postPhv") : t("teamPage.inPhv")}`}
                     </p>
                   </div>
                   <span className="text-[10px] text-primary font-bold">→</span>
@@ -314,7 +314,7 @@ export default function TeamPage() {
                   onClick={() => navigate("/rankings")}
                   className="w-full p-3 text-center text-[11px] font-display font-bold text-primary hover:bg-secondary/30 transition-colors"
                 >
-                  Ver todos ({myPlayers.length}) →
+                  {t("teamPage.viewAll", { count: myPlayers.length })} →
                 </button>
               )}
             </div>

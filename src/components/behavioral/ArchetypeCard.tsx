@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { Shield, Lightbulb, Zap, Ghost, Sword, Compass } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   archetype: string;
@@ -14,50 +15,50 @@ interface Props {
 }
 
 const ARCHETYPES: Record<string, {
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: React.ElementType;
   color: string;
   bgGradient: string;
 }> = {
   commander: {
-    label: "Comandante",
-    description: "Líder vocal que organiza al equipo y mantiene la calma bajo presión. Referente en el campo.",
+    labelKey: "archetypeCard.commanderLabel",
+    descriptionKey: "archetypeCard.commanderDescription",
     icon: Shield,
     color: "text-red-400",
     bgGradient: "from-red-500/20 to-red-600/5",
   },
   creator: {
-    label: "Creador",
-    description: "Jugador impredecible con visión de juego excepcional. Encuentra soluciones que nadie más ve.",
+    labelKey: "archetypeCard.creatorLabel",
+    descriptionKey: "archetypeCard.creatorDescription",
     icon: Lightbulb,
     color: "text-amber-400",
     bgGradient: "from-amber-500/20 to-amber-600/5",
   },
   engine: {
-    label: "Motor",
-    description: "Jugador constante y fiable que mantiene el rendimiento durante todo el partido. El corazón del equipo.",
+    labelKey: "archetypeCard.engineLabel",
+    descriptionKey: "archetypeCard.engineDescription",
     icon: Zap,
     color: "text-emerald-400",
     bgGradient: "from-emerald-500/20 to-emerald-600/5",
   },
   ghost: {
-    label: "Fantasma",
-    description: "Inteligencia silenciosa. Lee el juego antes que nadie pero lidera con el ejemplo, no con la voz.",
+    labelKey: "archetypeCard.ghostLabel",
+    descriptionKey: "archetypeCard.ghostDescription",
     icon: Ghost,
     color: "text-slate-400",
     bgGradient: "from-slate-500/20 to-slate-600/5",
   },
   warrior: {
-    label: "Guerrero",
-    description: "Mentalidad competitiva inquebrantable. Crece en los momentos difíciles y nunca se rinde.",
+    labelKey: "archetypeCard.warriorLabel",
+    descriptionKey: "archetypeCard.warriorDescription",
     icon: Sword,
     color: "text-orange-400",
     bgGradient: "from-orange-500/20 to-orange-600/5",
   },
   architect: {
-    label: "Arquitecto",
-    description: "Pensador estratégico con decisiones rápidas y precisas. Construye el juego desde la lectura del campo.",
+    labelKey: "archetypeCard.architectLabel",
+    descriptionKey: "archetypeCard.architectDescription",
     icon: Compass,
     color: "text-blue-400",
     bgGradient: "from-blue-500/20 to-blue-600/5",
@@ -67,6 +68,7 @@ const ARCHETYPES: Record<string, {
 const DEFAULT_ARCHETYPE = ARCHETYPES.engine;
 
 export default function ArchetypeCard({ archetype, mentalComposite, compact }: Props) {
+  const { t } = useTranslation();
   const arch = ARCHETYPES[archetype] ?? DEFAULT_ARCHETYPE;
   const Icon = arch.icon;
 
@@ -84,7 +86,7 @@ export default function ArchetypeCard({ archetype, mentalComposite, compact }: P
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className={`${compact ? "text-sm" : "text-lg"} font-bold text-foreground`}>
-              {arch.label}
+              {t(arch.labelKey)}
             </h3>
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${arch.color} border-current/30 font-mono font-bold`}>
               {mentalComposite}
@@ -92,7 +94,7 @@ export default function ArchetypeCard({ archetype, mentalComposite, compact }: P
           </div>
           {!compact && (
             <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-              {arch.description}
+              {t(arch.descriptionKey)}
             </p>
           )}
         </div>

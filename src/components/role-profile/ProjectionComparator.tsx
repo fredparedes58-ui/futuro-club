@@ -1,21 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleProfileData, POSITION_LABELS } from "@/lib/roleProfileData";
 import { ArrowRight, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
 }
 
 export default function ProjectionComparator({ data }: Props) {
+  const { t } = useTranslation();
   const positions = [...data.positions].sort((a, b) => b.score - a.score);
   const bestNow = positions[0];
   // For "best at 18m" we simulate — in production this comes from projection endpoint
   const bestAt18m = positions[0]; // Same position projected
 
   const dims = [
-    { key: "tactical" as const, label: "Táctica" },
-    { key: "technical" as const, label: "Técnica" },
-    { key: "physical" as const, label: "Física" },
+    { key: "tactical" as const, label: t("projectionComparator.tactical") },
+    { key: "technical" as const, label: t("projectionComparator.technical") },
+    { key: "physical" as const, label: t("projectionComparator.physical") },
   ];
 
   return (
@@ -23,21 +25,21 @@ export default function ProjectionComparator({ data }: Props) {
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-display flex items-center gap-2">
           <TrendingUp className="w-4 h-4" />
-          Comparador de proyección
+          {t("projectionComparator.title")}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {/* Positions header */}
         <div className="flex items-center gap-4 mb-4 p-3 bg-muted/30 rounded-md">
           <div className="text-center flex-1">
-            <p className="text-xs text-muted-foreground mb-1">Mejor posición actual</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("projectionComparator.bestPositionNow")}</p>
             <p className="font-display font-bold text-lg">{bestNow.code}</p>
             <p className="text-xs text-muted-foreground">{POSITION_LABELS[bestNow.code]}</p>
             <p className="text-sm font-mono text-primary mt-1">{bestNow.score.toFixed(1)}</p>
           </div>
           <ArrowRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           <div className="text-center flex-1">
-            <p className="text-xs text-muted-foreground mb-1">Proyección 18 meses</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("projectionComparator.projection18m")}</p>
             <p className="font-display font-bold text-lg">{bestAt18m.code}</p>
             <p className="text-xs text-muted-foreground">{POSITION_LABELS[bestAt18m.code]}</p>
             <p className="text-sm font-mono text-electric mt-1">
@@ -75,8 +77,10 @@ export default function ProjectionComparator({ data }: Props) {
         {/* Insight */}
         <div className="mt-4 p-3 bg-primary/5 border border-primary/10 rounded-md">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <strong className="text-primary">Insight:</strong> La mayor evolución esperada es en el eje físico (+{(data.projections["18_36m"].physical - data.current.physical).toFixed(1)} pts), 
-            condicionada a completar la ventana de maduración. El eje técnico muestra la base más sólida con menor margen pero mayor certeza.
+            <strong className="text-primary">{t("projectionComparator.insightLabel")}</strong>{" "}
+            {t("projectionComparator.insightText", {
+              delta: (data.projections["18_36m"].physical - data.current.physical).toFixed(1),
+            })}
           </p>
         </div>
       </CardContent>

@@ -11,6 +11,7 @@
  * Tactical usa este con keys `["tactical-heatmap", matchId]`, etc.
  */
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { X, Video, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -43,13 +44,19 @@ export function AnalysisVideoUploadDialog({
   onClose,
   playerId,
   playerName,
-  subtitle = "Análisis automático con IA",
+  subtitle,
   helperText,
-  successDescription = "El módulo se ha refrescado con los datos del video.",
+  successDescription,
   invalidateKeys,
   onAnalysisComplete,
 }: Props) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
+
+  const resolvedSubtitle =
+    subtitle ?? t("analysisVideoUploadDialog.defaultSubtitle");
+  const resolvedSuccessDescription =
+    successDescription ?? t("analysisVideoUploadDialog.defaultSuccessDescription");
 
   // Lock body scroll while modal open
   useEffect(() => {
@@ -82,8 +89,8 @@ export function AnalysisVideoUploadDialog({
       qc.invalidateQueries({ queryKey: [...key] });
     }
 
-    toast.success("Análisis completado", {
-      description: successDescription,
+    toast.success(t("analysisVideoUploadDialog.toastSuccessTitle"), {
+      description: resolvedSuccessDescription,
       duration: 5000,
     });
 
@@ -115,11 +122,11 @@ export function AnalysisVideoUploadDialog({
                 </div>
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold text-white">
-                    Subir vídeo para análisis
+                    {t("analysisVideoUploadDialog.title")}
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    {subtitle} ·{" "}
-                    <span className="text-cyan-300">{playerName ?? "este jugador"}</span>
+                    {resolvedSubtitle} ·{" "}
+                    <span className="text-cyan-300">{playerName ?? t("analysisVideoUploadDialog.thisPlayer")}</span>
                   </p>
                 </div>
               </div>
@@ -153,8 +160,7 @@ export function AnalysisVideoUploadDialog({
             </div>
 
             <div className="px-4 pb-4 text-[10px] text-slate-500 text-center">
-              El análisis tarda ~2-5 minutos. Puedes cerrar esta ventana y volver
-              cuando termine.
+              {t("analysisVideoUploadDialog.durationHint")}
             </div>
           </motion.div>
         </motion.div>

@@ -13,6 +13,8 @@
 
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { ArrowLeft, Printer, Share2, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PlayerService } from "@/services/real/playerService";
@@ -26,8 +28,8 @@ interface LoadedData {
   reports: Array<{ report_type: string; content: Record<string, unknown> }>;
 }
 
-function buildWhatsAppText(playerName: string, data: LoadedData | null, url: string): string {
-  if (!data) return `Análisis VITAS · ${playerName}\n\n${url}`;
+function buildWhatsAppText(playerName: string, data: LoadedData | null, url: string, t: TFunction): string {
+  if (!data) return `${t("playerAnalysisPage.whatsappTitle", { player: playerName })}\n\n${url}`;
 
   const vsi = data.analysis.vsi?.vsi ?? null;
   const tier = data.analysis.vsi?.tierLabel ?? "";
@@ -42,7 +44,7 @@ function buildWhatsAppText(playerName: string, data: LoadedData | null, url: str
   const areaText     = typeof topArea     === "string" ? topArea     : topArea?.title;
 
   const lines: string[] = [];
-  lines.push(`🏆 *Análisis VITAS · ${playerName}*`);
+  lines.push(`🏆 *${t("playerAnalysisPage.whatsappTitle", { player: playerName })}*`);
   lines.push("");
   if (vsi !== null) {
     let vsiLine = `*VSI ${vsi}*`;
@@ -52,20 +54,21 @@ function buildWhatsAppText(playerName: string, data: LoadedData | null, url: str
   }
   if (delta !== null && delta !== undefined) {
     const sign = delta > 0 ? "↗ +" : delta < 0 ? "↘ " : "→ ";
-    lines.push(`${sign}${delta} pts vs análisis previo`);
+    lines.push(`${sign}${t("playerAnalysisPage.whatsappDelta", { delta })}`);
   }
   lines.push("");
-  if (strengthText) lines.push(`✅ Fortaleza: ${strengthText}`);
-  if (areaText)     lines.push(`⚠️ A trabajar: ${areaText}`);
+  if (strengthText) lines.push(`✅ ${t("playerAnalysisPage.whatsappStrength", { value: strengthText })}`);
+  if (areaText)     lines.push(`⚠️ ${t("playerAnalysisPage.whatsappArea", { value: areaText })}`);
   lines.push("");
-  lines.push(`📊 Ver completo: ${url}`);
+  lines.push(`📊 ${t("playerAnalysisPage.whatsappSeeFull", { url })}`);
   lines.push("");
-  lines.push(`_Generado por VITAS · Football Intelligence_`);
+  lines.push(`_${t("playerAnalysisPage.whatsappFooter")}_`);
 
   return lines.join("\n");
 }
 
 export default function PlayerAnalysisPage() {
+  const { t } = useTranslation();
   const { id, analysisId } = useParams<{ id: string; analysisId: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
@@ -83,21 +86,21 @@ export default function PlayerAnalysisPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "No se pudo generar link");
+        throw new Error(data?.error?.message ?? t("playerAnalysisPage.errorGenerateLink"));
       }
       const fullUrl = `${window.location.origin}${data.data.url}`;
-      const text = buildWhatsAppText(player?.name ?? "Jugador", loaded, fullUrl);
+      const text = buildWhatsAppText(player?.name ?? t("playerAnalysisPage.playerFallback"), loaded, fullUrl, t);
 
       // Web Share API primero (móvil → menú nativo + texto rico),
       // fallback a copiar el texto rico al clipboard.
       if (navigator.share) {
         try {
           await navigator.share({
-            title: `Análisis VITAS · ${player?.name ?? "Jugador"}`,
+            title: t("playerAnalysisPage.whatsappTitle", { player: player?.name ?? t("playerAnalysisPage.playerFallback") }),
             text,
             url: fullUrl,
           });
-          toast.success("Compartido");
+          toast.success(t("playerAnalysisPage.toastShared"));
           return;
         } catch {
           // user canceled · fall back to clipboard
@@ -105,9 +108,9 @@ export default function PlayerAnalysisPage() {
       }
 
       await navigator.clipboard.writeText(text);
-      toast.success("Texto WhatsApp copiado · pega en grupo familia");
+      toast.success(t("playerAnalysisPage.toastCopied"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al compartir");
+      toast.error(err instanceof Error ? err.message : t("playerAnalysisPage.errorShare"));
     } finally {
       setSharing(false);
     }
@@ -125,21 +128,21 @@ export default function PlayerAnalysisPage() {
           <button
             onClick={() => navigate(`/players/${id}/reports`)}
             className="p-1.5 rounded-lg hover:bg-secondary"
-            aria-label="Volver al historial"
+            aria-label={t("playerAnalysisPage.backToHistory")}
           >
             <ArrowLeft size={18} />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">
-              {player?.name ?? "Jugador"}
+              {player?.name ?? t("playerAnalysisPage.playerFallback")}
             </h1>
-            <p className="text-[10px] text-muted-foreground">Reportes IA · 6 análisis</p>
+            <p className="text-[10px] text-muted-foreground">{t("playerAnalysisPage.reportsSubtitle")}</p>
           </div>
           <button
             onClick={handlePrint}
             className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Imprimir / PDF"
-            title="Imprimir / Exportar PDF"
+            aria-label={t("playerAnalysisPage.printAria")}
+            title={t("playerAnalysisPage.printTitle")}
           >
             <Printer size={16} />
           </button>
@@ -147,8 +150,8 @@ export default function PlayerAnalysisPage() {
             onClick={handleShare}
             disabled={sharing || !loaded}
             className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            aria-label="Compartir"
-            title="Generar link público + texto WhatsApp"
+            aria-label={t("playerAnalysisPage.shareAria")}
+            title={t("playerAnalysisPage.shareTitle")}
           >
             {sharing ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
           </button>
@@ -158,9 +161,9 @@ export default function PlayerAnalysisPage() {
 
       {/* Print-only header */}
       <div className="hidden print:block px-4 py-3 border-b border-border">
-        <h1 className="text-base font-bold">{player?.name ?? "Jugador"} · Análisis VITAS</h1>
+        <h1 className="text-base font-bold">{t("playerAnalysisPage.printHeader", { player: player?.name ?? t("playerAnalysisPage.playerFallback") })}</h1>
         <p className="text-xs text-muted-foreground">
-          Generado {new Date().toLocaleDateString("es-ES")} · vitas.football
+          {t("playerAnalysisPage.printGenerated", { date: new Date().toLocaleDateString("es-ES") })}
         </p>
       </div>
 
@@ -172,7 +175,7 @@ export default function PlayerAnalysisPage() {
           />
         ) : (
           <div className="text-center py-16 text-sm text-muted-foreground">
-            Falta el ID del análisis.
+            {t("playerAnalysisPage.missingAnalysisId")}
           </div>
         )}
       </div>

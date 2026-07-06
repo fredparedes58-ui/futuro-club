@@ -9,6 +9,7 @@
  * la misma posición + métricas similares.
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Trophy, ExternalLink } from "lucide-react";
 import type { Player } from "@/services/real/playerService";
 
@@ -47,6 +48,7 @@ const POS_TO_CODE: Record<string, string> = {
 };
 
 export default function BestMatchProByPosition({ player }: Props) {
+  const { t } = useTranslation();
   const declared = [player.position, ...(player.secondaryPositions ?? [])].filter(Boolean);
   const [matches, setMatches] = useState<Record<string, IndexedProPlayer | null>>({});
   const [loading, setLoading] = useState(true);
@@ -95,7 +97,7 @@ export default function BestMatchProByPosition({ player }: Props) {
   if (loading) {
     return (
       <div className="glass rounded-xl p-4 text-center text-xs text-muted-foreground">
-        Buscando referentes pro…
+        {t("bestMatchProByPosition.searching")}
       </div>
     );
   }
@@ -106,7 +108,7 @@ export default function BestMatchProByPosition({ player }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-3">
       <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-foreground flex items-center gap-2">
-        <Trophy size={13} className="text-gold" /> Referentes pro por posición
+        <Trophy size={13} className="text-gold" /> {t("bestMatchProByPosition.title")}
       </h3>
       <div className="space-y-2">
         {validMatches.map(([pos, pro]) => {
@@ -125,10 +127,10 @@ export default function BestMatchProByPosition({ player }: Props) {
             <div key={pos} className="flex items-center gap-3 p-2.5 rounded-lg border border-border bg-secondary/20">
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  Como {isPrimary && "⭐ "}{pos}
+                  {isPrimary && "⭐ "}{t("bestMatchProByPosition.asPosition", { position: pos })}
                 </p>
                 <p className="text-sm font-display font-bold text-foreground truncate">
-                  Se parece a {pro.short_name || pro.name}
+                  {t("bestMatchProByPosition.resembles", { name: pro.short_name || pro.name })}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {pro.club ?? "—"} · {pro.league} · VSI pro {pro.vsi_estimated.toFixed(0)}
@@ -136,7 +138,7 @@ export default function BestMatchProByPosition({ player }: Props) {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-base font-display font-black text-primary">{similarity}%</p>
-                <p className="text-[9px] text-muted-foreground">similarity</p>
+                <p className="text-[9px] text-muted-foreground">{t("bestMatchProByPosition.similarity")}</p>
               </div>
             </div>
           );
@@ -144,7 +146,7 @@ export default function BestMatchProByPosition({ player }: Props) {
       </div>
       <p className="text-[10px] text-muted-foreground border-t border-border pt-2 flex items-start gap-1.5">
         <ExternalLink size={10} className="shrink-0 mt-0.5" />
-        Comparativa basada en distancia euclidiana entre las 6 métricas base. La base contiene 365+ jugadores de La Liga, Premier, Bundesliga, Ligue 1.
+        {t("bestMatchProByPosition.footnote")}
       </p>
     </div>
   );

@@ -9,6 +9,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Sparkles, ClipboardCheck, Calendar, TrendingUp,
@@ -62,6 +63,7 @@ export function IDPDashboard({
   liveMetrics = {},
   dataRichness,
 }: Props) {
+  const { t } = useTranslation();
   const { data: plan, isLoading } = useCurrentIDP(playerId);
   const summary = useIDPProgressSummary(plan, liveMetrics);
 
@@ -87,10 +89,10 @@ export function IDPDashboard({
   async function handleGenerate() {
     try {
       await generate.mutateAsync({ architectInput, coachId, tenantId });
-      toast.success("Plan propuesto generado");
+      toast.success(t("idpDashboard.toastPlanGenerated"));
     } catch (err) {
-      toast.error("No se pudo generar el plan", {
-        description: err instanceof Error ? err.message : "Error desconocido",
+      toast.error(t("idpDashboard.toastPlanGenerateError"), {
+        description: err instanceof Error ? err.message : t("idpDashboard.errorUnknown"),
       });
     }
   }
@@ -99,10 +101,10 @@ export function IDPDashboard({
     if (!plan) return;
     try {
       await approve.mutateAsync({ planId: plan.id, coachId, playerId });
-      toast.success("Plan aprobado y activado");
+      toast.success(t("idpDashboard.toastPlanApproved"));
     } catch (err) {
-      toast.error("No se pudo aprobar", {
-        description: err instanceof Error ? err.message : "Error desconocido",
+      toast.error(t("idpDashboard.toastApproveError"), {
+        description: err instanceof Error ? err.message : t("idpDashboard.errorUnknown"),
       });
     }
   }
@@ -116,10 +118,10 @@ export function IDPDashboard({
         playerId,
         status,
       });
-      toast.success(`Objetivo marcado como ${status}`);
+      toast.success(t("idpDashboard.toastGoalMarked", { status }));
     } catch (err) {
-      toast.error("No se pudo actualizar", {
-        description: err instanceof Error ? err.message : "Error",
+      toast.error(t("idpDashboard.toastUpdateError"), {
+        description: err instanceof Error ? err.message : t("idpDashboard.error"),
       });
     }
   }
@@ -150,22 +152,21 @@ export function IDPDashboard({
       >
         <Sparkles className="size-8 text-cyan-400 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-white mb-2">
-          No hay plan para {monthLabel}
+          {t("idpDashboard.emptyTitle", { month: monthLabel })}
         </h3>
         <p className="text-sm text-slate-400 max-w-md mx-auto mb-5">
-          Genera un plan de desarrollo individual con los datos actuales del jugador.
-          El sistema propone 3-5 objetivos para el mes; tú los revisas y apruebas.
+          {t("idpDashboard.emptyDescription")}
         </p>
         <Button onClick={handleGenerate} disabled={generate.isPending} size="lg">
           {generate.isPending ? (
             <>
               <Loader2 className="size-4 mr-2 animate-spin" />
-              Generando…
+              {t("idpDashboard.generating")}
             </>
           ) : (
             <>
               <Sparkles className="size-4 mr-2" />
-              Generar plan del mes
+              {t("idpDashboard.generateMonthPlan")}
             </>
           )}
         </Button>
@@ -207,12 +208,12 @@ export function IDPDashboard({
               >
                 {isActive && <Check className="size-3 mr-1 inline" />}
                 {isDraft && <AlertCircle className="size-3 mr-1 inline" />}
-                {isActive ? "Activo" : isDraft ? "Borrador" : "Completado"}
+                {isActive ? t("idpDashboard.statusActive") : isDraft ? t("idpDashboard.statusDraft") : t("idpDashboard.statusCompleted")}
               </Badge>
               <span className="text-xs text-slate-500 capitalize">{monthLabel}</span>
               {summary && (
                 <span className="text-xs text-slate-500">
-                  · {summary.daysRemaining} días restantes
+                  {t("idpDashboard.daysRemaining", { count: summary.daysRemaining })}
                 </span>
               )}
               {/* Checkin window badge (≤7 días al fin de mes, plan activo, sin checkin todavía) */}
@@ -225,12 +226,12 @@ export function IDPDashboard({
                     onClick={() => setTab("checkin")}
                     className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25 transition-colors animate-pulse"
                   >
-                    ⏰ Hacer checkin
+                    {t("idpDashboard.doCheckinBadge")}
                   </button>
                 )}
             </div>
             <h2 className="text-base font-semibold text-white leading-tight">
-              {plan.overallFocus ?? "Plan de desarrollo individual"}
+              {plan.overallFocus ?? t("idpDashboard.defaultFocus")}
             </h2>
             {plan.agentSummary && (
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed line-clamp-2">
@@ -248,7 +249,7 @@ export function IDPDashboard({
                 className="bg-emerald-600 hover:bg-emerald-700"
               >
                 {approve.isPending ? <Loader2 className="size-3.5 mr-1 animate-spin" /> : <Check className="size-3.5 mr-1" />}
-                Aprobar plan
+                {t("idpDashboard.approvePlan")}
               </Button>
             )}
             <Button
@@ -258,12 +259,12 @@ export function IDPDashboard({
               className="border-cyan-500/30 hover:bg-cyan-500/10"
             >
               <Video className="size-3.5 mr-1" />
-              Subir video
+              {t("idpDashboard.uploadVideo")}
             </Button>
             {!isCompleted && (
               <Button size="sm" variant="outline" onClick={handleGenerate} disabled={generate.isPending}>
                 <RefreshCw className={`size-3.5 mr-1 ${generate.isPending ? "animate-spin" : ""}`} />
-                Regenerar
+                {t("idpDashboard.regenerate")}
               </Button>
             )}
           </div>
@@ -273,17 +274,17 @@ export function IDPDashboard({
         {summary && (
           <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/5">
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Progreso global</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("idpDashboard.overallProgress")}</div>
               <div className="text-xl font-bold text-white tabular-nums">{summary.overallProgress}%</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">Logrados</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("idpDashboard.achieved")}</div>
               <div className="text-xl font-bold text-emerald-400 tabular-nums">
                 {summary.goalsAchieved}<span className="text-sm text-slate-500">/{summary.goalsTotal}</span>
               </div>
             </div>
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-500">En riesgo</div>
+              <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("idpDashboard.atRisk")}</div>
               <div className="text-xl font-bold text-rose-400 tabular-nums">
                 {summary.atRiskGoals.length}
               </div>
@@ -297,23 +298,23 @@ export function IDPDashboard({
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="goals" className="text-xs">
             <ListChecks className="size-3.5 mr-1" />
-            Objetivos
+            {t("idpDashboard.tabGoals")}
           </TabsTrigger>
           <TabsTrigger value="timeline" className="text-xs">
             <Calendar className="size-3.5 mr-1" />
-            Cronograma
+            {t("idpDashboard.tabTimeline")}
           </TabsTrigger>
           <TabsTrigger value="drills" className="text-xs">
             <ClipboardCheck className="size-3.5 mr-1" />
-            Drills
+            {t("idpDashboard.tabDrills")}
           </TabsTrigger>
           <TabsTrigger value="progress" className="text-xs">
             <TrendingUp className="size-3.5 mr-1" />
-            Progreso
+            {t("idpDashboard.tabProgress")}
           </TabsTrigger>
           <TabsTrigger value="checkin" className="text-xs" disabled={!isActive}>
             <Check className="size-3.5 mr-1" />
-            Checkin
+            {t("idpDashboard.tabCheckin")}
           </TabsTrigger>
         </TabsList>
 
@@ -342,7 +343,7 @@ export function IDPDashboard({
                   : "bg-white/5 border-white/10 text-slate-400"
               }`}
             >
-              Todos
+              {t("idpDashboard.filterAll")}
             </button>
             {(plan.goals ?? []).map((g) => (
               <button
@@ -382,7 +383,7 @@ export function IDPDashboard({
         <TabsContent value="progress" className="mt-4">
           {summary && (
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-              <h3 className="text-sm font-medium text-white mb-3">Progreso por dimensión</h3>
+              <h3 className="text-sm font-medium text-white mb-3">{t("idpDashboard.progressByDimension")}</h3>
               <IDPProgressChart summary={summary} />
             </div>
           )}
@@ -397,10 +398,10 @@ export function IDPDashboard({
             onSubmit={(payload) => {
               checkin
                 .mutateAsync({ ...payload, playerId })
-                .then(() => toast.success("Checkin guardado"))
+                .then(() => toast.success(t("idpDashboard.toastCheckinSaved")))
                 .catch((err) =>
-                  toast.error("No se pudo guardar", {
-                    description: err instanceof Error ? err.message : "Error",
+                  toast.error(t("idpDashboard.toastSaveError"), {
+                    description: err instanceof Error ? err.message : t("idpDashboard.error"),
                   }),
                 );
             }}

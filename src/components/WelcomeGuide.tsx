@@ -154,7 +154,7 @@ export default function WelcomeGuide({ playerCount }: WelcomeGuideProps) {
         <button
           onClick={handleDismiss}
           className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Cerrar guía"
+          aria-label={t("welcomeGuide.closeGuide")}
         >
           <X size={14} />
         </button>

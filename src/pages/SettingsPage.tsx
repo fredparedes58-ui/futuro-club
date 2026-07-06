@@ -81,16 +81,17 @@ interface NotifHistoryItem {
   read: boolean;
 }
 
-const NOTIF_TYPE_LABELS: Record<string, string> = {
-  rendimientoBajo: "Rendimiento bajo",
-  inactividad: "Jugador inactivo",
-  limitePlan: "Límite de plan",
-  analisisCompletado: "Análisis completado",
-  scoutInsights: "Scout insight",
-  teamUpdates: "Actualización de equipo",
+const NOTIF_TYPE_LABEL_KEYS: Record<string, string> = {
+  rendimientoBajo: "settingsPage.notifTypeLowPerformance",
+  inactividad: "settingsPage.notifTypeInactivePlayer",
+  limitePlan: "settingsPage.notifTypePlanLimit",
+  analisisCompletado: "settingsPage.notifTypeAnalysisDone",
+  scoutInsights: "settingsPage.notifTypeScoutInsight",
+  teamUpdates: "settingsPage.notifTypeTeamUpdate",
 };
 
 function NotificationHistory() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<NotifHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,7 +114,7 @@ function NotificationHistory() {
     return (
       <div className="flex items-center gap-2 py-3 text-muted-foreground">
         <Loader2 size={12} className="animate-spin" />
-        <span className="text-[10px]">Cargando historial...</span>
+        <span className="text-[10px]">{t("settingsPage.loadingHistory")}</span>
       </div>
     );
   }
@@ -121,7 +122,7 @@ function NotificationHistory() {
   if (items.length === 0) {
     return (
       <div className="py-3">
-        <p className="text-[10px] text-muted-foreground">No hay notificaciones recientes</p>
+        <p className="text-[10px] text-muted-foreground">{t("settingsPage.noRecentNotifications")}</p>
       </div>
     );
   }
@@ -129,7 +130,7 @@ function NotificationHistory() {
   return (
     <div className="space-y-2 pt-3 border-t border-white/5">
       <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-        Últimas notificaciones
+        {t("settingsPage.latestNotifications")}
       </p>
       {items.map(item => (
         <div key={item.id} className="flex items-start gap-2 py-1">
@@ -139,7 +140,7 @@ function NotificationHistory() {
               {item.title}
             </p>
             <p className="text-[9px] text-muted-foreground">
-              {NOTIF_TYPE_LABELS[item.type] ?? item.type} · {new Date(item.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
+              {NOTIF_TYPE_LABEL_KEYS[item.type] ? t(NOTIF_TYPE_LABEL_KEYS[item.type]) : item.type} · {new Date(item.created_at).toLocaleDateString("es-ES", { day: "numeric", month: "short" })}
             </p>
           </div>
         </div>
@@ -345,7 +346,7 @@ const SettingsPage = () => {
       {user && (
         <motion.div variants={item} className="space-y-2">
           <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-            Integraciones
+            {t("settingsPage.integrations")}
           </h2>
           <TelegramConnect />
         </motion.div>
@@ -385,9 +386,9 @@ const SettingsPage = () => {
               {PLAN_LABELS[planState.plan]}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              {planState.playerCount} / {planState.limits.players >= 9999 ? "∞" : planState.limits.players} jugadores
+              {planState.playerCount} / {planState.limits.players >= 9999 ? "∞" : planState.limits.players} {t("settingsPage.playersUnit")}
               {" · "}
-              {planState.analysesUsed} / {planState.limits.analyses >= 9999 ? "∞" : planState.limits.analyses} análisis
+              {planState.analysesUsed} / {planState.limits.analyses >= 9999 ? "∞" : planState.limits.analyses} {t("settingsPage.analysesUnit")}
             </p>
           </div>
           <ChevronRight size={16} className="text-muted-foreground" />
@@ -433,8 +434,8 @@ const SettingsPage = () => {
               { key: "inactividad" as const, label: t("settings.notifInactivity"), desc: t("settings.notifInactivityDesc") },
               { key: "limitePlan" as const, label: t("settings.notifPlanLimit"), desc: t("settings.notifPlanLimitDesc") },
               { key: "analisisCompletado" as const, label: t("settings.notifAnalysisDone"), desc: t("settings.notifAnalysisDoneDesc") },
-              { key: "scoutInsights" as const, label: "Scout Insights", desc: "Notificar nuevos insights de scouting generados" },
-              { key: "teamUpdates" as const, label: "Actualizaciones de Equipo", desc: "Invitaciones, cambios de rol y actividad del equipo" },
+              { key: "scoutInsights" as const, label: "Scout Insights", desc: t("settingsPage.notifScoutInsightsDesc") },
+              { key: "teamUpdates" as const, label: t("settingsPage.notifTeamUpdates"), desc: t("settingsPage.notifTeamUpdatesDesc") },
             ]).map(({ key, label, desc }) => (
               <div
                 key={key}
@@ -539,7 +540,7 @@ const SettingsPage = () => {
 
       {/* RAG Knowledge Base */}
       <motion.div variants={item} className="space-y-2">
-        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Base de Conocimiento (RAG)</h2>
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("settingsPage.knowledgeBaseTitle")}</h2>
         <div className="glass rounded-xl p-4 space-y-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
@@ -548,11 +549,11 @@ const SettingsPage = () => {
             <div className="flex-1">
               <p className="font-display font-semibold text-sm text-foreground">Knowledge Base</p>
               {ragLoading ? (
-                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Consultando...</p>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> {t("settingsPage.querying")}</p>
               ) : ragStats ? (
-                <p className="text-[10px] text-muted-foreground">{ragStats.total} documentos indexados con embeddings</p>
+                <p className="text-[10px] text-muted-foreground">{t("settingsPage.documentsIndexed", { count: ragStats.total })}</p>
               ) : (
-                <p className="text-[10px] text-destructive">No disponible</p>
+                <p className="text-[10px] text-destructive">{t("settingsPage.notAvailable")}</p>
               )}
             </div>
             {ragStats && <Check size={14} className="text-primary" />}
@@ -562,7 +563,7 @@ const SettingsPage = () => {
               {Object.entries(ragStats.byCategory).map(([cat, count]) => (
                 <div key={cat} className="bg-secondary/50 rounded-lg px-3 py-2 text-center">
                   <p className="text-xs font-display font-bold text-foreground">{count}</p>
-                  <p className="text-[9px] text-muted-foreground capitalize">{cat === "drill" ? "Ejercicios" : cat === "scouting" ? "Scouting" : cat === "methodology" ? "Metodología" : cat}</p>
+                  <p className="text-[9px] text-muted-foreground capitalize">{cat === "drill" ? t("settingsPage.categoryDrill") : cat === "scouting" ? t("settingsPage.categoryScouting") : cat === "methodology" ? t("settingsPage.categoryMethodology") : cat}</p>
                 </div>
               ))}
             </div>
@@ -573,7 +574,7 @@ const SettingsPage = () => {
             className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors disabled:opacity-50"
           >
             <RefreshCw size={14} className={ragLoading ? "animate-spin text-primary" : "text-muted-foreground"} />
-            <span className="text-xs font-display text-muted-foreground">Actualizar estado</span>
+            <span className="text-xs font-display text-muted-foreground">{t("settingsPage.refreshStatus")}</span>
           </button>
         </div>
       </motion.div>

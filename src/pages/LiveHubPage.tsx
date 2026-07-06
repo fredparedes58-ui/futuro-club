@@ -16,6 +16,7 @@ import {
   Activity, Square, Video, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
 import VideoUpload from "@/components/VideoUpload";
@@ -32,14 +33,15 @@ interface MatchSummary {
   ended_at: string | null;
 }
 
-const STATUS_META: Record<MatchSummary["status"], { label: string; color: string; Icon: React.ComponentType<{ size?: number; className?: string }> }> = {
-  live:     { label: "EN VIVO",  color: "#22e88c", Icon: Play },
-  paused:   { label: "PAUSADO",  color: "#F59E0B", Icon: Clock },
-  finished: { label: "FINALIZADO", color: "#1A8FFF", Icon: Trophy },
-  aborted:  { label: "CANCELADO", color: "#EF4444", Icon: Square },
+const STATUS_META: Record<MatchSummary["status"], { labelKey: string; color: string; Icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  live:     { labelKey: "liveHubPage.statusLive",     color: "#22e88c", Icon: Play },
+  paused:   { labelKey: "liveHubPage.statusPaused",   color: "#F59E0B", Icon: Clock },
+  finished: { labelKey: "liveHubPage.statusFinished", color: "#1A8FFF", Icon: Trophy },
+  aborted:  { labelKey: "liveHubPage.statusAborted",  color: "#EF4444", Icon: Square },
 };
 
 export default function LiveHubPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [matches, setMatches] = useState<MatchSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,11 +78,11 @@ export default function LiveHubPage() {
         opponentName: opponentName.trim() || undefined,
         videoUrl: videoUrl ?? undefined,
       });
-      if (!id) throw new Error("No se pudo crear");
-      toast.success("⚽ Partido iniciado");
+      if (!id) throw new Error(t("liveHubPage.errorCouldNotCreate"));
+      toast.success(t("liveHubPage.toastMatchStarted"));
       navigate(`/live/${id}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al crear");
+      toast.error(err instanceof Error ? err.message : t("liveHubPage.errorCreating"));
       setCreating(false);
     }
   }
@@ -108,7 +110,7 @@ export default function LiveHubPage() {
               Match-day Live
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Tagging en directo · análisis instant post-pitido
+              {t("liveHubPage.headerSubtitle")}
             </p>
           </div>
           <Activity size={18} className="text-primary" />
@@ -129,13 +131,13 @@ export default function LiveHubPage() {
             </div>
             <div className="flex-1">
               <div className="font-display font-bold text-base text-foreground flex items-center gap-2">
-                Nuevo partido
+                {t("liveHubPage.newMatch")}
                 <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />Killer feature
+                  <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />{t("liveHubPage.killerFeature")}
                 </span>
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Etiqueta eventos en directo · 60s post-pitido tienes 4 reportes
+                {t("liveHubPage.newMatchTagline")}
               </p>
             </div>
             <span className="text-primary text-lg font-bold">→</span>
@@ -147,34 +149,34 @@ export default function LiveHubPage() {
             className="glass rounded-2xl p-4 space-y-3"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-display font-bold text-foreground">Empezar partido</h2>
+              <h2 className="text-sm font-display font-bold text-foreground">{t("liveHubPage.startMatch")}</h2>
               <button onClick={() => setShowForm(false)} className="text-[11px] text-muted-foreground hover:text-foreground">
-                Cancelar
+                {t("liveHubPage.cancel")}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-[10px] font-display text-primary uppercase tracking-wider mb-1 font-bold">
-                  🏠 Local
+                  🏠 {t("liveHubPage.home")}
                 </label>
                 <input
                   type="text"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="ej. VITAS Academy U13"
+                  placeholder={t("liveHubPage.homePlaceholder")}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-primary/30 text-sm focus:border-primary focus:outline-none"
                   maxLength={80}
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-display text-muted-foreground uppercase tracking-wider mb-1 font-bold">
-                  ✈ Rival
+                  ✈ {t("liveHubPage.away")}
                 </label>
                 <input
                   type="text"
                   value={opponentName}
                   onChange={(e) => setOpponentName(e.target.value)}
-                  placeholder="ej. CD Rival U13"
+                  placeholder={t("liveHubPage.awayPlaceholder")}
                   className="w-full px-3 py-2 rounded-lg bg-background border border-border text-sm focus:border-primary focus:outline-none"
                   maxLength={80}
                 />
@@ -187,20 +189,20 @@ export default function LiveHubPage() {
                 onClick={() => setShowVideoUpload(true)}
                 className="w-full py-2.5 rounded-lg border border-dashed border-border text-[11px] font-display text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors flex items-center justify-center gap-2"
               >
-                <Video size={13} /> Adjuntar video del partido
+                <Video size={13} /> {t("liveHubPage.attachMatchVideo")}
                 <span className="text-[8px] px-1 py-0.5 rounded bg-primary/20 text-primary font-bold">PRO</span>
               </button>
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-display text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
-                    <Video size={10} /> Video del partido
+                    <Video size={10} /> {t("liveHubPage.matchVideo")}
                   </label>
                   <button
                     onClick={() => { setShowVideoUpload(false); setVideoUrl(null); }}
                     className="text-[10px] text-muted-foreground hover:text-foreground"
                   >
-                    Quitar
+                    {t("liveHubPage.remove")}
                   </button>
                 </div>
                 {!videoUrl ? (
@@ -208,18 +210,18 @@ export default function LiveHubPage() {
                     onUploadComplete={(cdnUrl) => {
                       if (cdnUrl) {
                         setVideoUrl(cdnUrl);
-                        toast.success("Video subido — se analizará al terminar el partido");
+                        toast.success(t("liveHubPage.toastVideoUploaded"));
                       }
                     }}
                   />
                 ) : (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                     <CheckCircle2 size={14} className="text-green-500 shrink-0" />
-                    <span className="text-xs text-foreground">Video listo — Gemini analizará ambos equipos al terminar</span>
+                    <span className="text-xs text-foreground">{t("liveHubPage.videoReady")}</span>
                   </div>
                 )}
                 <p className="text-[9px] text-muted-foreground">
-                  Al terminar, Gemini analiza el video y enriquece los reportes con datos de AMBOS equipos (local + rival)
+                  {t("liveHubPage.videoAnalysisNote")}
                 </p>
               </div>
             )}
@@ -229,7 +231,7 @@ export default function LiveHubPage() {
               disabled={creating}
               className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {creating ? <><Loader2 size={14} className="animate-spin" /> Creando…</> : <><Play size={14} /> Iniciar partido</>}
+              {creating ? <><Loader2 size={14} className="animate-spin" /> {t("liveHubPage.creating")}</> : <><Play size={14} /> {t("liveHubPage.startMatchButton")}</>}
             </button>
           </motion.div>
         )}
@@ -243,14 +245,14 @@ export default function LiveHubPage() {
 
         {!loading && matches.length === 0 && !showForm && (
           <p className="text-center text-[11px] text-muted-foreground py-6">
-            Aún no has registrado ningún partido. Empieza el primero arriba.
+            {t("liveHubPage.emptyState")}
           </p>
         )}
 
         {!loading && matches.length > 0 && (
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold pt-2">
-              Histórico ({matches.length})
+              {t("liveHubPage.history", { count: matches.length })}
             </div>
             {matches.map((m) => {
               const meta = STATUS_META[m.status];
@@ -271,10 +273,10 @@ export default function LiveHubPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-display font-bold text-foreground truncate">
-                      {m.team_name} {m.opponent_name && <>vs <span className="text-muted-foreground">{m.opponent_name}</span></>}
+                      {m.team_name} {m.opponent_name && <>{t("liveHubPage.vs")} <span className="text-muted-foreground">{m.opponent_name}</span></>}
                     </div>
                     <div className="text-[10px] text-muted-foreground flex items-center gap-2">
-                      <span style={{ color: meta.color }} className="font-bold">{meta.label}</span>
+                      <span style={{ color: meta.color }} className="font-bold">{t(meta.labelKey)}</span>
                       <span>·</span>
                       <span>{fmtDate(m.created_at)}</span>
                       <span>·</span>

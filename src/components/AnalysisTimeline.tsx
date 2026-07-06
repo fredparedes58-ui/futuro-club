@@ -7,6 +7,7 @@
 import { motion } from "framer-motion";
 import { Clock, Brain, Star, TrendingUp, ChevronRight, Loader2, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
@@ -23,12 +24,12 @@ const LEVEL_COLORS: Record<string, string> = {
   desarrollo:  "#8B5CF6",
 };
 
-const LEVEL_LABELS: Record<string, string> = {
-  elite:       "Élite",
-  alto:        "Alto",
-  medio_alto:  "Medio-Alto",
-  medio:       "Medio",
-  desarrollo:  "En Desarrollo",
+const LEVEL_LABEL_KEYS: Record<string, string> = {
+  elite:       "levelElite",
+  alto:        "levelAlto",
+  medio_alto:  "levelMedioAlto",
+  medio:       "levelMedio",
+  desarrollo:  "levelDesarrollo",
 };
 
 function TimelineEntry({
@@ -40,6 +41,7 @@ function TimelineEntry({
   index:    number;
   isLatest: boolean;
 }) {
+  const { t } = useTranslation();
   const report   = analysis.report;
   const estado   = report?.estadoActual;
   const clon     = report?.jugadorReferencia?.bestMatch;
@@ -51,7 +53,7 @@ function TimelineEntry({
   const timeStr  = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
   const levelColor = LEVEL_COLORS[estado?.nivelActual ?? "medio"] ?? "#3B82F6";
-  const levelLabel = LEVEL_LABELS[estado?.nivelActual ?? "medio"] ?? "Medio";
+  const levelLabel = t(`analysisTimeline.${LEVEL_LABEL_KEYS[estado?.nivelActual ?? "medio"] ?? "levelMedio"}`);
 
   return (
     <motion.div
@@ -75,7 +77,7 @@ function TimelineEntry({
             <div className="flex items-center gap-2">
               {isLatest && (
                 <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-primary/20 text-primary uppercase tracking-wider">
-                  Último
+                  {t("analysisTimeline.latest")}
                 </span>
               )}
               <span className="text-xs font-bold text-foreground">{dateStr}</span>
@@ -83,7 +85,7 @@ function TimelineEntry({
             </div>
             {analysis.video_id && (
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                Video: {analysis.video_id.slice(0, 8)}...
+                {t("analysisTimeline.videoLabel")} {analysis.video_id.slice(0, 8)}...
               </p>
             )}
           </div>
@@ -108,7 +110,7 @@ function TimelineEntry({
           <div className="rounded-lg bg-secondary p-2 text-center">
             <Brain size={10} className="mx-auto mb-0.5 text-primary" />
             <p className="text-xs font-bold text-foreground">{Math.round(confianza * 100)}%</p>
-            <p className="text-[8px] text-muted-foreground">Confianza</p>
+            <p className="text-[8px] text-muted-foreground">{t("analysisTimeline.confidence")}</p>
           </div>
 
           {/* VSI delta */}
@@ -127,12 +129,12 @@ function TimelineEntry({
             const dims = Object.entries(estado.dimensiones);
             const top = dims.sort(([, a], [, b]) => b.score - a.score)[0];
             const labels: Record<string, string> = {
-              velocidadDecision:    "Decisión",
-              tecnicaConBalon:      "Técnica",
-              inteligenciaTactica:  "Táctica",
-              capacidadFisica:      "Físico",
-              liderazgoPresencia:   "Liderazgo",
-              eficaciaCompetitiva:  "Eficacia",
+              velocidadDecision:    t("analysisTimeline.dimDecision"),
+              tecnicaConBalon:      t("analysisTimeline.dimTecnica"),
+              inteligenciaTactica:  t("analysisTimeline.dimTactica"),
+              capacidadFisica:      t("analysisTimeline.dimFisico"),
+              liderazgoPresencia:   t("analysisTimeline.dimLiderazgo"),
+              eficaciaCompetitiva:  t("analysisTimeline.dimEficacia"),
             };
             return top ? (
               <div className="rounded-lg bg-secondary p-2 text-center">
@@ -150,7 +152,7 @@ function TimelineEntry({
             <Star size={10} className="text-gold shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-bold text-foreground truncate">
-                Se parece a {clon.nombre}
+                {t("analysisTimeline.resemblesTo", { name: clon.nombre })}
               </p>
               <p className="text-[9px] text-muted-foreground">{clon.posicion} · {clon.club}</p>
             </div>
@@ -161,7 +163,7 @@ function TimelineEntry({
         {/* Objetivo 6 meses */}
         {plan?.objetivo6meses && (
           <p className="text-[10px] text-muted-foreground mt-2 pt-2 border-t border-border line-clamp-1">
-            <span className="text-foreground font-medium">Plan: </span>
+            <span className="text-foreground font-medium">{t("analysisTimeline.planLabel")} </span>
             {plan.objetivo6meses}
           </p>
         )}
@@ -171,6 +173,7 @@ function TimelineEntry({
 }
 
 export default function AnalysisTimeline({ playerId, compact = false }: AnalysisTimelineProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: analyses, isLoading } = useSavedAnalysesV2(playerId);
 
@@ -186,15 +189,15 @@ export default function AnalysisTimeline({ playerId, compact = false }: Analysis
     return (
       <div className="glass rounded-2xl p-6 text-center">
         <Zap size={24} className="mx-auto mb-2 text-primary/40" />
-        <p className="text-sm font-bold text-foreground mb-1">Sin análisis previos</p>
+        <p className="text-sm font-bold text-foreground mb-1">{t("analysisTimeline.emptyTitle")}</p>
         <p className="text-xs text-muted-foreground mb-3">
-          Genera el primer informe de inteligencia
+          {t("analysisTimeline.emptyDescription")}
         </p>
         <button
           onClick={() => navigate(`/players/${playerId}/intelligence`)}
           className="text-xs font-bold text-primary flex items-center gap-1 mx-auto"
         >
-          Ir a VITAS Intelligence <ChevronRight size={12} />
+          {t("analysisTimeline.goToIntelligence")} <ChevronRight size={12} />
         </button>
       </div>
     );
@@ -209,7 +212,7 @@ export default function AnalysisTimeline({ playerId, compact = false }: Analysis
         <div className="flex items-center gap-2">
           <Clock size={12} className="text-primary" />
           <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-            Historial · {analyses.length} {analyses.length === 1 ? "análisis" : "análisis"}
+            {t("analysisTimeline.historyCount", { count: analyses.length })}
           </span>
         </div>
         {compact && analyses.length > 3 && (
@@ -217,7 +220,7 @@ export default function AnalysisTimeline({ playerId, compact = false }: Analysis
             onClick={() => navigate(`/players/${playerId}/intelligence`)}
             className="text-[10px] text-primary flex items-center gap-0.5"
           >
-            Ver todos <ChevronRight size={10} />
+            {t("analysisTimeline.viewAll")} <ChevronRight size={10} />
           </button>
         )}
       </div>

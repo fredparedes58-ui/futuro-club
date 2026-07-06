@@ -7,6 +7,7 @@
  */
 
 import { useRef, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload, Video, X, CheckCircle2, AlertCircle,
@@ -24,19 +25,20 @@ interface VideoUploadProps {
 const ACCEPTED = "video/mp4,video/quicktime,video/x-msvideo,video/webm,video/*";
 const MAX_SIZE_MB = 2048;
 
-const phaseLabel: Record<UploadPhase, string> = {
-  idle: "",
-  hashing: "Verificando si ya subiste este video…",
-  init: "Preparando upload…",
-  uploading: "Subiendo video…",
-  processing: "Procesando en Bunny Stream…",
-  analyzing: "Analizando con IA…",
-  done: "¡Listo!",
-  error: "Error",
-};
-
 export default function VideoUpload({ playerId, onDone, className = "" }: VideoUploadProps) {
+  const { t } = useTranslation();
   const { state, upload, cancel, reset } = useVideoUpload(playerId);
+
+  const phaseLabel: Record<UploadPhase, string> = {
+    idle: "",
+    hashing: t("videoUpload.phaseHashing"),
+    init: t("videoUpload.phaseInit"),
+    uploading: t("videoUpload.phaseUploading"),
+    processing: t("videoUpload.phaseProcessing"),
+    analyzing: t("videoUpload.phaseAnalyzing"),
+    done: t("videoUpload.phaseDone"),
+    error: t("videoUpload.phaseError"),
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [title, setTitle] = useState("");
@@ -51,32 +53,32 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   const handleDuplicate = useCallback(async (dup: DuplicateInfo): Promise<"reuse" | "upload"> => {
     const fecha = dup.dateUploaded
       ? new Date(dup.dateUploaded).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
-      : "fecha desconocida";
-    const tituloPrev = dup.title || "(sin título)";
-    const tieneAnalisis = dup.hasAnalysis ? "\n\n✅ Ese video YA tiene análisis IA generado." : "";
+      : t("videoUpload.dupDateUnknown");
+    const tituloPrev = dup.title || t("videoUpload.dupNoTitle");
+    const tieneAnalisis = dup.hasAnalysis ? t("videoUpload.dupHasAnalysis") : "";
     const msg =
-      `Ya subiste este mismo video anteriormente:\n\n` +
+      t("videoUpload.dupIntro") + `\n\n` +
       `📹 "${tituloPrev}"\n` +
       `📅 ${fecha}` +
       tieneAnalisis +
-      `\n\n¿Quieres reusarlo (ahorras costes de Bunny + IA) o subirlo de nuevo?\n\n` +
-      `Aceptar = Reusar existente\n` +
-      `Cancelar = Subir de nuevo y re-analizar`;
+      `\n\n` + t("videoUpload.dupQuestion") + `\n\n` +
+      t("videoUpload.dupAcceptLine") + `\n` +
+      t("videoUpload.dupCancelLine");
     const wantsReuse = typeof window !== "undefined" && window.confirm(msg);
     return wantsReuse ? "reuse" : "upload";
-  }, []);
+  }, [t]);
 
   const handleFile = useCallback(
     (file: File) => {
       if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        alert(`Archivo muy grande. Máximo ${MAX_SIZE_MB} MB.`);
+        alert(t("videoUpload.fileTooLarge", { max: MAX_SIZE_MB }));
         return;
       }
       upload(file, { title: title || file.name, onDuplicate: handleDuplicate }).then(() => {
         if (state.videoId && onDone) onDone(state.videoId);
       });
     },
-    [upload, title, state.videoId, onDone, handleDuplicate]
+    [upload, title, state.videoId, onDone, handleDuplicate, t]
   );
 
   const onDrop = useCallback(
@@ -117,7 +119,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
           className="flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
         >
           <Camera size={12} />
-          Consejos para grabar mejor video
+          {t("videoUpload.recordingTips")}
         </button>
       )}
 
@@ -125,7 +127,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
       {state.phase === "idle" && (
         <input
           type="text"
-          placeholder="Título del video (opcional)"
+          placeholder={t("videoUpload.titlePlaceholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full px-3 py-2 rounded-lg bg-card border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
@@ -155,10 +157,10 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
             </div>
             <div className="text-center">
               <p className="text-sm font-display font-semibold text-foreground">
-                {dragging ? "Suelta el video aquí" : "Arrastra un video o haz clic"}
+                {dragging ? t("videoUpload.dropHere") : t("videoUpload.dragOrClick")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                MP4, MOV, AVI, WebM · Máximo {MAX_SIZE_MB} MB
+                {t("videoUpload.formatsHint", { max: MAX_SIZE_MB })}
               </p>
             </div>
             <input
@@ -199,7 +201,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
             {state.phase === "hashing" && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground font-display">
-                  <span>Comprobando duplicados</span>
+                  <span>{t("videoUpload.checkingDuplicates")}</span>
                   <span>{state.progress}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-secondary overflow-hidden">
@@ -210,7 +212,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Calculando hash del archivo para evitar re-subidas.
+                  {t("videoUpload.hashingHint")}
                 </p>
               </div>
             )}
@@ -219,7 +221,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
             {(state.phase === "uploading" || state.phase === "init") && (
               <div className="space-y-1">
                 <div className="flex justify-between text-xs text-muted-foreground font-display">
-                  <span>Subiendo archivo</span>
+                  <span>{t("videoUpload.uploadingFile")}</span>
                   <span>{state.progress}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-secondary overflow-hidden">
@@ -238,8 +240,8 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                     </span>
                     <span>
                       {state.etaSeconds > 60
-                        ? `~${Math.ceil(state.etaSeconds / 60)} min restantes`
-                        : `~${state.etaSeconds}s restantes`}
+                        ? t("videoUpload.etaMinutes", { min: Math.ceil(state.etaSeconds / 60) })
+                        : t("videoUpload.etaSeconds", { sec: state.etaSeconds })}
                     </span>
                   </div>
                 )}
@@ -252,7 +254,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                 <div className="flex justify-between text-xs text-muted-foreground font-display">
                   <div className="flex items-center gap-1">
                     <Film size={10} />
-                    <span>Codificando video</span>
+                    <span>{t("videoUpload.encodingVideo")}</span>
                   </div>
                   <span>{state.encodeProgress}%</span>
                 </div>
@@ -264,7 +266,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Bunny Stream está procesando el video. Esto puede tomar 1-3 minutos.
+                  {t("videoUpload.encodingHint")}
                 </p>
               </div>
             )}
@@ -275,10 +277,10 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                 <Zap size={16} className="text-primary animate-pulse" />
                 <div>
                   <p className="text-xs font-display font-semibold text-foreground">
-                    Análisis táctico con IA
+                    {t("videoUpload.tacticalAnalysisTitle")}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Roboflow detecta jugadores → Claude genera informe táctico
+                    {t("videoUpload.tacticalAnalysisDesc")}
                   </p>
                 </div>
               </div>
@@ -298,10 +300,10 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
               <CheckCircle2 size={20} className="text-primary" />
               <div>
                 <p className="text-sm font-display font-semibold text-foreground">
-                  Video subido y analizado
+                  {t("videoUpload.uploadedAnalyzed")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  ID: {state.videoId}
+                  {t("videoUpload.idLabel")} {state.videoId}
                 </p>
               </div>
             </div>
@@ -330,7 +332,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-display transition-colors"
             >
               <RefreshCw size={12} />
-              Subir otro video
+              {t("videoUpload.uploadAnother")}
             </button>
           </motion.div>
         )}
@@ -347,17 +349,17 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
               <AlertCircle size={18} className="text-destructive shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-display font-semibold text-foreground">
-                  {state.phase2Pending ? "Módulo disponible en Fase 2" : "Error al subir"}
+                  {state.phase2Pending ? t("videoUpload.phase2ModuleTitle") : t("videoUpload.uploadErrorTitle")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                   {state.phase2Pending
-                    ? "Configura BUNNY_STREAM_LIBRARY_ID y BUNNY_STREAM_API_KEY en Vercel para activar uploads reales."
+                    ? t("videoUpload.phase2ConfigHint")
                     : state.error}
                 </p>
               </div>
               {state.phase2Pending && (
                 <span className="ml-auto text-[9px] font-display font-bold uppercase tracking-wider px-2 py-1 rounded bg-primary/10 text-primary shrink-0">
-                  FASE 2
+                  {t("videoUpload.phase2Badge")}
                 </span>
               )}
             </div>
@@ -366,7 +368,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-display transition-colors"
             >
               <RefreshCw size={12} />
-              Reintentar
+              {t("videoUpload.retry")}
             </button>
           </motion.div>
         )}
@@ -376,7 +378,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
       {state.phase === "idle" && (
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-display">
           <Video size={10} />
-          <span>Powered by Bunny Stream · Análisis Roboflow + Claude</span>
+          <span>{t("videoUpload.poweredBy")}</span>
         </div>
       )}
     </div>

@@ -205,6 +205,7 @@ function WireframeBall({ size = 200, style, delay = 0 }: {
 // ─── Analytics Card ───────────────────────────────────────────────────────────
 
 function AnalyticsCard() {
+  const { t } = useTranslation();
   return (
     <motion.div
       animate={{ y: [0, -14, 0], rotate: [2.5, 0.5, 2.5] }}
@@ -234,7 +235,7 @@ function AnalyticsCard() {
           {Array.from({length:18}).map((_,i)=><div key={i} style={{ border:"0.5px solid rgba(34,211,238,0.4)" }} />)}
         </div>
       </div>
-      {[["Veloc.", 84,"#22d3ee"],["Técnica", 91,"#a78bfa"],["Defensa", 73,"#34d399"]].map(([l,v,c])=>(
+      {[[t("loginPage.statSpeed"), 84,"#22d3ee"],[t("loginPage.statTechnique"), 91,"#a78bfa"],[t("loginPage.statDefense"), 73,"#34d399"]].map(([l,v,c])=>(
         <div key={l as string} style={{ marginBottom:5 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:2 }}>
             <span style={{ fontSize:7.5, color:"rgba(255,255,255,0.38)" }}>{l}</span>

@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export function CreateListingForm({ onCreated }: Props) {
+  const { t } = useTranslation();
   const players = useMemo(() => PlayerService.getAll(), []);
   const createListing = useCreateListing();
 
@@ -52,7 +54,7 @@ export function CreateListingForm({ onCreated }: Props) {
 
   async function handleSubmit() {
     if (!selectedPlayer) {
-      toast.error("Selecciona un jugador.");
+      toast.error(t("createListingForm.selectPlayerError"));
       return;
     }
 
@@ -88,10 +90,10 @@ export function CreateListingForm({ onCreated }: Props) {
         status: activateNow ? "active" : "draft",
         expiresInDays,
       });
-      toast.success("Listing creado");
+      toast.success(t("createListingForm.listingCreated"));
       onCreated(listing.id);
     } catch (err) {
-      toast.error("No se pudo crear el listing", {
+      toast.error(t("createListingForm.listingCreateError"), {
         description: err instanceof Error ? err.message : "Error",
       });
     }
@@ -102,11 +104,11 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Player selector */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Jugador a publicar
+          {t("createListingForm.playerToPublish")}
         </label>
         {players.length === 0 ? (
           <div className="text-xs text-amber-300 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-            No tienes jugadores. <Button variant="link" className="text-amber-200 underline px-1 h-auto" onClick={() => (window.location.href = "/players/new")}>Crear jugador</Button>
+            {t("createListingForm.noPlayers")} <Button variant="link" className="text-amber-200 underline px-1 h-auto" onClick={() => (window.location.href = "/players/new")}>{t("createListingForm.createPlayer")}</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
@@ -124,7 +126,7 @@ export function CreateListingForm({ onCreated }: Props) {
                 <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5">
                   <span>{(p as unknown as { position?: string }).position ?? "?"}</span>
                   <span>·</span>
-                  <span>{(p as unknown as { age?: number }).age ?? "?"}a</span>
+                  <span>{t("createListingForm.ageYears", { age: (p as unknown as { age?: number }).age ?? "?" })}</span>
                   {typeof (p as unknown as { vsi?: number }).vsi === "number" && (
                     <>
                       <span>·</span>
@@ -141,7 +143,7 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Listing type */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Tipo de operación
+          {t("createListingForm.operationType")}
         </label>
         <div className="flex flex-wrap gap-2">
           {LISTING_TYPES.map((t) => (
@@ -163,7 +165,7 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Publisher role */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Publicado por
+          {t("createListingForm.publishedBy")}
         </label>
         <div className="flex flex-wrap gap-2">
           {PUBLISHER_ROLES.map((r) => (
@@ -185,14 +187,14 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Price + accepts offers */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Precio (€) — dejar vacío para "negociable"
+          {t("createListingForm.priceLabel")}
         </label>
         <div className="flex items-center gap-3">
           <Input
             type="number"
             value={askingPriceEur}
             onChange={(e) => setAskingPriceEur(e.target.value)}
-            placeholder="ej. 500000"
+            placeholder={t("createListingForm.pricePlaceholder")}
             className="bg-white/[0.02] border-white/10 max-w-[180px]"
           />
           <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
@@ -202,7 +204,7 @@ export function CreateListingForm({ onCreated }: Props) {
               onChange={(e) => setAcceptsOffers(e.target.checked)}
               className="accent-cyan-500"
             />
-            Acepta ofertas
+            {t("createListingForm.acceptsOffers")}
           </label>
         </div>
       </section>
@@ -210,12 +212,12 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Description */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Descripción
+          {t("createListingForm.description")}
         </label>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="Punto fuerte, estilo, contexto del club, motivo de la operación…"
+          placeholder={t("createListingForm.descriptionPlaceholder")}
           rows={3}
           className="bg-white/[0.02] border-white/10 text-sm"
         />
@@ -224,12 +226,12 @@ export function CreateListingForm({ onCreated }: Props) {
       {/* Tags */}
       <section>
         <label className="text-xs font-medium text-slate-300 mb-2 block">
-          Tags (separadas por coma, max 15)
+          {t("createListingForm.tagsLabel")}
         </label>
         <Input
           value={tagsInput}
           onChange={(e) => setTagsInput(e.target.value)}
-          placeholder="goleador, líder, zurdo"
+          placeholder={t("createListingForm.tagsPlaceholder")}
           className="bg-white/[0.02] border-white/10"
         />
         {tagsInput && (
@@ -252,7 +254,7 @@ export function CreateListingForm({ onCreated }: Props) {
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-medium text-slate-300 mb-2 block">
-            Visibilidad
+            {t("createListingForm.visibility")}
           </label>
           <div className="flex gap-2">
             {VISIBILITY_LEVELS.map((v) => (
@@ -265,14 +267,14 @@ export function CreateListingForm({ onCreated }: Props) {
                     : "bg-white/[0.02] border-white/10 text-slate-400"
                 }`}
               >
-                {v === "public" ? "Público" : "Privado"}
+                {v === "public" ? t("createListingForm.visibilityPublic") : t("createListingForm.visibilityPrivate")}
               </button>
             ))}
           </div>
         </div>
         <div>
           <label className="text-xs font-medium text-slate-300 mb-2 block">
-            Expira en (días)
+            {t("createListingForm.expiresInDays")}
           </label>
           <Input
             type="number"
@@ -292,7 +294,7 @@ export function CreateListingForm({ onCreated }: Props) {
             onChange={(e) => setActivateNow(e.target.checked)}
             className="accent-cyan-500"
           />
-          Publicar ahora (si no, queda como borrador)
+          {t("createListingForm.publishNow")}
         </label>
       </section>
 
@@ -308,7 +310,7 @@ export function CreateListingForm({ onCreated }: Props) {
         ) : (
           <Sparkles className="size-4 mr-2" />
         )}
-        {activateNow ? "Publicar en el marketplace" : "Guardar como borrador"}
+        {activateNow ? t("createListingForm.publishToMarketplace") : t("createListingForm.saveAsDraft")}
       </Button>
     </div>
   );

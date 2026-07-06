@@ -7,6 +7,7 @@
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { ShieldAlert, TrendingUp, ChevronRight, Euro } from "lucide-react";
 import { PlayerService } from "@/services/real/playerService";
@@ -25,6 +26,7 @@ const LEVEL_ORDER: RiskLevel[] = ["critical", "high", "moderate", "low"];
 
 export function RetentionRadarCard() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { assessments, buckets, roi } = useMemo(() => {
     const players = PlayerService.getAll();
@@ -32,16 +34,16 @@ export function RetentionRadarCard() {
       estimateDropoutRisk(String((p as { id: string }).id)),
     );
     const nameById = new Map(
-      players.map((p) => [String((p as { id: string }).id), String((p as { name?: string }).name ?? "Jugador")]),
+      players.map((p) => [String((p as { id: string }).id), String((p as { name?: string }).name ?? t("retentionRadarCard.defaultPlayerName"))]),
     );
     const b = bucketRisk(list);
     const r = computeRetentionROI({ playersAtRisk: b.atRisk });
     // Adjunta nombre + ordena por riesgo desc
     const withNames = list
-      .map((a) => ({ ...a, name: nameById.get(a.playerId) ?? "Jugador" }))
+      .map((a) => ({ ...a, name: nameById.get(a.playerId) ?? t("retentionRadarCard.defaultPlayerName") }))
       .sort((x, y) => y.riskScore - x.riskScore);
     return { assessments: withNames, buckets: b, roi: r };
-  }, []);
+  }, [t]);
 
   const topAtRisk = assessments.filter((a) => a.riskLevel === "high" || a.riskLevel === "critical").slice(0, 5);
 
@@ -57,8 +59,8 @@ export function RetentionRadarCard() {
           <ShieldAlert size={16} className="text-rose-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display font-semibold text-sm text-foreground">Radar de Retención</h2>
-          <p className="text-[10px] text-muted-foreground">Riesgo de abandono de la plantilla · este mes</p>
+          <h2 className="font-display font-semibold text-sm text-foreground">{t("retentionRadarCard.title")}</h2>
+          <p className="text-[10px] text-muted-foreground">{t("retentionRadarCard.subtitle")}</p>
         </div>
         <span className="text-2xl font-display font-bold text-rose-400 leading-none">{buckets.atRisk}</span>
       </div>
@@ -80,7 +82,7 @@ export function RetentionRadarCard() {
       {topAtRisk.length > 0 ? (
         <div className="space-y-1.5">
           <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground">
-            {buckets.atRisk} jugador{buckets.atRisk === 1 ? "" : "es"} en riesgo este mes
+            {t("retentionRadarCard.playersAtRiskThisMonth", { count: buckets.atRisk })}
           </p>
           <div className="glass rounded-lg divide-y divide-white/5">
             {topAtRisk.map((a) => (
@@ -102,7 +104,7 @@ export function RetentionRadarCard() {
         </div>
       ) : (
         <p className="text-xs text-muted-foreground text-center py-2">
-          Ningún jugador en riesgo alto ahora mismo 🟢
+          {t("retentionRadarCard.noHighRiskPlayers")}
         </p>
       )}
 
@@ -118,15 +120,15 @@ export function RetentionRadarCard() {
             <p className="font-display font-bold text-sm text-foreground flex items-center justify-center gap-0.5">
               <TrendingUp size={11} className="text-emerald-400" /> {roi.roiMultiple.toFixed(1)}×
             </p>
-            <p className="text-[9px] text-muted-foreground">retorno</p>
+            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiReturnLabel")}</p>
           </div>
           <div className="text-center">
             <p className="font-display font-bold text-sm text-foreground">{eur(roi.revenueSaved)}</p>
-            <p className="text-[9px] text-muted-foreground">recuperado/año</p>
+            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiRecoveredLabel")}</p>
           </div>
           <div className="text-center">
             <p className="font-display font-bold text-sm text-foreground">{eur(roi.vitasAnnualCost)}</p>
-            <p className="text-[9px] text-muted-foreground">coste VITAS/año</p>
+            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiCostLabel")}</p>
           </div>
         </div>
       </div>
@@ -136,7 +138,7 @@ export function RetentionRadarCard() {
         onClick={() => navigate("/wellbeing")}
         className="w-full flex items-center justify-center gap-1.5 text-xs font-display text-primary hover:underline"
       >
-        Ver detalle de bienestar y planes de intervención
+        {t("retentionRadarCard.ctaWellbeingDetail")}
         <ChevronRight size={13} />
       </button>
     </motion.div>

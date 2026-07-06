@@ -172,7 +172,7 @@ const SoloDrill = () => {
       }
 
       if (!res.ok || !data.success || !data.report) {
-        throw new Error(data.error ?? "Error en el pipeline");
+        throw new Error(data.error ?? t("soloDrill.pipelineError"));
       }
 
       setSessionReport(data.report);
@@ -394,7 +394,7 @@ const SoloDrill = () => {
                   <button
                     onClick={() => openPanel(player.id)}
                     className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    title="Nuevo drill"
+                    title={t("soloDrill.newDrillTitle")}
                   >
                     <Camera size={12} />
                   </button>
@@ -408,7 +408,7 @@ const SoloDrill = () => {
                   <button
                     onClick={() => navigate(`/players/${player.id}/role-profile`)}
                     className="p-1.5 rounded-lg bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                    title="Perfil de rol"
+                    title={t("soloDrill.roleProfileTitle")}
                   >
                     <Target size={12} />
                   </button>

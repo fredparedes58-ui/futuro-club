@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -158,6 +159,7 @@ type SortKey = "composite" | "name" | "age" | "scanning";
 
 export default function BehavioralOverviewPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [players, setPlayers] = useState<Player[]>([]);
   const [query, setQuery] = useState("");
   const [archetypeFilter, setArchetypeFilter] = useState<Archetype | "all">("all");
@@ -248,10 +250,10 @@ export default function BehavioralOverviewPage() {
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-display font-bold text-base text-foreground">
-                Perfil Mental
+                {t("behavioralOverviewPage.title")}
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                Perfil mental del equipo · {enriched.length} jugadores analizados
+                {t("behavioralOverviewPage.subtitle", { count: enriched.length })}
               </p>
             </div>
           </div>
@@ -267,7 +269,7 @@ export default function BehavioralOverviewPage() {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar por nombre o posición…"
+                  placeholder={t("behavioralOverviewPage.searchPlaceholder")}
                   className="w-full pl-8 pr-3 py-1.5 bg-secondary/40 rounded-lg text-xs border border-border focus:border-primary focus:outline-none"
                 />
               </div>
@@ -281,7 +283,7 @@ export default function BehavioralOverviewPage() {
                       : "bg-secondary text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Todos ({enriched.length})
+                  {t("behavioralOverviewPage.filterAll", { count: enriched.length })}
                 </button>
                 {ALL_ARCHETYPES.map((a) => {
                   const meta = ARCHETYPE_META[a];
@@ -309,7 +311,7 @@ export default function BehavioralOverviewPage() {
                   );
                 })}
                 <span className="ml-auto text-[10px] text-muted-foreground">
-                  Ordenar:
+                  {t("behavioralOverviewPage.sortLabel")}
                 </span>
                 {(["composite", "scanning", "name", "age"] as SortKey[]).map((k) => (
                   <button
@@ -326,8 +328,8 @@ export default function BehavioralOverviewPage() {
                       : k === "scanning"
                       ? "Scan IQ"
                       : k === "name"
-                      ? "Nombre"
-                      : "Edad"}
+                      ? t("behavioralOverviewPage.sortName")
+                      : t("behavioralOverviewPage.sortAge")}
                   </button>
                 ))}
               </div>
@@ -344,25 +346,25 @@ export default function BehavioralOverviewPage() {
             {/* Team summary */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <StatCard
-                label="Composite promedio"
+                label={t("behavioralOverviewPage.statAvgComposite")}
                 value={teamStats.avg.toString()}
                 sub="/ 100"
                 color="from-purple-500 to-indigo-600"
               />
               {teamStats.topArchetype && (
                 <StatCard
-                  label="Arquetipo dominante"
+                  label={t("behavioralOverviewPage.statDominantArchetype")}
                   value={ARCHETYPE_META[teamStats.topArchetype].label}
-                  sub={`${archetypeCounts[teamStats.topArchetype]} jugadores`}
+                  sub={t("behavioralOverviewPage.statPlayersCount", { count: archetypeCounts[teamStats.topArchetype] })}
                   color="from-amber-500 to-orange-500"
                   icon={ARCHETYPE_META[teamStats.topArchetype].icon}
                 />
               )}
               {teamStats.topPlayer && (
                 <StatCard
-                  label="Top mental"
+                  label={t("behavioralOverviewPage.statTopMental")}
                   value={teamStats.topPlayer.player.name}
-                  sub={`${teamStats.topPlayer.scores.mentalComposite} composite`}
+                  sub={t("behavioralOverviewPage.statCompositeSuffix", { value: teamStats.topPlayer.scores.mentalComposite })}
                   color="from-emerald-500 to-teal-500"
                   icon={Sparkles}
                 />
@@ -386,11 +388,11 @@ export default function BehavioralOverviewPage() {
                     Scanning Intelligence
                   </h3>
                   <p className="text-[11px] text-muted-foreground">
-                    Informe completo de escaneo previo a recepción — timeline por jugada, histograma y benchmark por edad
+                    {t("behavioralOverviewPage.scanningCardDesc")}
                   </p>
                 </div>
                 <span className="text-[11px] text-pink-500 font-display font-semibold whitespace-nowrap group-hover:translate-x-1 transition-transform">
-                  Abrir informe →
+                  {t("behavioralOverviewPage.openReport")}
                 </span>
               </button>
             )}
@@ -399,7 +401,7 @@ export default function BehavioralOverviewPage() {
             {filtered.length === 0 ? (
               <div className="glass rounded-xl p-6 text-center">
                 <p className="text-sm text-muted-foreground">
-                  Ningún jugador coincide con los filtros aplicados.
+                  {t("behavioralOverviewPage.noMatches")}
                 </p>
               </div>
             ) : (
@@ -434,7 +436,7 @@ export default function BehavioralOverviewPage() {
             <div className="flex justify-end mb-2">
               <button
                 onClick={() => setShareEntry(null)}
-                aria-label="Cerrar"
+                aria-label={t("behavioralOverviewPage.close")}
                 className="p-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors"
               >
                 <X size={16} />
@@ -509,6 +511,7 @@ function PlayerCard({
   onOpen: () => void;
   onShare: () => void;
 }) {
+  const { t } = useTranslation();
   const meta = ARCHETYPE_META[entry.scores.archetype];
   const Icon = meta.icon;
   const composite = entry.scores.mentalComposite;
@@ -517,13 +520,13 @@ function PlayerCard({
 
   // Top 2 strengths (highest dimensions)
   const dimensions = [
-    { label: "Decisión", value: entry.scores.decisionSpeed },
-    { label: "Scan", value: entry.scores.scanningIntelligence },
-    { label: "Resiliencia", value: entry.scores.resilience },
-    { label: "Clutch", value: entry.scores.clutchFactor },
-    { label: "Liderazgo", value: entry.scores.leadership },
-    { label: "Resistencia mental", value: entry.scores.mentalFatigue },
-    { label: "Creatividad", value: entry.scores.unpredictability },
+    { label: t("behavioralOverviewPage.dimDecision"), value: entry.scores.decisionSpeed },
+    { label: t("behavioralOverviewPage.dimScan"), value: entry.scores.scanningIntelligence },
+    { label: t("behavioralOverviewPage.dimResilience"), value: entry.scores.resilience },
+    { label: t("behavioralOverviewPage.dimClutch"), value: entry.scores.clutchFactor },
+    { label: t("behavioralOverviewPage.dimLeadership"), value: entry.scores.leadership },
+    { label: t("behavioralOverviewPage.dimMentalEndurance"), value: entry.scores.mentalFatigue },
+    { label: t("behavioralOverviewPage.dimCreativity"), value: entry.scores.unpredictability },
   ];
   const strengths = [...dimensions].sort((a, b) => b.value - a.value).slice(0, 2);
 
@@ -572,7 +575,7 @@ function PlayerCard({
         <span
           role="button"
           tabIndex={0}
-          aria-label={`Compartir ADN Mental de ${entry.player.name}`}
+          aria-label={t("behavioralOverviewPage.shareAria", { name: entry.player.name })}
           onClick={(e) => { e.stopPropagation(); onShare(); }}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); onShare(); } }}
           className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
@@ -588,7 +591,7 @@ function PlayerCard({
       >
         <Icon size={11} />
         <span className="font-bold">{meta.label}</span>
-        <span className="text-muted-foreground/80 hidden sm:inline">· {meta.description}</span>
+        <span className="text-muted-foreground/80 hidden sm:inline">· {t(`behavioralOverviewPage.archetypeDesc.${entry.scores.archetype}`)}</span>
       </div>
 
       {/* Mini strengths */}
@@ -613,13 +616,14 @@ function PlayerCard({
       </div>
 
       <p className="text-[9px] text-primary/80 mt-2 group-hover:text-primary transition-colors">
-        Ver perfil mental completo →
+        {t("behavioralOverviewPage.viewFullProfile")}
       </p>
     </motion.button>
   );
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto border border-dashed border-border space-y-4">
       <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-purple-500/20 to-indigo-600/20 flex items-center justify-center">
@@ -627,19 +631,17 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       </div>
       <div>
         <h2 className="text-lg font-display font-bold text-foreground">
-          Sin jugadores aún
+          {t("behavioralOverviewPage.emptyTitle")}
         </h2>
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-md mx-auto">
-          El módulo de Behavioral Profiling analiza 7 dimensiones mentales por jugador (decisión, scan, resiliencia,
-          clutch, liderazgo, resistencia y creatividad) y los clasifica en 6 arquetipos. Necesitas jugadores en el
-          equipo para verlo en acción.
+          {t("behavioralOverviewPage.emptyBody")}
         </p>
       </div>
       <button
         onClick={onCreate}
         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all"
       >
-        Crear primer jugador
+        {t("behavioralOverviewPage.createFirstPlayer")}
       </button>
     </div>
   );

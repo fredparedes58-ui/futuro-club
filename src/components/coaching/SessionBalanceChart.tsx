@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { SessionBalance } from "@/lib/shared/sessionTypes";
 
 interface Props {
@@ -16,13 +17,6 @@ interface Props {
 }
 
 const CATEGORIES = ["technical", "tactical", "physical", "game"] as const;
-const LABELS: Record<string, string> = {
-  technical: "Técnica",
-  tactical: "Táctica",
-  physical: "Físico",
-  game: "Juego",
-  warmupCooldown: "Entrada/Salida",
-};
 const COLORS = {
   technical: "#3b82f6",
   tactical: "#8b5cf6",
@@ -32,6 +26,16 @@ const COLORS = {
 };
 
 export default function SessionBalanceChart({ balance, showRadar }: Props) {
+  const { t } = useTranslation();
+
+  const LABELS: Record<string, string> = {
+    technical: t("sessionBalanceChart.technical"),
+    tactical: t("sessionBalanceChart.tactical"),
+    physical: t("sessionBalanceChart.physical"),
+    game: t("sessionBalanceChart.game"),
+    warmupCooldown: t("sessionBalanceChart.warmupCooldown"),
+  };
+
   // Pie data
   const pieData = [...CATEGORIES, "warmupCooldown" as const].map(key => ({
     name: LABELS[key],
@@ -50,7 +54,7 @@ export default function SessionBalanceChart({ balance, showRadar }: Props) {
     <div className="glass rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Balance de Sesión
+          {t("sessionBalanceChart.title")}
         </span>
         <span className="text-lg font-black font-mono text-foreground">
           {balance.overallScore}<span className="text-xs text-muted-foreground font-normal">/100</span>
@@ -129,7 +133,7 @@ export default function SessionBalanceChart({ balance, showRadar }: Props) {
 
       {/* Ideal balance label */}
       <div className="text-[10px] text-muted-foreground text-center">
-        Balance ideal ({balance.ideal.label}): {CATEGORIES.map(k =>
+        {t("sessionBalanceChart.idealBalance", { label: balance.ideal.label })}: {CATEGORIES.map(k =>
           `${LABELS[k]} ${balance.ideal[k]}%`
         ).join(" · ")}
       </div>

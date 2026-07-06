@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Users, Globe, AlertCircle } from "lucide-react";
 import { getAuthHeaders } from "@/lib/apiAuth";
@@ -36,16 +37,10 @@ interface Props {
   variant?: "compact" | "full";
 }
 
-const METRIC_LABELS: Record<string, string> = {
-  speed: "Velocidad",
-  technique: "Técnica",
-  vision: "Visión",
-  stamina: "Resistencia",
-  shooting: "Tiro",
-  defending: "Defensa",
-};
+const METRIC_KEYS = ["speed", "technique", "vision", "stamina", "shooting", "defending"] as const;
 
 export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
+  const { t } = useTranslation();
   const [data, setData] = useState<BenchmarkResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +71,7 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
     return (
       <div className="flex items-center gap-2 py-3 justify-center">
         <Loader2 size={12} className="animate-spin text-muted-foreground" />
-        <span className="text-[11px] text-muted-foreground">Comparando vs red VITAS…</span>
+        <span className="text-[11px] text-muted-foreground">{t("peerBenchmark.comparing")}</span>
       </div>
     );
   }
@@ -91,10 +86,10 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
         <Globe size={12} className="text-muted-foreground shrink-0 mt-0.5" />
         <div>
           <p className="text-[11px] font-display font-bold text-foreground">
-            Benchmark cross-club
+            {t("peerBenchmark.crossClubBenchmark")}
           </p>
           <p className="text-[10px] text-muted-foreground leading-relaxed">
-            {data.message ?? `Solo ${data.peerCount} jugadores comparables. Cuando más academias usen VITAS, más fiable será.`}
+            {data.message ?? t("peerBenchmark.insufficientData", { count: data.peerCount })}
           </p>
         </div>
       </div>
@@ -110,7 +105,7 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
         <div className="flex items-center gap-1.5">
           <Globe size={11} className="text-primary" />
           <span className="text-[10px] uppercase tracking-wider text-primary font-bold">
-            Cross-club benchmark
+            {t("peerBenchmark.crossClubBenchmarkLabel")}
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
@@ -121,8 +116,8 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
       </div>
 
       <div className="text-[10px] text-muted-foreground">
-        Estrato: <span className="text-foreground">{data.stratum.position}</span> ·
-        edad <span className="text-foreground">{data.stratum.ageMin}-{data.stratum.ageMax}</span>
+        {t("peerBenchmark.stratum")}: <span className="text-foreground">{data.stratum.position}</span> ·
+        {" "}{t("peerBenchmark.age")} <span className="text-foreground">{data.stratum.ageMin}-{data.stratum.ageMax}</span>
         {data.stratum.phvCategory && <> · PHV <span className="text-foreground">{data.stratum.phvCategory}</span></>}
       </div>
 
@@ -136,7 +131,7 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
           <BenchmarkBar stats={data.vsi} max={100} />
           <div className="text-[9px] text-muted-foreground mt-1.5 flex justify-between">
             <span>P25: <span className="text-foreground">{data.vsi.p25}</span></span>
-            <span>media: <span className="text-foreground">{data.vsi.mean}</span></span>
+            <span>{t("peerBenchmark.mean")}: <span className="text-foreground">{data.vsi.mean}</span></span>
             <span>P75: <span className="text-foreground">{data.vsi.p75}</span></span>
             <span>P90: <span className="text-foreground">{data.vsi.p90}</span></span>
           </div>
@@ -146,13 +141,13 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
       {/* Por métrica · solo si full y datos */}
       {variant === "full" && data.byMetric && (
         <div className="space-y-1.5">
-          {Object.entries(METRIC_LABELS).map(([key, label]) => {
+          {METRIC_KEYS.map((key) => {
             const m = data.byMetric?.[key];
             if (!m || m.percentile === null) return null;
             return (
               <div key={key} className="flex items-center gap-2">
                 <span className="w-16 shrink-0 text-[10px] text-muted-foreground font-display font-bold uppercase tracking-wider">
-                  {label}
+                  {t(`peerBenchmark.metric.${key}`)}
                 </span>
                 <div className="flex-1 min-w-0">
                   <BenchmarkBar stats={m} max={100} small />
@@ -177,6 +172,7 @@ export default function PeerBenchmark({ playerId, variant = "full" }: Props) {
 // ─── BenchmarkBar ─────────────────────────────────────────────────
 
 function BenchmarkBar({ stats, max, small }: { stats: MetricStats; max: number; small?: boolean }) {
+  const { t } = useTranslation();
   const pct = (v: number) => Math.max(0, Math.min(100, (v / max) * 100));
   return (
     <div className={`relative ${small ? "h-2" : "h-3"} rounded-full bg-secondary/40 overflow-hidden`}>
@@ -196,7 +192,7 @@ function BenchmarkBar({ stats, max, small }: { stats: MetricStats; max: number; 
         animate={{ left: `calc(${pct(stats.player)}% - ${small ? 4 : 6}px)` }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         className={`absolute top-1/2 -translate-y-1/2 ${small ? "w-2 h-2" : "w-3 h-3"} rounded-full bg-primary ring-2 ring-background`}
-        title={`Jugador: ${stats.player}`}
+        title={t("peerBenchmark.playerValue", { value: stats.player })}
       />
     </div>
   );

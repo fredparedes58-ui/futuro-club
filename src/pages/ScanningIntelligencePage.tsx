@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, Search, Trophy, Upload, Cpu, Video as VideoIcon, Wand2 } from "lucide-react";
@@ -42,14 +43,15 @@ function generateScanIQ(playerId: string): number {
   return Math.round(40 + rng() * 55);
 }
 
-function tierFor(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: "Élite", color: "#10b981" };
-  if (score >= 65) return { label: "Profesional", color: "#3b82f6" };
-  if (score >= 50) return { label: "Regional", color: "#f59e0b" };
-  return { label: "Base", color: "#ef4444" };
+function tierFor(score: number): { labelKey: string; color: string } {
+  if (score >= 80) return { labelKey: "scanningIntelligencePage.tierElite", color: "#10b981" };
+  if (score >= 65) return { labelKey: "scanningIntelligencePage.tierProfessional", color: "#3b82f6" };
+  if (score >= 50) return { labelKey: "scanningIntelligencePage.tierRegional", color: "#f59e0b" };
+  return { labelKey: "scanningIntelligencePage.tierBase", color: "#ef4444" };
 }
 
 export default function ScanningIntelligencePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [players, setPlayers] = useState<Player[]>([]);
@@ -132,35 +134,42 @@ export default function ScanningIntelligencePage() {
               Scanning
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              Escaneo previo a la recepción del balón · {ranked.length}{" "}
-              {ranked.length === 1 ? "jugador analizado" : "jugadores analizados"}
+              {t("scanningIntelligencePage.headerSubtitle")} · {ranked.length}{" "}
+              {ranked.length === 1
+                ? t("scanningIntelligencePage.playerAnalyzedSingular")
+                : t("scanningIntelligencePage.playerAnalyzedPlural")}
             </p>
           </div>
           <button
             onClick={() => {
               const target = focus?.player ?? players[0];
               if (!target) {
-                toast.error("Crea un jugador primero.");
+                toast.error(t("scanningIntelligencePage.createPlayerFirst"));
                 return;
               }
               const r = ScanningVideoAnalyses.seedDemo(target.id, target.name);
               setLatestAnalysis(r);
               setVersion((v) => v + 1);
-              toast.success(`Scan IQ de demo cargado para ${target.name} (${r.scanIQ}/100)`);
+              toast.success(
+                t("scanningIntelligencePage.demoLoaded", {
+                  name: target.name,
+                  scanIQ: r.scanIQ,
+                }),
+              );
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pink-500/40 text-pink-400 text-xs font-display font-semibold hover:bg-pink-500/10 transition-all"
-            title="Ver el Scan IQ con datos de ejemplo (sin subir vídeo)"
+            title={t("scanningIntelligencePage.demoButtonTitle")}
           >
             <Wand2 size={14} />
-            Datos de demo
+            {t("scanningIntelligencePage.demoData")}
           </button>
           <button
             onClick={() => setUploadOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
-            title="Sube un video y analiza su scanning"
+            title={t("scanningIntelligencePage.uploadVideoTitle")}
           >
             <Upload size={14} />
-            Subir video
+            {t("scanningIntelligencePage.uploadVideo")}
           </button>
           <button
             onClick={() => {
@@ -169,10 +178,10 @@ export default function ScanningIntelligencePage() {
             }}
             disabled={!focus}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Analiza el scanning del jugador desde un video"
+            title={t("scanningIntelligencePage.analyzeVideoTitle")}
           >
             <Cpu size={14} />
-            Analizar video
+            {t("scanningIntelligencePage.analyzeVideo")}
           </button>
         </div>
       </header>
@@ -185,26 +194,26 @@ export default function ScanningIntelligencePage() {
             {/* Team stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
               <TeamStat
-                label="Scan IQ promedio"
+                label={t("scanningIntelligencePage.statAvgScanIQ")}
                 value={teamAvg.toString()}
                 sub="/ 100"
                 color="from-pink-500 to-fuchsia-600"
               />
               <TeamStat
-                label="Jugadores élite"
+                label={t("scanningIntelligencePage.statElitePlayers")}
                 value={eliteCount.toString()}
                 sub="Scan IQ ≥ 80"
                 color="from-emerald-500 to-teal-600"
                 icon={<Trophy size={14} className="text-white" />}
               />
               <TeamStat
-                label="Por mejorar"
+                label={t("scanningIntelligencePage.statToImprove")}
                 value={underTwoCount.toString()}
                 sub="Scan IQ < 50"
                 color="from-amber-500 to-orange-500"
               />
               <TeamStat
-                label="Top jugador"
+                label={t("scanningIntelligencePage.statTopPlayer")}
                 value={ranked[0]?.player.name ?? "—"}
                 sub={`Scan ${ranked[0]?.score ?? 0}`}
                 color="from-purple-500 to-indigo-600"
@@ -223,8 +232,9 @@ export default function ScanningIntelligencePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] text-foreground">
-                    <strong>Último análisis de scanning desde video:</strong>{" "}
-                    {latestAnalysis.videoTitle} · {latestAnalysis.receptionsAnalyzed} recepciones
+                    <strong>{t("scanningIntelligencePage.latestVideoAnalysisLabel")}</strong>{" "}
+                    {latestAnalysis.videoTitle} · {latestAnalysis.receptionsAnalyzed}{" "}
+                    {t("scanningIntelligencePage.receptions")}
                   </p>
                   <p className="text-[9px] text-muted-foreground">
                     {new Date(latestAnalysis.createdAt).toLocaleString("es-ES")}
@@ -235,7 +245,7 @@ export default function ScanningIntelligencePage() {
                     {latestAnalysis.scanIQ}
                   </p>
                   <p className="text-[8px] uppercase tracking-wider text-muted-foreground">
-                    Scan IQ del video
+                    {t("scanningIntelligencePage.videoScanIQ")}
                   </p>
                 </div>
               </motion.div>
@@ -269,7 +279,7 @@ export default function ScanningIntelligencePage() {
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar jugador…"
+                    placeholder={t("scanningIntelligencePage.searchPlayer")}
                     className="w-full pl-8 pr-3 py-1.5 bg-secondary/40 rounded-lg text-xs border border-border focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -297,7 +307,8 @@ export default function ScanningIntelligencePage() {
                             {entry.player.name}
                           </p>
                           <p className="text-[9px] text-muted-foreground">
-                            {entry.player.age}a · {entry.player.position}
+                            {entry.player.age}
+                            {t("scanningIntelligencePage.yearsAbbrev")} · {entry.player.position}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
@@ -311,7 +322,7 @@ export default function ScanningIntelligencePage() {
                             className="text-[8px] uppercase tracking-wider font-bold"
                             style={{ color: tier.color }}
                           >
-                            {tier.label}
+                            {t(tier.labelKey)}
                           </p>
                         </div>
                       </motion.button>
@@ -319,7 +330,7 @@ export default function ScanningIntelligencePage() {
                   })}
                   {filtered.length === 0 && (
                     <p className="text-[11px] text-muted-foreground text-center py-4">
-                      Ningún jugador coincide con "{query}"
+                      {t("scanningIntelligencePage.noPlayerMatches", { query })}
                     </p>
                   )}
                 </div>
@@ -337,20 +348,22 @@ export default function ScanningIntelligencePage() {
                     />
                     <div className="mt-3 pt-3 border-t border-border flex items-center justify-between flex-wrap gap-2">
                       <p className="text-[11px] text-muted-foreground">
-                        ¿Quieres ver el perfil mental completo de {focus.player.name}?
+                        {t("scanningIntelligencePage.mentalProfilePrompt", {
+                          name: focus.player.name,
+                        })}
                       </p>
                       <button
                         onClick={() => navigate(`/players/${focus.player.id}?tab=mental`)}
                         className="px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-semibold hover:bg-primary/90"
                       >
-                        Abrir perfil mental →
+                        {t("scanningIntelligencePage.openMentalProfile")}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="glass rounded-xl p-6 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Selecciona un jugador a la izquierda.
+                      {t("scanningIntelligencePage.selectPlayerLeft")}
                     </p>
                   </div>
                 )}
@@ -387,7 +400,10 @@ export default function ScanningIntelligencePage() {
             setLatestAnalysis(result);
             setVersion((v) => v + 1);
             toast.success(
-              `Scan IQ actualizado a ${result.scanIQ}/100 para ${result.playerName}`,
+              t("scanningIntelligencePage.scanIQUpdated", {
+                scanIQ: result.scanIQ,
+                name: result.playerName,
+              }),
             );
           }}
         />
@@ -432,24 +448,25 @@ function TeamStat({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto border border-dashed border-border space-y-4">
       <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-pink-500/20 to-fuchsia-600/20 flex items-center justify-center">
         <Eye size={28} className="text-pink-500" />
       </div>
       <div>
-        <h2 className="text-lg font-display font-bold text-foreground">Sin jugadores aún</h2>
+        <h2 className="text-lg font-display font-bold text-foreground">
+          {t("scanningIntelligencePage.emptyTitle")}
+        </h2>
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-md mx-auto">
-          El análisis de escaneo cuenta cuántas veces mira el entorno cada jugador en los 10s
-          previos a recibir el balón, y correlaciona eso con la calidad de su decisión posterior.
-          Necesitas jugadores en el equipo para verlo.
+          {t("scanningIntelligencePage.emptyDescription")}
         </p>
       </div>
       <button
         onClick={onCreate}
         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-display font-semibold"
       >
-        Crear primer jugador
+        {t("scanningIntelligencePage.createFirstPlayer")}
       </button>
     </div>
   );

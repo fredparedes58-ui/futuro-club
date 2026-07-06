@@ -7,6 +7,7 @@
  */
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Zap, Activity, Target, Swords, ShieldCheck, Crosshair,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 export default function QuantitativeMetricsPanel({ data }: Props) {
+  const { t } = useTranslation();
   const { fisicas, eventos, fuente, confianza } = data;
 
   return (
@@ -40,8 +42,8 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <Activity size={14} className="text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-display font-bold text-foreground">Métricas del Partido</h3>
-            <p className="text-[9px] text-muted-foreground">Datos cuantitativos medidos</p>
+            <h3 className="text-sm font-display font-bold text-foreground">{t("quantitativeMetricsPanel.matchMetrics")}</h3>
+            <p className="text-[9px] text-muted-foreground">{t("quantitativeMetricsPanel.measuredQuantitativeData")}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -62,7 +64,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <Zap size={11} className="text-yellow-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Velocidad máx
+                {t("quantitativeMetricsPanel.maxSpeed")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -72,7 +74,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
               <span className="text-[9px] text-muted-foreground">km/h</span>
             </div>
             <p className="text-[9px] text-muted-foreground mt-0.5">
-              prom {fisicas.velocidadPromKmh.toFixed(1)} km/h
+              {t("quantitativeMetricsPanel.avg")} {fisicas.velocidadPromKmh.toFixed(1)} km/h
             </p>
           </div>
 
@@ -81,7 +83,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <Activity size={11} className="text-blue-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Distancia
+                {t("quantitativeMetricsPanel.distance")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -91,7 +93,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
               <span className="text-[9px] text-muted-foreground">m</span>
             </div>
             <p className="text-[9px] text-muted-foreground mt-0.5">
-              {fisicas.sprints} sprints (&gt;21 km/h)
+              {t("quantitativeMetricsPanel.sprintsCount", { count: fisicas.sprints })}
             </p>
           </div>
         </div>
@@ -101,15 +103,15 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
       {fisicas?.zonasIntensidad && (
         <div className="glass rounded-xl p-3">
           <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground mb-2 block">
-            Zonas de intensidad
+            {t("quantitativeMetricsPanel.intensityZones")}
           </span>
           <IntensityBar zones={fisicas.zonasIntensidad} />
           <div className="flex justify-between mt-1.5">
             {[
-              { label: "Caminar", color: "bg-slate-400", value: fisicas.zonasIntensidad.caminar },
-              { label: "Trote",   color: "bg-blue-400",  value: fisicas.zonasIntensidad.trotar },
-              { label: "Carrera", color: "bg-orange-400", value: fisicas.zonasIntensidad.correr },
-              { label: "Sprint",  color: "bg-red-400",   value: fisicas.zonasIntensidad.sprint },
+              { label: t("quantitativeMetricsPanel.zoneWalk"), color: "bg-slate-400", value: fisicas.zonasIntensidad.caminar },
+              { label: t("quantitativeMetricsPanel.zoneJog"),   color: "bg-blue-400",  value: fisicas.zonasIntensidad.trotar },
+              { label: t("quantitativeMetricsPanel.zoneRun"), color: "bg-orange-400", value: fisicas.zonasIntensidad.correr },
+              { label: t("quantitativeMetricsPanel.zoneSprint"),  color: "bg-red-400",   value: fisicas.zonasIntensidad.sprint },
             ].map(z => (
               <div key={z.label} className="flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${z.color}`} />
@@ -130,7 +132,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <Target size={11} className="text-green-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Pases
+                {t("quantitativeMetricsPanel.passes")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -149,7 +151,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <Swords size={11} className="text-red-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Duelos
+                {t("quantitativeMetricsPanel.duels")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -161,7 +163,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
               <span className="text-[9px] text-muted-foreground">%</span>
             </div>
             <p className="text-[9px] text-muted-foreground mt-0.5">
-              {eventos.duelosGanados}G / {eventos.duelosPerdidos}P
+              {t("quantitativeMetricsPanel.duelsWonLost", { won: eventos.duelosGanados, lost: eventos.duelosPerdidos })}
             </p>
           </div>
 
@@ -170,7 +172,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <ShieldCheck size={11} className="text-emerald-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Recuperaciones
+                {t("quantitativeMetricsPanel.recoveries")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -179,7 +181,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
               </span>
             </div>
             <p className="text-[9px] text-muted-foreground mt-0.5">
-              balones recuperados
+              {t("quantitativeMetricsPanel.ballsRecovered")}
             </p>
           </div>
 
@@ -188,7 +190,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
             <div className="flex items-center gap-1 mb-1">
               <Crosshair size={11} className="text-amber-400" />
               <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                Disparos
+                {t("quantitativeMetricsPanel.shots")}
               </span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -197,7 +199,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
               </span>
             </div>
             <p className="text-[9px] text-muted-foreground mt-0.5">
-              {eventos.disparosAlArco} al arco / {eventos.disparosFuera} fuera
+              {t("quantitativeMetricsPanel.shotsOnOffTarget", { onTarget: eventos.disparosAlArco, offTarget: eventos.disparosFuera })}
             </p>
           </div>
         </div>
@@ -207,7 +209,7 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
       {!fisicas && !eventos && (
         <div className="glass rounded-xl p-4 text-center">
           <p className="text-xs text-muted-foreground">
-            No hay métricas cuantitativas disponibles para este análisis
+            {t("quantitativeMetricsPanel.noMetricsAvailable")}
           </p>
         </div>
       )}

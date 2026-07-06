@@ -4,6 +4,7 @@
  * Wrapper específico de IDP sobre `AnalysisVideoUploadDialog` (genérico).
  * Pasa los textos y query keys del módulo IDP.
  */
+import { useTranslation } from "react-i18next";
 import { AnalysisVideoUploadDialog } from "@/components/video/AnalysisVideoUploadDialog";
 
 interface Props {
@@ -21,15 +22,16 @@ export function IDPVideoUploadDialog({
   playerName,
   onAnalysisComplete,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <AnalysisVideoUploadDialog
       open={open}
       onClose={onClose}
       playerId={playerId}
       playerName={playerName}
-      subtitle="Análisis automático · enriquece el plan IDP de"
-      helperText="Sube un fragmento de partido (5-15 min idealmente). El sistema extrae VSI técnico, táctico, físico y mental observado, y los inyecta como baseline del próximo plan que generes."
-      successDescription="El plan IDP se ha refrescado con los datos del video."
+      subtitle={t("idpVideoUploadDialog.subtitle")}
+      helperText={t("idpVideoUploadDialog.helperText")}
+      successDescription={t("idpVideoUploadDialog.successDescription")}
       invalidateKeys={[["idp"]]}
       onAnalysisComplete={onAnalysisComplete}
     />

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -36,6 +37,7 @@ function formatTimestamp(ms: number): string {
 }
 
 export default function HighlightDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [reel, setReel] = useState<HighlightReel | null>(null);
@@ -50,13 +52,13 @@ export default function HighlightDetailPage() {
     if (!id) return;
     const r = HighlightsStorage.getById(id);
     if (!r) {
-      toast.error("Reel no encontrado");
+      toast.error(t("highlightDetailPage.reelNotFound"));
       navigate("/highlights");
       return;
     }
     setReel(r);
     setTitleDraft(r.title);
-  }, [id, navigate, version]);
+  }, [id, navigate, version, t]);
 
   const reload = () => setVersion((v) => v + 1);
 
@@ -68,34 +70,34 @@ export default function HighlightDetailPage() {
   if (!reel) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Cargando reel…
+        {t("highlightDetailPage.loadingReel")}
       </div>
     );
   }
 
   const handleSaveTitle = () => {
     if (!titleDraft.trim()) {
-      toast.error("Título vacío");
+      toast.error(t("highlightDetailPage.emptyTitle"));
       return;
     }
     HighlightsStorage.save({ ...reel, title: titleDraft.trim() });
     setEditingTitle(false);
     reload();
-    toast.success("Título actualizado");
+    toast.success(t("highlightDetailPage.titleUpdated"));
   };
 
   const handleDeleteReel = () => {
-    if (!window.confirm(`¿Eliminar el reel "${reel.title}"?`)) return;
+    if (!window.confirm(t("highlightDetailPage.confirmDeleteReel", { title: reel.title }))) return;
     HighlightsStorage.delete(reel.id);
-    toast.success("Reel eliminado");
+    toast.success(t("highlightDetailPage.reelDeleted"));
     navigate("/highlights");
   };
 
   const handleDeleteClip = (clipId: string) => {
-    if (!window.confirm("¿Eliminar este clip del reel?")) return;
+    if (!window.confirm(t("highlightDetailPage.confirmDeleteClip"))) return;
     HighlightsStorage.removeClip(reel.id, clipId);
     reload();
-    toast.success("Clip eliminado");
+    toast.success(t("highlightDetailPage.clipDeleted"));
   };
 
   const startEditClip = (clip: HighlightClip) => {
@@ -112,7 +114,7 @@ export default function HighlightDetailPage() {
   const handleSaveClip = () => {
     if (!editingClipId) return;
     HighlightsStorage.updateClip(reel.id, editingClipId, {
-      description: clipDraft.description?.trim() || "Sin descripción",
+      description: clipDraft.description?.trim() || t("highlightDetailPage.noDescription"),
       moment: clipDraft.moment as ClipMoment,
       playerName: clipDraft.playerName?.trim() || undefined,
       startMs: Math.max(0, clipDraft.startMs ?? 0),
@@ -123,7 +125,7 @@ export default function HighlightDetailPage() {
     });
     setEditingClipId(null);
     reload();
-    toast.success("Clip actualizado");
+    toast.success(t("highlightDetailPage.clipUpdated"));
   };
 
   const handleAddClip = () => {
@@ -134,23 +136,27 @@ export default function HighlightDetailPage() {
       startMs,
       endMs: startMs + 5000,
       moment: "skill",
-      description: "Nuevo clip — edita los datos",
+      description: t("highlightDetailPage.newClipDescription"),
       confidence: 1,
       manual: true,
     });
     reload();
-    toast.success("Clip añadido — pulsa el lápiz para editarlo");
+    toast.success(t("highlightDetailPage.clipAdded"));
   };
 
   const handleShare = () => {
-    const text = `Reel "${reel.title}" — ${reel.clips.length} clips · ${Math.round(reel.totalDurationMs / 1000)}s`;
+    const text = t("highlightDetailPage.shareText", {
+      title: reel.title,
+      clips: reel.clips.length,
+      seconds: Math.round(reel.totalDurationMs / 1000),
+    });
     if (navigator.share) {
       navigator
         .share({ title: reel.title, text })
         .catch(() => {});
     } else {
       navigator.clipboard?.writeText(`${text}\n${window.location.href}`);
-      toast.success("Link y resumen copiados al portapapeles");
+      toast.success(t("highlightDetailPage.shareCopied"));
     }
   };
 
@@ -185,7 +191,7 @@ export default function HighlightDetailPage() {
               <button
                 onClick={() => setEditingTitle(true)}
                 className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary"
-                title="Renombrar"
+                title={t("highlightDetailPage.rename")}
               >
                 <Pencil size={13} />
               </button>
@@ -214,30 +220,30 @@ export default function HighlightDetailPage() {
                 className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold"
               >
                 <Check size={11} />
-                Guardar
+                {t("highlightDetailPage.save")}
               </button>
             </>
           )}
           <button
             onClick={handleShare}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-secondary text-foreground hover:bg-primary/10"
-            title="Compartir"
+            title={t("highlightDetailPage.share")}
           >
             <Share2 size={11} />
-            Compartir
+            {t("highlightDetailPage.share")}
           </button>
           <button
-            onClick={() => toast.info("Descarga del reel próximamente — Fase 2 con render server-side")}
+            onClick={() => toast.info(t("highlightDetailPage.downloadComingSoon"))}
             className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-secondary text-foreground hover:bg-primary/10"
-            title="Descargar"
+            title={t("highlightDetailPage.download")}
           >
             <Download size={11} />
-            Descargar
+            {t("highlightDetailPage.download")}
           </button>
           <button
             onClick={handleDeleteReel}
             className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10"
-            title="Eliminar reel"
+            title={t("highlightDetailPage.deleteReel")}
           >
             <Trash2 size={13} />
           </button>
@@ -263,14 +269,14 @@ export default function HighlightDetailPage() {
         <div className="space-y-2 max-h-[calc(100vh-10rem)] overflow-y-auto pr-1 lg:pr-2">
           <div className="flex items-center justify-between sticky top-0 bg-background py-1 z-10">
             <h2 className="text-sm font-display font-bold text-foreground">
-              Clips ({sortedClips.length})
+              {t("highlightDetailPage.clipsCount", { count: sortedClips.length })}
             </h2>
             <button
               onClick={handleAddClip}
               className="flex items-center gap-1 px-2 py-1 rounded-md bg-primary/15 text-primary text-[11px] font-semibold hover:bg-primary/25"
             >
               <Plus size={11} />
-              Añadir
+              {t("highlightDetailPage.add")}
             </button>
           </div>
 
@@ -327,7 +333,7 @@ export default function HighlightDetailPage() {
                         onChange={(e) =>
                           setClipDraft({ ...clipDraft, description: e.target.value })
                         }
-                        placeholder="Descripción del clip"
+                        placeholder={t("highlightDetailPage.clipDescriptionPlaceholder")}
                         className="w-full bg-secondary/40 rounded-md px-2 py-1 text-xs border border-border focus:border-primary focus:outline-none"
                       />
                       <input
@@ -336,12 +342,12 @@ export default function HighlightDetailPage() {
                         onChange={(e) =>
                           setClipDraft({ ...clipDraft, playerName: e.target.value })
                         }
-                        placeholder="Jugador (opcional)"
+                        placeholder={t("highlightDetailPage.playerOptionalPlaceholder")}
                         className="w-full bg-secondary/40 rounded-md px-2 py-1 text-xs border border-border focus:border-primary focus:outline-none"
                       />
                       <div className="grid grid-cols-2 gap-1">
                         <label className="text-[9px] text-muted-foreground">
-                          Inicio (segundos)
+                          {t("highlightDetailPage.startSeconds")}
                           <input
                             type="number"
                             min={0}
@@ -357,7 +363,7 @@ export default function HighlightDetailPage() {
                           />
                         </label>
                         <label className="text-[9px] text-muted-foreground">
-                          Fin (segundos)
+                          {t("highlightDetailPage.endSeconds")}
                           <input
                             type="number"
                             min={0}
@@ -378,14 +384,14 @@ export default function HighlightDetailPage() {
                           onClick={() => setEditingClipId(null)}
                           className="px-2 py-0.5 rounded-md text-[10px] text-muted-foreground hover:bg-secondary"
                         >
-                          Cancelar
+                          {t("highlightDetailPage.cancel")}
                         </button>
                         <button
                           onClick={handleSaveClip}
                           className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold"
                         >
                           <Save size={10} />
-                          Guardar
+                          {t("highlightDetailPage.save")}
                         </button>
                       </div>
                     </div>
@@ -430,21 +436,21 @@ export default function HighlightDetailPage() {
                             </p>
                           )}
                           <p className="text-[9px] text-muted-foreground mt-1">
-                            Confianza IA: {Math.round(clip.confidence * 100)}%
+                            {t("highlightDetailPage.aiConfidence", { percent: Math.round(clip.confidence * 100) })}
                           </p>
                         </div>
                         <div className="opacity-0 group-hover/clip:opacity-100 flex flex-col gap-0.5 transition-opacity">
                           <button
                             onClick={() => startEditClip(clip)}
                             className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
-                            title="Editar"
+                            title={t("highlightDetailPage.edit")}
                           >
                             <Pencil size={10} />
                           </button>
                           <button
                             onClick={() => handleDeleteClip(clip.id)}
                             className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                            title="Eliminar clip"
+                            title={t("highlightDetailPage.deleteClip")}
                           >
                             <Trash2 size={10} />
                           </button>
@@ -460,7 +466,7 @@ export default function HighlightDetailPage() {
           {sortedClips.length === 0 && (
             <div className="glass rounded-xl p-4 text-center border border-dashed border-border">
               <p className="text-[11px] text-muted-foreground">
-                Sin clips. Pulsa "Añadir" para crear uno manualmente.
+                {t("highlightDetailPage.emptyClips")}
               </p>
             </div>
           )}

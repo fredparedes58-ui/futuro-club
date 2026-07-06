@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -43,6 +44,7 @@ import { SetPieceVideoEvents, SetPieceVideoRecommendations } from "@/services/re
 import type { SetPieceEvent, SetPieceRecommendation } from "@/lib/setPiece/types";
 
 export default function SetPieceFolderPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -58,7 +60,7 @@ export default function SetPieceFolderPage() {
     if (!id) return;
     const f = SetPieceFolderStorage.get(id);
     if (!f) {
-      toast.error("Carpeta no encontrada");
+      toast.error(t("setPieceFolderPage.folderNotFound"));
       navigate("/set-pieces");
       return;
     }
@@ -66,7 +68,7 @@ export default function SetPieceFolderPage() {
     setDraftName(f.name);
     setDraftIcon(f.icon);
     setDraftColor(f.color);
-  }, [id, navigate, version]);
+  }, [id, navigate, version, t]);
 
   // Combined catalog (all known events + recommendations)
   const allEvents = useMemo<SetPieceEvent[]>(() => {
@@ -109,14 +111,14 @@ export default function SetPieceFolderPage() {
   if (!folder) {
     return (
       <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        Cargando carpeta…
+        {t("setPieceFolderPage.loadingFolder")}
       </div>
     );
   }
 
   const handleSaveMeta = () => {
     if (!draftName.trim()) {
-      toast.error("La carpeta necesita un nombre");
+      toast.error(t("setPieceFolderPage.folderNeedsName"));
       return;
     }
     SetPieceFolderStorage.update(folder.id, {
@@ -126,7 +128,7 @@ export default function SetPieceFolderPage() {
     });
     setEditingMeta(false);
     setVersion((v) => v + 1);
-    toast.success("Carpeta actualizada");
+    toast.success(t("setPieceFolderPage.folderUpdated"));
   };
 
   const handleCancelMeta = () => {
@@ -139,19 +141,19 @@ export default function SetPieceFolderPage() {
   const handleDeleteFolder = () => {
     if (
       !window.confirm(
-        `¿Eliminar la carpeta "${folder.name}"? Los eventos y recomendaciones NO se borran, solo se quitan de esta carpeta.`,
+        t("setPieceFolderPage.deleteFolderConfirm", { name: folder.name }),
       )
     )
       return;
     SetPieceFolderStorage.delete(folder.id);
-    toast.success(`Carpeta "${folder.name}" eliminada`);
+    toast.success(t("setPieceFolderPage.folderDeleted", { name: folder.name }));
     navigate("/set-pieces");
   };
 
   const handleRemoveItem = (itemId: string, itemType: "event" | "recommendation") => {
     SetPieceFolderStorage.removeItem(folder.id, itemId, itemType);
     setVersion((v) => v + 1);
-    toast.success("Eliminado de la carpeta");
+    toast.success(t("setPieceFolderPage.removedFromFolder"));
   };
 
   const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
@@ -187,22 +189,27 @@ export default function SetPieceFolderPage() {
                     {folder.name}
                   </h1>
                   <p className="text-[11px] text-muted-foreground">
-                    {folderEvents.length} {folderEvents.length === 1 ? "evento" : "eventos"} ·{" "}
-                    {folderRecs.length} {folderRecs.length === 1 ? "recomendación" : "recomendaciones"}
+                    {folderEvents.length === 1
+                      ? t("setPieceFolderPage.eventCountOne", { count: folderEvents.length })
+                      : t("setPieceFolderPage.eventCountOther", { count: folderEvents.length })}{" "}
+                    ·{" "}
+                    {folderRecs.length === 1
+                      ? t("setPieceFolderPage.recCountOne", { count: folderRecs.length })
+                      : t("setPieceFolderPage.recCountOther", { count: folderRecs.length })}
                   </p>
                 </div>
                 <button
                   onClick={() => setEditingMeta(true)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                  title="Renombrar / cambiar icono"
+                  title={t("setPieceFolderPage.renameChangeIconTitle")}
                 >
                   <Pencil size={11} />
-                  Editar
+                  {t("setPieceFolderPage.edit")}
                 </button>
                 <button
                   onClick={handleDeleteFolder}
                   className="p-1.5 rounded-md text-red-500 hover:bg-red-500/10 transition-colors"
-                  title="Eliminar carpeta"
+                  title={t("setPieceFolderPage.deleteFolderTitle")}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -240,7 +247,7 @@ export default function SetPieceFolderPage() {
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold"
                 >
                   <Check size={11} />
-                  Guardar
+                  {t("setPieceFolderPage.save")}
                 </button>
               </>
             )}
@@ -251,7 +258,7 @@ export default function SetPieceFolderPage() {
             <div className="mt-2 space-y-1.5 px-12">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mr-1">
-                  Icono:
+                  {t("setPieceFolderPage.iconLabel")}
                 </span>
                 {FOLDER_ICONS.map((ic) => (
                   <button
@@ -269,7 +276,7 @@ export default function SetPieceFolderPage() {
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mr-1">
-                  Color:
+                  {t("setPieceFolderPage.colorLabel")}
                 </span>
                 {FOLDER_COLORS.map((c) => (
                   <button
@@ -300,21 +307,21 @@ export default function SetPieceFolderPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
               <Crosshair size={14} className="text-amber-500" />
-              Eventos ({folderEvents.length})
+              {t("setPieceFolderPage.eventsHeading", { count: folderEvents.length })}
             </h2>
             <button
               onClick={() => navigate("/set-pieces")}
               className="flex items-center gap-1 text-[11px] text-primary hover:underline"
             >
               <Plus size={11} />
-              Añadir más desde la lista
+              {t("setPieceFolderPage.addMoreFromList")}
             </button>
           </div>
 
           {folderEvents.length === 0 ? (
             <EmptyState
-              message="Aún no has guardado eventos en esta carpeta"
-              ctaLabel="Ir a la lista de eventos"
+              message={t("setPieceFolderPage.emptyEventsMessage")}
+              ctaLabel={t("setPieceFolderPage.goToEventsList")}
               onCta={() => navigate("/set-pieces")}
             />
           ) : (
@@ -340,21 +347,21 @@ export default function SetPieceFolderPage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-display font-bold text-foreground flex items-center gap-2">
               <Lightbulb size={14} className="text-purple-500" />
-              Recomendaciones ({folderRecs.length})
+              {t("setPieceFolderPage.recsHeading", { count: folderRecs.length })}
             </h2>
             <button
               onClick={() => navigate("/set-pieces")}
               className="flex items-center gap-1 text-[11px] text-primary hover:underline"
             >
               <Plus size={11} />
-              Añadir más desde la lista
+              {t("setPieceFolderPage.addMoreFromList")}
             </button>
           </div>
 
           {folderRecs.length === 0 ? (
             <EmptyState
-              message="Aún no has guardado recomendaciones en esta carpeta"
-              ctaLabel="Ir a la lista de recomendaciones"
+              message={t("setPieceFolderPage.emptyRecsMessage")}
+              ctaLabel={t("setPieceFolderPage.goToRecsList")}
               onCta={() => navigate("/set-pieces")}
             />
           ) : (
@@ -392,6 +399,7 @@ function FolderEventCard({
   onOpen: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   const outcome = OUTCOME_LABELS[event.outcome];
   return (
     <motion.div
@@ -410,23 +418,25 @@ function FolderEventCard({
                 : "bg-red-500/15 text-red-600"
             }`}
           >
-            {event.isOffensive ? "OFENSIVA" : "DEFENSIVA"}
+            {event.isOffensive
+              ? t("setPieceFolderPage.offensive")
+              : t("setPieceFolderPage.defensive")}
           </span>
           {isVideo && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-              🎥 video
+              {t("setPieceFolderPage.videoBadge")}
             </span>
           )}
           {!isVideo && isCustom && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[8px] uppercase tracking-wider font-bold">
-              ✨ custom
+              {t("setPieceFolderPage.customBadge")}
             </span>
           )}
         </div>
         <button
           onClick={onRemove}
           className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
-          title="Quitar de la carpeta"
+          title={t("setPieceFolderPage.removeFromFolderTitle")}
         >
           <X size={12} />
         </button>
@@ -438,7 +448,7 @@ function FolderEventCard({
         </span>
       </h4>
       <p className="text-[11px] text-muted-foreground mt-0.5">
-        Min {event.minute}' · {event.matchLabel}
+        {t("setPieceFolderPage.minutePrefix", { minute: event.minute })} · {event.matchLabel}
       </p>
       <div className="mt-2 flex items-center justify-between gap-2 pt-2 border-t border-border">
         <span className={`text-[10px] font-bold ${outcome.color}`}>{outcome.label}</span>
@@ -446,7 +456,7 @@ function FolderEventCard({
           onClick={onOpen}
           className="flex items-center gap-1 text-[10px] text-primary hover:underline"
         >
-          Ver detalle <ExternalLink size={9} />
+          {t("setPieceFolderPage.viewDetail")} <ExternalLink size={9} />
         </button>
       </div>
     </motion.div>
@@ -462,6 +472,7 @@ function FolderRecCard({
   onOpen: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       layout
@@ -484,13 +495,13 @@ function FolderRecCard({
                 : "bg-red-500/15 text-red-500"
             }`}
           >
-            {rec.successProbability}% éxito
+            {t("setPieceFolderPage.successPercent", { percent: rec.successProbability })}
           </span>
         </div>
         <button
           onClick={onRemove}
           className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
-          title="Quitar de la carpeta"
+          title={t("setPieceFolderPage.removeFromFolderTitle")}
         >
           <X size={12} />
         </button>
@@ -505,7 +516,7 @@ function FolderRecCard({
           onClick={onOpen}
           className="flex items-center gap-1 text-[10px] text-primary hover:underline"
         >
-          Ver detalle <ExternalLink size={9} />
+          {t("setPieceFolderPage.viewDetail")} <ExternalLink size={9} />
         </button>
       </div>
     </motion.div>

@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   StickyNote,
@@ -40,34 +41,34 @@ type TagKey = NonNullable<EventNote["tag"]>;
 
 const TAG_META: Record<
   TagKey,
-  { label: string; icon: React.ElementType; color: string; bg: string }
+  { labelKey: string; icon: React.ElementType; color: string; bg: string }
 > = {
   idea: {
-    label: "Idea",
+    labelKey: "eventNotesPanel.tagIdea",
     icon: Lightbulb,
     color: "text-amber-500",
     bg: "bg-amber-500/15 border-amber-500/30",
   },
   observation: {
-    label: "Observación",
+    labelKey: "eventNotesPanel.tagObservation",
     icon: Eye,
     color: "text-blue-500",
     bg: "bg-blue-500/15 border-blue-500/30",
   },
   todo: {
-    label: "Por hacer",
+    labelKey: "eventNotesPanel.tagTodo",
     icon: CheckSquare,
     color: "text-purple-500",
     bg: "bg-purple-500/15 border-purple-500/30",
   },
   warning: {
-    label: "Atención",
+    labelKey: "eventNotesPanel.tagWarning",
     icon: AlertTriangle,
     color: "text-red-500",
     bg: "bg-red-500/15 border-red-500/30",
   },
   highlight: {
-    label: "Destacado",
+    labelKey: "eventNotesPanel.tagHighlight",
     icon: Star,
     color: "text-emerald-500",
     bg: "bg-emerald-500/15 border-emerald-500/30",
@@ -76,7 +77,10 @@ const TAG_META: Record<
 
 const ALL_TAGS: TagKey[] = ["idea", "observation", "todo", "warning", "highlight"];
 
-function formatRelative(iso: string): string {
+function formatRelative(
+  iso: string,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
   const now = Date.now();
   const then = new Date(iso).getTime();
   const diff = now - then;
@@ -84,10 +88,19 @@ function formatRelative(iso: string): string {
   const hour = 60 * minute;
   const day = 24 * hour;
 
-  if (diff < minute) return "ahora mismo";
-  if (diff < hour) return `hace ${Math.floor(diff / minute)} min`;
-  if (diff < day) return `hace ${Math.floor(diff / hour)} h`;
-  if (diff < 7 * day) return `hace ${Math.floor(diff / day)} d`;
+  if (diff < minute) return t("eventNotesPanel.relativeNow");
+  if (diff < hour)
+    return t("eventNotesPanel.relativeMinutes", {
+      count: Math.floor(diff / minute),
+    });
+  if (diff < day)
+    return t("eventNotesPanel.relativeHours", {
+      count: Math.floor(diff / hour),
+    });
+  if (diff < 7 * day)
+    return t("eventNotesPanel.relativeDays", {
+      count: Math.floor(diff / day),
+    });
   return new Date(iso).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "short",
@@ -96,6 +109,7 @@ function formatRelative(iso: string): string {
 }
 
 export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<EventNote[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerContent, setComposerContent] = useState("");
@@ -129,7 +143,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
   const handleSaveNew = () => {
     const trimmed = composerContent.trim();
     if (!trimmed) {
-      toast.error("La nota no puede estar vacía");
+      toast.error(t("eventNotesPanel.errorEmptyNote"));
       return;
     }
     EventNotesStorage.add(eventId, trimmed, composerTag);
@@ -138,7 +152,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
     setComposerContent("");
     setComposerTag(undefined);
     setComposerOpen(false);
-    toast.success("Nota guardada");
+    toast.success(t("eventNotesPanel.toastNoteSaved"));
   };
 
   const startEdit = (note: EventNote) => {
@@ -151,22 +165,22 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
     if (!editingId) return;
     const trimmed = editingContent.trim();
     if (!trimmed) {
-      toast.error("La nota no puede estar vacía");
+      toast.error(t("eventNotesPanel.errorEmptyNote"));
       return;
     }
     EventNotesStorage.update(editingId, { content: trimmed, tag: editingTag });
     setNotes(EventNotesStorage.getByEvent(eventId));
     onChange?.();
     setEditingId(null);
-    toast.success("Nota actualizada");
+    toast.success(t("eventNotesPanel.toastNoteUpdated"));
   };
 
   const handleDelete = (noteId: string) => {
-    if (!window.confirm("¿Eliminar esta nota?")) return;
+    if (!window.confirm(t("eventNotesPanel.confirmDelete"))) return;
     EventNotesStorage.delete(noteId);
     setNotes(EventNotesStorage.getByEvent(eventId));
     onChange?.();
-    toast.success("Nota eliminada");
+    toast.success(t("eventNotesPanel.toastNoteDeleted"));
   };
 
   return (
@@ -179,12 +193,12 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
           </div>
           <div>
             <h3 className="text-sm font-display font-bold text-foreground">
-              Notas del evento
+              {t("eventNotesPanel.title")}
             </h3>
             <p className="text-[10px] text-muted-foreground">
               {notes.length === 0
-                ? "Sin notas aún"
-                : `${notes.length} ${notes.length === 1 ? "nota" : "notas"} · ${eventLabel ?? ""}`}
+                ? t("eventNotesPanel.noNotesYet")
+                : `${t("eventNotesPanel.notesCount", { count: notes.length })} · ${eventLabel ?? ""}`}
             </p>
           </div>
         </div>
@@ -193,7 +207,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-[11px] font-display font-semibold hover:bg-primary/90 transition-colors"
         >
           <Plus size={12} />
-          {composerOpen ? "Cerrar" : "Nueva nota"}
+          {composerOpen ? t("eventNotesPanel.close") : t("eventNotesPanel.newNote")}
         </button>
       </div>
 
@@ -212,7 +226,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                 autoFocus
                 value={composerContent}
                 onChange={(e) => setComposerContent(e.target.value)}
-                placeholder="Escribe tu nota... (ideas tácticas, observaciones del rival, recordatorios)"
+                placeholder={t("eventNotesPanel.composerPlaceholder")}
                 rows={3}
                 className="w-full bg-background/60 rounded-md px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none resize-none"
                 onKeyDown={(e) => {
@@ -224,16 +238,16 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-1 flex-wrap">
                   <span className="text-[10px] text-muted-foreground mr-1">
-                    Tipo:
+                    {t("eventNotesPanel.typeLabel")}
                   </span>
-                  {ALL_TAGS.map((t) => {
-                    const meta = TAG_META[t];
+                  {ALL_TAGS.map((tk) => {
+                    const meta = TAG_META[tk];
                     const Icon = meta.icon;
-                    const active = composerTag === t;
+                    const active = composerTag === tk;
                     return (
                       <button
-                        key={t}
-                        onClick={() => setComposerTag(active ? undefined : t)}
+                        key={tk}
+                        onClick={() => setComposerTag(active ? undefined : tk)}
                         className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold transition-all ${
                           active
                             ? `${meta.bg} ${meta.color}`
@@ -241,7 +255,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                         }`}
                       >
                         <Icon size={9} />
-                        {meta.label}
+                        {t(meta.labelKey)}
                       </button>
                     );
                   })}
@@ -255,19 +269,19 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                     }}
                     className="px-2.5 py-1 rounded-md text-[11px] text-muted-foreground hover:bg-secondary transition-colors"
                   >
-                    Cancelar
+                    {t("eventNotesPanel.cancel")}
                   </button>
                   <button
                     onClick={handleSaveNew}
                     className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-semibold hover:bg-primary/90 transition-colors"
                   >
                     <Save size={11} />
-                    Guardar
+                    {t("eventNotesPanel.save")}
                   </button>
                 </div>
               </div>
               <p className="text-[9px] text-muted-foreground/70">
-                Tip: presiona <kbd className="px-1 py-0.5 rounded bg-secondary text-foreground">⌘/Ctrl + Enter</kbd> para guardar
+                {t("eventNotesPanel.tipPrefix")} <kbd className="px-1 py-0.5 rounded bg-secondary text-foreground">⌘/Ctrl + Enter</kbd> {t("eventNotesPanel.tipSuffix")}
               </p>
             </div>
           </motion.div>
@@ -285,16 +299,16 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                 : "bg-secondary text-muted-foreground hover:text-foreground"
             }`}
           >
-            Todas ({tagCounts.all})
+            {t("eventNotesPanel.filterAll")} ({tagCounts.all})
           </button>
-          {ALL_TAGS.filter((t) => tagCounts[t] > 0).map((t) => {
-            const meta = TAG_META[t];
+          {ALL_TAGS.filter((tk) => tagCounts[tk] > 0).map((tk) => {
+            const meta = TAG_META[tk];
             const Icon = meta.icon;
-            const active = filter === t;
+            const active = filter === tk;
             return (
               <button
-                key={t}
-                onClick={() => setFilter(t)}
+                key={tk}
+                onClick={() => setFilter(tk)}
                 className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all border ${
                   active
                     ? `${meta.bg} ${meta.color}`
@@ -302,7 +316,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                 }`}
               >
                 <Icon size={9} />
-                {meta.label} ({tagCounts[t]})
+                {t(meta.labelKey)} ({tagCounts[tk]})
               </button>
             );
           })}
@@ -318,24 +332,24 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
               className="mx-auto text-muted-foreground/60 mb-2"
             />
             <p className="text-xs font-display font-semibold text-foreground">
-              Aún no hay notas para este evento
+              {t("eventNotesPanel.emptyTitle")}
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">
-              Captura ideas tácticas, observaciones del rival, ajustes a probar y todo lo que quieras recordar.
+              {t("eventNotesPanel.emptyDescription")}
             </p>
             <button
               onClick={() => setComposerOpen(true)}
               className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[11px] font-display font-semibold hover:bg-primary/20 transition-colors"
             >
               <Plus size={11} />
-              Escribir primera nota
+              {t("eventNotesPanel.writeFirstNote")}
             </button>
           </div>
         )}
 
         {filteredNotes.length === 0 && notes.length > 0 && (
           <p className="text-[11px] text-muted-foreground text-center py-3">
-            No hay notas con este filtro
+            {t("eventNotesPanel.noNotesForFilter")}
           </p>
         )}
 
@@ -368,15 +382,15 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                     />
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-1 flex-wrap">
-                        {ALL_TAGS.map((t) => {
-                          const m = TAG_META[t];
+                        {ALL_TAGS.map((tk) => {
+                          const m = TAG_META[tk];
                           const TIcon = m.icon;
-                          const active = editingTag === t;
+                          const active = editingTag === tk;
                           return (
                             <button
-                              key={t}
+                              key={tk}
                               onClick={() =>
-                                setEditingTag(active ? undefined : t)
+                                setEditingTag(active ? undefined : tk)
                               }
                               className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold transition-all ${
                                 active
@@ -385,7 +399,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                               }`}
                             >
                               <TIcon size={9} />
-                              {m.label}
+                              {t(m.labelKey)}
                             </button>
                           );
                         })}
@@ -402,7 +416,7 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                           className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold hover:bg-primary/90"
                         >
                           <Save size={10} />
-                          Guardar
+                          {t("eventNotesPanel.save")}
                         </button>
                       </div>
                     </div>
@@ -416,26 +430,27 @@ export default function EventNotesPanel({ eventId, eventLabel, onChange }: Props
                             className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full ${meta.bg} ${meta.color} text-[9px] font-bold uppercase tracking-wider`}
                           >
                             <Icon size={8} />
-                            {meta.label}
+                            {t(meta.labelKey)}
                           </span>
                         )}
                         <span className="text-[10px] text-muted-foreground">
-                          {formatRelative(note.createdAt)}
-                          {note.updatedAt !== note.createdAt && " · editada"}
+                          {formatRelative(note.createdAt, t)}
+                          {note.updatedAt !== note.createdAt &&
+                            ` · ${t("eventNotesPanel.edited")}`}
                         </span>
                       </div>
                       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => startEdit(note)}
                           className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary"
-                          title="Editar"
+                          title={t("eventNotesPanel.edit")}
                         >
                           <Pencil size={11} />
                         </button>
                         <button
                           onClick={() => handleDelete(note.id)}
                           className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                          title="Eliminar"
+                          title={t("eventNotesPanel.delete")}
                         >
                           <Trash2 size={11} />
                         </button>

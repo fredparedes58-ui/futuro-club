@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -51,6 +52,7 @@ function wasRecentlyDismissed(): boolean {
 }
 
 export function InstallPrompt() {
+  const { t } = useTranslation();
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosInstructions, setShowIosInstructions] = useState(false);
   const [dismissed, setDismissed] = useState(wasRecentlyDismissed());
@@ -111,15 +113,15 @@ export function InstallPrompt() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-rajdhani font-bold text-base mb-1">
-                Instalar VITAS
+                {t("installPrompt.installTitle")}
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Acceso rápido desde tu pantalla de inicio · funciona offline · sin notificaciones intrusivas
+                {t("installPrompt.installDescription")}
               </p>
             </div>
             <button
               onClick={handleDismiss}
-              aria-label="Cerrar"
+              aria-label={t("installPrompt.close")}
               className="flex-shrink-0 w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500"
             >
               ✕
@@ -130,13 +132,13 @@ export function InstallPrompt() {
               onClick={handleDismiss}
               className="flex-1 py-2 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
             >
-              Ahora no
+              {t("installPrompt.notNow")}
             </button>
             <button
               onClick={handleInstall}
               className="flex-1 py-2 px-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold"
             >
-              Instalar
+              {t("installPrompt.install")}
             </button>
           </div>
         </div>
@@ -155,26 +157,26 @@ export function InstallPrompt() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-rajdhani font-bold text-base mb-1">
-                Instalar VITAS en tu iPhone
+                {t("installPrompt.iosTitle")}
               </h3>
               <ol className="text-xs text-slate-600 dark:text-slate-400 space-y-1 mt-2">
                 <li className="flex gap-2">
                   <span className="font-bold text-blue-600">1.</span>
-                  <span>Toca el botón compartir <span className="inline-block px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs">⎙</span> abajo</span>
+                  <span>{t("installPrompt.iosStep1Before")} <span className="inline-block px-1 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs">⎙</span> {t("installPrompt.iosStep1After")}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="font-bold text-blue-600">2.</span>
-                  <span>Selecciona <strong>"Añadir a pantalla de inicio"</strong></span>
+                  <span>{t("installPrompt.iosStep2Before")} <strong>{t("installPrompt.iosStep2Bold")}</strong></span>
                 </li>
                 <li className="flex gap-2">
                   <span className="font-bold text-blue-600">3.</span>
-                  <span>Toca <strong>"Añadir"</strong> arriba a la derecha</span>
+                  <span>{t("installPrompt.iosStep3Before")} <strong>{t("installPrompt.iosStep3Bold")}</strong> {t("installPrompt.iosStep3After")}</span>
                 </li>
               </ol>
             </div>
             <button
               onClick={handleDismiss}
-              aria-label="Cerrar"
+              aria-label={t("installPrompt.close")}
               className="flex-shrink-0 w-7 h-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500"
             >
               ✕

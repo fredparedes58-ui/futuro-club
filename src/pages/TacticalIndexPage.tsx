@@ -13,6 +13,7 @@ import { ArrowLeft, Activity, Video, Lock, Sparkles, ChevronRight, Wand2 } from 
 import { motion } from "framer-motion";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
 import { usePlan } from "@/hooks/usePlan";
@@ -22,6 +23,7 @@ import { AnalysisVideoUploadDialog } from "@/components/video/AnalysisVideoUploa
 import { seedDemoMatch } from "@/lib/tactical/mockSeeder";
 
 export default function TacticalIndexPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { canUseBehavioral } = usePlan();
@@ -36,12 +38,12 @@ export default function TacticalIndexPage() {
     try {
       const matchId = await seedDemoMatch();
       await queryClient.invalidateQueries({ queryKey: tacticalKeys.all });
-      toast.success("Datos de demo cargados", {
-        description: "Heatmap del partido de demo disponible.",
+      toast.success(t("tacticalIndexPage.demoLoadedTitle"), {
+        description: t("tacticalIndexPage.demoLoadedDesc"),
       });
       navigate(`/tactical/${matchId}`);
     } catch (err) {
-      toast.error("No se pudieron cargar los datos de demo", {
+      toast.error(t("tacticalIndexPage.demoLoadErrorTitle"), {
         description: err instanceof Error ? err.message : "Error",
       });
     } finally {
@@ -66,18 +68,17 @@ export default function TacticalIndexPage() {
             </Button>
             <div className="flex items-center gap-2">
               <Activity size={18} className="text-cyan-400" />
-              <h1 className="text-lg font-display font-bold">Heatmap táctico</h1>
+              <h1 className="text-lg font-display font-bold">{t("tacticalIndexPage.title")}</h1>
             </div>
           </div>
         </header>
         <main className="max-w-3xl mx-auto px-4 py-16 text-center">
           <Sparkles className="size-8 text-amber-400 mx-auto mb-3" />
-          <h2 className="text-xl font-semibold text-foreground mb-2">Función Pro+</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-2">{t("tacticalIndexPage.proFeature")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Heatmap por fases tácticas, agente IA con observaciones por zona y
-            sugerencias de drills. Disponible en plan Pro y Club.
+            {t("tacticalIndexPage.proFeatureDesc")}
           </p>
-          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+          <Button onClick={() => navigate("/billing")}>{t("tacticalIndexPage.viewPlans")}</Button>
         </main>
       </div>
     );
@@ -93,13 +94,13 @@ export default function TacticalIndexPage() {
             </Button>
             <div className="flex items-center gap-2">
               <Activity size={18} className="text-cyan-400" />
-              <h1 className="text-lg font-display font-bold">Heatmap táctico</h1>
+              <h1 className="text-lg font-display font-bold">{t("tacticalIndexPage.title")}</h1>
             </div>
           </div>
           {uploadTarget && (
             <Button size="sm" onClick={() => setUploadOpen(true)}>
               <Video className="size-3.5 mr-1" />
-              Subir video
+              {t("tacticalIndexPage.uploadVideo")}
             </Button>
           )}
         </div>
@@ -108,27 +109,26 @@ export default function TacticalIndexPage() {
       <main className="max-w-5xl mx-auto px-4 py-6">
         {isLoading ? (
           <div className="text-center text-muted-foreground py-12">
-            Cargando matches…
+            {t("tacticalIndexPage.loadingMatches")}
           </div>
         ) : matches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
             <Video className="size-10 text-cyan-400 mx-auto mb-3" />
             <h2 className="text-lg font-semibold text-foreground mb-2">
-              Aún no hay matches con heatmap
+              {t("tacticalIndexPage.emptyTitle")}
             </h2>
             <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
-              Sube el primer video de partido. El sistema lo analiza, detecta
-              las 6 fases tácticas y genera el heatmap automáticamente.
+              {t("tacticalIndexPage.emptyDesc")}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               {uploadTarget ? (
                 <Button onClick={() => setUploadOpen(true)} size="lg">
                   <Video className="size-4 mr-2" />
-                  Subir primer video
+                  {t("tacticalIndexPage.uploadFirstVideo")}
                 </Button>
               ) : (
                 <Button onClick={() => navigate("/players/new")} size="lg">
-                  Crear primer jugador
+                  {t("tacticalIndexPage.createFirstPlayer")}
                 </Button>
               )}
               <Button
@@ -139,22 +139,21 @@ export default function TacticalIndexPage() {
                 className="border-cyan-500/30 hover:bg-cyan-500/10"
               >
                 <Wand2 className="size-4 mr-2" />
-                {seeding ? "Cargando…" : "Ver con datos de demo"}
+                {seeding ? t("tacticalIndexPage.loading") : t("tacticalIndexPage.viewWithDemoData")}
               </Button>
             </div>
             <p className="text-[10px] text-muted-foreground mt-3">
-              Los datos de demo simulan un partido completo. Útil para explorar
-              la UI antes de tener videos reales.
+              {t("tacticalIndexPage.demoHelper")}
             </p>
           </div>
         ) : (
           <div>
             <div className="mb-5">
               <h2 className="text-base font-semibold text-foreground">
-                Selecciona un partido
+                {t("tacticalIndexPage.selectMatch")}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {matches.length} match{matches.length === 1 ? "" : "s"} con heatmap táctico computado.
+                {t("tacticalIndexPage.matchCount", { count: matches.length })}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -174,10 +173,10 @@ export default function TacticalIndexPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium text-foreground truncate">
-                        Match {m.matchId.slice(0, 8)}
+                        {t("tacticalIndexPage.matchLabel", { id: m.matchId.slice(0, 8) })}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {m.phasesCount} heatmaps · {new Date(m.computedAt ?? Date.now()).toLocaleDateString("es", { day: "2-digit", month: "short" })}
+                        {t("tacticalIndexPage.heatmapCount", { count: m.phasesCount })} · {new Date(m.computedAt ?? Date.now()).toLocaleDateString("es", { day: "2-digit", month: "short" })}
                       </div>
                     </div>
                     <ChevronRight className="size-4 text-muted-foreground shrink-0" />
@@ -194,9 +193,9 @@ export default function TacticalIndexPage() {
             onClose={() => setUploadOpen(false)}
             playerId={uploadTarget.id}
             playerName={uploadTarget.name}
-            subtitle="Análisis táctico · heatmap por fases"
-            helperText="Sube un partido completo o un fragmento largo (>15 min). Se segmenta en 6 fases tácticas y se generan heatmaps por jugador y equipo."
-            successDescription="Análisis tactical procesándose. Aparecerá en la lista cuando termine."
+            subtitle={t("tacticalIndexPage.dialogSubtitle")}
+            helperText={t("tacticalIndexPage.dialogHelper")}
+            successDescription={t("tacticalIndexPage.dialogSuccess")}
             invalidateKeys={[["tactical"]]}
           />
         )}

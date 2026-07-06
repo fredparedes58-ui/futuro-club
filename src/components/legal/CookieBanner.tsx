@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type CookieCategory = "essential" | "analytics" | "marketing";
 
@@ -50,6 +51,7 @@ function savePrefs(prefs: Omit<CookiePreferences, "essential" | "acceptedAt" | "
 }
 
 export function CookieBanner() {
+  const { t } = useTranslation();
   const [show, setShow] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
   const [analytics, setAnalytics] = useState(false);
@@ -83,10 +85,10 @@ export function CookieBanner() {
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-6">
         {!showCustom ? (
           <>
-            <h3 className="font-rajdhani font-bold text-lg mb-2">🍪 Cookies en VITAS</h3>
+            <h3 className="font-rajdhani font-bold text-lg mb-2">🍪 {t("cookieBanner.title")}</h3>
             <p className="text-sm text-slate-600 mb-4 leading-relaxed">
-              Usamos cookies <strong>esenciales</strong> para que la app funcione. Otras
-              (análisis, marketing) son opcionales y solo se activan si las aceptas.
+              {t("cookieBanner.introBefore")} <strong>{t("cookieBanner.introEssential")}</strong>{" "}
+              {t("cookieBanner.introAfter")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-2">
@@ -94,40 +96,40 @@ export function CookieBanner() {
                 onClick={handleRejectAll}
                 className="flex-1 py-2.5 px-4 rounded-full border border-slate-300 text-sm font-semibold hover:bg-slate-50"
               >
-                Solo esenciales
+                {t("cookieBanner.onlyEssential")}
               </button>
               <button
                 onClick={() => setShowCustom(true)}
                 className="flex-1 py-2.5 px-4 rounded-full border border-slate-300 text-sm font-semibold hover:bg-slate-50"
               >
-                Personalizar
+                {t("cookieBanner.customize")}
               </button>
               <button
                 onClick={handleAcceptAll}
                 className="flex-1 py-2.5 px-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold"
               >
-                Aceptar todas
+                {t("cookieBanner.acceptAll")}
               </button>
             </div>
 
             <p className="text-xs text-slate-500 mt-3">
-              Más info en nuestra{" "}
+              {t("cookieBanner.moreInfo")}{" "}
               <a href="/legal/cookies" className="underline">
-                Política de Cookies
+                {t("cookieBanner.cookiePolicy")}
               </a>
               .
             </p>
           </>
         ) : (
           <>
-            <h3 className="font-rajdhani font-bold text-lg mb-2">Personalizar cookies</h3>
+            <h3 className="font-rajdhani font-bold text-lg mb-2">{t("cookieBanner.customizeTitle")}</h3>
 
             <div className="space-y-3 my-4">
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
                 <input type="checkbox" checked disabled className="mt-1 w-4 h-4" />
                 <div>
-                  <div className="font-semibold text-sm">Esenciales · obligatorias</div>
-                  <div className="text-xs text-slate-600">Sesión, autenticación, seguridad. Sin estas la app no funciona.</div>
+                  <div className="font-semibold text-sm">{t("cookieBanner.essentialLabel")}</div>
+                  <div className="text-xs text-slate-600">{t("cookieBanner.essentialDesc")}</div>
                 </div>
               </div>
 
@@ -139,8 +141,8 @@ export function CookieBanner() {
                   className="mt-1 w-4 h-4 accent-purple-600"
                 />
                 <div>
-                  <div className="font-semibold text-sm">Análisis</div>
-                  <div className="text-xs text-slate-600">Nos ayuda a entender cómo usas VITAS para mejorar el producto.</div>
+                  <div className="font-semibold text-sm">{t("cookieBanner.analyticsLabel")}</div>
+                  <div className="text-xs text-slate-600">{t("cookieBanner.analyticsDesc")}</div>
                 </div>
               </label>
 
@@ -152,8 +154,8 @@ export function CookieBanner() {
                   className="mt-1 w-4 h-4 accent-purple-600"
                 />
                 <div>
-                  <div className="font-semibold text-sm">Marketing</div>
-                  <div className="text-xs text-slate-600">Permite mostrar contenido relevante y medir campañas.</div>
+                  <div className="font-semibold text-sm">{t("cookieBanner.marketingLabel")}</div>
+                  <div className="text-xs text-slate-600">{t("cookieBanner.marketingDesc")}</div>
                 </div>
               </label>
             </div>
@@ -163,13 +165,13 @@ export function CookieBanner() {
                 onClick={() => setShowCustom(false)}
                 className="flex-1 py-2.5 px-4 rounded-full border border-slate-300 text-sm font-semibold"
               >
-                Volver
+                {t("cookieBanner.back")}
               </button>
               <button
                 onClick={handleSaveCustom}
                 className="flex-1 py-2.5 px-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold"
               >
-                Guardar preferencias
+                {t("cookieBanner.savePreferences")}
               </button>
             </div>
           </>

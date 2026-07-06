@@ -11,6 +11,7 @@
  */
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Activity,
   AlertTriangle,
@@ -33,17 +34,18 @@ interface FatiguePanelProps {
 }
 
 export default function FatiguePanel({ report, compact = false }: FatiguePanelProps) {
+  const { t } = useTranslation();
   if (!report) {
     return (
       <div className="glass rounded-xl p-4 border border-border">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={16} className="text-muted-foreground" />
           <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-            FATIGA
+            {t("fatiguePanel.fatigueLabel")}
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Analiza un video para obtener datos de fatiga.
+          {t("fatiguePanel.noDataPrompt")}
         </p>
       </div>
     );
@@ -63,7 +65,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
         <div className="flex items-center gap-2">
           <Activity size={16} className="text-primary" />
           <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
-            ANÁLISIS DE FATIGA
+            {t("fatiguePanel.fatigueAnalysis")}
           </span>
         </div>
         {thresholds.band !== "post_phv" && (
@@ -77,7 +79,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
       <div className="glass rounded-xl p-4 border border-border">
         <div className="flex items-center justify-between mb-3">
           <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-            ÍNDICE DE FATIGA
+            {t("fatiguePanel.fatigueIndex")}
           </span>
           <SeverityBadge severity={fi.severity} />
         </div>
@@ -106,7 +108,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
             <span className="text-xs text-muted-foreground font-normal">/100</span>
           </span>
           <span className="text-[9px] text-muted-foreground">
-            {fi.reliable ? "Datos suficientes" : `Mín. ${fi.minimumMinutesRequired} min`}
+            {fi.reliable ? t("fatiguePanel.sufficientData") : t("fatiguePanel.minMinutes", { count: fi.minimumMinutesRequired })}
           </span>
         </div>
 
@@ -116,9 +118,9 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
             {(
               [
                 { key: "sprintDecay", label: "Sprint", icon: Zap },
-                { key: "speedDecay", label: "Velocidad", icon: TrendingDown },
+                { key: "speedDecay", label: t("fatiguePanel.speed"), icon: TrendingDown },
                 { key: "hidDecay", label: "HID", icon: Activity },
-                { key: "metabolicDecay", label: "Metabólico", icon: Battery },
+                { key: "metabolicDecay", label: t("fatiguePanel.metabolic"), icon: Battery },
                 { key: "accelDecay", label: "Accel", icon: Activity },
               ] as const
             ).map(({ key, label }) => (
@@ -140,7 +142,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
       {!compact && windows.length > 0 && (
         <div className="glass rounded-xl p-4 border border-border">
           <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3 block">
-            CARGA POR VENTANA ({report.sessionDurationMin} MIN)
+            {t("fatiguePanel.loadPerWindow", { count: report.sessionDurationMin })}
           </span>
           <div className="flex items-end gap-1 h-24">
             {windows.map((w, i) => {
@@ -165,8 +167,8 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
             })}
           </div>
           <div className="flex items-center justify-between mt-2 text-[8px] text-muted-foreground">
-            <span>Dist total: {windows.reduce((s, w) => s + w.distanceM, 0).toFixed(0)}m</span>
-            <span>Sprints: {windows.reduce((s, w) => s + w.sprintCount, 0)}</span>
+            <span>{t("fatiguePanel.totalDistance")}: {windows.reduce((s, w) => s + w.distanceM, 0).toFixed(0)}m</span>
+            <span>{t("fatiguePanel.sprints")}: {windows.reduce((s, w) => s + w.sprintCount, 0)}</span>
             <span>HMLD: {windows.reduce((s, w) => s + w.hmldM, 0).toFixed(0)}m</span>
           </div>
         </div>
@@ -176,15 +178,15 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
       {!compact && fi.decay.sprintDecayPct !== null && (
         <div className="glass rounded-xl p-4 border border-border">
           <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3 block">
-            1ER TIEMPO VS 2DO TIEMPO
+            {t("fatiguePanel.firstVsSecondHalf")}
           </span>
           <div className="space-y-2">
             {[
               { label: "Sprints", value: fi.decay.sprintDecayPct, unit: "%" },
-              { label: "Velocidad máx", value: fi.decay.speedDecayPct, unit: "%" },
-              { label: "Distancia alta intensidad", value: fi.decay.hidDecayPct, unit: "%" },
-              { label: "Potencia metabólica", value: fi.decay.metabolicDecayPct, unit: "%" },
-              { label: "Aceleraciones", value: fi.decay.accelDecayPct, unit: "%" },
+              { label: t("fatiguePanel.maxSpeed"), value: fi.decay.speedDecayPct, unit: "%" },
+              { label: t("fatiguePanel.highIntensityDistance"), value: fi.decay.hidDecayPct, unit: "%" },
+              { label: t("fatiguePanel.metabolicPower"), value: fi.decay.metabolicDecayPct, unit: "%" },
+              { label: t("fatiguePanel.accelerations"), value: fi.decay.accelDecayPct, unit: "%" },
             ].map(({ label, value }) => (
               value !== null && (
                 <div key={label} className="flex items-center justify-between">
@@ -206,7 +208,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-muted-foreground" />
               <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-                ACWR (CARGA AGUDA/CRÓNICA)
+                {t("fatiguePanel.acwrTitle")}
               </span>
             </div>
             <ACWRBadge zone={acwr.zone} />
@@ -240,7 +242,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
           </p>
           {!acwr.reliable && (
             <p className="text-[9px] text-yellow-400 mt-1">
-              * Basado en {acwr.sessionsUsed} sesiones. Se necesitan 4+ para máxima fiabilidad.
+              {t("fatiguePanel.acwrUnreliable", { count: acwr.sessionsUsed })}
             </p>
           )}
         </div>
@@ -252,7 +254,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
           <div className="flex items-center gap-2 mb-3">
             <Brain size={14} className="text-muted-foreground" />
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              SEÑALES POSTURALES
+              {t("fatiguePanel.posturalSignals")}
             </span>
           </div>
           <div className="space-y-2">
@@ -264,7 +266,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
                 <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5 shrink-0" />
                 <div>
                   <span className="text-[10px] font-display font-semibold text-orange-300">
-                    {signalLabel(signal.type)}
+                    {signalLabel(signal.type, t)}
                   </span>
                   <p className="text-[9px] text-muted-foreground leading-relaxed">
                     {signal.description}
@@ -314,13 +316,13 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
           <div className="w-2 h-2 rounded-full bg-purple-400 mt-1 shrink-0" />
           <div>
             <span className="text-[10px] font-display font-semibold text-purple-300">
-              Umbrales ajustados por maduración
+              {t("fatiguePanel.maturationAdjustedThresholds")}
             </span>
             <p className="text-[9px] text-muted-foreground leading-relaxed">
               {bandDescription(thresholds.band)}.
               Sprint: {(thresholds.sprintThresholdMs * 3.6).toFixed(1)} km/h ·
-              ACWR peligro: ≥{thresholds.acwrDangerThreshold} ·
-              Metabólico: {thresholds.metabolicWarningWkg.toFixed(1)} W/kg
+              {" "}{t("fatiguePanel.acwrDanger")}: ≥{thresholds.acwrDangerThreshold} ·
+              {" "}{t("fatiguePanel.metabolic")}: {thresholds.metabolicWarningWkg.toFixed(1)} W/kg
             </p>
           </div>
         </div>
@@ -332,6 +334,7 @@ export default function FatiguePanel({ report, compact = false }: FatiguePanelPr
 // ─── Helper Components & Functions ──────────────────────────────────────────
 
 function SeverityBadge({ severity }: { severity: string }) {
+  const { t } = useTranslation();
   const styles: Record<string, string> = {
     normal: "bg-green-500/10 text-green-400",
     moderate: "bg-yellow-500/10 text-yellow-400",
@@ -339,10 +342,10 @@ function SeverityBadge({ severity }: { severity: string }) {
     critical: "bg-red-500/10 text-red-400",
   };
   const labels: Record<string, string> = {
-    normal: "Normal",
-    moderate: "Moderada",
-    high: "Alta",
-    critical: "Crítica",
+    normal: t("fatiguePanel.severityNormal"),
+    moderate: t("fatiguePanel.severityModerate"),
+    high: t("fatiguePanel.severityHigh"),
+    critical: t("fatiguePanel.severityCritical"),
   };
   return (
     <span className={`text-[9px] px-2 py-0.5 rounded-full font-display font-semibold ${styles[severity] ?? styles.normal}`}>
@@ -352,6 +355,7 @@ function SeverityBadge({ severity }: { severity: string }) {
 }
 
 function ACWRBadge({ zone }: { zone: string }) {
+  const { t } = useTranslation();
   const styles: Record<string, string> = {
     optimal: "bg-green-500/10 text-green-400",
     caution: "bg-yellow-500/10 text-yellow-400",
@@ -359,10 +363,10 @@ function ACWRBadge({ zone }: { zone: string }) {
     undertrained: "bg-blue-500/10 text-blue-400",
   };
   const labels: Record<string, string> = {
-    optimal: "Óptimo",
-    caution: "Precaución",
-    danger: "Peligro",
-    undertrained: "Subentrenado",
+    optimal: t("fatiguePanel.acwrOptimal"),
+    caution: t("fatiguePanel.acwrCaution"),
+    danger: t("fatiguePanel.acwrDangerZone"),
+    undertrained: t("fatiguePanel.acwrUndertrained"),
   };
   return (
     <span className={`text-[9px] px-2 py-0.5 rounded-full font-display font-semibold ${styles[zone] ?? styles.optimal}`}>
@@ -409,14 +413,14 @@ function alertStyle(level: string): string {
   }
 }
 
-function signalLabel(type: string): string {
+function signalLabel(type: string, t: (key: string) => string): string {
   const labels: Record<string, string> = {
-    hands_on_knees: "Manos en rodillas",
-    trunk_lean_increase: "Aumento inclinación tronco",
-    stride_shortening: "Acortamiento de zancada",
-    recovery_time_increase: "Mayor tiempo recuperación",
-    arm_swing_decay: "Reducción balanceo brazos",
-    head_drop: "Cabeza caída",
+    hands_on_knees: t("fatiguePanel.signalHandsOnKnees"),
+    trunk_lean_increase: t("fatiguePanel.signalTrunkLeanIncrease"),
+    stride_shortening: t("fatiguePanel.signalStrideShortening"),
+    recovery_time_increase: t("fatiguePanel.signalRecoveryTimeIncrease"),
+    arm_swing_decay: t("fatiguePanel.signalArmSwingDecay"),
+    head_drop: t("fatiguePanel.signalHeadDrop"),
   };
   return labels[type] ?? type;
 }

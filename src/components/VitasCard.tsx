@@ -5,6 +5,7 @@
  */
 
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Download, Share2, Loader2, Zap, Star, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,10 +21,10 @@ interface VitasCardProps {
   onClose?:  () => void;
 }
 
-const PHV_LABELS: Record<string, string> = {
-  early:  "PRECOZ",
-  ontme:  "NORMAL",
-  late:   "TARDÍO",
+const PHV_LABEL_KEYS: Record<string, string> = {
+  early:  "vitasCard.phvEarly",
+  ontme:  "vitasCard.phvNormal",
+  late:   "vitasCard.phvLate",
 };
 
 const PHV_COLORS: Record<string, string> = {
@@ -32,16 +33,17 @@ const PHV_COLORS: Record<string, string> = {
   late:   "#3B82F6",
 };
 
-const METRIC_LABELS: Record<string, string> = {
-  speed:     "RITMO",
-  shooting:  "TIRO",
-  vision:    "VISIÓN",
-  technique: "TÉCNICA",
-  defending: "DEFENSA",
-  stamina:   "FÍSICO",
+const METRIC_LABEL_KEYS: Record<string, string> = {
+  speed:     "vitasCard.metricSpeed",
+  shooting:  "vitasCard.metricShooting",
+  vision:    "vitasCard.metricVision",
+  technique: "vitasCard.metricTechnique",
+  defending: "vitasCard.metricDefending",
+  stamina:   "vitasCard.metricStamina",
 };
 
 function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
+  const { t } = useTranslation();
   const keys = ["speed", "shooting", "vision", "technique", "defending", "stamina"];
   const cx = 80, cy = 80, r = 60;
   const angles = keys.map((_, i) => (i * Math.PI * 2) / keys.length - Math.PI / 2);
@@ -80,7 +82,7 @@ function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
         return (
           <text key={i} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
             fontSize="7" fill="rgba(255,255,255,0.5)" fontFamily="Rajdhani" fontWeight="600">
-            {METRIC_LABELS[keys[i]]}
+            {t(METRIC_LABEL_KEYS[keys[i]])}
           </text>
         );
       })}
@@ -89,11 +91,12 @@ function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
 }
 
 export default function VitasCard({ player, bestMatch, projection, onClose }: VitasCardProps) {
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
   const phvColor = PHV_COLORS[player.phvCategory ?? "ontme"] ?? "#22C55E";
-  const phvLabel = PHV_LABELS[player.phvCategory ?? "ontme"] ?? "NORMAL";
+  const phvLabel = t(PHV_LABEL_KEYS[player.phvCategory ?? "ontme"] ?? "vitasCard.phvNormal");
   const cloneScore = bestMatch?.score ?? null;
   const cloneName = bestMatch?.player.short_name ?? null;
   const cloneClub = bestMatch?.player.club ?? null;
@@ -102,7 +105,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
   const topMetrics = Object.entries(player.metrics)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 3)
-    .map(([k, v]) => ({ label: METRIC_LABELS[k] ?? k, value: v }));
+    .map(([k, v]) => ({ label: METRIC_LABEL_KEYS[k] ? t(METRIC_LABEL_KEYS[k]) : k, value: v }));
 
   const handleExport = async () => {
     if (!cardRef.current) return;
@@ -119,20 +122,20 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
       link.download = `VITAS_${player.name.replace(/\s+/g, "_")}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast.success("Tarjeta exportada");
+      toast.success(t("vitasCard.exportSuccess"));
     } catch {
-      toast.error("Error al exportar — intenta con captura de pantalla");
+      toast.error(t("vitasCard.exportError"));
     } finally {
       setExporting(false);
     }
   };
 
-  const shareText = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? ` | juega como ${cloneName} (${cloneScore?.toFixed(0)}%)` : ""} — descúbrelo con VITAS`;
+  const shareText = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? t("vitasCard.playsLike", { name: cloneName, score: cloneScore?.toFixed(0) }) : ""}${t("vitasCard.discoverWithVitas")}`;
 
   const handleShare = async () => {
-    const r = await shareNative({ title: "Mi VITAS Card", text: shareText, ref: "vitas-card" });
-    if (r === "copied") toast.success("Texto + enlace copiados");
-    else if (r === "failed") toast.error("No se pudo compartir");
+    const r = await shareNative({ title: t("vitasCard.shareTitle"), text: shareText, ref: "vitas-card" });
+    if (r === "copied") toast.success(t("vitasCard.copiedSuccess"));
+    else if (r === "failed") toast.error(t("vitasCard.shareFailed"));
   };
 
   const handleWhatsApp = () => shareToWhatsApp(shareText, "vitas-card");
@@ -149,7 +152,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
           <MessageCircle size={14} className="text-emerald-500" /> WhatsApp
         </Button>
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleShare}>
-          <Share2 size={14} /> Compartir
+          <Share2 size={14} /> {t("vitasCard.share")}
         </Button>
       </div>
 
@@ -191,7 +194,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-[9px] font-bold tracking-[0.15em] text-white/40 uppercase">
-                  {player.position} · {player.age} años
+                  {player.position} · {t("vitasCard.years", { count: player.age })}
                 </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                   style={{ color: phvColor, backgroundColor: `${phvColor}20`, border: `1px solid ${phvColor}40` }}>
@@ -217,7 +220,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
               </div>
               {player.phvOffset !== undefined && (
                 <div className="mb-1">
-                  <p className="text-[9px] text-white/40 uppercase tracking-widest">Offset bio</p>
+                  <p className="text-[9px] text-white/40 uppercase tracking-widest">{t("vitasCard.bioOffset")}</p>
                   <p className="text-lg font-bold" style={{ color: phvColor }}>
                     {player.phvOffset > 0 ? "+" : ""}{player.phvOffset?.toFixed(1)}
                   </p>
@@ -227,7 +230,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
 
             {/* Top métricas */}
             <div>
-              <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-2">Fortalezas</p>
+              <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-2">{t("vitasCard.strengths")}</p>
               <div className="space-y-1.5">
                 {topMetrics.map(m => (
                   <div key={m.label} className="flex items-center gap-2">
@@ -244,7 +247,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             {/* Proyección */}
             {projection && (
               <div className="rounded-lg px-3 py-2 border border-white/10 bg-white/5">
-                <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Proyección</p>
+                <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">{t("vitasCard.projection")}</p>
                 <p className="text-xs font-bold text-white">{projection}</p>
               </div>
             )}
@@ -261,7 +264,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
                 <div className="flex items-center justify-center gap-1 mb-1">
                   <Star size={10} className="text-yellow-400" />
                   <span className="text-[8px] font-bold tracking-widest text-white/50 uppercase">
-                    Se parece a
+                    {t("vitasCard.resembles")}
                   </span>
                 </div>
                 <p className="text-sm font-black text-white">{cloneName}</p>
@@ -280,7 +283,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             VITAS · {new Date().toLocaleDateString("es-ES")}
           </span>
           <span className="text-[9px] font-mono font-bold text-indigo-400">
-            ⚡ Descubre el tuyo → futuro-club.vercel.app
+            ⚡ {t("vitasCard.discoverYours")} → futuro-club.vercel.app
           </span>
         </div>
       </motion.div>

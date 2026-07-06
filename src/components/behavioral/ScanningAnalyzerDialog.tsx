@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Eye, Cpu, CheckCircle2, Loader2, Video as VideoIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -41,6 +42,7 @@ export default function ScanningAnalyzerDialog({
   playerName,
   preselectedVideoId,
 }: Props) {
+  const { t } = useTranslation();
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<ScanningDetectionProgress | null>(null);
@@ -94,11 +96,11 @@ export default function ScanningAnalyzerDialog({
         (p) => setProgress(p),
       );
       setResult(r);
-      toast.success(`Scanning analizado · Scan IQ ${r.scanIQ}/100`);
+      toast.success(t("scanningAnalyzerDialog.toastSuccess", { scanIQ: r.scanIQ }));
       onCompleted(r);
     } catch (err) {
       console.error(err);
-      toast.error("Error analizando el scanning");
+      toast.error(t("scanningAnalyzerDialog.toastError"));
     } finally {
       setRunning(false);
     }
@@ -130,10 +132,10 @@ export default function ScanningAnalyzerDialog({
             </div>
             <div className="flex-1">
               <h2 className="text-base font-display font-bold text-foreground">
-                Analizar scanning desde video
+                {t("scanningAnalyzerDialog.title")}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Jugador: <strong className="text-foreground">{playerName}</strong> · cuenta scans en los 10s previos a cada recepción
+                {t("scanningAnalyzerDialog.playerLabel")}: <strong className="text-foreground">{playerName}</strong> · {t("scanningAnalyzerDialog.subtitleSuffix")}
               </p>
             </div>
             {!running && (
@@ -151,7 +153,7 @@ export default function ScanningAnalyzerDialog({
             {!running && !result && (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Selecciona un video. El pipeline corre pose estimation sobre el jugador objetivo y cuenta los giros de cabeza antes de cada recepción.
+                  {t("scanningAnalyzerDialog.intro")}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -173,7 +175,7 @@ export default function ScanningAnalyzerDialog({
                           {v.title}
                         </p>
                         <p className="text-[9px] text-muted-foreground">
-                          {v.minutes} min · {v.isReal ? "video subido" : "partido demo"}
+                          {v.minutes} min · {v.isReal ? t("scanningAnalyzerDialog.uploadedVideo") : t("scanningAnalyzerDialog.demoMatch")}
                         </p>
                       </div>
                       {selectedVideoId === v.id && (
@@ -184,13 +186,13 @@ export default function ScanningAnalyzerDialog({
                 </div>
 
                 <div className="rounded-lg bg-pink-500/5 border border-pink-500/20 p-3 text-[11px] text-foreground/80 space-y-1">
-                  <p className="font-semibold text-pink-500">¿Qué hace el pipeline?</p>
+                  <p className="font-semibold text-pink-500">{t("scanningAnalyzerDialog.pipelineTitle")}</p>
                   <ul className="space-y-0.5 ml-2">
-                    <li>• Tracking del jugador objetivo durante todo el partido</li>
-                    <li>• Pose estimation · detecta giros de cabeza &gt;30°</li>
-                    <li>• Identifica cada recepción del balón</li>
-                    <li>• Cuenta scans en los 10 segundos previos a cada recepción</li>
-                    <li>• Correlaciona con la calidad de la decisión posterior</li>
+                    <li>• {t("scanningAnalyzerDialog.pipelineStep1")}</li>
+                    <li>• {t("scanningAnalyzerDialog.pipelineStep2")}</li>
+                    <li>• {t("scanningAnalyzerDialog.pipelineStep3")}</li>
+                    <li>• {t("scanningAnalyzerDialog.pipelineStep4")}</li>
+                    <li>• {t("scanningAnalyzerDialog.pipelineStep5")}</li>
                   </ul>
                 </div>
               </>
@@ -221,7 +223,7 @@ export default function ScanningAnalyzerDialog({
                 </div>
                 {selectedVideo && (
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Analizando: <strong>{selectedVideo.title}</strong>
+                    {t("scanningAnalyzerDialog.analyzing")}: <strong>{selectedVideo.title}</strong>
                   </p>
                 )}
               </div>
@@ -239,17 +241,17 @@ export default function ScanningAnalyzerDialog({
                 </motion.div>
                 <div>
                   <h3 className="text-lg font-display font-bold text-foreground">
-                    Análisis completado
+                    {t("scanningAnalyzerDialog.analysisComplete")}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     <strong className="text-pink-500">Scan IQ {result.scanIQ}/100</strong> ·{" "}
-                    {result.receptionsAnalyzed} recepciones analizadas
+                    {t("scanningAnalyzerDialog.receptionsAnalyzed", { count: result.receptionsAnalyzed })}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 max-w-md mx-auto text-left">
                   <div className="glass rounded-lg p-2.5">
                     <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                      Scans / recepción
+                      {t("scanningAnalyzerDialog.scansPerReception")}
                     </p>
                     <p className="text-lg font-display font-bold text-pink-500">
                       {result.avgScansPreReception.toFixed(1)}
@@ -257,7 +259,7 @@ export default function ScanningAnalyzerDialog({
                   </div>
                   <div className="glass rounded-lg p-2.5">
                     <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">
-                      Éxito con scan
+                      {t("scanningAnalyzerDialog.successWithScan")}
                     </p>
                     <p className="text-lg font-display font-bold text-emerald-500">
                       {Math.round(result.successWithScan * 100)}%
@@ -275,7 +277,7 @@ export default function ScanningAnalyzerDialog({
                 onClick={onClose}
                 className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-secondary"
               >
-                Cancelar
+                {t("scanningAnalyzerDialog.cancel")}
               </button>
               <button
                 onClick={handleStart}
@@ -283,7 +285,7 @@ export default function ScanningAnalyzerDialog({
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white text-xs font-display font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Cpu size={12} />
-                Analizar
+                {t("scanningAnalyzerDialog.analyze")}
               </button>
             </div>
           )}
@@ -294,7 +296,7 @@ export default function ScanningAnalyzerDialog({
                 onClick={onClose}
                 className="px-4 py-1.5 rounded-md bg-pink-500 text-white text-xs font-display font-semibold hover:bg-pink-600"
               >
-                Cerrar y ver informe
+                {t("scanningAnalyzerDialog.closeAndViewReport")}
               </button>
             </div>
           )}

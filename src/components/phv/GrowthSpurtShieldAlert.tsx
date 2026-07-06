@@ -6,6 +6,7 @@
  *   audience="parent" → mensaje llano y tranquilizador (canal B2C Plan Familia)
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { ShieldAlert, ShieldCheck, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GrowthSpurtShield } from "@/lib/phv";
@@ -18,14 +19,16 @@ interface Props {
 }
 
 const LEVEL_STYLE = {
-  peak: { border: "border-rose-500/40", bg: "bg-rose-500/10", text: "text-rose-300", label: "Pico de estirón" },
-  high: { border: "border-orange-500/40", bg: "bg-orange-500/10", text: "text-orange-300", label: "Ventana de estirón" },
-  moderate: { border: "border-amber-500/30", bg: "bg-amber-500/5", text: "text-amber-300", label: "Cerca del estirón" },
-  low: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", label: "Riesgo bajo" },
-  minimal: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", label: "Fuera de ventana" },
+  peak: { border: "border-rose-500/40", bg: "bg-rose-500/10", text: "text-rose-300", labelKey: "levelPeak" },
+  high: { border: "border-orange-500/40", bg: "bg-orange-500/10", text: "text-orange-300", labelKey: "levelHigh" },
+  moderate: { border: "border-amber-500/30", bg: "bg-amber-500/5", text: "text-amber-300", labelKey: "levelModerate" },
+  low: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", labelKey: "levelLow" },
+  minimal: { border: "border-emerald-500/25", bg: "bg-emerald-500/5", text: "text-emerald-300", labelKey: "levelMinimal" },
 } as const;
 
 export function GrowthSpurtShieldAlert({ shield, audience = "coach", hideWhenInactive = false }: Props) {
+  const { t } = useTranslation();
+
   if (hideWhenInactive && !shield.active) return null;
 
   const style = LEVEL_STYLE[shield.level];
@@ -45,14 +48,14 @@ export function GrowthSpurtShieldAlert({ shield, audience = "coach", hideWhenIna
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <h3 className={cn("text-sm font-semibold", style.text)}>
-              🛡️ Escudo de Estirón
+              🛡️ {t("growthSpurtShieldAlert.title")}
             </h3>
             <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", style.border, style.text)}>
-              {style.label}
+              {t(`growthSpurtShieldAlert.${style.labelKey}`)}
             </span>
             {shield.active && shield.loadReductionPct > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-foreground">
-                −{shield.loadReductionPct}% carga · {shield.windowWeeks} sem
+                {t("growthSpurtShieldAlert.loadReduction", { pct: shield.loadReductionPct, weeks: shield.windowWeeks })}
               </span>
             )}
           </div>
@@ -62,7 +65,7 @@ export function GrowthSpurtShieldAlert({ shield, audience = "coach", hideWhenIna
             <div className="mt-2 flex items-start gap-1.5">
               <Activity className="size-3 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-[10px] text-muted-foreground">
-                Vigilar: {shield.watchInjuries.join(" · ")}
+                {t("growthSpurtShieldAlert.watch", { injuries: shield.watchInjuries.join(" · ") })}
               </p>
             </div>
           )}

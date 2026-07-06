@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, ScatterChart, Scatter, XAxis, YAxis,
   ZAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface DecisionPoint {
   decisionTimeMs: number;
@@ -28,10 +29,12 @@ const OUTCOME_COLORS: Record<string, string> = {
 };
 
 export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props) {
+  const { t } = useTranslation();
+
   if (decisions.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
-        Sin datos de decisiones disponibles
+        {t("decisionSpeedTimeline.noData")}
       </div>
     );
   }
@@ -47,7 +50,7 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
   return (
     <div className="glass rounded-xl p-4 space-y-2">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Velocidad de Decisión
+        {t("decisionSpeedTimeline.title")}
       </span>
       <ResponsiveContainer width="100%" height={height}>
         <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
@@ -55,9 +58,9 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
           <XAxis
             type="number"
             dataKey="index"
-            name="Decisión"
+            name={t("decisionSpeedTimeline.decision")}
             tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-            label={{ value: "Decisión #", position: "insideBottom", offset: -5, fontSize: 9, fill: "rgba(255,255,255,0.3)" }}
+            label={{ value: t("decisionSpeedTimeline.decisionAxisLabel"), position: "insideBottom", offset: -5, fontSize: 9, fill: "rgba(255,255,255,0.3)" }}
           />
           <YAxis
             type="number"
@@ -66,7 +69,7 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
             tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
             label={{ value: "ms", angle: -90, position: "insideLeft", fontSize: 9, fill: "rgba(255,255,255,0.3)" }}
           />
-          <ZAxis type="number" dataKey="pressure" range={[30, 200]} name="Presión" />
+          <ZAxis type="number" dataKey="pressure" range={[30, 200]} name={t("decisionSpeedTimeline.pressure")} />
           <Tooltip
             contentStyle={{
               background: "rgba(0,0,0,0.85)",
@@ -75,8 +78,8 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
               fontSize: 10,
             }}
             formatter={(value: number, name: string) => {
-              if (name === "ms") return [`${value}ms`, "Tiempo"];
-              if (name === "Presión") return [`${value}/100`, "Presión"];
+              if (name === "ms") return [`${value}ms`, t("decisionSpeedTimeline.time")];
+              if (name === t("decisionSpeedTimeline.pressure")) return [`${value}/100`, t("decisionSpeedTimeline.pressure")];
               return [value, name];
             }}
           />
@@ -94,11 +97,15 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
           <div key={k} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c }} />
             <span className="text-[8px] text-muted-foreground capitalize">
-              {k === "successful" ? "Éxito" : k === "failed" ? "Error" : "Neutral"}
+              {k === "successful"
+                ? t("decisionSpeedTimeline.success")
+                : k === "failed"
+                ? t("decisionSpeedTimeline.error")
+                : t("decisionSpeedTimeline.neutral")}
             </span>
           </div>
         ))}
-        <span className="text-[8px] text-muted-foreground">Tamaño = presión</span>
+        <span className="text-[8px] text-muted-foreground">{t("decisionSpeedTimeline.sizePressure")}</span>
       </div>
     </div>
   );

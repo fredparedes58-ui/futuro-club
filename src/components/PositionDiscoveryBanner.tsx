@@ -7,6 +7,7 @@
  */
 import { Sparkles, Plus, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PlayerService, type Player } from "@/services/real/playerService";
 
@@ -35,6 +36,7 @@ const CODE_TO_NAME: Record<string, string> = {
 };
 
 export default function PositionDiscoveryBanner({ player, alternatives, onAdded }: Props) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   // Filtrar: solo descubrimientos con fit >75 que no estén dismissed
@@ -59,12 +61,12 @@ export default function PositionDiscoveryBanner({ player, alternatives, onAdded 
       try {
         localStorage.setItem("vitas_players", JSON.stringify(all));
       } catch (e) {
-        toast.error("No se pudo guardar la posición");
+        toast.error(t("positionDiscoveryBanner.saveError"));
         console.error(e);
         return;
       }
     }
-    toast.success(`✅ ${humanName} añadida a las posiciones de ${player.name}`);
+    toast.success(t("positionDiscoveryBanner.addSuccess", { position: humanName, player: player.name }));
     onAdded?.();
     setDismissed((prev) => new Set(prev).add(alt.code));
   };
@@ -85,7 +87,7 @@ export default function PositionDiscoveryBanner({ player, alternatives, onAdded 
             <button
               onClick={() => handleDismiss(alt.code)}
               className="absolute top-2 right-2 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-              aria-label="Descartar"
+              aria-label={t("positionDiscoveryBanner.dismiss")}
             >
               <X size={12} />
             </button>
@@ -96,11 +98,11 @@ export default function PositionDiscoveryBanner({ player, alternatives, onAdded 
               <div className="flex-1 min-w-0 space-y-2">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-electric font-bold">
-                    💡 Descubrimiento del video
+                    💡 {t("positionDiscoveryBanner.videoDiscovery")}
                   </p>
                   <p className="text-sm font-display font-bold text-foreground">
-                    {player.name} podría rendir bien como <span className="text-electric">{humanName}</span>
-                    {" "}<span className="text-muted-foreground font-normal">(fit {alt.fit}%)</span>
+                    {t("positionDiscoveryBanner.couldPerformAsPrefix", { player: player.name })} <span className="text-electric">{humanName}</span>
+                    {" "}<span className="text-muted-foreground font-normal">({t("positionDiscoveryBanner.fitLabel", { fit: alt.fit })})</span>
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
@@ -110,7 +112,7 @@ export default function PositionDiscoveryBanner({ player, alternatives, onAdded 
                   onClick={() => handleAdd(alt)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-electric text-background text-xs font-display font-bold hover:bg-electric/90 transition-colors"
                 >
-                  <Plus size={11} /> Añadir {humanName} al perfil
+                  <Plus size={11} /> {t("positionDiscoveryBanner.addToProfile", { position: humanName })}
                 </button>
               </div>
             </div>

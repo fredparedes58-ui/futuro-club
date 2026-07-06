@@ -55,16 +55,16 @@ function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) 
         title={t("compare.needMinPlayers")}
         description={t("compare.needMinDesc")}
         primary={{
-          label: "Añadir jugador",
+          label: t("playerComparison.addPlayer"),
           Icon: Plus,
           onClick: () => navigate("/players/new"),
         }}
         secondary={{
-          label: "Ir a Rankings",
+          label: t("playerComparison.goToRankings"),
           Icon: BarChart3,
           onClick: () => navigate("/rankings"),
         }}
-        hint="Necesitas al menos 2 jugadores en plantilla para compararlos lado a lado."
+        hint={t("playerComparison.needMinHint")}
       />
     </div>
   );
@@ -105,9 +105,9 @@ function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | 
       {/* Top 3 métricas del pro */}
       <div className="mt-2 grid grid-cols-3 gap-1">
         {[
-          { k: "pace", l: "Ritmo", v: player.pace },
-          { k: "shooting", l: "Tiro", v: player.shooting },
-          { k: "dribbling", l: "Técnica", v: player.dribbling },
+          { k: "pace", l: t("playerComparison.pace"), v: player.pace },
+          { k: "shooting", l: t("playerComparison.shooting"), v: player.shooting },
+          { k: "dribbling", l: t("playerComparison.technique"), v: player.dribbling },
         ].map(m => (
           <div key={m.k} className="text-center">
             <div className="text-[9px] font-bold text-foreground">{m.v}</div>
@@ -278,7 +278,7 @@ const PlayerComparison = () => {
               <ArrowLeft size={14} /> {t("common.back")}
             </button>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-primary">
-              Análisis Predictivo
+              {t("playerComparison.predictiveAnalysis")}
             </span>
             <h1 className="font-display font-bold text-3xl text-foreground italic">
               Scout Comparison Tool
@@ -290,7 +290,7 @@ const PlayerComparison = () => {
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors"
             >
               <Download size={16} />
-              Exportar PDF
+              {t("playerComparison.exportPdf")}
             </button>
             <button
               onClick={() => {
@@ -299,13 +299,13 @@ const PlayerComparison = () => {
                   navigator.share({ title: "VITAS Comparison", url }).catch(() => null);
                 } else {
                   navigator.clipboard.writeText(url);
-                  toast.success("Enlace copiado al portapapeles");
+                  toast.success(t("playerComparison.linkCopied"));
                 }
               }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-display font-semibold hover:bg-primary/90 transition-colors"
             >
               <Share2 size={16} />
-              Compartir
+              {t("playerComparison.share")}
             </button>
           </div>
         </div>
@@ -423,7 +423,7 @@ const PlayerComparison = () => {
         <motion.div variants={item} className="glass rounded-2xl overflow-hidden">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-4 px-6 py-3 border-b border-border">
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Métrica
+              {t("playerComparison.metric")}
             </span>
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground text-center">
               {playerA.name.split(" ")[0]}
@@ -508,31 +508,28 @@ const PlayerComparison = () => {
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Brain size={18} className="text-primary" />
               </div>
-              <h3 className="font-display font-bold text-lg text-foreground">Análisis Comparativo</h3>
+              <h3 className="font-display font-bold text-lg text-foreground">{t("playerComparison.comparativeAnalysis")}</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Comparando a{" "}
-              <span className="font-semibold text-foreground">{playerA.name}</span> y{" "}
-              <span className="font-semibold text-foreground">{playerB.name}</span>, el filtro
-              de sesgo biológico indica que{" "}
-              <span className="text-primary font-bold">{aiWinner.name}</span> tiene mayor techo
-              de desarrollo. Su estado de maduración{" "}
+              {t("playerComparison.analysisComparing")}{" "}
+              <span className="font-semibold text-foreground">{playerA.name}</span> {t("playerComparison.analysisAnd")}{" "}
+              <span className="font-semibold text-foreground">{playerB.name}</span>{t("playerComparison.analysisBiasFilter")}{" "}
+              <span className="text-primary font-bold">{aiWinner.name}</span> {t("playerComparison.analysisHigherCeiling")}{" "}
               <span className="font-bold text-foreground">
                 {aiWinner.phvCategory === "late"
-                  ? "TARDÍO"
+                  ? t("playerComparison.maturationLate")
                   : aiWinner.phvCategory === "early"
-                  ? "PRECOZ"
-                  : "NORMAL"}
+                  ? t("playerComparison.maturationEarly")
+                  : t("playerComparison.maturationNormal")}
               </span>{" "}
-              indica que el modelo proyecta una probabilidad del{" "}
-              <span className="text-primary font-bold">{probabilityElite}%</span> de alcanzar
-              nivel elite en 36 meses.
+              {t("playerComparison.analysisModelProjects")}{" "}
+              <span className="text-primary font-bold">{probabilityElite}%</span> {t("playerComparison.analysisEliteIn36")}
             </p>
           </div>
 
           <div className="glass rounded-2xl p-6 flex flex-col items-center justify-center text-center">
             <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-              Recomendación
+              {t("playerComparison.recommendation")}
             </span>
             <h2 className="font-display font-bold text-4xl text-electric leading-tight mb-1">
               {aiWinner.name.split(" ")[0].toUpperCase()}
@@ -541,13 +538,13 @@ const PlayerComparison = () => {
               {(aiWinner.name.split(" ")[1] ?? "").toUpperCase()}
             </h2>
             <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-4">
-              Alta prioridad · Seguimiento recomendado
+              {t("playerComparison.highPriorityTracking")}
             </p>
             <button
               onClick={() => navigate(`/player/${aiWinner.id}`)}
               className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-display font-bold text-foreground hover:bg-secondary transition-colors uppercase tracking-wider"
             >
-              Ver Perfil Completo
+              {t("playerComparison.viewFullProfile")}
             </button>
           </div>
         </motion.div>
@@ -556,8 +553,8 @@ const PlayerComparison = () => {
         <motion.div variants={item}>
           <div className="flex items-center gap-2 mb-3">
             <Star size={14} className="text-gold" />
-            <h3 className="font-display font-bold text-lg text-foreground">Jugadores Referencia</h3>
-            <span className="text-[10px] text-muted-foreground">· similitud coseno vs base pro</span>
+            <h3 className="font-display font-bold text-lg text-foreground">{t("playerComparison.referencePlayers")}</h3>
+            <span className="text-[10px] text-muted-foreground">{t("playerComparison.cosineSimilarity")}</span>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -566,7 +563,7 @@ const PlayerComparison = () => {
                 onClick={() => navigate(`/players/${playerA.id}/intelligence`)}
                 className="w-full text-[10px] font-display text-primary flex items-center justify-center gap-1 py-1.5"
               >
-                <Zap size={10} /> Ver informe completo
+                <Zap size={10} /> {t("playerComparison.viewFullReport")}
               </button>
             </div>
             <div className="space-y-2">
@@ -575,7 +572,7 @@ const PlayerComparison = () => {
                 onClick={() => navigate(`/players/${playerB.id}/intelligence`)}
                 className="w-full text-[10px] font-display text-primary flex items-center justify-center gap-1 py-1.5"
               >
-                <Zap size={10} /> Ver informe completo
+                <Zap size={10} /> {t("playerComparison.viewFullReport")}
               </button>
             </div>
           </div>
@@ -585,7 +582,7 @@ const PlayerComparison = () => {
         <motion.div variants={item}>
           <div className="flex items-center gap-2 mb-3">
             <FileText size={14} className="text-primary" />
-            <h3 className="font-display font-bold text-lg text-foreground">Exportar VITAS Card</h3>
+            <h3 className="font-display font-bold text-lg text-foreground">{t("playerComparison.exportVitasCard")}</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -597,7 +594,7 @@ const PlayerComparison = () => {
               </div>
               <div className="text-left">
                 <p className="text-xs font-bold text-foreground truncate">{playerA.name.split(" ")[0]}</p>
-                <p className="text-[9px] text-muted-foreground">Generar tarjeta</p>
+                <p className="text-[9px] text-muted-foreground">{t("playerComparison.generateCard")}</p>
               </div>
             </button>
             <button
@@ -609,7 +606,7 @@ const PlayerComparison = () => {
               </div>
               <div className="text-left">
                 <p className="text-xs font-bold text-foreground truncate">{playerB.name.split(" ")[0]}</p>
-                <p className="text-[9px] text-muted-foreground">Generar tarjeta</p>
+                <p className="text-[9px] text-muted-foreground">{t("playerComparison.generateCard")}</p>
               </div>
             </button>
           </div>
@@ -617,7 +614,7 @@ const PlayerComparison = () => {
 
         {/* Footer */}
         <motion.div variants={item} className="flex items-center justify-between text-[10px] text-muted-foreground font-display px-2 pb-4">
-          <span>VITAS ENGINE: <span className="text-primary">ACTIVO</span></span>
+          <span>VITAS ENGINE: <span className="text-primary">{t("playerComparison.engineActive")}</span></span>
           <span>© 2026 VITAS · Football Intelligence</span>
         </motion.div>
       </div>

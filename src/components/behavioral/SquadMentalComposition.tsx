@@ -6,6 +6,7 @@
  * — qué perfiles abundan, cuáles faltan y de quién dependes demasiado.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Brain, AlertTriangle, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
   ALL_ARCHETYPES,
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function SquadMentalComposition({ counts, total }: Props) {
+  const { t } = useTranslation();
   const insights = analyzeSquadComposition(counts, total);
   const maxCount = Math.max(1, ...ALL_ARCHETYPES.map((a) => counts[a]));
 
@@ -37,8 +39,8 @@ export function SquadMentalComposition({ counts, total }: Props) {
           <Brain size={16} className="text-purple-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display font-semibold text-sm text-foreground">Composición mental de la plantilla</h2>
-          <p className="text-[10px] text-muted-foreground">Distribución de arquetipos · {total} jugadores</p>
+          <h2 className="font-display font-semibold text-sm text-foreground">{t("squadMentalComposition.title")}</h2>
+          <p className="text-[10px] text-muted-foreground">{t("squadMentalComposition.subtitle", { count: total })}</p>
         </div>
       </div>
 

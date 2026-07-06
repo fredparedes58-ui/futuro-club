@@ -5,6 +5,7 @@
  * al endpoint smart-match y muestra los matches rankeados por Claude.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Sparkles, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,19 +20,17 @@ interface Props {
   onResults: (matches: MatchScore[], summary: string) => void;
 }
 
-const EXAMPLES = [
-  "Necesito un central zurdo sub-19 con liderazgo y juego aéreo. Presupuesto 400k.",
-  "Busco un mediocampista creativo con perfil PHV tardío para proyecto largo.",
-  "Extremo rápido sub-18 para cesión 1 año. Tercera división, equipo en construcción.",
-];
+const EXAMPLE_KEYS = ["example1", "example2", "example3"] as const;
 
 export function SmartMatchPrompt({ structuredQuery, onResults }: Props) {
+  const { t } = useTranslation();
   const [text, setText] = useState("");
   const smartMatch = useSmartMatch();
+  const examples = EXAMPLE_KEYS.map((k) => t(`smartMatchPrompt.${k}`));
 
   async function handleSubmit() {
     if (text.length < 10) {
-      toast.error("Describe la necesidad con al menos 10 caracteres.");
+      toast.error(t("smartMatchPrompt.minCharsError"));
       return;
     }
     try {
@@ -43,12 +42,12 @@ export function SmartMatchPrompt({ structuredQuery, onResults }: Props) {
         maxCandidates: 30,
       });
       onResults(result.topMatches, result.summary);
-      toast.success(`${result.topMatches.length} matches encontrados`, {
-        description: result.source === "agent" ? "Análisis IA con Claude Sonnet" : "Heurística simple",
+      toast.success(t("smartMatchPrompt.matchesFound", { count: result.topMatches.length }), {
+        description: result.source === "agent" ? t("smartMatchPrompt.aiAnalysis") : t("smartMatchPrompt.simpleHeuristic"),
       });
     } catch (err) {
-      toast.error("No se pudo ejecutar el smart match", {
-        description: err instanceof Error ? err.message : "Error",
+      toast.error(t("smartMatchPrompt.smartMatchError"), {
+        description: err instanceof Error ? err.message : t("smartMatchPrompt.errorFallback"),
       });
     }
   }
@@ -60,9 +59,9 @@ export function SmartMatchPrompt({ structuredQuery, onResults }: Props) {
           <Wand2 className="size-3.5 text-white" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold text-white">Smart Match con IA</h3>
+          <h3 className="text-sm font-semibold text-white">{t("smartMatchPrompt.title")}</h3>
           <p className="text-[11px] text-slate-400">
-            Describe lo que buscas. Claude rankea los listings disponibles.
+            {t("smartMatchPrompt.subtitle")}
           </p>
         </div>
       </div>
@@ -70,7 +69,7 @@ export function SmartMatchPrompt({ structuredQuery, onResults }: Props) {
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="ej. Necesito un central zurdo sub-19 con liderazgo para Segunda B…"
+        placeholder={t("smartMatchPrompt.textareaPlaceholder")}
         rows={3}
         className="bg-white/[0.02] border-white/10 text-sm resize-none"
       />
@@ -84,25 +83,25 @@ export function SmartMatchPrompt({ structuredQuery, onResults }: Props) {
           {smartMatch.isPending ? (
             <>
               <Loader2 className="size-3.5 mr-1.5 animate-spin" />
-              Buscando…
+              {t("smartMatchPrompt.searching")}
             </>
           ) : (
             <>
               <Sparkles className="size-3.5 mr-1.5" />
-              Buscar con IA
+              {t("smartMatchPrompt.searchButton")}
             </>
           )}
         </Button>
 
         <div className="flex flex-wrap gap-1">
-          {EXAMPLES.map((ex, i) => (
+          {examples.map((ex, i) => (
             <button
               key={i}
               onClick={() => setText(ex)}
               className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] text-slate-400 truncate max-w-[200px]"
               title={ex}
             >
-              Ejemplo {i + 1}
+              {t("smartMatchPrompt.exampleLabel", { number: i + 1 })}
             </button>
           ))}
         </div>

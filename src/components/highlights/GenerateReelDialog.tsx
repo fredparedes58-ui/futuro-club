@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Film, Wand2, CheckCircle2, Loader2, Cpu } from "lucide-react";
 import { toast } from "sonner";
@@ -31,10 +32,10 @@ const DEMO_VIDEOS = [
 ];
 
 const DURATION_PRESETS = [
-  { value: 30, label: "30 s", description: "Resumen flash" },
-  { value: 60, label: "1 min", description: "Top momentos" },
-  { value: 180, label: "3 min", description: "Reel completo" },
-  { value: 300, label: "5 min", description: "Análisis extendido" },
+  { value: 30, label: "30 s", descKey: "durationFlash" },
+  { value: 60, label: "1 min", descKey: "durationTop" },
+  { value: 180, label: "3 min", descKey: "durationFull" },
+  { value: 300, label: "5 min", descKey: "durationExtended" },
 ];
 
 export default function GenerateReelDialog({
@@ -43,6 +44,7 @@ export default function GenerateReelDialog({
   onCreated,
   preselectedVideoId,
 }: Props) {
+  const { t } = useTranslation();
   const [videoId, setVideoId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(60);
@@ -107,11 +109,11 @@ export default function GenerateReelDialog({
 
   const handleStart = async () => {
     if (!selectedVideo) {
-      toast.error("Selecciona un video");
+      toast.error(t("generateReelDialog.selectVideoError"));
       return;
     }
     if (moments.length === 0) {
-      toast.error("Elige al menos un tipo de momento");
+      toast.error(t("generateReelDialog.selectMomentError"));
       return;
     }
     setRunning(true);
@@ -131,11 +133,16 @@ export default function GenerateReelDialog({
         (p) => setProgress(p),
       );
       setResult(reel);
-      toast.success(`Reel "${reel.title}" creado con ${reel.clips.length} clips`);
+      toast.success(
+        t("generateReelDialog.reelCreatedToast", {
+          title: reel.title,
+          count: reel.clips.length,
+        }),
+      );
       onCreated(reel);
     } catch (err) {
       console.error(err);
-      toast.error("Error generando el reel");
+      toast.error(t("generateReelDialog.generateError"));
     } finally {
       setRunning(false);
     }
@@ -167,10 +174,10 @@ export default function GenerateReelDialog({
             </div>
             <div className="flex-1">
               <h2 className="text-base font-display font-bold text-foreground">
-                Generar reel de highlights
+                {t("generateReelDialog.title")}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Detecta automáticamente los mejores momentos del video y los compila en un clip
+                {t("generateReelDialog.subtitle")}
               </p>
             </div>
             {!running && (
@@ -191,7 +198,7 @@ export default function GenerateReelDialog({
                 {/* Video selector */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    Video fuente
+                    {t("generateReelDialog.sourceVideoLabel")}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {combinedVideos.map((v) => (
@@ -213,7 +220,9 @@ export default function GenerateReelDialog({
                           </p>
                           <p className="text-[9px] text-muted-foreground">
                             {Math.round(v.duration / 60)} min ·{" "}
-                            {v.isReal ? "video subido" : "partido demo"}
+                            {v.isReal
+                              ? t("generateReelDialog.uploadedVideo")
+                              : t("generateReelDialog.demoMatch")}
                           </p>
                         </div>
                         {videoId === v.id && (
@@ -227,13 +236,13 @@ export default function GenerateReelDialog({
                 {/* Title */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    Título (opcional)
+                    {t("generateReelDialog.titleLabel")}
                   </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Top goles · vs Rival FC"
+                    placeholder={t("generateReelDialog.titlePlaceholder")}
                     className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -241,7 +250,7 @@ export default function GenerateReelDialog({
                 {/* Duration presets */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    Duración objetivo
+                    {t("generateReelDialog.targetDurationLabel")}
                   </label>
                   <div className="grid grid-cols-4 gap-2">
                     {DURATION_PRESETS.map((d) => (
@@ -255,7 +264,9 @@ export default function GenerateReelDialog({
                         }`}
                       >
                         <span className="text-sm font-display font-bold">{d.label}</span>
-                        <span className="text-[9px] text-muted-foreground">{d.description}</span>
+                        <span className="text-[9px] text-muted-foreground">
+                          {t(`generateReelDialog.${d.descKey}`)}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -265,7 +276,10 @@ export default function GenerateReelDialog({
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                      Tipos de momento ({moments.length}/{ALL_MOMENTS.length})
+                      {t("generateReelDialog.momentTypesLabel", {
+                        selected: moments.length,
+                        total: ALL_MOMENTS.length,
+                      })}
                     </label>
                     <button
                       onClick={() =>
@@ -275,7 +289,9 @@ export default function GenerateReelDialog({
                       }
                       className="text-[10px] text-primary hover:underline"
                     >
-                      {moments.length === ALL_MOMENTS.length ? "Quitar todos" : "Todos"}
+                      {moments.length === ALL_MOMENTS.length
+                        ? t("generateReelDialog.removeAll")
+                        : t("generateReelDialog.selectAll")}
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -308,17 +324,17 @@ export default function GenerateReelDialog({
                 {/* Player focus */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    Enfoque en jugador (opcional)
+                    {t("generateReelDialog.playerFocusLabel")}
                   </label>
                   <input
                     type="text"
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder="Samu · Marco López"
+                    placeholder={t("generateReelDialog.playerFocusPlaceholder")}
                     className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                   />
                   <p className="text-[9px] text-muted-foreground">
-                    Si lo rellenas, todos los clips llevarán el nombre del jugador y se filtra a momentos en los que participa.
+                    {t("generateReelDialog.playerFocusHelp")}
                   </p>
                 </div>
               </>
@@ -352,7 +368,8 @@ export default function GenerateReelDialog({
                 </div>
                 {selectedVideo && (
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Analizando: <strong>{selectedVideo.title}</strong>
+                    {t("generateReelDialog.analyzing")}{" "}
+                    <strong>{selectedVideo.title}</strong>
                   </p>
                 )}
               </div>
@@ -371,11 +388,15 @@ export default function GenerateReelDialog({
                 </motion.div>
                 <div>
                   <h3 className="text-lg font-display font-bold text-foreground">
-                    ¡Reel creado!
+                    {t("generateReelDialog.reelCreatedTitle")}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    <strong className="text-primary">{result.clips.length} clips</strong> ·
-                    duración total{" "}
+                    <strong className="text-primary">
+                      {t("generateReelDialog.clipsCount", {
+                        count: result.clips.length,
+                      })}
+                    </strong>{" "}
+                    · {t("generateReelDialog.totalDuration")}{" "}
                     {Math.round(result.totalDurationMs / 1000)}s
                   </p>
                 </div>
@@ -390,7 +411,7 @@ export default function GenerateReelDialog({
                 onClick={onClose}
                 className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-secondary"
               >
-                Cancelar
+                {t("generateReelDialog.cancel")}
               </button>
               <button
                 onClick={handleStart}
@@ -398,7 +419,7 @@ export default function GenerateReelDialog({
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-emerald-500 to-primary text-white text-xs font-display font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Wand2 size={12} />
-                Generar reel
+                {t("generateReelDialog.generateReel")}
               </button>
             </div>
           )}
@@ -409,7 +430,7 @@ export default function GenerateReelDialog({
                 onClick={onClose}
                 className="px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90"
               >
-                Cerrar y ver reel
+                {t("generateReelDialog.closeAndView")}
               </button>
             </div>
           )}

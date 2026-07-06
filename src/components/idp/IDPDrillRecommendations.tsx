@@ -6,6 +6,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Clock, Users, MapPin, ChevronRight, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ function resolveDrillId(id: string): DrillDocument | null {
 }
 
 export function IDPDrillRecommendations({ goals }: Props) {
+  const { t } = useTranslation();
   const [openDrill, setOpenDrill] = useState<DrillDocument | null>(null);
 
   const drillsByDimension = useMemo(() => {
@@ -63,7 +65,7 @@ export function IDPDrillRecommendations({ goals }: Props) {
   if (dimensions.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">
-        Aún no hay drills asignados a los goals.
+        {t("idpDrillRecommendations.emptyState")}
       </div>
     );
   }
@@ -75,7 +77,7 @@ export function IDPDrillRecommendations({ goals }: Props) {
           <h4 className="text-xs uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
             {DIM_LABEL[dim]}
             <span className="text-slate-600">·</span>
-            <span className="text-slate-500">{drillsByDimension[dim]!.length} drills</span>
+            <span className="text-slate-500">{t("idpDrillRecommendations.drillCount", { count: drillsByDimension[dim]!.length })}</span>
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {drillsByDimension[dim]!.map((drill) => (
@@ -144,7 +146,7 @@ export function IDPDrillRecommendations({ goals }: Props) {
                     <Badge variant="outline" className="text-[10px] capitalize">{openDrill.category}</Badge>
                     <Badge variant="outline" className="text-[10px] capitalize">{openDrill.difficulty}</Badge>
                     <span className="text-[10px] text-slate-400">
-                      {openDrill.ageRange[0]}-{openDrill.ageRange[1]} años
+                      {openDrill.ageRange[0]}-{openDrill.ageRange[1]} {t("idpDrillRecommendations.years")}
                     </span>
                   </div>
                 </div>
@@ -155,7 +157,7 @@ export function IDPDrillRecommendations({ goals }: Props) {
               <div className="p-4 space-y-4 text-sm text-slate-300">
                 <p>{openDrill.description}</p>
                 <div>
-                  <h4 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Objetivos</h4>
+                  <h4 className="text-xs uppercase tracking-wider text-slate-500 mb-2">{t("idpDrillRecommendations.objectives")}</h4>
                   <ul className="space-y-1">
                     {openDrill.objectives.map((o, i) => (
                       <li key={i} className="text-xs flex gap-2">
@@ -166,7 +168,7 @@ export function IDPDrillRecommendations({ goals }: Props) {
                   </ul>
                 </div>
                 <div>
-                  <h4 className="text-xs uppercase tracking-wider text-slate-500 mb-2">Puntos clave</h4>
+                  <h4 className="text-xs uppercase tracking-wider text-slate-500 mb-2">{t("idpDrillRecommendations.coachingPoints")}</h4>
                   <ul className="space-y-1">
                     {openDrill.coachingPoints.map((p, i) => (
                       <li key={i} className="text-xs flex gap-2">
@@ -178,23 +180,23 @@ export function IDPDrillRecommendations({ goals }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
-                    <div className="text-slate-500">Espacio</div>
+                    <div className="text-slate-500">{t("idpDrillRecommendations.space")}</div>
                     <div>{openDrill.spaceMeters}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Sets x Reps</div>
+                    <div className="text-slate-500">{t("idpDrillRecommendations.setsReps")}</div>
                     <div>{openDrill.sets} × {openDrill.repsOrDuration}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Jugadores</div>
+                    <div className="text-slate-500">{t("idpDrillRecommendations.players")}</div>
                     <div>{openDrill.playerCount}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Duración</div>
+                    <div className="text-slate-500">{t("idpDrillRecommendations.duration")}</div>
                     <div>{openDrill.durationMin} min</div>
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-500 italic">Fuente: {openDrill.source}</div>
+                <div className="text-[10px] text-slate-500 italic">{t("idpDrillRecommendations.source")} {openDrill.source}</div>
               </div>
             </motion.div>
           </motion.div>

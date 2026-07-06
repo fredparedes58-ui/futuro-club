@@ -6,6 +6,7 @@
  * del equipo = adquisición orgánica. Export a PNG con marca de agua VITAS.
  */
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Download, Share2, Loader2, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,14 +34,14 @@ interface Props {
   confidence?: number; // 0-1
 }
 
-const DIM_LABELS: Record<keyof ArchetypeShareDimensions, string> = {
-  decisionSpeed: "Decisión",
-  scanningIntelligence: "Scan IQ",
-  resilience: "Resiliencia",
-  clutchFactor: "Clutch",
-  leadership: "Liderazgo",
-  mentalFatigue: "Resistencia mental",
-  unpredictability: "Creatividad",
+const DIM_LABEL_KEYS: Record<keyof ArchetypeShareDimensions, string> = {
+  decisionSpeed: "archetypeShareCard.dimDecisionSpeed",
+  scanningIntelligence: "archetypeShareCard.dimScanIQ",
+  resilience: "archetypeShareCard.dimResilience",
+  clutchFactor: "archetypeShareCard.dimClutch",
+  leadership: "archetypeShareCard.dimLeadership",
+  mentalFatigue: "archetypeShareCard.dimMentalFatigue",
+  unpredictability: "archetypeShareCard.dimUnpredictability",
 };
 
 export function ArchetypeShareCard({
@@ -52,12 +53,13 @@ export function ArchetypeShareCard({
   dimensions,
   confidence,
 }: Props) {
+  const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
   const m = ARCHETYPE_META[archetype] ?? ARCHETYPE_META.engine;
 
   const top3 = (Object.keys(dimensions) as Array<keyof ArchetypeShareDimensions>)
-    .map((k) => ({ label: DIM_LABELS[k], value: dimensions[k] }))
+    .map((k) => ({ label: t(DIM_LABEL_KEYS[k]), value: dimensions[k] }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 3);
 
@@ -76,20 +78,26 @@ export function ArchetypeShareCard({
       link.download = `VITAS_ADN_${playerName.replace(/\s+/g, "_")}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      toast.success("ADN Mental exportado");
+      toast.success(t("archetypeShareCard.toastExportSuccess"));
     } catch {
-      toast.error("Error al exportar — intenta con captura de pantalla");
+      toast.error(t("archetypeShareCard.toastExportError"));
     } finally {
       setExporting(false);
     }
   };
 
-  const shareText = `${m.emoji} ${playerName} es un ${m.label} — "${m.tagline}" · ADN Mental ${mentalComposite}/100 · descúbrelo con VITAS`;
+  const shareText = t("archetypeShareCard.shareText", {
+    emoji: m.emoji,
+    playerName,
+    label: m.label,
+    tagline: m.tagline,
+    mentalComposite,
+  });
 
   const handleShare = async () => {
-    const r = await shareNative({ title: "ADN Mental · VITAS", text: shareText, ref: "archetype-card" });
-    if (r === "copied") toast.success("Texto + enlace copiados");
-    else if (r === "failed") toast.error("No se pudo compartir");
+    const r = await shareNative({ title: t("archetypeShareCard.shareTitle"), text: shareText, ref: "archetype-card" });
+    if (r === "copied") toast.success(t("archetypeShareCard.toastCopied"));
+    else if (r === "failed") toast.error(t("archetypeShareCard.toastShareFailed"));
   };
 
   const handleWhatsApp = () => shareToWhatsApp(shareText, "archetype-card");
@@ -105,7 +113,7 @@ export function ArchetypeShareCard({
           <MessageCircle size={14} className="text-emerald-500" /> WhatsApp
         </Button>
         <Button variant="outline" size="sm" className="gap-2 flex-1" onClick={handleShare}>
-          <Share2 size={14} /> Compartir
+          <Share2 size={14} /> {t("archetypeShareCard.shareButton")}
         </Button>
       </div>
 
@@ -131,7 +139,7 @@ export function ArchetypeShareCard({
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-white/5">
           <span className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: m.color }}>
-            VITAS · ADN Mental
+            {t("archetypeShareCard.headerBrand")}
           </span>
           <span className="text-[9px] text-white/30 font-mono">
             {new Date().toLocaleDateString("es-ES")}
@@ -142,7 +150,7 @@ export function ArchetypeShareCard({
           {/* Identidad */}
           <div>
             <span className="text-[9px] font-bold tracking-[0.15em] text-white/40 uppercase">
-              {[position, age ? `${age} años` : null].filter(Boolean).join(" · ")}
+              {[position, age ? t("archetypeShareCard.ageYears", { count: age }) : null].filter(Boolean).join(" · ")}
             </span>
             <h2 className="text-2xl font-black text-white tracking-tight leading-tight">{playerName}</h2>
           </div>
@@ -157,7 +165,7 @@ export function ArchetypeShareCard({
             </div>
             <div className="min-w-0">
               <div className="text-[10px] font-bold tracking-widest uppercase" style={{ color: m.color }}>
-                Arquetipo
+                {t("archetypeShareCard.archetypeLabel")}
               </div>
               <div className="text-3xl font-black text-white leading-none">{m.label}</div>
               <p className="text-[11px] text-white/60 mt-1 leading-snug">"{m.tagline}"</p>
@@ -167,7 +175,7 @@ export function ArchetypeShareCard({
           {/* Composite + descripción */}
           <div className="flex items-end gap-4">
             <div>
-              <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-0.5">ADN Mental</p>
+              <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-0.5">{t("archetypeShareCard.mentalDnaLabel")}</p>
               <div className="text-5xl font-black leading-none" style={{ color: m.color }}>
                 {mentalComposite}
               </div>
@@ -177,7 +185,7 @@ export function ArchetypeShareCard({
 
           {/* Top 3 fortalezas mentales */}
           <div>
-            <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-2">Fortalezas mentales</p>
+            <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-2">{t("archetypeShareCard.mentalStrengths")}</p>
             <div className="space-y-1.5">
               {top3.map((d) => (
                 <div key={d.label} className="flex items-center gap-2">
@@ -195,10 +203,10 @@ export function ArchetypeShareCard({
         {/* Footer / marca de agua */}
         <div className="px-5 pb-4 flex items-center justify-between">
           <span className="text-[8px] font-mono text-white/25">
-            {confidence != null ? `Confianza ${Math.round(confidence * 100)}%` : "VITAS"}
+            {confidence != null ? t("archetypeShareCard.confidence", { value: Math.round(confidence * 100) }) : "VITAS"}
           </span>
           <span className="text-[9px] font-mono font-bold" style={{ color: m.color }}>
-            ⚡ Descubre el tuyo → futuro-club.vercel.app
+            {t("archetypeShareCard.discoverCta")}
           </span>
         </div>
       </motion.div>

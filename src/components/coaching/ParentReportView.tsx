@@ -5,6 +5,7 @@
  * simple progress bars, and encouraging tone.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   TrendingUp, TrendingDown, Minus, Heart, Star,
   MessageSquare, Sprout, User,
@@ -25,17 +26,17 @@ const TREND_COLOR: Record<string, string> = {
   stable: "text-muted-foreground",
   declining: "text-amber-400",
 };
-const TREND_LABEL: Record<string, string> = {
-  improving: "Mejorando",
-  stable: "Estable",
-  declining: "Necesita apoyo",
+const TREND_LABEL_KEY: Record<string, string> = {
+  improving: "parentReportView.trendImproving",
+  stable: "parentReportView.trendStable",
+  declining: "parentReportView.trendDeclining",
 };
 
 const TREND_CATEGORIES = [
-  { key: "participation", label: "Participación" },
-  { key: "technique",     label: "Técnica" },
-  { key: "physical",      label: "Condición Física" },
-  { key: "social",        label: "Integración Social" },
+  { key: "participation", labelKey: "parentReportView.categoryParticipation" },
+  { key: "technique",     labelKey: "parentReportView.categoryTechnique" },
+  { key: "physical",      labelKey: "parentReportView.categoryPhysical" },
+  { key: "social",        labelKey: "parentReportView.categorySocial" },
 ] as const;
 
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
@@ -53,6 +54,7 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
 }
 
 export default function ParentReportView({ report }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       {/* Header */}
@@ -64,7 +66,7 @@ export default function ParentReportView({ report }: Props) {
         <User size={28} className="mx-auto text-primary" />
         <h2 className="text-lg font-bold text-foreground">{report.playerName}</h2>
         <p className="text-xs text-muted-foreground">
-          Reporte mensual — {report.reportMonth}
+          {t("parentReportView.monthlyReport")} — {report.reportMonth}
         </p>
       </motion.div>
 
@@ -76,27 +78,27 @@ export default function ParentReportView({ report }: Props) {
         transition={{ delay: 0.1 }}
       >
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Resumen del Mes
+          {t("parentReportView.monthSummary")}
         </span>
         <div className="grid grid-cols-2 gap-3">
           <div className="text-center">
             <div className="text-2xl font-black font-mono text-foreground">
               {report.summary.sessionsAttended}
             </div>
-            <div className="text-[10px] text-muted-foreground">Sesiones</div>
+            <div className="text-[10px] text-muted-foreground">{t("parentReportView.sessions")}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-black font-mono text-foreground">
               {report.summary.totalTrainingMinutes}
             </div>
-            <div className="text-[10px] text-muted-foreground">Min entrenados</div>
+            <div className="text-[10px] text-muted-foreground">{t("parentReportView.minutesTrained")}</div>
           </div>
         </div>
 
         <div className="space-y-2">
           <div>
             <div className="flex justify-between text-[10px] mb-1">
-              <span className="text-muted-foreground">Participación</span>
+              <span className="text-muted-foreground">{t("parentReportView.participation")}</span>
               <span className="font-mono font-bold text-foreground">
                 {report.summary.avgParticipationScore}/100
               </span>
@@ -105,7 +107,7 @@ export default function ParentReportView({ report }: Props) {
           </div>
           <div>
             <div className="flex justify-between text-[10px] mb-1">
-              <span className="text-muted-foreground">Compromiso</span>
+              <span className="text-muted-foreground">{t("parentReportView.engagement")}</span>
               <span className="font-mono font-bold text-foreground">
                 {report.summary.avgEngagementScore}/100
               </span>
@@ -123,19 +125,19 @@ export default function ParentReportView({ report }: Props) {
         transition={{ delay: 0.2 }}
       >
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Evolución
+          {t("parentReportView.evolution")}
         </span>
         <div className="grid grid-cols-2 gap-2">
-          {TREND_CATEGORIES.map(({ key, label }) => {
+          {TREND_CATEGORIES.map(({ key, labelKey }) => {
             const trend = report.trends[key];
             const TIcon = TREND_ICON[trend];
             return (
               <div key={key} className="flex items-center gap-2 glass rounded-lg p-2">
                 <TIcon size={14} className={TREND_COLOR[trend]} />
                 <div>
-                  <div className="text-[10px] font-bold text-foreground">{label}</div>
+                  <div className="text-[10px] font-bold text-foreground">{t(labelKey)}</div>
                   <div className={`text-[9px] ${TREND_COLOR[trend]}`}>
-                    {TREND_LABEL[trend]}
+                    {t(TREND_LABEL_KEY[trend])}
                   </div>
                 </div>
               </div>
@@ -155,7 +157,7 @@ export default function ParentReportView({ report }: Props) {
           <div className="flex items-center gap-2">
             <Sprout size={16} className="text-amber-400" />
             <span className="text-[10px] uppercase tracking-widest text-amber-400 font-bold">
-              Sobre su Crecimiento
+              {t("parentReportView.aboutGrowth")}
             </span>
           </div>
           <p className="text-[11px] text-foreground/80 leading-relaxed">
@@ -174,7 +176,7 @@ export default function ParentReportView({ report }: Props) {
         <div className="flex items-center gap-2">
           <Star size={14} className="text-amber-400" />
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Aspectos Positivos
+            {t("parentReportView.positiveAspects")}
           </span>
         </div>
         {report.positives.map((p, i) => (
@@ -194,7 +196,7 @@ export default function ParentReportView({ report }: Props) {
           transition={{ delay: 0.5 }}
         >
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Áreas de Desarrollo
+            {t("parentReportView.developmentAreas")}
           </span>
           {report.developmentAreas.map((a, i) => (
             <p key={i} className="text-[11px] text-foreground/70 leading-relaxed">
@@ -214,7 +216,7 @@ export default function ParentReportView({ report }: Props) {
         <div className="flex items-center gap-2">
           <MessageSquare size={14} className="text-primary" />
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Nota del Entrenador
+            {t("parentReportView.coachNote")}
           </span>
         </div>
         <p className="text-[11px] text-foreground/80 leading-relaxed italic">

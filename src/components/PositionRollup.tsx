@@ -8,6 +8,7 @@
  *   - posiciones declaradas vs descubiertas
  */
 import { Compass, TrendingUp, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Player } from "@/services/real/playerService";
 
 export interface PositionRollupRow {
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function PositionRollup({ player, rows }: Props) {
+  const { t } = useTranslation();
   if (!rows || rows.length === 0) {
     return null;
   }
@@ -45,9 +47,9 @@ export default function PositionRollup({ player, rows }: Props) {
     <div className="glass rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-sm uppercase tracking-wider text-foreground flex items-center gap-2">
-          <Compass size={13} className="text-primary" /> Polivalencia observada
+          <Compass size={13} className="text-primary" /> {t("positionRollup.title")}
         </h3>
-        <span className="text-[10px] text-muted-foreground">{totalVideos} video{totalVideos !== 1 ? "s" : ""}</span>
+        <span className="text-[10px] text-muted-foreground">{totalVideos} {totalVideos !== 1 ? t("positionRollup.videosPlural") : t("positionRollup.videoSingular")}</span>
       </div>
 
       <div className="space-y-1.5">
@@ -72,25 +74,25 @@ export default function PositionRollup({ player, rows }: Props) {
                 )}
                 {!r.isDeclared && (
                   <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-electric/20 text-electric font-bold">
-                    descubierto
+                    {t("positionRollup.discovered")}
                   </span>
                 )}
                 {r.isPrimary && (
                   <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary font-bold">
-                    principal
+                    {t("positionRollup.primary")}
                   </span>
                 )}
               </div>
               <p className="text-[10px] text-muted-foreground">
-                {r.videoCount} video{r.videoCount !== 1 ? "s" : ""}
-                {r.avgVsi !== null && ` · VSI medio ${r.avgVsi.toFixed(0)}`}
-                {r.avgFit !== null && r.avgFit !== undefined && ` · fit ${r.avgFit.toFixed(0)}%`}
-                {r.lastVideoAt && ` · último ${new Date(r.lastVideoAt).toLocaleDateString("es-ES")}`}
+                {r.videoCount} {r.videoCount !== 1 ? t("positionRollup.videosPlural") : t("positionRollup.videoSingular")}
+                {r.avgVsi !== null && ` · ${t("positionRollup.avgVsi", { value: r.avgVsi.toFixed(0) })}`}
+                {r.avgFit !== null && r.avgFit !== undefined && ` · ${t("positionRollup.fit", { value: r.avgFit.toFixed(0) })}`}
+                {r.lastVideoAt && ` · ${t("positionRollup.lastVideo", { date: new Date(r.lastVideoAt).toLocaleDateString("es-ES") })}`}
               </p>
             </div>
             {bestRow && r.positionName === bestRow.positionName && r.videoCount > 0 && (
               <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-display font-bold">
-                <TrendingUp size={10} /> mejor
+                <TrendingUp size={10} /> {t("positionRollup.best")}
               </div>
             )}
           </div>
@@ -102,8 +104,7 @@ export default function PositionRollup({ player, rows }: Props) {
         <div className="flex items-start gap-2 text-[10px] text-muted-foreground border-t border-border pt-2.5">
           <AlertCircle size={11} className="shrink-0 mt-0.5 text-electric" />
           <p>
-            Hay posiciones donde {player.name} ha rendido bien pero no están en su perfil.
-            Edita el jugador para añadirlas como secundarias y mejorar futuros análisis.
+            {t("positionRollup.discoverySuggestion", { name: player.name })}
           </p>
         </div>
       )}

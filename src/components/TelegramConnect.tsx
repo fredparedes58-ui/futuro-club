@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send, Loader2, ExternalLink, CheckCircle2, X, Copy, Sparkles, AlertCircle,
@@ -35,6 +36,7 @@ interface StatusResponse {
 }
 
 export default function TelegramConnect() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<StatusResponse | null>(null);
   const [pendingLink, setPendingLink] = useState<ConnectResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,7 @@ export default function TelegramConnect() {
     update();
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [pendingLink]);
+  }, [pendingLink, t]);
 
   // Auto-refresh status mientras hay un token pendiente · checa si el coach
   // ya completó el vínculo en Telegram (cada 3s)
@@ -80,12 +82,12 @@ export default function TelegramConnect() {
         if (res.ok && data.success && data.data.connected) {
           setStatus(data.data);
           setPendingLink(null);
-          toast.success("✅ Telegram vinculado · ya puedes chatear con el bot");
+          toast.success(t("telegramConnect.toastLinked"));
         }
       } catch { /* silencioso */ }
     }, 3000);
     return () => clearInterval(id);
-  }, [pendingLink]);
+  }, [pendingLink, t]);
 
   async function handleConnect() {
     if (generating) return;
@@ -98,12 +100,12 @@ export default function TelegramConnect() {
         body: "{}",
       });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Error");
+      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? t("telegramConnect.errorGeneric"));
       setPendingLink(data.data as ConnectResponse);
       // Abrir deep-link automáticamente en nueva pestaña/app
       window.open(data.data.deepLink, "_blank", "noopener");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error generando link");
+      toast.error(err instanceof Error ? err.message : t("telegramConnect.errorGeneratingLink"));
     } finally {
       setGenerating(false);
     }
@@ -111,18 +113,18 @@ export default function TelegramConnect() {
 
   async function handleUnlink() {
     if (unlinking) return;
-    if (!confirm("¿Desvincular Telegram? Tendrás que volver a conectar para usar el bot.")) return;
+    if (!confirm(t("telegramConnect.confirmUnlink"))) return;
     setUnlinking(true);
     try {
       const headers = await getAuthHeaders();
       const res = await fetch("/api/telegram/connect", { method: "DELETE", headers });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Error");
+      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? t("telegramConnect.errorGeneric"));
       setStatus(null);
       await loadStatus();
-      toast.success("🔓 Desvinculado");
+      toast.success(t("telegramConnect.toastUnlinked"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error");
+      toast.error(err instanceof Error ? err.message : t("telegramConnect.errorGeneric"));
     } finally {
       setUnlinking(false);
     }
@@ -131,14 +133,14 @@ export default function TelegramConnect() {
   function copyLink() {
     if (!pendingLink) return;
     navigator.clipboard.writeText(pendingLink.deepLink).catch(() => null);
-    toast.success("Link copiado");
+    toast.success(t("telegramConnect.toastLinkCopied"));
   }
 
   if (loading) {
     return (
       <div className="glass rounded-xl p-3 flex items-center gap-2">
         <Loader2 size={12} className="animate-spin text-muted-foreground" />
-        <span className="text-[11px] text-muted-foreground">Cargando estado…</span>
+        <span className="text-[11px] text-muted-foreground">{t("telegramConnect.loadingStatus")}</span>
       </div>
     );
   }
@@ -156,7 +158,7 @@ export default function TelegramConnect() {
             <div className="flex items-center gap-1.5">
               <Send size={11} className="text-green-400" />
               <span className="text-[10px] uppercase tracking-wider text-green-400 font-bold">
-                Telegram vinculado
+                {t("telegramConnect.telegramLinked")}
               </span>
             </div>
             <div className="text-sm font-display font-bold text-foreground truncate">
@@ -164,8 +166,8 @@ export default function TelegramConnect() {
               {m.telegram_username && <span className="text-muted-foreground font-normal"> · @{m.telegram_username}</span>}
             </div>
             <div className="text-[10px] text-muted-foreground">
-              {m.conversation_count ?? 0} conversaciones
-              {m.last_active_at && ` · activo ${timeAgo(m.last_active_at)}`}
+              {t("telegramConnect.conversationsCount", { count: m.conversation_count ?? 0 })}
+              {m.last_active_at && ` · ${t("telegramConnect.activeAgo", { time: timeAgo(m.last_active_at) })}`}
             </div>
           </div>
         </div>
@@ -176,14 +178,14 @@ export default function TelegramConnect() {
             rel="noopener"
             className="flex-1 py-2 rounded-lg bg-secondary/50 border border-border text-center text-[11px] font-display font-bold text-foreground hover:bg-secondary transition-colors flex items-center justify-center gap-1.5"
           >
-            <ExternalLink size={11} /> Abrir bot
+            <ExternalLink size={11} /> {t("telegramConnect.openBot")}
           </a>
           <button
             onClick={handleUnlink}
             disabled={unlinking}
             className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/30 text-[11px] font-display font-bold text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
           >
-            {unlinking ? <Loader2 size={11} className="animate-spin" /> : "Desvincular"}
+            {unlinking ? <Loader2 size={11} className="animate-spin" /> : t("telegramConnect.unlink")}
           </button>
         </div>
       </div>
@@ -202,19 +204,19 @@ export default function TelegramConnect() {
           </div>
           <div className="flex-1">
             <div className="text-[10px] uppercase tracking-wider text-electric font-bold">
-              Esperando confirmación…
+              {t("telegramConnect.waitingConfirmation")}
             </div>
             <div className="text-sm font-display font-bold text-foreground">
-              Abre Telegram y pulsa <span className="text-electric">Iniciar</span>
+              {t("telegramConnect.openTelegramAndPress")} <span className="text-electric">{t("telegramConnect.startButton")}</span>
             </div>
             <div className="text-[10px] text-muted-foreground">
-              Token expira en {mins.toString().padStart(2, "0")}:{secs.toString().padStart(2, "0")}
+              {t("telegramConnect.tokenExpiresIn", { time: `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}` })}
             </div>
           </div>
           <button
             onClick={() => setPendingLink(null)}
             className="p-1 text-muted-foreground hover:text-foreground"
-            aria-label="Cancelar"
+            aria-label={t("telegramConnect.cancel")}
           >
             <X size={14} />
           </button>
@@ -227,13 +229,13 @@ export default function TelegramConnect() {
             rel="noopener"
             className="flex-1 py-2 rounded-lg bg-electric text-background text-center text-[11px] font-display font-bold hover:bg-electric/90 transition-colors flex items-center justify-center gap-1.5"
           >
-            <Send size={11} /> Abrir en Telegram
+            <Send size={11} /> {t("telegramConnect.openInTelegram")}
           </a>
           <button
             onClick={copyLink}
             className="px-3 py-2 rounded-lg bg-secondary/50 border border-border text-[11px] font-display font-bold text-foreground hover:bg-secondary transition-colors flex items-center gap-1"
           >
-            <Copy size={11} /> Link
+            <Copy size={11} /> {t("telegramConnect.linkLabel")}
           </button>
         </div>
 
@@ -259,8 +261,7 @@ export default function TelegramConnect() {
             </span>
           </div>
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Habla con el bot en tu Telegram · pregúntale por jugadores, equipos, drills.
-            Respuesta en 5s · sin abrir la app.
+            {t("telegramConnect.notConnectedDescription")}
           </p>
         </div>
       </div>
@@ -271,17 +272,16 @@ export default function TelegramConnect() {
         className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5"
       >
         {generating ? (
-          <><Loader2 size={12} className="animate-spin" /> Generando link…</>
+          <><Loader2 size={12} className="animate-spin" /> {t("telegramConnect.generatingLink")}</>
         ) : (
-          <><Send size={12} /> Conectar Telegram</>
+          <><Send size={12} /> {t("telegramConnect.connectTelegram")}</>
         )}
       </button>
 
       <div className="flex items-start gap-2 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
         <AlertCircle size={10} className="shrink-0 mt-0.5" />
         <p className="leading-relaxed">
-          El link te llevará al bot · pulsa <strong>Iniciar</strong> y listo · expira en 10 min.
-          Solo lo usas tú · puedes desvincular cuando quieras.
+          {t("telegramConnect.footerBeforeStart")} <strong>{t("telegramConnect.startButton")}</strong> {t("telegramConnect.footerAfterStart")}
         </p>
       </div>
     </div>

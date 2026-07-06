@@ -11,6 +11,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   MousePointer2,
   ArrowUpRight,
@@ -114,6 +115,7 @@ export default function TacticalBoardEditor({
   editable = true,
   height = 400,
 }: Props) {
+  const { t } = useTranslation();
   const svgRef = useRef<SVGSVGElement>(null);
   const [tool, setTool] = useState<Tool>("select");
   const [drawColor, setDrawColor] = useState(DRAW_COLORS[0]);
@@ -201,7 +203,7 @@ export default function TacticalBoardEditor({
       const id = genId();
       onTextsChange([
         ...texts,
-        { id, position: point, content: "Texto", color: drawColor },
+        { id, position: point, content: t("tacticalBoardEditor.defaultTextContent"), color: drawColor },
       ]);
       setEditingTextId(id);
       return;
@@ -213,7 +215,7 @@ export default function TacticalBoardEditor({
         ...players,
         {
           playerId: genId(),
-          playerName: `Jugador ${number}`,
+          playerName: t("tacticalBoardEditor.playerName", { number }),
           shirtNumber: number,
           role: activeRole,
           position: point,
@@ -247,7 +249,7 @@ export default function TacticalBoardEditor({
   };
 
   const handleClearAll = () => {
-    if (window.confirm("¿Borrar todo el contenido del pizarrón?")) {
+    if (window.confirm(t("tacticalBoardEditor.clearAllConfirm"))) {
       onPlayersChange([]);
       onDrawingsChange([]);
       onTextsChange([]);
@@ -280,43 +282,43 @@ export default function TacticalBoardEditor({
             active={tool === "select"}
             onClick={() => setTool("select")}
             icon={<MousePointer2 size={14} />}
-            label="Mover"
+            label={t("tacticalBoardEditor.toolMove")}
           />
           <ToolButton
             active={tool === "arrow"}
             onClick={() => setTool("arrow")}
             icon={<ArrowUpRight size={14} />}
-            label="Flecha"
+            label={t("tacticalBoardEditor.toolArrow")}
           />
           <ToolButton
             active={tool === "line"}
             onClick={() => setTool("line")}
             icon={<Minus size={14} />}
-            label="Línea"
+            label={t("tacticalBoardEditor.toolLine")}
           />
           <ToolButton
             active={tool === "dashed"}
             onClick={() => setTool("dashed")}
             icon={<span className="text-[10px] font-bold tracking-widest">- - -</span>}
-            label="Carrera"
+            label={t("tacticalBoardEditor.toolRun")}
           />
           <ToolButton
             active={tool === "text"}
             onClick={() => setTool("text")}
             icon={<Type size={14} />}
-            label="Texto"
+            label={t("tacticalBoardEditor.toolText")}
           />
           <ToolButton
             active={tool === "addPlayer"}
             onClick={() => setTool("addPlayer")}
             icon={<Plus size={14} />}
-            label="Jugador"
+            label={t("tacticalBoardEditor.toolPlayer")}
           />
           <ToolButton
             active={tool === "erase"}
             onClick={() => setTool("erase")}
             icon={<Eraser size={14} />}
-            label="Borrar"
+            label={t("tacticalBoardEditor.toolErase")}
           />
 
           {/* Separator */}
@@ -332,7 +334,7 @@ export default function TacticalBoardEditor({
                   drawColor === c ? "border-foreground scale-110" : "border-border"
                 }`}
                 style={{ background: c }}
-                title={`Color ${c}`}
+                title={t("tacticalBoardEditor.colorTitle", { color: c })}
               />
             ))}
           </div>
@@ -362,7 +364,7 @@ export default function TacticalBoardEditor({
             onClick={handleClearAll}
             className="ml-auto px-2.5 py-1 rounded-md text-[10px] font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
           >
-            Limpiar todo
+            {t("tacticalBoardEditor.clearAll")}
           </button>
         </div>
       )}
@@ -370,13 +372,13 @@ export default function TacticalBoardEditor({
       {/* Helper hint */}
       {editable && (
         <p className="text-[10px] text-muted-foreground px-1">
-          {tool === "select" && "Arrastra los círculos para mover jugadores"}
-          {tool === "arrow" && "Click y arrastra para dibujar una flecha"}
-          {tool === "line" && "Click y arrastra para dibujar una línea"}
-          {tool === "dashed" && "Click y arrastra para dibujar una carrera (línea discontinua)"}
-          {tool === "text" && "Click en el pizarrón para añadir texto"}
-          {tool === "addPlayer" && "Click en el pizarrón para añadir un jugador"}
-          {tool === "erase" && "Click sobre cualquier elemento para borrarlo"}
+          {tool === "select" && t("tacticalBoardEditor.hintSelect")}
+          {tool === "arrow" && t("tacticalBoardEditor.hintArrow")}
+          {tool === "line" && t("tacticalBoardEditor.hintLine")}
+          {tool === "dashed" && t("tacticalBoardEditor.hintDashed")}
+          {tool === "text" && t("tacticalBoardEditor.hintText")}
+          {tool === "addPlayer" && t("tacticalBoardEditor.hintAddPlayer")}
+          {tool === "erase" && t("tacticalBoardEditor.hintErase")}
         </p>
       )}
 
@@ -631,12 +633,12 @@ export default function TacticalBoardEditor({
             }}
             autoFocus
             className="flex-1 bg-secondary/50 rounded-md px-3 py-1.5 text-sm border border-border focus:border-primary focus:outline-none"
-            placeholder="Escribe la anotación..."
+            placeholder={t("tacticalBoardEditor.annotationPlaceholder")}
           />
           <button
             onClick={() => setEditingTextId(null)}
             className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground"
-            title="Cerrar"
+            title={t("tacticalBoardEditor.close")}
           >
             <X size={14} />
           </button>
