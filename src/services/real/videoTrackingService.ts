@@ -13,6 +13,8 @@
  * expensive pipeline if the user revisits a video.
  */
 
+import { getAuthHeaders } from "@/lib/apiAuth";
+
 const STORAGE_KEY = "vitas_video_tracking_results";
 
 export interface PlayerAppearance {
@@ -132,9 +134,10 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
 
   let resp: Response;
   try {
+    const authHeaders = await getAuthHeaders();
     resp = await fetch("/api/coaching/track-players", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...authHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({ videoUrl, sampleFps }),
     });
   } catch (err) {
@@ -191,9 +194,10 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
 /** Check if the Modal pipeline is alive (cheap GET). */
 export async function pingTrackingPipeline(): Promise<boolean> {
   try {
-    const resp = await fetch("/api/coaching/_track-players", {
+    const authHeaders = await getAuthHeaders();
+    const resp = await fetch("/api/coaching/track-players", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { ...authHeaders, "Content-Type": "application/json" },
       body: JSON.stringify({ videoUrl: "" }),
     });
     return resp.status !== 503;

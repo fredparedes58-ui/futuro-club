@@ -105,6 +105,21 @@ export default withHandler(
     let totalIndexed = 0;
     let batchCount = 0;
 
+    // Idempotencia: borra copias previas de los drills (identificados por
+    // metadata.drillId; los docs de knowledge usan metadata.docId, no se tocan)
+    // antes de re-insertar, para que re-ejecutar el seed no duplique filas.
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    if (supabaseUrl) {
+      try {
+        await fetch(`${supabaseUrl}/rest/v1/knowledge_base?metadata->>drillId=not.is.null`, {
+          method: "DELETE",
+          headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, Prefer: "return=minimal" },
+        });
+      } catch (err) {
+        errors.push(`Pre-clean failed: ${err instanceof Error ? err.message : "unknown"}`);
+      }
+    }
+
     // Process drills in batches of BATCH_SIZE
     for (let i = 0; i < DRILLS_LIBRARY.length; i += BATCH_SIZE) {
       const batch = DRILLS_LIBRARY.slice(i, i + BATCH_SIZE);

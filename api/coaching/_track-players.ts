@@ -12,6 +12,8 @@
  * can gracefully fall back to the mock pipeline (zero downtime).
  */
 
+import { withHandler } from "../_lib/withHandler";
+
 export const config = {
   runtime: "edge",
 };
@@ -57,14 +59,11 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-export default async function handler(request: Request): Promise<Response> {
-  if (request.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: CORS_HEADERS });
-  }
-  if (request.method !== "POST") {
-    return json({ error: "method_not_allowed" }, 405);
-  }
-
+// Auth: solo usuarios autenticados (JWT) o llamadas internas con service token.
+// Antes era un proxy público → cualquiera podía disparar GPU de pago en Modal.
+export default withHandler(
+  { method: ["POST"], requireAuth: true, allowServiceToken: true },
+  async ({ body: ctxBody }): Promise<Response> => {
   const modalUrl = process.env.MODAL_TRACK_URL;
   const modalKey = process.env.MODAL_API_KEY;
   if (!modalUrl || !modalKey) {
@@ -78,13 +77,7 @@ export default async function handler(request: Request): Promise<Response> {
     );
   }
 
-  let body: TrackingRequest;
-  try {
-    body = (await request.json()) as TrackingRequest;
-  } catch {
-    return json({ error: "invalid_json" }, 400);
-  }
-
+  const body = (ctxBody ?? {}) as TrackingRequest;
   if (!body.videoUrl) {
     return json({ error: "missing_fields", required: ["videoUrl"] }, 400);
   }
@@ -152,7 +145,8 @@ export default async function handler(request: Request): Promise<Response> {
     totalPlayerTracks: data.total_player_tracks,
     totalBallDetections: data.total_ball_detections,
   });
-}
+  },
+);
 
 function json(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), {

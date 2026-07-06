@@ -49,6 +49,21 @@ export default withHandler(
     let totalIndexed = 0;
     let batchCount = 0;
 
+    // Idempotencia: borra copias previas de los docs de conocimiento (identificados
+    // por metadata.docId — todos los docs de knowledge lo llevan; los drills usan
+    // metadata.drillId, así que no se tocan) para que re-ejecutar no duplique filas.
+    const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+    if (supabaseUrl) {
+      try {
+        await fetch(`${supabaseUrl}/rest/v1/knowledge_base?metadata->>docId=not.is.null`, {
+          method: "DELETE",
+          headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}`, Prefer: "return=minimal" },
+        });
+      } catch (err) {
+        errors.push(`Pre-clean failed: ${err instanceof Error ? err.message : "unknown"}`);
+      }
+    }
+
     // Count by category
     const categories: Record<string, number> = {};
     for (const doc of ALL_KNOWLEDGE_DOCS) {
