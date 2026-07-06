@@ -8,6 +8,7 @@
 
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Brain, TrendingUp, Loader2, ChevronDown, ChevronUp,
@@ -92,6 +93,7 @@ interface ChartPoint {
 }
 
 function EvolutionLineChart({ data }: { data: ChartPoint[] }) {
+  const { t } = useTranslation();
   if (data.length < 2) return null;
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: ChartPoint }> }) => {
@@ -101,8 +103,8 @@ function EvolutionLineChart({ data }: { data: ChartPoint[] }) {
       <div className="glass rounded-lg p-2.5 border border-border text-[10px] space-y-1">
         <p className="font-bold text-foreground">{d.dateLabel}</p>
         <p className="text-muted-foreground">{d.videoTitle}</p>
-        <p className="text-primary font-bold">Promedio: {d.promedio.toFixed(1)}</p>
-        <p className="text-muted-foreground">Confianza: {Math.round(d.confianza * 100)}%</p>
+        <p className="text-primary font-bold">{t("playerEvolutionPage.average")}: {d.promedio.toFixed(1)}</p>
+        <p className="text-muted-foreground">{t("playerEvolutionPage.confidence")}: {Math.round(d.confianza * 100)}%</p>
       </div>
     );
   };
@@ -112,7 +114,7 @@ function EvolutionLineChart({ data }: { data: ChartPoint[] }) {
       <div className="flex items-center gap-2 mb-3">
         <Activity size={14} className="text-primary" />
         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-          Evolucion General
+          {t("playerEvolutionPage.generalEvolution")}
         </span>
       </div>
       <ResponsiveContainer width="100%" height={200}>
@@ -243,6 +245,7 @@ function TimelineBadges({ items }: { items: { label: string; date: string; color
 // ─── Recurring Patterns ──────────────────────────────────────────────────────
 
 function RecurringPatterns({ analyses }: { analyses: AnalysisRow[] }) {
+  const { t } = useTranslation();
   const total = analyses.length;
   if (total < 2) return null;
 
@@ -276,7 +279,7 @@ function RecurringPatterns({ analyses }: { analyses: AnalysisRow[] }) {
           <div className="flex items-center gap-2 mb-3">
             <Star size={14} className="text-green-400" />
             <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-              Fortalezas Recurrentes
+              {t("playerEvolutionPage.recurringStrengths")}
             </span>
           </div>
           <div className="space-y-2">
@@ -303,7 +306,7 @@ function RecurringPatterns({ analyses }: { analyses: AnalysisRow[] }) {
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle size={14} className="text-amber-400" />
             <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-              Areas de Desarrollo Persistentes
+              {t("playerEvolutionPage.persistentDevelopmentAreas")}
             </span>
           </div>
           <div className="space-y-2">
@@ -331,6 +334,7 @@ function RecurringPatterns({ analyses }: { analyses: AnalysisRow[] }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function PlayerEvolutionPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
@@ -340,7 +344,7 @@ export default function PlayerEvolutionPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
         <Brain size={32} className="text-destructive" />
-        <p className="text-sm text-muted-foreground">Jugador no encontrado</p>
+        <p className="text-sm text-muted-foreground">{t("playerEvolutionPage.playerNotFound")}</p>
       </div>
     );
   }
@@ -459,7 +463,7 @@ export default function PlayerEvolutionPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">{player.name}</h1>
-            <p className="text-[10px] text-muted-foreground">Evolucion</p>
+            <p className="text-[10px] text-muted-foreground">{t("playerEvolutionPage.evolution")}</p>
           </div>
           <TrendingUp size={18} className="text-primary" />
         </div>
@@ -481,14 +485,14 @@ export default function PlayerEvolutionPage() {
         {!isLoading && total < 2 && (
           <EmptyState
             Icon={TrendingUp}
-            title={total === 0 ? "Sin reportes todavía" : "Falta 1 reporte para ver evolución"}
+            title={total === 0 ? t("playerEvolutionPage.emptyNoReportsTitle") : t("playerEvolutionPage.emptyOneReportTitle")}
             description={
               total === 0
-                ? "Sube un vídeo en VITAS.LAB o graba un partido en Match-day Live para generar el primer informe."
-                : "Con 2 reportes podemos calcular delta, slope y momentum. Genera otro para desbloquear la curva."
+                ? t("playerEvolutionPage.emptyNoReportsDescription")
+                : t("playerEvolutionPage.emptyOneReportDescription")
             }
             primary={{
-              label: total === 0 ? "Generar primer informe" : "Generar otro informe",
+              label: total === 0 ? t("playerEvolutionPage.generateFirstReport") : t("playerEvolutionPage.generateAnotherReport"),
               Icon: Zap,
               onClick: () => navigate(`/players/${id}/reports`),
             }}
@@ -496,7 +500,7 @@ export default function PlayerEvolutionPage() {
               label: "Match-day Live",
               onClick: () => navigate("/live"),
             }}
-            hint="Cada partido live también suma al historial · cuenta como reporte para evolución."
+            hint={t("playerEvolutionPage.emptyHint")}
           />
         )}
 
@@ -506,22 +510,22 @@ export default function PlayerEvolutionPage() {
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-1">Resumen de Evolucion</p>
+                  <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-1">{t("playerEvolutionPage.evolutionSummary")}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {total} reportes · {new Date(sorted[0].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })}
+                    {t("playerEvolutionPage.reportsCount", { count: total })} · {new Date(sorted[0].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })}
                     {" → "}
                     {new Date(sorted[total - 1].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })}
                   </p>
                 </div>
                 <Badge className={`text-xs font-bold ${trendDelta >= 0 ? "bg-green-500/20 text-green-400 border-green-500" : "bg-red-500/20 text-red-400 border-red-500"}`}>
                   {trendDelta >= 0 ? <ArrowUpRight size={12} className="mr-1" /> : <ArrowDownRight size={12} className="mr-1" />}
-                  {trendDelta >= 0 ? "+" : ""}{trendDelta.toFixed(1)} {trendDelta >= 0 ? "Progreso" : "Regresion"}
+                  {trendDelta >= 0 ? "+" : ""}{trendDelta.toFixed(1)} {trendDelta >= 0 ? t("playerEvolutionPage.progress") : t("playerEvolutionPage.regression")}
                 </Badge>
               </div>
               <div className="flex items-center gap-4 text-center">
                 <div className="flex-1 rounded-xl bg-secondary/50 p-2">
                   <p className="text-lg font-display font-bold text-foreground">{firstAvg.toFixed(1)}</p>
-                  <p className="text-[8px] text-muted-foreground uppercase">Primer reporte</p>
+                  <p className="text-[8px] text-muted-foreground uppercase">{t("playerEvolutionPage.firstReport")}</p>
                 </div>
                 <div className="flex items-center">
                   {trendDelta >= 0
@@ -533,7 +537,7 @@ export default function PlayerEvolutionPage() {
                 </div>
                 <div className="flex-1 rounded-xl bg-primary/10 border border-primary/30 p-2">
                   <p className="text-lg font-display font-bold text-foreground">{lastAvg.toFixed(1)}</p>
-                  <p className="text-[8px] text-primary uppercase">Ultimo reporte</p>
+                  <p className="text-[8px] text-primary uppercase">{t("playerEvolutionPage.lastReport")}</p>
                 </div>
               </div>
             </div>
@@ -547,14 +551,14 @@ export default function PlayerEvolutionPage() {
                 <div className="flex items-center gap-2 mb-2">
                   <Target size={14} className="text-primary" />
                   <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                    Radar Comparativo
+                    {t("playerEvolutionPage.comparativeRadar")}
                   </span>
                 </div>
                 <RadarChartComponent
                   stats={radarLast}
                   compareStats={radarFirst}
-                  currentLabel="Ultimo"
-                  compareLabel="Primero"
+                  currentLabel={t("playerEvolutionPage.last")}
+                  compareLabel={t("playerEvolutionPage.first")}
                 />
               </div>
             )}
@@ -564,7 +568,7 @@ export default function PlayerEvolutionPage() {
               <div className="flex items-center gap-2 px-1">
                 <Activity size={14} className="text-primary" />
                 <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Evolucion por Dimension
+                  {t("playerEvolutionPage.evolutionByDimension")}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -579,37 +583,37 @@ export default function PlayerEvolutionPage() {
               <div className="flex items-center gap-2 px-1">
                 <Brain size={14} className="text-primary" />
                 <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-                  Evolucion por Seccion
+                  {t("playerEvolutionPage.evolutionBySection")}
                 </span>
               </div>
 
-              <TextualEvolutionSection title="Nivel Actual" icon={TrendingUp}>
+              <TextualEvolutionSection title={t("playerEvolutionPage.currentLevel")} icon={TrendingUp}>
                 <TimelineBadges items={dedup(nivelTimeline)} />
               </TextualEvolutionSection>
 
               {dedup(arquetipoTimeline).length >= 1 && (
-                <TextualEvolutionSection title="ADN Futbolistico" icon={Brain}>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Arquetipo Tactico</p>
+                <TextualEvolutionSection title={t("playerEvolutionPage.footballDna")} icon={Brain}>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{t("playerEvolutionPage.tacticalArchetype")}</p>
                   <TimelineBadges items={dedup(arquetipoTimeline)} />
                 </TextualEvolutionSection>
               )}
 
               {dedup(clonTimeline).length >= 1 && (
-                <TextualEvolutionSection title="Jugador Referencia" icon={Star}>
+                <TextualEvolutionSection title={t("playerEvolutionPage.referencePlayer")} icon={Star}>
                   <TimelineBadges items={dedup(clonTimeline)} />
                 </TextualEvolutionSection>
               )}
 
               {dedup(carreraTimeline).length >= 1 && (
-                <TextualEvolutionSection title="Proyeccion de Carrera" icon={TrendingUp}>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Nivel Proyectado (Realista)</p>
+                <TextualEvolutionSection title={t("playerEvolutionPage.careerProjection")} icon={TrendingUp}>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{t("playerEvolutionPage.projectedLevelRealistic")}</p>
                   <TimelineBadges items={dedup(carreraTimeline)} />
                 </TextualEvolutionSection>
               )}
 
               {dedup(competitivoTimeline).length >= 1 && (
-                <TextualEvolutionSection title="Proyeccion Competitiva" icon={Trophy}>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">Nivel Recomendado</p>
+                <TextualEvolutionSection title={t("playerEvolutionPage.competitiveProjection")} icon={Trophy}>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1">{t("playerEvolutionPage.recommendedLevel")}</p>
                   <TimelineBadges items={dedup(competitivoTimeline)} />
                 </TextualEvolutionSection>
               )}
@@ -624,13 +628,13 @@ export default function PlayerEvolutionPage() {
                 onClick={() => navigate(`/players/${id}/reports`)}
                 className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
               >
-                Ver todos los reportes
+                {t("playerEvolutionPage.viewAllReports")}
               </button>
               <button
                 onClick={() => navigate(`/players/${id}/intelligence`)}
                 className="flex items-center gap-1 text-[10px] font-bold text-primary"
               >
-                <Zap size={10} /> Nuevo analisis
+                <Zap size={10} /> {t("playerEvolutionPage.newAnalysis")}
               </button>
             </div>
           </>

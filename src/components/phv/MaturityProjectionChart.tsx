@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 import { LineChart as LineIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { MaturityProjection } from "@/lib/phv";
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function MaturityProjectionChart({ projection, height = 200 }: Props) {
+  const { t } = useTranslation();
   const data = projection.curve.map((p) => ({ age: p.age, percentil: p.percentile, isNow: p.isNow }));
   const nowPoint = projection.curve.find((p) => p.isNow);
   const up = projection.delta >= 0;
@@ -42,7 +44,7 @@ export function MaturityProjectionChart({ projection, height = 200 }: Props) {
             <XAxis
               dataKey="age"
               tick={{ fill: "#94a3b8", fontSize: 10 }}
-              tickFormatter={(a) => `${a}a`}
+              tickFormatter={(a) => t("maturityProjectionChart.ageTick", { age: a })}
               stroke="rgba(255,255,255,0.1)"
             />
             <YAxis
@@ -59,8 +61,8 @@ export function MaturityProjectionChart({ projection, height = 200 }: Props) {
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              formatter={(v: number) => [`percentil ${v}`, ""]}
-              labelFormatter={(a) => `${a} años`}
+              formatter={(v: number) => [t("maturityProjectionChart.percentileValue", { value: v }), ""]}
+              labelFormatter={(a) => t("maturityProjectionChart.ageLabel", { age: a })}
             />
             <Line
               type="monotone"
@@ -84,8 +86,8 @@ export function MaturityProjectionChart({ projection, height = 200 }: Props) {
         </ResponsiveContainer>
       </div>
       <div className="flex justify-between text-[9px] text-muted-foreground mt-1">
-        <span>● Hoy (p{projection.currentPercentile})</span>
-        <span>Proyección a los {projection.maturityAge} (p{projection.projectedPercentile})</span>
+        <span>● {t("maturityProjectionChart.today", { percentile: projection.currentPercentile })}</span>
+        <span>{t("maturityProjectionChart.projectionAt", { age: projection.maturityAge, percentile: projection.projectedPercentile })}</span>
       </div>
     </motion.div>
   );

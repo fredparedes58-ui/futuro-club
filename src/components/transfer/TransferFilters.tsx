@@ -2,6 +2,7 @@
  * VITAS · TransferFilters — sidebar/panel de filtros del marketplace
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface Props {
 const POSITIONS = ["POR", "DFC", "LD", "LI", "MCD", "MC", "MCO", "EXD", "EXI", "DC"];
 
 export function TransferFilters({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const [text, setText] = useState(value.text ?? "");
 
   function update(patch: Partial<TransferSearchQuery>) {
@@ -51,7 +53,7 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Free text */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1 block">
-          Búsqueda libre
+          {t("transferFilters.freeSearch")}
         </label>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-500" />
@@ -62,7 +64,7 @@ export function TransferFilters({ value, onChange }: Props) {
             onKeyDown={(e) => {
               if (e.key === "Enter") update({ text: text || undefined });
             }}
-            placeholder="Nombre, descripción, tags…"
+            placeholder={t("transferFilters.searchPlaceholder")}
             className="pl-8 h-8 text-xs bg-white/[0.02] border-white/10"
           />
         </div>
@@ -71,7 +73,7 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Listing types */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5 block">
-          Tipo de operación
+          {t("transferFilters.operationType")}
         </label>
         <div className="flex flex-wrap gap-1">
           {LISTING_TYPES.map((t) => {
@@ -96,7 +98,7 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Positions */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5 block">
-          Posiciones
+          {t("transferFilters.positions")}
         </label>
         <div className="flex flex-wrap gap-1">
           {POSITIONS.map((p) => {
@@ -121,12 +123,12 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Age range */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5 block">
-          Edad
+          {t("transferFilters.age")}
         </label>
         <div className="flex items-center gap-2">
           <Input
             type="number"
-            placeholder="Min"
+            placeholder={t("transferFilters.min")}
             value={value.minAge ?? ""}
             onChange={(e) =>
               update({ minAge: e.target.value ? parseInt(e.target.value, 10) : undefined })
@@ -136,7 +138,7 @@ export function TransferFilters({ value, onChange }: Props) {
           <span className="text-slate-500">–</span>
           <Input
             type="number"
-            placeholder="Max"
+            placeholder={t("transferFilters.max")}
             value={value.maxAge ?? ""}
             onChange={(e) =>
               update({ maxAge: e.target.value ? parseInt(e.target.value, 10) : undefined })
@@ -149,11 +151,11 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Min VSI */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5 block">
-          VSI mínimo
+          {t("transferFilters.minVSI")}
         </label>
         <Input
           type="number"
-          placeholder="ej. 65"
+          placeholder={t("transferFilters.minVSIPlaceholder")}
           value={value.minVSI ?? ""}
           onChange={(e) =>
             update({ minVSI: e.target.value ? parseInt(e.target.value, 10) : undefined })
@@ -165,11 +167,11 @@ export function TransferFilters({ value, onChange }: Props) {
       {/* Max price */}
       <div>
         <label className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5 block">
-          Presupuesto máximo (€)
+          {t("transferFilters.maxBudget")}
         </label>
         <Input
           type="number"
-          placeholder="ej. 500000"
+          placeholder={t("transferFilters.maxBudgetPlaceholder")}
           value={value.maxPriceEur ?? ""}
           onChange={(e) =>
             update({ maxPriceEur: e.target.value ? parseInt(e.target.value, 10) : undefined })
@@ -183,11 +185,11 @@ export function TransferFilters({ value, onChange }: Props) {
         <div className="pt-3 border-t border-white/5">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] uppercase tracking-wider text-slate-400">
-              Filtros activos
+              {t("transferFilters.activeFilters")}
             </span>
             <Button size="sm" variant="ghost" onClick={clearAll} className="h-6 text-xs">
               <X className="size-3 mr-1" />
-              Limpiar
+              {t("transferFilters.clear")}
             </Button>
           </div>
           <div className="flex flex-wrap gap-1">
@@ -198,22 +200,22 @@ export function TransferFilters({ value, onChange }: Props) {
             ))}
             {value.minAge && (
               <Badge variant="outline" className="text-[10px]">
-                ≥{value.minAge}a
+                {t("transferFilters.minAgeBadge", { age: value.minAge })}
               </Badge>
             )}
             {value.maxAge && (
               <Badge variant="outline" className="text-[10px]">
-                ≤{value.maxAge}a
+                {t("transferFilters.maxAgeBadge", { age: value.maxAge })}
               </Badge>
             )}
             {value.minVSI && (
               <Badge variant="outline" className="text-[10px]">
-                VSI≥{value.minVSI}
+                {t("transferFilters.minVSIBadge", { vsi: value.minVSI })}
               </Badge>
             )}
             {value.maxPriceEur && (
               <Badge variant="outline" className="text-[10px]">
-                ≤€{(value.maxPriceEur / 1000).toFixed(0)}k
+                {t("transferFilters.maxPriceBadge", { price: (value.maxPriceEur / 1000).toFixed(0) })}
               </Badge>
             )}
           </div>

@@ -14,6 +14,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { OrganizationService } from "@/services/real/organizationService";
@@ -41,6 +42,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 // ─── Provider ──────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,15 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Actions ──────────────────────────────────────────────────────────────────
   const signIn = useCallback(async (email: string, password: string) => {
     if (!SUPABASE_CONFIGURED) {
-      return { error: { message: "Supabase no configurado — agrega VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY" } as AuthError };
+      return { error: { message: t("authContext.supabaseNotConfiguredWithKeys") } as AuthError };
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
-  }, []);
+  }, [t]);
 
   const signUp = useCallback(async (email: string, password: string, displayName?: string, userType?: string) => {
     if (!SUPABASE_CONFIGURED) {
-      return { error: { message: "Supabase no configurado" } as AuthError };
+      return { error: { message: t("authContext.supabaseNotConfigured") } as AuthError };
     }
     const { error } = await supabase.auth.signUp({
       email,
@@ -131,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     return { error };
-  }, []);
+  }, [t]);
 
   const signOut = useCallback(async () => {
     if (!SUPABASE_CONFIGURED) return;
@@ -142,13 +144,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     if (!SUPABASE_CONFIGURED) {
-      return { error: { message: "Supabase no configurado" } as AuthError };
+      return { error: { message: t("authContext.supabaseNotConfigured") } as AuthError };
     }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     return { error };
-  }, []);
+  }, [t]);
 
   return (
     <AuthContext.Provider

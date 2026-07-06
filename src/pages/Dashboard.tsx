@@ -52,9 +52,9 @@ const Dashboard = () => {
     if (created > 0) {
       queryClient.invalidateQueries({ queryKey: ["trending-players"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success(`${created} jugadores de ejemplo cargados`);
+      toast.success(t("dashboardPage.demoLoaded", { count: created }));
     } else {
-      toast.info("Ya tienes jugadores. Los datos de ejemplo solo se cargan en una cuenta vacía.");
+      toast.info(t("dashboardPage.demoAlreadyHasPlayers"));
     }
   }
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats();
@@ -117,17 +117,17 @@ const Dashboard = () => {
         <div className="flex items-center gap-1.5 px-1">
           <Sparkles size={11} className="text-primary" />
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-            Hoy puedes…
+            {t("dashboardPage.todayYouCan")}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { Icon: Activity, label: "Match-day Live",    sub: "Tagear partido",       color: "#22e88c", to: "/live" },
-            { Icon: Swords,   label: "Plan vs Rival",      sub: "Plan + drills",        color: "#F59E0B", to: "/equipo/rival" },
-            { Icon: Grid3x3,  label: "Análisis equipo",    sub: "9 cuadrantes IA",      color: "#1A8FFF", to: "/equipo/baseline" },
-            { Icon: Zap,      label: "VITAS.LAB",          sub: "Subir vídeo",          color: "#B82BD9", to: "/lab" },
-            { Icon: BarChart3,label: "Mis jugadores",      sub: "Ranking VSI",          color: "#10b981", to: "/rankings" },
-            { Icon: FileText, label: "Generar reporte",    sub: "Baseline IA",          color: "#0066CC", to: "/rankings" },
+            { Icon: Activity, label: "Match-day Live",             sub: t("dashboardPage.tileTagMatchSub"),   color: "#22e88c", to: "/live" },
+            { Icon: Swords,   label: t("dashboardPage.tilePlanVsRival"),  sub: t("dashboardPage.tilePlanVsRivalSub"), color: "#F59E0B", to: "/equipo/rival" },
+            { Icon: Grid3x3,  label: t("dashboardPage.tileTeamAnalysis"), sub: t("dashboardPage.tileTeamAnalysisSub"), color: "#1A8FFF", to: "/equipo/baseline" },
+            { Icon: Zap,      label: "VITAS.LAB",                   sub: t("dashboardPage.tileUploadVideoSub"), color: "#B82BD9", to: "/lab" },
+            { Icon: BarChart3,label: t("dashboardPage.tileMyPlayers"),    sub: t("dashboardPage.tileMyPlayersSub"), color: "#10b981", to: "/rankings" },
+            { Icon: FileText, label: t("dashboardPage.tileGenerateReport"), sub: t("dashboardPage.tileGenerateReportSub"), color: "#0066CC", to: "/rankings" },
           ].map((tile) => {
             const Icon = tile.Icon;
             return (
@@ -272,7 +272,7 @@ const Dashboard = () => {
                 <Plus size={14} /> {t("dashboard.noPlayers.cta")}
               </Button>
               <Button size="sm" variant="outline" className="gap-1.5" onClick={handleLoadDemo}>
-                <Sparkles size={14} /> Cargar datos de ejemplo
+                <Sparkles size={14} /> {t("dashboardPage.loadDemoData")}
               </Button>
             </div>
           </div>

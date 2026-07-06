@@ -25,11 +25,11 @@ import { MetricsService } from "@/services/real/metricsService";
 import { useTranslation } from "react-i18next";
 
 const sidebarItems = [
-  { path: "/master", icon: LayoutDashboard, label: "Panel Master" },
-  { path: "/lab", icon: Activity, label: "Análisis Activo" },
-  { path: "/rankings", icon: Users, label: "Base de Jugadores" },
-  { path: "/scout", icon: FileText, label: "Informes Scout" },
-  { path: "/settings", icon: Settings, label: "Configuración" },
+  { path: "/master", icon: LayoutDashboard, labelKey: "masterDashboard.navMasterPanel" },
+  { path: "/lab", icon: Activity, labelKey: "masterDashboard.navActiveAnalysis" },
+  { path: "/rankings", icon: Users, labelKey: "masterDashboard.navPlayerBase" },
+  { path: "/scout", icon: FileText, labelKey: "masterDashboard.navScoutReports" },
+  { path: "/settings", icon: Settings, labelKey: "masterDashboard.navSettings" },
 ];
 
 const biasColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -129,7 +129,7 @@ const MasterDashboard = () => {
       <aside className="hidden md:flex flex-col w-56 border-r border-border bg-card p-5 justify-between">
         <div>
           <div className="mb-8">
-            <PageHeader title="VITAS" subtitle="Inteligencia Deportiva" />
+            <PageHeader title="VITAS" subtitle={t("masterDashboard.sportsIntelligence")} />
           </div>
           <nav className="space-y-1">
             {sidebarItems.map((navItem) => {
@@ -146,7 +146,7 @@ const MasterDashboard = () => {
                   }`}
                 >
                   <Icon size={16} />
-                  {navItem.label}
+                  {t(navItem.labelKey)}
                 </button>
               );
             })}
@@ -158,8 +158,8 @@ const MasterDashboard = () => {
             {user?.user_metadata?.full_name ? user.user_metadata.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : (user?.email?.[0] ?? "U").toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-display font-semibold text-foreground">{user?.email?.split("@")[0] ?? "Usuario"}</p>
-            <p className="text-[10px] text-muted-foreground">VITAS Inteligencia</p>
+            <p className="text-sm font-display font-semibold text-foreground">{user?.email?.split("@")[0] ?? t("masterDashboard.user")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("masterDashboard.vitasIntelligence")}</p>
           </div>
         </div>
       </aside>
@@ -192,7 +192,7 @@ const MasterDashboard = () => {
                 <div className="flex items-center justify-between mb-3">
                   <Shield size={16} className="text-muted-foreground" />
                   <span className="text-[10px] font-display text-primary font-semibold">
-                    PHV tardío + VSI &lt; 65
+                    {t("masterDashboard.latePhvLowVsi")}
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
@@ -204,7 +204,7 @@ const MasterDashboard = () => {
                 <div className="flex items-center justify-between mb-3">
                   <TrendingUp size={16} className="text-muted-foreground" />
                   <span className="text-[10px] font-display text-primary font-semibold">
-                    Índice VITAS
+                    {t("masterDashboard.vitasIndex")}
                   </span>
                 </div>
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">

@@ -4,6 +4,7 @@
  * Card with recommendations + suggested drills linking to DRILLS_LIBRARY.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Lightbulb, ArrowRight, AlertTriangle, CheckCircle } from "lucide-react";
 import type { DrillSuggestion } from "@/lib/shared/sessionTypes";
 
@@ -20,12 +21,13 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function NextSessionRecommender({ areasToImprove, nextSessionDrills, phvNotes }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="glass rounded-xl p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Lightbulb size={16} className="text-amber-400" />
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Recomendaciones Próxima Sesión
+          {t("nextSessionRecommender.title")}
         </span>
       </div>
 
@@ -33,7 +35,7 @@ export default function NextSessionRecommender({ areasToImprove, nextSessionDril
       {areasToImprove.length > 0 && (
         <div className="space-y-1.5">
           <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
-            Áreas de mejora
+            {t("nextSessionRecommender.areasToImprove")}
           </span>
           {areasToImprove.map((area, i) => (
             <motion.div
@@ -54,7 +56,7 @@ export default function NextSessionRecommender({ areasToImprove, nextSessionDril
       {nextSessionDrills.length > 0 && (
         <div className="space-y-2">
           <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
-            Ejercicios sugeridos
+            {t("nextSessionRecommender.suggestedDrills")}
           </span>
           {nextSessionDrills.map((drill, i) => (
             <motion.div
@@ -84,7 +86,7 @@ export default function NextSessionRecommender({ areasToImprove, nextSessionDril
           <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
           <div>
             <span className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">
-              Nota PHV
+              {t("nextSessionRecommender.phvNote")}
             </span>
             <p className="text-[10px] text-muted-foreground mt-0.5">{phvNotes}</p>
           </div>

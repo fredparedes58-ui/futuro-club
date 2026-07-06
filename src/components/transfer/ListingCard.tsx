@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Euro, Calendar, MapPin, ChevronRight, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -28,10 +29,11 @@ const LISTING_TYPE_COLOR: Record<TransferListing["listingType"], string> = {
 };
 
 export function ListingCard({ listing, matchScore }: Props) {
+  const { t } = useTranslation();
   const snap = listing.playerSnapshot ?? {};
   const priceLabel =
     listing.askingPriceEur == null
-      ? "Negociable"
+      ? t("listingCard.negotiable")
       : new Intl.NumberFormat("es", {
           style: "currency",
           currency: listing.currency,
@@ -63,20 +65,20 @@ export function ListingCard({ listing, matchScore }: Props) {
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-white truncate">
-                  {snap.name ?? "Jugador"}
+                  {snap.name ?? t("listingCard.playerFallback")}
                 </h3>
                 <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                   <span>{snap.position ?? "?"}</span>
                   {snap.age != null && (
                     <>
                       <span>·</span>
-                      <span>{snap.age}a</span>
+                      <span>{t("listingCard.ageYears", { age: snap.age })}</span>
                     </>
                   )}
                   {snap.foot && (
                     <>
                       <span>·</span>
-                      <span>pie {snap.foot}</span>
+                      <span>{t("listingCard.foot", { foot: snap.foot })}</span>
                     </>
                   )}
                 </div>

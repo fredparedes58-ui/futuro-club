@@ -9,6 +9,7 @@ import {
   ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Tooltip,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import type { IDPDimension, IDPProgressSummary } from "@/lib/idp/idpTypes";
 
 interface Props {
@@ -18,19 +19,20 @@ interface Props {
   compact?: boolean;
 }
 
-const DIMENSION_LABELS: Record<IDPDimension, string> = {
-  technical: "Técnico",
-  tactical: "Táctico",
-  physical: "Físico",
-  mental: "Mental",
-  maturation: "Maduración",
+const DIMENSION_LABEL_KEYS: Record<IDPDimension, string> = {
+  technical: "idpProgressChart.dimensionTechnical",
+  tactical: "idpProgressChart.dimensionTactical",
+  physical: "idpProgressChart.dimensionPhysical",
+  mental: "idpProgressChart.dimensionMental",
+  maturation: "idpProgressChart.dimensionMaturation",
 };
 
 export function IDPProgressChart({ summary, height = 320, compact = false }: Props) {
+  const { t } = useTranslation();
   const data = (Object.keys(summary.byDimension) as IDPDimension[])
     .filter((d) => summary.byDimension[d] > 0 || !compact)
     .map((d) => ({
-      dimension: DIMENSION_LABELS[d],
+      dimension: t(DIMENSION_LABEL_KEYS[d]),
       progress: summary.byDimension[d],
     }));
 
@@ -50,7 +52,7 @@ export function IDPProgressChart({ summary, height = 320, compact = false }: Pro
             stroke="rgba(255,255,255,0.05)"
           />
           <Radar
-            name="Progreso"
+            name={t("idpProgressChart.progress")}
             dataKey="progress"
             stroke="#22d3ee"
             fill="#22d3ee"
@@ -64,7 +66,7 @@ export function IDPProgressChart({ summary, height = 320, compact = false }: Pro
               borderRadius: 8,
               fontSize: 12,
             }}
-            formatter={(v: number) => [`${v}%`, "Progreso"]}
+            formatter={(v: number) => [`${v}%`, t("idpProgressChart.progress")]}
           />
         </RadarChart>
       </ResponsiveContainer>

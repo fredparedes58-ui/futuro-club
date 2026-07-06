@@ -5,6 +5,7 @@
  * Input: TrainingSegment[] from SessionSegmenter.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { TrainingSegment, SegmentType } from "@/lib/shared/sessionTypes";
 
 interface Props {
@@ -23,25 +24,26 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   transition_break: "bg-white/10",
 };
 
-const SEGMENT_LABELS: Record<SegmentType, string> = {
-  warmup:           "Calentamiento",
-  technical:        "Técnica",
-  tactical:         "Táctica",
-  physical:         "Físico",
-  game_small_sided: "Juego reducido",
-  game_full:        "Partido",
-  cooldown:         "Vuelta a calma",
-  transition_break: "Pausa",
+const SEGMENT_LABEL_KEYS: Record<SegmentType, string> = {
+  warmup:           "sessionTimelineView.segmentWarmup",
+  technical:        "sessionTimelineView.segmentTechnical",
+  tactical:         "sessionTimelineView.segmentTactical",
+  physical:         "sessionTimelineView.segmentPhysical",
+  game_small_sided: "sessionTimelineView.segmentGameSmallSided",
+  game_full:        "sessionTimelineView.segmentGameFull",
+  cooldown:         "sessionTimelineView.segmentCooldown",
+  transition_break: "sessionTimelineView.segmentTransitionBreak",
 };
 
 export default function SessionTimelineView({ segments, totalDurationMin }: Props) {
+  const { t } = useTranslation();
   const total = totalDurationMin ?? segments.reduce((s, seg) => s + seg.durationMin, 0);
   if (total === 0) return null;
 
   return (
     <div className="glass rounded-xl p-4 space-y-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Línea de Tiempo
+        {t("sessionTimelineView.timeline")}
       </span>
 
       {/* Timeline bar */}
@@ -60,7 +62,7 @@ export default function SessionTimelineView({ segments, totalDurationMin }: Prop
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 <div className="glass rounded-md px-2 py-1 text-[10px] whitespace-nowrap text-foreground font-medium">
-                  {SEGMENT_LABELS[seg.type]} — {Math.round(seg.durationMin)} min
+                  {t(SEGMENT_LABEL_KEYS[seg.type])} — {Math.round(seg.durationMin)} min
                 </div>
               </div>
 
@@ -80,14 +82,14 @@ export default function SessionTimelineView({ segments, totalDurationMin }: Prop
         {Array.from(new Set(segments.map(s => s.type))).map(type => (
           <div key={type} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${SEGMENT_COLORS[type]}`} />
-            <span className="text-[9px] text-muted-foreground">{SEGMENT_LABELS[type]}</span>
+            <span className="text-[9px] text-muted-foreground">{t(SEGMENT_LABEL_KEYS[type])}</span>
           </div>
         ))}
       </div>
 
       {/* Total */}
       <div className="text-[10px] text-muted-foreground">
-        Duración total: <span className="font-mono font-bold text-foreground">{Math.round(total)}</span> min
+        {t("sessionTimelineView.totalDuration")} <span className="font-mono font-bold text-foreground">{Math.round(total)}</span> min
       </div>
     </div>
   );

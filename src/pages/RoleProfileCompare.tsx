@@ -92,7 +92,7 @@ export default function RoleProfileCompare() {
           return (
             <>
               <div className="font-display text-lg font-semibold">
-                {data.player_name} — {data.player_age} años
+                {data.player_name} — {t("roleProfileCompare.playerAge", { age: data.player_age })}
               </div>
 
               <CapabilityCards data={data} />
@@ -100,7 +100,7 @@ export default function RoleProfileCompare() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-display">Posiciones actuales (top 5)</CardTitle>
+                    <CardTitle className="text-sm font-display">{t("roleProfileCompare.currentPositionsTop5")}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {positions.slice(0, 5).map((pos, i) => (
@@ -117,7 +117,7 @@ export default function RoleProfileCompare() {
                 <Card className="border-border bg-card">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-display">
-                      Posiciones proyectadas ({horizons.find(h => h.key === selectedHorizon)?.label})
+                      {t("roleProfileCompare.projectedPositions", { horizon: horizons.find(h => h.key === selectedHorizon)?.label })}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -142,7 +142,7 @@ export default function RoleProfileCompare() {
 
               <Card className="border-border bg-card">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-display">Detalle de delta por dimensión</CardTitle>
+                  <CardTitle className="text-sm font-display">{t("roleProfileCompare.deltaDetailByDimension")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-6">
@@ -159,7 +159,7 @@ export default function RoleProfileCompare() {
                             <span className="text-2xl font-display font-bold text-electric">{proj.toFixed(1)}</span>
                           </div>
                           <span className={`text-sm font-mono ${delta > 0 ? "text-primary" : "text-danger"}`}>
-                            {delta > 0 ? "+" : ""}{delta.toFixed(1)} pts
+                            {delta > 0 ? "+" : ""}{delta.toFixed(1)} {t("roleProfileCompare.pointsUnit")}
                           </span>
                           <div className="h-2 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-primary/50 rounded-full" style={{ width: `${Math.min((delta / 20) * 100, 100)}%` }} />

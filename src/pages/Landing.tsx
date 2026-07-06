@@ -254,14 +254,14 @@ const Landing = () => {
               onClick={() => navigate("/terms")}
               className="text-[9px] font-display uppercase tracking-widest text-muted-foreground/40 hover:text-primary/70 transition-colors"
             >
-              Términos de Servicio
+              {t("landingPage.termsOfService")}
             </button>
             <span className="text-muted-foreground/20">|</span>
             <button
               onClick={() => navigate("/privacy")}
               className="text-[9px] font-display uppercase tracking-widest text-muted-foreground/40 hover:text-primary/70 transition-colors"
             >
-              Política de Privacidad
+              {t("landingPage.privacyPolicy")}
             </button>
           </div>
         </motion.div>

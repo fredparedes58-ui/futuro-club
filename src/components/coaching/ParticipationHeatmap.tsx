@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { PlayerDrillMetrics, DrillCategory } from "@/lib/shared/sessionTypes";
 
 interface Props {
@@ -38,6 +39,7 @@ function scoreColor(v: number): string {
 }
 
 export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
+  const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<{ player: string; drill: number } | null>(null);
 
   const { playerIds, drillIndices, grid } = useMemo(() => {
@@ -61,7 +63,7 @@ export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
   if (playerIds.length === 0 || drillIndices.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
-        Sin datos de participación disponibles
+        {t("participationHeatmap.noData")}
       </div>
     );
   }
@@ -69,7 +71,7 @@ export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Participación por Jugador × Ejercicio
+        {t("participationHeatmap.title")}
       </span>
 
       <div className="overflow-x-auto -mx-2 px-2">
@@ -77,7 +79,7 @@ export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
           <thead>
             <tr>
               <th className="text-[9px] text-muted-foreground font-normal text-left pr-2 pb-1">
-                Jugador
+                {t("participationHeatmap.player")}
               </th>
               {drillIndices.map(di => {
                 const sample = metrics.find(m => m.drillIndex === di);
@@ -116,9 +118,9 @@ export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
                         {isHovered && m && (
                           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-20 pointer-events-none">
                             <div className="glass rounded-md px-2 py-1 text-[9px] whitespace-nowrap space-y-0.5">
-                              <div>Toques: <b>{m.touches}</b></div>
-                              <div>Distancia: <b>{m.distanceM.toFixed(0)}m</b></div>
-                              <div>Intensidad: <b>{Math.round(m.avgIntensity)}</b></div>
+                              <div>{t("participationHeatmap.touches")} <b>{m.touches}</b></div>
+                              <div>{t("participationHeatmap.distance")} <b>{m.distanceM.toFixed(0)}m</b></div>
+                              <div>{t("participationHeatmap.intensity")} <b>{Math.round(m.avgIntensity)}</b></div>
                               <div>Idle: <b>{Math.round(m.idlePct)}%</b></div>
                             </div>
                           </div>
@@ -136,12 +138,12 @@ export default function ParticipationHeatmap({ metrics, playerNames }: Props) {
       {/* Color legend */}
       <div className="flex items-center gap-2 justify-center">
         {[
-          { label: "Bajo", cls: "bg-red-500/70" },
-          { label: "Medio", cls: "bg-amber-500/40" },
-          { label: "Alto", cls: "bg-emerald-500/40" },
-          { label: "Excelente", cls: "bg-emerald-500/80" },
+          { key: "low", label: t("participationHeatmap.legendLow"), cls: "bg-red-500/70" },
+          { key: "medium", label: t("participationHeatmap.legendMedium"), cls: "bg-amber-500/40" },
+          { key: "high", label: t("participationHeatmap.legendHigh"), cls: "bg-emerald-500/40" },
+          { key: "excellent", label: t("participationHeatmap.legendExcellent"), cls: "bg-emerald-500/80" },
         ].map(l => (
-          <div key={l.label} className="flex items-center gap-1">
+          <div key={l.key} className="flex items-center gap-1">
             <div className={`w-2 h-2 rounded-full ${l.cls}`} />
             <span className="text-[8px] text-muted-foreground">{l.label}</span>
           </div>

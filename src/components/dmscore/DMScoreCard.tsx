@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { Brain, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -15,12 +16,12 @@ interface Props {
   result: DMScoreResult;
 }
 
-const SOURCE_LABEL: Record<string, string> = {
-  real: "vídeo real",
-  mock: "estimado",
-  bpe: "perfil mental",
-  video: "análisis de vídeo",
-  desconocida: "—",
+const SOURCE_LABEL_KEY: Record<string, string> = {
+  real: "sourceReal",
+  mock: "sourceMock",
+  bpe: "sourceBpe",
+  video: "sourceVideo",
+  desconocida: "sourceUnknown",
 };
 
 function scoreColor(score: number): string {
@@ -31,6 +32,7 @@ function scoreColor(score: number): string {
 }
 
 export function DMScoreCard({ result }: Props) {
+  const { t } = useTranslation();
   // ── Empty state: faltan señales ──
   if (result.score == null) {
     return (
@@ -61,12 +63,12 @@ export function DMScoreCard({ result }: Props) {
               Decision-Making Score
             </h3>
             <p className="text-[10px] text-muted-foreground">
-              Cómo procesa el juego real — lo que los drills aislados no ven
+              {t("dmScoreCard.subtitle")}
             </p>
           </div>
         </div>
         <Badge variant="outline" className="text-[10px] shrink-0">
-          Confianza {Math.round(result.confidence * 100)}%
+          {t("dmScoreCard.confidence", { count: Math.round(result.confidence * 100) })}
         </Badge>
       </div>
 
@@ -93,7 +95,11 @@ export function DMScoreCard({ result }: Props) {
               </div>
               <Progress value={b.value} className="h-1" />
               <div className="text-[9px] text-muted-foreground/60 mt-0.5">
-                fuente: {SOURCE_LABEL[b.source] ?? b.source}
+                {t("dmScoreCard.sourceLabel", {
+                  source: SOURCE_LABEL_KEY[b.source]
+                    ? t(`dmScoreCard.${SOURCE_LABEL_KEY[b.source]}`)
+                    : b.source,
+                })}
               </div>
             </div>
           ))}

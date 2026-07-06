@@ -7,6 +7,7 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ReferenceLine,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface TrendPoint {
   date: string;
@@ -20,10 +21,12 @@ interface Props {
 }
 
 export default function BehavioralTrendChart({ data, height = 180 }: Props) {
+  const { t } = useTranslation();
+
   if (data.length < 2) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
-        Se necesitan más evaluaciones para mostrar tendencia
+        {t("behavioralTrendChart.needMoreEvaluations")}
       </div>
     );
   }
@@ -31,7 +34,7 @@ export default function BehavioralTrendChart({ data, height = 180 }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-2">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Evolución Mental
+        {t("behavioralTrendChart.mentalEvolution")}
       </span>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
@@ -57,7 +60,7 @@ export default function BehavioralTrendChart({ data, height = 180 }: Props) {
               borderRadius: 8,
               fontSize: 10,
             }}
-            formatter={(value: number) => [`${value}/100`, "Compuesto Mental"]}
+            formatter={(value: number) => [`${value}/100`, t("behavioralTrendChart.mentalComposite")]}
           />
           <ReferenceLine y={50} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
           <Line

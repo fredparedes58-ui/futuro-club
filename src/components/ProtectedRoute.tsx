@@ -13,6 +13,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/context/AuthContext";
 import { UserProfileService } from "@/services/real/userProfileService";
 
@@ -21,6 +22,7 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { t } = useTranslation();
   const { user, loading, configured } = useAuth();
   const location = useLocation();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -63,7 +65,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           <Loader2 size={28} className="text-primary" />
         </motion.div>
         <p className="text-xs font-display text-muted-foreground tracking-widest uppercase">
-          Verificando sesión…
+          {t("protectedRoute.verifyingSession")}
         </p>
       </div>
     );

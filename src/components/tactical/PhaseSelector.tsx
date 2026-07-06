@@ -5,6 +5,7 @@
  * Muestra duración de cada fase y % del total. Resalta la fase activa.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { GamePhase } from "@/lib/tactical/tacticalTypes";
 
@@ -28,7 +29,17 @@ const PHASES: GamePhase[] = [
   "defensive_transition", "offensive_transition", "set_piece",
 ];
 
+const PHASE_LABEL_KEY: Record<GamePhase, string> = {
+  build_up:             "phaseSelector.phaseBuildUp",
+  attacking:            "phaseSelector.phaseAttacking",
+  defending:            "phaseSelector.phaseDefending",
+  defensive_transition: "phaseSelector.phaseDefensiveTransition",
+  offensive_transition: "phaseSelector.phaseOffensiveTransition",
+  set_piece:            "phaseSelector.phaseSetPiece",
+};
+
 export function PhaseSelector({ phaseDurations, active, onChange }: Props) {
+  const { t } = useTranslation();
   const total = Object.values(phaseDurations).reduce((a, b) => a + b, 0) || 1;
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
@@ -54,7 +65,7 @@ export function PhaseSelector({ phaseDurations, active, onChange }: Props) {
           >
             <div className="flex items-center gap-1.5">
               <span className="text-sm">{meta.icon}</span>
-              <span className="text-xs font-medium">{meta.label}</span>
+              <span className="text-xs font-medium">{t(PHASE_LABEL_KEY[p])}</span>
             </div>
             <div className="text-[10px] mt-0.5 opacity-80">
               {Math.round(sec)}s · {pct}%

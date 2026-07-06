@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, RadarChart, Radar, PolarGrid,
   PolarAngleAxis, PolarRadiusAxis, Tooltip,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   scores: {
@@ -23,18 +24,19 @@ interface Props {
 }
 
 const DIMENSIONS = [
-  { key: "decisionSpeed",        label: "Decisión" },
-  { key: "scanningIntelligence", label: "Escaneo" },
-  { key: "resilience",           label: "Resiliencia" },
-  { key: "clutchFactor",         label: "Clutch" },
-  { key: "leadership",           label: "Liderazgo" },
-  { key: "mentalFatigue",        label: "Res. Mental" },
-  { key: "unpredictability",     label: "Creatividad" },
+  { key: "decisionSpeed",        labelKey: "dimensionDecision" },
+  { key: "scanningIntelligence", labelKey: "dimensionScanning" },
+  { key: "resilience",           labelKey: "dimensionResilience" },
+  { key: "clutchFactor",         labelKey: "dimensionClutch" },
+  { key: "leadership",           labelKey: "dimensionLeadership" },
+  { key: "mentalFatigue",        labelKey: "dimensionMentalResilience" },
+  { key: "unpredictability",     labelKey: "dimensionCreativity" },
 ] as const;
 
 export default function BehavioralRadar({ scores, height = 260 }: Props) {
+  const { t } = useTranslation();
   const data = DIMENSIONS.map(d => ({
-    dimension: d.label,
+    dimension: t(`behavioralRadar.${d.labelKey}`),
     value: scores[d.key as keyof typeof scores] ?? 0,
     fullMark: 100,
   }));
@@ -42,7 +44,7 @@ export default function BehavioralRadar({ scores, height = 260 }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-2">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Perfil Conductual
+        {t("behavioralRadar.title")}
       </span>
       <ResponsiveContainer width="100%" height={height}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">

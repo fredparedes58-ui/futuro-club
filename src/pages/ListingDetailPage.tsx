@@ -3,6 +3,7 @@
  * /transfer/listing/:id
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Euro, Send, Loader2, MessageCircle, Trash2,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/transfer/transferConfig";
 
 export default function ListingDetailPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: listing, isLoading } = useListing(id);
@@ -51,14 +53,14 @@ export default function ListingDetailPage() {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft size={18} />
             </Button>
-            <h1 className="text-lg font-display font-bold">Listing no encontrado</h1>
+            <h1 className="text-lg font-display font-bold">{t("listingDetailPage.notFoundTitle")}</h1>
           </div>
         </header>
         <main className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-sm text-muted-foreground mb-4">
-            Este listing ya no está disponible o el enlace es incorrecto.
+            {t("listingDetailPage.notFoundDescription")}
           </p>
-          <Button onClick={() => navigate("/transfer")}>Volver al marketplace</Button>
+          <Button onClick={() => navigate("/transfer")}>{t("listingDetailPage.backToMarketplace")}</Button>
         </main>
       </div>
     );
@@ -67,7 +69,7 @@ export default function ListingDetailPage() {
   const snap = listing.playerSnapshot ?? {};
   const priceLabel =
     listing.askingPriceEur == null
-      ? "Negociable"
+      ? t("listingDetailPage.negotiable")
       : new Intl.NumberFormat("es", {
           style: "currency",
           currency: listing.currency,
@@ -76,11 +78,11 @@ export default function ListingDetailPage() {
 
   async function handleInquire() {
     if (!buyerName.trim()) {
-      toast.error("Indica tu nombre o el del club.");
+      toast.error(t("listingDetailPage.errorNameRequired"));
       return;
     }
     if (message.length < 10) {
-      toast.error("El mensaje debe tener al menos 10 caracteres.");
+      toast.error(t("listingDetailPage.errorMessageTooShort"));
       return;
     }
     try {
@@ -90,24 +92,24 @@ export default function ListingDetailPage() {
         message,
         proposedPriceEur: offerPrice ? parseFloat(offerPrice) : null,
       });
-      toast.success("Inquiry enviada al vendedor");
+      toast.success(t("listingDetailPage.inquirySent"));
       setMessage("");
       setOfferPrice("");
     } catch (err) {
-      toast.error("No se pudo enviar", {
+      toast.error(t("listingDetailPage.errorSendFailed"), {
         description: err instanceof Error ? err.message : "Error",
       });
     }
   }
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este listing? Esta acción no se puede deshacer.")) return;
+    if (!confirm(t("listingDetailPage.confirmDelete"))) return;
     try {
       await deleteListing.mutateAsync(listing!.id);
-      toast.success("Listing eliminado");
+      toast.success(t("listingDetailPage.listingDeleted"));
       navigate("/transfer");
     } catch (err) {
-      toast.error("No se pudo eliminar", {
+      toast.error(t("listingDetailPage.errorDeleteFailed"), {
         description: err instanceof Error ? err.message : "Error",
       });
     }
@@ -141,24 +143,24 @@ export default function ListingDetailPage() {
                   {(snap.name ?? "?").slice(0, 2).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">{snap.name ?? "Jugador"}</h2>
+                  <h2 className="text-2xl font-bold text-white">{snap.name ?? t("listingDetailPage.playerFallback")}</h2>
                   <div className="flex flex-wrap items-center gap-2 mt-1.5">
                     <Badge variant="outline">{snap.position ?? "?"}</Badge>
-                    {snap.age != null && <span className="text-xs text-slate-400">{snap.age} años</span>}
-                    {snap.foot && <span className="text-xs text-slate-400">· pie {snap.foot}</span>}
+                    {snap.age != null && <span className="text-xs text-slate-400">{t("listingDetailPage.yearsOld", { count: snap.age })}</span>}
+                    {snap.foot && <span className="text-xs text-slate-400">{t("listingDetailPage.foot", { foot: snap.foot })}</span>}
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-white/5">
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500">Tipo</div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("listingDetailPage.typeLabel")}</div>
                   <div className="text-sm font-semibold text-white">
                     {LISTING_TYPE_LABELS[listing.listingType]}
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-wider text-slate-500">Precio</div>
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("listingDetailPage.priceLabel")}</div>
                   <div className="text-sm font-semibold text-white flex items-center gap-1">
                     <Euro className="size-3" />
                     {priceLabel}
@@ -181,7 +183,7 @@ export default function ListingDetailPage() {
 
             {listing.description && (
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">Descripción</h3>
+                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">{t("listingDetailPage.descriptionHeading")}</h3>
                 <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
                   {listing.description}
                 </p>
@@ -190,7 +192,7 @@ export default function ListingDetailPage() {
 
             {listing.tags.length > 0 && (
               <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">Tags</h3>
+                <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-2">{t("listingDetailPage.tagsHeading")}</h3>
                 <div className="flex flex-wrap gap-1.5">
                   {listing.tags.map((t) => (
                     <Badge key={t} variant="outline" className="text-[11px]">
@@ -205,7 +207,7 @@ export default function ListingDetailPage() {
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                 <MessageCircle className="size-3" />
-                Inquiries recibidas
+                {t("listingDetailPage.inquiriesReceived")}
               </h3>
               <InquiryInbox listingId={listing.id} />
             </div>
@@ -214,22 +216,22 @@ export default function ListingDetailPage() {
           {/* Sidebar: inquiry form */}
           <aside>
             <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-3 sticky top-20">
-              <h3 className="text-sm font-semibold text-white">Mostrar interés</h3>
+              <h3 className="text-sm font-semibold text-white">{t("listingDetailPage.showInterest")}</h3>
               <Input
                 value={buyerName}
                 onChange={(e) => setBuyerName(e.target.value)}
-                placeholder="Tu nombre o club"
+                placeholder={t("listingDetailPage.buyerNamePlaceholder")}
                 className="bg-white/[0.02] border-white/10 text-sm"
               />
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Estamos interesados en este jugador para…"
+                placeholder={t("listingDetailPage.messagePlaceholder")}
                 rows={4}
                 className="bg-white/[0.02] border-white/10 text-sm resize-none"
               />
               <div>
-                <label className="text-[10px] text-slate-400 mb-1 block">Contraoferta (opcional, €)</label>
+                <label className="text-[10px] text-slate-400 mb-1 block">{t("listingDetailPage.counterOfferLabel")}</label>
                 <Input
                   type="number"
                   value={offerPrice}
@@ -248,10 +250,10 @@ export default function ListingDetailPage() {
                 ) : (
                   <Send className="size-3.5 mr-1.5" />
                 )}
-                Enviar inquiry
+                {t("listingDetailPage.sendInquiry")}
               </Button>
               <p className="text-[10px] text-slate-500 text-center">
-                Status del listing:{" "}
+                {t("listingDetailPage.listingStatus")}{" "}
                 <Badge variant="outline" className="text-[10px]">
                   {LISTING_STATUS_LABELS[listing.status]}
                 </Badge>

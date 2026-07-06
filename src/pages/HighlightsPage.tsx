@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -45,6 +46,7 @@ function formatDate(iso: string): string {
 }
 
 export default function HighlightsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [reels, setReels] = useState<HighlightReel[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -60,10 +62,10 @@ export default function HighlightsPage() {
   }, []);
 
   const handleDelete = (id: string, title: string) => {
-    if (!window.confirm(`¿Eliminar el reel "${title}"?`)) return;
+    if (!window.confirm(t("highlightsPage.confirmDelete", { title }))) return;
     HighlightsStorage.delete(id);
     reload();
-    toast.success("Reel eliminado");
+    toast.success(t("highlightsPage.reelDeleted"));
   };
 
   const filtered = reels.filter((r) => {
@@ -96,7 +98,10 @@ export default function HighlightsPage() {
                 Highlights
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                Reels automáticos · {reels.length} {reels.length === 1 ? "guardado" : "guardados"}
+                {t("highlightsPage.subtitle")} · {reels.length}{" "}
+                {reels.length === 1
+                  ? t("highlightsPage.savedSingular")
+                  : t("highlightsPage.savedPlural")}
               </p>
             </div>
             <button
@@ -104,7 +109,7 @@ export default function HighlightsPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
             >
               <Wand2 size={14} />
-              Generar reel
+              {t("highlightsPage.generateReel")}
             </button>
           </div>
 
@@ -118,7 +123,7 @@ export default function HighlightsPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por título, video o jugador…"
+                placeholder={t("highlightsPage.searchPlaceholder")}
                 className="w-full pl-8 pr-3 py-1.5 bg-secondary/40 rounded-lg text-xs border border-border focus:border-primary focus:outline-none"
               />
             </div>
@@ -132,7 +137,7 @@ export default function HighlightsPage() {
         ) : filtered.length === 0 ? (
           <div className="glass rounded-xl p-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Ningún reel coincide con "{query}"
+              {t("highlightsPage.noMatch", { query })}
             </p>
           </div>
         ) : (
@@ -175,6 +180,7 @@ function ReelCard({
   onOpen: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   // Build a stack of moment chips from clips
   const momentCounts = reel.clips.reduce<Record<string, number>>((acc, c) => {
     acc[c.moment] = (acc[c.moment] || 0) + 1;
@@ -212,7 +218,7 @@ function ReelCard({
             {formatDuration(reel.totalDurationMs)}
           </div>
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold">
-            {reel.clips.length} clips
+            {t("highlightsPage.clipsCount", { count: reel.clips.length })}
           </div>
         </div>
         <button
@@ -246,7 +252,7 @@ function ReelCard({
               onDelete();
             }}
             className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
-            title="Eliminar"
+            title={t("highlightsPage.deleteTitle")}
           >
             <Trash2 size={11} />
           </button>
@@ -287,6 +293,7 @@ function ReelCard({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -298,11 +305,10 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       </div>
       <div>
         <h2 className="text-lg font-display font-bold text-foreground">
-          Genera tu primer reel
+          {t("highlightsPage.emptyTitle")}
         </h2>
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-md mx-auto">
-          La IA analiza un video del partido y selecciona los mejores momentos (goles, tiros, asistencias,
-          regates, paradas, scans). Tú eliges la duración y los tipos de jugada.
+          {t("highlightsPage.emptyDescription")}
         </p>
       </div>
       <button
@@ -310,7 +316,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
         className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all"
       >
         <Plus size={14} />
-        Generar reel
+        {t("highlightsPage.generateReel")}
       </button>
     </motion.div>
   );

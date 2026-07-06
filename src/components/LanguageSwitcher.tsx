@@ -13,14 +13,14 @@ const LANGS = [
 ] as const;
 
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const current = (i18n.language || "es").slice(0, 2);
 
   return (
     <div
       className={`inline-flex items-center gap-0.5 rounded-lg border border-border p-0.5 ${className}`}
       role="group"
-      aria-label="Idioma / Language"
+      aria-label={t("languageSwitcher.groupLabel")}
     >
       {LANGS.map((l) => {
         const active = current === l.code;
@@ -29,7 +29,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
             key={l.code}
             onClick={() => i18n.changeLanguage(l.code)}
             aria-pressed={active}
-            aria-label={l.code === "es" ? "Español" : "English"}
+            aria-label={l.code === "es" ? t("languageSwitcher.spanish") : t("languageSwitcher.english")}
             className={`px-2 py-0.5 rounded-md text-[11px] font-display font-bold transition-colors ${
               active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}

@@ -7,6 +7,7 @@
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, ClipboardList } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import CoachDashboard from "@/components/coaching/CoachDashboard";
 import { useAuth, getUserDisplayName } from "@/context/AuthContext";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -15,6 +16,7 @@ export default function CoachDashboardPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, orgId } = useAuth();
+  const { t } = useTranslation();
 
   // teamId real: prioridad URL (?teamId=) → organización del coach → id de
   // usuario → fallback demo. Así /coach opera sobre el equipo del coach
@@ -23,7 +25,9 @@ export default function CoachDashboardPage() {
     searchParams.get("teamId") ?? orgId ?? user?.id ?? "default-team";
   const teamName =
     searchParams.get("teamName") ??
-    (user ? `Equipo de ${getUserDisplayName(user)}` : "Mi equipo");
+    (user
+      ? t("coachDashboardPage.teamOf", { name: getUserDisplayName(user) })
+      : t("coachDashboardPage.myTeam"));
 
   return (
     <RoleGuard
@@ -31,12 +35,12 @@ export default function CoachDashboardPage() {
       fallback={
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
           <div className="text-center space-y-3">
-            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="font-display font-bold text-lg text-foreground">{t("coachDashboardPage.accessRestricted")}</p>
             <p className="text-sm text-muted-foreground">
-              Solo entrenadores y directores pueden acceder al Coaching Assistant.
+              {t("coachDashboardPage.accessRestrictedDescription")}
             </p>
             <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
-              Volver al dashboard
+              {t("coachDashboardPage.backToDashboard")}
             </button>
           </div>
         </div>
@@ -52,7 +56,7 @@ export default function CoachDashboardPage() {
         <button
           onClick={() => navigate(-1)}
           className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-          aria-label="Volver"
+          aria-label={t("coachDashboardPage.back")}
         >
           <ArrowLeft size={18} className="text-muted-foreground" />
         </button>
@@ -63,7 +67,7 @@ export default function CoachDashboardPage() {
               Coaching Assistant
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              {teamName} — Análisis y planificación de sesiones
+              {t("coachDashboardPage.headerSubtitle", { teamName })}
             </p>
           </div>
         </div>

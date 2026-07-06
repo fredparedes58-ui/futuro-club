@@ -8,6 +8,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface EngagementPoint {
   date: string;
@@ -53,6 +54,7 @@ interface TooltipPayload {
 }
 
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: TooltipPayload[] }) {
+  const { t } = useTranslation();
   if (!active || !payload?.[0]?.payload) return null;
   const d = payload[0].payload;
   return (
@@ -64,19 +66,20 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
         </span>
       </p>
       <div className="grid grid-cols-3 gap-2 text-[10px]">
-        <span className="text-blue-400">Fís: {Math.round(d.physicalEngagement)}</span>
-        <span className="text-violet-400">Soc: {Math.round(d.socialEngagement)}</span>
-        <span className="text-rose-400">Emo: {Math.round(d.emotionalEngagement)}</span>
+        <span className="text-blue-400">{t("engagementTimeline.physicalLabel")}: {Math.round(d.physicalEngagement)}</span>
+        <span className="text-violet-400">{t("engagementTimeline.socialLabel")}: {Math.round(d.socialEngagement)}</span>
+        <span className="text-rose-400">{t("engagementTimeline.emotionalLabel")}: {Math.round(d.emotionalEngagement)}</span>
       </div>
     </div>
   );
 }
 
 export default function EngagementTimeline({ data, height = 200 }: Props) {
+  const { t } = useTranslation();
   if (data.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center">
-        <p className="text-xs text-muted-foreground">Sin datos de engagement</p>
+        <p className="text-xs text-muted-foreground">{t("engagementTimeline.noData")}</p>
       </div>
     );
   }
@@ -84,7 +87,7 @@ export default function EngagementTimeline({ data, height = 200 }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-2">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Engagement por Sesión
+        {t("engagementTimeline.header")}
       </span>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>

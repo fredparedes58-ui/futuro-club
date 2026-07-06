@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Search, BookOpen, Loader2, X } from "lucide-react";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
@@ -26,10 +27,10 @@ interface KnowledgeSearchProps {
 /* ── Category config ─────────────────────────────────────── */
 
 const CATEGORIES = [
-  { label: "Todos", value: null },
-  { label: "Drills", value: "drill" },
-  { label: "Metodología", value: "methodology" },
-  { label: "Scouting", value: "scouting" },
+  { labelKey: "categoryAll", value: null },
+  { labelKey: "categoryDrills", value: "drill" },
+  { labelKey: "categoryMethodology", value: "methodology" },
+  { labelKey: "categoryScouting", value: "scouting" },
 ] as const;
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -45,6 +46,7 @@ export default function KnowledgeSearch({
   className = "",
   compact = false,
 }: KnowledgeSearchProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [results, setResults] = useState<RagResult[]>([]);
@@ -87,14 +89,14 @@ export default function KnowledgeSearch({
         setSearched(true);
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError("No se pudo conectar con la base de conocimiento.");
+        setError(t("knowledgeSearch.errorConnection"));
         setResults([]);
         setSearched(true);
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [t],
   );
 
   /* ── Debounce trigger ──────────────────────────────────── */
@@ -138,7 +140,7 @@ export default function KnowledgeSearch({
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar ejercicios, metodologías..."
+          placeholder={t("knowledgeSearch.searchPlaceholder")}
           className={`flex-1 bg-transparent outline-none ${textSm} text-white placeholder:text-white/30`}
         />
         {query && (
@@ -154,7 +156,7 @@ export default function KnowledgeSearch({
           const active = category === cat.value;
           return (
             <button
-              key={cat.label}
+              key={cat.labelKey}
               onClick={() => setCategory(cat.value)}
               className={`
                 ${compact ? "text-[10px] px-2 py-0.5" : "text-xs px-3 py-1"}
@@ -166,7 +168,7 @@ export default function KnowledgeSearch({
                 }
               `}
             >
-              {cat.label}
+              {t(`knowledgeSearch.${cat.labelKey}`)}
             </button>
           );
         })}
@@ -176,7 +178,7 @@ export default function KnowledgeSearch({
       {loading && (
         <div className={`flex items-center justify-center gap-2 ${pad} text-white/50`}>
           <Loader2 size={16} className="animate-spin" />
-          <span className={textSm}>Buscando...</span>
+          <span className={textSm}>{t("knowledgeSearch.searching")}</span>
         </div>
       )}
 
@@ -190,7 +192,7 @@ export default function KnowledgeSearch({
       {/* Empty state */}
       {!loading && !error && searched && results.length === 0 && (
         <div className={`glass rounded-xl ${pad} border border-white/10 text-center text-white/40 ${textSm}`}>
-          No se encontraron resultados
+          {t("knowledgeSearch.noResults")}
         </div>
       )}
 
@@ -244,7 +246,7 @@ export default function KnowledgeSearch({
         <div className={`flex flex-col items-center gap-2 ${pad} text-white/30`}>
           <BookOpen size={compact ? 18 : 24} className="opacity-40" />
           <span className={`${compact ? "text-[10px]" : "text-xs"} font-display`}>
-            Escribe 3+ caracteres para buscar
+            {t("knowledgeSearch.idleHint")}
           </span>
         </div>
       )}

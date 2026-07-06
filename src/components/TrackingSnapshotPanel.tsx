@@ -14,6 +14,7 @@ import {
   Zap, Activity, Eye, Swords, Map as MapIcon, Hexagon, FlaskConical, Calendar, ArrowRight,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
 import { EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 
@@ -26,6 +27,7 @@ interface Props {
 
 export default function TrackingSnapshotPanel({ playerId, snapshot, compact = false }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // ── Empty state ─────────────────────────────────────────────────────────
   if (!snapshot) {
@@ -39,18 +41,17 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
         <EmptyTracking className="w-32 mx-auto" />
         <div className="space-y-1.5 max-w-sm mx-auto">
           <h3 className="font-bold text-base text-foreground">
-            Movimiento + Escaneo · sin analizar
+            {t("trackingSnapshotPanel.emptyTitle")}
           </h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Analiza un video en VITAS Lab para ver cuánto y cómo escanea el jugador,
-            duelos, distancia, sprints y mapa de calor.
+            {t("trackingSnapshotPanel.emptyDescription")}
           </p>
         </div>
         <button
           onClick={() => navigate(`/lab?playerId=${playerId}`)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-colors"
         >
-          <FlaskConical size={12} /> Analizar en VITAS Lab <ArrowRight size={12} />
+          <FlaskConical size={12} /> {t("trackingSnapshotPanel.analyzeInLab")} <ArrowRight size={12} />
         </button>
       </motion.div>
     );
@@ -76,7 +77,7 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider">
-          Movimiento + Escaneo (VITAS Lab)
+          {t("trackingSnapshotPanel.snapshotTitle")}
         </h3>
         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <Calendar size={10} /> {date}
@@ -85,23 +86,23 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
 
       {/* Top-line stats grid */}
       <div className="grid grid-cols-2 gap-2">
-        <StatCard icon={<Zap size={12} className="text-yellow-400" />} label="VEL. MÁX" value={maxKmh} unit="km/h" />
-        <StatCard icon={<Activity size={12} className="text-emerald-400" />} label="VEL. PROM" value={avgKmh} unit="km/h" />
-        <StatCard icon={<MapIcon size={12} className="text-blue-400" />} label="DISTANCIA" value={m.distanceCoveredM.toFixed(0)} unit="m" />
-        <StatCard icon={<Activity size={12} className="text-purple-400" />} label="SPRINTS" value={`${m.sprintCount}`} unit={`${m.sprintDistanceM.toFixed(0)}m`} />
+        <StatCard icon={<Zap size={12} className="text-yellow-400" />} label={t("trackingSnapshotPanel.labelMaxSpeed")} value={maxKmh} unit="km/h" />
+        <StatCard icon={<Activity size={12} className="text-emerald-400" />} label={t("trackingSnapshotPanel.labelAvgSpeed")} value={avgKmh} unit="km/h" />
+        <StatCard icon={<MapIcon size={12} className="text-blue-400" />} label={t("trackingSnapshotPanel.labelDistance")} value={m.distanceCoveredM.toFixed(0)} unit="m" />
+        <StatCard icon={<Activity size={12} className="text-purple-400" />} label={t("trackingSnapshotPanel.labelSprints")} value={`${m.sprintCount}`} unit={`${m.sprintDistanceM.toFixed(0)}m`} />
       </div>
 
       {/* Eventos clave */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard icon={<Eye size={12} className="text-cyan-400" />} label="ESCANEOS" value={`${snapshot.scanCount}`} unit="giros cabeza" />
-        <StatCard icon={<Swords size={12} className="text-orange-400" />} label="DUELOS" value={`${m.duelsWon}/${m.duelsWon + m.duelsLost}`} unit="ganados" />
-        <StatCard icon={<Hexagon size={12} className="text-fuchsia-400" />} label="VORONOI" value={m.avgVoronoiAreaM2.toFixed(0)} unit="m² control" />
+        <StatCard icon={<Eye size={12} className="text-cyan-400" />} label={t("trackingSnapshotPanel.labelScans")} value={`${snapshot.scanCount}`} unit={t("trackingSnapshotPanel.unitHeadTurns")} />
+        <StatCard icon={<Swords size={12} className="text-orange-400" />} label={t("trackingSnapshotPanel.labelDuels")} value={`${m.duelsWon}/${m.duelsWon + m.duelsLost}`} unit={t("trackingSnapshotPanel.unitWon")} />
+        <StatCard icon={<Hexagon size={12} className="text-fuchsia-400" />} label="VORONOI" value={m.avgVoronoiAreaM2.toFixed(0)} unit={t("trackingSnapshotPanel.unitControl")} />
       </div>
 
       {/* Distribución de intensidad */}
       <div className="glass rounded-xl p-3 space-y-2">
         <p className="text-[10px] font-display font-semibold uppercase tracking-wider text-muted-foreground">
-          Distribución intensidad
+          {t("trackingSnapshotPanel.intensityDistribution")}
         </p>
         <div className="flex h-2 rounded-full overflow-hidden bg-secondary">
           <div className="bg-blue-400" style={{ width: `${pct(m.intensityZones.walk)}%` }} />
@@ -110,9 +111,9 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
           <div className="bg-red-400" style={{ width: `${pct(m.intensityZones.sprint)}%` }} />
         </div>
         <div className="grid grid-cols-4 gap-1 text-[9px] text-muted-foreground">
-          <Legend dot="bg-blue-400"   label="Caminar" pct={pct(m.intensityZones.walk)} />
-          <Legend dot="bg-emerald-400" label="Trotar"  pct={pct(m.intensityZones.jog)} />
-          <Legend dot="bg-yellow-400" label="Correr"  pct={pct(m.intensityZones.run)} />
+          <Legend dot="bg-blue-400"   label={t("trackingSnapshotPanel.zoneWalk")} pct={pct(m.intensityZones.walk)} />
+          <Legend dot="bg-emerald-400" label={t("trackingSnapshotPanel.zoneJog")}  pct={pct(m.intensityZones.jog)} />
+          <Legend dot="bg-yellow-400" label={t("trackingSnapshotPanel.zoneRun")}  pct={pct(m.intensityZones.run)} />
           <Legend dot="bg-red-400"    label="Sprint"  pct={pct(m.intensityZones.sprint)} />
         </div>
       </div>
@@ -123,7 +124,7 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
           onClick={() => navigate(`/lab?playerId=${playerId}`)}
           className="w-full py-2 rounded-lg bg-secondary/50 border border-border text-[11px] font-display font-bold text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors flex items-center justify-center gap-1.5"
         >
-          <FlaskConical size={11} /> Re-analizar con video más reciente
+          <FlaskConical size={11} /> {t("trackingSnapshotPanel.reAnalyze")}
         </button>
       )}
     </motion.div>

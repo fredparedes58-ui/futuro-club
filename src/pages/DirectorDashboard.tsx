@@ -66,10 +66,10 @@ const DirectorDashboard = () => {
       fallback={
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
           <div className="text-center space-y-3">
-            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
-            <p className="text-sm text-muted-foreground">Solo el Director Deportivo puede acceder a este panel.</p>
+            <p className="font-display font-bold text-lg text-foreground">{t("directorDashboard.accessRestricted")}</p>
+            <p className="text-sm text-muted-foreground">{t("directorDashboard.accessRestrictedDesc")}</p>
             <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
-              Volver al dashboard
+              {t("directorDashboard.backToDashboard")}
             </button>
           </div>
         </div>
@@ -280,7 +280,7 @@ const DirectorDashboard = () => {
               </div>
               <div className="flex-1 text-left">
                 <p className="font-display font-semibold text-sm text-foreground">Admin Dashboard</p>
-                <p className="text-[10px] text-muted-foreground">Panel completo de métricas y analíticas (solo admin)</p>
+                <p className="text-[10px] text-muted-foreground">{t("directorDashboard.adminPanelDesc")}</p>
               </div>
               <ChevronRight size={14} className="text-muted-foreground shrink-0" />
             </button>

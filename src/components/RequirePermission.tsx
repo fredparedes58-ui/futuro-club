@@ -11,6 +11,7 @@
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { RolePermissions } from "@/services/real/userProfileService";
 import { Lock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // ── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -29,22 +30,24 @@ interface RequirePermissionProps {
 // ── Fallback por defecto ────────────────────────────────────────────────────
 
 function DefaultFallback({ permission }: { permission: PermissionKey }) {
+  const { t } = useTranslation();
+
   const labels: Record<PermissionKey, string> = {
-    canCreatePlayers: "crear jugadores",
-    canEditPlayers: "editar jugadores",
-    canDeletePlayers: "eliminar jugadores",
-    canRunAnalysis: "ejecutar análisis",
-    canViewAllPlayers: "ver todos los jugadores",
-    canManageTeam: "gestionar el equipo",
-    canViewDirectorDashboard: "ver el dashboard de dirección",
-    canExportPDF: "exportar reportes PDF",
-    canViewVideoAnalysis: "ver análisis de video",
+    canCreatePlayers: t("requirePermission.canCreatePlayers"),
+    canEditPlayers: t("requirePermission.canEditPlayers"),
+    canDeletePlayers: t("requirePermission.canDeletePlayers"),
+    canRunAnalysis: t("requirePermission.canRunAnalysis"),
+    canViewAllPlayers: t("requirePermission.canViewAllPlayers"),
+    canManageTeam: t("requirePermission.canManageTeam"),
+    canViewDirectorDashboard: t("requirePermission.canViewDirectorDashboard"),
+    canExportPDF: t("requirePermission.canExportPDF"),
+    canViewVideoAnalysis: t("requirePermission.canViewVideoAnalysis"),
   };
 
   return (
     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
       <Lock size={12} className="shrink-0" />
-      <span>No tienes permiso para {labels[permission] ?? permission}</span>
+      <span>{t("requirePermission.noPermission", { action: labels[permission] ?? permission })}</span>
     </div>
   );
 }

@@ -10,6 +10,7 @@
  */
 
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Target, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,6 +21,7 @@ import { IDPDashboard } from "@/components/idp/IDPDashboard";
 export default function IDPPage() {
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { canUseIDP } = usePlan();
 
   const { architectInput, liveMetrics, playerName, loading: loadingPlayer, dataRichness } =
@@ -37,7 +39,7 @@ export default function IDPPage() {
             <div className="flex items-center gap-2">
               <Target size={18} className="text-cyan-400" />
               <h1 className="text-lg font-display font-bold text-foreground">
-                Plan de Desarrollo
+                {t("idpPage.title")}
               </h1>
             </div>
           </div>
@@ -45,14 +47,12 @@ export default function IDPPage() {
         <main className="max-w-3xl mx-auto px-4 py-12 text-center">
           <Lock size={32} className="text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold text-foreground mb-2">
-            Función Pro+
+            {t("idpPage.proFeature")}
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            Los Planes de Desarrollo Individual con IA están disponibles en el plan
-            Pro y Club. Genera objetivos mensuales personalizados, asigna drills
-            automáticamente y mide progreso con checkins.
+            {t("idpPage.proFeatureDescription")}
           </p>
-          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+          <Button onClick={() => navigate("/billing")}>{t("idpPage.viewPlans")}</Button>
         </main>
       </div>
     );
@@ -70,7 +70,7 @@ export default function IDPPage() {
             <div className="flex items-center gap-2 min-w-0">
               <Target size={18} className="text-cyan-400 shrink-0" />
               <h1 className="text-lg font-display font-bold text-foreground truncate">
-                Plan de Desarrollo
+                {t("idpPage.title")}
                 {playerName && (
                   <span className="text-muted-foreground font-normal ml-2 text-sm">
                     · {playerName}
@@ -86,7 +86,7 @@ export default function IDPPage() {
               onClick={() => navigate(`/player/${playerId}`)}
               className="text-xs"
             >
-              Ver perfil
+              {t("idpPage.viewProfile")}
             </Button>
           )}
         </div>
@@ -96,15 +96,15 @@ export default function IDPPage() {
       <main className="max-w-5xl mx-auto px-4 py-6">
         {!playerId ? (
           <div className="text-center text-muted-foreground py-12">
-            ID de jugador no especificado
+            {t("idpPage.noPlayerId")}
           </div>
         ) : loadingPlayer ? (
           <div className="text-center text-muted-foreground py-12">
-            Cargando datos del jugador…
+            {t("idpPage.loadingPlayer")}
           </div>
         ) : !architectInput ? (
           <div className="text-center text-muted-foreground py-12">
-            No se encontró el jugador
+            {t("idpPage.playerNotFound")}
           </div>
         ) : (
           <IDPDashboard

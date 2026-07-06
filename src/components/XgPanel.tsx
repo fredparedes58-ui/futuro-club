@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { useTranslation } from "react-i18next";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
 
 interface XgPanelProps {
@@ -24,6 +25,7 @@ const XgPanel: React.FC<XgPanelProps> = ({
   phvActive = false,
   phvOffset = null,
 }) => {
+  const { t } = useTranslation();
   if (!summary || summary.shotCount === 0) {
     return (
       <div className="glass rounded-xl p-4 space-y-2">
@@ -31,7 +33,7 @@ const XgPanel: React.FC<XgPanelProps> = ({
           Expected Goals (xG)
         </h3>
         <p className="text-[11px] text-muted-foreground">
-          No se han detectado tiros aún. Los datos xG aparecerán cuando se detecten disparos al arco.
+          {t("xgPanel.noShotsDetected")}
         </p>
       </div>
     );
@@ -61,11 +63,11 @@ const XgPanel: React.FC<XgPanelProps> = ({
           {displayXg.toFixed(2)}
         </span>
         <span className="text-[10px] font-display text-muted-foreground uppercase">
-          xG total
+          {t("xgPanel.xgTotal")}
         </span>
         {summary.goals > 0 && (
           <span className="text-lg font-display font-bold text-green-400 ml-auto">
-            {summary.goals} GOL{summary.goals > 1 ? "ES" : ""}
+            {summary.goals} {summary.goals > 1 ? t("xgPanel.goalsPlural") : t("xgPanel.goalsSingular")}
           </span>
         )}
       </div>
@@ -79,10 +81,10 @@ const XgPanel: React.FC<XgPanelProps> = ({
           }`} />
           <span className="text-[10px] font-display text-muted-foreground">
             {summary.overperformance > 0
-              ? `+${summary.overperformance.toFixed(2)} sobre esperado`
+              ? t("xgPanel.aboveExpected", { value: `+${summary.overperformance.toFixed(2)}` })
               : summary.overperformance < 0
-                ? `${summary.overperformance.toFixed(2)} bajo esperado`
-                : "En línea con esperado"}
+                ? t("xgPanel.belowExpected", { value: summary.overperformance.toFixed(2) })
+                : t("xgPanel.inLineExpected")}
           </span>
         </div>
       )}
@@ -90,11 +92,11 @@ const XgPanel: React.FC<XgPanelProps> = ({
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-2">
         <div className="text-center p-2 rounded-lg bg-secondary/30">
-          <p className="text-[8px] text-muted-foreground uppercase font-display">Tiros</p>
+          <p className="text-[8px] text-muted-foreground uppercase font-display">{t("xgPanel.shots")}</p>
           <p className="text-sm font-display font-bold text-foreground">{summary.shotCount}</p>
         </div>
         <div className="text-center p-2 rounded-lg bg-secondary/30">
-          <p className="text-[8px] text-muted-foreground uppercase font-display">xG/Tiro</p>
+          <p className="text-[8px] text-muted-foreground uppercase font-display">{t("xgPanel.xgPerShot")}</p>
           <p className="text-sm font-display font-bold text-foreground">{summary.avgXgPerShot.toFixed(2)}</p>
         </div>
         <div className="text-center p-2 rounded-lg bg-secondary/30">
@@ -109,7 +111,7 @@ const XgPanel: React.FC<XgPanelProps> = ({
       {summary.shots.length > 0 && (
         <div className="space-y-1.5">
           <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-            Mapa de Tiros
+            {t("xgPanel.shotMap")}
           </p>
           <div className="relative w-full h-24 bg-green-900/20 rounded-lg border border-green-800/30 overflow-hidden">
             {/* Half-field representation (attacking half) */}
@@ -146,20 +148,20 @@ const XgPanel: React.FC<XgPanelProps> = ({
                     height: `${size}px`,
                     transform: "translate(-50%, -50%)",
                   }}
-                  title={`xG: ${shot.xg.toFixed(2)} | ${shot.isGoal ? "GOL" : "No gol"} | ${shot.distanceM.toFixed(0)}m`}
+                  title={`xG: ${shot.xg.toFixed(2)} | ${shot.isGoal ? t("xgPanel.goal") : t("xgPanel.noGoal")} | ${shot.distanceM.toFixed(0)}m`}
                 />
               );
             })}
           </div>
           <div className="flex items-center gap-3 justify-center">
             <span className="flex items-center gap-1 text-[8px] text-muted-foreground">
-              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> Gol
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" /> {t("xgPanel.legendGoal")}
             </span>
             <span className="flex items-center gap-1 text-[8px] text-muted-foreground">
-              <span className="w-2 h-2 rounded-full bg-red-400/60 inline-block" /> No gol
+              <span className="w-2 h-2 rounded-full bg-red-400/60 inline-block" /> {t("xgPanel.legendNoGoal")}
             </span>
             <span className="text-[8px] text-muted-foreground">
-              Tamaño = xG
+              {t("xgPanel.legendSize")}
             </span>
           </div>
         </div>
@@ -168,9 +170,9 @@ const XgPanel: React.FC<XgPanelProps> = ({
       {/* PHV Adjustment Note */}
       {phvActive && summary.totalXgPhvAdjusted !== null && summary.totalXgPhvAdjusted !== summary.totalXg && (
         <div className="text-[9px] text-orange-400/80 bg-orange-500/5 rounded-lg px-3 py-1.5 border border-orange-500/10">
-          xG ajustado por madurez biológica: {summary.totalXg.toFixed(2)} → {summary.totalXgPhvAdjusted.toFixed(2)}
-          {phvOffset !== null && phvOffset < -2 && " (pre-PHV: distancia y cabezazos reducidos)"}
-          {phvOffset !== null && phvOffset >= -2 && phvOffset <= 1 && " (circa-PHV: ajuste moderado)"}
+          {t("xgPanel.phvAdjustedNote", { from: summary.totalXg.toFixed(2), to: summary.totalXgPhvAdjusted.toFixed(2) })}
+          {phvOffset !== null && phvOffset < -2 && t("xgPanel.phvPreNote")}
+          {phvOffset !== null && phvOffset >= -2 && phvOffset <= 1 && t("xgPanel.phvCircaNote")}
         </div>
       )}
     </div>

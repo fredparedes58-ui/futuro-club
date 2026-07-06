@@ -3,6 +3,7 @@
  * Muestra la evolución del VSI del jugador usando Recharts LineChart.
  */
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   vsiHistory: number[];
@@ -11,17 +12,18 @@ interface Props {
 }
 
 export default function VSIHistoryChart({ vsiHistory, currentVSI, trend }: Props) {
+  const { t } = useTranslation();
   // Need at least 2 points to show a chart
   if (!vsiHistory || vsiHistory.length < 2) {
     return (
       <div className="flex items-center justify-center h-20 text-[10px] text-muted-foreground font-display">
-        Se necesitan al menos 2 registros de VSI para mostrar evolución
+        {t("vsiHistoryChart.notEnoughData")}
       </div>
     );
   }
 
   const data = vsiHistory.map((vsi, i) => ({
-    session: i === vsiHistory.length - 1 ? "Hoy" : `S${i + 1}`,
+    session: i === vsiHistory.length - 1 ? t("vsiHistoryChart.today") : `S${i + 1}`,
     vsi: Math.round(vsi * 10) / 10,
   }));
 

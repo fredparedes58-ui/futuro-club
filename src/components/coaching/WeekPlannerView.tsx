@@ -5,6 +5,7 @@
  * suggested drills and intensity levels.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Calendar, Dumbbell, Flame, Snowflake, Zap } from "lucide-react";
 import type { WeeklySessionPlan, DrillSuggestion } from "@/lib/shared/sessionTypes";
 
@@ -13,7 +14,7 @@ interface Props {
   loadAdjustment?: string;
 }
 
-const DAY_NAMES = ["", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const DAY_KEYS = ["", "day1", "day2", "day3", "day4", "day5", "day6", "day7"];
 
 const INTENSITY_ICON: Record<string, React.ElementType> = {
   low: Snowflake,
@@ -25,10 +26,10 @@ const INTENSITY_COLOR: Record<string, string> = {
   medium: "text-amber-400",
   high: "text-red-400",
 };
-const INTENSITY_LABEL: Record<string, string> = {
-  low: "Baja",
-  medium: "Media",
-  high: "Alta",
+const INTENSITY_KEY: Record<string, string> = {
+  low: "intensityLow",
+  medium: "intensityMedium",
+  high: "intensityHigh",
 };
 
 const PRIORITY_BADGE: Record<string, string> = {
@@ -58,11 +59,12 @@ function DrillCard({ drill }: { drill: DrillSuggestion }) {
 }
 
 export default function WeekPlannerView({ weeklyPlan, loadAdjustment }: Props) {
+  const { t } = useTranslation();
   if (!weeklyPlan || weeklyPlan.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
         <Calendar size={20} className="mx-auto mb-2 opacity-40" />
-        Sin plan semanal disponible
+        {t("weekPlannerView.noWeeklyPlan")}
       </div>
     );
   }
@@ -71,7 +73,7 @@ export default function WeekPlannerView({ weeklyPlan, loadAdjustment }: Props) {
     <div className="glass rounded-xl p-4 space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Plan Semanal
+          {t("weekPlannerView.weeklyPlan")}
         </span>
         <Calendar size={14} className="text-muted-foreground" />
       </div>
@@ -90,12 +92,16 @@ export default function WeekPlannerView({ weeklyPlan, loadAdjustment }: Props) {
               {/* Day header */}
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-foreground">
-                  {DAY_NAMES[day.dayOfWeek] ?? `Día ${day.dayOfWeek}`}
+                  {DAY_KEYS[day.dayOfWeek]
+                    ? t(`weekPlannerView.${DAY_KEYS[day.dayOfWeek]}`)
+                    : t("weekPlannerView.dayFallback", { day: day.dayOfWeek })}
                 </span>
                 <div className="flex items-center gap-1">
                   <IntIcon size={12} className={INTENSITY_COLOR[day.intensityLevel]} />
                   <span className={`text-[9px] ${INTENSITY_COLOR[day.intensityLevel]}`}>
-                    {INTENSITY_LABEL[day.intensityLevel]}
+                    {INTENSITY_KEY[day.intensityLevel]
+                      ? t(`weekPlannerView.${INTENSITY_KEY[day.intensityLevel]}`)
+                      : day.intensityLevel}
                   </span>
                 </div>
               </div>
@@ -122,7 +128,7 @@ export default function WeekPlannerView({ weeklyPlan, loadAdjustment }: Props) {
 
       {loadAdjustment && (
         <div className="glass rounded-lg p-3 text-[10px] text-muted-foreground border border-amber-500/20">
-          <span className="font-bold text-amber-400">Ajuste de carga:</span>{" "}
+          <span className="font-bold text-amber-400">{t("weekPlannerView.loadAdjustment")}</span>{" "}
           {loadAdjustment}
         </div>
       )}

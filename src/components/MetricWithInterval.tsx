@@ -4,6 +4,7 @@
  * Renderiza una métrica con su banda de incertidumbre: "72 ± 4".
  * El tooltip explica de dónde sale el margen (volumen de datos / fuente).
  */
+import { useTranslation } from "react-i18next";
 import { computeMetricInterval, type IntervalInput, type MetricInterval } from "@/lib/metrics/confidenceInterval";
 
 interface Props {
@@ -28,8 +29,12 @@ export function MetricWithInterval({
   valueClassName = "",
   showMargin = true,
 }: Props) {
+  const { t } = useTranslation();
   const ci = interval ?? computeMetricInterval(value, input);
-  const title = `Rango probable ${ci.rangeLabel} · confianza ${ci.confidenceLevel}%. El margen refleja el volumen y la fuente de los datos — no es un número absoluto.`;
+  const title = t("metricWithInterval.rangeTitle", {
+    rangeLabel: ci.rangeLabel,
+    confidenceLevel: ci.confidenceLevel,
+  });
 
   return (
     <span className={`inline-flex items-baseline gap-1 ${className}`} title={title}>

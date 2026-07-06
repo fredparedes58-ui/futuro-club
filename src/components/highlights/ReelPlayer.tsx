@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Play,
@@ -50,6 +51,7 @@ export default function ReelPlayer({
   posterUrl,
   onClipChange,
 }: Props) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -137,7 +139,7 @@ export default function ReelPlayer({
   if (totalClips === 0) {
     return (
       <div className="aspect-video rounded-xl bg-black/80 flex items-center justify-center text-muted-foreground text-sm">
-        Sin clips para reproducir
+        {t("reelPlayer.noClips")}
       </div>
     );
   }
@@ -159,7 +161,7 @@ export default function ReelPlayer({
               allowFullScreen
             />
             <div className="absolute bottom-2 left-2 right-2 bg-amber-500/85 text-black px-2 py-1 rounded-md text-[10px] font-semibold text-center backdrop-blur-sm">
-              YouTube/Vimeo/Drive no permite saltos automáticos. Usa los clips de la derecha para navegar manualmente.
+              {t("reelPlayer.embedNoAutoSeek")}
             </div>
           </div>
         ) : (
@@ -221,7 +223,7 @@ export default function ReelPlayer({
                     onClick={() => playClip(currentIndex - 1)}
                     disabled={currentIndex === 0}
                     className="p-1.5 rounded-md hover:bg-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Clip anterior"
+                    title={t("reelPlayer.previousClip")}
                   >
                     <SkipBack size={16} />
                   </button>
@@ -235,12 +237,12 @@ export default function ReelPlayer({
                     onClick={() => playClip(currentIndex + 1)}
                     disabled={currentIndex >= totalClips - 1}
                     className="p-1.5 rounded-md hover:bg-white/15 disabled:opacity-40 disabled:cursor-not-allowed"
-                    title="Clip siguiente"
+                    title={t("reelPlayer.nextClip")}
                   >
                     <SkipForward size={16} />
                   </button>
                   <span className="text-[10px] font-mono opacity-80 ml-1">
-                    {formatTime(currentMs)} {currentClip && `· clip ${formatTime(currentClip.endMs - currentClip.startMs)}`}
+                    {formatTime(currentMs)} {currentClip && `· ${t("reelPlayer.clipLabel")} ${formatTime(currentClip.endMs - currentClip.startMs)}`}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -273,7 +275,7 @@ export default function ReelPlayer({
           />
         </div>
         <p className="text-[10px] text-muted-foreground">
-          {totalClips} clips · duración total{" "}
+          {t("reelPlayer.clipsTotalDuration", { count: totalClips })}{" "}
           {formatTime(clips.reduce((s, c) => s + (c.endMs - c.startMs), 0))}
         </p>
       </div>

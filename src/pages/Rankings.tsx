@@ -107,7 +107,7 @@ const Rankings = () => {
           <PageHeader title={t("players.rankings.title")} subtitle={t("players.rankings.subtitle")} />
           <FeatureHint
             id="rankings-vsi"
-            message="El VSI (VITAS Scouting Index) resume el potencial del jugador en un solo número de 0 a 100."
+            message={t("rankingsPage.vsiHint")}
             delay={1500}
           />
         </div>

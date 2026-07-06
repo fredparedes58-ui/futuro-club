@@ -3,6 +3,7 @@ import { RoleProfileData, getConfidenceLabel, getConfidenceColor } from "@/lib/r
 import { Brain, Crosshair, Zap } from "lucide-react";
 import type { RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
 import { MetricWithInterval } from "@/components/MetricWithInterval";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
@@ -10,13 +11,20 @@ interface Props {
 }
 
 const DIMS = [
-  { key: "tactical" as const, label: "Táctica", icon: Brain, description: "Lectura de juego, posicionamiento, decisiones" },
-  { key: "technical" as const, label: "Técnica", icon: Crosshair, description: "Control, pase, tiro, regate" },
-  { key: "physical" as const, label: "Física", icon: Zap, description: "Velocidad, resistencia, fuerza, agilidad" },
+  { key: "tactical" as const, icon: Brain },
+  { key: "technical" as const, icon: Crosshair },
+  { key: "physical" as const, icon: Zap },
 ];
 
 export default function CapabilityCards({ data, filters }: Props) {
+  const { t } = useTranslation();
   const { current, projections } = data;
+
+  const dimMeta: Record<(typeof DIMS)[number]["key"], { label: string; description: string }> = {
+    tactical: { label: t("capabilityCards.tacticalLabel"), description: t("capabilityCards.tacticalDescription") },
+    technical: { label: t("capabilityCards.technicalLabel"), description: t("capabilityCards.technicalDescription") },
+    physical: { label: t("capabilityCards.physicalLabel"), description: t("capabilityCards.physicalDescription") },
+  };
 
   // Estimate confidence per dimension based on evidence reliability
   const dimConfidence = {
@@ -33,7 +41,8 @@ export default function CapabilityCards({ data, filters }: Props) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {activeDims.map(({ key, label, icon: Icon, description }) => {
+      {activeDims.map(({ key, icon: Icon }) => {
+        const { label, description } = dimMeta[key];
         const conf = dimConfidence[key];
         const confColor = getConfidenceColor(conf);
 
@@ -55,7 +64,7 @@ export default function CapabilityCards({ data, filters }: Props) {
               {/* Current */}
               <div>
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-xs text-muted-foreground">Actual</span>
+                  <span className="text-xs text-muted-foreground">{t("capabilityCards.current")}</span>
                   <MetricWithInterval
                     value={current[key]}
                     input={{ reliability: conf, metricType: key, dataSource: "ai" }}

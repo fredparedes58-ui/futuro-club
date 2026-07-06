@@ -49,6 +49,20 @@ const PROFILE_ROLE_MAP: Record<ProfileType, UserRole> = {
   club:    "director",
 };
 
+// Maps canonical (stored) Spanish position values to i18n key suffixes.
+const POSITION_KEYS: Record<string, string> = {
+  "Portero":            "goalkeeper",
+  "Defensa Central":    "centerBack",
+  "Lateral Derecho":    "rightBack",
+  "Lateral Izquierdo":  "leftBack",
+  "Pivote":             "defensiveMidfielder",
+  "Mediocentro":        "centralMidfielder",
+  "Mediapunta":         "attackingMidfielder",
+  "Extremo Derecho":    "rightWinger",
+  "Extremo Izquierdo":  "leftWinger",
+  "Delantero Centro":   "striker",
+};
+
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 const OnboardingPage = () => {
@@ -323,7 +337,11 @@ const OnboardingPage = () => {
                         "Portero", "Defensa Central", "Lateral Derecho", "Lateral Izquierdo",
                         "Pivote", "Mediocentro", "Mediapunta",
                         "Extremo Derecho", "Extremo Izquierdo", "Delantero Centro",
-                      ].map((p) => <option key={p} value={p}>{p}</option>)}
+                      ].map((p) => (
+                        <option key={p} value={p}>
+                          {t(`onboardingPage.positions.${POSITION_KEYS[p]}`)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </div>

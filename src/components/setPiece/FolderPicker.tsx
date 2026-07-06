@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Folder as FolderIcon, Plus, Check, X, ExternalLink } from "lucide-react";
@@ -24,6 +25,7 @@ interface FolderPickerProps {
 }
 
 export default function FolderPicker({ itemId, itemType, onChange }: FolderPickerProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -53,10 +55,10 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
   const toggleFolder = (folderId: string) => {
     if (SetPieceFolderStorage.isInFolder(folderId, itemId, itemType)) {
       SetPieceFolderStorage.removeItem(folderId, itemId, itemType);
-      toast.success("Eliminado de la carpeta");
+      toast.success(t("folderPicker.removedFromFolder"));
     } else {
       SetPieceFolderStorage.addItem(folderId, itemId, itemType);
-      toast.success("Añadido a la carpeta");
+      toast.success(t("folderPicker.addedToFolder"));
     }
     setFolders(SetPieceFolderStorage.getAll());
     onChange?.();
@@ -64,12 +66,12 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
 
   const handleCreate = () => {
     if (!newName.trim()) {
-      toast.error("Escribe un nombre para la carpeta");
+      toast.error(t("folderPicker.enterFolderName"));
       return;
     }
     const folder = SetPieceFolderStorage.create(newName.trim(), newColor, newIcon);
     SetPieceFolderStorage.addItem(folder.id, itemId, itemType);
-    toast.success(`Carpeta "${folder.name}" creada y añadida`);
+    toast.success(t("folderPicker.folderCreatedAndAdded", { name: folder.name }));
     setNewName("");
     setNewIcon(FOLDER_ICONS[0]);
     setNewColor(FOLDER_COLORS[0]);
@@ -95,12 +97,12 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
         }`}
         title={
           inFolderCount > 0
-            ? `En ${inFolderCount} carpeta${inFolderCount > 1 ? "s" : ""}`
-            : "Añadir a carpeta"
+            ? t("folderPicker.inFoldersTitle", { count: inFolderCount })
+            : t("folderPicker.addToFolder")
         }
       >
         <FolderIcon size={11} />
-        {inFolderCount > 0 ? `${inFolderCount} carpeta${inFolderCount > 1 ? "s" : ""}` : "Carpeta"}
+        {inFolderCount > 0 ? t("folderPicker.folderCount", { count: inFolderCount }) : t("folderPicker.folder")}
       </button>
 
       <AnimatePresence>
@@ -115,7 +117,7 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
           >
             <div className="flex items-center justify-between px-2 py-1.5 border-b border-border mb-1">
               <h4 className="text-[11px] font-display font-bold text-foreground">
-                Guardar en carpeta
+                {t("folderPicker.saveToFolder")}
               </h4>
               <button
                 onClick={() => {
@@ -132,7 +134,7 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
             <div className="max-h-64 overflow-y-auto space-y-0.5">
               {folders.length === 0 && !creating && (
                 <p className="text-[10px] text-muted-foreground text-center py-3 px-2">
-                  Aún no tienes carpetas. Crea la primera abajo.
+                  {t("folderPicker.noFoldersYet")}
                 </p>
               )}
               {folders.map((f) => {
@@ -158,7 +160,7 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
                         navigate(`/set-pieces/folder/${f.id}`);
                       }}
                       className="p-1.5 rounded-md text-muted-foreground hover:text-primary hover:bg-secondary opacity-0 group-hover/row:opacity-100 transition-all"
-                      title="Abrir carpeta"
+                      title={t("folderPicker.openFolder")}
                     >
                       <ExternalLink size={11} />
                     </button>
@@ -180,11 +182,11 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
                       if (e.key === "Enter") handleCreate();
                       if (e.key === "Escape") setCreating(false);
                     }}
-                    placeholder="Nombre de la carpeta"
+                    placeholder={t("folderPicker.folderNamePlaceholder")}
                     className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-[11px] border border-border focus:border-primary focus:outline-none"
                   />
                   <div className="flex items-center gap-1 flex-wrap">
-                    <span className="text-[9px] text-muted-foreground mr-1">Icono:</span>
+                    <span className="text-[9px] text-muted-foreground mr-1">{t("folderPicker.iconLabel")}</span>
                     {FOLDER_ICONS.slice(0, 6).map((ic) => (
                       <button
                         key={ic}
@@ -200,7 +202,7 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
                     ))}
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="text-[9px] text-muted-foreground mr-1">Color:</span>
+                    <span className="text-[9px] text-muted-foreground mr-1">{t("folderPicker.colorLabel")}</span>
                     {FOLDER_COLORS.map((c) => (
                       <button
                         key={c}
@@ -217,13 +219,13 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
                       onClick={() => setCreating(false)}
                       className="flex-1 px-2 py-1 rounded-md text-[10px] text-muted-foreground hover:bg-secondary"
                     >
-                      Cancelar
+                      {t("folderPicker.cancel")}
                     </button>
                     <button
                       onClick={handleCreate}
                       className="flex-1 px-2 py-1 rounded-md bg-primary text-primary-foreground text-[10px] font-semibold"
                     >
-                      Crear
+                      {t("folderPicker.create")}
                     </button>
                   </div>
                 </div>
@@ -233,7 +235,7 @@ export default function FolderPicker({ itemId, itemType, onChange }: FolderPicke
                   className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-[11px] text-primary hover:bg-primary/10 transition-colors font-semibold"
                 >
                   <Plus size={12} />
-                  Nueva carpeta
+                  {t("folderPicker.newFolder")}
                 </button>
               )}
             </div>

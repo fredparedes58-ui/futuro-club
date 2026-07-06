@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Filter, ArrowUpDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface PlayerRisk {
   playerId: string;
@@ -44,6 +45,7 @@ type SortField = "riskScore" | "name" | "attendance";
 type FilterLevel = "all" | "critical" | "high" | "moderate" | "low";
 
 export default function TeamRiskOverview({ players, onPlayerClick }: Props) {
+  const { t } = useTranslation();
   const [sortBy, setSortBy] = useState<SortField>("riskScore");
   const [filterLevel, setFilterLevel] = useState<FilterLevel>("all");
 
@@ -81,7 +83,7 @@ export default function TeamRiskOverview({ players, onPlayerClick }: Props) {
                   : "bg-white/5 text-muted-foreground hover:bg-white/10"
               }`}
             >
-              {level === "all" ? "Todos" : level === "critical" ? "Crítico" : level === "high" ? "Alto" : level === "moderate" ? "Moderado" : "Bajo"}
+              {level === "all" ? t("teamRiskOverview.filterAll") : level === "critical" ? t("teamRiskOverview.filterCritical") : level === "high" ? t("teamRiskOverview.filterHigh") : level === "moderate" ? t("teamRiskOverview.filterModerate") : t("teamRiskOverview.filterLow")}
               {" "}({count})
             </button>
           );
@@ -99,7 +101,7 @@ export default function TeamRiskOverview({ players, onPlayerClick }: Props) {
               sortBy === field ? "bg-white/15 text-foreground" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            {field === "riskScore" ? "Riesgo" : field === "name" ? "Nombre" : "Asistencia"}
+            {field === "riskScore" ? t("teamRiskOverview.sortRisk") : field === "name" ? t("teamRiskOverview.sortName") : t("teamRiskOverview.sortAttendance")}
           </button>
         ))}
       </div>
@@ -127,8 +129,8 @@ export default function TeamRiskOverview({ players, onPlayerClick }: Props) {
                 </span>
               </div>
               <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
-                <span>Factor: {FACTOR_LABELS[player.primaryFactor] ?? player.primaryFactor}</span>
-                <span>Asist: {Math.round(player.attendanceRate)}%</span>
+                <span>{t("teamRiskOverview.factorLabel")}: {FACTOR_LABELS[player.primaryFactor] ?? player.primaryFactor}</span>
+                <span>{t("teamRiskOverview.attendanceShort")}: {Math.round(player.attendanceRate)}%</span>
               </div>
             </motion.button>
           );
@@ -138,7 +140,7 @@ export default function TeamRiskOverview({ players, onPlayerClick }: Props) {
       {sorted.length === 0 && (
         <div className="text-center py-8">
           <Filter size={20} className="text-muted-foreground mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">No hay jugadores con el filtro seleccionado</p>
+          <p className="text-xs text-muted-foreground">{t("teamRiskOverview.emptyFilter")}</p>
         </div>
       )}
     </div>

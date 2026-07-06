@@ -12,6 +12,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Rocket,
@@ -79,14 +80,17 @@ interface StepDisplay {
   icon: "check" | "loading" | "pending" | "error";
 }
 
-function getStepDisplays(step: OneClickStep): StepDisplay[] {
+function getStepDisplays(
+  step: OneClickStep,
+  t: (key: string) => string,
+): StepDisplay[] {
   const steps: Array<{ id: OneClickStep[]; label: string }> = [
-    { id: ["loading_video"], label: "Cargando video" },
-    { id: ["auto_calibrating"], label: "Auto-calibración" },
-    { id: ["starting_tracking", "tracking"], label: "Detección YOLO" },
-    { id: ["analyzing_biomechanics"], label: "Biomecánica" },
-    { id: ["generating_fatigue"], label: "Análisis fatiga" },
-    { id: ["running_ia_pipeline"], label: "Pipeline IA" },
+    { id: ["loading_video"], label: t("vitasLabOneClick.stepLoadingVideo") },
+    { id: ["auto_calibrating"], label: t("vitasLabOneClick.stepAutoCalibration") },
+    { id: ["starting_tracking", "tracking"], label: t("vitasLabOneClick.stepYoloDetection") },
+    { id: ["analyzing_biomechanics"], label: t("vitasLabOneClick.stepBiomechanics") },
+    { id: ["generating_fatigue"], label: t("vitasLabOneClick.stepFatigueAnalysis") },
+    { id: ["running_ia_pipeline"], label: t("vitasLabOneClick.stepIaPipeline") },
   ];
 
   const currentIdx = steps.findIndex((s) => s.id.includes(step));
@@ -127,6 +131,7 @@ export default function VitasLabOneClick({
   onViewResults,
   children,
 }: VitasLabOneClickProps) {
+  const { t } = useTranslation();
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
   const [showVideoDropdown, setShowVideoDropdown] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -152,10 +157,10 @@ export default function VitasLabOneClick({
         </div>
         <div>
           <h3 className="font-display font-bold text-sm text-foreground">
-            Análisis 1-Click
+            {t("vitasLabOneClick.title")}
           </h3>
           <p className="text-[9px] text-muted-foreground">
-            Selecciona jugador + video y listo
+            {t("vitasLabOneClick.subtitle")}
           </p>
         </div>
       </div>
@@ -164,7 +169,7 @@ export default function VitasLabOneClick({
       <div>
         <label className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
           <User size={10} />
-          Jugador
+          {t("vitasLabOneClick.playerLabel")}
         </label>
         <div className="relative mt-1.5">
           <button
@@ -177,7 +182,7 @@ export default function VitasLabOneClick({
                 selectedPlayer ? "text-foreground" : "text-muted-foreground"
               }`}
             >
-              {selectedPlayer ? selectedPlayer.name : "Seleccionar jugador..."}
+              {selectedPlayer ? selectedPlayer.name : t("vitasLabOneClick.selectPlayerPlaceholder")}
             </span>
             <ChevronDown size={14} className="text-muted-foreground" />
           </button>
@@ -185,7 +190,7 @@ export default function VitasLabOneClick({
             <div className="absolute top-full left-0 right-0 mt-1 glass rounded-xl border border-border z-20 max-h-48 overflow-y-auto">
               {players.length === 0 && (
                 <p className="text-xs text-muted-foreground px-3 py-2">
-                  No hay jugadores registrados
+                  {t("vitasLabOneClick.noPlayers")}
                 </p>
               )}
               {players.map((p) => (
@@ -214,8 +219,11 @@ export default function VitasLabOneClick({
           <div className="mt-1.5 flex items-center gap-2 px-3 py-1 rounded-lg bg-primary/5 border border-primary/20">
             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
             <span className="text-[10px] font-display text-primary">
-              VSI {selectedPlayer.vsi} · {selectedPlayer.position} ·{" "}
-              {selectedPlayer.age}a
+              {t("vitasLabOneClick.playerSummary", {
+                vsi: selectedPlayer.vsi,
+                position: selectedPlayer.position,
+                age: selectedPlayer.age,
+              })}
             </span>
           </div>
         )}
@@ -225,7 +233,7 @@ export default function VitasLabOneClick({
       <div>
         <label className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
           <Activity size={10} />
-          Video
+          {t("vitasLabOneClick.videoLabel")}
         </label>
         <div className="relative mt-1.5">
           <button
@@ -244,7 +252,7 @@ export default function VitasLabOneClick({
             >
               {selectedVideo
                 ? selectedVideo.title
-                : "Seleccionar o subir video..."}
+                : t("vitasLabOneClick.selectVideoPlaceholder")}
             </span>
             <ChevronDown size={14} className="text-muted-foreground shrink-0" />
           </button>
@@ -273,7 +281,7 @@ export default function VitasLabOneClick({
                 }}
                 className="w-full text-left px-3 py-2 text-sm text-primary hover:bg-primary/5 transition-colors flex items-center gap-1.5 border-t border-border"
               >
-                <Upload size={12} /> Subir nuevo video
+                <Upload size={12} /> {t("vitasLabOneClick.uploadNewVideo")}
               </button>
             </div>
           )}
@@ -290,9 +298,9 @@ export default function VitasLabOneClick({
             className="space-y-1.5 overflow-hidden"
           >
             <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              Progreso
+              {t("vitasLabOneClick.progress")}
             </p>
-            {getStepDisplays(oneClickState.step).map((s, i) => (
+            {getStepDisplays(oneClickState.step, t).map((s, i) => (
               <div
                 key={i}
                 className="flex items-center gap-2 px-2 py-1 rounded-lg"
@@ -368,7 +376,7 @@ export default function VitasLabOneClick({
             className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary text-primary-foreground font-display font-bold text-sm uppercase tracking-wider hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
           >
             <Rocket size={18} />
-            ANALIZAR
+            {t("vitasLabOneClick.analyze")}
           </button>
         )}
 
@@ -378,7 +386,7 @@ export default function VitasLabOneClick({
             onClick={onStopTracking}
             className="w-full py-2.5 rounded-xl border border-red-500 text-red-400 text-sm font-display font-semibold hover:bg-red-500/10 transition-colors"
           >
-            Detener análisis
+            {t("vitasLabOneClick.stopAnalysis")}
           </button>
         )}
 
@@ -389,7 +397,7 @@ export default function VitasLabOneClick({
             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-green-600 text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-green-700 transition-colors"
           >
             <CheckCircle2 size={16} />
-            VER RESULTADOS
+            {t("vitasLabOneClick.viewResults")}
           </button>
         )}
 
@@ -397,12 +405,12 @@ export default function VitasLabOneClick({
         {!isRunning && !isIAComplete && (
           <p className="text-center text-[10px] font-display text-muted-foreground">
             {!selectedPlayerId && !selectedVideoId
-              ? "Selecciona un jugador y un video para empezar"
+              ? t("vitasLabOneClick.hintSelectBoth")
               : !selectedPlayerId
-                ? "Selecciona un jugador"
+                ? t("vitasLabOneClick.hintSelectPlayer")
                 : !selectedVideoId
-                  ? "Selecciona o sube un video"
-                  : "Todo listo — pulsa ANALIZAR"}
+                  ? t("vitasLabOneClick.hintSelectVideo")
+                  : t("vitasLabOneClick.hintReady")}
           </p>
         )}
       </div>
@@ -415,7 +423,7 @@ export default function VitasLabOneClick({
         >
           <span className="flex items-center gap-1.5">
             <Settings size={10} />
-            Ajustes Avanzados
+            {t("vitasLabOneClick.advancedSettings")}
           </span>
           {showAdvanced ? (
             <ChevronUp size={12} />

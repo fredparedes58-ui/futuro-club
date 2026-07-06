@@ -5,6 +5,7 @@
  */
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, TrendingUp, Star, Zap } from "lucide-react";
 import { scoreToBadge, matchNarrative, type SimilarityMatch } from "@/services/real/similarityService";
@@ -46,6 +47,7 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 function BestMatchCard({ match }: { match: SimilarityMatch }) {
+  const { t } = useTranslation();
   const p = match.player;
   const { color } = scoreToBadge(match.score);
 
@@ -67,7 +69,7 @@ function BestMatchCard({ match }: { match: SimilarityMatch }) {
           <div className="flex items-center gap-2">
             <Trophy size={14} className="text-gold shrink-0" />
             <span className="text-[10px] font-display uppercase tracking-widest text-gold">
-              Clon más cercano
+              {t("proPlayerMatch.closestClone")}
             </span>
           </div>
           <h3 className="text-lg font-display font-black text-foreground mt-0.5">{p.short_name}</h3>
@@ -87,12 +89,12 @@ function BestMatchCard({ match }: { match: SimilarityMatch }) {
 
       {/* Métricas del pro */}
       <div className="space-y-1.5 mb-3">
-        <MetricBar label="Ritmo"  value={p.pace}      color="#F59E0B" />
-        <MetricBar label="Tiro"   value={p.shooting}  color="#EF4444" />
-        <MetricBar label="Pase"   value={p.passing}   color="#3B82F6" />
-        <MetricBar label="Téc."   value={p.dribbling} color="#8B5CF6" />
-        <MetricBar label="Def."   value={p.defending} color="#22C55E" />
-        <MetricBar label="Físico" value={p.physic}    color="#06B6D4" />
+        <MetricBar label={t("proPlayerMatch.metricPace")}      value={p.pace}      color="#F59E0B" />
+        <MetricBar label={t("proPlayerMatch.metricShooting")}  value={p.shooting}  color="#EF4444" />
+        <MetricBar label={t("proPlayerMatch.metricPassing")}   value={p.passing}   color="#3B82F6" />
+        <MetricBar label={t("proPlayerMatch.metricDribbling")} value={p.dribbling} color="#8B5CF6" />
+        <MetricBar label={t("proPlayerMatch.metricDefending")} value={p.defending} color="#22C55E" />
+        <MetricBar label={t("proPlayerMatch.metricPhysic")}    value={p.physic}    color="#06B6D4" />
       </div>
 
       {/* Narrativa */}
@@ -106,7 +108,7 @@ function BestMatchCard({ match }: { match: SimilarityMatch }) {
           {p.nationality}
         </Badge>
         <Badge variant="secondary" className="text-[9px]">
-          Overall {p.overall}
+          {t("proPlayerMatch.overall", { value: p.overall })}
         </Badge>
         {p.league && (
           <Badge variant="secondary" className="text-[9px]">
@@ -119,12 +121,13 @@ function BestMatchCard({ match }: { match: SimilarityMatch }) {
 }
 
 function Top5List({ matches }: { matches: SimilarityMatch[] }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Star size={12} className="text-primary" />
         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-          Top 5 referencias
+          {t("proPlayerMatch.top5References")}
         </span>
       </div>
 
@@ -169,12 +172,13 @@ function Top5List({ matches }: { matches: SimilarityMatch[] }) {
 }
 
 export default function ProPlayerMatch({ top5, bestMatch, compact = false }: ProPlayerMatchProps) {
+  const { t } = useTranslation();
   if (!bestMatch || top5.length === 0) {
     return (
       <div className="glass rounded-2xl p-6 text-center">
         <Zap size={20} className="mx-auto mb-2 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          Sin datos de similitud disponibles
+          {t("proPlayerMatch.noSimilarityData")}
         </p>
       </div>
     );

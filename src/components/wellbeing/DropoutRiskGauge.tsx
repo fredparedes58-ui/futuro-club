@@ -6,6 +6,7 @@
  * Color scale: green=low, amber=moderate, orange=high, red=critical.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface FactorBreakdown {
   engagementDecline?: { score: number; weight: number } | null;
@@ -26,21 +27,21 @@ interface Props {
 }
 
 const FACTOR_META = [
-  { key: "engagementDecline", label: "Engagement",     color: "bg-blue-500" },
-  { key: "motivationType",    label: "Motivación",     color: "bg-violet-500" },
-  { key: "overtrainingRisk",  label: "Sobreentren.",   color: "bg-orange-500" },
-  { key: "vsiStagnation",     label: "VSI Estanc.",    color: "bg-amber-500" },
-  { key: "attendanceDecline", label: "Asistencia",     color: "bg-cyan-500" },
-  { key: "injuryRecurrence",  label: "Lesiones",       color: "bg-red-500" },
-  { key: "growthSpurtStress", label: "Estirón",        color: "bg-emerald-500" },
-  { key: "lowResilience",     label: "Resiliencia",    color: "bg-pink-500" },
+  { key: "engagementDecline", labelKey: "factorEngagement",    color: "bg-blue-500" },
+  { key: "motivationType",    labelKey: "factorMotivation",    color: "bg-violet-500" },
+  { key: "overtrainingRisk",  labelKey: "factorOvertraining",  color: "bg-orange-500" },
+  { key: "vsiStagnation",     labelKey: "factorVsiStagnation", color: "bg-amber-500" },
+  { key: "attendanceDecline", labelKey: "factorAttendance",    color: "bg-cyan-500" },
+  { key: "injuryRecurrence",  labelKey: "factorInjuries",      color: "bg-red-500" },
+  { key: "growthSpurtStress", labelKey: "factorGrowthSpurt",   color: "bg-emerald-500" },
+  { key: "lowResilience",     labelKey: "factorResilience",    color: "bg-pink-500" },
 ] as const;
 
-const LEVEL_LABELS: Record<string, string> = {
-  low: "Bajo",
-  moderate: "Moderado",
-  high: "Alto",
-  critical: "Crítico",
+const LEVEL_LABEL_KEYS: Record<string, string> = {
+  low: "levelLow",
+  moderate: "levelModerate",
+  high: "levelHigh",
+  critical: "levelCritical",
 };
 
 function riskColor(score: number): string {
@@ -51,6 +52,7 @@ function riskColor(score: number): string {
 }
 
 export default function DropoutRiskGauge({ score, riskLevel, primaryFactor, factors }: Props) {
+  const { t } = useTranslation();
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const progress = (Math.min(100, Math.max(0, score)) / 100) * circumference;
@@ -60,13 +62,13 @@ export default function DropoutRiskGauge({ score, riskLevel, primaryFactor, fact
     <div className="glass rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Riesgo de Abandono
+          {t("dropoutRiskGauge.title")}
         </span>
         <span
           className="text-[10px] font-bold px-2 py-0.5 rounded-full"
           style={{ backgroundColor: `${color}20`, color }}
         >
-          {LEVEL_LABELS[riskLevel] ?? riskLevel}
+          {LEVEL_LABEL_KEYS[riskLevel] ? t(`dropoutRiskGauge.${LEVEL_LABEL_KEYS[riskLevel]}`) : riskLevel}
         </span>
       </div>
 
@@ -104,16 +106,19 @@ export default function DropoutRiskGauge({ score, riskLevel, primaryFactor, fact
 
       {/* Primary factor callout */}
       <div className="text-center">
-        <span className="text-[10px] text-muted-foreground">Factor principal: </span>
+        <span className="text-[10px] text-muted-foreground">{t("dropoutRiskGauge.primaryFactor")} </span>
         <span className="text-[10px] font-bold text-foreground">
-          {FACTOR_META.find(f => f.key === primaryFactor)?.label ?? primaryFactor}
+          {(() => {
+            const meta = FACTOR_META.find(f => f.key === primaryFactor);
+            return meta ? t(`dropoutRiskGauge.${meta.labelKey}`) : primaryFactor;
+          })()}
         </span>
       </div>
 
       {/* Factor breakdown */}
       {factors && (
         <div className="space-y-1.5">
-          {FACTOR_META.map(({ key, label, color: barColor }) => {
+          {FACTOR_META.map(({ key, labelKey, color: barColor }) => {
             const factor = factors[key as keyof FactorBreakdown];
             if (!factor) return null;
             const value = factor.score;
@@ -121,7 +126,7 @@ export default function DropoutRiskGauge({ score, riskLevel, primaryFactor, fact
             return (
               <div key={key} className="flex items-center gap-2">
                 <span className={`text-[8px] w-16 truncate ${isPrimary ? "text-foreground font-bold" : "text-muted-foreground"}`}>
-                  {label}
+                  {t(`dropoutRiskGauge.${labelKey}`)}
                 </span>
                 <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
                   <motion.div

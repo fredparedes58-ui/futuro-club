@@ -3,6 +3,7 @@
  */
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Trophy, Target, TrendingUp, Award } from "lucide-react";
 import {
   PATTERN_LABELS,
@@ -15,6 +16,7 @@ interface SetPieceStatsProps {
 }
 
 export default function SetPieceStats({ stats }: SetPieceStatsProps) {
+  const { t } = useTranslation();
   const pctConv = Math.round(stats.conversionRate * 100);
   const pctShot = Math.round(stats.shotRate * 100);
 
@@ -24,31 +26,31 @@ export default function SetPieceStats({ stats }: SetPieceStatsProps) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard
           icon={<Trophy size={16} />}
-          label="Goles"
+          label={t("setPieceStats.goals")}
           value={stats.goals.toString()}
           color="emerald"
           delay={0}
         />
         <KpiCard
           icon={<Target size={16} />}
-          label="Tiros a puerta"
+          label={t("setPieceStats.shotsOnTarget")}
           value={stats.shotsOnTarget.toString()}
           color="blue"
           delay={0.05}
         />
         <KpiCard
           icon={<TrendingUp size={16} />}
-          label="Conversión"
+          label={t("setPieceStats.conversion")}
           value={`${pctConv}%`}
-          sub={`Tiro: ${pctShot}%`}
+          sub={t("setPieceStats.shotSub", { pct: pctShot })}
           color="purple"
           delay={0.1}
         />
         <KpiCard
           icon={<Award size={16} />}
-          label="xG promedio"
+          label={t("setPieceStats.avgXG")}
           value={stats.avgXG.toFixed(2)}
-          sub={`${stats.total} jugadas`}
+          sub={t("setPieceStats.playsCount", { count: stats.total })}
           color="amber"
           delay={0.15}
         />
@@ -64,7 +66,7 @@ export default function SetPieceStats({ stats }: SetPieceStatsProps) {
           className="glass rounded-xl p-4"
         >
           <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3">
-            Distribución por tipo
+            {t("setPieceStats.distributionByType")}
           </h4>
           <div className="space-y-2">
             {Object.entries(stats.byType)
@@ -104,7 +106,7 @@ export default function SetPieceStats({ stats }: SetPieceStatsProps) {
           className="glass rounded-xl p-4"
         >
           <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3">
-            Patrones más exitosos
+            {t("setPieceStats.topPatterns")}
           </h4>
           <div className="space-y-2">
             {stats.topPatterns.map((p) => {
@@ -125,7 +127,7 @@ export default function SetPieceStats({ stats }: SetPieceStatsProps) {
                       {PATTERN_LABELS[p.pattern]}
                     </p>
                     <p className="text-[9px] text-muted-foreground">
-                      {p.count} jugadas
+                      {t("setPieceStats.playsCount", { count: p.count })}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">

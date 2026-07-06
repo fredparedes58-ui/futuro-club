@@ -8,6 +8,7 @@ import {
   ResponsiveContainer, ComposedChart, Line, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 interface SegmentData {
   segmentIndex: number;
@@ -22,10 +23,12 @@ interface Props {
 }
 
 export default function MentalFatigueCurveChart({ segments, mentalResistanceRatio, height = 220 }: Props) {
+  const { t } = useTranslation();
+
   if (segments.length < 2) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
-        Datos insuficientes para curva de fatiga
+        {t("mentalFatigueCurveChart.insufficientData")}
       </div>
     );
   }
@@ -37,9 +40,9 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
   }));
 
   const ratioLabel =
-    mentalResistanceRatio < 0.5 ? "Fortaleza Mental" :
-    mentalResistanceRatio <= 1.5 ? "Equilibrado" :
-    "Fragilidad Mental";
+    mentalResistanceRatio < 0.5 ? t("mentalFatigueCurveChart.ratioMentalStrength") :
+    mentalResistanceRatio <= 1.5 ? t("mentalFatigueCurveChart.ratioBalanced") :
+    t("mentalFatigueCurveChart.ratioMentalFragility");
   const ratioColor =
     mentalResistanceRatio < 0.5 ? "text-emerald-400" :
     mentalResistanceRatio <= 1.5 ? "text-blue-400" :
@@ -49,7 +52,7 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
     <div className="glass rounded-xl p-4 space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Curva de Fatiga Mental
+          {t("mentalFatigueCurveChart.title")}
         </span>
         <span className={`text-[10px] font-bold ${ratioColor}`}>
           {ratioLabel} ({mentalResistanceRatio.toFixed(2)})
@@ -72,7 +75,7 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
           <YAxis
             domain={[0, 120]}
             tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-            label={{ value: "% del inicio", angle: -90, position: "insideLeft", fontSize: 8, fill: "rgba(255,255,255,0.3)" }}
+            label={{ value: t("mentalFatigueCurveChart.yAxisLabel"), angle: -90, position: "insideLeft", fontSize: 8, fill: "rgba(255,255,255,0.3)" }}
           />
           <Tooltip
             contentStyle={{
@@ -83,14 +86,14 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
             }}
             formatter={(value: number, name: string) => [
               `${value}%`,
-              name === "physical" ? "Físico" : "Cognitivo",
+              name === "physical" ? t("mentalFatigueCurveChart.physical") : t("mentalFatigueCurveChart.cognitive"),
             ]}
           />
           <Legend
             iconType="line"
             iconSize={10}
             wrapperStyle={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}
-            formatter={(name: string) => name === "physical" ? "Físico" : "Cognitivo"}
+            formatter={(name: string) => name === "physical" ? t("mentalFatigueCurveChart.physical") : t("mentalFatigueCurveChart.cognitive")}
           />
           <Area
             type="monotone"

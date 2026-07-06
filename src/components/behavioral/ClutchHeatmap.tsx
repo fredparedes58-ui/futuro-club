@@ -5,6 +5,7 @@
  * Color = relative performance.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface QuarterData {
   quarter: 1 | 2 | 3 | 4;
@@ -20,10 +21,10 @@ interface Props {
 }
 
 const METRICS = [
-  { key: "avgDecisionMs",  label: "Decisión (ms)", invert: true },
-  { key: "successRate",    label: "Éxito (%)",     invert: false },
-  { key: "avgPressure",    label: "Presión",       invert: false },
-  { key: "eventCount",     label: "Eventos",       invert: false },
+  { key: "avgDecisionMs",  labelKey: "clutchHeatmap.metricDecisionMs", invert: true },
+  { key: "successRate",    labelKey: "clutchHeatmap.metricSuccessPct",  invert: false },
+  { key: "avgPressure",    labelKey: "clutchHeatmap.metricPressure",    invert: false },
+  { key: "eventCount",     labelKey: "clutchHeatmap.metricEvents",      invert: false },
 ] as const;
 
 function cellColor(value: number, max: number, invert: boolean): string {
@@ -37,10 +38,12 @@ function cellColor(value: number, max: number, invert: boolean): string {
 }
 
 export default function ClutchHeatmap({ quarterPerformance, clutchFactor }: Props) {
+  const { t } = useTranslation();
+
   if (quarterPerformance.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center text-muted-foreground text-xs">
-        Sin datos de clutch disponibles
+        {t("clutchHeatmap.noData")}
       </div>
     );
   }
@@ -61,7 +64,7 @@ export default function ClutchHeatmap({ quarterPerformance, clutchFactor }: Prop
     <div className="glass rounded-xl p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Rendimiento por Cuarto
+          {t("clutchHeatmap.title")}
         </span>
         <span className={`text-sm font-black font-mono ${clutchFactor >= 1.0 ? "text-emerald-400" : "text-amber-400"}`}>
           ×{clutchFactor.toFixed(2)}
@@ -72,7 +75,7 @@ export default function ClutchHeatmap({ quarterPerformance, clutchFactor }: Prop
         <table className="min-w-full">
           <thead>
             <tr>
-              <th className="text-[9px] text-muted-foreground font-normal text-left pr-2 pb-2">Métrica</th>
+              <th className="text-[9px] text-muted-foreground font-normal text-left pr-2 pb-2">{t("clutchHeatmap.columnMetric")}</th>
               {quarterPerformance.map(q => (
                 <th key={q.quarter} className="text-[9px] text-muted-foreground font-normal text-center pb-2 min-w-[50px]">
                   Q{q.quarter}
@@ -81,9 +84,9 @@ export default function ClutchHeatmap({ quarterPerformance, clutchFactor }: Prop
             </tr>
           </thead>
           <tbody>
-            {METRICS.map(({ key, label, invert }) => (
+            {METRICS.map(({ key, labelKey, invert }) => (
               <tr key={key}>
-                <td className="text-[9px] text-foreground/70 pr-2 py-1">{label}</td>
+                <td className="text-[9px] text-foreground/70 pr-2 py-1">{t(labelKey)}</td>
                 {quarterPerformance.map(q => {
                   const raw = q[key as keyof QuarterData] as number;
                   const value = typeof raw === "number" ? raw : 0;

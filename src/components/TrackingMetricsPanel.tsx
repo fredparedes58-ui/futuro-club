@@ -7,6 +7,7 @@
 
 import { motion } from "framer-motion";
 import { Zap, Activity, Timer, Eye, Swords, Map, Hexagon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PhysicalMetrics, Track, TrackingStatus, VoronoiRegion } from "@/lib/yolo/types";
 
 interface Props {
@@ -26,6 +27,7 @@ export default function TrackingMetricsPanel({
   status, tracks, focusTrackId, metrics, scanCount, duelCount, onFocusTrack,
   voronoiRegions = [], showVoronoi = false, onToggleVoronoi,
 }: Props) {
+  const { t } = useTranslation();
   const focusTrack = tracks.find(t => t.id === focusTrackId);
   const speedMs    = focusTrack?.smoothSpeedMs ?? 0;
   const speedKmh   = (speedMs * 3.6).toFixed(1);
@@ -48,11 +50,11 @@ export default function TrackingMetricsPanel({
           "bg-muted-foreground"
         }`} />
         <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-          {status === "tracking"      ? "TRACKING ACTIVO" :
-           status === "loading-model" ? "CARGANDO YOLO…"  :
-           status === "ready"         ? "LISTO"           :
-           status === "complete"      ? "SESIÓN COMPLETA" :
-           status === "error"         ? "ERROR"           : "INACTIVO"}
+          {status === "tracking"      ? t("trackingMetricsPanel.statusTracking") :
+           status === "loading-model" ? t("trackingMetricsPanel.statusLoadingModel")  :
+           status === "ready"         ? t("trackingMetricsPanel.statusReady")           :
+           status === "complete"      ? t("trackingMetricsPanel.statusComplete") :
+           status === "error"         ? t("trackingMetricsPanel.statusError")           : t("trackingMetricsPanel.statusInactive")}
         </span>
       </div>
 
@@ -60,7 +62,7 @@ export default function TrackingMetricsPanel({
       {tracks.length > 0 && (
         <div>
           <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
-            Jugador enfocado
+            {t("trackingMetricsPanel.focusedPlayer")}
           </span>
           <div className="flex flex-wrap gap-1 mt-1">
             {tracks.map(t => (
@@ -85,17 +87,17 @@ export default function TrackingMetricsPanel({
         {/* Velocidad */}
         <MetricCard
           icon={<Zap size={12} className="text-yellow-400" />}
-          label="VELOCIDAD"
+          label={t("trackingMetricsPanel.metricSpeed")}
           value={isTracking ? `${speedKmh}` : metrics ? (metrics.maxSpeedMs * 3.6).toFixed(1) : "--"}
           unit="km/h"
-          sub={isTracking ? `${speedMs.toFixed(1)} m/s` : metrics ? `máx ${(metrics.maxSpeedMs * 3.6).toFixed(1)} km/h` : ""}
+          sub={isTracking ? `${speedMs.toFixed(1)} m/s` : metrics ? t("trackingMetricsPanel.speedMax", { value: (metrics.maxSpeedMs * 3.6).toFixed(1) }) : ""}
           highlight={speedMs > 5.83}
         />
 
         {/* Distancia */}
         <MetricCard
           icon={<Activity size={12} className="text-blue-400" />}
-          label="DISTANCIA"
+          label={t("trackingMetricsPanel.metricDistance")}
           value={isTracking ? distM.toFixed(0) : metrics ? metrics.distanceCoveredM.toFixed(0) : "--"}
           unit="m"
           sub={isTracking ? `${(distM / 1000).toFixed(2)} km` : ""}
@@ -104,37 +106,37 @@ export default function TrackingMetricsPanel({
         {/* Sprints */}
         <MetricCard
           icon={<Timer size={12} className="text-orange-400" />}
-          label="SPRINTS"
+          label={t("trackingMetricsPanel.metricSprints")}
           value={isTracking ? String(sprints) : metrics ? String(metrics.sprintCount) : "--"}
           unit=""
-          sub={isTracking ? ">21 km/h" : metrics ? `${metrics.sprintDistanceM.toFixed(0)}m sprint` : ""}
+          sub={isTracking ? ">21 km/h" : metrics ? t("trackingMetricsPanel.sprintDistance", { value: metrics.sprintDistanceM.toFixed(0) }) : ""}
         />
 
         {/* Escaneos */}
         <MetricCard
           icon={<Eye size={12} className="text-green-400" />}
-          label="ESCANEOS"
+          label={t("trackingMetricsPanel.metricScans")}
           value={String(scanCount)}
           unit=""
-          sub="giros de cabeza"
+          sub={t("trackingMetricsPanel.scansSub")}
         />
 
         {/* Duelos */}
         <MetricCard
           icon={<Swords size={12} className="text-red-400" />}
-          label="DUELOS"
+          label={t("trackingMetricsPanel.metricDuels")}
           value={String(duelCount)}
           unit=""
-          sub={metrics ? `${metrics.duelsWon}G / ${metrics.duelsLost}P` : ""}
+          sub={metrics ? t("trackingMetricsPanel.duelsSub", { won: metrics.duelsWon, lost: metrics.duelsLost }) : ""}
         />
 
         {/* Espacio */}
         <MetricCard
           icon={<Map size={12} className="text-purple-400" />}
-          label="ESPACIO"
+          label={t("trackingMetricsPanel.metricSpace")}
           value={metrics ? metrics.avgVoronoiAreaM2.toFixed(0) : "--"}
           unit="m²"
-          sub="área Voronoi"
+          sub={t("trackingMetricsPanel.spaceSub")}
         />
       </div>
 
@@ -142,7 +144,7 @@ export default function TrackingMetricsPanel({
       {metrics && (
         <div>
           <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-2 block">
-            Zonas de intensidad
+            {t("trackingMetricsPanel.intensityZones")}
           </span>
           <IntensityBar
             walk={metrics.intensityZones.walk}
@@ -152,10 +154,10 @@ export default function TrackingMetricsPanel({
           />
           <div className="flex justify-between mt-1">
             {[
-              { label: "Caminar", color: "bg-slate-400" },
-              { label: "Trote",   color: "bg-blue-400"  },
-              { label: "Carrera", color: "bg-orange-400" },
-              { label: "Sprint",  color: "bg-red-400"   },
+              { label: t("trackingMetricsPanel.zoneWalk"), color: "bg-slate-400" },
+              { label: t("trackingMetricsPanel.zoneJog"),   color: "bg-blue-400"  },
+              { label: t("trackingMetricsPanel.zoneRun"), color: "bg-orange-400" },
+              { label: t("trackingMetricsPanel.zoneSprint"),  color: "bg-red-400"   },
             ].map(z => (
               <div key={z.label} className="flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${z.color}`} />
@@ -194,25 +196,25 @@ export default function TrackingMetricsPanel({
                 <div className="flex items-center gap-1 mb-1">
                   <Hexagon size={10} className="text-indigo-400" />
                   <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">
-                    Control Territorial
+                    {t("trackingMetricsPanel.territorialControl")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Jugadores detectados</span>
+                  <span className="text-muted-foreground">{t("trackingMetricsPanel.playersDetected")}</span>
                   <span className="font-display font-bold text-foreground">{voronoiRegions.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Área promedio</span>
+                  <span className="text-muted-foreground">{t("trackingMetricsPanel.averageArea")}</span>
                   <span className="font-display font-bold text-foreground">{avgArea.toFixed(0)} m²</span>
                 </div>
                 {focusTrackId != null && focusArea > 0 && (
                   <>
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-muted-foreground">Área #{focusTrackId}</span>
+                      <span className="text-muted-foreground">{t("trackingMetricsPanel.areaOfPlayer", { id: focusTrackId })}</span>
                       <span className="font-display font-bold text-indigo-400">{focusArea.toFixed(0)} m²</span>
                     </div>
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-muted-foreground">% del campo</span>
+                      <span className="text-muted-foreground">{t("trackingMetricsPanel.percentOfField")}</span>
                       <span className="font-display font-bold text-indigo-400">{focusPct}%</span>
                     </div>
                     {/* Barra de proporción */}

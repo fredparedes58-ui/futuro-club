@@ -7,6 +7,7 @@
  *   - strengths, weaknesses, coachingTips
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Lightbulb, AlertTriangle, ThumbsUp, ChevronsRight } from "lucide-react";
 import type { TacticalInsights } from "@/lib/tactical/tacticalTypes";
 import { PHASE_META } from "./PhaseSelector";
@@ -22,9 +23,14 @@ const RISK_COLORS = {
   high: "bg-rose-500/15 text-rose-300 border-rose-500/30",
 } as const;
 
-const RISK_LABELS = { low: "Bajo", moderate: "Moderado", high: "Alto" } as const;
+const RISK_LABEL_KEYS = {
+  low: "tacticalInsightsCard.riskLow",
+  moderate: "tacticalInsightsCard.riskModerate",
+  high: "tacticalInsightsCard.riskHigh",
+} as const;
 
 export function TacticalInsightsCard({ insights }: Props) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -49,7 +55,7 @@ export function TacticalInsightsCard({ insights }: Props) {
       {/* By phase */}
       {insights.byPhase.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-xs uppercase tracking-wider text-slate-400">Análisis por fase</h4>
+          <h4 className="text-xs uppercase tracking-wider text-slate-400">{t("tacticalInsightsCard.phaseAnalysis")}</h4>
           {insights.byPhase.map((p, i) => {
             const meta = PHASE_META[p.phase];
             return (
@@ -63,7 +69,7 @@ export function TacticalInsightsCard({ insights }: Props) {
                     <span className="text-sm font-medium text-white">{meta.label}</span>
                   </div>
                   <span className={cn("text-[10px] px-2 py-0.5 rounded-full border", RISK_COLORS[p.risk])}>
-                    Riesgo {RISK_LABELS[p.risk]}
+                    {t("tacticalInsightsCard.riskLabel", { level: t(RISK_LABEL_KEYS[p.risk]) })}
                   </span>
                 </div>
                 <p className="text-xs text-slate-300">{p.observation}</p>
@@ -83,7 +89,7 @@ export function TacticalInsightsCard({ insights }: Props) {
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
             <div className="flex items-center gap-2 mb-2">
               <ThumbsUp className="size-3.5 text-emerald-400" />
-              <span className="text-xs font-medium text-emerald-300">Fortalezas</span>
+              <span className="text-xs font-medium text-emerald-300">{t("tacticalInsightsCard.strengths")}</span>
             </div>
             <ul className="space-y-1 text-xs text-slate-300">
               {insights.strengths.map((s, i) => (
@@ -100,7 +106,7 @@ export function TacticalInsightsCard({ insights }: Props) {
           <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="size-3.5 text-rose-400" />
-              <span className="text-xs font-medium text-rose-300">Debilidades</span>
+              <span className="text-xs font-medium text-rose-300">{t("tacticalInsightsCard.weaknesses")}</span>
             </div>
             <ul className="space-y-1 text-xs text-slate-300">
               {insights.weaknesses.map((s, i) => (
@@ -119,7 +125,7 @@ export function TacticalInsightsCard({ insights }: Props) {
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
           <div className="flex items-center gap-2 mb-2">
             <Lightbulb className="size-3.5 text-amber-400" />
-            <span className="text-xs font-medium text-amber-300">Tips para el próximo entrenamiento</span>
+            <span className="text-xs font-medium text-amber-300">{t("tacticalInsightsCard.coachingTipsTitle")}</span>
           </div>
           <ul className="space-y-1 text-xs text-slate-300">
             {insights.coachingTips.map((s, i) => (

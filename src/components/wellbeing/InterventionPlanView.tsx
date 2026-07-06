@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { User, Users, Building2, Calendar, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface InterventionAction {
   audience: string;
@@ -21,29 +22,30 @@ interface Props {
   primaryFactor?: string;
 }
 
-const AUDIENCE_CONFIG: Record<string, { icon: React.ElementType; label: string; color: string; bg: string }> = {
-  coach:  { icon: User,      label: "Entrenador", color: "text-blue-400",   bg: "bg-blue-500/10" },
-  parent: { icon: Users,     label: "Familia",    color: "text-violet-400", bg: "bg-violet-500/10" },
-  club:   { icon: Building2, label: "Club",       color: "text-amber-400",  bg: "bg-amber-500/10" },
+const AUDIENCE_CONFIG: Record<string, { icon: React.ElementType; labelKey: string; color: string; bg: string }> = {
+  coach:  { icon: User,      labelKey: "interventionPlanView.audienceCoach",  color: "text-blue-400",   bg: "bg-blue-500/10" },
+  parent: { icon: Users,     labelKey: "interventionPlanView.audienceParent", color: "text-violet-400", bg: "bg-violet-500/10" },
+  club:   { icon: Building2, labelKey: "interventionPlanView.audienceClub",   color: "text-amber-400",  bg: "bg-amber-500/10" },
 };
 
-const PRIORITY_BADGE: Record<string, { label: string; color: string }> = {
-  immediate:  { label: "Inmediato",   color: "bg-red-500/20 text-red-400" },
-  this_week:  { label: "Esta semana", color: "bg-orange-500/20 text-orange-400" },
-  this_month: { label: "Este mes",    color: "bg-amber-500/20 text-amber-400" },
-  monitor:    { label: "Monitorizar", color: "bg-gray-500/20 text-gray-400" },
+const PRIORITY_BADGE: Record<string, { labelKey: string; color: string }> = {
+  immediate:  { labelKey: "interventionPlanView.priorityImmediate", color: "bg-red-500/20 text-red-400" },
+  this_week:  { labelKey: "interventionPlanView.priorityThisWeek",  color: "bg-orange-500/20 text-orange-400" },
+  this_month: { labelKey: "interventionPlanView.priorityThisMonth", color: "bg-amber-500/20 text-amber-400" },
+  monitor:    { labelKey: "interventionPlanView.priorityMonitor",   color: "bg-gray-500/20 text-gray-400" },
 };
 
-const URGENCY_LABELS: Record<string, string> = {
-  immediate: "Intervención inmediata",
-  this_week: "Actuar esta semana",
-  this_month: "Planificar este mes",
-  monitor: "Seguimiento rutinario",
+const URGENCY_LABEL_KEYS: Record<string, string> = {
+  immediate: "interventionPlanView.urgencyImmediate",
+  this_week: "interventionPlanView.urgencyThisWeek",
+  this_month: "interventionPlanView.urgencyThisMonth",
+  monitor: "interventionPlanView.urgencyMonitor",
 };
 
 export default function InterventionPlanView({
   urgency, actions, followUpDate, escalationNeeded, primaryFactor,
 }: Props) {
+  const { t } = useTranslation();
   // Group actions by audience
   const grouped: Record<string, InterventionAction[]> = {};
   for (const a of actions) {
@@ -56,14 +58,14 @@ export default function InterventionPlanView({
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-          Plan de Intervención
+          {t("interventionPlanView.title")}
         </span>
         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
           urgency === "immediate" ? "bg-red-500/20 text-red-400" :
           urgency === "this_week" ? "bg-orange-500/20 text-orange-400" :
           "bg-amber-500/20 text-amber-400"
         }`}>
-          {URGENCY_LABELS[urgency] ?? urgency}
+          {URGENCY_LABEL_KEYS[urgency] ? t(URGENCY_LABEL_KEYS[urgency]) : urgency}
         </span>
       </div>
 
@@ -76,9 +78,9 @@ export default function InterventionPlanView({
         >
           <AlertCircle size={16} className="text-red-400 shrink-0" />
           <div>
-            <p className="text-xs font-bold text-red-400">Escalación necesaria</p>
+            <p className="text-xs font-bold text-red-400">{t("interventionPlanView.escalationTitle")}</p>
             <p className="text-[10px] text-red-300/70">
-              Involucrar a dirección o psicólogo deportivo externo
+              {t("interventionPlanView.escalationDescription")}
             </p>
           </div>
         </motion.div>
@@ -98,7 +100,7 @@ export default function InterventionPlanView({
           >
             <div className={`flex items-center gap-2 ${config.color}`}>
               <Icon size={14} />
-              <span className="text-xs font-bold">{config.label}</span>
+              <span className="text-xs font-bold">{t(config.labelKey)}</span>
             </div>
 
             <div className="space-y-1.5 ml-5">
@@ -107,7 +109,7 @@ export default function InterventionPlanView({
                 return (
                   <div key={i} className={`flex items-start gap-2 rounded-lg p-2 ${config.bg}`}>
                     <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${badge.color} shrink-0 mt-0.5`}>
-                      {badge.label}
+                      {t(badge.labelKey)}
                     </span>
                     <p className="text-[11px] text-foreground/80 leading-relaxed">
                       {action.action}
@@ -124,7 +126,7 @@ export default function InterventionPlanView({
       <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2.5">
         <Calendar size={14} className="text-muted-foreground" />
         <div>
-          <p className="text-[10px] text-muted-foreground">Próxima revisión</p>
+          <p className="text-[10px] text-muted-foreground">{t("interventionPlanView.nextReview")}</p>
           <p className="text-xs font-bold text-foreground">{followUpDate}</p>
         </div>
       </div>
