@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
@@ -75,6 +76,7 @@ interface Props {
 }
 
 export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [reports, setReports] = useState<ReportData[]>([]);
@@ -103,7 +105,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         const data = await res.json();
         if (!mounted) return;
         if (!res.ok || !data.success) {
-          setError(data?.error?.message ?? "Error cargando reportes");
+          setError(data?.error?.message ?? t("analysisDashboard.errorLoadingReports"));
           setLoading(false);
           return;
         }
@@ -114,7 +116,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         if (onLoaded) onLoaded(data.data.analysis as AnalysisData, (data.data.reports ?? []) as ReportData[]);
       } catch (err) {
         if (mounted) {
-          setError(err instanceof Error ? err.message : "Error");
+          setError(err instanceof Error ? err.message : t("analysisDashboard.errorGeneric"));
           setLoading(false);
         }
       }
@@ -128,7 +130,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
         <Loader2 size={28} className="animate-spin text-primary" />
-        <p className="text-xs text-muted-foreground">Cargando reportes…</p>
+        <p className="text-xs text-muted-foreground">{t("analysisDashboard.loadingReports")}</p>
       </div>
     );
   }
@@ -137,7 +139,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
         <AlertCircle size={28} className="text-destructive" />
-        <p className="text-sm text-foreground">{error ?? "Análisis no encontrado"}</p>
+        <p className="text-sm text-foreground">{error ?? t("analysisDashboard.analysisNotFound")}</p>
       </div>
     );
   }
@@ -151,11 +153,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
         <Loader2 size={28} className="animate-spin text-primary" />
-        <h2 className="font-display font-bold text-base text-foreground">IA generando reportes…</h2>
+        <h2 className="font-display font-bold text-base text-foreground">{t("analysisDashboard.generatingReports")}</h2>
         <p className="text-[11px] text-muted-foreground">
-          Estado: <code className="px-1.5 py-0.5 rounded bg-secondary font-mono">{analysis.status}</code>
+          {t("analysisDashboard.statusLabel")} <code className="px-1.5 py-0.5 rounded bg-secondary font-mono">{analysis.status}</code>
         </p>
-        <p className="text-[10px] text-muted-foreground">~25 segundos · refresca la página</p>
+        <p className="text-[10px] text-muted-foreground">{t("analysisDashboard.estimatedTime")}</p>
       </div>
     );
   }
@@ -181,7 +183,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         </div>
         {tier && (
           <div className="text-[11px] mt-1.5 text-muted-foreground">
-            Tier · <span className="text-foreground font-semibold">{tier}</span>
+            {t("analysisDashboard.tierLabel")} <span className="text-foreground font-semibold">{tier}</span>
           </div>
         )}
         {((analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined) ||
@@ -193,7 +195,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
                   P{analysis.vsi.peer.percentile}
                 </span>
                 <span className="text-muted-foreground">
-                  vs {analysis.vsi.peer.stratum}
+                  {t("analysisDashboard.vs")} {analysis.vsi.peer.stratum}
                   {analysis.vsi.peer.peerCount > 0 && (
                     <span className="text-foreground/60"> · {analysis.vsi.peer.peerCount}</span>
                   )}
@@ -212,6 +214,9 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         {reports.map((r) => {
           const meta = REPORT_META[r.report_type] ?? { Icon: Brain, title: r.report_type, color: "#888" };
           const Icon = meta.Icon;
+          const reportTitle = REPORT_META[r.report_type]
+            ? t(`analysisDashboard.reportTitle.${r.report_type}`)
+            : r.report_type;
           const isActive = activeTab === r.report_type;
           return (
             <button
@@ -225,7 +230,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
               style={isActive ? { backgroundColor: meta.color, borderColor: meta.color } : undefined}
             >
               <Icon size={11} />
-              {meta.title}
+              {reportTitle}
             </button>
           );
         })}
@@ -244,7 +249,9 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
             <div className="flex items-center gap-2">
               <ActiveIcon size={16} className="text-primary" />
               <h3 className="font-display font-bold text-base text-foreground">
-                {REPORT_META[activeReport.report_type]?.title ?? activeReport.report_type}
+                {REPORT_META[activeReport.report_type]
+                  ? t(`analysisDashboard.reportTitle.${activeReport.report_type}`)
+                  : activeReport.report_type}
               </h3>
             </div>
             <span className="text-[9px] text-muted-foreground font-mono">
@@ -274,7 +281,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
                 <div className="flex items-center gap-2">
                   <Icon size={14} className="text-primary" />
                   <h3 className="font-display font-bold text-sm">
-                    {meta?.title ?? r.report_type}
+                    {meta ? t(`analysisDashboard.reportTitle.${r.report_type}`) : r.report_type}
                   </h3>
                 </div>
                 <span className="text-[9px] text-muted-foreground font-mono">
@@ -300,11 +307,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
       {/* Datos técnicos crudos · ocultos al imprimir */}
       <details className="text-xs text-muted-foreground print:hidden">
         <summary className="cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5">
-          <Activity size={11} /> Datos técnicos (avanzado)
+          <Activity size={11} /> {t("analysisDashboard.technicalData")}
         </summary>
         <div className="mt-2 rounded-xl bg-secondary/30 p-3 space-y-2 font-mono text-[10px]">
           <div>
-            <div className="text-foreground font-bold mb-1">Biomecánica</div>
+            <div className="text-foreground font-bold mb-1">{t("analysisDashboard.biomechanics")}</div>
             <pre className="whitespace-pre-wrap break-all text-muted-foreground">
               {JSON.stringify(analysis.biomechanics, null, 2)}
             </pre>
@@ -329,8 +336,9 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
  *   {blocks}, {metrics_table}. Fallback: pretty-print JSON.
  */
 function ReportRenderer({ report }: { report: Record<string, unknown> }) {
+  const { t } = useTranslation();
   if (!report || Object.keys(report).length === 0) {
-    return <p className="text-xs text-muted-foreground italic">Sin contenido</p>;
+    return <p className="text-xs text-muted-foreground italic">{t("analysisDashboard.noContent")}</p>;
   }
 
   // Best-match shape (top3 + primary OR legacy single-match)
@@ -361,9 +369,9 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
           <table className="w-full text-[11px] border-collapse">
             <thead>
               <tr className="text-left text-[10px] uppercase tracking-wider text-muted-foreground">
-                <th className="p-2 border-b border-border font-bold">Métrica</th>
-                <th className="p-2 border-b border-border font-bold">Valor</th>
-                <th className="p-2 border-b border-border font-bold">Interpretación</th>
+                <th className="p-2 border-b border-border font-bold">{t("analysisDashboard.tableMetric")}</th>
+                <th className="p-2 border-b border-border font-bold">{t("analysisDashboard.tableValue")}</th>
+                <th className="p-2 border-b border-border font-bold">{t("analysisDashboard.tableInterpretation")}</th>
               </tr>
             </thead>
             <tbody>
@@ -386,7 +394,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
       )}
 
       {strengths && strengths.length > 0 && (
-        <Section heading="✓ Fortalezas" color="text-green-400">
+        <Section heading={t("analysisDashboard.strengths")} color="text-green-400">
           {strengths.map((s, i) => (
             <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
           ))}
@@ -394,7 +402,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
       )}
 
       {concerns && concerns.length > 0 && (
-        <Section heading="⚠ Áreas de mejora" color="text-amber-400">
+        <Section heading={t("analysisDashboard.areasToImprove")} color="text-amber-400">
           {concerns.map((s, i) => (
             <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
           ))}
@@ -402,7 +410,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
       )}
 
       {recommendations && recommendations.length > 0 && (
-        <Section heading="💡 Recomendaciones" color="text-electric">
+        <Section heading={t("analysisDashboard.recommendations")} color="text-electric">
           {recommendations.map((s, i) => (
             <li key={i}>
               {typeof s === "string" ? s : (s.title ?? "")}
@@ -413,7 +421,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
       )}
 
       {pillars && pillars.length > 0 && (
-        <Section heading="🏛 Pilares de trabajo" color="text-primary">
+        <Section heading={t("analysisDashboard.workPillars")} color="text-primary">
           {pillars.map((p, i) => (
             <li key={i}>
               <span className="font-semibold text-foreground">{p.pilar}</span>
@@ -435,7 +443,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
       {nextFocus && (
         <div className="rounded-xl bg-primary/10 border border-primary/30 p-3">
           <div className="text-[10px] uppercase tracking-wider text-primary font-bold mb-1">
-            Próximo foco
+            {t("analysisDashboard.nextFocus")}
           </div>
           <p className="text-xs text-foreground">{nextFocus}</p>
         </div>
@@ -446,7 +454,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
           {blocks.map((b, i) => (
             <div key={i} className="rounded-xl bg-secondary/30 border-l-2 border-electric p-3">
               <div className="text-[10px] uppercase tracking-wider text-electric font-bold">
-                Bloque {(b.block_number as number) ?? i + 1}
+                {t("analysisDashboard.block", { number: (b.block_number as number) ?? i + 1 })}
                 {b.weeks && <span className="ml-2 text-muted-foreground">· {b.weeks as string}</span>}
               </div>
               <p className="text-xs text-foreground mt-1">{b.theme as string}</p>
@@ -473,6 +481,7 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
 // ─── VsiSparkline · evolution chart embebido en player-report ───────────────
 
 function VsiSparkline({ history, currentVsi }: { history: number[]; currentVsi?: number }) {
+  const { t } = useTranslation();
   // Render simple SVG path · sin recharts para mantener bundle ligero
   if (history.length < 2) return null;
 
@@ -500,10 +509,10 @@ function VsiSparkline({ history, currentVsi }: { history: number[]; currentVsi?:
     <div className="mb-4 rounded-lg bg-secondary/30 border border-border p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-          Evolución VSI · {history.length} análisis
+          {t("analysisDashboard.vsiEvolution", { count: history.length })}
         </div>
         <div className={`text-[11px] font-display font-bold ${deltaColor}`}>
-          {deltaSign}{delta.toFixed(1)} pts
+          {deltaSign}{delta.toFixed(1)} {t("analysisDashboard.pts")}
         </div>
       </div>
       <svg viewBox={`0 0 ${w} ${h + 2}`} preserveAspectRatio="none" className="w-full h-12 overflow-visible">
@@ -527,8 +536,8 @@ function VsiSparkline({ history, currentVsi }: { history: number[]; currentVsi?:
         })}
       </svg>
       <div className="flex items-center justify-between mt-1 text-[9px] text-muted-foreground">
-        <span>VSI inicial: <span className="text-foreground font-bold">{first.toFixed(1)}</span></span>
-        <span>Actual: <span className="text-primary font-bold">{(currentVsi ?? last).toFixed(1)}</span></span>
+        <span>{t("analysisDashboard.vsiInitial")} <span className="text-foreground font-bold">{first.toFixed(1)}</span></span>
+        <span>{t("analysisDashboard.vsiCurrent")} <span className="text-primary font-bold">{(currentVsi ?? last).toFixed(1)}</span></span>
       </div>
     </div>
   );
@@ -539,6 +548,7 @@ function VsiSparkline({ history, currentVsi }: { history: number[]; currentVsi?:
 function TrendBadge({ trend }: {
   trend: { slope: number | null; momentum: "up" | "flat" | "down" | null; confidence: "high" | "medium" | "low"; delta: number | null; samples: number };
 }) {
+  const { t } = useTranslation();
   const arrow = trend.momentum === "up" ? "↗" : trend.momentum === "down" ? "↘" : "→";
   const color = trend.momentum === "up" ? "text-green-400" : trend.momentum === "down" ? "text-red-400" : "text-muted-foreground";
   const slope = trend.slope ?? 0;
@@ -550,8 +560,8 @@ function TrendBadge({ trend }: {
       <span className={`font-display font-bold text-base ${color}`}>{arrow}</span>
       <span className="text-muted-foreground">
         <span className={`${color} font-bold`}>{slopeStr}</span>
-        <span> /análisis</span>
-        <span className="text-foreground/60 ml-1.5" title={`Confianza ${trend.confidence} · ${trend.samples} muestras`}>{confDot}</span>
+        <span> {t("analysisDashboard.perAnalysis")}</span>
+        <span className="text-foreground/60 ml-1.5" title={t("analysisDashboard.confidenceTitle", { confidence: trend.confidence, count: trend.samples })}>{confDot}</span>
       </span>
     </div>
   );
@@ -593,6 +603,7 @@ const LENS_META: Record<string, { label: string; color: string; emoji: string }>
 };
 
 function BestMatchSection({ report }: { report: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const top3 = report.top3 as BestMatchItem[] | undefined;
   const primary = report.primary as BestMatchItem | undefined;
 
@@ -611,7 +622,7 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
       {primary && (
         <div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
-            Match principal
+            {t("analysisDashboard.primaryMatch")}
           </div>
           <BestMatchCard match={primary} highlighted />
         </div>
@@ -619,7 +630,7 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
 
       <div>
         <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
-          Top 3 · por dimensión
+          {t("analysisDashboard.top3ByDimension")}
         </div>
         <div className="grid gap-2">
           {top3.map((m, i) => (
@@ -632,7 +643,11 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
 }
 
 function BestMatchCard({ match, highlighted }: { match: BestMatchItem; highlighted?: boolean }) {
+  const { t } = useTranslation();
   const lensMeta = match.lens ? LENS_META[match.lens] : null;
+  const lensLabel = match.lens && LENS_META[match.lens]
+    ? t(`analysisDashboard.lensLabel.${match.lens}`)
+    : lensMeta?.label ?? "";
   const score = match.score ?? 0;
   const scoreColor =
     score >= 80 ? "text-green-400" :
@@ -652,7 +667,7 @@ function BestMatchCard({ match, highlighted }: { match: BestMatchItem; highlight
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center text-sm shrink-0"
               style={{ backgroundColor: `${lensMeta.color}20` }}
-              title={lensMeta.label}
+              title={lensLabel}
             >
               {lensMeta.emoji}
             </div>
@@ -666,7 +681,7 @@ function BestMatchCard({ match, highlighted }: { match: BestMatchItem; highlight
               {match.club && <span>· {match.club}</span>}
               {lensMeta && (
                 <span className="font-bold" style={{ color: lensMeta.color }}>
-                  · {lensMeta.label}
+                  · {lensLabel}
                 </span>
               )}
             </div>
@@ -687,7 +702,7 @@ function BestMatchCard({ match, highlighted }: { match: BestMatchItem; highlight
       {match.timeline_at_age && (
         <div className="mt-2 pt-2 border-t border-border/40 flex items-start gap-1.5">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold shrink-0">
-            A su edad:
+            {t("analysisDashboard.atTheirAge")}
           </span>
           <p className="text-[10px] text-muted-foreground italic leading-relaxed">
             {match.timeline_at_age}

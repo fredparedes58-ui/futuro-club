@@ -12,6 +12,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { MapPin } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 // Campo FIFA standard
 const FIELD_W = 105; // metros
@@ -39,6 +40,7 @@ interface Props {
 }
 
 export default function PlayerHeatmap({ positions, title }: Props) {
+  const { t } = useTranslation();
   // Calcular grid de intensidad
   const { grid, maxCount } = useMemo(() => {
     const g: number[][] = Array.from({ length: GRID_ROWS }, () =>
@@ -63,7 +65,7 @@ export default function PlayerHeatmap({ positions, title }: Props) {
       <div className="glass rounded-2xl p-4 text-center">
         <MapPin size={20} className="mx-auto mb-2 text-muted-foreground" />
         <p className="text-xs text-muted-foreground">
-          Sin datos de posición para generar mapa de calor
+          {t("playerHeatmap.noData")}
         </p>
       </div>
     );
@@ -82,10 +84,10 @@ export default function PlayerHeatmap({ positions, title }: Props) {
         </div>
         <div>
           <h3 className="text-sm font-display font-bold text-foreground">
-            {title ?? "Mapa de Calor"}
+            {title ?? t("playerHeatmap.title")}
           </h3>
           <p className="text-[9px] text-muted-foreground">
-            {positions.length} posiciones registradas
+            {t("playerHeatmap.positionsRegistered", { count: positions.length })}
           </p>
         </div>
       </div>
@@ -160,14 +162,14 @@ export default function PlayerHeatmap({ positions, title }: Props) {
 
       {/* Leyenda */}
       <div className="flex items-center justify-center gap-2 mt-2">
-        <span className="text-[8px] text-muted-foreground">Baja</span>
+        <span className="text-[8px] text-muted-foreground">{t("playerHeatmap.low")}</span>
         <div className="flex h-2 w-24 rounded-full overflow-hidden">
           <div className="flex-1" style={{ backgroundColor: "#22c55e" }} />
           <div className="flex-1" style={{ backgroundColor: "#eab308" }} />
           <div className="flex-1" style={{ backgroundColor: "#f97316" }} />
           <div className="flex-1" style={{ backgroundColor: "#ef4444" }} />
         </div>
-        <span className="text-[8px] text-muted-foreground">Alta</span>
+        <span className="text-[8px] text-muted-foreground">{t("playerHeatmap.high")}</span>
       </div>
     </motion.div>
   );

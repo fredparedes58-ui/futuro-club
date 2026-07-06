@@ -10,6 +10,7 @@
  *     mostrarse "STUB - en espera de Roboflow" y aparecen métricas reales.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   TrendingUp, Activity, MapPin, Zap, AlertCircle, CheckCircle2,
 } from "lucide-react";
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, trackingSnapshot, mediaPipeBiomechanics }: Props) {
+  const { t } = useTranslation();
   const { vaep } = metrics;
 
   // ── Override tracking con snapshot del Lab si existe ─────────────────
@@ -47,7 +49,7 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
     >
       <div className="flex items-center justify-between">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider">
-          Métricas Avanzadas (desde video)
+          {t("advancedMetricsPanel.title")}
         </h3>
         {qualityScore !== undefined && (
           <QualityBadge score={qualityScore} />
@@ -58,12 +60,12 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
       <MetricCard
         icon={TrendingUp}
         label="VAEP"
-        description="Valor generado por cada acción (xG chain)"
+        description={t("advancedMetricsPanel.vaepDescription")}
         status={vaep.status}
         value={vaep.vaep90 !== null ? vaep.vaep90.toFixed(2) : null}
-        unit="por 90'"
+        unit={t("advancedMetricsPanel.vaepUnit")}
         detail={vaep.status === "calculated"
-          ? `${vaep.topActions.length} acciones de alto impacto`
+          ? t("advancedMetricsPanel.vaepHighImpactActions", { count: vaep.topActions.length })
           : vaep.message}
         topActions={vaep.status === "calculated" ? vaep.topActions : undefined}
       />
@@ -71,17 +73,17 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
       {/* Tracking (desde video) */}
       <MetricCard
         icon={MapPin}
-        label="Cobertura de campo"
-        description="Zonas recorridas por el jugador"
+        label={t("advancedMetricsPanel.fieldCoverageLabel")}
+        description={t("advancedMetricsPanel.fieldCoverageDescription")}
         status={tracking.status}
         value={tracking.fieldCoveragePct !== null ? `${tracking.fieldCoveragePct}%` : null}
         detail={tracking.status === "calculated"
-          ? `${tracking.sprintCount ?? 0} sprints · ${tracking.totalDistanceM ?? 0}m totales`
+          ? t("advancedMetricsPanel.fieldCoverageDetail", { sprints: tracking.sprintCount ?? 0, distance: tracking.totalDistanceM ?? 0 })
           : tracking.message}
         extra={tracking.status === "calculated" && tracking.maxSpeedMs !== null ? (
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <Zap size={10} className="text-primary" />
-            <span>Velocidad máx: {tracking.maxSpeedMs.toFixed(1)} m/s</span>
+            <span>{t("advancedMetricsPanel.maxSpeed", { speed: tracking.maxSpeedMs.toFixed(1) })}</span>
           </div>
         ) : null}
       />
@@ -90,14 +92,14 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
       <MetricCard
         icon={Activity}
         label="DrillScore"
-        description="Eficiencia biomecánica observada"
+        description={t("advancedMetricsPanel.drillScoreDescription")}
         status={biomechanics.status}
         value={biomechanics.drillScore !== null ? `${biomechanics.drillScore}` : null}
         unit="/100"
         detail={biomechanics.status === "calculated"
           ? biomechanics.asymmetryPct !== null
-            ? `Asimetría bilateral: ${biomechanics.asymmetryPct.toFixed(1)}%`
-            : "DrillScore calculado"
+            ? t("advancedMetricsPanel.bilateralAsymmetry", { pct: biomechanics.asymmetryPct.toFixed(1) })
+            : t("advancedMetricsPanel.drillScoreCalculated")
           : biomechanics.message}
       />
 
@@ -107,7 +109,7 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
           <div className="flex items-center gap-2">
             <AlertCircle size={13} className="text-amber-500 shrink-0" />
             <p className="text-[11px] font-display font-semibold text-amber-500 uppercase tracking-wider">
-              Limitaciones del análisis
+              {t("advancedMetricsPanel.analysisLimitations")}
             </p>
           </div>
           <ul className="space-y-0.5 ml-5">
@@ -183,16 +185,17 @@ function MetricCard({
 }
 
 function QualityBadge({ score }: { score: number }) {
+  const { t } = useTranslation();
   const status =
-    score >= 0.8 ? { label: "Excelente", color: "text-emerald-500", icon: CheckCircle2 } :
-    score >= 0.5 ? { label: "Aceptable", color: "text-amber-500", icon: AlertCircle } :
-    { label: "Limitada", color: "text-red-500", icon: AlertCircle };
+    score >= 0.8 ? { label: t("advancedMetricsPanel.qualityExcellent"), color: "text-emerald-500", icon: CheckCircle2 } :
+    score >= 0.5 ? { label: t("advancedMetricsPanel.qualityAcceptable"), color: "text-amber-500", icon: AlertCircle } :
+    { label: t("advancedMetricsPanel.qualityLimited"), color: "text-red-500", icon: AlertCircle };
 
   const Icon = status.icon;
   return (
     <div className={`flex items-center gap-1 text-[10px] font-display font-semibold uppercase tracking-wider ${status.color}`}>
       <Icon size={11} />
-      <span>Calidad: {status.label}</span>
+      <span>{t("advancedMetricsPanel.quality", { label: status.label })}</span>
       <span className="text-muted-foreground">({Math.round(score * 100)}%)</span>
     </div>
   );

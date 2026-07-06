@@ -8,6 +8,7 @@
  */
 
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -86,6 +87,7 @@ function detectCloudProvider(url: string): { provider: string; embedUrl?: string
 }
 
 export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) {
+  const { t } = useTranslation();
   const [source, setSource] = useState<Source>("device");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
@@ -116,13 +118,13 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("video/")) {
-      toast.error("El archivo debe ser un video");
+      toast.error(t("videoUploadDialog.errorNotVideo"));
       return;
     }
     // Soft limit 500MB for browser blob URLs
     const MAX = 500 * 1024 * 1024;
     if (f.size > MAX) {
-      toast.error("El archivo supera 500 MB. Considera comprimirlo o usar un servicio cloud.");
+      toast.error(t("videoUploadDialog.errorTooLarge"));
       return;
     }
     setFile(f);
@@ -140,7 +142,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
 
   const handleSubmitDevice = async () => {
     if (!file) {
-      toast.error("Selecciona un video");
+      toast.error(t("videoUploadDialog.errorSelectVideo"));
       return;
     }
     setUploading(true);
@@ -172,7 +174,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
           console.info("[VideoUploadDialog] Bunny disabled, using blob: fallback");
         } else {
           console.warn("[VideoUploadDialog] Bunny upload failed, fallback to blob:", err);
-          toast.warning("Subida a Bunny falló · guardando localmente");
+          toast.warning(t("videoUploadDialog.warnBunnyFailed"));
         }
         bunnyResult = null;
       }
@@ -201,8 +203,8 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
         };
         toast.success(
           triedBunny
-            ? "Video subido a Bunny correctamente"
-            : "Video guardado correctamente",
+            ? t("videoUploadDialog.successBunny")
+            : t("videoUploadDialog.successSaved"),
         );
       } else {
         // ── Fallback: local blob: URL ──────────────────────────────
@@ -228,7 +230,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
           localPath: blobUrl,
           dateUploaded: new Date().toISOString(),
         };
-        toast.success("Video guardado localmente (Bunny no configurado)");
+        toast.success(t("videoUploadDialog.successLocal"));
       }
 
       VideoService.save(video);
@@ -236,7 +238,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
       onUploaded(video);
     } catch (err) {
       console.error(err);
-      toast.error("Error al procesar el video");
+      toast.error(t("videoUploadDialog.errorProcessing"));
     } finally {
       setUploading(false);
     }
@@ -244,12 +246,12 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
 
   const handleSubmitUrl = async () => {
     if (!url.trim()) {
-      toast.error("Pega una URL");
+      toast.error(t("videoUploadDialog.errorPasteUrl"));
       return;
     }
     const provider = detectCloudProvider(url.trim());
     if (!provider) {
-      toast.error("URL no válida");
+      toast.error(t("videoUploadDialog.errorInvalidUrl"));
       return;
     }
     setUploading(true);
@@ -258,7 +260,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
       await simulateUpload(1200);
       const video: VideoRecord = {
         id: generateVideoId(),
-        title: title.trim() || `Video de ${provider.provider}`,
+        title: title.trim() || t("videoUploadDialog.defaultVideoTitle", { provider: provider.provider }),
         playerId: null,
         status: "finished",
         statusCode: 4,
@@ -275,7 +277,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
       };
       VideoService.save(video);
       setResult(video);
-      toast.success(`Video importado desde ${provider.provider}`);
+      toast.success(t("videoUploadDialog.successImported", { provider: provider.provider }));
       onUploaded(video);
     } finally {
       setUploading(false);
@@ -308,10 +310,10 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
             </div>
             <div className="flex-1">
               <h2 className="text-base font-display font-bold text-foreground">
-                Subir video
+                {t("videoUploadDialog.title")}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                Desde tu ordenador, móvil o de un servicio cloud
+                {t("videoUploadDialog.subtitle")}
               </p>
             </div>
             {!uploading && (
@@ -331,19 +333,19 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 active={source === "device"}
                 onClick={() => setSource("device")}
                 icon={<HardDrive size={14} />}
-                label="Ordenador / Móvil"
+                label={t("videoUploadDialog.tabDevice")}
               />
               <SourceTab
                 active={source === "url"}
                 onClick={() => setSource("url")}
                 icon={<LinkIcon size={14} />}
-                label="URL / Cloud"
+                label={t("videoUploadDialog.tabUrl")}
               />
               <SourceTab
                 active={source === "cloud"}
                 onClick={() => setSource("cloud")}
                 icon={<Cloud size={14} />}
-                label="Servicios"
+                label={t("videoUploadDialog.tabServices")}
               />
             </div>
           )}
@@ -360,10 +362,10 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                   >
                     <HardDrive size={28} className="text-primary" />
                     <span className="text-xs font-display font-bold text-foreground">
-                      Elegir archivo
+                      {t("videoUploadDialog.chooseFile")}
                     </span>
                     <span className="text-[10px] text-muted-foreground text-center">
-                      MP4, MOV, WebM · máx 500 MB
+                      {t("videoUploadDialog.fileFormats")}
                     </span>
                   </button>
 
@@ -376,10 +378,10 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                       <Camera size={20} className="text-emerald-500" />
                     </div>
                     <span className="text-xs font-display font-bold text-foreground">
-                      Cámara del móvil
+                      {t("videoUploadDialog.mobileCamera")}
                     </span>
                     <span className="text-[10px] text-muted-foreground text-center">
-                      Graba en directo o elige de la galería
+                      {t("videoUploadDialog.mobileCameraHint")}
                     </span>
                   </button>
                 </div>
@@ -429,13 +431,13 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 {file && (
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                      Título del video
+                      {t("videoUploadDialog.videoTitleLabel")}
                     </label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="vs Rival FC · 24 May"
+                      placeholder={t("videoUploadDialog.titlePlaceholder")}
                       className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -447,11 +449,11 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
             {!result && source === "url" && !uploading && (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Pega una URL pública. Soportamos YouTube, Vimeo, Google Drive (compartido), Dropbox y enlaces MP4 directos.
+                  {t("videoUploadDialog.urlDescription")}
                 </p>
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    URL del video
+                    {t("videoUploadDialog.urlLabel")}
                   </label>
                   <input
                     type="url"
@@ -463,20 +465,20 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    Título (opcional)
+                    {t("videoUploadDialog.titleOptionalLabel")}
                   </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="vs Rival FC · 24 May"
+                    placeholder={t("videoUploadDialog.titlePlaceholder")}
                     className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                   />
                 </div>
                 <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
                   <AlertCircle size={12} className="mt-[2px] shrink-0" />
                   <p>
-                    Para Google Drive, el video debe tener permiso de visualización para "cualquiera con el enlace". El análisis de set pieces funciona en cuanto el video está registrado, sin necesidad de descargarlo.
+                    {t("videoUploadDialog.driveNotice")}
                   </p>
                 </div>
               </div>
@@ -486,7 +488,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
             {!result && source === "cloud" && !uploading && (
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
-                  Conecta servicios cloud para importar videos directamente.
+                  {t("videoUploadDialog.cloudDescription")}
                 </p>
                 {[
                   { name: "Google Drive", color: "from-blue-500 to-green-500", emoji: "📁" },
@@ -498,7 +500,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                     key={s.name}
                     onClick={() =>
                       toast.info(
-                        `Próximamente: conexión OAuth con ${s.name}. Por ahora usa la pestaña URL para pegar el enlace compartido.`,
+                        t("videoUploadDialog.cloudComingSoonToast", { service: s.name }),
                       )
                     }
                     className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-secondary/30 transition-all text-left"
@@ -510,10 +512,10 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-display font-bold text-foreground">
-                        Conectar con {s.name}
+                        {t("videoUploadDialog.connectWith", { service: s.name })}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        Próximamente — usa la pestaña URL como alternativa
+                        {t("videoUploadDialog.cloudComingSoonHint")}
                       </p>
                     </div>
                     <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-bold">
@@ -538,7 +540,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-display font-bold text-foreground">
-                      Subiendo video…
+                      {t("videoUploadDialog.uploading")}
                     </span>
                     <span className="font-mono text-primary font-bold">{uploadPct}%</span>
                   </div>
@@ -566,14 +568,14 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 </motion.div>
                 <div>
                   <h3 className="text-base font-display font-bold text-foreground">
-                    ¡Video subido!
+                    {t("videoUploadDialog.successHeading")}
                   </h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    <strong className="text-primary">{result.title}</strong> ya está disponible.
+                    <strong className="text-primary">{result.title}</strong> {t("videoUploadDialog.successAvailable")}
                   </p>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Puedes analizarlo para detectar set pieces automáticamente desde el botón "Analizar video".
+                  {t("videoUploadDialog.successAnalyzeHint")}
                 </p>
               </div>
             )}
@@ -586,7 +588,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 onClick={handleClose}
                 className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-secondary"
               >
-                Cancelar
+                {t("videoUploadDialog.cancel")}
               </button>
               <button
                 onClick={source === "device" ? handleSubmitDevice : handleSubmitUrl}
@@ -598,7 +600,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={12} />
-                Subir
+                {t("videoUploadDialog.upload")}
               </button>
             </div>
           )}
@@ -609,7 +611,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 onClick={handleClose}
                 className="px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90"
               >
-                Cerrar
+                {t("videoUploadDialog.close")}
               </button>
             </div>
           )}

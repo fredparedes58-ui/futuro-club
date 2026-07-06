@@ -16,6 +16,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Target, Swords, ShieldCheck, Crosshair,
   Zap, Gauge, Activity, TrendingUp, Award,
@@ -64,22 +65,25 @@ const PHYSICAL_COLOR: Record<PhysicalRating, string> = {
   bajo:  "#ef4444",
 };
 
-const FUENTE_LABELS: Record<string, string> = {
-  "yolo+gemini": "Tracking + IA",
-  "gemini_only": "Observación IA",
-  "yolo_only":   "Tracking YOLO",
+const FUENTE_KEYS: Record<string, string> = {
+  "yolo+gemini": "matchStatsPanel.sourceYoloGemini",
+  "gemini_only": "matchStatsPanel.sourceGeminiOnly",
+  "yolo_only":   "matchStatsPanel.sourceYoloOnly",
 };
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
-export default function MatchStatsPanel({ data, title = "Panel de Estadísticas" }: Props) {
+export default function MatchStatsPanel({ data, title }: Props) {
+  const { t } = useTranslation();
   const stats = useMemo(() => computeMatchStats(data), [data]);
 
   if (!stats) {
     return null;
   }
 
+  const resolvedTitle = title ?? t("matchStatsPanel.title");
   const ratingColor = RATING_COLOR[stats.performanceLabel];
+  const fuenteLabel = FUENTE_KEYS[stats.fuente] ? t(FUENTE_KEYS[stats.fuente]) : stats.fuente;
 
   return (
     <motion.div
@@ -105,10 +109,10 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
               </div>
               <div className="min-w-0">
                 <h3 className="text-sm font-display font-bold text-foreground truncate">
-                  {title}
+                  {resolvedTitle}
                 </h3>
                 <p className="text-[9px] text-muted-foreground">
-                  {FUENTE_LABELS[stats.fuente] ?? stats.fuente} · confianza {Math.round(stats.confianza * 100)}%
+                  {fuenteLabel} · {t("matchStatsPanel.confidence")} {Math.round(stats.confianza * 100)}%
                 </p>
               </div>
             </div>
@@ -140,9 +144,9 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
 
         {/* Totales agregados */}
         <div className="relative grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-border/40">
-          <TotalCell icon={<TrendingUp size={11} />} label="Total" value={stats.totalAcciones} tint="text-foreground" />
-          <TotalCell icon={<Target size={11} />} label="Ofensivas" value={stats.totalOfensivas} tint="text-green-400" />
-          <TotalCell icon={<ShieldCheck size={11} />} label="Defensivas" value={stats.totalDefensivas} tint="text-blue-400" />
+          <TotalCell icon={<TrendingUp size={11} />} label={t("matchStatsPanel.total")} value={stats.totalAcciones} tint="text-foreground" />
+          <TotalCell icon={<Target size={11} />} label={t("matchStatsPanel.offensive")} value={stats.totalOfensivas} tint="text-green-400" />
+          <TotalCell icon={<ShieldCheck size={11} />} label={t("matchStatsPanel.defensive")} value={stats.totalDefensivas} tint="text-blue-400" />
         </div>
       </div>
 
@@ -153,13 +157,13 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
           {stats.pases && (
             <KpiCardComparative
               icon={<Target size={14} />}
-              title="Pases"
+              title={t("matchStatsPanel.passes")}
               ratingLabel={KPI_RATING_LABEL_ES[stats.pases.rating]}
               ratingColor={KPI_COLOR[stats.pases.rating]}
               bigValue={`${stats.pases.precision}%`}
-              bigLabel="precisión"
-              left={{ label: "Completados", value: stats.pases.completados, color: "#22c55e" }}
-              right={{ label: "Fallados", value: stats.pases.fallados, color: "#ef4444" }}
+              bigLabel={t("matchStatsPanel.accuracy")}
+              left={{ label: t("matchStatsPanel.completed"), value: stats.pases.completados, color: "#22c55e" }}
+              right={{ label: t("matchStatsPanel.failed"), value: stats.pases.fallados, color: "#ef4444" }}
               total={stats.pases.total}
               percentLeft={stats.pases.precision}
             />
@@ -169,13 +173,13 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
           {stats.duelos && (
             <KpiCardComparative
               icon={<Swords size={14} />}
-              title="Duelos"
+              title={t("matchStatsPanel.duels")}
               ratingLabel={DUEL_RATING_LABEL_ES[stats.duelos.rating]}
               ratingColor={DUEL_COLOR[stats.duelos.rating]}
               bigValue={`${stats.duelos.efectividad}%`}
-              bigLabel="efectividad"
-              left={{ label: "Ganados", value: stats.duelos.ganados, color: "#10b981" }}
-              right={{ label: "Perdidos", value: stats.duelos.perdidos, color: "#f97316" }}
+              bigLabel={t("matchStatsPanel.effectiveness")}
+              left={{ label: t("matchStatsPanel.won"), value: stats.duelos.ganados, color: "#10b981" }}
+              right={{ label: t("matchStatsPanel.lost"), value: stats.duelos.perdidos, color: "#f97316" }}
               total={stats.duelos.total}
               percentLeft={stats.duelos.efectividad}
             />
@@ -186,9 +190,9 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
             {stats.recuperaciones && (
               <KpiCardSingle
                 icon={<ShieldCheck size={12} />}
-                title="Recuperaciones"
+                title={t("matchStatsPanel.recoveries")}
                 value={stats.recuperaciones.total}
-                sub="balones recuperados"
+                sub={t("matchStatsPanel.recoveriesSub")}
                 ratingLabel={KPI_RATING_LABEL_ES[stats.recuperaciones.rating]}
                 ratingColor={KPI_COLOR[stats.recuperaciones.rating]}
               />
@@ -196,10 +200,10 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
             {stats.disparos && (
               <KpiCardSingle
                 icon={<Crosshair size={12} />}
-                title="Disparos"
+                title={t("matchStatsPanel.shots")}
                 value={stats.disparos.total}
-                sub={`${stats.disparos.alArco} al arco · ${stats.disparos.fuera} fuera`}
-                ratingLabel={`${stats.disparos.precision}% precisión`}
+                sub={t("matchStatsPanel.shotsSub", { onTarget: stats.disparos.alArco, off: stats.disparos.fuera })}
+                ratingLabel={t("matchStatsPanel.shotsAccuracy", { percent: stats.disparos.precision })}
                 ratingColor={stats.disparos.precision >= 50 ? "#22c55e" : "#f97316"}
               />
             )}
@@ -211,9 +215,9 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
               {stats.robos && (
                 <KpiCardSingle
                   icon={<Hand size={12} />}
-                  title="Robos"
+                  title={t("matchStatsPanel.tackles")}
                   value={stats.robos.total}
-                  sub="tackles con contacto"
+                  sub={t("matchStatsPanel.tacklesSub")}
                   ratingLabel={KPI_RATING_LABEL_ES[stats.robos.rating]}
                   ratingColor={KPI_COLOR[stats.robos.rating]}
                 />
@@ -221,9 +225,9 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
               {stats.anticipaciones && (
                 <KpiCardSingle
                   icon={<Eye size={12} />}
-                  title="Anticipaciones"
+                  title={t("matchStatsPanel.interceptions")}
                   value={stats.anticipaciones.total}
-                  sub="intercepciones sin contacto"
+                  sub={t("matchStatsPanel.interceptionsSub")}
                   ratingLabel={KPI_RATING_LABEL_ES[stats.anticipaciones.rating]}
                   ratingColor={KPI_COLOR[stats.anticipaciones.rating]}
                 />
@@ -235,9 +239,9 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
           {stats.perdidas && (
             <KpiCardSingle
               icon={<XCircle size={12} />}
-              title="Pérdidas"
+              title={t("matchStatsPanel.turnovers")}
               value={stats.perdidas.total}
-              sub="errores no forzados — menos es mejor"
+              sub={t("matchStatsPanel.turnoversSub")}
               ratingLabel={KPI_RATING_LABEL_ES[stats.perdidas.rating]}
               ratingColor={KPI_COLOR[stats.perdidas.rating]}
             />
@@ -254,8 +258,8 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
                 <Flame size={13} className="text-orange-400" />
               </div>
               <div>
-                <h4 className="text-xs font-display font-bold text-foreground">Rendimiento físico</h4>
-                <p className="text-[9px] text-muted-foreground">Tracking pose YOLO</p>
+                <h4 className="text-xs font-display font-bold text-foreground">{t("matchStatsPanel.physicalPerformance")}</h4>
+                <p className="text-[9px] text-muted-foreground">{t("matchStatsPanel.yoloPoseTracking")}</p>
               </div>
             </div>
             <span
@@ -271,20 +275,20 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
 
           {/* Físicas grid */}
           <div className="grid grid-cols-4 gap-2">
-            <PhysicalCell icon={<Zap size={10} />} label="Vel. máx" value={stats.fisicas.velocidadMaxKmh.toFixed(1)} unit="km/h" color="#eab308" />
-            <PhysicalCell icon={<Gauge size={10} />} label="Vel. prom" value={stats.fisicas.velocidadPromKmh.toFixed(1)} unit="km/h" color="#3b82f6" />
-            <PhysicalCell icon={<Activity size={10} />} label="Distancia" value={stats.fisicas.distanciaM.toString()} unit="m" color="#8b5cf6" />
-            <PhysicalCell icon={<Flame size={10} />} label="Sprints" value={stats.fisicas.sprints.toString()} unit="" color="#ef4444" />
+            <PhysicalCell icon={<Zap size={10} />} label={t("matchStatsPanel.maxSpeed")} value={stats.fisicas.velocidadMaxKmh.toFixed(1)} unit="km/h" color="#eab308" />
+            <PhysicalCell icon={<Gauge size={10} />} label={t("matchStatsPanel.avgSpeed")} value={stats.fisicas.velocidadPromKmh.toFixed(1)} unit="km/h" color="#3b82f6" />
+            <PhysicalCell icon={<Activity size={10} />} label={t("matchStatsPanel.distance")} value={stats.fisicas.distanciaM.toString()} unit="m" color="#8b5cf6" />
+            <PhysicalCell icon={<Flame size={10} />} label={t("matchStatsPanel.sprints")} value={stats.fisicas.sprints.toString()} unit="" color="#ef4444" />
           </div>
 
           {/* Barra de intensidad segmentada */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
-                Zonas de intensidad
+                {t("matchStatsPanel.intensityZones")}
               </span>
               <span className="text-[9px] text-muted-foreground tabular-nums">
-                {stats.fisicas.intensidadPct.sprint}% sprint
+                {stats.fisicas.intensidadPct.sprint}% {t("matchStatsPanel.zoneSprint")}
               </span>
             </div>
             <div className="flex h-2.5 rounded-full overflow-hidden gap-px bg-background/40">
@@ -299,12 +303,12 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
             </div>
             <div className="grid grid-cols-4 gap-1 pt-0.5">
               {[
-                { label: "Caminar", pct: stats.fisicas.intensidadPct.caminar, color: "#94a3b8" },
-                { label: "Trotar",  pct: stats.fisicas.intensidadPct.trotar,  color: "#3b82f6" },
-                { label: "Correr",  pct: stats.fisicas.intensidadPct.correr,  color: "#f97316" },
-                { label: "Sprint",  pct: stats.fisicas.intensidadPct.sprint,  color: "#ef4444" },
+                { id: "walk",   label: t("matchStatsPanel.zoneWalk"),   pct: stats.fisicas.intensidadPct.caminar, color: "#94a3b8" },
+                { id: "jog",    label: t("matchStatsPanel.zoneJog"),    pct: stats.fisicas.intensidadPct.trotar,  color: "#3b82f6" },
+                { id: "run",    label: t("matchStatsPanel.zoneRun"),    pct: stats.fisicas.intensidadPct.correr,  color: "#f97316" },
+                { id: "sprint", label: t("matchStatsPanel.zoneSprint"), pct: stats.fisicas.intensidadPct.sprint,  color: "#ef4444" },
               ].map((z) => (
-                <div key={z.label} className="flex items-center gap-1 min-w-0">
+                <div key={z.id} className="flex items-center gap-1 min-w-0">
                   <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: z.color }} />
                   <span className="text-[8px] text-muted-foreground truncate">
                     {z.label} {z.pct}%
@@ -320,7 +324,7 @@ export default function MatchStatsPanel({ data, title = "Panel de Estadísticas"
       {!stats.tieneEventos && !stats.tieneFisicas && (
         <div className="glass rounded-2xl p-4 text-center">
           <p className="text-xs text-muted-foreground">
-            No hay estadísticas cuantitativas disponibles para este análisis
+            {t("matchStatsPanel.noStats")}
           </p>
         </div>
       )}
@@ -400,6 +404,7 @@ function KpiCardComparative({
   total: number;
   percentLeft: number;
 }) {
+  const { t } = useTranslation();
   const pctLeft = Math.max(0, Math.min(100, percentLeft));
   const pctRight = 100 - pctLeft;
 
@@ -421,7 +426,7 @@ function KpiCardComparative({
             </div>
             <div>
               <h4 className="text-xs font-display font-bold text-foreground">{title}</h4>
-              <p className="text-[9px] text-muted-foreground">{total} totales</p>
+              <p className="text-[9px] text-muted-foreground">{t("matchStatsPanel.totalsCount", { count: total })}</p>
             </div>
           </div>
           <span

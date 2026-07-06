@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Swords, Sparkles, Loader2, AlertCircle, Plus, X,
@@ -57,6 +58,7 @@ interface PlanResponse {
 
 export default function CompareRivalPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<AnalysisMode>("video");
   const [rivalName, setRivalName] = useState("");
   const [rivalFormation, setRivalFormation] = useState("");
@@ -85,7 +87,7 @@ export default function CompareRivalPage() {
         body: JSON.stringify({
           videoUrl: url,
           playerContext: {
-            name: rivalName || "Equipo rival",
+            name: rivalName || t("compareRivalPage.rivalTeamDefault"),
             age: 13,
             position: "MID",
             competitiveLevel: "formativo",
@@ -93,7 +95,7 @@ export default function CompareRivalPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? "Error analizando video");
+      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? t("compareRivalPage.errorAnalyzingVideo"));
 
       const obs = json.data?.observations as RivalVideoAnalysis;
       setVideoAnalysis(obs);
@@ -105,9 +107,9 @@ export default function CompareRivalPage() {
       if (obs.resumenGeneral) {
         setRivalNotes((prev) => prev ? `${prev}\n\n[Gemini] ${obs.resumenGeneral}` : obs.resumenGeneral);
       }
-      toast.success("Video analizado — datos del rival extraídos");
+      toast.success(t("compareRivalPage.videoAnalyzedToast"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error analizando video");
+      toast.error(err instanceof Error ? err.message : t("compareRivalPage.errorAnalyzingVideo"));
       setVideoAnalysis(null);
     } finally {
       setAnalyzingVideo(false);
@@ -116,7 +118,7 @@ export default function CompareRivalPage() {
 
   async function handleGenerate() {
     if (!rivalName.trim()) {
-      toast.error("Nombre del rival es obligatorio");
+      toast.error(t("compareRivalPage.rivalNameRequiredToast"));
       return;
     }
     setGenerating(true);
@@ -140,12 +142,12 @@ export default function CompareRivalPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json?.error?.message ?? "Error generando plan");
+        throw new Error(json?.error?.message ?? t("compareRivalPage.errorGeneratingPlan"));
       }
       setResult(json.data as PlanResponse);
-      toast.success("Plan de partido generado");
+      toast.success(t("compareRivalPage.planGeneratedToast"));
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error";
+      const msg = err instanceof Error ? err.message : t("compareRivalPage.errorGeneric");
       setError(msg);
       toast.error(msg);
     } finally {
@@ -167,10 +169,10 @@ export default function CompareRivalPage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">
-              Plan vs Rival
+              {t("compareRivalPage.headerTitle")}
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Video + IA · análisis táctico con evidencia visual
+              {t("compareRivalPage.headerSubtitle")}
             </p>
           </div>
           <Swords size={18} className="text-electric" />
@@ -185,15 +187,15 @@ export default function CompareRivalPage() {
               <div className="glass rounded-2xl p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <Video size={14} className="text-primary" />
-                  <span className="text-xs font-display font-bold text-foreground">Video del rival</span>
+                  <span className="text-xs font-display font-bold text-foreground">{t("compareRivalPage.rivalVideoLabel")}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Sube un clip del rival (5-15 min). Gemini analizará formación, estilo, patrones y debilidades.
+                  {t("compareRivalPage.rivalVideoHint")}
                 </p>
                 {analyzingVideo ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
                     <Loader2 size={16} className="animate-spin text-primary" />
-                    <span className="font-display">Gemini analizando video del rival...</span>
+                    <span className="font-display">{t("compareRivalPage.analyzingVideoStatus")}</span>
                   </div>
                 ) : (
                   <VideoUpload
@@ -207,7 +209,7 @@ export default function CompareRivalPage() {
               <div className="glass rounded-2xl p-4 border border-green-500/30">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle2 size={14} className="text-green-500" />
-                  <span className="text-xs font-display font-bold text-green-500">Video analizado</span>
+                  <span className="text-xs font-display font-bold text-green-500">{t("compareRivalPage.videoAnalyzedLabel")}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
                   {videoAnalysis.resumenGeneral?.slice(0, 200)}...
@@ -216,7 +218,7 @@ export default function CompareRivalPage() {
                   onClick={() => { setVideoAnalysis(null); setVideoUrl(null); }}
                   className="mt-2 text-[10px] text-muted-foreground hover:text-foreground"
                 >
-                  Cambiar video
+                  {t("compareRivalPage.changeVideo")}
                 </button>
               </div>
             )}
@@ -226,55 +228,55 @@ export default function CompareRivalPage() {
         {/* Form */}
         <div className="glass rounded-2xl p-4 space-y-3">
           <Field
-            label="Nombre del rival *"
+            label={t("compareRivalPage.rivalNameLabel")}
             value={rivalName}
             onChange={setRivalName}
-            placeholder="ej. CD Rival U13"
+            placeholder={t("compareRivalPage.rivalNamePlaceholder")}
             required
           />
           <div className="grid grid-cols-2 gap-2">
             <Field
-              label="Formación reportada"
+              label={t("compareRivalPage.formationLabel")}
               value={rivalFormation}
               onChange={setRivalFormation}
-              placeholder="ej. 1-3-2-3"
+              placeholder={t("compareRivalPage.formationPlaceholder")}
             />
             <Field
-              label="Contexto"
+              label={t("compareRivalPage.contextLabel")}
               value={matchContext}
               onChange={setMatchContext}
-              placeholder="local, copa, ida…"
+              placeholder={t("compareRivalPage.contextPlaceholder")}
             />
           </div>
           <div>
             <label className="block text-[10px] font-display text-muted-foreground uppercase tracking-wider mb-1">
-              Notas libres del coach
+              {t("compareRivalPage.coachNotesLabel")}
             </label>
             <textarea
               value={rivalNotes}
               onChange={(e) => setRivalNotes(e.target.value)}
               rows={3}
-              placeholder="Lo que sepas: estilo, jugadas frecuentes, presión, transiciones, lo que pasó la última vez…"
+              placeholder={t("compareRivalPage.coachNotesPlaceholder")}
               className="w-full px-3 py-2 rounded-lg bg-background border border-border text-xs text-foreground focus:border-primary focus:outline-none resize-none"
             />
           </div>
 
           {/* Strengths */}
           <ListEditor
-            label="Fortalezas conocidas"
+            label={t("compareRivalPage.strengthsLabel")}
             color="text-green-400"
             items={strengths}
             onChange={setStrengths}
-            placeholder="ej. Pressing alto coordinado"
+            placeholder={t("compareRivalPage.strengthsPlaceholder")}
           />
 
           {/* Weaknesses */}
           <ListEditor
-            label="Debilidades conocidas"
+            label={t("compareRivalPage.weaknessesLabel")}
             color="text-amber-400"
             items={weaknesses}
             onChange={setWeaknesses}
-            placeholder="ej. Lateral izquierdo lento"
+            placeholder={t("compareRivalPage.weaknessesPlaceholder")}
           />
 
           {/* Key players */}
@@ -292,15 +294,15 @@ export default function CompareRivalPage() {
             className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {generating ? (
-              <><Loader2 size={14} className="animate-spin" /> Claude analizando…</>
+              <><Loader2 size={14} className="animate-spin" /> {t("compareRivalPage.claudeAnalyzing")}</>
             ) : (
-              <><Sparkles size={14} /> Generar plan vs {rivalName || "rival"}{videoAnalysis ? " (con video)" : ""}</>
+              <><Sparkles size={14} /> {t("compareRivalPage.generatePlanFor", { rival: rivalName || t("compareRivalPage.rivalFallback") })}{videoAnalysis ? t("compareRivalPage.withVideoSuffix") : ""}</>
             )}
           </button>
           <p className="text-[10px] text-muted-foreground text-center">
             {videoAnalysis
-              ? "Video + Claude Sonnet · plan táctico con evidencia visual"
-              : "~10s · 1 call Claude Sonnet · ~€0.05 por análisis"}
+              ? t("compareRivalPage.footerWithVideo")
+              : t("compareRivalPage.footerNoVideo")}
           </p>
         </div>
       </div>
@@ -333,6 +335,7 @@ function Field({
 function ListEditor({
   label, color, items, onChange, placeholder,
 }: { label: string; color: string; items: string[]; onChange: (v: string[]) => void; placeholder?: string }) {
+  const { t } = useTranslation();
   return (
     <div>
       <label className={`block text-[10px] font-display ${color} uppercase tracking-wider mb-1`}>
@@ -367,7 +370,7 @@ function ListEditor({
             onClick={() => onChange([...items, ""])}
             className="text-[10px] text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            <Plus size={10} /> Añadir
+            <Plus size={10} /> {t("compareRivalPage.add")}
           </button>
         )}
       </div>
@@ -378,10 +381,11 @@ function ListEditor({
 function KeyPlayersEditor({
   players, onChange,
 }: { players: KeyPlayer[]; onChange: (v: KeyPlayer[]) => void }) {
+  const { t } = useTranslation();
   return (
     <div>
       <label className="block text-[10px] font-display text-electric uppercase tracking-wider mb-1">
-        Jugadores clave del rival
+        {t("compareRivalPage.keyPlayersLabel")}
       </label>
       <div className="space-y-1.5">
         {players.map((p, i) => (
@@ -392,7 +396,7 @@ function KeyPlayersEditor({
                 onChange={(e) => {
                   const next = [...players]; next[i] = { ...p, name: e.target.value }; onChange(next);
                 }}
-                placeholder="Nombre"
+                placeholder={t("compareRivalPage.playerNamePlaceholder")}
                 className="px-2 py-1 rounded bg-background border border-border text-[11px]"
               />
               <input
@@ -400,7 +404,7 @@ function KeyPlayersEditor({
                 onChange={(e) => {
                   const next = [...players]; next[i] = { ...p, position: e.target.value }; onChange(next);
                 }}
-                placeholder="Posición"
+                placeholder={t("compareRivalPage.playerPositionPlaceholder")}
                 className="px-2 py-1 rounded bg-background border border-border text-[11px]"
               />
             </div>
@@ -409,14 +413,14 @@ function KeyPlayersEditor({
               onChange={(e) => {
                 const next = [...players]; next[i] = { ...p, threat: e.target.value }; onChange(next);
               }}
-              placeholder="Amenaza · ej. velocista en banda derecha"
+              placeholder={t("compareRivalPage.playerThreatPlaceholder")}
               className="w-full px-2 py-1 rounded bg-background border border-border text-[11px]"
             />
             <button
               onClick={() => onChange(players.filter((_, j) => j !== i))}
               className="text-[10px] text-destructive hover:text-destructive/80 flex items-center gap-1"
             >
-              <X size={10} /> Quitar
+              <X size={10} /> {t("compareRivalPage.remove")}
             </button>
           </div>
         ))}
@@ -425,7 +429,7 @@ function KeyPlayersEditor({
             onClick={() => onChange([...players, { name: "", position: "", threat: "" }])}
             className="text-[10px] text-primary hover:text-primary/80 flex items-center gap-1"
           >
-            <Plus size={10} /> Añadir jugador clave
+            <Plus size={10} /> {t("compareRivalPage.addKeyPlayer")}
           </button>
         )}
       </div>
@@ -436,6 +440,7 @@ function KeyPlayersEditor({
 // ─── Plan View ────────────────────────────────────────────────────
 
 function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () => void; onNavBack: () => void }) {
+  const { t } = useTranslation();
   const p = data.plan;
   const ta = p.tactical_approach;
 
@@ -448,14 +453,14 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">
-              Plan vs {data.rivalName}
+              {t("compareRivalPage.planVsTitle", { rival: data.rivalName })}
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Generado · {data.ourTeamSize} jugadores nuestros analizados
+              {t("compareRivalPage.planGeneratedSubtitle", { count: data.ourTeamSize })}
             </p>
           </div>
           <button onClick={onBack} className="text-[11px] text-primary hover:text-primary/80 font-bold">
-            Editar
+            {t("compareRivalPage.edit")}
           </button>
         </div>
       </div>
@@ -478,16 +483,16 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Tactical approach */}
         {ta && (
-          <Section Icon={Zap} title="Aproximación táctica" color="#B82BD9">
+          <Section Icon={Zap} title={t("compareRivalPage.tacticalApproachTitle")} color="#B82BD9">
             <div className="grid grid-cols-2 gap-2">
-              {ta.formation_recommended && <Stat label="Formación" value={ta.formation_recommended} />}
-              {ta.compactness            && <Stat label="Compacidad" value={ta.compactness} />}
-              {ta.tempo                  && <Stat label="Tempo" value={ta.tempo} />}
-              {ta.high_press !== undefined && <Stat label="Press alto" value={ta.high_press ? "Sí" : "No"} />}
+              {ta.formation_recommended && <Stat label={t("compareRivalPage.statFormation")} value={ta.formation_recommended} />}
+              {ta.compactness            && <Stat label={t("compareRivalPage.statCompactness")} value={ta.compactness} />}
+              {ta.tempo                  && <Stat label={t("compareRivalPage.statTempo")} value={ta.tempo} />}
+              {ta.high_press !== undefined && <Stat label={t("compareRivalPage.statHighPress")} value={ta.high_press ? t("compareRivalPage.yes") : t("compareRivalPage.no")} />}
             </div>
             {ta.key_principle && (
               <p className="text-xs text-foreground leading-relaxed pt-2 border-t border-border/40">
-                <strong className="text-electric">Principio:</strong> {ta.key_principle}
+                <strong className="text-electric">{t("compareRivalPage.principleLabel")}</strong> {ta.key_principle}
               </p>
             )}
           </Section>
@@ -495,7 +500,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Key matchups */}
         {p.key_matchups && p.key_matchups.length > 0 && (
-          <Section Icon={Target} title="Matchups clave" color="#F59E0B">
+          <Section Icon={Target} title={t("compareRivalPage.keyMatchupsTitle")} color="#F59E0B">
             <ul className="space-y-2">
               {p.key_matchups.map((m, i) => (
                 <li key={i} className="text-xs">
@@ -513,7 +518,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Exploit their weaknesses */}
         {p.exploit_their_weaknesses && p.exploit_their_weaknesses.length > 0 && (
-          <Section Icon={Target} title="Atacar sus debilidades" color="#22e88c">
+          <Section Icon={Target} title={t("compareRivalPage.exploitWeaknessesTitle")} color="#22e88c">
             <ul className="space-y-1.5">
               {p.exploit_their_weaknesses.map((w, i) => (
                 <li key={i} className="text-xs">
@@ -527,7 +532,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Guard our vulnerabilities */}
         {p.guard_our_vulnerabilities && p.guard_our_vulnerabilities.length > 0 && (
-          <Section Icon={Shield} title="Cubrir nuestras vulnerabilidades" color="#EF4444">
+          <Section Icon={Shield} title={t("compareRivalPage.guardVulnerabilitiesTitle")} color="#EF4444">
             <ul className="space-y-1.5">
               {p.guard_our_vulnerabilities.map((v, i) => (
                 <li key={i} className="text-xs">
@@ -541,25 +546,25 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Match phases */}
         {p.match_phases && (
-          <Section Icon={Calendar} title="Fases del partido" color="#1A8FFF">
-            {p.match_phases.first_15min && <Phase label="0-15 min" text={p.match_phases.first_15min} />}
-            {p.match_phases.mid_match   && <Phase label="Medio"    text={p.match_phases.mid_match} />}
-            {p.match_phases.last_15min  && <Phase label="Cierre"   text={p.match_phases.last_15min} />}
+          <Section Icon={Calendar} title={t("compareRivalPage.matchPhasesTitle")} color="#1A8FFF">
+            {p.match_phases.first_15min && <Phase label={t("compareRivalPage.phaseFirst15")} text={p.match_phases.first_15min} />}
+            {p.match_phases.mid_match   && <Phase label={t("compareRivalPage.phaseMid")}    text={p.match_phases.mid_match} />}
+            {p.match_phases.last_15min  && <Phase label={t("compareRivalPage.phaseLast15")}   text={p.match_phases.last_15min} />}
           </Section>
         )}
 
         {/* Training week */}
         {p.training_week && (
-          <Section Icon={ListChecks} title="Semana de entrenamiento" color="#0066CC">
-            {p.training_week.monday    && <Phase label="Lun" text={p.training_week.monday} />}
-            {p.training_week.wednesday && <Phase label="Mié" text={p.training_week.wednesday} />}
-            {p.training_week.friday    && <Phase label="Vie" text={p.training_week.friday} />}
+          <Section Icon={ListChecks} title={t("compareRivalPage.trainingWeekTitle")} color="#0066CC">
+            {p.training_week.monday    && <Phase label={t("compareRivalPage.dayMon")} text={p.training_week.monday} />}
+            {p.training_week.wednesday && <Phase label={t("compareRivalPage.dayWed")} text={p.training_week.wednesday} />}
+            {p.training_week.friday    && <Phase label={t("compareRivalPage.dayFri")} text={p.training_week.friday} />}
           </Section>
         )}
 
         {/* Drills */}
         {p.recommended_drills && p.recommended_drills.length > 0 && (
-          <Section Icon={Sparkles} title="Drills recomendados" color="#B82BD9">
+          <Section Icon={Sparkles} title={t("compareRivalPage.recommendedDrillsTitle")} color="#B82BD9">
             <div className="space-y-2">
               {p.recommended_drills.map((d, i) => (
                 <div key={i} className="rounded-lg bg-secondary/30 p-2 text-xs">
@@ -576,7 +581,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 
         {/* Wildcards */}
         {p.wildcards && p.wildcards.length > 0 && (
-          <Section Icon={AlertTriangle} title="Plan B (wildcards)" color="#F59E0B">
+          <Section Icon={AlertTriangle} title={t("compareRivalPage.wildcardsTitle")} color="#F59E0B">
             <ul className="space-y-1.5">
               {p.wildcards.map((w, i) => (
                 <li key={i} className="text-xs">

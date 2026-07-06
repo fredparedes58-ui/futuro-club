@@ -6,6 +6,7 @@
  */
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer,
@@ -120,7 +121,7 @@ function scoreColor(score: number): string {
   return "#ef4444";
 }
 
-function confianzaBadge(value: number) {
+function confianzaBadge(value: number, label: string) {
   const pct = Math.round(value * 100);
   const color =
     pct >= 80 ? "bg-green-100 text-green-700" :
@@ -128,7 +129,7 @@ function confianzaBadge(value: number) {
     "bg-red-100 text-red-700";
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${color}`}>
-      Confianza: {pct}%
+      {label}: {pct}%
     </span>
   );
 }
@@ -154,6 +155,7 @@ const printStyles = `
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AnalysisReportPrint() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<StoredReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,7 +164,7 @@ export default function AnalysisReportPrint() {
   // Load report data
   useEffect(() => {
     if (!id) {
-      setError("ID de análisis no proporcionado");
+      setError(t("analysisReportPrint.errorNoId"));
       setLoading(false);
       return;
     }
@@ -190,23 +192,23 @@ export default function AnalysisReportPrint() {
         .maybeSingle()
         .then(({ data: row, error: err }) => {
           if (err || !row) {
-            setError("Análisis no encontrado");
+            setError(t("analysisReportPrint.errorNotFound"));
             setLoading(false);
             return;
           }
           const report = (typeof row.report === "string" ? JSON.parse(row.report) : row.report) as AnalysisReport;
           setData({
             report,
-            playerName: (row as Record<string, unknown>).player_name as string ?? "Jugador",
+            playerName: (row as Record<string, unknown>).player_name as string ?? t("analysisReportPrint.playerFallback"),
             playerPosition: (row as Record<string, unknown>).player_position as string ?? "",
           });
           setLoading(false);
         });
     } else {
-      setError("Análisis no encontrado en sesión");
+      setError(t("analysisReportPrint.errorNotFoundSession"));
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   // Auto-print
   useEffect(() => {
@@ -215,14 +217,18 @@ export default function AnalysisReportPrint() {
     return () => clearTimeout(timer);
   }, [data, loading]);
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Cargando informe de análisis...</div>;
-  if (error || !data) return <div className="p-8 text-center text-red-500">{error ?? "Error desconocido"}</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">{t("analysisReportPrint.loading")}</div>;
+  if (error || !data) return <div className="p-8 text-center text-red-500">{error ?? t("analysisReportPrint.errorUnknown")}</div>;
 
   const { report, playerName, playerPosition } = data;
   const r = report;
   const dims = r.estadoActual.dimensiones;
   const fisicas = r.metricasCuantitativas?.fisicas;
   const eventos = r.metricasCuantitativas?.eventos;
+
+  // Translated dimension label with Spanish module-scope fallback
+  const dimLabel = (key: string): string =>
+    t(`analysisReportPrint.dim.${key}`, { defaultValue: dimensionLabels[key] ?? key });
 
   // Panel de stats clásico tipo Wyscout — calculado on-the-fly (puro)
   const matchStats = computeMatchStats(
@@ -231,7 +237,7 @@ export default function AnalysisReportPrint() {
 
   // RadarChart data from dimensions
   const radarData = (Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => ({
-    subject: (dimensionLabels[key] ?? key).split(" ").slice(0, 2).join(" "),
+    subject: dimLabel(key).split(" ").slice(0, 2).join(" "),
     value: dim.score,
     fullMark: 10,
   }));
@@ -273,24 +279,24 @@ export default function AnalysisReportPrint() {
               <div className="text-sm text-gray-500 mt-0.5">{playerPosition}</div>
             )}
             <div className="text-[10px] text-gray-400 mt-1">
-              Generado: {formatDate()}
+              {t("analysisReportPrint.generatedLabel")}: {formatDate()}
             </div>
           </div>
           <div className="text-right shrink-0 ml-4">
-            {confianzaBadge(r.confianza)}
+            {confianzaBadge(r.confianza, t("analysisReportPrint.confidence"))}
             <div className="mt-2 text-[10px] text-gray-400">
-              VSI Ajuste: <span className="font-bold text-gray-700">{r.estadoActual.ajusteVSIVideoScore}</span>
+              {t("analysisReportPrint.vsiAdjust")}: <span className="font-bold text-gray-700">{r.estadoActual.ajusteVSIVideoScore}</span>
             </div>
           </div>
         </div>
 
         {/* ── 2. Resumen Ejecutivo ────────────────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Resumen Ejecutivo</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.executiveSummary")}</h2>
           <p className="text-sm text-gray-700 leading-relaxed">{r.estadoActual.resumenEjecutivo}</p>
           <div className="flex gap-4 mt-3 text-xs">
             <div>
-              <span className="text-gray-400">Nivel Actual:</span>{" "}
+              <span className="text-gray-400">{t("analysisReportPrint.currentLevel")}:</span>{" "}
               <span className="font-semibold text-purple-700">{r.estadoActual.nivelActual}</span>
             </div>
           </div>
@@ -310,7 +316,7 @@ export default function AnalysisReportPrint() {
 
         {/* ── 3. Dimensiones + RadarChart ─────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Dimensiones de Rendimiento</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.performanceDimensions")}</h2>
           <div className="grid grid-cols-2 gap-4">
             {/* RadarChart */}
             <div style={{ width: "100%", height: 200 }}>
@@ -319,7 +325,7 @@ export default function AnalysisReportPrint() {
                   <PolarGrid stroke="#e5e7eb" />
                   <PolarAngleAxis dataKey="subject" tick={{ fontSize: 8, fill: "#6b7280" }} />
                   <Radar
-                    name="Dimensiones"
+                    name={t("analysisReportPrint.dimensionsSeries")}
                     dataKey="value"
                     stroke="#7c3aed"
                     fill="#7c3aed"
@@ -333,7 +339,7 @@ export default function AnalysisReportPrint() {
               {(Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => (
                 <div key={key} className="flex items-start gap-2">
                   <span className="text-[10px] text-gray-500 w-28 shrink-0 pt-0.5">
-                    {dimensionLabels[key] ?? key}
+                    {dimLabel(key)}
                   </span>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -358,13 +364,13 @@ export default function AnalysisReportPrint() {
         {/* ── 3b. Benchmark vs Pares ────────────────────────────────── */}
         {benchmark && benchmark.sampleSize > 0 && (
           <section className="mb-6 no-break">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Benchmark vs Pares</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.benchmarkVsPeers")}</h2>
             <p className="text-[9px] text-gray-400 mb-2">{benchmark.groupDescription}</p>
             <div className="grid grid-cols-3 gap-2">
               {benchmark.dimensions.map((d) => (
                 <div key={d.dimensionKey} className="flex items-center gap-1.5">
                   <span className="text-[9px] text-gray-500 w-16 shrink-0">
-                    {(dimensionLabels[d.dimensionKey] ?? d.dimensionKey).split(" ")[0]}
+                    {dimLabel(d.dimensionKey).split(" ")[0]}
                   </span>
                   <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
@@ -403,8 +409,11 @@ export default function AnalysisReportPrint() {
                 <div className="text-[10px] font-bold text-gray-700">Quality Score</div>
                 <div className="text-[9px] text-gray-500">
                   {validation.issues.length === 0
-                    ? "Sin incoherencias detectadas"
-                    : `${validation.issues.filter(i => i.severity === "error").length} errores, ${validation.issues.filter(i => i.severity === "warning").length} advertencias`}
+                    ? t("analysisReportPrint.noInconsistencies")
+                    : t("analysisReportPrint.issuesSummary", {
+                        errors: validation.issues.filter(i => i.severity === "error").length,
+                        warnings: validation.issues.filter(i => i.severity === "warning").length,
+                      })}
                 </div>
               </div>
             </div>
@@ -415,7 +424,7 @@ export default function AnalysisReportPrint() {
         {matchStats && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-              Panel de Estadísticas
+              {t("analysisReportPrint.statsPanel")}
             </h2>
             <div
               className="rounded-lg p-4 border"
@@ -427,7 +436,7 @@ export default function AnalysisReportPrint() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">
-                    Rating del partido
+                    {t("analysisReportPrint.matchRating")}
                   </div>
                   <div className="flex items-baseline gap-1.5">
                     <span
@@ -453,15 +462,15 @@ export default function AnalysisReportPrint() {
               {/* Totales agregados */}
               <div className="grid grid-cols-3 gap-2 mb-3 pt-3 border-t border-gray-200">
                 <div>
-                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Total acciones</div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">{t("analysisReportPrint.totalActions")}</div>
                   <div className="text-sm font-bold text-gray-900">{matchStats.totalAcciones}</div>
                 </div>
                 <div>
-                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Ofensivas</div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">{t("analysisReportPrint.offensive")}</div>
                   <div className="text-sm font-bold text-green-700">{matchStats.totalOfensivas}</div>
                 </div>
                 <div>
-                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">Defensivas</div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wider">{t("analysisReportPrint.defensive")}</div>
                   <div className="text-sm font-bold text-blue-700">{matchStats.totalDefensivas}</div>
                 </div>
               </div>
@@ -470,11 +479,11 @@ export default function AnalysisReportPrint() {
               <div className="space-y-2">
                 {matchStats.pases && matchStats.pases.total > 0 && (
                   <PrintKpiRow
-                    label="Pases"
+                    label={t("analysisReportPrint.passes")}
                     leftValue={matchStats.pases.completados}
-                    leftLabel="Completados"
+                    leftLabel={t("analysisReportPrint.completed")}
                     rightValue={matchStats.pases.fallados}
-                    rightLabel="Fallados"
+                    rightLabel={t("analysisReportPrint.failed")}
                     percent={matchStats.pases.precision}
                     rating={KPI_RATING_LABEL_ES[matchStats.pases.rating]}
                     leftColor="#16a34a"
@@ -483,11 +492,11 @@ export default function AnalysisReportPrint() {
                 )}
                 {matchStats.duelos && matchStats.duelos.total > 0 && (
                   <PrintKpiRow
-                    label="Duelos"
+                    label={t("analysisReportPrint.duels")}
                     leftValue={matchStats.duelos.ganados}
-                    leftLabel="Ganados"
+                    leftLabel={t("analysisReportPrint.won")}
                     rightValue={matchStats.duelos.perdidos}
-                    rightLabel="Perdidos"
+                    rightLabel={t("analysisReportPrint.lost")}
                     percent={matchStats.duelos.efectividad}
                     rating={DUEL_RATING_LABEL_ES[matchStats.duelos.rating]}
                     leftColor="#10b981"
@@ -496,7 +505,7 @@ export default function AnalysisReportPrint() {
                 )}
                 {matchStats.recuperaciones && (
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-700 font-medium">Recuperaciones</span>
+                    <span className="text-gray-700 font-medium">{t("analysisReportPrint.recoveries")}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-emerald-700 tabular-nums">{matchStats.recuperaciones.total}</span>
                       <span className="text-[9px] text-gray-500 uppercase tracking-wider">
@@ -507,13 +516,13 @@ export default function AnalysisReportPrint() {
                 )}
                 {matchStats.disparos && matchStats.disparos.total > 0 && (
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-700 font-medium">Disparos</span>
+                    <span className="text-gray-700 font-medium">{t("analysisReportPrint.shots")}</span>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-amber-700 tabular-nums">
                         {matchStats.disparos.alArco}/{matchStats.disparos.total}
                       </span>
                       <span className="text-[9px] text-gray-500 uppercase tracking-wider">
-                        {matchStats.disparos.precision}% al arco
+                        {t("analysisReportPrint.onTarget", { percent: matchStats.disparos.precision })}
                       </span>
                     </div>
                   </div>
@@ -526,24 +535,24 @@ export default function AnalysisReportPrint() {
         {/* ── 5. Métricas Físicas ────────────────────────────────────── */}
         {fisicas && (
           <section className="mb-6 no-break">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Métricas Físicas</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.physicalMetrics")}</h2>
             <div className="grid grid-cols-4 gap-3">
-              <MetricCard label="Vel. Máxima" value={`${fisicas.velocidadMaxKmh} km/h`} />
-              <MetricCard label="Vel. Promedio" value={`${fisicas.velocidadPromKmh} km/h`} />
-              <MetricCard label="Distancia" value={`${fisicas.distanciaM} m`} />
-              <MetricCard label="Sprints" value={String(fisicas.sprints)} />
+              <MetricCard label={t("analysisReportPrint.maxSpeed")} value={`${fisicas.velocidadMaxKmh} km/h`} />
+              <MetricCard label={t("analysisReportPrint.avgSpeed")} value={`${fisicas.velocidadPromKmh} km/h`} />
+              <MetricCard label={t("analysisReportPrint.distance")} value={`${fisicas.distanciaM} m`} />
+              <MetricCard label={t("analysisReportPrint.sprints")} value={String(fisicas.sprints)} />
             </div>
             {fisicas.zonasIntensidad && (
               <div className="flex gap-1 mt-3">
                 {(
                   [
-                    ["Caminar", fisicas.zonasIntensidad.caminar, "#d1d5db"],
-                    ["Trotar", fisicas.zonasIntensidad.trotar, "#93c5fd"],
-                    ["Correr", fisicas.zonasIntensidad.correr, "#fbbf24"],
-                    ["Sprint", fisicas.zonasIntensidad.sprint, "#f87171"],
-                  ] as [string, number, string][]
-                ).map(([label, pct, color]) => (
-                  <div key={label} className="flex-1 text-center">
+                    ["walk", t("analysisReportPrint.zoneWalk"), fisicas.zonasIntensidad.caminar, "#d1d5db"],
+                    ["jog", t("analysisReportPrint.zoneJog"), fisicas.zonasIntensidad.trotar, "#93c5fd"],
+                    ["run", t("analysisReportPrint.zoneRun"), fisicas.zonasIntensidad.correr, "#fbbf24"],
+                    ["sprint", t("analysisReportPrint.zoneSprint"), fisicas.zonasIntensidad.sprint, "#f87171"],
+                  ] as [string, string, number, string][]
+                ).map(([id, label, pct, color]) => (
+                  <div key={id} className="flex-1 text-center">
                     <div className="h-2 rounded-full" style={{ backgroundColor: color, opacity: 0.7 }} />
                     <div className="text-[8px] text-gray-500 mt-0.5">{label} {pct}%</div>
                   </div>
@@ -556,23 +565,23 @@ export default function AnalysisReportPrint() {
         {/* ── 5. Métricas Eventos ────────────────────────────────────── */}
         {eventos && (
           <section className="mb-6 no-break">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Métricas de Eventos</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.eventMetrics")}</h2>
             <div className="grid grid-cols-4 gap-3">
               <MetricCard
-                label="Pases"
+                label={t("analysisReportPrint.passes")}
                 value={`${eventos.pasesCompletados}/${eventos.pasesCompletados + eventos.pasesFallados}`}
-                sub={`${eventos.precisionPases}% precisión`}
+                sub={t("analysisReportPrint.precisionSub", { percent: eventos.precisionPases })}
               />
               <MetricCard
-                label="Duelos"
+                label={t("analysisReportPrint.duels")}
                 value={`${eventos.duelosGanados}/${eventos.duelosGanados + eventos.duelosPerdidos}`}
-                sub={`${Math.round((eventos.duelosGanados / Math.max(1, eventos.duelosGanados + eventos.duelosPerdidos)) * 100)}% ganados`}
+                sub={t("analysisReportPrint.wonSub", { percent: Math.round((eventos.duelosGanados / Math.max(1, eventos.duelosGanados + eventos.duelosPerdidos)) * 100) })}
               />
-              <MetricCard label="Recuperaciones" value={String(eventos.recuperaciones)} />
+              <MetricCard label={t("analysisReportPrint.recoveries")} value={String(eventos.recuperaciones)} />
               <MetricCard
-                label="Disparos"
+                label={t("analysisReportPrint.shots")}
                 value={`${eventos.disparosAlArco}/${eventos.disparosAlArco + eventos.disparosFuera}`}
-                sub="al arco"
+                sub={t("analysisReportPrint.onTargetSub")}
               />
             </div>
           </section>
@@ -583,18 +592,18 @@ export default function AnalysisReportPrint() {
 
         {/* ── 6. ADN Futbolístico ────────────────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">ADN Futbolístico</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.footballDna")}</h2>
           <div className="grid grid-cols-3 gap-3 mb-3">
             <div className="p-2 bg-purple-50 rounded">
-              <div className="text-[9px] text-gray-400 uppercase">Arquetipo</div>
+              <div className="text-[9px] text-gray-400 uppercase">{t("analysisReportPrint.archetype")}</div>
               <div className="text-xs font-bold text-purple-700">{r.adnFutbolistico.arquetipoTactico}</div>
             </div>
             <div className="p-2 bg-purple-50 rounded">
-              <div className="text-[9px] text-gray-400 uppercase">Estilo</div>
+              <div className="text-[9px] text-gray-400 uppercase">{t("analysisReportPrint.style")}</div>
               <div className="text-xs font-bold text-purple-700">{r.adnFutbolistico.estiloJuego}</div>
             </div>
             <div className="p-2 bg-purple-50 rounded">
-              <div className="text-[9px] text-gray-400 uppercase">Mentalidad</div>
+              <div className="text-[9px] text-gray-400 uppercase">{t("analysisReportPrint.mentality")}</div>
               <div className="text-xs font-bold text-purple-700">{r.adnFutbolistico.mentalidad}</div>
             </div>
           </div>
@@ -613,7 +622,7 @@ export default function AnalysisReportPrint() {
 
         {/* ── 7. Jugador Referencia ──────────────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Jugador Referencia</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.referencePlayer")}</h2>
           <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center justify-between mb-1">
               <div>
@@ -625,7 +634,7 @@ export default function AnalysisReportPrint() {
                 </span>
               </div>
               <span className="text-xs font-bold text-purple-600">
-                {Math.round(r.jugadorReferencia.bestMatch.score * 100)}% similitud
+                {t("analysisReportPrint.similarity", { percent: Math.round(r.jugadorReferencia.bestMatch.score * 100) })}
               </span>
             </div>
             <p className="text-[11px] text-gray-600 leading-relaxed">
@@ -636,21 +645,21 @@ export default function AnalysisReportPrint() {
 
         {/* ── 8. Proyección de Carrera ───────────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Proyección de Carrera</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.careerProjection")}</h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="p-3 bg-green-50 rounded border border-green-100">
-              <div className="text-[9px] text-green-600 uppercase font-bold mb-1">Escenario Optimista</div>
+              <div className="text-[9px] text-green-600 uppercase font-bold mb-1">{t("analysisReportPrint.optimisticScenario")}</div>
               <div className="text-[10px] text-gray-400 mb-1">
-                Nivel: <span className="font-semibold text-green-700">{r.proyeccionCarrera.escenarioOptimista.nivelProyecto}</span>
+                {t("analysisReportPrint.level")}: <span className="font-semibold text-green-700">{r.proyeccionCarrera.escenarioOptimista.nivelProyecto}</span>
               </div>
               <p className="text-[10px] text-gray-600 leading-snug">
                 {r.proyeccionCarrera.escenarioOptimista.descripcion}
               </p>
             </div>
             <div className="p-3 bg-blue-50 rounded border border-blue-100">
-              <div className="text-[9px] text-blue-600 uppercase font-bold mb-1">Escenario Realista</div>
+              <div className="text-[9px] text-blue-600 uppercase font-bold mb-1">{t("analysisReportPrint.realisticScenario")}</div>
               <div className="text-[10px] text-gray-400 mb-1">
-                Nivel: <span className="font-semibold text-blue-700">{r.proyeccionCarrera.escenarioRealista.nivelProyecto}</span>
+                {t("analysisReportPrint.level")}: <span className="font-semibold text-blue-700">{r.proyeccionCarrera.escenarioRealista.nivelProyecto}</span>
               </div>
               <p className="text-[10px] text-gray-600 leading-snug">
                 {r.proyeccionCarrera.escenarioRealista.descripcion}
@@ -659,7 +668,7 @@ export default function AnalysisReportPrint() {
           </div>
           {r.proyeccionCarrera.factoresClave.length > 0 && (
             <div className="mb-2">
-              <div className="text-[9px] text-gray-400 uppercase font-bold mb-1">Factores Clave</div>
+              <div className="text-[9px] text-gray-400 uppercase font-bold mb-1">{t("analysisReportPrint.keyFactors")}</div>
               <div className="flex gap-1.5 flex-wrap">
                 {r.proyeccionCarrera.factoresClave.map((f, i) => (
                   <span key={i} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[9px] rounded">{f}</span>
@@ -671,14 +680,14 @@ export default function AnalysisReportPrint() {
 
         {/* ── 9. Plan de Desarrollo ──────────────────────────────────── */}
         <section className="mb-6 no-break">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Plan de Desarrollo</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.developmentPlan")}</h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div className="p-2 bg-gray-50 rounded">
-              <div className="text-[9px] text-gray-400 uppercase">Objetivo 6 meses</div>
+              <div className="text-[9px] text-gray-400 uppercase">{t("analysisReportPrint.goal6Months")}</div>
               <div className="text-[10px] font-semibold text-gray-700">{r.planDesarrollo.objetivo6meses}</div>
             </div>
             <div className="p-2 bg-gray-50 rounded">
-              <div className="text-[9px] text-gray-400 uppercase">Objetivo 18 meses</div>
+              <div className="text-[9px] text-gray-400 uppercase">{t("analysisReportPrint.goal18Months")}</div>
               <div className="text-[10px] font-semibold text-gray-700">{r.planDesarrollo.objetivo18meses}</div>
             </div>
           </div>
@@ -714,7 +723,7 @@ export default function AnalysisReportPrint() {
         {/* ── 10. Riesgos ────────────────────────────────────────────── */}
         {r.proyeccionCarrera.riesgos.length > 0 && (
           <section className="mb-6 no-break">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Riesgos Identificados</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.identifiedRisks")}</h2>
             <ul className="list-disc list-inside text-[10px] text-gray-600 space-y-1">
               {r.proyeccionCarrera.riesgos.map((riesgo, i) => (
                 <li key={i}>{riesgo}</li>
@@ -727,7 +736,7 @@ export default function AnalysisReportPrint() {
         <div className="pt-4 mt-6 border-t border-gray-200 flex items-center justify-between">
           <div className="text-[10px] text-purple-600 font-bold tracking-widest uppercase">VITAS.</div>
           <div className="text-[10px] text-gray-400">
-            Generado por VITAS Intelligence · {formatDate()}
+            {t("analysisReportPrint.generatedBy")} · {formatDate()}
           </div>
           <div className="text-[10px] text-gray-400">&copy; {new Date().getFullYear()}</div>
         </div>

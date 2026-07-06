@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import {
   ResponsiveContainer, ComposedChart, Line, Area, ReferenceLine, ReferenceArea,
   XAxis, YAxis, Tooltip, CartesianGrid,
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export default function GrowthVelocityChart({ playerId }: Props) {
+  const { t } = useTranslation();
   const [history, setHistory] = useState<AnthroRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +104,7 @@ export default function GrowthVelocityChart({ playerId }: Props) {
     return (
       <div className="flex items-center justify-center py-6 gap-2">
         <Loader2 size={14} className="animate-spin text-muted-foreground" />
-        <span className="text-[11px] text-muted-foreground">Cargando histórico…</span>
+        <span className="text-[11px] text-muted-foreground">{t("growthVelocityChart.loadingHistory")}</span>
       </div>
     );
   }
@@ -112,9 +114,9 @@ export default function GrowthVelocityChart({ playerId }: Props) {
       <div className="flex items-start gap-2 rounded-lg bg-secondary/30 border border-border p-3">
         <AlertCircle size={14} className="text-muted-foreground shrink-0 mt-0.5" />
         <div>
-          <p className="text-[11px] font-display font-bold text-foreground">Sin datos longitudinales</p>
+          <p className="text-[11px] font-display font-bold text-foreground">{t("growthVelocityChart.noLongitudinalData")}</p>
           <p className="text-[10px] text-muted-foreground leading-relaxed">
-            Registra al menos 2 mediciones (separadas 3-4 meses) para visualizar la curva de crecimiento y el APHV.
+            {t("growthVelocityChart.noLongitudinalDataHint")}
           </p>
         </div>
       </div>
@@ -127,22 +129,20 @@ export default function GrowthVelocityChart({ playerId }: Props) {
     <div className="space-y-3">
       {/* Header con APHV + estado */}
       <div className="grid grid-cols-3 gap-2">
-        <Stat label="APHV est." value={aphv !== null ? `${aphv.toFixed(1)}a` : "—"} icon={<Sparkles size={11} />} />
-        <Stat label="Offset actual" value={currentOffset !== null ? `${currentOffset > 0 ? "+" : ""}${currentOffset.toFixed(1)}a` : "—"} />
-        <Stat label="Mediciones" value={String(history.length)} />
+        <Stat label={t("growthVelocityChart.aphvEst")} value={aphv !== null ? `${aphv.toFixed(1)}a` : "—"} icon={<Sparkles size={11} />} />
+        <Stat label={t("growthVelocityChart.currentOffset")} value={currentOffset !== null ? `${currentOffset > 0 ? "+" : ""}${currentOffset.toFixed(1)}a` : "—"} />
+        <Stat label={t("growthVelocityChart.measurements")} value={String(history.length)} />
       </div>
 
       {hasOnePoint ? (
         <div className="rounded-lg bg-secondary/30 border border-border p-3 text-[11px] text-muted-foreground">
-          Con 1 medición solo podemos estimar el APHV por la fórmula Mirwald
-          ({aphv?.toFixed(1)}a). Para ver la curva real de velocidad de crecimiento
-          y predicción dinámica, registra otra medición en 3-4 meses.
+          {t("growthVelocityChart.onePointMessage", { aphv: aphv?.toFixed(1) })}
         </div>
       ) : (
         <div className="rounded-xl bg-secondary/30 border border-border p-2">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 px-2">
             <TrendingUp size={11} className="inline mr-1" />
-            Altura · Velocidad · Ventana PHV
+            {t("growthVelocityChart.chartTitle")}
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <ComposedChart data={points} margin={{ top: 6, right: 12, bottom: 6, left: 0 }}>
@@ -163,7 +163,7 @@ export default function GrowthVelocityChart({ playerId }: Props) {
                 yAxisId="velocity"
                 orientation="right"
                 tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
-                label={{ value: "cm/año", angle: 90, position: "insideRight", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                label={{ value: t("growthVelocityChart.cmPerYear"), angle: 90, position: "insideRight", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
               />
               <Tooltip
                 contentStyle={{
@@ -173,9 +173,9 @@ export default function GrowthVelocityChart({ playerId }: Props) {
                   fontSize: 10,
                 }}
                 formatter={(value: number, name: string) =>
-                  name === "Altura"
-                    ? [`${value} cm`, "Altura"]
-                    : [`${value?.toFixed(1)} cm/año`, "Velocidad"]
+                  name === t("growthVelocityChart.height")
+                    ? [`${value} cm`, t("growthVelocityChart.height")]
+                    : [`${value?.toFixed(1)} ${t("growthVelocityChart.cmPerYear")}`, t("growthVelocityChart.velocity")]
                 }
                 labelFormatter={(v) => `${v}a chronologicalAge`}
               />
@@ -211,7 +211,7 @@ export default function GrowthVelocityChart({ playerId }: Props) {
                 dataKey="height"
                 stroke="hsl(var(--electric))"
                 strokeWidth={2}
-                name="Altura"
+                name={t("growthVelocityChart.height")}
                 dot={{ r: 3, fill: "hsl(var(--electric))" }}
                 activeDot={{ r: 5 }}
               />
@@ -222,7 +222,7 @@ export default function GrowthVelocityChart({ playerId }: Props) {
                 stroke="hsl(var(--primary))"
                 fill="hsl(var(--primary))"
                 fillOpacity={0.2}
-                name="Velocidad"
+                name={t("growthVelocityChart.velocity")}
                 dot={{ r: 2, fill: "hsl(var(--primary))" }}
               />
             </ComposedChart>
@@ -232,14 +232,16 @@ export default function GrowthVelocityChart({ playerId }: Props) {
 
       {/* Hint educativo */}
       <p className="text-[10px] text-muted-foreground leading-relaxed">
-        El <strong>APHV</strong> (Age at Peak Height Velocity) es la edad estimada del salto puberal del jugador.
-        La <strong>ventana neuromotora</strong> (banda morada · APHV-1 a APHV+2) es el periodo de máxima
-        plasticidad para entrenamiento técnico-coordinativo. Categoría actual:{" "}
-        <strong className="text-foreground">
-          {latestCategory === "early" ? "Pre-estirón (precoz)" :
-           latestCategory === "late"  ? "Post-estirón (tardío)" :
-                                        "En estirón (on-time)"}
-        </strong>.
+        <Trans
+          i18nKey="growthVelocityChart.hint"
+          values={{
+            category:
+              latestCategory === "early" ? t("growthVelocityChart.categoryEarly") :
+              latestCategory === "late"  ? t("growthVelocityChart.categoryLate") :
+                                           t("growthVelocityChart.categoryOntime"),
+          }}
+          components={{ strong: <strong />, strongCat: <strong className="text-foreground" /> }}
+        />
       </p>
     </div>
   );

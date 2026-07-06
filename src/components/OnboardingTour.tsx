@@ -10,6 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, ChevronLeft, ChevronRight, Activity, Swords, Grid3x3, Sparkles,
@@ -19,67 +20,58 @@ import {
 const SEEN_KEY = "vitas_onboarding_seen_v1";
 
 interface Slide {
+  key: string;
   Icon: React.ElementType;
   color: string;
-  title: string;
-  description: string;
-  cta?: { label: string; to: string };
+  cta?: { to: string };
 }
 
 const SLIDES: Slide[] = [
   {
+    key: "welcome",
     Icon: Brain,
     color: "#0066CC",
-    title: "Bienvenido a VITAS",
-    description: "Análisis IA de fútbol juvenil con corrección por maduración biológica (PHV). Único en el mercado · adaptado a la realidad de cada jugador.",
   },
   {
+    key: "matchDay",
     Icon: Activity,
     color: "#22e88c",
-    title: "Match-day Live",
-    description: "Etiqueta eventos del partido en directo desde el móvil con 6 botones. Al pitido final, 4 reportes Claude listos en 60 segundos.",
-    cta: { label: "Probar Match-day", to: "/live" },
+    cta: { to: "/live" },
   },
   {
+    key: "planVsRival",
     Icon: Swords,
     color: "#F59E0B",
-    title: "Plan vs Rival",
-    description: "Describe al rival con lo que sepas (formación, jugadores clave, debilidades) y recibe un plan de partido completo + drills para entrenar la semana.",
-    cta: { label: "Crear plan", to: "/equipo/rival" },
+    cta: { to: "/equipo/rival" },
   },
   {
+    key: "teamTactical",
     Icon: Grid3x3,
     color: "#1A8FFF",
-    title: "Análisis táctico de equipo",
-    description: "5 reportes IA + grid de 9 cuadrantes con eficacia ofensiva/defensiva por zona del campo. Sin necesidad de vídeo.",
-    cta: { label: "Ver demo", to: "/equipo/baseline" },
+    cta: { to: "/equipo/baseline" },
   },
   {
+    key: "idp",
     Icon: Target,
     color: "#06b6d4",
-    title: "Plan de Desarrollo (IDP)",
-    description: "Cada jugador tiene un plan mensual con objetivos por dimensión y drills, propuesto por IA y ajustado por el coach. Seguimiento semanal + check-in a fin de mes.",
-    cta: { label: "Ver IDP", to: "/idp" },
+    cta: { to: "/idp" },
   },
   {
+    key: "mentalDna",
     Icon: Brain,
     color: "#a855f7",
-    title: "ADN Mental + Heatmap táctico",
-    description: "Perfil mental por 7 dimensiones (6 arquetipos) y heatmap táctico por 6 fases del juego. Comparte el ADN Mental de tu jugador como una card.",
-    cta: { label: "Ver Mental", to: "/behavioral" },
+    cta: { to: "/behavioral" },
   },
   {
+    key: "transferMarket",
     Icon: Briefcase,
     color: "#0ea5e9",
-    title: "Transfer Market",
-    description: "Publica jugadores y encuentra fichajes con matchmaking IA. El marketplace de talento juvenil con corrección PHV.",
-    cta: { label: "Ver mercado", to: "/transfer" },
+    cta: { to: "/transfer" },
   },
   {
+    key: "globalSearch",
     Icon: Search,
     color: "#B82BD9",
-    title: "Búsqueda global ⌘K",
-    description: "Pulsa ⌘K (o Ctrl+K) en cualquier momento para buscar jugadores, acciones o ir directo a cualquier página. El botón flotante arriba a la derecha también lo abre.",
   },
 ];
 
@@ -87,6 +79,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Auto-open al primer mount si no está visto Y cookies ya aceptadas
   useEffect(() => {
@@ -152,7 +145,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
           <button
             onClick={dismiss}
             className="absolute top-3 right-3 p-1.5 rounded-full bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Cerrar tour"
+            aria-label={t("onboardingTour.closeTour")}
           >
             <X size={14} />
           </button>
@@ -178,15 +171,15 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
                 <div className="flex items-center gap-1">
                   <Sparkles size={9} style={{ color: slide.color }} />
                   <span className="text-[10px] uppercase tracking-wider font-bold" style={{ color: slide.color }}>
-                    {index + 1} de {SLIDES.length}
+                    {t("onboardingTour.stepCounter", { current: index + 1, total: SLIDES.length })}
                   </span>
                 </div>
               </div>
 
               {/* Title + desc */}
               <div className="space-y-2">
-                <h2 className="font-display font-bold text-lg text-foreground">{slide.title}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">{slide.description}</p>
+                <h2 className="font-display font-bold text-lg text-foreground">{t(`onboardingTour.slides.${slide.key}.title`)}</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t(`onboardingTour.slides.${slide.key}.description`)}</p>
               </div>
 
               {/* CTA específico del slide */}
@@ -196,7 +189,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
                   className="w-full py-2.5 rounded-lg text-sm font-display font-bold text-primary-foreground transition-colors"
                   style={{ backgroundColor: slide.color }}
                 >
-                  {slide.cta.label} →
+                  {t(`onboardingTour.slides.${slide.key}.cta`)} →
                 </button>
               )}
             </motion.div>
@@ -211,7 +204,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
                 className={`h-1.5 rounded-full transition-all ${
                   i === index ? "w-6 bg-primary" : "w-1.5 bg-secondary hover:bg-foreground/30"
                 }`}
-                aria-label={`Ir al slide ${i + 1}`}
+                aria-label={t("onboardingTour.goToSlide", { number: i + 1 })}
               />
             ))}
           </div>
@@ -223,7 +216,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
               disabled={index === 0}
               className="flex items-center gap-1 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={12} /> Anterior
+              <ChevronLeft size={12} /> {t("onboardingTour.previous")}
             </button>
 
             {isLast ? (
@@ -231,14 +224,14 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
                 onClick={dismiss}
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
               >
-                <Trophy size={12} /> Empezar a usar VITAS
+                <Trophy size={12} /> {t("onboardingTour.start")}
               </button>
             ) : (
               <button
                 onClick={() => setIndex((i) => Math.min(SLIDES.length - 1, i + 1))}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-foreground hover:text-primary transition-colors font-bold"
               >
-                Siguiente <ChevronRight size={12} />
+                {t("onboardingTour.next")} <ChevronRight size={12} />
               </button>
             )}
           </div>
@@ -248,7 +241,7 @@ export default function OnboardingTour({ forceOpen, onClose }: { forceOpen?: boo
             onClick={dismiss}
             className="w-full text-center text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
-            Saltar tour · puedes verlo de nuevo desde Ajustes
+            {t("onboardingTour.skip")}
           </button>
         </motion.div>
       </motion.div>

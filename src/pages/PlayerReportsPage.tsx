@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 import { PlayerService } from "@/services/real/playerService";
@@ -75,6 +76,7 @@ function ReportCard({
   onView: () => void;
   onEvolution: () => void;
 }) {
+  const { t } = useTranslation();
   const report = analysis.report as VideoIntelligenceOutput | null;
   if (!report) return null;
 
@@ -89,8 +91,8 @@ function ReportCard({
   const timeStr = date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
 
   const videoTitle = report.videoId
-    ? VideoService.getById(report.videoId)?.title ?? "Video"
-    : "Sin video";
+    ? VideoService.getById(report.videoId)?.title ?? t("playerReportsPage.video")
+    : t("playerReportsPage.noVideo");
 
   const isLatest = index === 0;
 
@@ -109,7 +111,7 @@ function ReportCard({
             <span className="text-[11px] text-muted-foreground">{dateStr}, {timeStr}</span>
             {isLatest && (
               <Badge className="text-[8px] bg-primary/20 text-primary border-primary/30">
-                Ultimo
+                {t("playerReportsPage.latest")}
               </Badge>
             )}
           </div>
@@ -159,7 +161,7 @@ function ReportCard({
             <>
               <Star size={10} className="text-gold" />
               <span className="text-[10px] text-muted-foreground">
-                Clon: <span className="text-foreground font-medium">{clon.nombre}</span>
+                {t("playerReportsPage.clone")} <span className="text-foreground font-medium">{clon.nombre}</span>
                 {" "}({clon.score}%)
               </span>
             </>
@@ -171,13 +173,13 @@ function ReportCard({
             className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
           >
             <TrendingUp size={10} />
-            Evolucion
+            {t("playerReportsPage.evolution")}
           </button>
           <button
             onClick={onView}
             className="flex items-center gap-1 text-[10px] font-bold text-primary hover:text-primary/80 transition-colors"
           >
-            Ver Completo
+            {t("playerReportsPage.viewFull")}
             <ChevronRight size={10} />
           </button>
         </div>
@@ -189,6 +191,7 @@ function ReportCard({
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function PlayerReportsPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -208,13 +211,13 @@ export default function PlayerReportsPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "Error generando reporte baseline");
+        throw new Error(data?.error?.message ?? t("playerReportsPage.baselineError"));
       }
-      toast.success(`✓ ${data.data.reportsGenerated}/6 reportes generados · VSI ${data.data.vsi}`);
+      toast.success(t("playerReportsPage.reportsGenerated", { count: data.data.reportsGenerated, vsi: data.data.vsi }));
       await queryClient.invalidateQueries({ queryKey: ["analyses-v2", id] });
       navigate(`/player/${id}/analysis/${data.data.analysisId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error generando reporte");
+      toast.error(err instanceof Error ? err.message : t("playerReportsPage.generateError"));
     } finally {
       setGenerating(false);
     }
@@ -224,7 +227,7 @@ export default function PlayerReportsPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6">
         <Brain size={32} className="text-destructive" />
-        <p className="text-sm text-muted-foreground">Jugador no encontrado</p>
+        <p className="text-sm text-muted-foreground">{t("playerReportsPage.playerNotFound")}</p>
       </div>
     );
   }
@@ -264,7 +267,7 @@ export default function PlayerReportsPage() {
             <h1 className="text-sm font-display font-bold text-foreground truncate">
               {player.name}
             </h1>
-            <p className="text-[10px] text-muted-foreground">Historial de Reportes</p>
+            <p className="text-[10px] text-muted-foreground">{t("playerReportsPage.reportHistory")}</p>
           </div>
           <FileText size={18} className="text-primary" />
         </div>
@@ -277,7 +280,7 @@ export default function PlayerReportsPage() {
             <div className="flex items-center gap-4">
               <div className="text-center">
                 <p className="text-lg font-display font-bold text-foreground">{total}</p>
-                <p className="text-[8px] text-muted-foreground uppercase tracking-wider">Reportes</p>
+                <p className="text-[8px] text-muted-foreground uppercase tracking-wider">{t("playerReportsPage.reports")}</p>
               </div>
               {total >= 2 && (
                 <div className="text-[10px] text-muted-foreground">
@@ -306,9 +309,9 @@ export default function PlayerReportsPage() {
           <div className="glass rounded-2xl p-6 text-center space-y-4">
             <Brain size={32} className="mx-auto text-primary/50" />
             <div className="space-y-1">
-              <h3 className="text-sm font-display font-bold text-foreground">Sin reportes todavía</h3>
+              <h3 className="text-sm font-display font-bold text-foreground">{t("playerReportsPage.noReportsYet")}</h3>
               <p className="text-xs text-muted-foreground">
-                Sube un vídeo del jugador para generar los 6 reportes IA con análisis biomecánico real.
+                {t("playerReportsPage.noReportsDesc")}
               </p>
             </div>
             <div className="space-y-2">
@@ -316,17 +319,17 @@ export default function PlayerReportsPage() {
                 onClick={() => navigate(`/lab?playerId=${id}`)}
                 className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
               >
-                <Video size={12} /> Subir vídeo en VITAS.LAB
+                <Video size={12} /> {t("playerReportsPage.uploadVideoLab")}
               </button>
               <button
                 onClick={() => navigate("/live")}
                 className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-border text-xs font-display hover:border-foreground/30 transition-colors"
               >
-                <Zap size={12} /> Match-day Live con vídeo
+                <Zap size={12} /> {t("playerReportsPage.matchdayLive")}
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed pt-1">
-              VITAS genera informes basados en vídeo real — análisis biomecánico, táctico y de rendimiento con IA.
+              {t("playerReportsPage.videoBasedNote")}
             </p>
           </div>
         )}
@@ -337,7 +340,7 @@ export default function PlayerReportsPage() {
             onClick={() => navigate(`/lab?playerId=${id}`)}
             className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg bg-secondary/30 text-foreground border border-dashed border-border text-[11px] font-display hover:border-primary/50 transition-colors"
           >
-            <Video size={12} /> Nuevo reporte · Subir vídeo en VITAS.LAB
+            <Video size={12} /> {t("playerReportsPage.newReport")}
           </button>
         )}
 
@@ -363,7 +366,7 @@ export default function PlayerReportsPage() {
             className="w-full glass rounded-xl p-4 flex items-center justify-center gap-2 border border-primary/30 hover:border-primary/50 transition-colors"
           >
             <TrendingUp size={16} className="text-primary" />
-            <span className="text-sm font-display font-bold text-primary">Ver Evolucion Completa</span>
+            <span className="text-sm font-display font-bold text-primary">{t("playerReportsPage.viewFullEvolution")}</span>
           </motion.button>
         )}
       </div>

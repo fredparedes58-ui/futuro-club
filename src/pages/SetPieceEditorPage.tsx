@@ -9,6 +9,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -71,14 +72,14 @@ const OUTCOMES: SetPieceOutcome[] = [
   "lost",
 ];
 
-const OUTCOME_LABEL: Record<SetPieceOutcome, string> = {
-  goal: "Gol",
-  shot_on_target: "Tiro a puerta",
-  shot_off_target: "Tiro fuera",
-  blocked: "Bloqueado",
-  cleared: "Despejado",
-  retained: "Posesión retenida",
-  lost: "Pérdida",
+const OUTCOME_LABEL_KEY: Record<SetPieceOutcome, string> = {
+  goal: "setPieceEditorPage.outcomeGoal",
+  shot_on_target: "setPieceEditorPage.outcomeShotOnTarget",
+  shot_off_target: "setPieceEditorPage.outcomeShotOffTarget",
+  blocked: "setPieceEditorPage.outcomeBlocked",
+  cleared: "setPieceEditorPage.outcomeCleared",
+  retained: "setPieceEditorPage.outcomeRetained",
+  lost: "setPieceEditorPage.outcomeLost",
 };
 
 function genId(prefix: string): string {
@@ -86,6 +87,7 @@ function genId(prefix: string): string {
 }
 
 export default function SetPieceEditorPage() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -134,14 +136,14 @@ export default function SetPieceEditorPage() {
     existingRec?.diagram ?? [
       {
         playerId: "init1",
-        playerName: "Ejecutor",
+        playerName: t("setPieceEditorPage.playerTaker"),
         shirtNumber: 10,
         role: "taker",
         position: { x: 100, y: 0 },
       },
       {
         playerId: "init2",
-        playerName: "Rematador",
+        playerName: t("setPieceEditorPage.playerTarget"),
         shirtNumber: 9,
         role: "target",
         position: { x: 89, y: 50 },
@@ -161,11 +163,11 @@ export default function SetPieceEditorPage() {
   const handleSave = () => {
     if (isRecommendation) {
       if (!title.trim()) {
-        toast.error("Añade un título a la recomendación");
+        toast.error(t("setPieceEditorPage.errorAddTitle"));
         return;
       }
       if (players.length < 2) {
-        toast.error("Añade al menos 2 jugadores al pizarrón");
+        toast.error(t("setPieceEditorPage.errorMinTwoPlayers"));
         return;
       }
       const rec: CustomSetPieceRecommendation = {
@@ -175,7 +177,7 @@ export default function SetPieceEditorPage() {
         title: title.trim(),
         description: description.trim() || `${PATTERN_LABELS[pattern]} · ${SET_PIECE_TYPE_LABELS[type]}`,
         successProbability,
-        basedOn: basedOn.trim() || "Recomendación creada por el usuario",
+        basedOn: basedOn.trim() || t("setPieceEditorPage.defaultBasedOn"),
         diagram: players,
         keyPoints: description
           .split(/\n|\./)
@@ -188,16 +190,16 @@ export default function SetPieceEditorPage() {
         createdAt: existingRec?.createdAt ?? new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomRecommendation(rec);
-      toast.success("Recomendación guardada");
+      toast.success(t("setPieceEditorPage.recommendationSaved"));
     } else {
       if (players.length < 1) {
-        toast.error("Añade al menos un jugador al pizarrón");
+        toast.error(t("setPieceEditorPage.errorMinOnePlayer"));
         return;
       }
       const event: CustomSetPieceEvent = {
         id: existingEvent?.id ?? genId("event"),
         matchId: existingEvent?.matchId ?? "custom",
-        matchLabel: matchLabel.trim() || "Sesión personalizada",
+        matchLabel: matchLabel.trim() || t("setPieceEditorPage.defaultMatchLabel"),
         minute,
         type,
         side: existingEvent?.side ?? "right",
@@ -220,19 +222,19 @@ export default function SetPieceEditorPage() {
         createdAt: existingEvent?.createdAt ?? new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomEvent(event);
-      toast.success("Jugada guardada");
+      toast.success(t("setPieceEditorPage.eventSaved"));
     }
     navigate("/set-pieces");
   };
 
   const handleDelete = () => {
-    if (!window.confirm("¿Eliminar este elemento? No se puede deshacer.")) return;
+    if (!window.confirm(t("setPieceEditorPage.confirmDelete"))) return;
     if (isRecommendation && existingRec) {
       SetPieceCustomStorage.deleteCustomRecommendation(existingRec.id);
     } else if (existingEvent) {
       SetPieceCustomStorage.deleteCustomEvent(existingEvent.id);
     }
-    toast.success("Eliminado");
+    toast.success(t("setPieceEditorPage.deleted"));
     navigate("/set-pieces");
   };
 
@@ -264,17 +266,23 @@ export default function SetPieceEditorPage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="font-display font-bold text-base text-foreground">
-              {isEditing ? "Editar" : "Nueva"} {isRecommendation ? "recomendación" : "jugada"}
+              {isEditing
+                ? isRecommendation
+                  ? t("setPieceEditorPage.titleEditRecommendation")
+                  : t("setPieceEditorPage.titleEditEvent")
+                : isRecommendation
+                  ? t("setPieceEditorPage.titleNewRecommendation")
+                  : t("setPieceEditorPage.titleNewEvent")}
             </h1>
             <p className="text-[11px] text-muted-foreground">
-              Pizarrón táctico interactivo · arrastra, dibuja, anota
+              {t("setPieceEditorPage.subtitle")}
             </p>
           </div>
           {isEditing && (
             <button
               onClick={handleDelete}
               className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
-              title="Eliminar"
+              title={t("setPieceEditorPage.deleteTitle")}
             >
               <Trash2 size={16} />
             </button>
@@ -284,7 +292,7 @@ export default function SetPieceEditorPage() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-colors"
           >
             <Save size={14} />
-            Guardar
+            {t("setPieceEditorPage.save")}
           </button>
         </div>
       </header>
@@ -298,19 +306,19 @@ export default function SetPieceEditorPage() {
         >
           {/* Title (for recommendations) */}
           {isRecommendation && (
-            <Field label="Título">
+            <Field label={t("setPieceEditorPage.labelTitle")}>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Ej: Córner cerrado al primer palo"
+                placeholder={t("setPieceEditorPage.placeholderTitle")}
                 className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
               />
             </Field>
           )}
 
           {/* Type */}
-          <Field label="Tipo">
+          <Field label={t("setPieceEditorPage.labelType")}>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as SetPieceType)}
@@ -325,7 +333,7 @@ export default function SetPieceEditorPage() {
           </Field>
 
           {/* Pattern */}
-          <Field label="Patrón">
+          <Field label={t("setPieceEditorPage.labelPattern")}>
             <select
               value={pattern}
               onChange={(e) => setPattern(e.target.value as AttackingPattern)}
@@ -342,7 +350,7 @@ export default function SetPieceEditorPage() {
           {/* Event-specific fields */}
           {!isRecommendation && (
             <>
-              <Field label="Resultado">
+              <Field label={t("setPieceEditorPage.labelOutcome")}>
                 <select
                   value={outcome}
                   onChange={(e) => setOutcome(e.target.value as SetPieceOutcome)}
@@ -350,23 +358,23 @@ export default function SetPieceEditorPage() {
                 >
                   {OUTCOMES.map((o) => (
                     <option key={o} value={o}>
-                      {OUTCOME_LABEL[o]}
+                      {t(OUTCOME_LABEL_KEY[o])}
                     </option>
                   ))}
                 </select>
               </Field>
 
               <div className="grid grid-cols-2 gap-2">
-                <Field label="Partido">
+                <Field label={t("setPieceEditorPage.labelMatch")}>
                   <input
                     type="text"
                     value={matchLabel}
                     onChange={(e) => setMatchLabel(e.target.value)}
-                    placeholder="vs Rival FC"
+                    placeholder={t("setPieceEditorPage.placeholderMatch")}
                     className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                   />
                 </Field>
-                <Field label="Minuto">
+                <Field label={t("setPieceEditorPage.labelMinute")}>
                   <input
                     type="number"
                     min={0}
@@ -383,7 +391,7 @@ export default function SetPieceEditorPage() {
           {/* Recommendation-specific fields */}
           {isRecommendation && (
             <>
-              <Field label="Probabilidad de éxito (%)">
+              <Field label={t("setPieceEditorPage.labelSuccessProbability")}>
                 <input
                   type="range"
                   min={0}
@@ -396,12 +404,12 @@ export default function SetPieceEditorPage() {
                   {successProbability}%
                 </div>
               </Field>
-              <Field label="Basado en">
+              <Field label={t("setPieceEditorPage.labelBasedOn")}>
                 <input
                   type="text"
                   value={basedOn}
                   onChange={(e) => setBasedOn(e.target.value)}
-                  placeholder="Análisis de 12 córners del rival"
+                  placeholder={t("setPieceEditorPage.placeholderBasedOn")}
                   className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
                 />
               </Field>
@@ -410,7 +418,11 @@ export default function SetPieceEditorPage() {
 
           {/* Notes / Description */}
           <Field
-            label={isRecommendation ? "Puntos clave (uno por línea)" : "Notas tácticas"}
+            label={
+              isRecommendation
+                ? t("setPieceEditorPage.labelKeyPoints")
+                : t("setPieceEditorPage.labelTacticalNotes")
+            }
           >
             <textarea
               value={description}
@@ -418,8 +430,8 @@ export default function SetPieceEditorPage() {
               rows={5}
               placeholder={
                 isRecommendation
-                  ? "Saque con efecto interior\nBloque del 9 sobre el central\nRematador entra desde fuera del área"
-                  : "Bloque efectivo en el primer palo. Saque cerrado con curva interior."
+                  ? t("setPieceEditorPage.placeholderKeyPoints")
+                  : t("setPieceEditorPage.placeholderTacticalNotes")
               }
               className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none resize-none"
             />
@@ -429,15 +441,15 @@ export default function SetPieceEditorPage() {
           <div className="glass rounded-xl p-3 text-[11px] space-y-1">
             <p className="text-muted-foreground flex items-center gap-1.5">
               <CheckCircle2 size={11} className="text-emerald-500" />
-              {players.length} jugadores en el pizarrón
+              {t("setPieceEditorPage.statPlayers", { count: players.length })}
             </p>
             <p className="text-muted-foreground flex items-center gap-1.5">
               <CheckCircle2 size={11} className="text-emerald-500" />
-              {drawings.length} líneas/flechas dibujadas
+              {t("setPieceEditorPage.statDrawings", { count: drawings.length })}
             </p>
             <p className="text-muted-foreground flex items-center gap-1.5">
               <CheckCircle2 size={11} className="text-emerald-500" />
-              {texts.length} anotaciones
+              {t("setPieceEditorPage.statTexts", { count: texts.length })}
             </p>
           </div>
         </motion.div>

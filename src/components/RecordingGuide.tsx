@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Camera, Check, ChevronRight, ChevronLeft } from "lucide-react";
 
@@ -23,52 +24,21 @@ interface Props {
 }
 
 interface Tip {
-  title: string;
-  good: string;
-  bad: string;
+  key: string;
   icon: string;
   color: string;
 }
 
 const TIPS: Tip[] = [
-  {
-    title: "Ángulo de cámara",
-    good: "Graba desde una posición elevada (tribuna, gradas, escalera). Cuanto más alto, mejor tracking.",
-    bad: "Desde la banda a nivel de campo se pierde profundidad y los jugadores se tapan entre sí.",
-    icon: "📐",
-    color: "#22c55e",
-  },
-  {
-    title: "Distancia y encuadre",
-    good: "Captura al menos media cancha. Plano amplio donde se vean varios jugadores moviéndose.",
-    bad: "Zoom a un solo jugador impide calcular posición, distancia recorrida y zonas de influencia.",
-    icon: "📏",
-    color: "#3b82f6",
-  },
-  {
-    title: "Estabilidad",
-    good: "Apoya el celular en algo fijo: trípode, barandilla, mochila. Video estable = datos precisos.",
-    bad: "Video movido genera frames borrosos que el sistema descarta. Menos frames = menos precisión.",
-    icon: "📱",
-    color: "#f59e0b",
-  },
-  {
-    title: "Iluminación",
-    good: "Luz natural uniforme, sin grabar contra el sol. Horario ideal: mañana o tarde (no mediodía).",
-    bad: "Contraluz o sombras fuertes en la cancha reducen la detección de jugadores hasta un 30%.",
-    icon: "☀️",
-    color: "#ef4444",
-  },
-  {
-    title: "Duración",
-    good: "Entre 2 y 5 minutos de juego continuo. Más tiempo = más datos = evaluación más confiable.",
-    bad: "Videos de menos de 30 segundos no generan datos suficientes para una evaluación útil.",
-    icon: "⏱️",
-    color: "#8b5cf6",
-  },
+  { key: "cameraAngle", icon: "📐", color: "#22c55e" },
+  { key: "distanceFraming", icon: "📏", color: "#3b82f6" },
+  { key: "stability", icon: "📱", color: "#f59e0b" },
+  { key: "lighting", icon: "☀️", color: "#ef4444" },
+  { key: "duration", icon: "⏱️", color: "#8b5cf6" },
 ];
 
 export default function RecordingGuide({ open, onClose, forced }: Props) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
 
@@ -103,7 +73,7 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
               <div className="flex items-center gap-2">
                 <Camera size={18} className="text-primary" />
                 <h2 className="font-display font-bold text-sm text-foreground">
-                  Guía de grabación
+                  {t("recordingGuide.title")}
                 </h2>
               </div>
               <button
@@ -133,12 +103,12 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
                     {tip.icon}
                   </div>
                   <div>
-                    <h3 className="font-display font-bold text-foreground">{tip.title}</h3>
+                    <h3 className="font-display font-bold text-foreground">{t(`recordingGuide.tips.${tip.key}.title`)}</h3>
                     <span
                       className="text-[10px] uppercase tracking-wider font-bold"
                       style={{ color: tip.color }}
                     >
-                      {index + 1} de {TIPS.length}
+                      {t("recordingGuide.stepCounter", { current: index + 1, total: TIPS.length })}
                     </span>
                   </div>
                 </div>
@@ -146,13 +116,13 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
                 {/* Good */}
                 <div className="flex gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20">
                   <span className="text-green-400 text-sm mt-0.5 shrink-0">✅</span>
-                  <p className="text-xs text-foreground/90 leading-relaxed">{tip.good}</p>
+                  <p className="text-xs text-foreground/90 leading-relaxed">{t(`recordingGuide.tips.${tip.key}.good`)}</p>
                 </div>
 
                 {/* Bad */}
                 <div className="flex gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
                   <span className="text-red-400 text-sm mt-0.5 shrink-0">❌</span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{tip.bad}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t(`recordingGuide.tips.${tip.key}.bad`)}</p>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -178,7 +148,7 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
                 disabled={index === 0}
                 className="flex items-center gap-1 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
               >
-                <ChevronLeft size={12} /> Anterior
+                <ChevronLeft size={12} /> {t("recordingGuide.previous")}
               </button>
 
               {isLast ? (
@@ -186,14 +156,14 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
                   onClick={handleClose}
                   className="flex items-center gap-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 transition-colors"
                 >
-                  <Check size={12} /> Entendido
+                  <Check size={12} /> {t("recordingGuide.understood")}
                 </button>
               ) : (
                 <button
                   onClick={() => setIndex(i => Math.min(TIPS.length - 1, i + 1))}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs text-foreground font-bold hover:text-primary transition-colors"
                 >
-                  Siguiente <ChevronRight size={12} />
+                  {t("recordingGuide.next")} <ChevronRight size={12} />
                 </button>
               )}
             </div>
@@ -208,7 +178,7 @@ export default function RecordingGuide({ open, onClose, forced }: Props) {
                   className="w-3 h-3 rounded border-border accent-primary"
                 />
                 <span className="text-[10px] text-muted-foreground">
-                  No volver a mostrar antes de subir video
+                  {t("recordingGuide.dontShowAgain")}
                 </span>
               </label>
             )}

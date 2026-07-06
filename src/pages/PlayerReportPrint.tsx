@@ -5,6 +5,7 @@
  * Incluye RadarChart (Recharts), VSI gauge SVG, PHV, VAEP.
  */
 import { useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import { adaptPlayerForUI } from "@/services/real/adapters";
 import { MetricsService } from "@/services/real/metricsService";
@@ -66,6 +67,7 @@ function VsiGauge({ value }: { value: number }) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function PlayerReportPrint() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { data: rawPlayer, isLoading } = useRawPlayerById(id);
@@ -93,8 +95,8 @@ export default function PlayerReportPrint() {
     }
   }, [isLoading, rawPlayer, isImageMode]);
 
-  if (isLoading) return <div className="p-8 text-center">Cargando informe...</div>;
-  if (!rawPlayer) return <div className="p-8 text-center">Jugador no encontrado</div>;
+  if (isLoading) return <div className="p-8 text-center">{t("playerReportPrint.loading")}</div>;
+  if (!rawPlayer) return <div className="p-8 text-center">{t("playerReportPrint.playerNotFound")}</div>;
 
   const player = adaptPlayerForUI(rawPlayer);
   const vsi = MetricsService.calculateVSI(rawPlayer.metrics);
@@ -102,8 +104,12 @@ export default function PlayerReportPrint() {
   const dominantFeatures = DominantFeaturesService.calculate(rawPlayer.metrics);
 
   const metricLabels: Record<string, string> = {
-    speed: "Velocidad", technique: "Técnica", vision: "Visión",
-    stamina: "Resistencia", shooting: "Disparo", defending: "Defensa",
+    speed: t("playerReportPrint.metricSpeed"),
+    technique: t("playerReportPrint.metricTechnique"),
+    vision: t("playerReportPrint.metricVision"),
+    stamina: t("playerReportPrint.metricStamina"),
+    shooting: t("playerReportPrint.metricShooting"),
+    defending: t("playerReportPrint.metricDefending"),
   };
 
   const radarData = Object.entries(rawPlayer.metrics).map(([key, value]) => ({
@@ -134,10 +140,10 @@ export default function PlayerReportPrint() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900">{rawPlayer.name}</h1>
           <div className="text-sm text-gray-500 mt-1">
-            {rawPlayer.position} · {rawPlayer.age} años · {rawPlayer.competitiveLevel}
+            {rawPlayer.position} · {t("playerReportPrint.yearsOld", { count: rawPlayer.age })} · {rawPlayer.competitiveLevel}
           </div>
           <div className="text-xs text-gray-400 mt-1">
-            Informe {reportId} · Generado: {new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}
+            {t("playerReportPrint.report")} {reportId} · {t("playerReportPrint.generated")}: {new Date().toLocaleDateString("es-ES", { year: "numeric", month: "long", day: "numeric" })}
           </div>
         </div>
         <div className="text-center">
@@ -151,7 +157,7 @@ export default function PlayerReportPrint() {
       <div className="grid grid-cols-2 gap-6 mb-8">
         {/* RadarChart */}
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Perfil Técnico</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.technicalProfile")}</h2>
           <div style={{ width: "100%", height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
@@ -174,7 +180,7 @@ export default function PlayerReportPrint() {
 
         {/* Barras de métricas */}
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Valores</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.values")}</h2>
           <div className="space-y-2.5 mt-2">
             {Object.entries(rawPlayer.metrics).map(([key, value]) => (
               <div key={key} className="flex items-center gap-2">
@@ -192,7 +198,7 @@ export default function PlayerReportPrint() {
       {/* VSI Evolution */}
       {rawPlayer.vsiHistory && rawPlayer.vsiHistory.length > 1 && (
         <div className="mb-8">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Evolución VSI</h2>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.vsiEvolution")}</h2>
           <div style={{ width: "100%", height: 160 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
@@ -222,7 +228,7 @@ export default function PlayerReportPrint() {
           </div>
           <div className="flex justify-between text-[10px] text-gray-400 mt-1">
             <span>
-              Tendencia:{" "}
+              {t("playerReportPrint.trend")}:{" "}
               <span className="font-semibold text-gray-600">
                 {(() => {
                   const h = rawPlayer.vsiHistory;
@@ -230,11 +236,11 @@ export default function PlayerReportPrint() {
                   const last = h[h.length - 1];
                   const prev = h[h.length - 2];
                   const delta = last - prev;
-                  return delta > 2 ? "↑ En ascenso" : delta < -2 ? "↓ En descenso" : "→ Estable";
+                  return delta > 2 ? t("playerReportPrint.trendRising") : delta < -2 ? t("playerReportPrint.trendFalling") : t("playerReportPrint.trendStable");
                 })()}
               </span>
             </span>
-            <span>{rawPlayer.vsiHistory.length} evaluaciones</span>
+            <span>{t("playerReportPrint.evaluationsCount", { count: rawPlayer.vsiHistory.length })}</span>
           </div>
         </div>
       )}
@@ -243,13 +249,13 @@ export default function PlayerReportPrint() {
       {rawPlayer.phvCategory && (
         <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-            Maduración Biológica (PHV)
+            {t("playerReportPrint.biologicalMaturation")}
           </h2>
           <div className="flex items-center justify-between">
             <div>
               <span className="text-sm font-semibold text-purple-700 capitalize">
-                {rawPlayer.phvCategory === "ontme" ? "Maduración Normal" :
-                 rawPlayer.phvCategory === "early" ? "Madurador Precoz" : "Madurador Tardío"}
+                {rawPlayer.phvCategory === "ontme" ? t("playerReportPrint.maturationNormal") :
+                 rawPlayer.phvCategory === "early" ? t("playerReportPrint.maturationEarly") : t("playerReportPrint.maturationLate")}
               </span>
               <div className="flex gap-1 mt-1.5">
                 {["early", "ontme", "late"].map((cat) => (
@@ -263,9 +269,9 @@ export default function PlayerReportPrint() {
               </div>
             </div>
             <span className="text-sm text-gray-500">
-              Offset: {rawPlayer.phvOffset !== undefined
+              {t("playerReportPrint.offset")}: {rawPlayer.phvOffset !== undefined
                 ? (rawPlayer.phvOffset > 0 ? "+" : "") + rawPlayer.phvOffset.toFixed(2)
-                : "N/D"} años
+                : t("playerReportPrint.notAvailable")} {t("playerReportPrint.years")}
             </span>
           </div>
         </div>
@@ -273,7 +279,7 @@ export default function PlayerReportPrint() {
 
       {/* Características dominantes */}
       <div className="mb-6">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Características Dominantes</h2>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.dominantFeatures")}</h2>
         <div className="flex gap-2 flex-wrap mb-2">
           {dominantFeatures.dominant.map((f) => (
             <span key={f.key} className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
@@ -282,8 +288,8 @@ export default function PlayerReportPrint() {
           ))}
         </div>
         <div className="text-xs text-gray-500">
-          Estilo: <span className="font-semibold capitalize">{dominantFeatures.playStyle}</span> ·{" "}
-          Especialización: {Math.round(dominantFeatures.specializationIndex * 100)}%
+          {t("playerReportPrint.style")}: <span className="font-semibold capitalize">{dominantFeatures.playStyle}</span> ·{" "}
+          {t("playerReportPrint.specialization")}: {Math.round(dominantFeatures.specializationIndex * 100)}%
         </div>
       </div>
 
@@ -295,7 +301,7 @@ export default function PlayerReportPrint() {
             {vaepPer90 != null ? (vaepPer90 > 0 ? "+" : "") + vaepPer90.toFixed(3) : "N/D"}
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Valor ofensivo + defensivo añadido por cada 90 minutos jugados
+            {t("playerReportPrint.vaepDescription")}
           </p>
         </div>
       )}
@@ -307,17 +313,17 @@ export default function PlayerReportPrint() {
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <div className="text-2xl font-black text-gray-800">{rawPlayer.minutesPlayed}</div>
-          <div className="text-xs text-gray-500">Minutos jugados</div>
+          <div className="text-xs text-gray-500">{t("playerReportPrint.minutesPlayed")}</div>
         </div>
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <div className="text-2xl font-black text-gray-800">{rawPlayer.vsiHistory?.length ?? 1}</div>
-          <div className="text-xs text-gray-500">Evaluaciones</div>
+          <div className="text-xs text-gray-500">{t("playerReportPrint.evaluations")}</div>
         </div>
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <div className="text-2xl font-black text-gray-800 capitalize">
-            {rawPlayer.foot === "right" ? "Diestro" : rawPlayer.foot === "left" ? "Zurdo" : "Ambidiestro"}
+            {rawPlayer.foot === "right" ? t("playerReportPrint.footRight") : rawPlayer.foot === "left" ? t("playerReportPrint.footLeft") : t("playerReportPrint.footBoth")}
           </div>
-          <div className="text-xs text-gray-500">Pie dominante</div>
+          <div className="text-xs text-gray-500">{t("playerReportPrint.dominantFoot")}</div>
         </div>
       </div>
 
@@ -335,13 +341,13 @@ export default function PlayerReportPrint() {
 
 // ─── Benchmark Section ────────────────────────────────────────────────────────
 
-const dimLabels: Record<string, string> = {
-  velocidadDecision: "Vel. Decisión",
-  tecnicaConBalon: "Técnica",
-  inteligenciaTactica: "Int. Táctica",
-  capacidadFisica: "Capacidad Física",
-  liderazgoPresencia: "Liderazgo",
-  eficaciaCompetitiva: "Eficacia",
+const dimLabelKeys: Record<string, string> = {
+  velocidadDecision: "playerReportPrint.dimDecisionSpeed",
+  tecnicaConBalon: "playerReportPrint.dimTechnique",
+  inteligenciaTactica: "playerReportPrint.dimTacticalIntelligence",
+  capacidadFisica: "playerReportPrint.dimPhysicalCapacity",
+  liderazgoPresencia: "playerReportPrint.dimLeadership",
+  eficaciaCompetitiva: "playerReportPrint.dimEffectiveness",
 };
 
 function BenchmarkSection({
@@ -353,6 +359,7 @@ function BenchmarkSection({
   position: string;
   metrics: Record<string, number>;
 }) {
+  const { t } = useTranslation();
   // Convert player metrics (0-100) to dimension-like scores (0-10) for benchmark
   const dimensionScores: Record<string, { score: number }> = {
     velocidadDecision: { score: metrics.speed / 10 },
@@ -375,14 +382,14 @@ function BenchmarkSection({
   return (
     <div className="mb-6">
       <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-        Benchmark vs Pares
+        {t("playerReportPrint.benchmarkVsPeers")}
       </h2>
       <p className="text-[10px] text-gray-400 mb-2">{benchmark.groupDescription}</p>
       <div className="space-y-1.5">
         {benchmark.dimensions.map((d) => (
           <div key={d.dimensionKey} className="flex items-center gap-2">
             <span className="text-[10px] text-gray-500 w-24 shrink-0">
-              {dimLabels[d.dimensionKey] ?? d.dimensionKey}
+              {dimLabelKeys[d.dimensionKey] ? t(dimLabelKeys[d.dimensionKey]) : d.dimensionKey}
             </span>
             <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden relative">
               <div
@@ -404,7 +411,7 @@ function BenchmarkSection({
       </div>
       {benchmark.sampleSize < 5 && (
         <p className="text-[9px] text-amber-500 mt-1">
-          ⚠ Muestra pequeña ({benchmark.sampleSize} jugadores). Percentiles orientativos.
+          ⚠ {t("playerReportPrint.smallSampleWarning", { count: benchmark.sampleSize })}
         </p>
       )}
     </div>

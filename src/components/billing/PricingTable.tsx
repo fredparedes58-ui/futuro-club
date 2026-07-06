@@ -12,6 +12,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Plan {
   tier: "personal" | "pro" | "academia" | "agencia";
@@ -107,6 +108,7 @@ interface Props {
 }
 
 export function PricingTable({ userPersona, onSubscribed }: Props) {
+  const { t } = useTranslation();
   const [billing, setBilling] = useState<"monthly" | "annual">("monthly");
   const [persona, setPersona] = useState<Props["userPersona"]>(userPersona ?? "other");
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
@@ -130,13 +132,13 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "Error creando checkout");
+        throw new Error(data?.error?.message ?? t("pricingTable.errorCreatingCheckout"));
       }
 
       onSubscribed?.(tier);
       window.location.href = data.data.url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : t("pricingTable.errorUnknown"));
       setLoadingTier(null);
     }
   }
@@ -145,22 +147,22 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
     <div className="max-w-6xl mx-auto space-y-6">
       <header className="text-center space-y-2">
         <h2 className="font-rajdhani font-bold text-3xl sm:text-4xl">
-          Elige tu plan VITAS
+          {t("pricingTable.heading")}
         </h2>
         <p className="text-slate-600">
-          Para padres, jugadores, entrenadores, scouts, academias y agentes
+          {t("pricingTable.subheading")}
         </p>
       </header>
 
       {/* Selector de persona (opcional) */}
       <div className="flex flex-wrap justify-center gap-2">
         {[
-          { id: "parent", label: "Soy padre/madre" },
-          { id: "player", label: "Soy jugador" },
-          { id: "coach", label: "Soy entrenador" },
-          { id: "scout", label: "Soy scout" },
-          { id: "academy_director", label: "Llevo una academia" },
-          { id: "agent", label: "Soy agente" },
+          { id: "parent", label: t("pricingTable.personaParent") },
+          { id: "player", label: t("pricingTable.personaPlayer") },
+          { id: "coach", label: t("pricingTable.personaCoach") },
+          { id: "scout", label: t("pricingTable.personaScout") },
+          { id: "academy_director", label: t("pricingTable.personaAcademyDirector") },
+          { id: "agent", label: t("pricingTable.personaAgent") },
         ].map((p) => (
           <button
             key={p.id}
@@ -185,7 +187,7 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
               billing === "monthly" ? "bg-white shadow" : "text-slate-600"
             }`}
           >
-            Mensual
+            {t("pricingTable.billingMonthly")}
           </button>
           <button
             onClick={() => setBilling("annual")}
@@ -193,7 +195,7 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
               billing === "annual" ? "bg-white shadow" : "text-slate-600"
             }`}
           >
-            Anual <span className="ml-1 text-xs text-green-600 font-bold">-20%</span>
+            {t("pricingTable.billingAnnual")} <span className="ml-1 text-xs text-green-600 font-bold">-20%</span>
           </button>
         </div>
       </div>
@@ -215,7 +217,7 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
               {plan.highlight && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                    POPULAR
+                    {t("pricingTable.badgePopular")}
                   </span>
                 </div>
               )}
@@ -226,13 +228,13 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
                   €{billing === "monthly" ? price.toFixed(2) : Math.round(price)}
                 </span>
                 <span className="text-sm text-slate-600">
-                  /{billing === "monthly" ? "mes" : "año"}
+                  /{billing === "monthly" ? t("pricingTable.perMonth") : t("pricingTable.perYear")}
                 </span>
               </div>
               <p className="text-xs text-slate-500 mb-4">{plan.videos}</p>
 
               <div className="mb-4">
-                <p className="text-xs font-semibold text-slate-700 mb-1.5">Para:</p>
+                <p className="text-xs font-semibold text-slate-700 mb-1.5">{t("pricingTable.forLabel")}</p>
                 <ul className="text-xs text-slate-600 space-y-0.5">
                   {plan.forWho.map((w) => (
                     <li key={w}>· {w}</li>
@@ -258,7 +260,7 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
                     : "bg-slate-900 text-white hover:bg-slate-800"
                 } disabled:opacity-50`}
               >
-                {isLoading ? "Cargando..." : "Suscribirse"}
+                {isLoading ? t("pricingTable.loading") : t("pricingTable.subscribe")}
               </button>
             </div>
           );
@@ -272,8 +274,7 @@ export function PricingTable({ userPersona, onSubscribed }: Props) {
       )}
 
       <p className="text-xs text-center text-slate-500 max-w-2xl mx-auto">
-        💳 Pago seguro con Stripe · Cancela cuando quieras · Anual ahorra 2 meses ·
-        Todos los planes incluyen 14 días de prueba gratuita
+        {t("pricingTable.footerNote")}
       </p>
     </div>
   );

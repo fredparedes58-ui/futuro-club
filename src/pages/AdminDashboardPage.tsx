@@ -21,6 +21,7 @@ import {
 import { useBusinessAnalytics, topEndpoints, endpointLabel } from "@/hooks/useBusinessAnalytics";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "fredparedes58@gmail.com")
   .split(",").map((s: string) => s.trim().toLowerCase());
@@ -33,6 +34,7 @@ function isAdmin(email: string | null | undefined): boolean {
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch, isRefetching } = useBusinessAnalytics();
   const [activeTab, setActiveTab] = useState<"overview" | "usage" | "team" | "insights">("overview");
 
@@ -41,15 +43,15 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="glass rounded-xl p-6 max-w-md text-center">
           <Shield size={28} className="text-destructive mx-auto mb-2" />
-          <h2 className="font-display font-bold text-lg text-foreground mb-1">Acceso restringido</h2>
+          <h2 className="font-display font-bold text-lg text-foreground mb-1">{t("adminDashboardPage.accessRestricted")}</h2>
           <p className="text-xs text-muted-foreground mb-4">
-            Este panel solo está disponible para administradores de la plataforma.
+            {t("adminDashboardPage.accessRestrictedDesc")}
           </p>
           <button
             onClick={() => navigate("/")}
             className="text-xs font-display font-semibold text-primary hover:underline"
           >
-            Volver al inicio
+            {t("adminDashboardPage.backToHome")}
           </button>
         </div>
       </div>
@@ -79,7 +81,7 @@ export default function AdminDashboardPage() {
             onClick={() => refetch()}
             disabled={isRefetching}
             className="p-2 rounded-xl hover:bg-muted/50 transition-colors disabled:opacity-50"
-            aria-label="Refrescar"
+            aria-label={t("adminDashboardPage.refresh")}
           >
             <RefreshCw size={14} className={isRefetching ? "animate-spin text-primary" : "text-muted-foreground"} />
           </button>
@@ -88,21 +90,21 @@ export default function AdminDashboardPage() {
         {/* Tabs */}
         <div className="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto no-scrollbar">
           {[
-            { id: "overview", label: "Resumen" },
-            { id: "usage", label: "Uso IA" },
-            { id: "team", label: "Equipo" },
-            { id: "insights", label: "Insights" },
-          ].map(t => (
+            { id: "overview", label: t("adminDashboardPage.tabOverview") },
+            { id: "usage", label: t("adminDashboardPage.tabUsage") },
+            { id: "team", label: t("adminDashboardPage.tabTeam") },
+            { id: "insights", label: t("adminDashboardPage.tabInsights") },
+          ].map(tab => (
             <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id as typeof activeTab)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`px-4 py-2 text-xs font-display font-semibold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === t.id
+                activeTab === tab.id
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t.label}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -118,11 +120,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2 mb-1">
               <CreditCard size={14} className="text-primary" />
               <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                Gestion de Planes
+                {t("adminDashboardPage.plansManagement")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Asigna planes, resetea quotas, gestiona organizaciones
+              {t("adminDashboardPage.plansManagementDesc")}
             </p>
           </button>
           <button
@@ -132,11 +134,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2 mb-1">
               <Activity size={14} className="text-primary" />
               <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                Auditoria de Sesgo IA
+                {t("adminDashboardPage.biasAudit")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Detecta anomalias por posicion, edad, visibilidad y tiempo
+              {t("adminDashboardPage.biasAuditDesc")}
             </p>
           </button>
           <button
@@ -146,11 +148,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-2 mb-1">
               <Shield size={14} className="text-primary" />
               <span className="text-xs font-display font-bold text-foreground group-hover:text-primary transition-colors">
-                Consentimiento Parental
+                {t("adminDashboardPage.parentalConsent")}
               </span>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              RGPD menores &lt;14 · gestiona autorizaciones y DSAR
+              {t("adminDashboardPage.parentalConsentDesc")}
             </p>
           </button>
         </div>
@@ -165,7 +167,7 @@ export default function AdminDashboardPage() {
           <div className="glass rounded-xl p-5 border border-destructive/30">
             <div className="flex items-center gap-2 text-destructive mb-1">
               <AlertCircle size={14} />
-              <p className="font-display font-semibold text-sm">Error al cargar analíticas</p>
+              <p className="font-display font-semibold text-sm">{t("adminDashboardPage.errorLoadingAnalytics")}</p>
             </div>
             <p className="text-xs text-muted-foreground">{(error as Error).message}</p>
           </div>
@@ -189,6 +191,7 @@ export default function AdminDashboardPage() {
 type DataProps = { data: NonNullable<ReturnType<typeof useBusinessAnalytics>["data"]> };
 
 function OverviewTab({ data }: DataProps) {
+  const { t } = useTranslation();
   const growth = data.usage.growthPercent;
   return (
     <motion.div
@@ -200,28 +203,28 @@ function OverviewTab({ data }: DataProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <KpiCard
           icon={Zap}
-          label="Análisis IA"
+          label={t("adminDashboardPage.kpiAiAnalyses")}
           value={data.usage.thisMonth}
-          sublabel={`este mes (${data.month})`}
+          sublabel={t("adminDashboardPage.kpiThisMonth", { month: data.month })}
           trend={growth}
         />
         <KpiCard
           icon={Users}
-          label="Jugadores"
+          label={t("adminDashboardPage.kpiPlayers")}
           value={data.players.total}
-          sublabel="en plataforma"
+          sublabel={t("adminDashboardPage.kpiOnPlatform")}
         />
         <KpiCard
           icon={Shield}
-          label="Miembros equipo"
+          label={t("adminDashboardPage.kpiTeamMembers")}
           value={data.team.total}
-          sublabel={`${Object.keys(data.team.byRole).length} roles`}
+          sublabel={t("adminDashboardPage.kpiRoles", { count: Object.keys(data.team.byRole).length })}
         />
         <KpiCard
           icon={Activity}
-          label="Análisis totales"
+          label={t("adminDashboardPage.kpiTotalAnalyses")}
           value={data.analyses.total}
-          sublabel="histórico completo"
+          sublabel={t("adminDashboardPage.kpiFullHistory")}
         />
       </div>
 
@@ -231,20 +234,20 @@ function OverviewTab({ data }: DataProps) {
           <div className="flex items-center gap-2">
             <CreditCard size={14} className="text-primary" />
             <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider">
-              Suscripción
+              {t("adminDashboardPage.subscription")}
             </h3>
           </div>
         </div>
         {data.subscription ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Plan</span>
+              <span className="text-xs text-muted-foreground">{t("adminDashboardPage.plan")}</span>
               <span className="font-display font-bold text-sm text-foreground capitalize">
                 {data.subscription.plan}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Estado</span>
+              <span className="text-xs text-muted-foreground">{t("adminDashboardPage.status")}</span>
               <span className={`font-display font-semibold text-xs uppercase tracking-wider ${
                 data.subscription.status === "active" ? "text-emerald-500" : "text-amber-500"
               }`}>
@@ -253,7 +256,7 @@ function OverviewTab({ data }: DataProps) {
             </div>
             {data.subscription.current_period_end && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Renovación</span>
+                <span className="text-xs text-muted-foreground">{t("adminDashboardPage.renewal")}</span>
                 <span className="text-xs text-foreground">
                   {new Date(data.subscription.current_period_end).toLocaleDateString("es-ES")}
                 </span>
@@ -261,7 +264,7 @@ function OverviewTab({ data }: DataProps) {
             )}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Sin suscripción activa (Free tier)</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noActiveSubscription")}</p>
         )}
       </div>
 
@@ -269,7 +272,7 @@ function OverviewTab({ data }: DataProps) {
       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
         <Clock size={10} />
         <span>
-          Datos generados: {new Date(data.generatedAt).toLocaleString("es-ES")}
+          {t("adminDashboardPage.dataGenerated", { date: new Date(data.generatedAt).toLocaleString("es-ES") })}
         </span>
       </div>
     </motion.div>
@@ -277,6 +280,7 @@ function OverviewTab({ data }: DataProps) {
 }
 
 function UsageTab({ data }: DataProps) {
+  const { t } = useTranslation();
   const endpoints = topEndpoints(data.usage.byEndpoint);
   const maxCount = Math.max(1, ...endpoints.map(e => e.count));
 
@@ -289,15 +293,15 @@ function UsageTab({ data }: DataProps) {
       {/* Comparativa mes a mes */}
       <div className="glass rounded-xl p-5">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider mb-4">
-          Mes actual vs anterior
+          {t("adminDashboardPage.currentVsPreviousMonth")}
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Este mes</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("adminDashboardPage.thisMonth")}</p>
             <p className="font-display font-bold text-3xl text-primary">{data.usage.thisMonth}</p>
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Anterior</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("adminDashboardPage.previous")}</p>
             <p className="font-display font-bold text-3xl text-muted-foreground">{data.usage.previousMonth}</p>
           </div>
         </div>
@@ -309,10 +313,10 @@ function UsageTab({ data }: DataProps) {
       {/* Breakdown por endpoint */}
       <div className="glass rounded-xl p-5">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider mb-4">
-          Uso por endpoint
+          {t("adminDashboardPage.usageByEndpoint")}
         </h3>
         {endpoints.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sin datos de uso este mes.</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noUsageThisMonth")}</p>
         ) : (
           <div className="space-y-3">
             {endpoints.map(({ name, count }) => (
@@ -336,10 +340,10 @@ function UsageTab({ data }: DataProps) {
       {/* Análisis por agente */}
       <div className="glass rounded-xl p-5">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider mb-4">
-          Análisis por agente
+          {t("adminDashboardPage.analysesByAgent")}
         </h3>
         {Object.entries(data.analyses.byAgent).length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sin datos de análisis.</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noAnalysisData")}</p>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             {Object.entries(data.analyses.byAgent).map(([agent, count]) => (
@@ -356,6 +360,7 @@ function UsageTab({ data }: DataProps) {
 }
 
 function TeamTab({ data }: DataProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -364,10 +369,10 @@ function TeamTab({ data }: DataProps) {
     >
       <div className="glass rounded-xl p-5">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider mb-4">
-          Composición por rol
+          {t("adminDashboardPage.compositionByRole")}
         </h3>
         {Object.entries(data.team.byRole).length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sin miembros adicionales en el equipo.</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noAdditionalMembers")}</p>
         ) : (
           <div className="space-y-2">
             {Object.entries(data.team.byRole).map(([role, count]) => (
@@ -385,10 +390,10 @@ function TeamTab({ data }: DataProps) {
 
       <div className="glass rounded-xl p-5">
         <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider mb-4">
-          Estado de miembros
+          {t("adminDashboardPage.memberStatus")}
         </h3>
         {Object.entries(data.team.byStatus).length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sin datos de estado.</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noStatusData")}</p>
         ) : (
           <div className="grid grid-cols-3 gap-2">
             {Object.entries(data.team.byStatus).map(([status, count]) => (
@@ -405,6 +410,7 @@ function TeamTab({ data }: DataProps) {
 }
 
 function InsightsTab({ data }: DataProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -412,12 +418,12 @@ function InsightsTab({ data }: DataProps) {
       className="space-y-3"
     >
       <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider px-1">
-        Insights recientes ({data.recentInsights.length})
+        {t("adminDashboardPage.recentInsights", { count: data.recentInsights.length })}
       </h3>
       {data.recentInsights.length === 0 ? (
         <div className="glass rounded-xl p-5 text-center">
           <Brain size={20} className="text-muted-foreground mx-auto mb-2" />
-          <p className="text-xs text-muted-foreground">Sin insights generados todavía.</p>
+          <p className="text-xs text-muted-foreground">{t("adminDashboardPage.noInsightsYet")}</p>
         </div>
       ) : (
         data.recentInsights.map(insight => (
@@ -479,6 +485,7 @@ function KpiCard({
 }
 
 function TrendBadge({ growth, compact = false }: { growth: number; compact?: boolean }) {
+  const { t } = useTranslation();
   const isPositive = growth > 0;
   const isNeutral = growth === 0;
   const Icon = isPositive ? TrendingUp : TrendingDown;
@@ -488,7 +495,7 @@ function TrendBadge({ growth, compact = false }: { growth: number; compact?: boo
     <div className={`inline-flex items-center gap-1 ${color} ${compact ? "text-[10px]" : "text-xs"} font-display font-semibold`}>
       {!isNeutral && <Icon size={compact ? 10 : 12} />}
       <span>{growth > 0 ? "+" : ""}{growth}%</span>
-      {!compact && <span className="text-muted-foreground font-normal ml-1">vs mes anterior</span>}
+      {!compact && <span className="text-muted-foreground font-normal ml-1">{t("adminDashboardPage.vsPreviousMonth")}</span>}
     </div>
   );
 }

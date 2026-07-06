@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Swords, Shield, RotateCcw, Zap, ArrowUpRight, Target,
 } from "lucide-react";
@@ -13,17 +14,18 @@ import {
 export interface FocusOption {
   id: string;
   label: string;
+  labelKey: string;
   icon: React.ElementType;
   color: string;
 }
 
 const FOCUS_OPTIONS: FocusOption[] = [
-  { id: "acciones ofensivas (pases clave, centros, disparos, regates, creación de juego)", label: "Ofensivas", icon: ArrowUpRight, color: "text-green-400 border-green-500/40 bg-green-500/10" },
-  { id: "acciones defensivas (marcaje, posicionamiento, anticipación, coberturas)", label: "Defensivas", icon: Shield, color: "text-blue-400 border-blue-500/40 bg-blue-500/10" },
-  { id: "recuperación de balón (presión, intercepciones, entradas, robo de balón)", label: "Recuperación", icon: RotateCcw, color: "text-amber-400 border-amber-500/40 bg-amber-500/10" },
-  { id: "duelos individuales (1v1 ofensivos/defensivos, duelos aéreos, cuerpo a cuerpo)", label: "Duelos", icon: Swords, color: "text-red-400 border-red-500/40 bg-red-500/10" },
-  { id: "velocidad y capacidad física (sprints, aceleración, resistencia, desplazamientos)", label: "Velocidad", icon: Zap, color: "text-purple-400 border-purple-500/40 bg-purple-500/10" },
-  { id: "precisión de pases (circulación, pases cortos/largos, visión de juego, asistencias)", label: "Pases", icon: Target, color: "text-cyan-400 border-cyan-500/40 bg-cyan-500/10" },
+  { id: "acciones ofensivas (pases clave, centros, disparos, regates, creación de juego)", label: "Ofensivas", labelKey: "analysisFocusSelector.offensive", icon: ArrowUpRight, color: "text-green-400 border-green-500/40 bg-green-500/10" },
+  { id: "acciones defensivas (marcaje, posicionamiento, anticipación, coberturas)", label: "Defensivas", labelKey: "analysisFocusSelector.defensive", icon: Shield, color: "text-blue-400 border-blue-500/40 bg-blue-500/10" },
+  { id: "recuperación de balón (presión, intercepciones, entradas, robo de balón)", label: "Recuperación", labelKey: "analysisFocusSelector.recovery", icon: RotateCcw, color: "text-amber-400 border-amber-500/40 bg-amber-500/10" },
+  { id: "duelos individuales (1v1 ofensivos/defensivos, duelos aéreos, cuerpo a cuerpo)", label: "Duelos", labelKey: "analysisFocusSelector.duels", icon: Swords, color: "text-red-400 border-red-500/40 bg-red-500/10" },
+  { id: "velocidad y capacidad física (sprints, aceleración, resistencia, desplazamientos)", label: "Velocidad", labelKey: "analysisFocusSelector.speed", icon: Zap, color: "text-purple-400 border-purple-500/40 bg-purple-500/10" },
+  { id: "precisión de pases (circulación, pases cortos/largos, visión de juego, asistencias)", label: "Pases", labelKey: "analysisFocusSelector.passing", icon: Target, color: "text-cyan-400 border-cyan-500/40 bg-cyan-500/10" },
 ];
 
 interface Props {
@@ -32,6 +34,7 @@ interface Props {
 }
 
 export default function AnalysisFocusSelector({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const toggle = (id: string) => {
     if (value.includes(id)) {
       onChange(value.filter(v => v !== id));
@@ -43,7 +46,7 @@ export default function AnalysisFocusSelector({ value, onChange }: Props) {
   return (
     <div className="glass rounded-2xl p-4 space-y-3">
       <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-        Enfoque del análisis <span className="text-muted-foreground/50">(opcional)</span>
+        {t("analysisFocusSelector.title")} <span className="text-muted-foreground/50">{t("analysisFocusSelector.optional")}</span>
       </p>
       <div className="flex flex-wrap gap-2">
         {FOCUS_OPTIONS.map(opt => {
@@ -60,14 +63,16 @@ export default function AnalysisFocusSelector({ value, onChange }: Props) {
               }`}
             >
               <Icon size={12} />
-              {opt.label}
+              {t(opt.labelKey)}
             </button>
           );
         })}
       </div>
       {value.length > 0 && (
         <p className="text-[9px] text-muted-foreground">
-          La IA se concentrará especialmente en {value.length === 1 ? "este aspecto" : "estos aspectos"} del juego
+          {value.length === 1
+            ? t("analysisFocusSelector.hintSingular")
+            : t("analysisFocusSelector.hintPlural")}
         </p>
       )}
     </div>

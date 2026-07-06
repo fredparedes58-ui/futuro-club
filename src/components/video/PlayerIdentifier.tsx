@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Candidate {
   candidateIdx: number;
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
@@ -70,7 +72,7 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
         await new Promise((r) => setTimeout(r, 4000));
       }
       if (mounted) {
-        setError("El análisis está tardando · intenta de nuevo en unos minutos");
+        setError(t("playerIdentifier.errorTakingLong"));
         setLoading(false);
       }
     }
@@ -79,7 +81,7 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
     return () => {
       mounted = false;
     };
-  }, [videoId]);
+  }, [videoId, t]);
 
   async function handleConfirm() {
     if (selectedIdx === null) return;
@@ -105,12 +107,12 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error?.message ?? "Error al guardar");
+        throw new Error(data?.error?.message ?? t("playerIdentifier.errorSaving"));
       }
 
       onIdentified?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : t("playerIdentifier.errorUnknown"));
     } finally {
       setSubmitting(false);
     }
@@ -120,8 +122,8 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
     return (
       <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
         <div className="w-12 h-12 mx-auto border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-600">Esperando que Modal extraiga las personas detectadas...</p>
-        <p className="text-xs text-slate-400">Este paso puede tardar 1-2 minutos</p>
+        <p className="text-slate-600">{t("playerIdentifier.waitingExtraction")}</p>
+        <p className="text-xs text-slate-400">{t("playerIdentifier.stepDuration")}</p>
       </div>
     );
   }
@@ -130,13 +132,13 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
     return (
       <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
         <div className="text-5xl">✅</div>
-        <h2 className="font-rajdhani text-2xl font-bold">Jugador ya identificado</h2>
-        <p className="text-slate-600">Este vídeo ya tiene un jugador asignado.</p>
+        <h2 className="font-rajdhani text-2xl font-bold">{t("playerIdentifier.alreadyIdentifiedTitle")}</h2>
+        <p className="text-slate-600">{t("playerIdentifier.alreadyIdentifiedDesc")}</p>
         <button
           onClick={() => onIdentified?.()}
           className="px-6 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold"
         >
-          Continuar →
+          {t("playerIdentifier.continue")}
         </button>
       </div>
     );
@@ -146,10 +148,10 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
     return (
       <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
         <div className="text-5xl">⚠️</div>
-        <h2 className="font-rajdhani text-2xl font-bold">No se detectaron jugadores</h2>
-        <p className="text-slate-600">{error ?? "El vídeo no contenía personas detectables"}</p>
+        <h2 className="font-rajdhani text-2xl font-bold">{t("playerIdentifier.noPlayersTitle")}</h2>
+        <p className="text-slate-600">{error ?? t("playerIdentifier.noDetectablePeople")}</p>
         <p className="text-xs text-slate-500">
-          Intenta con un vídeo más cercano al jugador y mejor iluminación
+          {t("playerIdentifier.tryCloserVideo")}
         </p>
       </div>
     );
@@ -159,14 +161,13 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
     <div className="max-w-4xl mx-auto space-y-6">
       <header>
         <div className="text-xs uppercase tracking-widest text-purple-600 font-bold mb-1">
-          Identificar jugador
+          {t("playerIdentifier.identifyPlayer")}
         </div>
         <h2 className="font-rajdhani text-2xl font-bold mb-2">
-          ¿Cuál es {playerName ?? "tu jugador"}?
+          {t("playerIdentifier.whichIs", { name: playerName ?? t("playerIdentifier.yourPlayer") })}
         </h2>
         <p className="text-sm text-slate-600">
-          Selecciona la persona que quieres analizar. VITAS aprenderá su aspecto y la
-          identificará automáticamente en futuros vídeos.
+          {t("playerIdentifier.selectPersonHint")}
         </p>
       </header>
 
@@ -183,12 +184,12 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
           >
             <img
               src={`data:image/jpeg;base64,${c.cropBase64}`}
-              alt={`Candidato ${idx + 1}`}
+              alt={t("playerIdentifier.candidateAlt", { number: idx + 1 })}
               className="w-full h-auto aspect-[3/4] object-cover bg-slate-100"
             />
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
               <div className="text-white text-xs font-semibold">
-                Candidato {idx + 1} · {c.timestamp.toFixed(1)}s
+                {t("playerIdentifier.candidateLabel", { number: idx + 1, seconds: c.timestamp.toFixed(1) })}
               </div>
             </div>
             {selectedIdx === idx && (
@@ -212,19 +213,19 @@ export function PlayerIdentifier({ videoId, playerName, onIdentified }: Props) {
           disabled={selectedIdx === null}
           className="flex-1 py-3 rounded-full border border-slate-300 font-semibold disabled:opacity-50 hover:bg-slate-50"
         >
-          Limpiar
+          {t("playerIdentifier.clear")}
         </button>
         <button
           onClick={handleConfirm}
           disabled={selectedIdx === null || submitting}
           className="flex-2 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold disabled:opacity-50"
         >
-          {submitting ? "Guardando..." : "Confirmar selección"}
+          {submitting ? t("playerIdentifier.saving") : t("playerIdentifier.confirmSelection")}
         </button>
       </div>
 
       <p className="text-xs text-center text-slate-500">
-        💡 Si no aparece tu jugador, intenta con un vídeo donde se le vea mejor
+        💡 {t("playerIdentifier.notAppearingHint")}
       </p>
     </div>
   );

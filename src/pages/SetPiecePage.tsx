@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -54,14 +55,15 @@ import type {
 type Tab = "events" | "stats" | "recommendations";
 type SideFilter = "all" | "offensive" | "defensive";
 
-const TABS: Array<{ key: Tab; label: string; icon: React.ElementType }> = [
-  { key: "events", label: "Eventos", icon: Crosshair },
-  { key: "stats", label: "Estadísticas", icon: BarChart3 },
-  { key: "recommendations", label: "Recomendaciones", icon: Lightbulb },
+const TABS: Array<{ key: Tab; labelKey: string; icon: React.ElementType }> = [
+  { key: "events", labelKey: "setPiecePage.tabEvents", icon: Crosshair },
+  { key: "stats", labelKey: "setPiecePage.tabStats", icon: BarChart3 },
+  { key: "recommendations", labelKey: "setPiecePage.tabRecommendations", icon: Lightbulb },
 ];
 
 export default function SetPiecePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("events");
   const [filter, setFilter] = useState<SideFilter>("all");
   const [selectedEvent, setSelectedEvent] = useState<SetPieceEvent | null>(null);
@@ -169,7 +171,7 @@ export default function SetPiecePage() {
     try {
       const allDetected = SetPieceVideoEvents.getAll();
       if (allDetected.length < 3) {
-        toast.error("Necesitas al menos 3 jugadas detectadas desde video para generar recomendaciones");
+        toast.error(t("setPiecePage.toastNeedThreeDetected"));
         return;
       }
       // Small delay so the spinner shows
@@ -177,7 +179,7 @@ export default function SetPiecePage() {
       const recs = generateRecommendationsFromEvents(allDetected);
       SetPieceVideoRecommendations.set(recs);
       setVideoRecs(recs);
-      toast.success(`${recs.length} recomendaciones generadas desde tus jugadas`);
+      toast.success(t("setPiecePage.toastRecsGenerated", { count: recs.length }));
     } finally {
       setGeneratingRecs(false);
     }
@@ -242,7 +244,7 @@ export default function SetPiecePage() {
         createdAt: existingCustom.createdAt ?? new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomEvent(updated);
-      toast.success("Evento actualizado");
+      toast.success(t("setPiecePage.toastEventUpdated"));
     } else {
       // Mock event → save as new custom copy keeping all metadata
       const newCustom: CustomSetPieceEvent = {
@@ -259,7 +261,7 @@ export default function SetPiecePage() {
         createdAt: new Date().toISOString(),
       };
       SetPieceCustomStorage.saveCustomEvent(newCustom);
-      toast.success("Evento guardado como copia editable");
+      toast.success(t("setPiecePage.toastEventSavedAsCopy"));
       // Refresh custom events list and select the new one
       const refreshed = SetPieceCustomStorage.getCustomEvents();
       setCustomEvents(refreshed);
@@ -300,23 +302,23 @@ export default function SetPiecePage() {
                 Set Piece Intelligence
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                Análisis táctico de balón parado · {allEvents.length} jugadas detectadas
+                {t("setPiecePage.headerSubtitle", { count: allEvents.length })}
               </p>
             </div>
             <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full bg-gradient-to-r from-purple-500/20 to-amber-500/20 text-primary font-bold border border-primary/30">
-              ✨ Nuevo
+              ✨ {t("setPiecePage.badgeNew")}
             </span>
           </div>
 
           {/* Tabs */}
           <div className="flex gap-1 overflow-x-auto no-scrollbar">
-            {TABS.map((t) => {
-              const Icon = t.icon;
-              const active = tab === t.key;
+            {TABS.map((tabItem) => {
+              const Icon = tabItem.icon;
+              const active = tab === tabItem.key;
               return (
                 <button
-                  key={t.key}
-                  onClick={() => setTab(t.key)}
+                  key={tabItem.key}
+                  onClick={() => setTab(tabItem.key)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-all whitespace-nowrap ${
                     active
                       ? "bg-primary text-primary-foreground"
@@ -324,7 +326,7 @@ export default function SetPiecePage() {
                   }`}
                 >
                   <Icon size={12} />
-                  {t.label}
+                  {t(tabItem.labelKey)}
                 </button>
               );
             })}
@@ -347,9 +349,9 @@ export default function SetPiecePage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Filter size={14} className="text-muted-foreground" />
                 {[
-                  { key: "all" as const, label: "Todas" },
-                  { key: "offensive" as const, label: "Ofensivas" },
-                  { key: "defensive" as const, label: "Defensivas" },
+                  { key: "all" as const, label: t("setPiecePage.filterAll") },
+                  { key: "offensive" as const, label: t("setPiecePage.filterOffensive") },
+                  { key: "defensive" as const, label: t("setPiecePage.filterDefensive") },
                 ].map((f) => (
                   <button
                     key={f.key}
@@ -364,30 +366,30 @@ export default function SetPiecePage() {
                   </button>
                 ))}
                 <span className="text-[11px] text-muted-foreground font-mono">
-                  {filteredEvents.length} jugadas
+                  {t("setPiecePage.playsCount", { count: filteredEvents.length })}
                 </span>
                 <div className="ml-auto flex items-center gap-2 flex-wrap">
                   <button
                     onClick={() => setUploadDialogOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
-                    title="Sube un video desde tu ordenador, móvil o cloud"
+                    title={t("setPiecePage.uploadVideoTitle")}
                   >
                     <Upload size={14} />
-                    Subir video
+                    {t("setPiecePage.uploadVideo")}
                   </button>
                   <button
                     onClick={() => setVideoDialogOpen(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
                   >
                     <Cpu size={14} />
-                    Analizar video
+                    {t("setPiecePage.analyzeVideo")}
                   </button>
                   <button
                     onClick={() => navigate("/set-pieces/new")}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
                   >
                     <Plus size={14} />
-                    Nueva jugada
+                    {t("setPiecePage.newPlay")}
                   </button>
                 </div>
               </div>
@@ -396,7 +398,7 @@ export default function SetPiecePage() {
               {folders.length > 0 && (
                 <div className="glass rounded-xl p-2 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                   <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold px-1 shrink-0">
-                    Carpetas:
+                    {t("setPiecePage.foldersLabel")}
                   </span>
                   <button
                     onClick={() => setActiveFolderId("all")}
@@ -406,7 +408,7 @@ export default function SetPiecePage() {
                         : "bg-secondary text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Todas
+                    {t("setPiecePage.filterAll")}
                   </button>
                   {folders.map((f) => {
                     const count = SetPieceFolderStorage.countByFolder(f.id, "event");
@@ -425,7 +427,7 @@ export default function SetPiecePage() {
                               ? { background: `${f.color}25`, borderColor: f.color }
                               : undefined
                           }
-                          title="Doble-click para abrir la carpeta"
+                          title={t("setPiecePage.doubleClickToOpenFolder")}
                         >
                           <span>{f.icon}</span>
                           <span>{f.name}</span>
@@ -443,7 +445,7 @@ export default function SetPiecePage() {
                               ? { background: `${f.color}25`, borderColor: f.color }
                               : undefined
                           }
-                          title="Abrir carpeta dedicada"
+                          title={t("setPiecePage.openDedicatedFolder")}
                         >
                           ↗
                         </button>
@@ -478,11 +480,11 @@ export default function SetPiecePage() {
                         <div className="absolute top-2 right-2 flex items-center gap-1">
                           {isVideoEvent(event.id) ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-                              <Video size={8} /> De video
+                              <Video size={8} /> {t("setPiecePage.badgeFromVideo")}
                             </span>
                           ) : isCustom ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
-                              <Sparkles size={8} /> Custom
+                              <Sparkles size={8} /> {t("setPiecePage.badgeCustom")}
                             </span>
                           ) : null}
                           <div onClick={(e) => e.stopPropagation()}>
@@ -504,17 +506,17 @@ export default function SetPiecePage() {
                     <div className="glass rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
                         <h3 className="text-sm font-display font-bold text-foreground">
-                          {editingEvent ? "Editando pizarrón" : "Detalle táctico"}
+                          {editingEvent ? t("setPiecePage.editingBoard") : t("setPiecePage.tacticalDetail")}
                         </h3>
                         <div className="flex items-center gap-2">
                           {!editingEvent && (
                             <button
                               onClick={() => startEditing(activeEvent)}
                               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold bg-primary/15 text-primary hover:bg-primary/25 transition-colors"
-                              title="Mover jugadores, dibujar flechas, añadir texto"
+                              title={t("setPiecePage.editBoardTitle")}
                             >
                               <Edit3 size={11} />
-                              Editar pizarrón
+                              {t("setPiecePage.editBoard")}
                             </button>
                           )}
                           {editingEvent && (
@@ -524,14 +526,14 @@ export default function SetPiecePage() {
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-display font-semibold text-muted-foreground hover:bg-secondary transition-colors"
                               >
                                 <X size={11} />
-                                Cancelar
+                                {t("setPiecePage.cancel")}
                               </button>
                               <button
                                 onClick={saveEditing}
                                 className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[11px] font-display font-semibold hover:bg-primary/90 transition-colors"
                               >
                                 <Save size={11} />
-                                Guardar
+                                {t("setPiecePage.save")}
                               </button>
                             </>
                           )}
@@ -545,17 +547,17 @@ export default function SetPiecePage() {
                         <>
                           {!isCustomEvent(editingEvent) && (
                             <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-400">
-                              <strong>Editando un evento original:</strong> al guardar se creará una copia personalizada con tus cambios, sin modificar el original.
+                              <strong>{t("setPiecePage.editingOriginalWarningTitle")}</strong> {t("setPiecePage.editingOriginalWarningBody")}
                             </div>
                           )}
 
                           {/* Metadata editor */}
                           <div className="glass rounded-xl p-3 space-y-2 border border-border bg-secondary/10">
                             <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                              Datos del evento
+                              {t("setPiecePage.eventData")}
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              <MetaField label="Tipo">
+                              <MetaField label={t("setPiecePage.fieldType")}>
                                 <select
                                   value={editMeta.type}
                                   onChange={(e) =>
@@ -570,7 +572,7 @@ export default function SetPiecePage() {
                                   ))}
                                 </select>
                               </MetaField>
-                              <MetaField label="Patrón">
+                              <MetaField label={t("setPiecePage.fieldPattern")}>
                                 <select
                                   value={editMeta.pattern}
                                   onChange={(e) =>
@@ -585,19 +587,19 @@ export default function SetPiecePage() {
                                   ))}
                                 </select>
                               </MetaField>
-                              <MetaField label="Partido">
+                              <MetaField label={t("setPiecePage.fieldMatch")}>
                                 <input
                                   type="text"
                                   value={editMeta.matchLabel}
                                   onChange={(e) =>
                                     setEditMeta({ ...editMeta, matchLabel: e.target.value })
                                   }
-                                  placeholder="vs Rival FC · 12 Abr"
+                                  placeholder={t("setPiecePage.matchPlaceholder")}
                                   className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
                                 />
                               </MetaField>
                               <div className="grid grid-cols-2 gap-2">
-                                <MetaField label="Minuto">
+                                <MetaField label={t("setPiecePage.fieldMinute")}>
                                   <input
                                     type="number"
                                     min={0}
@@ -612,7 +614,7 @@ export default function SetPiecePage() {
                                     className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
                                   />
                                 </MetaField>
-                                <MetaField label="Lado">
+                                <MetaField label={t("setPiecePage.fieldSide")}>
                                   <select
                                     value={editMeta.side}
                                     onChange={(e) =>
@@ -620,13 +622,13 @@ export default function SetPiecePage() {
                                     }
                                     className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
                                   >
-                                    <option value="left">Izquierdo</option>
-                                    <option value="right">Derecho</option>
-                                    <option value="center">Centro</option>
+                                    <option value="left">{t("setPiecePage.sideLeft")}</option>
+                                    <option value="right">{t("setPiecePage.sideRight")}</option>
+                                    <option value="center">{t("setPiecePage.sideCenter")}</option>
                                   </select>
                                 </MetaField>
                               </div>
-                              <MetaField label="Resultado">
+                              <MetaField label={t("setPiecePage.fieldOutcome")}>
                                 <select
                                   value={editMeta.outcome}
                                   onChange={(e) =>
@@ -634,23 +636,23 @@ export default function SetPiecePage() {
                                   }
                                   className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none"
                                 >
-                                  <option value="goal">Gol</option>
-                                  <option value="shot_on_target">Tiro a puerta</option>
-                                  <option value="shot_off_target">Tiro fuera</option>
-                                  <option value="blocked">Bloqueado</option>
-                                  <option value="cleared">Despejado</option>
-                                  <option value="retained">Posesión retenida</option>
-                                  <option value="lost">Pérdida</option>
+                                  <option value="goal">{t("setPiecePage.outcomeGoal")}</option>
+                                  <option value="shot_on_target">{t("setPiecePage.outcomeShotOnTarget")}</option>
+                                  <option value="shot_off_target">{t("setPiecePage.outcomeShotOffTarget")}</option>
+                                  <option value="blocked">{t("setPiecePage.outcomeBlocked")}</option>
+                                  <option value="cleared">{t("setPiecePage.outcomeCleared")}</option>
+                                  <option value="retained">{t("setPiecePage.outcomeRetained")}</option>
+                                  <option value="lost">{t("setPiecePage.outcomeLost")}</option>
                                 </select>
                               </MetaField>
-                              <MetaField label="Notas tácticas (una por línea)">
+                              <MetaField label={t("setPiecePage.fieldTacticalNotes")}>
                                 <textarea
                                   value={editMeta.tacticalNotes}
                                   onChange={(e) =>
                                     setEditMeta({ ...editMeta, tacticalNotes: e.target.value })
                                   }
                                   rows={2}
-                                  placeholder="Bloque efectivo en primer palo"
+                                  placeholder={t("setPiecePage.tacticalNotesPlaceholder")}
                                   className="w-full bg-secondary/40 rounded-md px-2 py-1.5 text-xs border border-border focus:border-primary focus:outline-none resize-none"
                                 />
                               </MetaField>
@@ -698,7 +700,7 @@ export default function SetPiecePage() {
                       {activeEvent.tacticalNotes.length > 0 && !editingEvent && (
                         <div className="space-y-1.5 pt-2 border-t border-border">
                           <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                            Notas del análisis IA
+                            {t("setPiecePage.aiAnalysisNotes")}
                           </h4>
                           {activeEvent.tacticalNotes.map((note, i) => (
                             <p
@@ -752,8 +754,7 @@ export default function SetPiecePage() {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5 flex-1 min-w-[260px]">
                   <p className="text-xs text-foreground/80 leading-relaxed">
-                    <strong className="text-primary">Recomendaciones generadas por IA</strong> basadas en el análisis
-                    de jugadas detectadas en tus videos y patrones defensivos de los rivales. Despliega cada una para ver el diagrama y los puntos clave.
+                    <strong className="text-primary">{t("setPiecePage.recsIntroTitle")}</strong> {t("setPiecePage.recsIntroBody")}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -761,17 +762,17 @@ export default function SetPiecePage() {
                     onClick={handleGenerateRecsFromEvents}
                     disabled={generatingRecs}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Sintetiza recomendaciones desde tus eventos detectados"
+                    title={t("setPiecePage.generateRecsTitle")}
                   >
                     <Wand2 size={14} className={generatingRecs ? "animate-pulse" : ""} />
-                    {generatingRecs ? "Generando…" : "Generar IA"}
+                    {generatingRecs ? t("setPiecePage.generating") : t("setPiecePage.generateAi")}
                   </button>
                   <button
                     onClick={() => navigate("/set-pieces/new?type=recommendation")}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 transition-all"
                   >
                     <Plus size={14} />
-                    Nueva
+                    {t("setPiecePage.newRec")}
                   </button>
                 </div>
               </div>
@@ -785,12 +786,12 @@ export default function SetPiecePage() {
                     <div className="absolute top-3 right-12 flex items-center gap-1">
                       {isVideo && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-                          <Wand2 size={8} /> IA · video
+                          <Wand2 size={8} /> {t("setPiecePage.badgeAiVideo")}
                         </span>
                       )}
                       {!isVideo && isCustom && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
-                          <Sparkles size={8} /> Custom
+                          <Sparkles size={8} /> {t("setPiecePage.badgeCustom")}
                         </span>
                       )}
                       <div onClick={(e) => e.stopPropagation()}>
@@ -807,7 +808,7 @@ export default function SetPiecePage() {
                             navigate(`/set-pieces/edit/${rec.id}?type=recommendation`);
                           }}
                           className="p-1.5 rounded-md bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-all"
-                          title="Editar"
+                          title={t("setPiecePage.editRec")}
                         >
                           <Pencil size={11} />
                         </button>

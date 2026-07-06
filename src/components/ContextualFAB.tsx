@@ -18,6 +18,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, Activity, Swords, Grid3x3, Zap, Sparkles, FileText,
@@ -39,16 +40,16 @@ const HIDDEN_PATTERNS = [
   /^\/live\/[^/]+$/,           // durante el partido NO molestar
 ];
 
-function actionsForRoute(pathname: string, params: Record<string, string | undefined>, navigate: (to: string) => void): FabAction[] {
+function actionsForRoute(pathname: string, params: Record<string, string | undefined>, navigate: (to: string) => void, t: (key: string) => string): FabAction[] {
   // Player profile: acciones del jugador
   const playerMatch = pathname.match(/^\/player\/([^/]+)/);
   if (playerMatch) {
     const id = playerMatch[1];
     return [
-      { id: "family",    label: "Vista familia",  Icon: Heart,    color: "#EC4899", onClick: () => navigate(`/family/${id}`) },
-      { id: "reports",   label: "Reportes",       Icon: FileText, color: "#0066CC", onClick: () => navigate(`/players/${id}/reports`) },
-      { id: "evolution", label: "Evolución",      Icon: TrendingUp, color: "#10b981", onClick: () => navigate(`/players/${id}/evolution`) },
-      { id: "lab",       label: "Subir vídeo",    Icon: Zap,      color: "#B82BD9", onClick: () => navigate(`/lab?playerId=${id}`) },
+      { id: "family",    label: t("contextualFAB.familyView"),  Icon: Heart,    color: "#EC4899", onClick: () => navigate(`/family/${id}`) },
+      { id: "reports",   label: t("contextualFAB.reports"),       Icon: FileText, color: "#0066CC", onClick: () => navigate(`/players/${id}/reports`) },
+      { id: "evolution", label: t("contextualFAB.evolution"),      Icon: TrendingUp, color: "#10b981", onClick: () => navigate(`/players/${id}/evolution`) },
+      { id: "lab",       label: t("contextualFAB.uploadVideo"),    Icon: Zap,      color: "#B82BD9", onClick: () => navigate(`/lab?playerId=${id}`) },
     ];
   }
 
@@ -58,41 +59,41 @@ function actionsForRoute(pathname: string, params: Record<string, string | undef
     const idMatch = pathname.match(/\/(player|players)\/([^/]+)/);
     const id = idMatch?.[2];
     return [
-      { id: "share",  label: "Compartir",  Icon: Share2,  color: "#1A8FFF", onClick: () => window.dispatchEvent(new CustomEvent("vitas:share-current")) },
-      { id: "live",   label: "Match-day",  Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
-      ...(id ? [{ id: "back-player", label: "Perfil", Icon: BarChart3, color: "#10b981", onClick: () => navigate(`/player/${id}`) }] : []),
+      { id: "share",  label: t("contextualFAB.share"),  Icon: Share2,  color: "#1A8FFF", onClick: () => window.dispatchEvent(new CustomEvent("vitas:share-current")) },
+      { id: "live",   label: t("contextualFAB.matchDay"),  Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
+      ...(id ? [{ id: "back-player", label: t("contextualFAB.profile"), Icon: BarChart3, color: "#10b981", onClick: () => navigate(`/player/${id}`) }] : []),
     ];
   }
 
   // Equipo / Team analysis
   if (pathname.startsWith("/equipo")) {
     return [
-      { id: "live",   label: "Match-day Live", Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
-      { id: "rival",  label: "Plan vs Rival",  Icon: Swords,   color: "#F59E0B", onClick: () => navigate("/equipo/rival") },
-      { id: "team",   label: "Análisis equipo", Icon: Grid3x3,  color: "#1A8FFF", onClick: () => navigate("/equipo/baseline") },
+      { id: "live",   label: t("contextualFAB.matchDayLive"), Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
+      { id: "rival",  label: t("contextualFAB.planVsRival"),  Icon: Swords,   color: "#F59E0B", onClick: () => navigate("/equipo/rival") },
+      { id: "team",   label: t("contextualFAB.teamAnalysis"), Icon: Grid3x3,  color: "#1A8FFF", onClick: () => navigate("/equipo/baseline") },
     ];
   }
 
   // Live hub
   if (pathname === "/live") {
     return [
-      { id: "rankings",label: "Mis jugadores", Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
+      { id: "rankings",label: t("contextualFAB.myPlayers"), Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
     ];
   }
 
   // Rankings
   if (pathname === "/rankings") {
     return [
-      { id: "new-player",label: "Nuevo jugador", Icon: Plus,    color: "#22e88c", onClick: () => navigate("/players/new") },
-      { id: "live",      label: "Match-day",     Icon: Activity, color: "#1A8FFF", onClick: () => navigate("/live") },
-      { id: "team",      label: "Análisis equipo",Icon: Grid3x3, color: "#B82BD9", onClick: () => navigate("/equipo/baseline") },
+      { id: "new-player",label: t("contextualFAB.newPlayer"), Icon: Plus,    color: "#22e88c", onClick: () => navigate("/players/new") },
+      { id: "live",      label: t("contextualFAB.matchDay"),     Icon: Activity, color: "#1A8FFF", onClick: () => navigate("/live") },
+      { id: "team",      label: t("contextualFAB.teamAnalysis"),Icon: Grid3x3, color: "#B82BD9", onClick: () => navigate("/equipo/baseline") },
     ];
   }
 
   // Scout
   if (pathname === "/scout") {
     return [
-      { id: "rankings", label: "Mis jugadores", Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
+      { id: "rankings", label: t("contextualFAB.myPlayers"), Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
       { id: "lab",      label: "VITAS.LAB",     Icon: Zap,       color: "#B82BD9", onClick: () => navigate("/lab") },
     ];
   }
@@ -100,16 +101,16 @@ function actionsForRoute(pathname: string, params: Record<string, string | undef
   // VitasLab
   if (pathname === "/lab") {
     return [
-      { id: "rankings", label: "Mis jugadores", Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
-      { id: "live",     label: "Match-day",     Icon: Activity,  color: "#22e88c", onClick: () => navigate("/live") },
+      { id: "rankings", label: t("contextualFAB.myPlayers"), Icon: BarChart3, color: "#10b981", onClick: () => navigate("/rankings") },
+      { id: "live",     label: t("contextualFAB.matchDay"),     Icon: Activity,  color: "#22e88c", onClick: () => navigate("/live") },
     ];
   }
 
   // Pulse / Home → ya tiene tiles, FAB con shortcuts secundarios
   if (pathname === "/" || pathname === "/pulse") {
     return [
-      { id: "live",  label: "Match-day Live", Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
-      { id: "rival", label: "Plan vs Rival",  Icon: Swords,   color: "#F59E0B", onClick: () => navigate("/equipo/rival") },
+      { id: "live",  label: t("contextualFAB.matchDayLive"), Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
+      { id: "rival", label: t("contextualFAB.planVsRival"),  Icon: Swords,   color: "#F59E0B", onClick: () => navigate("/equipo/rival") },
       { id: "lab",   label: "VITAS.LAB",      Icon: Zap,      color: "#B82BD9", onClick: () => navigate("/lab") },
     ];
   }
@@ -123,6 +124,7 @@ export default function ContextualFAB() {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
+  const { t } = useTranslation();
 
   // Cerrar al cambiar de ruta
   useEffect(() => { setOpen(false); }, [location.pathname]);
@@ -137,7 +139,7 @@ export default function ContextualFAB() {
   // Hidden routes
   if (HIDDEN_PATTERNS.some((re) => re.test(location.pathname))) return null;
 
-  const actions = actionsForRoute(location.pathname, params, navigate);
+  const actions = actionsForRoute(location.pathname, params, navigate, t);
   if (actions.length === 0) return null;
 
   return (
@@ -191,7 +193,7 @@ export default function ContextualFAB() {
           onClick={() => setOpen(!open)}
           whileTap={{ scale: 0.9 }}
           className="w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-xl hover:bg-primary/90 transition-colors flex items-center justify-center relative"
-          aria-label={open ? "Cerrar acciones" : "Acciones rápidas"}
+          aria-label={open ? t("contextualFAB.closeActions") : t("contextualFAB.quickActions")}
         >
           <motion.div animate={{ rotate: open ? 45 : 0 }} transition={{ duration: 0.18 }}>
             {open ? <X size={20} /> : <Plus size={20} />}

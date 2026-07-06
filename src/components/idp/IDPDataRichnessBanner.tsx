@@ -9,6 +9,7 @@
  */
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Video, Brain, Activity, Ruler, ArrowRight, Check } from "lucide-react";
 import type { IDPDataRichness } from "@/hooks/useIDPArchitectInput";
 
@@ -38,6 +39,8 @@ export function IDPDataRichnessBanner({
   hideThreshold = 80,
   onUploadVideo,
 }: Props) {
+  const { t } = useTranslation();
+
   // Don't show if dataset is rich enough
   if (data.richnessScore >= hideThreshold) return null;
 
@@ -52,19 +55,18 @@ export function IDPDataRichnessBanner({
   if (!data.hasVideoAnalysis) {
     suggestions.push({
       icon: Video,
-      label: "Analizar un video",
-      description:
-        "Detecta técnico/táctico/físico real del jugador en partido. El agente usa esos datos para afinar metas.",
-      cta: "Subir video",
+      label: t("idpDataRichnessBanner.analyzeVideoLabel"),
+      description: t("idpDataRichnessBanner.analyzeVideoDescription"),
+      cta: t("idpDataRichnessBanner.analyzeVideoCta"),
       ...videoAction,
       color: "from-cyan-500 to-blue-500",
     });
   } else if (data.videoAnalysisCount < 3) {
     suggestions.push({
       icon: Video,
-      label: `${data.videoAnalysisCount} video${data.videoAnalysisCount === 1 ? "" : "s"} analizados`,
-      description: "Con 3+ videos los datos se promedian — perfil más estable y plan más preciso.",
-      cta: "Subir otro video",
+      label: t("idpDataRichnessBanner.videosAnalyzedLabel", { count: data.videoAnalysisCount }),
+      description: t("idpDataRichnessBanner.videosAnalyzedDescription"),
+      cta: t("idpDataRichnessBanner.videosAnalyzedCta"),
       ...videoAction,
       color: "from-cyan-500 to-blue-500",
     });
@@ -73,10 +75,9 @@ export function IDPDataRichnessBanner({
   if (!data.hasBehavioralProfile && data.hasVideoAnalysis) {
     suggestions.push({
       icon: Brain,
-      label: "Generar perfil mental",
-      description:
-        "7 dimensiones cognitivas (decisión, scanning, resiliencia…) que enriquecen la dimensión Mental del plan.",
-      cta: "Generar perfil",
+      label: t("idpDataRichnessBanner.mentalProfileLabel"),
+      description: t("idpDataRichnessBanner.mentalProfileDescription"),
+      cta: t("idpDataRichnessBanner.mentalProfileCta"),
       to: `/player/${playerId}?tab=mental`,
       color: "from-purple-500 to-pink-500",
     });
@@ -85,10 +86,9 @@ export function IDPDataRichnessBanner({
   if (!data.hasPHV) {
     suggestions.push({
       icon: Ruler,
-      label: "Completar medidas",
-      description:
-        "Altura, peso y altura sentado activan el cálculo PHV — clave para la dimensión Maduración.",
-      cta: "Editar jugador",
+      label: t("idpDataRichnessBanner.measurementsLabel"),
+      description: t("idpDataRichnessBanner.measurementsDescription"),
+      cta: t("idpDataRichnessBanner.measurementsCta"),
       to: `/player/${playerId}/edit`,
       color: "from-amber-500 to-orange-500",
     });
@@ -97,10 +97,9 @@ export function IDPDataRichnessBanner({
   if (!data.hasFatigueData) {
     suggestions.push({
       icon: Activity,
-      label: "Registrar carga / lesiones",
-      description:
-        "ACWR + historial de lesiones permiten calibrar la dimensión Maduración (riesgo).",
-      cta: "Ver Salud",
+      label: t("idpDataRichnessBanner.loadInjuriesLabel"),
+      description: t("idpDataRichnessBanner.loadInjuriesDescription"),
+      cta: t("idpDataRichnessBanner.loadInjuriesCta"),
       to: `/player/${playerId}?tab=salud`,
       color: "from-rose-500 to-red-500",
     });
@@ -117,24 +116,24 @@ export function IDPDataRichnessBanner({
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="text-xs font-medium text-cyan-300 mb-0.5 uppercase tracking-wider">
-            Calidad de datos: {data.richnessScore}/100
+            {t("idpDataRichnessBanner.dataQuality", { score: data.richnessScore })}
           </div>
           <div className="text-sm text-slate-200">
-            El plan será más preciso si enriqueces el dataset
+            {t("idpDataRichnessBanner.enrichDatasetHint")}
           </div>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-slate-400">
           {data.hasVideoAnalysis && <Check className="size-3 text-emerald-400" />}
-          <span>video</span>
+          <span>{t("idpDataRichnessBanner.tagVideo")}</span>
           <span className="text-slate-600">·</span>
           {data.hasBehavioralProfile && <Check className="size-3 text-emerald-400" />}
-          <span>mental</span>
+          <span>{t("idpDataRichnessBanner.tagMental")}</span>
           <span className="text-slate-600">·</span>
           {data.hasPHV && <Check className="size-3 text-emerald-400" />}
           <span>PHV</span>
           <span className="text-slate-600">·</span>
           {data.hasFatigueData && <Check className="size-3 text-emerald-400" />}
-          <span>salud</span>
+          <span>{t("idpDataRichnessBanner.tagHealth")}</span>
         </div>
       </div>
 

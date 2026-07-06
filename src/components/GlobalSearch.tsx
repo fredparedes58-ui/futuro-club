@@ -17,6 +17,7 @@
  */
 
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   Command as CommandPrimitive, CommandDialog, CommandEmpty, CommandGroup,
@@ -55,6 +56,7 @@ const QUICK_ACTIONS: QuickAction[] = [
 ];
 
 export default function GlobalSearch() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
@@ -96,11 +98,11 @@ export default function GlobalSearch() {
       <button
         onClick={() => setOpen(true)}
         className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-background/85 backdrop-blur-md border border-border shadow-lg hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors print:hidden"
-        aria-label="Búsqueda global · ⌘K"
-        title="Buscar (⌘K)"
+        aria-label={t("globalSearch.triggerAriaLabel")}
+        title={t("globalSearch.triggerTitle")}
       >
         <Search size={12} />
-        <span className="hidden sm:inline text-[10px] font-display">Buscar</span>
+        <span className="hidden sm:inline text-[10px] font-display">{t("globalSearch.searchLabel")}</span>
         <kbd className="hidden md:inline-block ml-1 px-1 py-0.5 rounded bg-secondary text-[8px] font-mono text-muted-foreground">
           ⌘K
         </kbd>
@@ -109,15 +111,15 @@ export default function GlobalSearch() {
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandPrimitive shouldFilter={false}>
           <CommandInput
-            placeholder="Buscar jugadores, acciones, páginas…"
+            placeholder={t("globalSearch.inputPlaceholder")}
             value={query}
             onValueChange={setQuery}
           />
           <CommandList>
-            <CommandEmpty>Sin resultados.</CommandEmpty>
+            <CommandEmpty>{t("globalSearch.noResults")}</CommandEmpty>
 
             {/* Acciones rápidas */}
-            <CommandGroup heading="Acciones rápidas">
+            <CommandGroup heading={t("globalSearch.quickActionsHeading")}>
               {QUICK_ACTIONS.filter((a) => {
                 if (!query) return true;
                 const q = query.toLowerCase();
@@ -147,7 +149,7 @@ export default function GlobalSearch() {
             {filteredPlayers.length > 0 && (
               <>
                 <CommandSeparator />
-                <CommandGroup heading={`Jugadores · ${filteredPlayers.length}`}>
+                <CommandGroup heading={t("globalSearch.playersHeading", { count: filteredPlayers.length })}>
                   {filteredPlayers.map((p) => (
                     <CommandItem
                       key={p.id}
@@ -163,7 +165,7 @@ export default function GlobalSearch() {
                           {p.position ?? "?"} · {p.age ?? "?"}a · VSI {Number(p.vsi ?? 0).toFixed(0)}
                         </div>
                       </div>
-                      <span className="text-[9px] text-muted-foreground shrink-0">→ Perfil</span>
+                      <span className="text-[9px] text-muted-foreground shrink-0">{t("globalSearch.goToProfile")}</span>
                     </CommandItem>
                   ))}
                   {/* Atajo: rapido a reports / live / family */}
@@ -175,7 +177,7 @@ export default function GlobalSearch() {
                       >
                         <Heart size={12} className="text-pink-400 shrink-0" />
                         <span className="text-[11px] text-foreground">
-                          Vista familia de {filteredPlayers[0].name}
+                          {t("globalSearch.familyView", { name: filteredPlayers[0].name })}
                         </span>
                       </CommandItem>
                       <CommandItem
@@ -184,7 +186,7 @@ export default function GlobalSearch() {
                       >
                         <FileText size={12} className="text-electric shrink-0" />
                         <span className="text-[11px] text-foreground">
-                          Ver reportes de {filteredPlayers[0].name}
+                          {t("globalSearch.viewReports", { name: filteredPlayers[0].name })}
                         </span>
                       </CommandItem>
                       <CommandItem
@@ -193,7 +195,7 @@ export default function GlobalSearch() {
                       >
                         <Trophy size={12} className="text-gold shrink-0" />
                         <span className="text-[11px] text-foreground">
-                          Ver evolución de {filteredPlayers[0].name}
+                          {t("globalSearch.viewEvolution", { name: filteredPlayers[0].name })}
                         </span>
                       </CommandItem>
                     </>

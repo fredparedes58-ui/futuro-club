@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Sparkles, Loader2, Users, Brain, Swords, Activity, Target,
@@ -34,16 +35,17 @@ interface TeamBaselineResponse {
   reportsFailed: number;
 }
 
-const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; title: string; color: string }> = {
-  "team-overview":     { Icon: Brain,    title: "Resumen del equipo",   color: "#0066CC" },
-  "tactical-profile":  { Icon: Swords,   title: "Perfil táctico",       color: "#B82BD9" },
-  "tactical-zones":    { Icon: Grid3x3,  title: "Zonas (9 cuadrantes)", color: "#1A8FFF" },
-  "phv-stratification": { Icon: Activity, title: "Estratificación PHV", color: "#10b981" },
-  "opponent-readiness": { Icon: Target,   title: "Preparación rival",    color: "#DC8B0A" },
+const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; titleKey: string; color: string }> = {
+  "team-overview":     { Icon: Brain,    titleKey: "teamBaselinePage.reportTeamOverview",  color: "#0066CC" },
+  "tactical-profile":  { Icon: Swords,   titleKey: "teamBaselinePage.reportTacticalProfile", color: "#B82BD9" },
+  "tactical-zones":    { Icon: Grid3x3,  titleKey: "teamBaselinePage.reportTacticalZones", color: "#1A8FFF" },
+  "phv-stratification": { Icon: Activity, titleKey: "teamBaselinePage.reportPhvStratification", color: "#10b981" },
+  "opponent-readiness": { Icon: Target,   titleKey: "teamBaselinePage.reportOpponentReadiness", color: "#DC8B0A" },
 };
 
 export default function TeamBaselinePage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<AnalysisMode>("video");
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState<TeamBaselineResponse | null>(null);
@@ -74,13 +76,13 @@ export default function TeamBaselinePage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? "Error analizando video");
+      if (!res.ok || !json.success) throw new Error(json?.error?.message ?? t("teamBaselinePage.errorAnalyzingVideo"));
 
       const obs = json.data?.observations as Record<string, unknown>;
       setVideoAnalysis(obs);
-      toast.success("Video analizado — observaciones extraídas");
+      toast.success(t("teamBaselinePage.toastVideoAnalyzed"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error analizando video");
+      toast.error(err instanceof Error ? err.message : t("teamBaselinePage.errorAnalyzingVideo"));
       setVideoAnalysis(null);
     } finally {
       setAnalyzingVideo(false);
@@ -103,14 +105,14 @@ export default function TeamBaselinePage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json?.error?.message ?? "Error generando análisis");
+        throw new Error(json?.error?.message ?? t("teamBaselinePage.errorGeneratingAnalysis"));
       }
       setData(json.data as TeamBaselineResponse);
-      toast.success(`✓ ${json.data.reportsGenerated}/4 reportes · ${json.data.teamSize} jugadores`);
+      toast.success(t("teamBaselinePage.toastReportsGenerated", { generated: json.data.reportsGenerated, size: json.data.teamSize }));
       setExpanded(json.data.reports[0]?.type ?? null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
-      toast.error(err instanceof Error ? err.message : "Error generando");
+      setError(err instanceof Error ? err.message : t("teamBaselinePage.errorUnknown"));
+      toast.error(err instanceof Error ? err.message : t("teamBaselinePage.errorGenerating"));
     } finally {
       setGenerating(false);
     }
@@ -126,10 +128,10 @@ export default function TeamBaselinePage() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">
-              Análisis de equipo · baseline
+              {t("teamBaselinePage.headerTitle")}
             </h1>
             <p className="text-[10px] text-muted-foreground">
-              Con vídeo · análisis enriquecido con Gemini + Claude
+              {t("teamBaselinePage.headerSubtitle")}
             </p>
           </div>
           <Users size={18} className="text-primary" />
@@ -141,10 +143,10 @@ export default function TeamBaselinePage() {
           <div className="glass rounded-2xl p-6 text-center space-y-3">
             <Brain size={32} className="mx-auto text-primary/50" />
             <h2 className="text-sm font-display font-bold text-foreground">
-              Genera el informe del equipo
+              {t("teamBaselinePage.generateHeading")}
             </h2>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              Sube un vídeo de tu equipo. Gemini analiza patrones, transiciones y pressing. Claude genera reportes enriquecidos con evidencia visual.
+              {t("teamBaselinePage.generateDescription")}
             </p>
 
             {/* Video upload section */}
@@ -159,14 +161,14 @@ export default function TeamBaselinePage() {
               {analyzingVideo && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">
                   <Loader2 size={14} className="animate-spin text-primary" />
-                  <span className="text-xs text-foreground">Gemini analizando vídeo del equipo…</span>
+                  <span className="text-xs text-foreground">{t("teamBaselinePage.geminiAnalyzingVideo")}</span>
                 </div>
               )}
               {videoAnalysis && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                   <CheckCircle2 size={14} className="text-green-500" />
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs font-bold text-foreground">Video analizado</span>
+                    <span className="text-xs font-bold text-foreground">{t("teamBaselinePage.videoAnalyzedLabel")}</span>
                     {(videoAnalysis as Record<string, unknown>).resumenGeneral && (
                       <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
                         {String((videoAnalysis as Record<string, unknown>).resumenGeneral).slice(0, 200)}
@@ -182,10 +184,10 @@ export default function TeamBaselinePage() {
               disabled={!videoAnalysis}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              <Sparkles size={12} /> Generar análisis
+              <Sparkles size={12} /> {t("teamBaselinePage.generateButton")}
             </button>
             <p className="text-[10px] text-muted-foreground">
-              ~30-60s vídeo + ~12-25s reportes · Gemini + 4 calls Claude
+              {t("teamBaselinePage.generateTimingNote")}
             </p>
           </div>
         )}
@@ -194,7 +196,7 @@ export default function TeamBaselinePage() {
           <div className="glass rounded-2xl p-12 text-center space-y-3">
             <Loader2 size={28} className="animate-spin text-primary mx-auto" />
             <p className="text-xs text-muted-foreground">
-              Claude analizando plantilla…
+              {t("teamBaselinePage.analyzingSquad")}
             </p>
           </div>
         )}
@@ -203,7 +205,7 @@ export default function TeamBaselinePage() {
           <div className="rounded-xl bg-destructive/10 border border-destructive/30 p-3 flex items-start gap-2">
             <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
             <div>
-              <p className="text-[11px] font-bold text-destructive">Error</p>
+              <p className="text-[11px] font-bold text-destructive">{t("teamBaselinePage.errorLabel")}</p>
               <p className="text-[10px] text-foreground">{error}</p>
             </div>
           </div>
@@ -214,16 +216,16 @@ export default function TeamBaselinePage() {
             {/* Stats overview */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-4">
               <div className="grid grid-cols-3 gap-3">
-                <Stat label="Plantilla" value={`${data.teamSize}`} />
-                <Stat label="VSI prom" value={`${data.vsiPromedio}`} />
-                <Stat label="Reportes" value={`${data.reportsGenerated}/4`} />
+                <Stat label={t("teamBaselinePage.statSquad")} value={`${data.teamSize}`} />
+                <Stat label={t("teamBaselinePage.statVsiAvg")} value={`${data.vsiPromedio}`} />
+                <Stat label={t("teamBaselinePage.statReports")} value={`${data.reportsGenerated}/4`} />
               </div>
               <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap gap-3 text-[10px]">
-                <PhvBadge label="🌱 Pre-estirón" count={data.phvDistribution.early} color="#1A8FFF" />
-                <PhvBadge label="🚀 En estirón" count={data.phvDistribution.ontime} color="#B82BD9" />
-                <PhvBadge label="🏆 Post-estirón" count={data.phvDistribution.late} color="#10b981" />
+                <PhvBadge label={t("teamBaselinePage.phvEarly")} count={data.phvDistribution.early} color="#1A8FFF" />
+                <PhvBadge label={t("teamBaselinePage.phvOntime")} count={data.phvDistribution.ontime} color="#B82BD9" />
+                <PhvBadge label={t("teamBaselinePage.phvLate")} count={data.phvDistribution.late} color="#10b981" />
                 {data.phvDistribution.unknown > 0 && (
-                  <PhvBadge label="? Sin medir" count={data.phvDistribution.unknown} color="#888" />
+                  <PhvBadge label={t("teamBaselinePage.phvUnknown")} count={data.phvDistribution.unknown} color="#888" />
                 )}
               </div>
             </motion.div>
@@ -231,8 +233,9 @@ export default function TeamBaselinePage() {
             {/* Reports accordion */}
             <div className="space-y-2">
               {data.reports.map((r) => {
-                const meta = REPORT_META[r.type] ?? { Icon: Brain, title: r.type, color: "#888" };
+                const meta = REPORT_META[r.type] ?? { Icon: Brain, titleKey: r.type, color: "#888" };
                 const Icon = meta.Icon;
+                const metaTitle = REPORT_META[r.type] ? t(meta.titleKey) : r.type;
                 const isOpen = expanded === r.type;
                 return (
                   <div key={r.type} className="glass rounded-xl overflow-hidden">
@@ -247,7 +250,7 @@ export default function TeamBaselinePage() {
                         >
                           <Icon size={14} style={{ color: meta.color }} />
                         </div>
-                        <span className="text-sm font-display font-bold text-foreground">{meta.title}</span>
+                        <span className="text-sm font-display font-bold text-foreground">{metaTitle}</span>
                       </div>
                       {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
@@ -267,7 +270,7 @@ export default function TeamBaselinePage() {
               disabled={generating}
               className="w-full py-2.5 rounded-lg bg-secondary/30 border border-dashed border-border text-[11px] font-display text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors flex items-center justify-center gap-2"
             >
-              <Sparkles size={11} /> Regenerar análisis
+              <Sparkles size={11} /> {t("teamBaselinePage.regenerateButton")}
             </button>
           </>
         )}
@@ -319,6 +322,7 @@ function ReportContent({ type, content }: { type: string; content: Record<string
 }
 
 function TeamOverviewRenderer({ content }: { content: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const summary = content.executive_summary as string | undefined;
   const strengths = content.team_strengths as Array<{ title?: string; evidence?: string }> | undefined;
   const weaknesses = content.team_weaknesses as Array<{ title?: string; evidence?: string; priority?: string }> | undefined;
@@ -329,7 +333,7 @@ function TeamOverviewRenderer({ content }: { content: Record<string, unknown> })
       {summary && <p className="text-foreground leading-relaxed">{summary}</p>}
       {strengths && strengths.length > 0 && (
         <div>
-          <h5 className="text-[10px] uppercase tracking-wider text-green-400 font-bold mb-1">✓ Fortalezas</h5>
+          <h5 className="text-[10px] uppercase tracking-wider text-green-400 font-bold mb-1">{t("teamBaselinePage.strengthsHeading")}</h5>
           <ul className="list-disc list-inside space-y-0.5 text-foreground">
             {strengths.map((s, i) => <li key={i}><span className="font-semibold">{s.title}</span> {s.evidence && <span className="text-muted-foreground">— {s.evidence}</span>}</li>)}
           </ul>
@@ -337,7 +341,7 @@ function TeamOverviewRenderer({ content }: { content: Record<string, unknown> })
       )}
       {weaknesses && weaknesses.length > 0 && (
         <div>
-          <h5 className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-1">⚠ Debilidades</h5>
+          <h5 className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-1">{t("teamBaselinePage.weaknessesHeading")}</h5>
           <ul className="list-disc list-inside space-y-0.5 text-foreground">
             {weaknesses.map((w, i) => <li key={i}><span className="font-semibold">{w.title}</span> {w.evidence && <span className="text-muted-foreground">— {w.evidence}</span>}</li>)}
           </ul>
@@ -345,7 +349,7 @@ function TeamOverviewRenderer({ content }: { content: Record<string, unknown> })
       )}
       {next && (
         <div className="rounded-lg bg-primary/10 border border-primary/30 p-2 text-[11px]">
-          <strong className="text-primary">Próximo foco:</strong> <span className="text-foreground">{next}</span>
+          <strong className="text-primary">{t("teamBaselinePage.nextFocusLabel")}</strong> <span className="text-foreground">{next}</span>
         </div>
       )}
     </>
@@ -353,6 +357,7 @@ function TeamOverviewRenderer({ content }: { content: Record<string, unknown> })
 }
 
 function TacticalRenderer({ content }: { content: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const formation = content.formation_suggested as string | undefined;
   const style = content.playing_style as string | undefined;
   const offensive = content.offensive_phase as string | undefined;
@@ -361,16 +366,17 @@ function TacticalRenderer({ content }: { content: Record<string, unknown> }) {
 
   return (
     <>
-      {formation && <p><strong className="text-primary">Formación:</strong> <span className="text-foreground">{formation}</span></p>}
-      {style && <p><strong className="text-foreground">Estilo:</strong> <span className="text-muted-foreground">{style}</span></p>}
-      {offensive && <p><strong className="text-green-400">Ataque:</strong> <span className="text-muted-foreground">{offensive}</span></p>}
-      {defensive && <p><strong className="text-amber-400">Defensa:</strong> <span className="text-muted-foreground">{defensive}</span></p>}
-      {transition && <p><strong className="text-electric">Transición:</strong> <span className="text-muted-foreground">{transition}</span></p>}
+      {formation && <p><strong className="text-primary">{t("teamBaselinePage.formationLabel")}</strong> <span className="text-foreground">{formation}</span></p>}
+      {style && <p><strong className="text-foreground">{t("teamBaselinePage.styleLabel")}</strong> <span className="text-muted-foreground">{style}</span></p>}
+      {offensive && <p><strong className="text-green-400">{t("teamBaselinePage.attackLabel")}</strong> <span className="text-muted-foreground">{offensive}</span></p>}
+      {defensive && <p><strong className="text-amber-400">{t("teamBaselinePage.defenseLabel")}</strong> <span className="text-muted-foreground">{defensive}</span></p>}
+      {transition && <p><strong className="text-electric">{t("teamBaselinePage.transitionLabel")}</strong> <span className="text-muted-foreground">{transition}</span></p>}
     </>
   );
 }
 
 function PhvStratRenderer({ content }: { content: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const summary = content.mix_summary as string | undefined;
   const early = content.early_group_plan as string | undefined;
   const ontime = content.ontime_group_plan as string | undefined;
@@ -380,12 +386,12 @@ function PhvStratRenderer({ content }: { content: Record<string, unknown> }) {
   return (
     <>
       {summary && <p className="text-foreground leading-relaxed">{summary}</p>}
-      {early  && <p>🌱 <strong>Pre-estirón:</strong> <span className="text-muted-foreground">{early}</span></p>}
-      {ontime && <p>🚀 <strong>En estirón:</strong> <span className="text-muted-foreground">{ontime}</span></p>}
-      {late   && <p>🏆 <strong>Post-estirón:</strong> <span className="text-muted-foreground">{late}</span></p>}
+      {early  && <p>🌱 <strong>{t("teamBaselinePage.preSpurtLabel")}</strong> <span className="text-muted-foreground">{early}</span></p>}
+      {ontime && <p>🚀 <strong>{t("teamBaselinePage.inSpurtLabel")}</strong> <span className="text-muted-foreground">{ontime}</span></p>}
+      {late   && <p>🏆 <strong>{t("teamBaselinePage.postSpurtLabel")}</strong> <span className="text-muted-foreground">{late}</span></p>}
       {risk && (
         <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-2 text-[11px]">
-          <strong className="text-amber-400">⚠ Riesgo:</strong> <span className="text-foreground">{risk}</span>
+          <strong className="text-amber-400">{t("teamBaselinePage.riskLabel")}</strong> <span className="text-foreground">{risk}</span>
         </div>
       )}
     </>
@@ -402,13 +408,14 @@ interface ZoneEntry {
 }
 
 function ZonesRenderer({ content }: { content: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const zones = content.zones as ZoneEntry[] | undefined;
   const summary = content.summary as string | undefined;
   const dominant = content.dominant_zone as string | undefined;
   const weakest = content.weakest_zone as string | undefined;
 
   if (!Array.isArray(zones) || zones.length === 0) {
-    return <p className="text-muted-foreground italic">Sin datos de zonas</p>;
+    return <p className="text-muted-foreground italic">{t("teamBaselinePage.noZoneData")}</p>;
   }
 
   const byPos = new Map<string, ZoneEntry>();
@@ -423,7 +430,7 @@ function ZonesRenderer({ content }: { content: Record<string, unknown> }) {
 
       <div className="rounded-xl bg-secondary/30 border border-border p-3">
         <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-2 text-center">
-          ↑ Vista hacia portería rival
+          {t("teamBaselinePage.viewTowardOpponentGoal")}
         </div>
         <div className="grid grid-cols-3 gap-1.5 max-w-[280px] mx-auto">
           {rows.flatMap((row) =>
@@ -458,23 +465,23 @@ function ZonesRenderer({ content }: { content: Record<string, unknown> }) {
           )}
         </div>
         <div className="mt-3 text-center text-[8px] uppercase tracking-wider text-muted-foreground font-bold">
-          ↓ Tu portería
+          {t("teamBaselinePage.yourGoal")}
         </div>
         <div className="mt-3 pt-2 border-t border-border/40 text-[10px] flex items-center justify-between">
-          <span>Color = ataque · número grande = ofensivo, pequeño = defensivo</span>
+          <span>{t("teamBaselinePage.zoneLegend")}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px]">
         {dominant && (
           <div className="rounded-lg bg-primary/10 border border-primary/30 p-2">
-            <div className="text-[9px] uppercase tracking-wider text-primary font-bold">Dominante</div>
+            <div className="text-[9px] uppercase tracking-wider text-primary font-bold">{t("teamBaselinePage.dominantLabel")}</div>
             <div className="text-foreground font-mono">{dominant}</div>
           </div>
         )}
         {weakest && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-2">
-            <div className="text-[9px] uppercase tracking-wider text-destructive font-bold">Vulnerable</div>
+            <div className="text-[9px] uppercase tracking-wider text-destructive font-bold">{t("teamBaselinePage.vulnerableLabel")}</div>
             <div className="text-foreground font-mono">{weakest}</div>
           </div>
         )}
@@ -493,6 +500,7 @@ function scoreToColor(score: number): string {
 }
 
 function OpponentRenderer({ content }: { content: Record<string, unknown> }) {
+  const { t } = useTranslation();
   const vulns = content.vulnerabilities as string[] | undefined;
   const strs = content.exploitable_strengths as string[] | undefined;
   const drills = content.recommended_drills as string[] | undefined;
@@ -501,19 +509,19 @@ function OpponentRenderer({ content }: { content: Record<string, unknown> }) {
     <>
       {vulns && vulns.length > 0 && (
         <div>
-          <h5 className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-1">Vulnerabilidades</h5>
+          <h5 className="text-[10px] uppercase tracking-wider text-amber-400 font-bold mb-1">{t("teamBaselinePage.vulnerabilitiesHeading")}</h5>
           <ul className="list-disc list-inside space-y-0.5 text-foreground">{vulns.map((v, i) => <li key={i}>{v}</li>)}</ul>
         </div>
       )}
       {strs && strs.length > 0 && (
         <div>
-          <h5 className="text-[10px] uppercase tracking-wider text-green-400 font-bold mb-1">Fortalezas a explotar</h5>
+          <h5 className="text-[10px] uppercase tracking-wider text-green-400 font-bold mb-1">{t("teamBaselinePage.exploitableStrengthsHeading")}</h5>
           <ul className="list-disc list-inside space-y-0.5 text-foreground">{strs.map((v, i) => <li key={i}>{v}</li>)}</ul>
         </div>
       )}
       {drills && drills.length > 0 && (
         <div>
-          <h5 className="text-[10px] uppercase tracking-wider text-electric font-bold mb-1">Drills recomendados</h5>
+          <h5 className="text-[10px] uppercase tracking-wider text-electric font-bold mb-1">{t("teamBaselinePage.recommendedDrillsHeading")}</h5>
           <ul className="list-disc list-inside space-y-0.5 text-foreground">{drills.map((v, i) => <li key={i}>{v}</li>)}</ul>
         </div>
       )}

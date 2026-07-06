@@ -11,6 +11,7 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Player } from "@/services/real/playerService";
 
 interface Props {
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function TalentoOcultoAlert({ player }: Props) {
+  const { t } = useTranslation();
   // Solo mostrar si:
   // 1. Tiene datos de PHV
   // 2. Está en categoría "early" (pre-pico) o su maturityOffset es < -0.5
@@ -60,28 +62,35 @@ export default function TalentoOcultoAlert({ player }: Props) {
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
             <h3 className="font-display font-bold text-sm text-amber-300">
-              Talento Oculto Detectado
+              {t("talentoOcultoAlert.title")}
             </h3>
             <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-[9px] font-bold text-amber-300 uppercase tracking-wider">
-              PHV Pre-pico
+              {t("talentoOcultoAlert.badge")}
             </span>
           </div>
 
           <p className="text-xs text-foreground/80 leading-relaxed">
-            {player.name} tiene {chronoAge} años cronológicos pero su maduración biológica indica que es
-            {maturityDiff ? ` ${maturityDiff} años` : ""} más joven madurativamente que sus compañeros de equipo.
-            Su rendimiento actual está penalizado por el crecimiento.
+            {maturityDiff
+              ? t("talentoOcultoAlert.descriptionWithDiff", {
+                  name: player.name,
+                  chronoAge,
+                  maturityDiff,
+                })
+              : t("talentoOcultoAlert.description", {
+                  name: player.name,
+                  chronoAge,
+                })}
           </p>
 
           {/* Projection */}
           <div className="flex items-center gap-4 pt-1">
             <div className="text-center">
-              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">VSI Actual</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{t("talentoOcultoAlert.currentVsi")}</p>
               <p className="font-display font-bold text-lg text-foreground">{currentVsi}</p>
             </div>
             <TrendingUp size={16} className="text-amber-400" />
             <div className="text-center">
-              <p className="text-[9px] text-amber-400 uppercase tracking-wider">Proyección post-pico</p>
+              <p className="text-[9px] text-amber-400 uppercase tracking-wider">{t("talentoOcultoAlert.projectionPostPeak")}</p>
               <p className="font-display font-bold text-lg text-amber-300">~{projectedVsi}</p>
             </div>
           </div>
@@ -89,8 +98,7 @@ export default function TalentoOcultoAlert({ player }: Props) {
           <div className="flex items-start gap-1.5 pt-1">
             <Info size={10} className="text-muted-foreground mt-0.5 shrink-0" />
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Proyectamos mejora significativa en los próximos 12-18 meses cuando complete el pico de crecimiento.
-              La velocidad puede bajar temporalmente durante el estirón — es normal y esperado.
+              {t("talentoOcultoAlert.projectionNote")}
             </p>
           </div>
         </div>

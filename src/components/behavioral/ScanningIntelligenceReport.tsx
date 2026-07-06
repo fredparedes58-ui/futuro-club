@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Eye,
@@ -132,6 +133,7 @@ export default function ScanningIntelligenceReport({
   playerName,
   scanningScore,
 }: Props) {
+  const { t } = useTranslation();
   // Derive score from playerId if not provided (same seed as overview)
   const score = useMemo(() => {
     if (scanningScore !== undefined) return scanningScore;
@@ -210,10 +212,10 @@ export default function ScanningIntelligenceReport({
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-display font-bold text-foreground">
-            Informe de escaneo previo a recepción
+            {t("scanningIntelligenceReport.title")}
           </h3>
           <p className="text-[11px] text-muted-foreground">
-            {playerName ?? "Jugador"} · cuántas veces mira el entorno en los <strong>10 segundos antes</strong> de recibir el balón
+            {playerName ?? t("scanningIntelligenceReport.player")} · {t("scanningIntelligenceReport.subtitleBefore")} <strong>{t("scanningIntelligenceReport.subtitleHighlight")}</strong> {t("scanningIntelligenceReport.subtitleAfter")}
           </p>
         </div>
         <div className="text-right shrink-0">
@@ -225,29 +227,29 @@ export default function ScanningIntelligenceReport({
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <KpiTile
-          label="Scans / recepción"
+          label={t("scanningIntelligenceReport.kpiScansPerReception")}
           value={stats.avgScans.toFixed(1)}
           icon={<Eye size={12} />}
           color="text-pink-500 bg-pink-500/15"
         />
         <KpiTile
-          label="Bajo presión"
+          label={t("scanningIntelligenceReport.kpiUnderPressure")}
           value={stats.scansUnderPressure.toFixed(1)}
-          sub={`${receptions.filter((r) => r.pressureLevel >= 50).length} jugadas`}
+          sub={t("scanningIntelligenceReport.kpiPlaysCount", { count: receptions.filter((r) => r.pressureLevel >= 50).length })}
           icon={<Target size={12} />}
           color="text-red-500 bg-red-500/15"
         />
         <KpiTile
-          label="Éxito con scan"
+          label={t("scanningIntelligenceReport.kpiSuccessWithScan")}
           value={`${Math.round(stats.successWith2plusScans * 100)}%`}
-          sub={`vs ${Math.round(stats.successWith0to1Scans * 100)}% sin scan`}
+          sub={t("scanningIntelligenceReport.kpiVsWithoutScan", { pct: Math.round(stats.successWith0to1Scans * 100) })}
           icon={<TrendingUp size={12} />}
           color="text-emerald-500 bg-emerald-500/15"
         />
         <KpiTile
-          label="Orientado al rival"
+          label={t("scanningIntelligenceReport.kpiOrientedToOpponent")}
           value={`${Math.round(stats.forwardOrientedPct * 100)}%`}
-          sub="tras recepción"
+          sub={t("scanningIntelligenceReport.kpiAfterReception")}
           icon={<CheckCircle2 size={12} />}
           color="text-blue-500 bg-blue-500/15"
         />
@@ -258,7 +260,7 @@ export default function ScanningIntelligenceReport({
         <Info size={14} className="text-pink-500 shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[12px] text-foreground/90">
-            <strong>Percentil {benchmark.percentile}</strong> en <em>{benchmark.group}</em> — {benchmark.description}
+            <strong>{t("scanningIntelligenceReport.percentile", { value: benchmark.percentile })}</strong> {t("scanningIntelligenceReport.in")} <em>{benchmark.group}</em> — {benchmark.description}
           </p>
         </div>
       </div>
@@ -267,10 +269,10 @@ export default function ScanningIntelligenceReport({
       <div className="glass rounded-xl p-3 space-y-2">
         <div className="flex items-center justify-between">
           <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
-            Recepciones del último partido ({receptions.length})
+            {t("scanningIntelligenceReport.timelineTitle", { count: receptions.length })}
           </h4>
           <p className="text-[10px] text-muted-foreground">
-            Click en un punto para ver el detalle
+            {t("scanningIntelligenceReport.timelineHint")}
           </p>
         </div>
 
@@ -292,7 +294,7 @@ export default function ScanningIntelligenceReport({
               style={{ bottom: `${(2 / scaleMax) * 100}%` }}
             >
               <span className="text-[8px] text-emerald-500 bg-background px-1 -translate-y-1/2">
-                ≥2 scans = bueno
+                {t("scanningIntelligenceReport.thresholdLabel")}
               </span>
             </div>
 
@@ -308,7 +310,7 @@ export default function ScanningIntelligenceReport({
                   onClick={() => setSelectedId(r.id === selectedId ? null : r.id)}
                   className="absolute -translate-x-1/2 translate-y-1/2 group"
                   style={{ left: `${x}%`, bottom: `${y}%` }}
-                  title={`Min ${r.minute}' · ${r.scansPreReception} scans · ${meta.label}`}
+                  title={`${t("scanningIntelligenceReport.pointTitle", { minute: r.minute, count: r.scansPreReception })} · ${meta.label}`}
                 >
                   <motion.div
                     initial={{ scale: 0 }}
@@ -358,7 +360,7 @@ export default function ScanningIntelligenceReport({
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Clock size={12} className="text-muted-foreground" />
             <span className="text-[11px] font-display font-bold text-foreground">
-              Minuto {selectedReception.minute}'
+              {t("scanningIntelligenceReport.minute", { value: selectedReception.minute })}
             </span>
             <span
               className="px-1.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
@@ -377,21 +379,21 @@ export default function ScanningIntelligenceReport({
           </div>
           <div className="grid grid-cols-3 gap-3 text-[11px]">
             <div>
-              <p className="text-muted-foreground">Scans 10s previos</p>
+              <p className="text-muted-foreground">{t("scanningIntelligenceReport.detailScansPrev")}</p>
               <p className="text-base font-display font-bold text-pink-500">
                 {selectedReception.scansPreReception}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Presión rival</p>
+              <p className="text-muted-foreground">{t("scanningIntelligenceReport.detailPressure")}</p>
               <p className="text-base font-display font-bold text-foreground">
                 {selectedReception.pressureLevel}%
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Orientación</p>
+              <p className="text-muted-foreground">{t("scanningIntelligenceReport.detailOrientation")}</p>
               <p className="text-base font-display font-bold text-foreground">
-                {selectedReception.forwardOriented ? "↗ Frontal" : "↩ Atrás"}
+                {selectedReception.forwardOriented ? t("scanningIntelligenceReport.orientationForward") : t("scanningIntelligenceReport.orientationBack")}
               </p>
             </div>
           </div>
@@ -401,7 +403,7 @@ export default function ScanningIntelligenceReport({
       {/* Histogram */}
       <div className="glass rounded-xl p-3 space-y-2">
         <h4 className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
-          Distribución del número de scans por recepción
+          {t("scanningIntelligenceReport.histogramTitle")}
         </h4>
         <div className="flex items-end gap-1.5 h-24">
           {histogram.map((bin, i) => {
@@ -431,28 +433,26 @@ export default function ScanningIntelligenceReport({
           })}
         </div>
         <p className="text-[10px] text-muted-foreground text-center">
-          Eje X: número de scans antes de recibir · Eje Y: cantidad de recepciones
+          {t("scanningIntelligenceReport.histogramAxisCaption")}
         </p>
       </div>
 
       {/* Insight */}
       <div className="glass rounded-xl p-3 border-l-4 border-emerald-500/60 bg-emerald-500/5">
         <p className="text-[12px] text-foreground/90 leading-relaxed">
-          <strong className="text-emerald-500">💡 Insight automático:</strong>{" "}
+          <strong className="text-emerald-500">{t("scanningIntelligenceReport.insightLabel")}</strong>{" "}
           {stats.successWith2plusScans > stats.successWith0to1Scans + 0.15 ? (
             <>
-              Cuando {playerName ?? "el jugador"} hace <strong>2+ scans</strong> antes de recibir, su éxito sube{" "}
+              {t("scanningIntelligenceReport.insightPositiveBefore", { player: playerName ?? t("scanningIntelligenceReport.thePlayer") })}{" "}
+              <strong>{t("scanningIntelligenceReport.insightPositiveScans")}</strong> {t("scanningIntelligenceReport.insightPositiveMid")}{" "}
               <strong>
-                {Math.round((stats.successWith2plusScans - stats.successWith0to1Scans) * 100)} puntos
+                {t("scanningIntelligenceReport.insightPositivePoints", { points: Math.round((stats.successWith2plusScans - stats.successWith0to1Scans) * 100) })}
               </strong>{" "}
-              (de {Math.round(stats.successWith0to1Scans * 100)}% a{" "}
-              {Math.round(stats.successWith2plusScans * 100)}%). Reforzar el hábito de mirar antes de recibir es la mayor palanca de mejora.
+              {t("scanningIntelligenceReport.insightPositiveAfter", { from: Math.round(stats.successWith0to1Scans * 100), to: Math.round(stats.successWith2plusScans * 100) })}
             </>
           ) : (
             <>
-              El éxito con scan vs sin scan está parejo (
-              {Math.round(stats.successWith0to1Scans * 100)}% vs{" "}
-              {Math.round(stats.successWith2plusScans * 100)}%). Su éxito no depende tanto del escaneo previo — probablemente compensa con velocidad de decisión o lectura post-recepción.
+              {t("scanningIntelligenceReport.insightNeutral", { low: Math.round(stats.successWith0to1Scans * 100), high: Math.round(stats.successWith2plusScans * 100) })}
             </>
           )}
         </p>

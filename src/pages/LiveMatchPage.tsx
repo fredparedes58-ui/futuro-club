@@ -20,6 +20,7 @@ import {
   Goal, Send, Shield, Activity, ChevronUp, ChevronDown, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useLiveMatch, type LiveEventType } from "@/hooks/useLiveMatch";
 import { useAllPlayers } from "@/hooks/usePlayers";
 
@@ -57,6 +58,7 @@ function vibrate(ms: number) {
 }
 
 export default function LiveMatchPage() {
+  const { t } = useTranslation();
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const { data: players = [] } = useAllPlayers();
@@ -92,27 +94,27 @@ export default function LiveMatchPage() {
   function changePlayerPosition(playerId: string, newPosition: string) {
     setLivePositions((prev) => ({ ...prev, [playerId]: newPosition }));
     setShowPositionPicker(false);
-    const playerName = players.find((p) => p.id === playerId)?.name ?? "Jugador";
-    toast.info(`📍 ${playerName} ahora juega de ${newPosition}`);
+    const playerName = players.find((p) => p.id === playerId)?.name ?? t("liveMatchPage.defaultPlayerName");
+    toast.info(`📍 ${t("liveMatchPage.playerNowPlaysAs", { name: playerName, position: newPosition })}`);
   }
 
   async function handlePauseToggle() {
     if (!match) return;
     const newStatus = match.status === "live" ? "paused" : "live";
     await updateMatchStatus({ status: newStatus });
-    toast.info(newStatus === "live" ? "▶ Reanudado" : "⏸ Pausado");
+    toast.info(newStatus === "live" ? t("liveMatchPage.toastResumed") : t("liveMatchPage.toastPaused"));
   }
 
   async function handleFinish() {
     if (!match || isFinishing) return;
-    if (!confirm("¿Terminar el partido y generar reporte?")) return;
+    if (!confirm(t("liveMatchPage.confirmFinish"))) return;
     setIsFinishing(true);
     try {
       await updateMatchStatus({ status: "finished" });
-      toast.success("✓ Partido terminado · generando reporte…");
+      toast.success(t("liveMatchPage.toastMatchFinished"));
       navigate(`/live/${matchId}/summary`);
     } catch {
-      toast.error("Error al terminar");
+      toast.error(t("liveMatchPage.toastFinishError"));
       setIsFinishing(false);
     }
   }
@@ -131,8 +133,8 @@ export default function LiveMatchPage() {
           </button>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider truncate">
-              {match?.team_name ?? "Mi equipo"}
-              {match?.opponent_name && <> vs <span className="text-foreground">{match.opponent_name}</span></>}
+              {match?.team_name ?? t("liveMatchPage.myTeam")}
+              {match?.opponent_name && <> {t("liveMatchPage.vs")} <span className="text-foreground">{match.opponent_name}</span></>}
             </div>
             <div className="font-mono font-display font-bold text-2xl text-foreground leading-none">
               {fmtTime(elapsed)}
@@ -152,14 +154,14 @@ export default function LiveMatchPage() {
         <div className="px-4 pb-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ScoreButton
-              label={match?.team_name ? match.team_name.slice(0, 3).toUpperCase() : "LOC"}
+              label={match?.team_name ? match.team_name.slice(0, 3).toUpperCase() : t("liveMatchPage.homeShort")}
               value={match?.score_home ?? 0}
               onChange={(v) => updateMatchStatus({ scoreHome: v })}
               disabled={isFinished}
             />
             <span className="text-muted-foreground">−</span>
             <ScoreButton
-              label={match?.opponent_name ? match.opponent_name.slice(0, 3).toUpperCase() : "VIS"}
+              label={match?.opponent_name ? match.opponent_name.slice(0, 3).toUpperCase() : t("liveMatchPage.awayShort")}
               value={match?.score_away ?? 0}
               onChange={(v) => updateMatchStatus({ scoreAway: v })}
               disabled={isFinished}
@@ -172,7 +174,7 @@ export default function LiveMatchPage() {
                 className="px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-bold hover:bg-secondary/80 transition-colors flex items-center gap-1"
               >
                 {isLive ? <Pause size={11} /> : <Play size={11} />}
-                {isLive ? "Pausa" : "Reanudar"}
+                {isLive ? t("liveMatchPage.pause") : t("liveMatchPage.resume")}
               </button>
             )}
             {!isFinished && (
@@ -181,7 +183,7 @@ export default function LiveMatchPage() {
                 disabled={isFinishing}
                 className="px-3 py-1.5 rounded-lg bg-destructive text-destructive-foreground text-xs font-display font-bold disabled:opacity-50 hover:bg-destructive/90 transition-colors flex items-center gap-1"
               >
-                <Square size={11} /> FIN
+                <Square size={11} /> {t("liveMatchPage.end")}
               </button>
             )}
           </div>
@@ -192,7 +194,7 @@ export default function LiveMatchPage() {
       <div className="border-b border-border bg-background/50 py-2">
         <div className="flex gap-2 px-4 overflow-x-auto scrollbar-thin">
           <PlayerChip
-            label="Sin jugador"
+            label={t("liveMatchPage.noPlayer")}
             initial="?"
             isSelected={selectedPlayerId === null}
             onClick={() => setSelectedPlayerId(null)}
@@ -215,10 +217,10 @@ export default function LiveMatchPage() {
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
             <span className="truncate">
-              Eventos para: {selectedPlayer.name}
+              {t("liveMatchPage.eventsFor")} {selectedPlayer.name}
               {" · "}
               <span className="text-foreground/70 font-normal">
-                jugando de {livePositions[selectedPlayer.id] ?? selectedPlayer.position}
+                {t("liveMatchPage.playingAs")} {livePositions[selectedPlayer.id] ?? selectedPlayer.position}
               </span>
             </span>
           </div>
@@ -226,7 +228,7 @@ export default function LiveMatchPage() {
             onClick={() => setShowPositionPicker(true)}
             className="px-2 py-0.5 rounded text-[10px] bg-primary/20 hover:bg-primary/30 transition-colors shrink-0"
           >
-            Cambiar posición
+            {t("liveMatchPage.changePosition")}
           </button>
         </div>
       )}
@@ -242,10 +244,10 @@ export default function LiveMatchPage() {
             className="glass-strong rounded-2xl p-5 max-w-md w-full space-y-3"
           >
             <h3 className="font-display font-bold text-base text-foreground">
-              ¿En qué posición está jugando ahora {selectedPlayer.name}?
+              {t("liveMatchPage.positionPickerTitle", { name: selectedPlayer.name })}
             </h3>
             <p className="text-[11px] text-muted-foreground">
-              Los eventos siguientes se etiquetarán con esta posición. Útil para análisis post-partido segregado.
+              {t("liveMatchPage.positionPickerDescription")}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {[selectedPlayer.position, ...(selectedPlayer.secondaryPositions ?? [])]
@@ -265,7 +267,7 @@ export default function LiveMatchPage() {
                       }`}
                     >
                       {pos === selectedPlayer.position ? `⭐ ${pos}` : pos}
-                      {isActive && " ·  ahora"}
+                      {isActive && ` ·  ${t("liveMatchPage.now")}`}
                     </button>
                   );
                 })}
@@ -274,7 +276,7 @@ export default function LiveMatchPage() {
               onClick={() => setShowPositionPicker(false)}
               className="w-full py-2 rounded-lg bg-secondary text-xs font-display font-bold text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancelar
+              {t("liveMatchPage.cancel")}
             </button>
           </div>
         </div>
@@ -299,7 +301,7 @@ export default function LiveMatchPage() {
               >
                 <Icon size={24} style={{ color: cfg.color }} />
                 <span className="text-xs font-display font-bold" style={{ color: cfg.color }}>
-                  {cfg.label}
+                  {t(`liveMatchPage.event_${cfg.type}`)}
                 </span>
               </motion.button>
             );
@@ -312,14 +314,14 @@ export default function LiveMatchPage() {
         <div className="px-4 py-2 flex items-center justify-between">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
             <Activity size={11} />
-            Últimos eventos · {events.length} total
+            {t("liveMatchPage.lastEvents", { count: events.length })}
           </div>
           {recentEvents.length > 0 && (
             <button
               onClick={undoLast}
               className="flex items-center gap-1 text-[11px] text-amber-400 font-bold hover:text-amber-300"
             >
-              <Undo2 size={11} /> Deshacer
+              <Undo2 size={11} /> {t("liveMatchPage.undo")}
             </button>
           )}
         </div>
@@ -357,7 +359,7 @@ export default function LiveMatchPage() {
           </AnimatePresence>
           {recentEvents.length === 0 && (
             <p className="text-[11px] text-muted-foreground italic text-center py-2">
-              Selecciona un jugador y toca un evento
+              {t("liveMatchPage.emptyEventsHint")}
             </p>
           )}
         </div>

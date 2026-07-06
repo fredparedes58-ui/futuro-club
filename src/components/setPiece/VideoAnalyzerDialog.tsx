@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Video, Cpu, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ const DEMO_VIDEOS: Array<{ id: string; title: string; minutes: number }> = [
 ];
 
 export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Props) {
+  const { t } = useTranslation();
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<DetectionProgress | null>(null);
@@ -81,11 +83,11 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
         onProgress: (p) => setProgress(p),
       });
       setResult({ count: events.length, videoTitle: selectedVideo.title });
-      toast.success(`${events.length} jugadas detectadas desde el video`);
+      toast.success(t("videoAnalyzerDialog.toastDetected", { count: events.length }));
       onCompleted(events.length, selectedVideo.id);
     } catch (err) {
       console.error(err);
-      toast.error("Error al analizar el video");
+      toast.error(t("videoAnalyzerDialog.toastError"));
     } finally {
       setRunning(false);
     }
@@ -117,10 +119,10 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
             </div>
             <div className="flex-1">
               <h2 className="text-base font-display font-bold text-foreground">
-                Analizar set pieces desde video
+                {t("videoAnalyzerDialog.title")}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                El pipeline detecta automáticamente jugadas a balón parado, posiciones, y resultados
+                {t("videoAnalyzerDialog.subtitle")}
               </p>
             </div>
             {!running && (
@@ -139,7 +141,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
             {!running && !result && (
               <>
                 <p className="text-xs text-muted-foreground">
-                  Selecciona un video. El análisis genera eventos, estadísticas y recomendaciones automáticamente.
+                  {t("videoAnalyzerDialog.pickPrompt")}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -165,7 +167,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                           {v.title}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {v.minutes} min · {v.isReal ? "video subido" : "partido demo"}
+                          {v.minutes} min · {v.isReal ? t("videoAnalyzerDialog.uploadedVideo") : t("videoAnalyzerDialog.demoMatch")}
                         </p>
                       </div>
                       {selectedVideoId === v.id && (
@@ -177,14 +179,14 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
 
                 <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-[11px] text-foreground/80 space-y-1">
                   <p className="font-semibold text-primary flex items-center gap-1">
-                    <Sparkles size={11} /> ¿Qué hace el pipeline?
+                    <Sparkles size={11} /> {t("videoAnalyzerDialog.pipelineHeading")}
                   </p>
                   <ul className="space-y-0.5 ml-2">
-                    <li>• Tracking de los 22 jugadores (YOLO + ByteTrack)</li>
-                    <li>• Detección del balón parado &gt;2s en zonas de saque</li>
-                    <li>• Clasificación tipo (córner / falta / penal / saque)</li>
-                    <li>• Pose estimation para posicionamiento exacto</li>
-                    <li>• Clasificación del outcome (gol / tiro / despeje)</li>
+                    <li>{t("videoAnalyzerDialog.pipelineTracking")}</li>
+                    <li>{t("videoAnalyzerDialog.pipelineBallDetection")}</li>
+                    <li>{t("videoAnalyzerDialog.pipelineTypeClassification")}</li>
+                    <li>{t("videoAnalyzerDialog.pipelinePoseEstimation")}</li>
+                    <li>{t("videoAnalyzerDialog.pipelineOutcomeClassification")}</li>
                   </ul>
                 </div>
               </>
@@ -221,7 +223,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
 
                 {selectedVideo && (
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Analizando: <strong>{selectedVideo.title}</strong>
+                    {t("videoAnalyzerDialog.analyzingLabel")} <strong>{selectedVideo.title}</strong>
                   </p>
                 )}
               </div>
@@ -240,15 +242,15 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                 </motion.div>
                 <div>
                   <h3 className="text-lg font-display font-bold text-foreground">
-                    ¡Análisis completado!
+                    {t("videoAnalyzerDialog.successHeading")}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    <strong className="text-primary">{result.count} jugadas a balón parado</strong> detectadas en{" "}
+                    <strong className="text-primary">{t("videoAnalyzerDialog.successSetPieces", { count: result.count })}</strong> {t("videoAnalyzerDialog.successDetectedIn")}{" "}
                     <em>{result.videoTitle}</em>
                   </p>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Las jugadas aparecen marcadas con 🎥 en la lista de eventos. Las estadísticas y recomendaciones se actualizaron automáticamente.
+                  {t("videoAnalyzerDialog.successNote")}
                 </p>
               </div>
             )}
@@ -262,7 +264,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                 disabled={running}
                 className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-secondary disabled:opacity-50"
               >
-                Cancelar
+                {t("videoAnalyzerDialog.cancel")}
               </button>
               <button
                 onClick={handleStart}
@@ -272,12 +274,12 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                 {running ? (
                   <>
                     <Loader2 size={12} className="animate-spin" />
-                    Analizando…
+                    {t("videoAnalyzerDialog.analyzing")}
                   </>
                 ) : (
                   <>
                     <Cpu size={12} />
-                    Iniciar análisis
+                    {t("videoAnalyzerDialog.startAnalysis")}
                   </>
                 )}
               </button>
@@ -290,7 +292,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                 onClick={onClose}
                 className="px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90"
               >
-                Cerrar y ver eventos
+                {t("videoAnalyzerDialog.closeAndView")}
               </button>
             </div>
           )}

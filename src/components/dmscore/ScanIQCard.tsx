@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { Eye, TrendingUp, FlaskConical } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { ScanIQResult } from "@/lib/dmscore";
@@ -31,6 +32,7 @@ function ringColor(score: number): string {
 }
 
 export function ScanIQCard({ result, source, stats, compact = false }: Props) {
+  const { t } = useTranslation();
   const r = 34;
   const circ = 2 * Math.PI * r;
   const filled = (result.scanIQ / 100) * circ;
@@ -49,7 +51,7 @@ export function ScanIQCard({ result, source, stats, compact = false }: Props) {
           <div>
             <h3 className="text-sm font-semibold text-foreground leading-tight">Scan IQ</h3>
             <p className="text-[10px] text-muted-foreground">
-              Exploración visual pre-recepción · calibrado {result.ageBand}
+              {t("scanIQCard.subtitle", { ageBand: result.ageBand })}
             </p>
           </div>
         </div>
@@ -63,7 +65,7 @@ export function ScanIQCard({ result, source, stats, compact = false }: Props) {
                 : "bg-slate-500/10 text-slate-300 border-slate-500/30",
             )}
           >
-            {source === "real" ? "Vídeo real" : "Estimado"}
+            {source === "real" ? t("scanIQCard.realVideo") : t("scanIQCard.estimated")}
           </Badge>
         )}
       </div>
@@ -93,20 +95,24 @@ export function ScanIQCard({ result, source, stats, compact = false }: Props) {
           {result.ageDelta >= 1.5 && (
             <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-300">
               <TrendingUp className="size-3.5 shrink-0" />
-              Escanea como uno de ~{Math.round(result.ageEquivalent)} años (+{Math.round(result.ageDelta)})
+              {t("scanIQCard.scansLikeAge", {
+                age: Math.round(result.ageEquivalent),
+                delta: Math.round(result.ageDelta),
+              })}
             </div>
           )}
           <p className="text-[11px] text-muted-foreground leading-snug">
-            Percentil <strong className="text-foreground">{result.percentile}</strong> de su edad ·{" "}
-            {result.avgScansPreReception} scans/recepción
+            {t("scanIQCard.percentilePrefix")}{" "}
+            <strong className="text-foreground">{result.percentile}</strong>{" "}
+            {t("scanIQCard.percentileSuffix", { scans: result.avgScansPreReception })}
           </p>
           {stats?.successWithScan != null && stats?.successWithoutScan != null && (
             <p className="text-[11px] text-muted-foreground leading-snug">
-              Éxito con scan{" "}
+              {t("scanIQCard.successWithScan")}{" "}
               <strong className="text-emerald-300">{Math.round(stats.successWithScan * 100)}%</strong>
-              {" "}vs sin scan{" "}
+              {" "}{t("scanIQCard.successWithoutScan")}{" "}
               <strong className="text-rose-300">{Math.round(stats.successWithoutScan * 100)}%</strong>
-              {stats.receptionsAnalyzed ? ` · ${stats.receptionsAnalyzed} recepciones` : ""}
+              {stats.receptionsAnalyzed ? t("scanIQCard.receptionsCount", { count: stats.receptionsAnalyzed }) : ""}
             </p>
           )}
         </div>
@@ -116,9 +122,9 @@ export function ScanIQCard({ result, source, stats, compact = false }: Props) {
         <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-white/[0.03] border border-white/5 p-2">
           <FlaskConical className="size-3 text-fuchsia-300 shrink-0 mt-0.5" />
           <p className="text-[10px] text-muted-foreground leading-snug">
-            Investigación (Jordet, Premier League): los jugadores que llegan a profesional
-            escaneaban <strong className="text-foreground">2× más a los 12-14 años</strong>. Es el
-            indicador más temprano y estable de potencial élite.
+            {t("scanIQCard.researchPrefix")}{" "}
+            <strong className="text-foreground">{t("scanIQCard.researchEmphasis")}</strong>{" "}
+            {t("scanIQCard.researchSuffix")}
           </p>
         </div>
       )}
