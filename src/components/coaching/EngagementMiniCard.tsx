@@ -6,6 +6,7 @@
  */
 import { motion } from "framer-motion";
 import { Activity, Users, Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export interface EngagementMiniCardProps {
   physical: number;    // 0-100
@@ -17,15 +18,15 @@ export interface EngagementMiniCardProps {
 }
 
 const BARS = [
-  { key: "physical",  label: "Físico",   icon: Activity, color: "from-blue-500 to-cyan-400" },
-  { key: "social",    label: "Social",   icon: Users,    color: "from-violet-500 to-purple-400" },
-  { key: "emotional", label: "Emocional", icon: Heart,   color: "from-rose-500 to-pink-400" },
+  { key: "physical",  labelKey: "engagementMiniCard.barPhysical",  icon: Activity, color: "from-blue-500 to-cyan-400" },
+  { key: "social",    labelKey: "engagementMiniCard.barSocial",    icon: Users,    color: "from-violet-500 to-purple-400" },
+  { key: "emotional", labelKey: "engagementMiniCard.barEmotional", icon: Heart,   color: "from-rose-500 to-pink-400" },
 ] as const;
 
-const trendLabel: Record<string, string> = {
-  rising: "↑ Subiendo",
-  stable: "→ Estable",
-  declining: "↓ Bajando",
+const trendKey: Record<string, string> = {
+  rising: "engagementMiniCard.trendRising",
+  stable: "engagementMiniCard.trendStable",
+  declining: "engagementMiniCard.trendDeclining",
 };
 const trendColor: Record<string, string> = {
   rising: "text-emerald-400",
@@ -36,6 +37,7 @@ const trendColor: Record<string, string> = {
 export default function EngagementMiniCard({
   physical, social, emotional, composite, trend, compact,
 }: EngagementMiniCardProps) {
+  const { t } = useTranslation();
   const values: Record<string, number> = { physical, social, emotional };
 
   return (
@@ -54,14 +56,14 @@ export default function EngagementMiniCard({
       )}
 
       <div className="space-y-2">
-        {BARS.map(({ key, label, icon: Icon, color }) => {
+        {BARS.map(({ key, labelKey, icon: Icon, color }) => {
           const value = values[key] ?? 0;
           return (
             <div key={key} className="flex items-center gap-2">
               <Icon size={compact ? 12 : 14} className="text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-[10px] text-muted-foreground">{label}</span>
+                  <span className="text-[10px] text-muted-foreground">{t(labelKey)}</span>
                   <span className="text-[10px] font-mono font-bold text-foreground">
                     {Math.round(value)}
                   </span>
@@ -82,7 +84,7 @@ export default function EngagementMiniCard({
 
       {trend && !compact && (
         <div className={`text-[10px] font-display ${trendColor[trend]}`}>
-          {trendLabel[trend]}
+          {t(trendKey[trend])}
         </div>
       )}
     </div>

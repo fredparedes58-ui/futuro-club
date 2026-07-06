@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
 import { Radio } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { LiveMatch } from "@/lib/mockData";
 
 const LiveMatchCard = ({ match }: { match: LiveMatch }) => {
+  const { t } = useTranslation();
   const isLive = match.status === "live";
 
   return (
@@ -16,12 +18,12 @@ const LiveMatchCard = ({ match }: { match: LiveMatch }) => {
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-primary pulse-live" />
             <span className="text-[10px] font-display font-semibold text-primary uppercase tracking-wider">
-              EN VIVO · {match.minute}'
+              {t("liveMatchCard.live")} · {match.minute}'
             </span>
           </div>
         ) : (
           <span className="text-[10px] font-display font-medium text-muted-foreground uppercase tracking-wider">
-            {match.status === "upcoming" ? "Próximo" : "Finalizado"}
+            {match.status === "upcoming" ? t("liveMatchCard.upcoming") : t("liveMatchCard.finished")}
           </span>
         )}
         {isLive && <Radio size={14} className="text-primary animate-pulse" />}
@@ -43,7 +45,7 @@ const LiveMatchCard = ({ match }: { match: LiveMatch }) => {
 
       {isLive && (
         <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-2">
-          <span>{match.playersTracked} jugadores rastreados</span>
+          <span>{t("liveMatchCard.playersTracked", { count: match.playersTracked })}</span>
           <span className="text-primary font-medium">
             ⭐ {match.topPerformer} ({match.topVsi})
           </span>

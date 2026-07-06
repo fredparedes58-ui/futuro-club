@@ -5,6 +5,7 @@
  * with dimension breakdown below.
  */
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   score: number;
@@ -37,6 +38,7 @@ function scoreColor(score: number): string {
 }
 
 export default function MentalCompositeGauge({ score, dimensions }: Props) {
+  const { t } = useTranslation();
   const radius = 50;
   const circumference = 2 * Math.PI * radius;
   const progress = (Math.min(100, Math.max(0, score)) / 100) * circumference;
@@ -45,7 +47,7 @@ export default function MentalCompositeGauge({ score, dimensions }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Compuesto Mental
+        {t("mentalCompositeGauge.title")}
       </span>
 
       {/* Gauge */}
@@ -92,7 +94,9 @@ export default function MentalCompositeGauge({ score, dimensions }: Props) {
             const value = dimensions[key as keyof typeof dimensions] ?? 0;
             return (
               <div key={key} className="flex items-center gap-2">
-                <span className="text-[8px] text-muted-foreground w-16 truncate">{label}</span>
+                <span className="text-[8px] text-muted-foreground w-16 truncate">
+                  {t(`mentalCompositeGauge.${key}Label`, label)}
+                </span>
                 <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
                   <motion.div
                     className={`h-full rounded-full ${barColor}`}

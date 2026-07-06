@@ -6,6 +6,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Play, Loader2, AlertCircle, Film } from "lucide-react";
 import type { VideoRecord } from "@/services/real/videoService";
@@ -22,6 +23,7 @@ export default function VideoPlayer({
   autoplay = false,
   className = "",
 }: VideoPlayerProps) {
+  const { t } = useTranslation();
   const [playing, setPlaying] = useState(autoplay);
   const [videoError, setVideoError] = useState(false);
 
@@ -57,10 +59,10 @@ export default function VideoPlayer({
           <Loader2 size={28} className="text-primary animate-spin" />
           <div className="text-center">
             <p className="text-sm font-display font-semibold text-foreground">
-              Procesando video
+              {t("videoPlayer.processing")}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {video.encodeProgress}% completado
+              {t("videoPlayer.percentComplete", { count: video.encodeProgress })}
             </p>
           </div>
           {/* Encode progress */}
@@ -84,10 +86,10 @@ export default function VideoPlayer({
         <div className="flex flex-col items-center gap-2 text-center p-4">
           <AlertCircle size={28} className="text-destructive" />
           <p className="text-sm font-display font-semibold text-foreground">
-            Error al procesar
+            {t("videoPlayer.errorTitle")}
           </p>
           <p className="text-xs text-muted-foreground">
-            El video no pudo ser procesado. Intenta subir de nuevo.
+            {t("videoPlayer.errorDescription")}
           </p>
         </div>
       </div>

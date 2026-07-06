@@ -2,6 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { RoleProfileData, getPhaseLabel, getConfidenceColor, PhaseOfPlay } from "@/lib/roleProfileData";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function IndicatorsAuditTable({ data, phaseFilter, onOpenEvidence }: Props) {
+  const { t } = useTranslation();
   const filtered = phaseFilter === "all"
     ? data.evidence
     : data.evidence.filter(e => e.phase_of_play === phaseFilter);
@@ -35,21 +37,21 @@ export default function IndicatorsAuditTable({ data, phaseFilter, onOpenEvidence
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="w-40">Indicador</TableHead>
-            <TableHead className="w-20 text-right">Valor</TableHead>
+            <TableHead className="w-40">{t("indicatorsAuditTable.indicator")}</TableHead>
+            <TableHead className="w-20 text-right">{t("indicatorsAuditTable.value")}</TableHead>
             <TableHead className="w-20 text-right cursor-pointer select-none" onClick={() => handleSort("normalized")}>
-              Score {sortKey === "normalized" && (sortDir === "desc" ? "↓" : "↑")}
+              {t("indicatorsAuditTable.score")} {sortKey === "normalized" && (sortDir === "desc" ? "↓" : "↑")}
             </TableHead>
             <TableHead className="w-20 text-right cursor-pointer select-none" onClick={() => handleSort("reliability")}>
-              Fiabilidad {sortKey === "reliability" && (sortDir === "desc" ? "↓" : "↑")}
+              {t("indicatorsAuditTable.reliability")} {sortKey === "reliability" && (sortDir === "desc" ? "↓" : "↑")}
             </TableHead>
-            <TableHead className="w-24">Fase</TableHead>
+            <TableHead className="w-24">{t("indicatorsAuditTable.phase")}</TableHead>
             <TableHead className="w-20 text-right cursor-pointer select-none" onClick={() => handleSort("contribution")}>
-              Contrib. {sortKey === "contribution" && (sortDir === "desc" ? "↓" : "↑")}
+              {t("indicatorsAuditTable.contribution")} {sortKey === "contribution" && (sortDir === "desc" ? "↓" : "↑")}
             </TableHead>
-            <TableHead className="w-28">Posiciones</TableHead>
-            <TableHead className="w-36">Arquetipos</TableHead>
-            <TableHead className="min-w-[200px]">Explicación</TableHead>
+            <TableHead className="w-28">{t("indicatorsAuditTable.positions")}</TableHead>
+            <TableHead className="w-36">{t("indicatorsAuditTable.archetypes")}</TableHead>
+            <TableHead className="min-w-[200px]">{t("indicatorsAuditTable.explanation")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

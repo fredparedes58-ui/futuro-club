@@ -5,6 +5,7 @@
  * Click → expande a tamaño completo en modal.
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PitchHeatmap } from "./PitchHeatmap";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
+  const { t } = useTranslation();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const expanded = heatmaps.find((h) => h.id === expandedId);
 
@@ -28,7 +30,7 @@ export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
   if (heatmaps.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">
-        No hay datos por jugador en esta fase.
+        {t("playerHeatmapGrid.noPlayerData")}
       </div>
     );
   }
@@ -43,7 +45,7 @@ export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
             className="rounded-lg border border-white/5 hover:border-cyan-400/40 bg-white/[0.02] p-2 transition-colors text-left"
           >
             <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1 truncate">
-              {playerNames[h.playerId ?? ""] ?? `Jugador ${h.playerId?.slice(0, 6) ?? "?"}`}
+              {playerNames[h.playerId ?? ""] ?? t("playerHeatmapGrid.playerFallback", { id: h.playerId?.slice(0, 6) ?? "?" })}
             </div>
             <PitchHeatmap
               bins={h.bins}
@@ -52,7 +54,7 @@ export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
               maxWeight={maxWeight}
             />
             <div className="text-[10px] text-slate-400 mt-1">
-              {Math.round(h.totalTimeSec)}s en esta fase
+              {t("playerHeatmapGrid.secondsInPhase", { seconds: Math.round(h.totalTimeSec) })}
             </div>
           </button>
         ))}
@@ -76,7 +78,7 @@ export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="text-sm font-semibold text-white">
-                  {playerNames[expanded.playerId ?? ""] ?? `Jugador ${expanded.playerId?.slice(0, 6) ?? "?"}`}
+                  {playerNames[expanded.playerId ?? ""] ?? t("playerHeatmapGrid.playerFallback", { id: expanded.playerId?.slice(0, 6) ?? "?" })}
                 </div>
                 <button onClick={() => setExpandedId(null)} className="text-slate-400 hover:text-white">
                   <X className="size-4" />
@@ -84,7 +86,10 @@ export function PlayerHeatmapGrid({ heatmaps, playerNames = {} }: Props) {
               </div>
               <PitchHeatmap bins={expanded.bins} hotZones={expanded.hotZones} height={360} />
               <div className="mt-3 text-xs text-slate-400">
-                {Math.round(expanded.totalTimeSec)}s · {expanded.hotZones.length} zona{expanded.hotZones.length === 1 ? "" : "s"} caliente{expanded.hotZones.length === 1 ? "" : "s"}
+                {t("playerHeatmapGrid.expandedSummary", {
+                  seconds: Math.round(expanded.totalTimeSec),
+                  count: expanded.hotZones.length,
+                })}
               </div>
             </motion.div>
           </motion.div>

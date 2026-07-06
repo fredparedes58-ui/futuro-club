@@ -6,6 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus, Lock, Sparkles, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ import { transferKeys } from "@/hooks/useTransferMarket";
 import type { MatchScore, TransferSearchQuery } from "@/lib/transfer/transferTypes";
 
 export default function TransferMarketPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { canUseBehavioral } = usePlan(); // same gate as other Pro+
@@ -54,9 +56,9 @@ export default function TransferMarketPage() {
     try {
       await seedDemoListings();
       await queryClient.invalidateQueries({ queryKey: transferKeys.all });
-      toast.success("8 listings demo cargados");
+      toast.success(t("transferMarketPage.demoLoaded", { count: 8 }));
     } catch (err) {
-      toast.error("No se pudieron cargar los datos demo", {
+      toast.error(t("transferMarketPage.demoLoadError"), {
         description: err instanceof Error ? err.message : "Error",
       });
     } finally {
@@ -77,11 +79,11 @@ export default function TransferMarketPage() {
         </header>
         <main className="max-w-3xl mx-auto px-4 py-16 text-center">
           <Lock className="size-8 text-amber-400 mx-auto mb-3" />
-          <h2 className="text-xl font-semibold mb-2">Función Pro+</h2>
+          <h2 className="text-xl font-semibold mb-2">{t("transferMarketPage.proFeatureTitle")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
-            Marketplace de fichajes con matchmaking IA. Disponible en plan Pro y Club.
+            {t("transferMarketPage.proFeatureDesc")}
           </p>
-          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+          <Button onClick={() => navigate("/billing")}>{t("transferMarketPage.viewPlans")}</Button>
         </main>
       </div>
     );
@@ -101,12 +103,12 @@ export default function TransferMarketPage() {
             {listings.length === 0 && (
               <Button onClick={handleSeed} variant="outline" size="sm" disabled={seeding}>
                 <Wand2 className="size-3.5 mr-1.5" />
-                {seeding ? "Cargando…" : "Datos demo"}
+                {seeding ? t("transferMarketPage.loading") : t("transferMarketPage.demoData")}
               </Button>
             )}
             <Button onClick={() => navigate("/transfer/new")} size="sm">
               <Plus className="size-3.5 mr-1.5" />
-              Publicar jugador
+              {t("transferMarketPage.publishPlayer")}
             </Button>
           </div>
         </div>
@@ -118,7 +120,7 @@ export default function TransferMarketPage() {
           <aside className="space-y-5">
             <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
               <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3">
-                Filtros
+                {t("transferMarketPage.filters")}
               </h3>
               <TransferFilters value={query} onChange={setQuery} />
             </div>
@@ -147,24 +149,24 @@ export default function TransferMarketPage() {
 
             {isLoading ? (
               <div className="text-center text-muted-foreground py-12">
-                Cargando listings…
+                {t("transferMarketPage.loadingListings")}
               </div>
             ) : sortedListings.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
                 <h2 className="text-lg font-semibold mb-2">
-                  No hay listings que coincidan
+                  {t("transferMarketPage.noMatchingListings")}
                 </h2>
                 <p className="text-sm text-muted-foreground mb-5">
-                  Cambia los filtros o publica el primer jugador del marketplace.
+                  {t("transferMarketPage.noListingsDesc")}
                 </p>
                 <div className="flex justify-center gap-2">
                   <Button onClick={() => navigate("/transfer/new")}>
                     <Plus className="size-4 mr-2" />
-                    Publicar jugador
+                    {t("transferMarketPage.publishPlayer")}
                   </Button>
                   <Button variant="outline" onClick={handleSeed} disabled={seeding}>
                     <Wand2 className="size-4 mr-2" />
-                    {seeding ? "Cargando…" : "Cargar demo"}
+                    {seeding ? t("transferMarketPage.loading") : t("transferMarketPage.loadDemo")}
                   </Button>
                 </div>
               </div>

@@ -1,12 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { RoleProfileData, getConfidenceLabel, getConfidenceColor, getSampleTierLabel, getSampleTierColor } from "@/lib/roleProfileData";
 import { Shield, Clock, Footprints, Trophy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
 }
 
 export default function PlayerHeader({ data }: Props) {
+  const { t } = useTranslation();
   const confColor = getConfidenceColor(data.overall_confidence);
   const tierColor = getSampleTierColor(data.sample_tier);
 
@@ -18,11 +20,11 @@ export default function PlayerHeader({ data }: Props) {
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
-            {data.player_age} años
+            {t("rpPlayerHeader.age", { count: data.player_age })}
           </span>
           <span className="flex items-center gap-1.5">
             <Footprints className="w-3.5 h-3.5" />
-            Pie {data.dominant_foot}
+            {t("rpPlayerHeader.foot", { foot: data.dominant_foot })}
           </span>
           <span className="flex items-center gap-1.5">
             <Trophy className="w-3.5 h-3.5" />
@@ -30,7 +32,7 @@ export default function PlayerHeader({ data }: Props) {
           </span>
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
-            {data.minutes_played} min jugados
+            {t("rpPlayerHeader.minutesPlayed", { count: data.minutes_played })}
           </span>
         </div>
       </div>
@@ -38,14 +40,14 @@ export default function PlayerHeader({ data }: Props) {
       {/* Right: Confidence + sample tier */}
       <div className="flex items-center gap-3">
         <div className="text-right">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Muestra</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("rpPlayerHeader.sample")}</p>
           <p className={`text-sm font-medium ${tierColor}`}>
             {getSampleTierLabel(data.sample_tier)}
           </p>
         </div>
         <div className="w-px h-10 bg-border" />
         <div className="text-right">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Confianza global</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t("rpPlayerHeader.overallConfidence")}</p>
           <div className="flex items-center gap-2">
             <Shield className={`w-4 h-4 ${confColor}`} />
             <span className={`text-lg font-display font-bold ${confColor}`}>

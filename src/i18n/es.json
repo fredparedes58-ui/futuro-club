@@ -4632,5 +4632,148 @@
     "intensityLow": "Baja",
     "intensityMedium": "Media",
     "intensityHigh": "Alta"
+  },
+  "benchmarkBadge": {
+    "titleSmallSample": "Percentil {{percentile}} (muestra < 5 jugadores)",
+    "titleVsGroup": "Percentil {{percentile}} vs grupo de edad/posición"
+  },
+  "drillRecommendations": {
+    "title": "Ejercicios Recomendados",
+    "titleRag": "Ejercicios Recomendados (RAG)",
+    "loading": "Buscando ejercicios...",
+    "error": "No se pudieron cargar los ejercicios"
+  },
+  "engagementHeatmap": {
+    "noEngagementData": "Sin datos de engagement",
+    "teamEngagement": "Engagement del Equipo",
+    "noData": "Sin datos",
+    "legendHigh": "Alto",
+    "legendMedium": "Medio",
+    "legendLow": "Bajo",
+    "legendCritical": "Crítico"
+  },
+  "engagementMiniCard": {
+    "barPhysical": "Físico",
+    "barSocial": "Social",
+    "barEmotional": "Emocional",
+    "trendRising": "↑ Subiendo",
+    "trendStable": "→ Estable",
+    "trendDeclining": "↓ Bajando"
+  },
+  "evidenceDrawer": {
+    "evidenceDetail": "Detalle de evidencia",
+    "rawValue": "Valor bruto",
+    "normalizedScore": "Score normalizado",
+    "reliability": "Fiabilidad",
+    "contribution": "Contribución",
+    "impact": "Impacto",
+    "positionsImpacted": "Posiciones impactadas",
+    "archetypesImpacted": "Arquetipos impactados"
+  },
+  "indicatorsAuditTable": {
+    "indicator": "Indicador",
+    "value": "Valor",
+    "score": "Score",
+    "reliability": "Fiabilidad",
+    "phase": "Fase",
+    "contribution": "Contrib.",
+    "positions": "Posiciones",
+    "archetypes": "Arquetipos",
+    "explanation": "Explicación"
+  },
+  "inquiryInbox": {
+    "loading": "Cargando inquiries…",
+    "empty": "Aún no hay inquiries para este listing.",
+    "buyer": "Comprador",
+    "offer": "Oferta",
+    "changeTo": "Cambio a",
+    "markViewed": "Marcar visto",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
+  "intelDrillCard": {
+    "defaultTitle": "Ejercicio",
+    "showLess": "Ver menos",
+    "showMore": "Ver más",
+    "usefulPrompt": "Útil?"
+  },
+  "liveMatchCard": {
+    "live": "EN VIVO",
+    "upcoming": "Próximo",
+    "finished": "Finalizado",
+    "playersTracked": "{{count}} jugadores rastreados"
+  },
+  "mentalCompositeGauge": {
+    "title": "Compuesto Mental",
+    "decisionSpeedLabel": "Decisión",
+    "scanningIntelligenceLabel": "Escaneo",
+    "resilienceLabel": "Resiliencia",
+    "clutchFactorLabel": "Clutch",
+    "leadershipLabel": "Liderazgo",
+    "mentalFatigueLabel": "Res. Mental",
+    "unpredictabilityLabel": "Creatividad"
+  },
+  "playerHeatmapGrid": {
+    "noPlayerData": "No hay datos por jugador en esta fase.",
+    "playerFallback": "Jugador {{id}}",
+    "secondsInPhase": "{{seconds}}s en esta fase",
+    "expandedSummary_one": "{{seconds}}s · {{count}} zona caliente",
+    "expandedSummary_other": "{{seconds}}s · {{count}} zonas calientes"
+  },
+  "positionFitRanking": {
+    "title": "Ajuste por posición",
+    "dualFitDetected": "Dual-fit detectado",
+    "legendScore": "Score",
+    "legendProb": "Prob.",
+    "legendConf": "Conf."
+  },
+  "recommendationCard": {
+    "successProbability": "{{probability}}% éxito",
+    "keyPoints": "Puntos clave"
+  },
+  "rpPlayerHeader": {
+    "age": "{{count}} años",
+    "foot": "Pie {{foot}}",
+    "minutesPlayed": "{{count}} min jugados",
+    "sample": "Muestra",
+    "overallConfidence": "Confianza global"
+  },
+  "strengthsRisksPanel": {
+    "verifiedStrengths": "Fortalezas verificadas",
+    "interpretationRisks": "Riesgos de interpretación",
+    "developmentGaps": "Gaps de desarrollo",
+    "toConsolidateRole": "Para consolidar el rol"
+  },
+  "transferMarketPage": {
+    "demoLoaded": "{{count}} listings demo cargados",
+    "demoLoadError": "No se pudieron cargar los datos demo",
+    "proFeatureTitle": "Función Pro+",
+    "proFeatureDesc": "Marketplace de fichajes con matchmaking IA. Disponible en plan Pro y Club.",
+    "viewPlans": "Ver planes",
+    "loading": "Cargando…",
+    "demoData": "Datos demo",
+    "publishPlayer": "Publicar jugador",
+    "filters": "Filtros",
+    "loadingListings": "Cargando listings…",
+    "noMatchingListings": "No hay listings que coincidan",
+    "noListingsDesc": "Cambia los filtros o publica el primer jugador del marketplace.",
+    "loadDemo": "Cargar demo"
+  },
+  "videoCard": {
+    "statusCreated": "Creado",
+    "statusUploaded": "Subido",
+    "statusProcessing": "Procesando",
+    "statusTranscoding": "Codificando",
+    "statusFinished": "Listo",
+    "statusError": "Error",
+    "statusUploadFailed": "Falló",
+    "statusUnknown": "Desconocido",
+    "analyzed": "Analizado"
+  },
+  "videoPlayer": {
+    "processing": "Procesando video",
+    "percentComplete": "{{count}}% completado",
+    "errorTitle": "Error al procesar",
+    "errorDescription": "El video no pudo ser procesado. Intenta subir de nuevo."
   }
 }

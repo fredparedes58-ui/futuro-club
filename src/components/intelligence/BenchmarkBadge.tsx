@@ -3,12 +3,15 @@
  * Color-coded: green (≥75), blue (≥50), amber (≥25), red (<25).
  */
 
+import { useTranslation } from "react-i18next";
+
 interface BenchmarkBadgeProps {
   percentile: number;
   isSmallSample?: boolean;
 }
 
 export default function BenchmarkBadge({ percentile, isSmallSample }: BenchmarkBadgeProps) {
+  const { t } = useTranslation();
   const color =
     percentile >= 75 ? "text-green-400 bg-green-500/10 border-green-500/20" :
     percentile >= 50 ? "text-blue-400 bg-blue-500/10 border-blue-500/20" :
@@ -20,8 +23,8 @@ export default function BenchmarkBadge({ percentile, isSmallSample }: BenchmarkB
       className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded border ${color}`}
       title={
         isSmallSample
-          ? `Percentil ${percentile} (muestra < 5 jugadores)`
-          : `Percentil ${percentile} vs grupo de edad/posición`
+          ? t("benchmarkBadge.titleSmallSample", { percentile })
+          : t("benchmarkBadge.titleVsGroup", { percentile })
       }
     >
       P{percentile}{isSmallSample ? "*" : ""}

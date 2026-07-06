@@ -6,6 +6,7 @@
  */
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 interface PlayerWeekData {
   playerId: string;
@@ -29,12 +30,13 @@ function cellColor(score: number | null): string {
 }
 
 export default function EngagementHeatmap({ data }: Props) {
+  const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<{ player: string; week: string; score: number | null } | null>(null);
 
   if (data.length === 0) {
     return (
       <div className="glass rounded-xl p-4 text-center">
-        <p className="text-xs text-muted-foreground">Sin datos de engagement</p>
+        <p className="text-xs text-muted-foreground">{t("engagementHeatmap.noEngagementData")}</p>
       </div>
     );
   }
@@ -44,7 +46,7 @@ export default function EngagementHeatmap({ data }: Props) {
   return (
     <div className="glass rounded-xl p-4 space-y-3">
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-        Engagement del Equipo
+        {t("engagementHeatmap.teamEngagement")}
       </span>
 
       <div className="overflow-x-auto">
@@ -87,7 +89,7 @@ export default function EngagementHeatmap({ data }: Props) {
         <div className="text-center text-[10px] text-muted-foreground">
           {hoveredCell.player} · {hoveredCell.week}:{" "}
           <span className="font-bold text-foreground">
-            {hoveredCell.score !== null ? `${Math.round(hoveredCell.score)}/100` : "Sin datos"}
+            {hoveredCell.score !== null ? `${Math.round(hoveredCell.score)}/100` : t("engagementHeatmap.noData")}
           </span>
         </div>
       )}
@@ -95,12 +97,12 @@ export default function EngagementHeatmap({ data }: Props) {
       {/* Legend */}
       <div className="flex items-center justify-center gap-3">
         {[
-          { label: "Alto", color: "rgba(34,197,94,0.6)" },
-          { label: "Medio", color: "rgba(245,158,11,0.5)" },
-          { label: "Bajo", color: "rgba(249,115,22,0.5)" },
-          { label: "Crítico", color: "rgba(239,68,68,0.5)" },
+          { key: "high", label: t("engagementHeatmap.legendHigh"), color: "rgba(34,197,94,0.6)" },
+          { key: "medium", label: t("engagementHeatmap.legendMedium"), color: "rgba(245,158,11,0.5)" },
+          { key: "low", label: t("engagementHeatmap.legendLow"), color: "rgba(249,115,22,0.5)" },
+          { key: "critical", label: t("engagementHeatmap.legendCritical"), color: "rgba(239,68,68,0.5)" },
         ].map(l => (
-          <div key={l.label} className="flex items-center gap-1">
+          <div key={l.key} className="flex items-center gap-1">
             <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: l.color }} />
             <span className="text-[8px] text-muted-foreground">{l.label}</span>
           </div>

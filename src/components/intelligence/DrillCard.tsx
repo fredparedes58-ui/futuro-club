@@ -2,6 +2,7 @@
  * DrillCard — Card individual para un drill recomendado del RAG
  */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +16,11 @@ interface DrillCardProps {
 }
 
 export default function DrillCard({ content, similarity, metadata, traceId }: DrillCardProps) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState<"up" | "down" | null>(null);
 
-  const title = (metadata?.title as string) ?? content.split("\n")[0]?.slice(0, 80) ?? "Ejercicio";
+  const title = (metadata?.title as string) ?? content.split("\n")[0]?.slice(0, 80) ?? t("intelDrillCard.defaultTitle");
   const category = (metadata?.category as string) ?? "drill";
   const ageRange = metadata?.ageRange as string | undefined;
   const truncated = content.length > 150;
@@ -61,13 +63,13 @@ export default function DrillCard({ content, similarity, metadata, traceId }: Dr
           className="flex items-center gap-1 text-[9px] text-primary hover:text-primary/80 transition-colors"
         >
           {expanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          {expanded ? "Ver menos" : "Ver más"}
+          {expanded ? t("intelDrillCard.showLess") : t("intelDrillCard.showMore")}
         </button>
       )}
 
       {traceId && (
         <div className="flex items-center gap-2 pt-1 border-t border-white/5">
-          <span className="text-[8px] text-muted-foreground">Útil?</span>
+          <span className="text-[8px] text-muted-foreground">{t("intelDrillCard.usefulPrompt")}</span>
           <button
             onClick={() => {
               setFeedbackGiven("up");

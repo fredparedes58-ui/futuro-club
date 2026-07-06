@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { RoleProfileData, POSITION_LABELS, getConfidenceLabel, getConfidenceColor } from "@/lib/roleProfileData";
 import { MapPin } from "lucide-react";
 import type { RoleProfileFilters } from "@/components/role-profile/RoleProfileFilterBar";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function PositionFitRanking({ data, filters }: Props) {
+  const { t } = useTranslation();
   const allPositions = [...data.positions].sort((a, b) => b.score - a.score);
   const positions = filters?.currentPosition && filters.currentPosition !== "all"
     ? allPositions.filter(p => p.code === filters.currentPosition)
@@ -24,11 +26,11 @@ export default function PositionFitRanking({ data, filters }: Props) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-display flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            Ajuste por posición
+            {t("positionFitRanking.title")}
           </CardTitle>
           {isDualFit && (
             <Badge variant="outline" className="text-gold border-gold/30 text-xs">
-              Dual-fit detectado
+              {t("positionFitRanking.dualFitDetected")}
             </Badge>
           )}
         </div>
@@ -95,9 +97,9 @@ export default function PositionFitRanking({ data, filters }: Props) {
 
         {/* Legend */}
         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-          <span>Score</span>
-          <span>Prob.</span>
-          <span>Conf.</span>
+          <span>{t("positionFitRanking.legendScore")}</span>
+          <span>{t("positionFitRanking.legendProb")}</span>
+          <span>{t("positionFitRanking.legendConf")}</span>
         </div>
       </CardContent>
     </Card>

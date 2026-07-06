@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleProfileData, getConfidenceColor } from "@/lib/roleProfileData";
 import { CheckCircle2, AlertTriangle, Target, BookOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   data: RoleProfileData;
 }
 
 export default function StrengthsRisksPanel({ data }: Props) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Strengths */}
@@ -14,7 +16,7 @@ export default function StrengthsRisksPanel({ data }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-display flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-primary" />
-            Fortalezas verificadas
+            {t("strengthsRisksPanel.verifiedStrengths")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -37,7 +39,7 @@ export default function StrengthsRisksPanel({ data }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-display flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-gold" />
-            Riesgos de interpretación
+            {t("strengthsRisksPanel.interpretationRisks")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -55,7 +57,7 @@ export default function StrengthsRisksPanel({ data }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-display flex items-center gap-2">
             <Target className="w-4 h-4 text-electric" />
-            Gaps de desarrollo
+            {t("strengthsRisksPanel.developmentGaps")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -83,7 +85,7 @@ export default function StrengthsRisksPanel({ data }: Props) {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-display flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-muted-foreground" />
-            Para consolidar el rol
+            {t("strengthsRisksPanel.toConsolidateRole")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">

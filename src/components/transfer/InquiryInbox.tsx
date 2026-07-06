@@ -6,6 +6,7 @@
  */
 import { Check, X, Eye, Clock, MessageCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -29,11 +30,12 @@ const STATUS_COLOR: Record<TransferInquiry["status"], string> = {
 };
 
 export function InquiryInbox({ listingId }: Props) {
+  const { t } = useTranslation();
   const { data: inquiries = [], isLoading } = useInquiriesForListing(listingId);
   const updateStatus = useUpdateInquiryStatus();
 
   if (isLoading) {
-    return <div className="text-xs text-slate-400 py-6 text-center">Cargando inquiries…</div>;
+    return <div className="text-xs text-slate-400 py-6 text-center">{t("inquiryInbox.loading")}</div>;
   }
 
   if (inquiries.length === 0) {
@@ -41,7 +43,7 @@ export function InquiryInbox({ listingId }: Props) {
       <div className="rounded-lg border border-dashed border-white/10 p-6 text-center">
         <MessageCircle className="size-6 text-slate-500 mx-auto mb-2" />
         <p className="text-xs text-slate-400">
-          Aún no hay inquiries para este listing.
+          {t("inquiryInbox.empty")}
         </p>
       </div>
     );
@@ -60,7 +62,7 @@ export function InquiryInbox({ listingId }: Props) {
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
               <div className="text-sm font-medium text-white">
-                {inq.buyerName ?? "Comprador"}
+                {inq.buyerName ?? t("inquiryInbox.buyer")}
               </div>
               <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                 <Clock className="size-2.5" />
@@ -83,12 +85,12 @@ export function InquiryInbox({ listingId }: Props) {
             <div className="flex flex-wrap gap-1.5 text-[10px]">
               {inq.proposedPriceEur != null && (
                 <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-300 border-emerald-500/30">
-                  Oferta: {new Intl.NumberFormat("es", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(inq.proposedPriceEur)}
+                  {t("inquiryInbox.offer")}: {new Intl.NumberFormat("es", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(inq.proposedPriceEur)}
                 </Badge>
               )}
               {inq.proposedType && (
                 <Badge variant="outline" className="text-[10px]">
-                  Cambio a: {inq.proposedType}
+                  {t("inquiryInbox.changeTo")}: {inq.proposedType}
                 </Badge>
               )}
             </div>
@@ -103,7 +105,7 @@ export function InquiryInbox({ listingId }: Props) {
                 className="h-7 text-xs"
               >
                 <Eye className="size-3 mr-1" />
-                Marcar visto
+                {t("inquiryInbox.markViewed")}
               </Button>
             )}
             {(inq.status === "new" || inq.status === "viewed") && (
@@ -113,7 +115,7 @@ export function InquiryInbox({ listingId }: Props) {
                 className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700"
               >
                 <Check className="size-3 mr-1" />
-                Aceptar
+                {t("inquiryInbox.accept")}
               </Button>
             )}
             {(inq.status === "new" || inq.status === "viewed") && (
@@ -124,7 +126,7 @@ export function InquiryInbox({ listingId }: Props) {
                 className="h-7 text-xs border-rose-500/30 hover:bg-rose-500/10"
               >
                 <X className="size-3 mr-1" />
-                Rechazar
+                {t("inquiryInbox.decline")}
               </Button>
             )}
           </div>

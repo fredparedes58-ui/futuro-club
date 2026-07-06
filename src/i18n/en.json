@@ -4632,5 +4632,148 @@
     "intensityLow": "Low",
     "intensityMedium": "Medium",
     "intensityHigh": "High"
+  },
+  "benchmarkBadge": {
+    "titleSmallSample": "Percentile {{percentile}} (sample < 5 players)",
+    "titleVsGroup": "Percentile {{percentile}} vs age/position group"
+  },
+  "drillRecommendations": {
+    "title": "Recommended Drills",
+    "titleRag": "Recommended Drills (RAG)",
+    "loading": "Searching for drills...",
+    "error": "Could not load the drills"
+  },
+  "engagementHeatmap": {
+    "noEngagementData": "No engagement data",
+    "teamEngagement": "Team Engagement",
+    "noData": "No data",
+    "legendHigh": "High",
+    "legendMedium": "Medium",
+    "legendLow": "Low",
+    "legendCritical": "Critical"
+  },
+  "engagementMiniCard": {
+    "barPhysical": "Physical",
+    "barSocial": "Social",
+    "barEmotional": "Emotional",
+    "trendRising": "↑ Rising",
+    "trendStable": "→ Stable",
+    "trendDeclining": "↓ Declining"
+  },
+  "evidenceDrawer": {
+    "evidenceDetail": "Evidence detail",
+    "rawValue": "Raw value",
+    "normalizedScore": "Normalized score",
+    "reliability": "Reliability",
+    "contribution": "Contribution",
+    "impact": "Impact",
+    "positionsImpacted": "Positions impacted",
+    "archetypesImpacted": "Archetypes impacted"
+  },
+  "indicatorsAuditTable": {
+    "indicator": "Indicator",
+    "value": "Value",
+    "score": "Score",
+    "reliability": "Reliability",
+    "phase": "Phase",
+    "contribution": "Contrib.",
+    "positions": "Positions",
+    "archetypes": "Archetypes",
+    "explanation": "Explanation"
+  },
+  "inquiryInbox": {
+    "loading": "Loading inquiries…",
+    "empty": "No inquiries for this listing yet.",
+    "buyer": "Buyer",
+    "offer": "Offer",
+    "changeTo": "Change to",
+    "markViewed": "Mark viewed",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "intelDrillCard": {
+    "defaultTitle": "Exercise",
+    "showLess": "Show less",
+    "showMore": "Show more",
+    "usefulPrompt": "Useful?"
+  },
+  "liveMatchCard": {
+    "live": "LIVE",
+    "upcoming": "Upcoming",
+    "finished": "Finished",
+    "playersTracked": "{{count}} players tracked"
+  },
+  "mentalCompositeGauge": {
+    "title": "Mental Composite",
+    "decisionSpeedLabel": "Decision",
+    "scanningIntelligenceLabel": "Scanning",
+    "resilienceLabel": "Resilience",
+    "clutchFactorLabel": "Clutch",
+    "leadershipLabel": "Leadership",
+    "mentalFatigueLabel": "Mental Res.",
+    "unpredictabilityLabel": "Creativity"
+  },
+  "playerHeatmapGrid": {
+    "noPlayerData": "No per-player data in this phase.",
+    "playerFallback": "Player {{id}}",
+    "secondsInPhase": "{{seconds}}s in this phase",
+    "expandedSummary_one": "{{seconds}}s · {{count}} hot zone",
+    "expandedSummary_other": "{{seconds}}s · {{count}} hot zones"
+  },
+  "positionFitRanking": {
+    "title": "Position fit",
+    "dualFitDetected": "Dual-fit detected",
+    "legendScore": "Score",
+    "legendProb": "Prob.",
+    "legendConf": "Conf."
+  },
+  "recommendationCard": {
+    "successProbability": "{{probability}}% success",
+    "keyPoints": "Key points"
+  },
+  "rpPlayerHeader": {
+    "age": "{{count}} years",
+    "foot": "{{foot}} foot",
+    "minutesPlayed": "{{count}} min played",
+    "sample": "Sample",
+    "overallConfidence": "Overall confidence"
+  },
+  "strengthsRisksPanel": {
+    "verifiedStrengths": "Verified strengths",
+    "interpretationRisks": "Interpretation risks",
+    "developmentGaps": "Development gaps",
+    "toConsolidateRole": "To consolidate the role"
+  },
+  "transferMarketPage": {
+    "demoLoaded": "{{count}} demo listings loaded",
+    "demoLoadError": "Could not load demo data",
+    "proFeatureTitle": "Pro+ Feature",
+    "proFeatureDesc": "Transfer marketplace with AI matchmaking. Available on Pro and Club plans.",
+    "viewPlans": "View plans",
+    "loading": "Loading…",
+    "demoData": "Demo data",
+    "publishPlayer": "Publish player",
+    "filters": "Filters",
+    "loadingListings": "Loading listings…",
+    "noMatchingListings": "No matching listings",
+    "noListingsDesc": "Change the filters or publish the first player in the marketplace.",
+    "loadDemo": "Load demo"
+  },
+  "videoCard": {
+    "statusCreated": "Created",
+    "statusUploaded": "Uploaded",
+    "statusProcessing": "Processing",
+    "statusTranscoding": "Encoding",
+    "statusFinished": "Ready",
+    "statusError": "Error",
+    "statusUploadFailed": "Failed",
+    "statusUnknown": "Unknown",
+    "analyzed": "Analyzed"
+  },
+  "videoPlayer": {
+    "processing": "Processing video",
+    "percentComplete": "{{count}}% complete",
+    "errorTitle": "Processing error",
+    "errorDescription": "The video could not be processed. Try uploading again."
   }
 }

@@ -3,6 +3,7 @@
  * agrupados por área de desarrollo del jugador.
  */
 import { Dumbbell, Loader2, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useRAGDrillRecommendations } from "@/hooks/useAgents";
 import DrillCard from "./DrillCard";
 
@@ -11,6 +12,7 @@ interface DrillRecommendationsProps {
 }
 
 export default function DrillRecommendations({ areasDesarrollo }: DrillRecommendationsProps) {
+  const { t } = useTranslation();
   const { data, isLoading, isError } = useRAGDrillRecommendations(areasDesarrollo);
 
   if (isLoading) {
@@ -19,12 +21,12 @@ export default function DrillRecommendations({ areasDesarrollo }: DrillRecommend
         <div className="flex items-center gap-2 mb-3">
           <Dumbbell size={12} className="text-primary" />
           <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-            Ejercicios Recomendados
+            {t("drillRecommendations.title")}
           </span>
         </div>
         <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
           <Loader2 size={14} className="animate-spin" />
-          <span className="text-[10px]">Buscando ejercicios...</span>
+          <span className="text-[10px]">{t("drillRecommendations.loading")}</span>
         </div>
       </div>
     );
@@ -36,12 +38,12 @@ export default function DrillRecommendations({ areasDesarrollo }: DrillRecommend
         <div className="flex items-center gap-2 mb-3">
           <Dumbbell size={12} className="text-primary" />
           <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-            Ejercicios Recomendados
+            {t("drillRecommendations.title")}
           </span>
         </div>
         <div className="flex items-center justify-center py-4 gap-2 text-amber-400">
           <AlertCircle size={12} />
-          <span className="text-[10px]">No se pudieron cargar los ejercicios</span>
+          <span className="text-[10px]">{t("drillRecommendations.error")}</span>
         </div>
       </div>
     );
@@ -56,7 +58,7 @@ export default function DrillRecommendations({ areasDesarrollo }: DrillRecommend
       <div className="flex items-center gap-2">
         <Dumbbell size={12} className="text-primary" />
         <span className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
-          Ejercicios Recomendados (RAG)
+          {t("drillRecommendations.titleRag")}
         </span>
       </div>
 

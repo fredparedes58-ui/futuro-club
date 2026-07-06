@@ -3,6 +3,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Sparkles, Target, CheckCircle2 } from "lucide-react";
 import PitchView from "./PitchView";
@@ -17,6 +18,7 @@ interface RecommendationCardProps {
 }
 
 export default function RecommendationCard({ rec }: RecommendationCardProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const probColor =
@@ -50,7 +52,9 @@ export default function RecommendationCard({ rec }: RecommendationCardProps) {
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${probColor}`}
             >
-              {rec.successProbability}% éxito
+              {t("recommendationCard.successProbability", {
+                probability: rec.successProbability,
+              })}
             </span>
           </div>
           <h4 className="text-sm font-display font-bold text-foreground">
@@ -88,7 +92,7 @@ export default function RecommendationCard({ rec }: RecommendationCardProps) {
               {/* Key points */}
               <div>
                 <h5 className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">
-                  Puntos clave
+                  {t("recommendationCard.keyPoints")}
                 </h5>
                 <ul className="space-y-1.5">
                   {rec.keyPoints.map((point, i) => (

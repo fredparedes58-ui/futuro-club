@@ -7,6 +7,7 @@
 
 import { motion } from "framer-motion";
 import { Play, Loader2, AlertCircle, Zap, Trash2, UserRound } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { VideoRecord } from "@/services/real/videoService";
 
 interface VideoCardProps {
@@ -19,15 +20,15 @@ interface VideoCardProps {
   playerName?: string;
 }
 
-const statusBadge: Record<string, { label: string; class: string }> = {
-  created:       { label: "Creado",       class: "bg-muted text-muted-foreground" },
-  uploaded:      { label: "Subido",       class: "bg-blue-500/10 text-blue-400" },
-  processing:    { label: "Procesando",   class: "bg-gold/10 text-gold" },
-  transcoding:   { label: "Codificando",  class: "bg-gold/10 text-gold" },
-  finished:      { label: "Listo",        class: "bg-primary/10 text-primary" },
-  error:         { label: "Error",        class: "bg-destructive/10 text-destructive" },
-  "upload-failed": { label: "Falló",      class: "bg-destructive/10 text-destructive" },
-  unknown:       { label: "Desconocido",  class: "bg-muted text-muted-foreground" },
+const statusBadge: Record<string, { labelKey: string; class: string }> = {
+  created:       { labelKey: "statusCreated",      class: "bg-muted text-muted-foreground" },
+  uploaded:      { labelKey: "statusUploaded",     class: "bg-blue-500/10 text-blue-400" },
+  processing:    { labelKey: "statusProcessing",   class: "bg-gold/10 text-gold" },
+  transcoding:   { labelKey: "statusTranscoding",  class: "bg-gold/10 text-gold" },
+  finished:      { labelKey: "statusFinished",     class: "bg-primary/10 text-primary" },
+  error:         { labelKey: "statusError",        class: "bg-destructive/10 text-destructive" },
+  "upload-failed": { labelKey: "statusUploadFailed", class: "bg-destructive/10 text-destructive" },
+  unknown:       { labelKey: "statusUnknown",      class: "bg-muted text-muted-foreground" },
 };
 
 export default function VideoCard({
@@ -38,6 +39,7 @@ export default function VideoCard({
   className = "",
   playerName,
 }: VideoCardProps) {
+  const { t } = useTranslation();
   const badge = statusBadge[video.status] ?? statusBadge.unknown;
   const isProcessing = video.status === "processing" || video.status === "transcoding";
   const isError = video.status === "error" || video.status === "upload-failed";
@@ -99,7 +101,7 @@ export default function VideoCard({
           <span
             className={`text-[9px] font-display font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${badge.class}`}
           >
-            {badge.label}
+            {t(`videoCard.${badge.labelKey}`)}
           </span>
         </div>
 
@@ -132,7 +134,7 @@ export default function VideoCard({
           {video.analysisResult && (
             <div className="flex items-center gap-0.5">
               <Zap size={9} className="text-primary" />
-              <span className="text-[9px] font-display text-primary">Analizado</span>
+              <span className="text-[9px] font-display text-primary">{t("videoCard.analyzed")}</span>
             </div>
           )}
           <span className="text-[9px] text-muted-foreground font-display">
