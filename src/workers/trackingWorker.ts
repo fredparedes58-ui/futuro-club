@@ -55,12 +55,10 @@ function send(event: WorkerEvent): void {
 
 // ─── Inicializar modelo ONNX ───────────────────────────────────────────────
 
-// Fallback chain: modelo pedido → nano local (siempre desplegado) → CDN público.
-// El nano local va primero para no depender de un host externo si p.ej. el
-// yolov11m-pose aún no está desplegado en /models/.
+// Fallback chain: modelo pedido → nano local (prebuild lo trae del release) →
+// CDN raw (sirve CORS *; github.com/releases NO — 302 sin CORS, verificado).
 const LOCAL_FALLBACK_MODEL_URL = "/models/yolov8n-pose.onnx";
-// Release asset del PROPIO repo (antes dependía de un repo de terceros)
-const FALLBACK_MODEL_URL = "https://github.com/fredparedes58-ui/futuro-club/releases/download/models-v1/yolov8n-pose.onnx";
+const FALLBACK_MODEL_URL = "https://raw.githubusercontent.com/akbartus/Yolov8-Pose-Detection-on-Browser/main/yolov8_pose_onnx/model/yolov8n-pose.onnx";
 
 async function initModel(modelUrl: string): Promise<void> {
   try {

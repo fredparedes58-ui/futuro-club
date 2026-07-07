@@ -15,6 +15,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { BallTrack } from "@/lib/yolo/ballTracker";
 import type { BallDetection } from "@/lib/yolo/ballDetector";
+import { getActiveBallConfig } from "@/lib/yolo/ballModelConfig";
 import type { BallModelConfig } from "@/lib/yolo/ballModelConfig";
 import type { Track, FieldPoint } from "@/lib/yolo/types";
 import type {
@@ -95,6 +96,8 @@ export function useBallTracking(options: UseBallTrackingOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const teamAssignmentsRef = useRef(teamAssignments);
   teamAssignmentsRef.current = teamAssignments;
+  // FASE 2: true si el config activo corre inferencia standalone (detect dedicado)
+  const standaloneModeRef = useRef(false);
 
   // Possession tracking refs (avoid re-renders on intermediate state)
   const possessionRef = useRef<PossessionState>(DEFAULT_POSSESSION);
@@ -148,10 +151,14 @@ export function useBallTracking(options: UseBallTrackingOptions = {}) {
 
     workerRef.current = worker;
 
-    // Send INIT
+    // Resolver config activo en el main thread (los workers no tienen
+    // localStorage) y pasarlo completo en INIT. El override explícito gana.
+    const resolved: BallModelConfig = { ...getActiveBallConfig(), ...(config ?? {}) };
+    standaloneModeRef.current = !!resolved.modelUrl;
+
     worker.postMessage({
       type: "INIT",
-      config: config ?? undefined,
+      config: resolved,
     });
   }, [config]);
 
@@ -269,5 +276,7 @@ export function useBallTracking(options: UseBallTrackingOptions = {}) {
     feedBallFrame,
     computePossession,
     resetBallTracker,
+    /** FASE 2: ref estable — true si el worker corre el detect dedicado */
+    ballStandaloneModeRef: standaloneModeRef,
   };
 }

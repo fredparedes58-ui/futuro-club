@@ -20,12 +20,18 @@
  *   BALL_ERROR    → error message
  */
 
+import * as ort from "onnxruntime-web";
 import { detectBallFromModelOutput, detectBallHeuristic } from "../lib/yolo/ballDetector";
 import type { BallDetection } from "../lib/yolo/ballDetector";
 import { BallTracker } from "../lib/yolo/ballTracker";
 import type { BallTrack } from "../lib/yolo/ballTracker";
-import { getActiveBallConfig } from "../lib/yolo/ballModelConfig";
 import type { BallModelConfig } from "../lib/yolo/ballModelConfig";
+
+// Mismo setup WASM que trackingWorker (sin SharedArrayBuffer, SIMD on)
+ort.env.wasm.wasmPaths  = "/";
+ort.env.wasm.numThreads = 1;
+ort.env.wasm.simd       = true;
+ort.env.wasm.proxy      = false;
 
 // ─── Worker Message Types ──────────────────────────────────────────────────
 
@@ -36,6 +42,8 @@ export interface BallWorkerInit {
 
 export interface BallWorkerFrame {
   type: "BALL_FRAME";
+  /** Frame crudo para inferencia standalone (FASE 2, modo yolo11s-detect) */
+  imageData?: ImageData;
   /** Raw YOLO detection model output (Float32Array) — for model-based detection */
   outputData?: Float32Array;
   /** Number of classes in the model */
@@ -84,6 +92,8 @@ export type BallWorkerEvent = BallWorkerReady | BallWorkerResult | BallWorkerErr
 
 let ballConfig: BallModelConfig | null = null;
 const ballTracker = new BallTracker();
+// Sesión ONNX propia (solo modo standalone; null = modos combined/heuristic)
+let ballSession: ort.InferenceSession | null = null;
 
 // ─── Message Handler ───────────────────────────────────────────────────────
 
@@ -110,10 +120,10 @@ function send(event: BallWorkerEvent): void {
 
 // ─── Initialize ────────────────────────────────────────────────────────────
 
-function initBallTracking(cmd: BallWorkerInit): void {
+async function initBallTracking(cmd: BallWorkerInit): Promise<void> {
   try {
-    // Use provided config or active config from localStorage
-    // Note: localStorage may not be available in worker, use defaults
+    // Use provided config or defaults (localStorage no existe en workers;
+    // el main thread resuelve getActiveBallConfig y lo pasa en INIT)
     const defaultConfig: BallModelConfig = {
       modelId: "heuristic",
       ballClassId: -1,
@@ -129,15 +139,61 @@ function initBallTracking(cmd: BallWorkerInit): void {
       : defaultConfig;
 
     ballTracker.reset();
+
+    // FASE 2 · modo standalone: carga su propia sesión ONNX (detect dedicado).
+    // Si falla (offline, 404…), NO rompe: queda la heurística y se avisa.
+    ballSession = null;
+    if (ballConfig.modelUrl) {
+      try {
+        const res = await fetch(ballConfig.modelUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status} descargando modelo de balón`);
+        const buf = await res.arrayBuffer();
+        ballSession = await ort.InferenceSession.create(buf, {
+          executionProviders: ["wasm"],
+          graphOptimizationLevel: "all",
+        });
+      } catch (err) {
+        console.warn("[ballWorker] Modelo standalone no disponible, fallback a heurística:", err);
+      }
+    }
+
     send({ type: "BALL_READY" });
   } catch (err) {
     send({ type: "BALL_ERROR", message: err instanceof Error ? err.message : String(err) });
   }
 }
 
+// ─── Preprocess ImageData → tensor [1,3,size,size] (letterbox, igual que trackingWorker) ───
+
+function preprocessBall(imageData: ImageData, size: number): ort.Tensor {
+  const { width, height, data } = imageData;
+  const tensor = new Float32Array(3 * size * size);
+
+  const scale = Math.min(size / width, size / height);
+  const newW  = Math.round(width * scale);
+  const newH  = Math.round(height * scale);
+  const padX  = Math.floor((size - newW) / 2);
+  const padY  = Math.floor((size - newH) / 2);
+
+  for (let py = 0; py < newH; py++) {
+    for (let px = 0; px < newW; px++) {
+      const srcX = Math.min(Math.round(px / scale), width - 1);
+      const srcY = Math.min(Math.round(py / scale), height - 1);
+      const srcIdx = (srcY * width + srcX) * 4;
+      const dstX = px + padX;
+      const dstY = py + padY;
+      tensor[0 * size * size + dstY * size + dstX] = data[srcIdx]     / 255;
+      tensor[1 * size * size + dstY * size + dstX] = data[srcIdx + 1] / 255;
+      tensor[2 * size * size + dstY * size + dstX] = data[srcIdx + 2] / 255;
+    }
+  }
+
+  return new ort.Tensor("float32", tensor, [1, 3, size, size]);
+}
+
 // ─── Process Frame ─────────────────────────────────────────────────────────
 
-function processBallFrame(cmd: BallWorkerFrame): void {
+async function processBallFrame(cmd: BallWorkerFrame): Promise<void> {
   if (!ballConfig) {
     send({ type: "BALL_ERROR", message: "Ball tracker not initialized" });
     return;
@@ -146,8 +202,33 @@ function processBallFrame(cmd: BallWorkerFrame): void {
   try {
     let detection: BallDetection | null = null;
 
+    // Strategy 0 (FASE 2): inferencia standalone con el detect dedicado.
+    // Coordenadas en espacio de frame (imageData) — el mismo que usa la
+    // homografía del pose pipeline.
+    if (ballSession && cmd.imageData && ballConfig.ballClassId >= 0) {
+      const size = ballConfig.inputSize ?? 640;
+      const inputTensor = preprocessBall(cmd.imageData, size);
+      const feeds: Record<string, ort.Tensor> = {};
+      feeds[ballSession.inputNames[0]] = inputTensor;
+      const output = await ballSession.run(feeds);
+      const outputData = output[ballSession.outputNames[0]].data as Float32Array;
+      detection = detectBallFromModelOutput(
+        outputData,
+        ballConfig.numClasses ?? 80,
+        ballConfig.ballClassId,
+        cmd.imageData.width,
+        cmd.imageData.height,
+        size,
+        {
+          confThreshold: ballConfig.confThreshold,
+          maxBboxSize: ballConfig.maxBboxSize,
+          minBboxSize: ballConfig.minBboxSize,
+        },
+      );
+    }
+
     // Strategy 1: Model-based detection (dedicated ball class in YOLO output)
-    if (cmd.outputData && cmd.numClasses && ballConfig.ballClassId >= 0) {
+    if (!detection && cmd.outputData && cmd.numClasses && ballConfig.ballClassId >= 0) {
       detection = detectBallFromModelOutput(
         cmd.outputData,
         cmd.numClasses,

@@ -77,10 +77,10 @@ export const MODELS: Record<string, ModelSpec> = {
     numKeypoints: 17,
     confThreshold: 0.40,
     nmsThreshold: 0.45,
-    // Release asset del propio repo: *.onnx está gitignored (no llega a Vercel),
-    // así que el path local solo existe en dev. El asset sirve con CORS * y se
-    // cachea en el navegador tras la primera descarga.
-    modelPath: "https://github.com/fredparedes58-ui/futuro-club/releases/download/models-v1/yolov11m-pose.onnx",
+    // Same-origin: *.onnx está gitignored, pero scripts/download-models.mjs
+    // (prebuild) lo trae desde el release models-v1 a public/models/ en cada
+    // build de Vercel. (github.com/releases NO sirve CORS al navegador.)
+    modelPath: "/models/yolov11m-pose.onnx",
     sizeMb: 84, // FP32 export real (83.8MB) — int8 (~21MB) pendiente de benchmark
     accuracyFactor: 2.5,
     dynamicBatch: true,

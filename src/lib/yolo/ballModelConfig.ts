@@ -30,6 +30,12 @@ export interface BallModelConfig {
   minBboxSize: number;
   /** Whether to use heuristic detection as fallback */
   useHeuristicFallback: boolean;
+  /** Nº de clases del modelo detect (COCO = 80). Solo modo standalone. */
+  numClasses?: number;
+  /** URL del ONNX para inferencia standalone en el ball worker (FASE 2). */
+  modelUrl?: string;
+  /** Input size del modelo standalone (default 640). */
+  inputSize?: number;
 }
 
 // ─── Predefined configurations ──────────────────────────────────────────────
@@ -67,6 +73,26 @@ export const BALL_CONFIGS: Record<string, BallModelConfig> = {
     minBboxSize: 3,
     useHeuristicFallback: true,
   },
+
+  /**
+   * FASE 2 · Detección de balón dedicada (standalone en el ball worker).
+   * yolo11s COCO exportado con vision-pipeline/export_onnx.py. Same-origin:
+   * scripts/download-models.mjs (prebuild) lo trae del release models-v1 a
+   * public/models/ (github.com/releases no sirve CORS al navegador).
+   * Clase 32 = sports ball. Umbral bajo: el balón lejano es pequeño y difícil.
+   */
+  "yolo11s-detect": {
+    modelId: "yolo11s-detect",
+    ballClassId: 32,
+    personClassId: 0,
+    confThreshold: 0.15,
+    maxBboxSize: 48,
+    minBboxSize: 3,
+    useHeuristicFallback: true,
+    numClasses: 80,
+    inputSize: 640,
+    modelUrl: "/models/yolo11s-detect.onnx",
+  },
 };
 
 /** Football-specific model spec (for future model registry) */
@@ -91,11 +117,21 @@ export const BALL_MODEL_SPEC: ModelSpec = {
 
 const STORAGE_KEY = "vitas_ball_config";
 const DEFAULT_CONFIG = "heuristic";
+/** FASE 2: desktop puede con la inferencia standalone del detect (37.9MB). */
+const DESKTOP_DEFAULT_CONFIG = "yolo11s-detect";
+
+/** Default por dispositivo: móvil → heurística (status quo); desktop → detect dedicado. */
+function getDefaultBallConfigId(): string {
+  if (typeof navigator === "undefined") return DEFAULT_CONFIG;
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent ?? "");
+  return isMobile ? DEFAULT_CONFIG : DESKTOP_DEFAULT_CONFIG;
+}
 
 export function getActiveBallConfig(): BallModelConfig {
   if (typeof window === "undefined") return BALL_CONFIGS[DEFAULT_CONFIG];
-  const id = localStorage.getItem(STORAGE_KEY) ?? DEFAULT_CONFIG;
-  return BALL_CONFIGS[id] ?? BALL_CONFIGS[DEFAULT_CONFIG];
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored && BALL_CONFIGS[stored]) return BALL_CONFIGS[stored]; // override manual gana
+  return BALL_CONFIGS[getDefaultBallConfigId()] ?? BALL_CONFIGS[DEFAULT_CONFIG];
 }
 
 export function setActiveBallConfig(configId: string): void {
