@@ -117,7 +117,10 @@ REGLAS:
 }
 
 export default withHandler(
-  { schema: valuationReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
+  // FASE 3: valoración = feature Club (usa Sonnet, la más cara). requiredPlan
+  // gatea las llamadas directas de usuario; el orchestrator (service token)
+  // aplica el gate por su cuenta antes de invocarlo (no paga Sonnet para <Club).
+  { schema: valuationReportSchema, requireAuth: true, allowServiceToken: true, requiredPlan: "club", maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof valuationReportSchema>;
 

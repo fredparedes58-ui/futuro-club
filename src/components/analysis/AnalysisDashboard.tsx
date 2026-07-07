@@ -17,10 +17,14 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
-  Brain,
+  Brain, Gauge, HeartPulse, BatteryLow,
 } from "lucide-react";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import PeerBenchmark from "@/components/PeerBenchmark";
+// FASE 3c: renderers dedicados por report_type (antes todo caía al genérico → JSON crudo)
+import ValuationReportView from "@/components/analysis/reports/ValuationReportView";
+import InjuryReportView from "@/components/analysis/reports/InjuryReportView";
+import FatigueReportView from "@/components/analysis/reports/FatigueReportView";
 
 interface ReportData {
   report_type: string;
@@ -65,6 +69,17 @@ const REPORT_META: Record<
   "best-match":       { Icon: Target,       title: "Best-Match",       color: "#DC8B0A" },
   projection:         { Icon: TrendingUp,   title: "Proyección 3a",    color: "#1A8FFF" },
   "development-plan": { Icon: ClipboardList, title: "Plan Desarrollo", color: "#22e88c" },
+  "valuation-report":   { Icon: Gauge,       title: "Valoración",       color: "#14B8A6" },
+  "injury-risk-report": { Icon: HeartPulse,  title: "Riesgo de Lesión", color: "#EF4444" },
+  "fatigue-report":     { Icon: BatteryLow,  title: "Fatiga y Carga",   color: "#F59E0B" },
+};
+
+/** FASE 3c: report_type → renderer dedicado. Los que no estén aquí caen al
+ *  ReportRenderer genérico (fallback). Cada renderer consume su schema completo. */
+const REPORT_RENDERERS: Record<string, React.ComponentType<{ report: Record<string, unknown> }>> = {
+  "valuation-report":   ValuationReportView,
+  "injury-risk-report": InjuryReportView,
+  "fatigue-report":     FatigueReportView,
 };
 
 interface Props {
@@ -266,7 +281,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
               <VsiSparkline history={analysis.vsi!.history!} currentVsi={vsi ?? undefined} />
             )}
 
-          <ReportRenderer report={activeReport.content} />
+          <ReportContent reportType={activeReport.report_type} report={activeReport.content} />
         </motion.div>
       )}
 
@@ -288,7 +303,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
                   {r.model} · {r.prompt_version}
                 </span>
               </div>
-              <ReportRenderer report={r.content} />
+              <ReportContent reportType={r.report_type} report={r.content} />
             </div>
           );
         })}
@@ -326,6 +341,34 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
       </details>
     </div>
   );
+}
+
+// ─── ReportContent · dispatcher por report_type (FASE 3c) ────────────────────
+
+/**
+ * Enruta cada reporte a su renderer dedicado (valuation/injury/fatigue) o al
+ * ReportRenderer genérico si no hay uno. Los dedicados consumen el schema
+ * completo (antes todo caía al genérico y se perdían los campos ricos).
+ * Muestra el aviso ámbar de fallback antes del renderer dedicado.
+ */
+function ReportContent({ reportType, report }: { reportType: string; report: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const Dedicated = REPORT_RENDERERS[reportType];
+  if (!Dedicated) return <ReportRenderer report={report} />;
+
+  if (report && (report as { _fallback?: boolean })._fallback) {
+    const { _fallback, _source, ...rest } = report as Record<string, unknown> & { _fallback?: boolean; _source?: string };
+    void _fallback; void _source;
+    return (
+      <div>
+        <p className="text-[11px] text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
+          ⚠ {t("analysisDashboard.fallbackNotice")}
+        </p>
+        <Dedicated report={rest} />
+      </div>
+    );
+  }
+  return <Dedicated report={report} />;
 }
 
 // ─── ReportRenderer ──────────────────────────────────────────────────────────

@@ -226,6 +226,9 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
         competitive_level:  player.competitiveLevel,
         sample_tier:        sampleTier,
         overall_confidence: d.overallConfidence,
+        // FASE 3: el agente emite positionAlternatives (contracts.ts:137) pero
+        // el adaptador nunca lo copiaba → PositionDiscoveryBanner quedaba vacío.
+        positionAlternatives: d.positionAlternatives,
         current: {
           tactical:  d.capabilities.tactical.current,
           technical: d.capabilities.technical.current,
