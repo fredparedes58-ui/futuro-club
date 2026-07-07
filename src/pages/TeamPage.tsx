@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, Mail, Plus, Trash2, Clock, CheckCircle2, XCircle,
-  Sparkles, Grid3x3, Activity, Swords,
+  Sparkles, Grid3x3, Activity, Swords, ClipboardList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -237,6 +237,29 @@ export default function TeamPage() {
             </p>
           </div>
           <span className="text-[10px] text-amber-400 font-bold">→</span>
+        </motion.button>
+
+        {/* CTA · Partido A vs B (team-report) */}
+        <motion.button
+          variants={item}
+          onClick={() => navigate("/equipo/partido")}
+          className="w-full glass rounded-xl p-3 flex items-center gap-3 hover:bg-secondary/30 transition-colors text-left border border-electric/40"
+        >
+          <div className="w-9 h-9 rounded-lg bg-electric/20 border border-electric/40 flex items-center justify-center shrink-0">
+            <ClipboardList size={16} className="text-electric" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-display font-bold text-foreground flex items-center gap-1.5">
+              {t("teamPage.matchReport")}
+              <span className="text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-electric/20 text-electric border border-electric/40">
+                <Sparkles size={9} className="inline -mt-0.5 mr-0.5" />{t("teamPage.new")}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {t("teamPage.matchReportDesc")}
+            </p>
+          </div>
+          <span className="text-[10px] text-electric font-bold">→</span>
         </motion.button>
 
         {/* CTA · Análisis táctico baseline */}
