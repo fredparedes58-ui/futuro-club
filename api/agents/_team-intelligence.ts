@@ -21,6 +21,12 @@
 import { withHandler } from "../_lib/withHandler";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
+import {
+  normalizeLocale,
+  languageDirective,
+  phvDistributionLine,
+  phvConsideration,
+} from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -44,6 +50,12 @@ export default withHandler(
           send("progress", { step: "Iniciando análisis de equipo...", percent: 5 });
           const body = await req.json();
           const { teamContext, geminiObservations, keyframes, videoId, yoloTrackData, analysisFocus } = body;
+
+          // FASE 5 · idioma + maduración biológica del equipo (diferenciador VITAS)
+          const locale = normalizeLocale(body.locale ?? teamContext?.locale);
+          const phvLine = phvDistributionLine(teamContext?.phvDistribution ?? body.phvDistribution, locale);
+          const phvNote = phvConsideration(teamContext?.phvDistribution ?? body.phvDistribution, locale);
+          const phvBlock = phvLine ? `\n- ${phvLine}\n  ${phvNote}` : "";
 
           if (!teamContext) {
             send("error", { message: "Faltan datos requeridos (teamContext)" });
@@ -207,7 +219,7 @@ Un sistema de observación ha analizado el video completo del equipo y te propor
 DATOS DEL EQUIPO:
 - Color uniforme: ${ctx.teamColor || "?"}
 - Color rival: ${ctx.opponentColor || "no especificado"}
-- Nivel competitivo: ${ctx.competitiveLevel || "formativo"}
+- Nivel competitivo: ${ctx.competitiveLevel || "formativo"}${phvBlock}
 ${geminiBlock}${frameInstructionBlock}${yoloBlock}
 ${analysisFocus ? `
 ENFOQUE DEL ANÁLISIS: Concentra especialmente el análisis en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
@@ -296,7 +308,7 @@ RECOMENDACIONES PARA EL ENTRENADOR:
 - Máximo 3 recomendaciones — priorizadas por impacto
 - En equipos formativos: incluye al menos una recomendación POSITIVA (qué reforzar/mantener) además de lo que mejorar
 - Sé honesto y específico para el nivel competitivo
-- Responde en español`;
+- ${languageDirective(locale)}`;
 
           const content: unknown[] = hasGemini
             ? [{ type: "text", text: prompt }]

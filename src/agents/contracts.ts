@@ -806,6 +806,15 @@ export const TacticalPatternInputSchema = z.object({
       }),
     )
     .optional(),
+  // FASE 5 · maduración biológica del equipo (diferenciador VITAS) e idioma
+  phvDistribution: z
+    .object({
+      prePhv: z.number().optional(),
+      circaPhv: z.number().optional(),
+      postPhv: z.number().optional(),
+    })
+    .optional(),
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 export const TacticalPatternOutputSchema = z.object({
