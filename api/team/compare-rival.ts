@@ -26,6 +26,7 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
+import { MODELS } from "../_lib/models";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 
@@ -225,7 +226,7 @@ async function callClaude(system: string, user: string): Promise<Record<string, 
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: MODELS.reasoning,
       max_tokens: 2500,
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: user }],

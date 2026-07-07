@@ -19,6 +19,7 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { MODELS } from "../_lib/models";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 import {
@@ -326,9 +327,8 @@ RECOMENDACIONES PARA EL ENTRENADOR:
                 "anthropic-version": "2023-06-01",
               },
               body: JSON.stringify({
-                model:      "claude-sonnet-4-20250514",
+                model:      MODELS.reasoning,
                 max_tokens: 8000,
-                temperature: 0,
                 messages:   [{ role: "user", content }],
               }),
             });
@@ -390,9 +390,8 @@ RECOMENDACIONES PARA EL ENTRENADOR:
                   "anthropic-version": "2023-06-01",
                 },
                 body: JSON.stringify({
-                  model: "claude-sonnet-4-20250514",
+                  model: MODELS.reasoning,
                   max_tokens: 8000,
-                  temperature: 0,
                   messages: [{ role: "user", content: retryContent }],
                 }),
               });

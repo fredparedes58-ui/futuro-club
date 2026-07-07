@@ -22,6 +22,7 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { MODELS } from "../_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -413,7 +414,7 @@ async function callClaudeWithTools(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5",
+          model: MODELS.fast,
           max_tokens: 800,
           system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
           tools: TOOLS,

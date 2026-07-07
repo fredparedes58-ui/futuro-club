@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import {
   TransferMatchInputSchema,
   TransferMatchOutputSchema,
@@ -23,7 +24,7 @@ export const config = { runtime: "edge" };
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
-const MODEL = "claude-3-5-sonnet-20241022";
+const MODEL = MODELS.reasoning;
 
 const SmartMatchInputSchema = z.object({
   buyerNeed: z.object({
@@ -127,7 +128,6 @@ export default withHandler(
           body: JSON.stringify({
             model: MODEL,
             max_tokens: 3000,
-            temperature: 0.3,
             messages: [{ role: "user", content: prompt }],
           }),
         });

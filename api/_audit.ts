@@ -7,6 +7,7 @@
 
 import { withHandler } from "./_lib/withHandler";
 import { successResponse } from "./_lib/apiResponse";
+import { MODELS } from "./_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -59,7 +60,7 @@ export default withHandler(
             "content-type": "application/json",
           },
           body: JSON.stringify({
-            model: "claude-haiku-4-5",
+            model: MODELS.fast,
             max_tokens: 10,
             messages: [{ role: "user", content: "ping" }],
           }),

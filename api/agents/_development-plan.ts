@@ -13,6 +13,7 @@
  */
 
 import { z } from "zod";
+import { MODELS } from "../_lib/models";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
@@ -144,7 +145,7 @@ async function callClaudeHaiku(systemPrompt: string, userMessage: string, apiKey
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5",
+      model: MODELS.fast,
       max_tokens: 2000,
       system: [
         {
@@ -219,7 +220,7 @@ Genera el Plan de Desarrollo de 12 semanas en JSON estricto.`;
         playerId: input.playerId,
         videoId: input.videoId,
         promptVersion: PROMPT_VERSION,
-        model: "claude-haiku-4-5",
+        model: MODELS.fast,
         weaknessesDetected: weaknesses,
         ragDrillsUsed: ragDrills.length,
         plan,

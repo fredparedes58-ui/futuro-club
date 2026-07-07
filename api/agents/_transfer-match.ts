@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import {
   TransferMatchInputSchema,
   TransferMatchOutputSchema,
@@ -21,7 +22,7 @@ import {
 export const config = { runtime: "edge" };
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
-const MODEL = "claude-3-5-sonnet-20241022";
+const MODEL = MODELS.reasoning;
 
 /** Fallback heurístico: usa solo señales estructuradas (no necesita Claude). */
 function generateFallback(
@@ -111,7 +112,6 @@ export default withHandler(
         body: JSON.stringify({
           model: MODEL,
           max_tokens: 3000,
-          temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
         }),
       });

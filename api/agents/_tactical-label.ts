@@ -9,6 +9,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
+import { MODELS } from "../_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -79,7 +80,7 @@ export default withHandler(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model:       "claude-haiku-4-5",
+        model:       MODELS.fast,
         max_tokens:  1024,
         temperature: 0,
         system:      TACTICAL_LABEL_PROMPT,

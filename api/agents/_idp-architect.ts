@@ -21,6 +21,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import {
   IDPArchitectInputSchema,
   IDPArchitectOutputSchema,
@@ -35,7 +36,7 @@ export const config = { runtime: "edge" };
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 const PROMPT_VERSION = IDP_PROMPT_VERSION;
-const MODEL = "claude-3-5-sonnet-20241022";
+const MODEL = MODELS.reasoning;
 
 export default withHandler(
   { schema: IDPArchitectInputSchema, requireAuth: false, maxRequests: 30 },
@@ -66,7 +67,6 @@ export default withHandler(
         body: JSON.stringify({
           model: MODEL,
           max_tokens: 2500,
-          temperature: 0.4,
           messages: [{ role: "user", content: prompt }],
         }),
       });

@@ -17,6 +17,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import {
   IDPArchitectInputSchema,
   type IDPArchitectOutput,
@@ -90,9 +91,8 @@ async function callArchitect(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20241022",
+        model: MODELS.reasoning,
         max_tokens: 2500,
-        temperature: 0.4,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -109,7 +109,7 @@ async function callArchitect(
       throw new Error("Missing goals array");
     }
 
-    return { output: parsed as IDPArchitectOutput, source: "agent", model: "claude-3-5-sonnet-20241022" };
+    return { output: parsed as IDPArchitectOutput, source: "agent", model: MODELS.reasoning };
   } catch (err) {
     console.warn("[generate-plan] Architect call failed, falling back:", err);
     return {
