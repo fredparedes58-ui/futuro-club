@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { rivalScoutOutputSchema, validateLLMReport } from "./_outputSchemas";
 
 export const config = { runtime: "edge" };
 
@@ -145,9 +146,22 @@ Genera el informe de scouting completo.`;
       report = { rival_profile: text };
     }
 
+    // FASE 2: validar estructura antes de devolver (ver _outputSchemas.ts)
+    const validation = validateLLMReport(rivalScoutOutputSchema, report);
+    if (!validation.ok) {
+      console.error("[rival-scout-report] Schema inválido:", validation.issues);
+      return successResponse({
+        data: {
+          report: { rival_profile: "Informe de scouting no disponible — respuesta del modelo con estructura inválida." },
+          promptVersion: PROMPT_VERSION,
+          source: "fallback_schema_error",
+        },
+      });
+    }
+
     return successResponse({
       data: {
-        report,
+        report: validation.report,
         promptVersion: PROMPT_VERSION,
         source: "claude_haiku",
       },

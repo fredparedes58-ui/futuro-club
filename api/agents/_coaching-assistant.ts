@@ -13,6 +13,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
 
 export const config = { runtime: "edge" };
 
@@ -177,8 +178,21 @@ export default withHandler(
         report = { raw: text };
       }
 
+      // FASE 2: validar estructura — un {raw: "..."} o shape basura cae al
+      // mock MARCADO (el orchestrator propaga el flag y la UI avisa).
+      const validation = validateLLMReport(coachingAssistantOutputSchema, report);
+      if (!validation.ok) {
+        console.error("[coaching-assistant] Schema inválido:", validation.issues);
+        return successResponse({
+          report: generateMockReport(data),
+          promptVersion: PROMPT_VERSION,
+          model: "mock",
+          source: "fallback_schema_error",
+        });
+      }
+
       return successResponse({
-        report,
+        report: validation.report,
         promptVersion: PROMPT_VERSION,
         model: "claude-3-5-haiku-20241022",
         ragEnriched: !!ragContext,

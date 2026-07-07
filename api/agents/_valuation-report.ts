@@ -14,6 +14,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
 
 export const config = { runtime: "edge" };
 
@@ -174,7 +175,15 @@ export default withHandler(
         return fallbackReport("fallback_parse_error", "respuesta del modelo sin JSON");
       }
 
-      const report = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // FASE 2: validar estructura (ver _outputSchemas.ts)
+      const validation = validateLLMReport(valuationOutputSchema, parsed);
+      if (!validation.ok) {
+        console.error("[valuation-report] Schema inválido:", validation.issues);
+        return fallbackReport("fallback_schema_error", "respuesta del modelo con estructura inválida");
+      }
+      const report = validation.report;
 
       return successResponse({
         report,
