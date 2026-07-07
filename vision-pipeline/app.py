@@ -67,7 +67,10 @@ app = modal.App("vitas-vision")  # distinto de modal/modal_app.py para no sobree
 # Volume to cache YOLO weights between runs (no re-download per invocation)
 weights_volume = modal.Volume.from_name("vitas-yolo-weights", create_if_missing=True)
 WEIGHTS_DIR = "/weights"
-WEIGHTS_FILE = f"{WEIGHTS_DIR}/yolo11n.pt"
+# FASE 1 vision upgrade: variante parametrizable por env (default medium).
+# nano perdía jugadores lejanos y el balón; medium sube recall en T4 con fp16.
+YOLO_MODEL = os.environ.get("YOLO_MODEL", "yolo11m.pt")
+WEIGHTS_FILE = f"{WEIGHTS_DIR}/{YOLO_MODEL}"
 
 # Secret with the API key (configured via `modal secret create vitas-api-key`)
 api_secret = modal.Secret.from_name("vitas-api-key", required_keys=["API_KEY"])
@@ -162,15 +165,15 @@ def track_video(req: TrackingRequest) -> dict:
 
     # 2. Load YOLOv11 weights (cached on volume between runs)
     if not os.path.exists(WEIGHTS_FILE):
-        print("[VITAS] Downloading YOLOv11 weights (first run only)")
+        print(f"[VITAS] Downloading YOLO weights ({YOLO_MODEL}, first run only)")
         os.makedirs(WEIGHTS_DIR, exist_ok=True)
         # Triggers download to default ultralytics location, then we move it
-        YOLO("yolo11n.pt")
+        YOLO(YOLO_MODEL)
         # Search the standard Ultralytics location
         for candidate in [
-            "yolo11n.pt",
-            os.path.expanduser("~/yolo11n.pt"),
-            "/root/yolo11n.pt",
+            YOLO_MODEL,
+            os.path.expanduser(f"~/{YOLO_MODEL}"),
+            f"/root/{YOLO_MODEL}",
         ]:
             if os.path.exists(candidate):
                 os.replace(candidate, WEIGHTS_FILE)
@@ -221,6 +224,7 @@ def track_video(req: TrackingRequest) -> dict:
             classes=req.classes,
             conf=0.3,
             vid_stride=vid_stride,
+            half=True,  # fp16 en T4: ~2x más rápido, compensa el coste del modelo medium
             verbose=False,
         )
 

@@ -62,3 +62,16 @@ git push origin main # auto-deploy en Vercel
 3. API keys solo en Vercel env vars, nunca en código
 4. Cada módulo nuevo necesita fallback a mock data
 5. Commits siempre en inglés con Co-Authored-By Claude
+
+## Vision Pipeline
+Hallazgos FASE 0-1 (branch `fix/vision-pipeline`, 2026-07):
+- La visión de PRODUCCIÓN corre en el navegador (onnxruntime-web + Web Workers), NO en Modal. Modal (`vision-pipeline/app.py`) está desplegado pero huérfano — ningún caller en la UI.
+- `*.onnx` está gitignored (`.gitignore:24-25`) → `/models/` da 404 en prod. Los modelos se sirven como **GitHub Release assets del propio repo** (tag `models-v1`): yolov8n-pose (13MB) y yolov11m-pose (84MB FP32, opset 17, imgsz 640). Antes producción dependía de un repo de terceros (akbartus) para el nano.
+- Selección de modelo: registry en `src/lib/yolo/modelConfig.ts` — default por dispositivo (desktop → yolov11m-pose, móvil → yolov8n-pose), override manual en localStorage `vitas_active_model`. `useTracking.ts` carga del registry (antes hardcodeaba nano). Cadena de fallback del worker: pedido → nano local (dev) → release nano propio.
+- Compatibilidad: v8n-pose y v11m-pose comparten contrato de salida `[1,56,8400]`; el worker usa `inputNames[0]`/`outputNames[0]` dinámicos.
+- Export reproducible: `modal run vision-pipeline/export_onnx.py` (torch local no viable en Py3.14; recuerda PYTHONUTF8=1 en Windows). El PWA NO precachea los .onnx (límite 2MB de Workbox) — precache se mantiene en ~5.3MB.
+- Modal parametrizado: `YOLO_MODEL` env (default yolo11m) + fp16 en `track()`.
+- Homografía px→m YA existe y está testeada (`src/lib/yolo/homography.ts` + RANSAC + `homographyVoronoi.test.ts`); métricas físicas ya en metros. Balón = heurística sobre el pose model (`ballModelConfig.ts` modo "heuristic"); detector dedicado `yolov8s-football` es el hueco real (FASE 2).
+- FASE 2 (balón dedicado): el ball worker ahora corre inferencia standalone con `yolo11s-detect.onnx` (COCO detect, clase 32 = sports ball, 37.9MB) en desktop; móvil mantiene la heurística. Config en `ballModelConfig.ts` (`yolo11s-detect`, umbral 0.15), default por dispositivo con override en localStorage `vitas_ball_config`. `useTracking.onFrame` alimenta imageData con stride 2 (el Kalman de `ballTracker` predice los gaps). La heurística anterior era esencialmente no funcional (buscaba "personas pequeñas" en el modelo de pose, que no tiene clase balón).
+- **CORS gotcha (verificado en navegador):** `github.com/releases/download/...` responde 302 SIN cabeceras CORS → fetch desde navegador falla. `raw.githubusercontent.com` sí sirve CORS `*` (pero solo ficheros del git). Solución: `scripts/download-models.mjs` (npm `prebuild`) baja los 3 modelos del release `models-v1` a `public/models/` en cada build → Vercel los sirve same-origin. Best-effort: si falla, el build sigue y los workers caen al fallback.
+- PENDIENTE: benchmark n vs m + balón con clip real (necesita URL pública de vídeo); int8 (~21MB) post-benchmark; FASE 3 pose server (baja prioridad — pose ya existe client-side); decisión producto sobre Modal (cablear a UI para partidos largos o retirar).

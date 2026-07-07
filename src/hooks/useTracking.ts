@@ -11,6 +11,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { FrameExtractor, buildBunnyCdnUrl } from "@/lib/yolo/frameExtractor";
 import { PoseAnalyzer }  from "@/lib/yolo/poseAnalyzer";
+import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { computeVoronoi } from "@/lib/yolo/voronoi";
 import { buildAnchors, computeHomography, invertMatrix3x3, identityHomography } from "@/lib/yolo/homography";
 import {
@@ -103,7 +104,7 @@ export function useTracking(options: UseTrackingOptions) {
   onTrackingPositionRef.current = onTrackingPosition;
 
   // Ball tracking (Sprint 1)
-  const { ballState, startBallTracking, stopBallTracking, feedBallFrame, computePossession } = useBallTracking();
+  const { ballState, startBallTracking, stopBallTracking, feedBallFrame, computePossession, ballStandaloneModeRef } = useBallTracking();
   const enableBallTrackingRef = useRef(enableBallTracking);
   enableBallTrackingRef.current = enableBallTracking;
   const feedBallFrameRef = useRef(feedBallFrame);
@@ -231,7 +232,9 @@ export function useTracking(options: UseTrackingOptions) {
           }
 
           // Feed ball tracking worker with person bboxes for heuristic detection (Sprint 1)
-          if (enableBallTrackingRef.current && (event as Record<string, unknown>).personBboxes) {
+          // FASE 2: solo en modo heurístico — en standalone el balón se alimenta
+          // con imageData desde onFrame (inferencia dedicada en su worker)
+          if (enableBallTrackingRef.current && !ballStandaloneModeRef.current && (event as Record<string, unknown>).personBboxes) {
             feedBallFrameRef.current({
               personBboxes: (event as Record<string, unknown>).personBboxes as Array<{ bbox: [number, number, number, number]; confidence: number }>,
               imgW: videoRef.current?.videoWidth ?? 1280,
@@ -294,7 +297,7 @@ export function useTracking(options: UseTrackingOptions) {
 
     workerRef.current = worker;
     return worker;
-  }, []);
+  }, [ballStandaloneModeRef]);
 
   // ── startTracking ────────────────────────────────────────────────────────────
   const startTracking = useCallback(async (videoEl: HTMLVideoElement) => {
@@ -371,9 +374,12 @@ export function useTracking(options: UseTrackingOptions) {
       }
     }
 
-    // Inicializar worker y cargar modelo desde public/models/
+    // Inicializar worker y cargar el modelo activo del registry
+    // (device-aware: desktop → yolov11m-pose, móvil → yolov8n-pose;
+    //  si el fichero no existe, el worker cae al nano local — nunca rompe)
     const worker = initWorker();
-    const modelUrl = "/models/yolov8n-pose.onnx";
+    const modelUrl = getActiveModel().modelPath;
+    console.log(`[useTracking] Modelo activo: ${getActiveModel().id} (${modelUrl})`);
 
     worker.postMessage({ type: "INIT", modelUrl });
 
@@ -398,18 +404,36 @@ export function useTracking(options: UseTrackingOptions) {
       height:    FRAME_SIZE,
       onFrame:   (imageData, timestampMs) => {
         if (!workerRef.current) return;
+        const frameIndex = Math.round(timestampMs / (1000 / TARGET_FPS));
         workerRef.current.postMessage({
           type:       "FRAME",
           imageData,
-          frameIndex: Math.round(timestampMs / (1000 / TARGET_FPS)),
+          frameIndex,
           timestampMs,
           homography: Array.from(homographyRef.current),
         });
+
+        // FASE 2 · balón standalone: inferencia dedicada en su propio worker.
+        // Stride 2 (cada 2º frame) — el Kalman del BallTracker predice los gaps.
+        if (
+          enableBallTrackingRef.current &&
+          ballStandaloneModeRef.current &&
+          frameIndex % 2 === 0
+        ) {
+          feedBallFrameRef.current({
+            imageData,
+            imgW: imageData.width,
+            imgH: imageData.height,
+            homography: Array.from(homographyRef.current),
+            timestampMs,
+            frameIndex,
+          });
+        }
       },
     });
 
     setState(s => ({ ...s, status: "tracking" }));
-  }, [videoId, cdnHostname, initWorker, localVideoSrc, enableBallTracking, startBallTracking]);
+  }, [videoId, cdnHostname, initWorker, localVideoSrc, enableBallTracking, startBallTracking, ballStandaloneModeRef]);
 
   // ── stopTracking ─────────────────────────────────────────────────────────────
   const stopTracking = useCallback((): PhysicalMetrics => {
