@@ -4776,5 +4776,72 @@
     "percentComplete": "{{count}}% completado",
     "errorTitle": "Error al procesar",
     "errorDescription": "El video no pudo ser procesado. Intenta subir de nuevo."
+  },
+  "fatigueReport": {
+    "noData": "Sin datos de fatiga disponibles",
+    "executiveSummary": "Resumen ejecutivo",
+    "currentState": "Estado actual de fatiga",
+    "fatigueIndex": "Índice de fatiga",
+    "severity": "Severidad",
+    "indicators": "Indicadores",
+    "posturalSigns": "Señales posturales",
+    "workload": "Análisis de carga (ACWR)",
+    "acwrValue": "ACWR",
+    "zone": "Zona",
+    "trend": "Tendencia",
+    "nextSessionRecommendation": "Recomendación próxima sesión",
+    "injuryRisk": "Riesgo de lesión",
+    "riskLevel": "Nivel de riesgo",
+    "riskFactors": "Factores de riesgo",
+    "exposedZones": "Zonas expuestas",
+    "phvAdjustments": "Ajustes PHV",
+    "maturityBand": "Banda de maduración",
+    "modifiedThresholds": "Umbrales modificados",
+    "recommendations": "Recomendaciones",
+    "recoveryProtocol": "Protocolo de recuperación",
+    "plan48h": "Plan 48-72h",
+    "returnIndicators": "Indicadores de retorno",
+    "complementaryExercises": "Ejercicios complementarios"
+  },
+  "injuryReport": {
+    "noContent": "Sin contenido",
+    "fallbackNotice": "Datos de ejemplo — el análisis IA no estaba disponible para este reporte.",
+    "riskLevel": "Nivel de riesgo",
+    "riskLevels": {
+      "bajo": "Bajo",
+      "moderado": "Moderado",
+      "alto": "Alto",
+      "critico": "Crítico",
+      "desconocido": "Desconocido"
+    },
+    "generalAssessment": "Evaluación general",
+    "phvAlert": "Alerta PHV · Ventana de crecimiento",
+    "riskFactors": "Factores de riesgo",
+    "severity": {
+      "baja": "Baja",
+      "media": "Media",
+      "alta": "Alta"
+    },
+    "loadRecommendations": "Recomendaciones de carga",
+    "preventionProtocol": "Protocolo de prevención",
+    "followUp": "Seguimiento"
+  },
+  "valuationReport": {
+    "noContent": "Sin datos de valoración",
+    "overall": "Evaluación general",
+    "tier": "Análisis del tier",
+    "comparables": "Comparables profesionales",
+    "keyFactors": "Factores clave",
+    "impact": {
+      "positivo": "Positivo",
+      "negativo": "Negativo",
+      "neutro": "Neutro"
+    },
+    "projection": "Proyección",
+    "shortTerm": "Corto plazo · 1 año",
+    "midTerm": "Medio plazo · 3 años",
+    "ceiling": "Techo estimado",
+    "recommendations": "Recomendaciones de desarrollo",
+    "risks": "Riesgos de valoración"
   }
 }

@@ -4776,5 +4776,72 @@
     "percentComplete": "{{count}}% complete",
     "errorTitle": "Processing error",
     "errorDescription": "The video could not be processed. Try uploading again."
+  },
+  "fatigueReport": {
+    "noData": "No fatigue data available",
+    "executiveSummary": "Executive summary",
+    "currentState": "Current fatigue state",
+    "fatigueIndex": "Fatigue index",
+    "severity": "Severity",
+    "indicators": "Indicators",
+    "posturalSigns": "Postural signs",
+    "workload": "Workload analysis (ACWR)",
+    "acwrValue": "ACWR",
+    "zone": "Zone",
+    "trend": "Trend",
+    "nextSessionRecommendation": "Next session recommendation",
+    "injuryRisk": "Injury risk",
+    "riskLevel": "Risk level",
+    "riskFactors": "Risk factors",
+    "exposedZones": "Exposed body zones",
+    "phvAdjustments": "PHV adjustments",
+    "maturityBand": "Maturity band",
+    "modifiedThresholds": "Modified thresholds",
+    "recommendations": "Recommendations",
+    "recoveryProtocol": "Recovery protocol",
+    "plan48h": "48-72h plan",
+    "returnIndicators": "Return-to-play indicators",
+    "complementaryExercises": "Complementary exercises"
+  },
+  "injuryReport": {
+    "noContent": "No content",
+    "fallbackNotice": "Sample data — AI analysis was not available for this report.",
+    "riskLevel": "Risk level",
+    "riskLevels": {
+      "bajo": "Low",
+      "moderado": "Moderate",
+      "alto": "High",
+      "critico": "Critical",
+      "desconocido": "Unknown"
+    },
+    "generalAssessment": "General assessment",
+    "phvAlert": "PHV Alert · Growth window",
+    "riskFactors": "Risk factors",
+    "severity": {
+      "baja": "Low",
+      "media": "Medium",
+      "alta": "High"
+    },
+    "loadRecommendations": "Load recommendations",
+    "preventionProtocol": "Prevention protocol",
+    "followUp": "Follow-up"
+  },
+  "valuationReport": {
+    "noContent": "No valuation data",
+    "overall": "Overall assessment",
+    "tier": "Tier analysis",
+    "comparables": "Professional comparables",
+    "keyFactors": "Key factors",
+    "impact": {
+      "positivo": "Positive",
+      "negativo": "Negative",
+      "neutro": "Neutral"
+    },
+    "projection": "Projection",
+    "shortTerm": "Short term · 1 year",
+    "midTerm": "Mid term · 3 years",
+    "ceiling": "Estimated ceiling",
+    "recommendations": "Development recommendations",
+    "risks": "Valuation risks"
   }
 }

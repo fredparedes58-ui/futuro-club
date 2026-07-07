@@ -50,7 +50,7 @@ const PLAYER_REPORT_AGENTS = [
   { name: "development-plan", endpoint: "/api/agents/development-plan", model: "haiku" },
   { name: "fatigue-report", endpoint: "/api/agents/fatigue-report", model: "haiku" },
   { name: "injury-risk-report", endpoint: "/api/agents/injury-risk-report", model: "haiku" },
-  { name: "valuation-report", endpoint: "/api/agents/valuation-report", model: "haiku" },
+  { name: "valuation-report", endpoint: "/api/agents/valuation-report", model: "sonnet" },
 ] as const;
 
 /** Team-mode report agents (Sprint 8) */
@@ -146,7 +146,7 @@ export default withHandler(
     const startedAt = Date.now();
 
     // Sprint 8: select report agents based on mode
-    const activeAgents = mode === "team"
+    let activeAgents: { name: string; endpoint: string; model: string }[] = mode === "team"
       ? [...PLAYER_REPORT_AGENTS, ...TEAM_REPORT_AGENTS]
       : mode === "rival"
         ? [...PLAYER_REPORT_AGENTS, ...RIVAL_REPORT_AGENTS]
@@ -165,6 +165,25 @@ export default withHandler(
 
     if (aErr || !analysis) {
       return errorResponse({ code: "analysis_not_found", message: "Analysis not in DB", status: 404 });
+    }
+
+    // FASE 3: valoración = feature Club (usa Sonnet, la más cara). El orchestrator
+    // corre con service token → no lo gatea withHandler; lo gateamos aquí para NO
+    // pagar Sonnet en cada análisis de usuarios <Club. Dueño = analyses.user_id (mig 004).
+    if (activeAgents.some((a) => a.name === "valuation-report")) {
+      let plan = "free";
+      if (analysis.user_id) {
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("plan,status")
+          .eq("user_id", analysis.user_id)
+          .maybeSingle();
+        if (sub && (sub.status === "active" || sub.status === "trialing")) plan = sub.plan as string;
+      }
+      if (plan !== "club") {
+        activeAgents = activeAgents.filter((a) => a.name !== "valuation-report");
+        console.log(`[orchestrator] valuation-report omitido (plan=${plan}, requiere club)`);
+      }
     }
 
     const { data: player } = await supabase

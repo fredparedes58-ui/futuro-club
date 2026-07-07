@@ -155,10 +155,13 @@ export const RoleProfileOutputSchema = z.object({
   risks: z.array(z.string()).max(3),
   gaps: z.array(z.string()).max(3),
   overallConfidence: z.number().min(0).max(1),
-  confidence_score: z.number().min(0).max(100).describe("How confident we are in this evaluation (depends on data quality and quantity)"),
-  data_completeness: z.number().min(0).max(100).describe("Percentage of evaluation dimensions with actual data"),
-  not_evaluated: z.array(z.string()).describe("List of dimensions we could NOT evaluate and why"),
-  summary: z.string().max(400),
+  // FASE 3: opcionales — si Haiku omite uno, no queremos que safeParse tumbe
+  // TODA la salida al fallback de vídeo. La UI de confianza (FASE 4) los trata
+  // como ausentes con degradación elegante.
+  confidence_score: z.number().min(0).max(100).optional().describe("How confident we are in this evaluation (depends on data quality and quantity)"),
+  data_completeness: z.number().min(0).max(100).optional().describe("Percentage of evaluation dimensions with actual data"),
+  not_evaluated: z.array(z.string()).optional().describe("List of dimensions we could NOT evaluate and why"),
+  summary: z.string().max(400).optional(),
 });
 
 export type RoleProfileInput = z.infer<typeof RoleProfileInputSchema>;

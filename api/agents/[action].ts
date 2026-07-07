@@ -8,7 +8,9 @@ import { errorResponse } from "../_lib/apiResponse";
 import phvCalculator from "./_phv-calculator";
 import playerSimilarity from "./_player-similarity";
 import roleProfile from "./_role-profile";
-import scoutInsight from "./_scout-insight";
+// scout-insight retirado del router (FASE 3): duplicado inferior de
+// /api/scout/generate (que además usa RAG). ScoutFeed consume scout/generate.
+// El fichero _scout-insight.ts se conserva; solo se desregistra la ruta.
 import tacticalLabel from "./_tactical-label";
 import teamIntelligence from "./_team-intelligence";
 import invalidateCache from "./_invalidate-cache";
@@ -43,7 +45,6 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "phv-calculator": phvCalculator,
   "player-similarity": playerSimilarity,
   "role-profile": roleProfile,
-  "scout-insight": scoutInsight,
   "tactical-label": tacticalLabel,
   "team-intelligence": teamIntelligence,
   "invalidate-cache": invalidateCache,
