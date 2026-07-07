@@ -16,6 +16,8 @@ import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
+import { aggregatePhvDistribution } from "@/lib/shared/phv";
+import { PlayerService } from "@/services/real/playerService";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -185,7 +187,13 @@ export function useTeamIntelligence() {
       const analysisResult = await readSSEStream(
         "/api/agents/team-intelligence",
         {
-          teamContext: { teamColor, opponentColor, competitiveLevel },
+          teamContext: {
+            teamColor,
+            opponentColor,
+            competitiveLevel,
+            // FASE 5 activación · distribución PHV real del roster (diferenciador VITAS)
+            phvDistribution: aggregatePhvDistribution(PlayerService.getAll()),
+          },
           geminiObservations,
           keyframes,
           videoId,
