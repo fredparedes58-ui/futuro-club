@@ -6,6 +6,12 @@
  */
 
 import type { TacticalPatternInput } from "../../agents/contracts";
+import {
+  normalizeLocale,
+  languageDirective,
+  phvDistributionLine,
+  phvConsideration,
+} from "../shared/locale";
 
 export const TACTICAL_PROMPT_VERSION = "v1.0.0";
 
@@ -47,6 +53,12 @@ export function buildTacticalPatternPrompt(data: TacticalPatternInput): string {
         .join("\n")
     : "Ninguna detectada";
 
+  // FASE 5 · idioma + maduración biológica (diferenciador VITAS)
+  const locale = normalizeLocale(data.locale);
+  const phvLine = phvDistributionLine(data.phvDistribution, locale);
+  const phvNote = phvConsideration(data.phvDistribution, locale);
+  const phvBlock = phvLine ? `\n## MADURACIÓN BIOLÓGICA (PHV)\n${phvLine}\n` : "";
+
   return `Eres un analista táctico de fútbol con experiencia en patrones de posicionamiento y heatmaps. Tu trabajo: leer los heatmaps de un partido (segmentados en 6 fases tácticas) y producir un análisis ACCIONABLE para el cuerpo técnico.
 
 ## DATOS DEL PARTIDO
@@ -60,7 +72,7 @@ export function buildTacticalPatternPrompt(data: TacticalPatternInput): string {
 - Edad media: ${data.team.averageAge ?? "?"}
 - Estilo declarado: ${data.team.style ?? "no especificado"}
 - Posesión del equipo en este partido: ${data.possessionPct}%
-
+${phvBlock}
 ## DURACIÓN POR FASE
 ${durationLines}
 
@@ -78,7 +90,7 @@ ${gapsLines}
 4. **Identifica riesgos**: zonas donde el equipo NO está pero el rival puede explotar.
 5. **Sugerencias ACCIONABLES**: que el coach pueda traducir a un drill o instrucción concreta.
 6. **3-6 observaciones por fase** (\`byPhase\` array) — una por fase relevante. Skip fases con <5% del tiempo.
-7. **Tono profesional pero directo**: español, sin anglicismos forzados.
+7. **Tono profesional pero directo**, sin anglicismos forzados.${phvNote ? `\n8. **${phvNote}**` : ""}
 
 ## FORMATO DE RESPUESTA (JSON estricto)
 
@@ -100,5 +112,6 @@ ${gapsLines}
 }
 \`\`\`
 
+${languageDirective(locale)}
 Responde ÚNICAMENTE con el JSON. Sin texto adicional ni markdown wrapper.`;
 }
