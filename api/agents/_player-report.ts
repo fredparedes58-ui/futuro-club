@@ -19,6 +19,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -41,7 +42,8 @@ const playerReportSchema = z.object({
 
 const PROMPT_VERSION = "player-report-v2.1.0"; // v2.1 = schema tolerante + scanning
 
-const SYSTEM_PROMPT = `Eres el motor del Player Report de VITAS Football Intelligence.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor del Player Report de VITAS Football Intelligence.
 
 Tu misión: producir el reporte ancla del producto. Es el primer reporte que ven padres y coaches. Debe ser comprensible, motivador, honesto y accionable.
 
@@ -103,7 +105,10 @@ SCORING RUBRIC (desglose obligatorio):
 El score final DEBE ser la suma ponderada de estos 4 componentes.
 Incluir desglose visible: "Técnica: 72 | Físico: 65 | Proyección+PHV: 85 | Fit: 70 → VSI: 74"
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 async function callSonnet(systemPrompt: string, userMessage: string, apiKey: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -134,6 +139,7 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof playerReportSchema>;
+    const locale = normalizeLocale(input.locale);
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -156,7 +162,7 @@ ${JSON.stringify(input.similarity?.matches?.[0] ?? "no_data", null, 2)}
 
 Genera el Player Report en JSON estricto.`;
 
-      const report = await callSonnet(SYSTEM_PROMPT, userMessage, apiKey);
+      const report = await callSonnet(buildSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

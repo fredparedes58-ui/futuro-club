@@ -20,6 +20,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -38,6 +39,8 @@ const orchestratorSchema = z.object({
   mode: z.enum(["player", "team", "rival"]).optional().default("player"),
   /** Sprint 8: team/rival analysis data (only present in team/rival modes) */
   teamAnalysis: z.record(z.unknown()).optional(),
+  /** FASE 5 · idioma de los reportes (default es); se propaga a todos los agentes */
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 /** Default report agents for individual player analysis */
@@ -142,7 +145,8 @@ async function sendCompletionEmail(
 export default withHandler(
   { schema: orchestratorSchema, requireAuth: false, maxRequests: 50 },
   async ({ body }) => {
-    const { analysisId, mode = "player", teamAnalysis } = body as z.infer<typeof orchestratorSchema>;
+    const { analysisId, mode = "player", teamAnalysis, locale } = body as z.infer<typeof orchestratorSchema>;
+    const reportLocale = normalizeLocale(locale);
     const startedAt = Date.now();
 
     // Sprint 8: select report agents based on mode
@@ -434,6 +438,8 @@ export default withHandler(
       // Sprint 8: team/rival analysis data (if mode is team or rival)
       teamAnalysis: teamAnalysis ?? null,
       analysisMode: mode,
+      // FASE 5 · idioma propagado a todos los agentes de reporte
+      locale: reportLocale,
     };
 
     const reportPromises = activeAgents.map((agent) =>

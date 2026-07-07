@@ -16,6 +16,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -37,7 +38,8 @@ const planSchema = z.object({
 
 const PROMPT_VERSION = "dev-plan-v1.1.0"; // v1.1 = schema tolerante + scanning
 
-const PLAN_SYSTEM_PROMPT = `Eres el motor de generación de Planes de Desarrollo de VITAS.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor de generación de Planes de Desarrollo de VITAS.
 
 Tu misión: producir un plan estructurado de 12 semanas para un jugador juvenil de fútbol, priorizando sus debilidades detectadas y respetando su ventana de desarrollo PHV.
 
@@ -95,7 +97,10 @@ REGLAS ABSOLUTAS DE DATOS:
 7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
 8. CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 async function fetchRagDrills(weaknesses: string[], baseUrl: string, authToken: string) {
   // Llama a /api/rag/query buscando drills relevantes para las debilidades
@@ -172,6 +177,7 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof planSchema>;
+    const locale = normalizeLocale((input as { locale?: unknown }).locale);
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -207,7 +213,7 @@ ${ragDrills.map((d: { content?: string }, i: number) => `${i + 1}. ${d.content?.
 
 Genera el Plan de Desarrollo de 12 semanas en JSON estricto.`;
 
-      const plan = await callClaudeHaiku(PLAN_SYSTEM_PROMPT, userMessage, apiKey);
+      const plan = await callClaudeHaiku(buildSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

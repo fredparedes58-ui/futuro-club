@@ -13,6 +13,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -31,7 +32,8 @@ const labSchema = z.object({
 
 const PROMPT_VERSION = "lab-biomech-v1.1.0"; // v1.1 · añadido scanning rate
 
-const LAB_SYSTEM_PROMPT = `Eres el motor de generación de reportes biomecánicos LAB de VITAS Football Intelligence.
+function buildLabSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor de generación de reportes biomecánicos LAB de VITAS Football Intelligence.
 
 Tu misión: producir un informe técnico denso y profesional dirigido a entrenadores y preparadores físicos sobre las métricas biomecánicas extraídas del análisis automático de vídeo.
 
@@ -70,7 +72,10 @@ ESTRUCTURA OBLIGATORIA (JSON):
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 interface LabReportInput {
   playerId: string;
@@ -130,6 +135,7 @@ export default withHandler(
     }
 
     const input = body as LabReportInput;
+    const locale = normalizeLocale((body as { locale?: unknown }).locale);
 
     // ── Cache: mismo input → mismo reporte ──────────────────────
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
@@ -160,7 +166,7 @@ una sección "Lectura de juego (Scanning)" con la frecuencia, comparable
 y recomendación.`;
 
     try {
-      const report = await callClaude(LAB_SYSTEM_PROMPT, userMessage, apiKey);
+      const report = await callClaude(buildLabSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

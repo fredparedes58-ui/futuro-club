@@ -35,6 +35,8 @@ const schema = z.object({
   physicalMetrics: z.record(z.unknown()).nullable().optional(),
   eventSummary: z.record(z.unknown()).nullable().optional(),
   playedPosition: z.string().nullable().optional(),
+  /** FASE 5 · idioma de los reportes; se propaga al orchestrator y agentes */
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 export default withHandler(
@@ -54,6 +56,7 @@ export default withHandler(
       physicalMetrics,
       eventSummary,
       playedPosition,
+      locale,
     } = body as z.infer<typeof schema>;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -135,7 +138,7 @@ export default withHandler(
             "Content-Type": "application/json",
             Authorization: `Bearer ${INTERNAL_TOKEN}`,
           },
-          body: JSON.stringify({ analysisId }),
+          body: JSON.stringify({ analysisId, locale }),
         }
       );
 

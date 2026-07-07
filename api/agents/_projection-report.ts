@@ -18,6 +18,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -40,7 +41,8 @@ const projectionSchema = z.object({
 
 const PROMPT_VERSION = "projection-v1.1.0"; // v1.1 = schema tolerante (PHV null OK)
 
-const SYSTEM_PROMPT = `Eres el motor de Proyección 3 años de VITAS.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor de Proyección 3 años de VITAS.
 
 Recibes la curva proyectada (calculada deterministicamente con coeficientes PHV) y las debilidades actuales. Tu misión es narrar qué significa esa proyección para el jugador.
 
@@ -85,7 +87,10 @@ REGLAS ABSOLUTAS DE DATOS:
 7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
 8. CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 /**
  * Curva determinista de proyección VSI según etapa PHV.
@@ -196,7 +201,8 @@ ${JSON.stringify(input.historicalVsi ?? "primer análisis", null, 2)}
 
 Genera el reporte Proyección 3 años en JSON estricto, usando los valores de la curva proyectada.`;
 
-      const narrative = await callHaiku(SYSTEM_PROMPT, userMessage, apiKey);
+      const locale = normalizeLocale(input.locale);
+      const narrative = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

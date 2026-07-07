@@ -13,6 +13,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -32,7 +33,8 @@ const matchSchema = z.object({
 
 const PROMPT_VERSION = "best-match-v1.1.0"; // v1.1 = schema tolerante
 
-const SYSTEM_PROMPT = `Eres el motor narrador de Best-Match de VITAS Football Intelligence.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor narrador de Best-Match de VITAS Football Intelligence.
 
 Tu misión: convertir el top-5 de jugadores profesionales similares (calculado por algoritmo determinista) en una narrativa motivadora pero honesta para padres y coaches.
 
@@ -64,7 +66,10 @@ ESTRUCTURA OBLIGATORIA (JSON):
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 async function callHaiku(systemPrompt: string, userMessage: string, apiKey: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -95,6 +100,7 @@ export default withHandler(
     }
 
     const input = body as z.infer<typeof matchSchema>;
+    const locale = normalizeLocale((input as { locale?: unknown }).locale);
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -111,7 +117,7 @@ ${JSON.stringify(matches.slice(0, 5), null, 2)}
 
 Genera el reporte Best-Match en JSON estricto.`;
 
-      const narrative = await callHaiku(SYSTEM_PROMPT, userMessage, apiKey);
+      const narrative = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

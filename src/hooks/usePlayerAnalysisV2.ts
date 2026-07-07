@@ -30,6 +30,8 @@ import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 // ── Tipos ─────────────────────────────────────────────────────────
 
@@ -460,6 +462,8 @@ export function usePlayerAnalysisV2() {
                 physicalMetrics: params.physicalMetrics,
                 eventSummary: params.eventSummary,
                 playedPosition: params.playedPosition,
+                // FASE 5 · idioma activo → reportes bilingües ES/EN
+                locale: normalizeLocale(i18n.language),
               }),
               signal: ac.signal,
             });

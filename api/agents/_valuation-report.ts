@@ -15,6 +15,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
+import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -43,6 +44,8 @@ const valuationReportSchema = z.object({
   valuationModel: z.record(z.unknown()).nullable().optional(),
   teamAnalysis: z.unknown().nullable().optional(),
   analysisMode: z.string().optional(),
+  // FASE 5 · idioma del reporte (evita que Zod lo recorte del sharedContext)
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
@@ -54,6 +57,7 @@ function buildPrompt(data: z.infer<typeof valuationReportSchema>): string {
   const valuation = data.valuationModel ?? {};
   const injuryRisk = data.injuryRisk ?? {};
   const vsi = data.vsi;
+  const locale = normalizeLocale((data as { locale?: unknown }).locale);
 
   return `Eres un director deportivo de academia de futbol juvenil con 20 anos de experiencia en deteccion de talento.
 Tu audiencia son directores tecnicos, scouts y directivos de academias.
@@ -117,7 +121,9 @@ REGLAS:
 - Si hay riesgo de lesion alto, reflejarlo como riesgo de valoracion
 - Los comparables deben ser realistas para el nivel del jugador
 - CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el analisis segun los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad
-- Responde SOLO con JSON valido, sin texto adicional`;
+- Responde SOLO con JSON valido, sin texto adicional
+
+${languageDirective(locale)}`;
 }
 
 export default withHandler(
