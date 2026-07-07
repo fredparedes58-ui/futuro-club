@@ -44,8 +44,13 @@ Estructura tu respuesta como JSON con este formato:
     "home": ["recomendación táctica 1", "recomendación 2"],
     "away": ["recomendación táctica 1", "recomendación 2"]
   },
-  "overall_rating": { "home": 7.5, "away": 6.8 }
-}`;
+  "overall_rating": { "home": 7.5, "away": 6.8 },
+  "confidence_score": "number 0-100 · confianza real en este análisis según los datos disponibles",
+  "data_completeness": "number 0-100 · % de dimensiones evaluadas con datos reales, no inferidos",
+  "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
+}
+
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.`;
 
 export default withHandler(
   { schema: inputSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },

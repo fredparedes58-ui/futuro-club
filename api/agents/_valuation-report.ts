@@ -103,7 +103,10 @@ Genera un reporte de valoracion predictiva en formato JSON con esta estructura e
   "riesgosValoracion": [
     "Riesgo 1 que podria limitar la valoracion",
     "Riesgo 2"
-  ]
+  ],
+  "confidence_score": "number 0-100 · confianza real en este analisis segun los datos disponibles",
+  "data_completeness": "number 0-100 · % de dimensiones evaluadas con datos reales, no inferidos",
+  "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
 REGLAS:
@@ -113,6 +116,7 @@ REGLAS:
 - Maximo 3 comparables profesionales (de la misma posicion)
 - Si hay riesgo de lesion alto, reflejarlo como riesgo de valoracion
 - Los comparables deben ser realistas para el nivel del jugador
+- CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el analisis segun los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad
 - Responde SOLO con JSON valido, sin texto adicional`;
 }
 

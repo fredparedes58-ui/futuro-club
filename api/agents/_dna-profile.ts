@@ -75,7 +75,10 @@ ESTRUCTURA OBLIGATORIA (JSON):
   "role_alignment": "aligned|adjacent|misaligned",
   "tactical_labels": ["string"],
   "pressure_behavior": "string max 180 chars · cómo se comporta bajo presión",
-  "game_reading": "string max 180 chars · capacidad de lectura del juego"
+  "game_reading": "string max 180 chars · capacidad de lectura del juego",
+  "confidence_score": "number 0-100 · confianza real en este análisis según los datos disponibles",
+  "data_completeness": "number 0-100 · % de dimensiones evaluadas con datos reales, no inferidos",
+  "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
 REGLAS ABSOLUTAS DE DATOS:
@@ -86,6 +89,8 @@ REGLAS ABSOLUTAS DE DATOS:
 5. Separa siempre observación directa (visto en video) de inferencia (estimado por modelo).
 6. NUNCA menciones decisiones contractuales, económicas o de transferencias — no es nuestro dominio.
 7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
+
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
 NO incluyas markdown ni texto fuera del JSON.`;
 
