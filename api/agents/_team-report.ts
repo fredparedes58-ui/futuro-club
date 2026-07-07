@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { teamReportOutputSchema, validateLLMReport } from "./_outputSchemas";
 
 export const config = { runtime: "edge" };
 
@@ -123,9 +124,23 @@ Genera el informe táctico.`;
       report = { executive_summary: text };
     }
 
+    // FASE 2: validar estructura antes de devolver — JSON válido con shape
+    // basura ({}, disculpas del modelo…) cae al fallback marcado, no a la UI.
+    const validation = validateLLMReport(teamReportOutputSchema, report);
+    if (!validation.ok) {
+      console.error("[team-report] Schema inválido:", validation.issues);
+      return successResponse({
+        data: {
+          report: { executive_summary: "Informe táctico no disponible — respuesta del modelo con estructura inválida." },
+          promptVersion: PROMPT_VERSION,
+          source: "fallback_schema_error",
+        },
+      });
+    }
+
     return successResponse({
       data: {
-        report,
+        report: validation.report,
         promptVersion: PROMPT_VERSION,
         source: "claude_haiku",
       },
