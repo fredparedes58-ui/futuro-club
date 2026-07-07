@@ -13,8 +13,10 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
+import { PlayerService } from "@/services/real/playerService";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
+import { aggregatePhvDistribution } from "@/lib/shared/phv";
 import type {
   TacticalInsights,
   TacticalMatchSummary,
@@ -118,7 +120,12 @@ export function useGenerateTacticalInsights() {
       const res = await fetch(`${apiBase}/generate-insights`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...input, locale: input.locale ?? normalizeLocale(i18n.language) }),
+        body: JSON.stringify({
+          ...input,
+          locale: input.locale ?? normalizeLocale(i18n.language),
+          // FASE 5 activación · distribución PHV real del roster (diferenciador VITAS)
+          phvDistribution: input.phvDistribution ?? aggregatePhvDistribution(PlayerService.getAll()),
+        }),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
