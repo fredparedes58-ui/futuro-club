@@ -2104,6 +2104,12 @@
     "qualityLimited": "Limitada",
     "quality": "Calidad: {{label}}"
   },
+  "reportConfidence": {
+    "label": "Confianza",
+    "completeness": "{{pct}}% de datos",
+    "notEvaluated": "No evaluado",
+    "notEvaluatedShort": "{{count}} sin datos"
+  },
   "analysisDashboard": {
     "errorLoadingReports": "Error cargando reportes",
     "errorGeneric": "Error",
@@ -4843,5 +4849,61 @@
     "ceiling": "Techo estimado",
     "recommendations": "Recomendaciones de desarrollo",
     "risks": "Riesgos de valoración"
+  },
+  "playerReport": {
+    "noContent": "Sin datos del jugador",
+    "summary": "Resumen ejecutivo",
+    "vsiScore": "VSI",
+    "phvTitle": "Maduración biológica · PHV",
+    "strengths": "Fortalezas",
+    "areasToImprove": "Áreas de mejora",
+    "priority": {
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Baja"
+    },
+    "comparablePro": "Comparable profesional",
+    "nextFocus": "Foco · próximas 4 semanas",
+    "honestyTitle": "Nota de honestidad"
+  },
+  "projectionReport": {
+    "noContent": "Sin contenido de proyección disponible.",
+    "overview": "Proyección 3 años",
+    "curveTitle": "Curva VSI proyectada",
+    "pts": "pts",
+    "now": "Ahora",
+    "year1": "Año 1",
+    "year2": "Año 2",
+    "year3": "Año 3",
+    "phvConsideration": "Consideración PHV",
+    "scenarios": "Escenarios",
+    "scenarioBase": "Escenario base",
+    "scenarioFocused": "Con trabajo enfocado",
+    "keyDrivers": "Factores clave",
+    "positionProjections": "Proyección por posición"
+  },
+  "developmentPlanReport": {
+    "noContent": "Sin plan de desarrollo",
+    "planTitle": "Plan de desarrollo",
+    "weeksUnit": "semanas",
+    "primaryFocus": "Foco",
+    "focus": {
+      "technique": "Técnica",
+      "physical": "Físico",
+      "tactical": "Táctica",
+      "mixed": "Mixto"
+    },
+    "phvConsideration": "Consideración PHV",
+    "weaknesses": "Debilidades detectadas",
+    "ragDrills": "Drills base conocimiento",
+    "blocks": "Bloques del plan",
+    "block": "Bloque {{number}}",
+    "sessionsPerWeek": "sesiones/semana",
+    "objectives": "Objetivos",
+    "drills": "Drills",
+    "minUnit": "min",
+    "pillars": "Pilares de trabajo",
+    "metricsToTrack": "Métricas a seguir",
+    "reviewCheckpoints": "Puntos de revisión"
   }
 }
