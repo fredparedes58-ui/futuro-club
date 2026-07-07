@@ -2125,6 +2125,7 @@
       "development-plan": "Plan Desarrollo"
     },
     "noContent": "Sin contenido",
+    "fallbackNotice": "Datos de ejemplo — el análisis IA no estaba disponible para este reporte.",
     "tableMetric": "Métrica",
     "tableValue": "Valor",
     "tableInterpretation": "Interpretación",

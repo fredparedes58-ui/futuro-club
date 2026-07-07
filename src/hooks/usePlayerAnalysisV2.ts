@@ -600,10 +600,13 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
       ajusteVSIVideoScore: Math.round(vsiScore - 50),
     },
     adnFutbolistico: {
-      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
-      arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
+      // Campos REALES del agente (_dna-profile.ts): primary_style/style_summary,
+      // natural_role, pressure_behavior. Los nombres antiguos (playing_style,
+      // archetype, mentality) nunca existieron en el schema → siempre defaults.
+      estiloJuego:      ((dna.style_summary as string) ?? (dna.primary_style as string) ?? (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA").slice(0, 200),
+      arquetipoTactico: ((dna.natural_role as string) ?? (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis").slice(0, 100),
       patrones:         [] as never[],
-      mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
+      mentalidad:       ((dna.pressure_behavior as string) ?? (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo").slice(0, 200),
     },
     jugadorReferencia: {
       top5: [] as never[],
