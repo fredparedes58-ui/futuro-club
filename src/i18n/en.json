@@ -2104,6 +2104,12 @@
     "qualityLimited": "Limited",
     "quality": "Quality: {{label}}"
   },
+  "reportConfidence": {
+    "label": "Confidence",
+    "completeness": "{{pct}}% data",
+    "notEvaluated": "Not evaluated",
+    "notEvaluatedShort": "{{count}} without data"
+  },
   "analysisDashboard": {
     "errorLoadingReports": "Error loading reports",
     "errorGeneric": "Error",
@@ -4843,5 +4849,61 @@
     "ceiling": "Estimated ceiling",
     "recommendations": "Development recommendations",
     "risks": "Valuation risks"
+  },
+  "playerReport": {
+    "noContent": "No player data",
+    "summary": "Executive summary",
+    "vsiScore": "VSI",
+    "phvTitle": "Biological maturation · PHV",
+    "strengths": "Strengths",
+    "areasToImprove": "Areas to improve",
+    "priority": {
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "comparablePro": "Professional comparable",
+    "nextFocus": "Focus · next 4 weeks",
+    "honestyTitle": "Honesty note"
+  },
+  "projectionReport": {
+    "noContent": "No projection content available.",
+    "overview": "3-year projection",
+    "curveTitle": "Projected VSI curve",
+    "pts": "pts",
+    "now": "Now",
+    "year1": "Year 1",
+    "year2": "Year 2",
+    "year3": "Year 3",
+    "phvConsideration": "PHV consideration",
+    "scenarios": "Scenarios",
+    "scenarioBase": "Base scenario",
+    "scenarioFocused": "With focused work",
+    "keyDrivers": "Key drivers",
+    "positionProjections": "Projection by position"
+  },
+  "developmentPlanReport": {
+    "noContent": "No development plan",
+    "planTitle": "Development plan",
+    "weeksUnit": "weeks",
+    "primaryFocus": "Focus",
+    "focus": {
+      "technique": "Technique",
+      "physical": "Physical",
+      "tactical": "Tactical",
+      "mixed": "Mixed"
+    },
+    "phvConsideration": "PHV consideration",
+    "weaknesses": "Detected weaknesses",
+    "ragDrills": "Knowledge-base drills",
+    "blocks": "Plan blocks",
+    "block": "Block {{number}}",
+    "sessionsPerWeek": "sessions/week",
+    "objectives": "Objectives",
+    "drills": "Drills",
+    "minUnit": "min",
+    "pillars": "Work pillars",
+    "metricsToTrack": "Metrics to track",
+    "reviewCheckpoints": "Review checkpoints"
   }
 }

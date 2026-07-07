@@ -25,6 +25,10 @@ import PeerBenchmark from "@/components/PeerBenchmark";
 import ValuationReportView from "@/components/analysis/reports/ValuationReportView";
 import InjuryReportView from "@/components/analysis/reports/InjuryReportView";
 import FatigueReportView from "@/components/analysis/reports/FatigueReportView";
+import ReportConfidenceChip from "@/components/analysis/reports/ReportConfidenceChip";
+import PlayerReportView from "@/components/analysis/reports/PlayerReportView";
+import ProjectionReportView from "@/components/analysis/reports/ProjectionReportView";
+import DevelopmentPlanReportView from "@/components/analysis/reports/DevelopmentPlanReportView";
 
 interface ReportData {
   report_type: string;
@@ -80,6 +84,9 @@ const REPORT_RENDERERS: Record<string, React.ComponentType<{ report: Record<stri
   "valuation-report":   ValuationReportView,
   "injury-risk-report": InjuryReportView,
   "fatigue-report":     FatigueReportView,
+  "player-report":      PlayerReportView,
+  projection:           ProjectionReportView,
+  "development-plan":   DevelopmentPlanReportView,
 };
 
 interface Props {
@@ -353,22 +360,33 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
  */
 function ReportContent({ reportType, report }: { reportType: string; report: Record<string, unknown> }) {
   const { t } = useTranslation();
-  const Dedicated = REPORT_RENDERERS[reportType];
-  if (!Dedicated) return <ReportRenderer report={report} />;
 
+  // Separar el flag de fallback del contenido real
+  let content = report;
+  let notice: React.ReactNode = null;
   if (report && (report as { _fallback?: boolean })._fallback) {
     const { _fallback, _source, ...rest } = report as Record<string, unknown> & { _fallback?: boolean; _source?: string };
     void _fallback; void _source;
-    return (
-      <div>
-        <p className="text-[11px] text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
-          ⚠ {t("analysisDashboard.fallbackNotice")}
-        </p>
-        <Dedicated report={rest} />
-      </div>
+    content = rest;
+    notice = (
+      <p className="text-[11px] text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
+        ⚠ {t("analysisDashboard.fallbackNotice")}
+      </p>
     );
   }
-  return <Dedicated report={report} />;
+
+  const Dedicated = REPORT_RENDERERS[reportType];
+  const body = Dedicated ? <Dedicated report={content} /> : <ReportRenderer report={content} />;
+
+  // FASE 4: la confianza que el agente ya emite se pinta arriba, uniforme para
+  // renderer dedicado y genérico (solo aparece si el reporte la trae).
+  return (
+    <div>
+      {notice}
+      <ReportConfidenceChip report={content} />
+      {body}
+    </div>
+  );
 }
 
 // ─── ReportRenderer ──────────────────────────────────────────────────────────
