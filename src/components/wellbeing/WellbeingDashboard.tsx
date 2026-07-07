@@ -8,8 +8,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
-import { useDropoutRisk, useEngagementHistory, useAttendance } from "@/hooks/useWellbeing";
+import { ArrowLeft, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import {
+  useDropoutRisk,
+  useEngagementHistory,
+  useAttendance,
+  useBurnoutReport,
+  buildBurnoutInput,
+  type DropoutRiskAssessment,
+} from "@/hooks/useWellbeing";
 
 import TeamRiskOverview from "./TeamRiskOverview";
 import DropoutRiskGauge from "./DropoutRiskGauge";
@@ -19,6 +26,11 @@ import AttendanceCalendar from "./AttendanceCalendar";
 import OvertrainingAlert from "./OvertrainingAlert";
 import InterventionPlanView from "./InterventionPlanView";
 import EngagementMiniCard from "@/components/coaching/EngagementMiniCard";
+import BurnoutReportView from "@/components/analysis/reports/BurnoutReportView";
+
+// Edad por defecto (el panel de equipo usa jugadores mock sin edad); el agente
+// refleja la falta de datos en su confidence_score.
+const DEFAULT_PLAYER_AGE = 13;
 
 // ─── Mock team data ──────────────────────────────────────────────────────
 
@@ -66,7 +78,15 @@ function generateMockHeatmapData() {
 
 // ─── Player Detail View ──────────────────────────────────────────────────
 
-function PlayerDetail({ playerId, onBack }: { playerId: string; onBack: () => void }) {
+function PlayerDetail({
+  playerId,
+  playerName,
+  onBack,
+}: {
+  playerId: string;
+  playerName: string;
+  onBack: () => void;
+}) {
   const { t } = useTranslation();
   const { data: risk } = useDropoutRisk(playerId);
   const { data: engagement } = useEngagementHistory(playerId);
@@ -140,9 +160,57 @@ function PlayerDetail({ playerId, onBack }: { playerId: string; onBack: () => vo
             escalationNeeded={risk.intervention.escalationNeeded}
             primaryFactor={risk.primaryFactor}
           />
+
+          <BurnoutReportSection risk={risk} playerName={playerName} />
         </>
       )}
     </motion.div>
+  );
+}
+
+// ─── AI Burnout Report Section ─────────────────────────────────────────────
+
+function BurnoutReportSection({
+  risk,
+  playerName,
+}: {
+  risk: DropoutRiskAssessment;
+  playerName: string;
+}) {
+  const { t } = useTranslation();
+  const mutation = useBurnoutReport();
+
+  return (
+    <div className="glass rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+          {t("burnoutReport.sectionTitle")}
+        </span>
+        {!mutation.data && (
+          <button
+            onClick={() => mutation.mutate(buildBurnoutInput(risk, playerName, DEFAULT_PLAYER_AGE))}
+            disabled={mutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors disabled:opacity-50"
+          >
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {mutation.isPending ? t("burnoutReport.generating") : t("burnoutReport.generate")}
+          </button>
+        )}
+      </div>
+
+      {mutation.isError && (
+        <div className="flex items-start gap-1.5 text-[11px] text-rose-400">
+          <AlertCircle size={12} className="mt-0.5 shrink-0" />
+          <span>{t("burnoutReport.error")}</span>
+        </div>
+      )}
+
+      {mutation.data && <BurnoutReportView report={mutation.data.report} />}
+
+      {!mutation.data && !mutation.isPending && !mutation.isError && (
+        <p className="text-[11px] text-muted-foreground">{t("burnoutReport.hint")}</p>
+      )}
+    </div>
   );
 }
 
@@ -162,6 +230,9 @@ export default function WellbeingDashboard() {
           <PlayerDetail
             key="detail"
             playerId={selectedPlayerId}
+            playerName={
+              teamRisk.find((p) => p.playerId === selectedPlayerId)?.playerName ?? selectedPlayerId
+            }
             onBack={() => setSelectedPlayerId(null)}
           />
         ) : (

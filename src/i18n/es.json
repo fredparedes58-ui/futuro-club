@@ -4905,5 +4905,40 @@
     "pillars": "Pilares de trabajo",
     "metricsToTrack": "Métricas a seguir",
     "reviewCheckpoints": "Puntos de revisión"
+  },
+  "coachingReport": {
+    "noContent": "Sin datos de coaching",
+    "summary": "Resumen de la sesión",
+    "whatWorkedWell": "Lo que funcionó bien",
+    "whatToImprove": "A mejorar",
+    "nextSession": "Plan próxima sesión",
+    "focus": "Enfoque",
+    "drills": "Ejercicios",
+    "weeklyPlan": "Plan semanal",
+    "spotlight": "Jugadores a destacar",
+    "player": "Jugador",
+    "action": "Acción",
+    "phvAlerts": "Alertas PHV",
+    "sectionTitle": "Reporte IA de coaching",
+    "generate": "Generar reporte IA",
+    "generating": "Generando…",
+    "error": "No se pudo generar el reporte. Inténtalo de nuevo.",
+    "hint": "Genera un reporte narrativo de la sesión con IA (resumen, plan y alertas PHV)."
+  },
+  "burnoutReport": {
+    "noContent": "Sin datos de bienestar",
+    "title": "Riesgo de abandono · Bienestar",
+    "escalation": "Escalar a dirección / psicólogo",
+    "summary": "Situación global",
+    "primaryConcern": "Preocupación principal",
+    "positiveSignals": "Señales positivas",
+    "interventionPlan": "Plan de intervención · 2 semanas",
+    "loadAdjustment": "Ajuste de carga",
+    "followUp": "Próxima revisión",
+    "sectionTitle": "Reporte IA de bienestar",
+    "generate": "Generar reporte IA",
+    "generating": "Generando…",
+    "error": "No se pudo generar el reporte. Inténtalo de nuevo.",
+    "hint": "Genera un reporte narrativo de riesgo de abandono con IA (plan de intervención)."
   }
 }
