@@ -77,11 +77,14 @@ export const MODELS: Record<string, ModelSpec> = {
     numKeypoints: 17,
     confThreshold: 0.40,
     nmsThreshold: 0.45,
-    modelPath: "/models/yolov11m-pose.onnx",
-    sizeMb: 45,
+    // Release asset del propio repo: *.onnx está gitignored (no llega a Vercel),
+    // así que el path local solo existe en dev. El asset sirve con CORS * y se
+    // cachea en el navegador tras la primera descarga.
+    modelPath: "https://github.com/fredparedes58-ui/futuro-club/releases/download/models-v1/yolov11m-pose.onnx",
+    sizeMb: 84, // FP32 export real (83.8MB) — int8 (~21MB) pendiente de benchmark
     accuracyFactor: 2.5,
     dynamicBatch: true,
-    notes: "Target model. ~10cm tracking accuracy. Runs at 4-8 FPS on mobile. Requires ONNX Runtime 1.17+.",
+    notes: "Default en desktop. ~10cm tracking accuracy. FP32, opset 17. Descarga única (Cache API). Móvil usa nano.",
   },
 
   /** Football-specific detection model: person (0) + ball (1) */
@@ -125,10 +128,25 @@ export const MODELS: Record<string, ModelSpec> = {
 
 const STORAGE_KEY = "vitas_active_model";
 const DEFAULT_MODEL = "yolov8n-pose";
+/** FASE 1 vision upgrade: desktop puede con el modelo medium (45MB, ~10cm accuracy). */
+const DESKTOP_DEFAULT_MODEL = "yolov11m-pose";
+
+/**
+ * Default consciente de dispositivo: móvil → nano (12MB, 8-15 FPS);
+ * desktop → medium. Si el fichero del medium no está desplegado, el worker
+ * cae en cadena al nano local (ver trackingWorker FALLBACK) — nunca rompe.
+ */
+function getDefaultModelId(): string {
+  if (typeof navigator === "undefined") return DEFAULT_MODEL;
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent ?? "");
+  return isMobile ? DEFAULT_MODEL : DESKTOP_DEFAULT_MODEL;
+}
 
 export function getActiveModelId(): string {
   if (typeof window === "undefined") return DEFAULT_MODEL;
-  return localStorage.getItem(STORAGE_KEY) ?? DEFAULT_MODEL;
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored && MODELS[stored]) return stored; // override manual siempre gana
+  return getDefaultModelId();
 }
 
 export function setActiveModelId(modelId: string): void {
@@ -217,7 +235,7 @@ export async function downloadModel(
 
     // Store in Cache API
     if ("caches" in window) {
-      const blob = new Blob(chunks);
+      const blob = new Blob(chunks as BlobPart[]);
       const cache = await caches.open("vitas-models-v1");
       await cache.put(spec.modelPath, new Response(blob));
     }

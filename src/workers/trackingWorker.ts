@@ -55,16 +55,24 @@ function send(event: WorkerEvent): void {
 
 // ─── Inicializar modelo ONNX ───────────────────────────────────────────────
 
-// Fallback CDN for YOLO model if local/Bunny CDN isn't available
-const FALLBACK_MODEL_URL = "https://raw.githubusercontent.com/akbartus/Yolov8-Pose-Detection-on-Browser/main/yolov8_pose_onnx/model/yolov8n-pose.onnx";
+// Fallback chain: modelo pedido → nano local (siempre desplegado) → CDN público.
+// El nano local va primero para no depender de un host externo si p.ej. el
+// yolov11m-pose aún no está desplegado en /models/.
+const LOCAL_FALLBACK_MODEL_URL = "/models/yolov8n-pose.onnx";
+// Release asset del PROPIO repo (antes dependía de un repo de terceros)
+const FALLBACK_MODEL_URL = "https://github.com/fredparedes58-ui/futuro-club/releases/download/models-v1/yolov8n-pose.onnx";
 
 async function initModel(modelUrl: string): Promise<void> {
   try {
     send({ type: "PROGRESS", percent: 10, message: "Descargando modelo YOLO…" });
 
-    // Try primary URL first, fallback to public CDN
+    // Try primary URL first, then local nano, then public CDN
     let response = await fetch(modelUrl);
-    if (!response.ok && modelUrl !== FALLBACK_MODEL_URL) {
+    if (!response.ok && modelUrl !== LOCAL_FALLBACK_MODEL_URL) {
+      send({ type: "PROGRESS", percent: 12, message: "Modelo no disponible, usando modelo base local…" });
+      response = await fetch(LOCAL_FALLBACK_MODEL_URL);
+    }
+    if (!response.ok) {
       send({ type: "PROGRESS", percent: 12, message: "Modelo local no encontrado, descargando de CDN…" });
       response = await fetch(FALLBACK_MODEL_URL);
     }

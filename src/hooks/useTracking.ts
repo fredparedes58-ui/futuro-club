@@ -11,6 +11,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { FrameExtractor, buildBunnyCdnUrl } from "@/lib/yolo/frameExtractor";
 import { PoseAnalyzer }  from "@/lib/yolo/poseAnalyzer";
+import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { computeVoronoi } from "@/lib/yolo/voronoi";
 import { buildAnchors, computeHomography, invertMatrix3x3, identityHomography } from "@/lib/yolo/homography";
 import {
@@ -371,9 +372,12 @@ export function useTracking(options: UseTrackingOptions) {
       }
     }
 
-    // Inicializar worker y cargar modelo desde public/models/
+    // Inicializar worker y cargar el modelo activo del registry
+    // (device-aware: desktop → yolov11m-pose, móvil → yolov8n-pose;
+    //  si el fichero no existe, el worker cae al nano local — nunca rompe)
     const worker = initWorker();
-    const modelUrl = "/models/yolov8n-pose.onnx";
+    const modelUrl = getActiveModel().modelPath;
+    console.log(`[useTracking] Modelo activo: ${getActiveModel().id} (${modelUrl})`);
 
     worker.postMessage({ type: "INIT", modelUrl });
 
