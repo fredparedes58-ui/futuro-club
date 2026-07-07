@@ -13,6 +13,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 import type {
   TacticalInsights,
   TacticalMatchSummary,
@@ -103,6 +105,10 @@ interface GenerateInsightsInput {
     durationMin?: number;
     score?: { ours: number; theirs: number };
   };
+  /** FASE 5 · idioma del reporte (default: idioma activo de la app) */
+  locale?: "es" | "en";
+  /** FASE 5 · distribución PHV del equipo (diferenciador VITAS) */
+  phvDistribution?: { prePhv?: number; circaPhv?: number; postPhv?: number };
 }
 
 export function useGenerateTacticalInsights() {
@@ -112,7 +118,7 @@ export function useGenerateTacticalInsights() {
       const res = await fetch(`${apiBase}/generate-insights`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
+        body: JSON.stringify({ ...input, locale: input.locale ?? normalizeLocale(i18n.language) }),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
