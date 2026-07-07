@@ -63,6 +63,8 @@ ${data.fatigueHistory ? JSON.stringify(data.fatigueHistory.slice(-10), null, 2) 
 ## INSTRUCCIONES
 Genera un reporte de fatiga en español con las siguientes secciones. Usa datos concretos cuando estén disponibles, estimaciones razonables cuando no.
 
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
+
 ### 1. Estado Actual de Fatiga
 - Índice de fatiga (0-100) y severidad
 - Principales indicadores (sprint decay, speed decay, metabolic trend)
@@ -95,7 +97,10 @@ Formato: JSON con estructura:
   "riesgoLesion": { "nivel": string, "factores": string[], "zonasExpuestas": string[] },
   "ajustesPHV": { "banda": string, "umbralesModificados": string[], "recomendaciones": string[] },
   "protocoloRecuperacion": { "plan48h": string[], "indicadoresRetorno": string[], "ejerciciosComplementarios": string[] },
-  "resumenEjecutivo": string
+  "resumenEjecutivo": string,
+  "confidence_score": number,
+  "data_completeness": number,
+  "not_evaluated": ["string · aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto"]
 }`;
 }
 

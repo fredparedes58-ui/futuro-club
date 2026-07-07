@@ -95,7 +95,10 @@ Genera un reporte de riesgo de lesion en formato JSON con esta estructura exacta
     "Ejercicio o protocolo preventivo 2",
     "Ejercicio o protocolo preventivo 3"
   ],
-  "seguimiento": "Cuando reevaluar y que monitorizar (1-2 lineas)"
+  "seguimiento": "Cuando reevaluar y que monitorizar (1-2 lineas)",
+  "confidence_score": "number 0-100 · confianza real en este analisis segun los datos disponibles",
+  "data_completeness": "number 0-100 · % de dimensiones evaluadas con datos reales, no inferidos",
+  "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
 REGLAS:
@@ -105,6 +108,7 @@ REGLAS:
 - Si la asimetria bilateral >15%, recomendar trabajo correctivo especifico
 - Maximo 5 factores de riesgo
 - Maximo 5 recomendaciones
+- CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el analisis segun los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 - Responde SOLO con JSON valido, sin texto adicional`;
 }
 

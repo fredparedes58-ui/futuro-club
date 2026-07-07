@@ -88,6 +88,8 @@ Resumen del plan semanal recomendado.
 ### 7. Alertas PHV
 Si hay jugadores en periodo de crecimiento, alertas específicas.
 
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
+
 Formato JSON:
 {
   "sessionSummary": string,
@@ -96,7 +98,10 @@ Formato JSON:
   "nextSessionPlan": { "focus": string, "drills": string[], "duration": string },
   "playerSpotlight": [{ "playerId": string, "reason": string, "action": string }] (max 3),
   "weeklyPlan": string,
-  "phvAlerts": string[] | null
+  "phvAlerts": string[] | null,
+  "confidence_score": number (0-100 · confianza real en el análisis según los datos disponibles),
+  "data_completeness": number (0-100 · % de dimensiones evaluadas con datos reales, no inferidos),
+  "not_evaluated": string[] (aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto)
 }`;
 }
 

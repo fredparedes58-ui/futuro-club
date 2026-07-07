@@ -83,8 +83,13 @@ Genera un reporte de perfil conductual en español con las siguientes secciones.
   "strengths": string[] (max 3, concretas con datos),
   "developmentAreas": string[] (max 3, con sugerencias accionables),
   "comparisonWithPeers": string (1 párrafo comparándolo con jugadores de su edad),
-  "coachingTips": string[] (max 3, tips específicos para el entrenador)
-}`;
+  "coachingTips": string[] (max 3, tips específicos para el entrenador),
+  "confidence_score": number (0-100 · confianza real en el análisis según los datos disponibles),
+  "data_completeness": number (0-100 · % de dimensiones evaluadas con datos reales, no inferidos),
+  "not_evaluated": string[] (aspectos que no se pudieron evaluar por falta de datos; array vacío si todo cubierto)
+}
+
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.`;
 }
 
 export default withHandler(

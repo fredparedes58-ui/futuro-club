@@ -23,6 +23,10 @@ export const teamReportOutputSchema = z
     momentum_shifts: z.array(z.unknown()).optional(),
     recommendations: z.record(z.unknown()).optional(),
     overall_rating: z.record(z.unknown()).optional(),
+    // Confianza (FASE 4) · opcionales; el prompt los emite, el chip los pinta
+    confidence_score: z.number().optional(),
+    data_completeness: z.number().optional(),
+    not_evaluated: z.array(z.string()).optional(),
   })
   .passthrough();
 
@@ -37,6 +41,10 @@ export const rivalScoutOutputSchema = z
     attack_plan: z.record(z.unknown()).optional(),
     defensive_plan: z.record(z.unknown()).optional(),
     game_management: z.record(z.unknown()).optional(),
+    // Confianza (FASE 4) · opcionales; el prompt los emite, el chip los pinta
+    confidence_score: z.number().optional(),
+    data_completeness: z.number().optional(),
+    not_evaluated: z.array(z.string()).optional(),
   })
   .passthrough();
 
@@ -50,6 +58,10 @@ export const coachingAssistantOutputSchema = z
     playerSpotlight: z.array(z.unknown()).optional(),
     weeklyPlan: z.string().optional(),
     phvAlerts: z.array(z.unknown()).nullable().optional(),
+    // Confianza (FASE 4) · opcionales; el prompt los emite, el chip los pinta
+    confidence_score: z.number().optional(),
+    data_completeness: z.number().optional(),
+    not_evaluated: z.array(z.string()).optional(),
   })
   .passthrough();
 
@@ -63,6 +75,10 @@ export const valuationOutputSchema = z
     proyeccion: z.record(z.unknown()).optional(),
     recomendacionesDesarrollo: z.array(z.unknown()).optional(),
     riesgosValoracion: z.array(z.unknown()).optional(),
+    // Confianza (FASE 4) · opcionales; el prompt los emite, el chip los pinta
+    confidence_score: z.number().optional(),
+    data_completeness: z.number().optional(),
+    not_evaluated: z.array(z.string()).optional(),
   })
   .passthrough();
 
