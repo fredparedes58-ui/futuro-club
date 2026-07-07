@@ -23,6 +23,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -42,7 +43,8 @@ const dnaSchema = z.object({
 
 const PROMPT_VERSION = "dna-profile-v1.1.0"; // v1.1 = schema tolerante
 
-const SYSTEM_PROMPT = `Eres el motor de ADN Futbolístico de VITAS.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres el motor de ADN Futbolístico de VITAS.
 
 Tu misión: producir el "ADN" del jugador combinando análisis de estilo (anteriormente _tactical-label) con análisis de rol natural (anteriormente _role-profile).
 
@@ -92,7 +94,10 @@ REGLAS ABSOLUTAS DE DATOS:
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-NO incluyas markdown ni texto fuera del JSON.`;
+NO incluyas markdown ni texto fuera del JSON.
+
+${languageDirective(locale)}`;
+}
 
 async function callHaiku(systemPrompt: string, userMessage: string, apiKey: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -139,7 +144,8 @@ ${JSON.stringify(input.biomechanics ?? "no_data", null, 2)}
 
 Genera el ADN Futbolístico en JSON estricto.`;
 
-      const dna = await callHaiku(SYSTEM_PROMPT, userMessage, apiKey);
+      const locale = normalizeLocale((input as { locale?: unknown }).locale);
+      const dna = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

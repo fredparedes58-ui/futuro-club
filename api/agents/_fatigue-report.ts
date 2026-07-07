@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -36,6 +37,8 @@ const fatigueReportSchema = z.object({
   // Fatigue-specific data
   fatigueReport: z.record(z.unknown()).nullable().optional(),
   fatigueHistory: z.array(z.record(z.unknown())).optional(),
+  // FASE 5 · idioma del reporte (default "es") — reportes bilingües ES/EN
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
@@ -46,6 +49,7 @@ function buildPrompt(data: z.infer<typeof fatigueReportSchema>): string {
   const phvOffset = (data.phv as Record<string, unknown>)?.offset ?? (data.phv as Record<string, unknown>)?.maturity_offset ?? null;
   const phvCategory = (data.phv as Record<string, unknown>)?.category ?? (data.phv as Record<string, unknown>)?.phv_category ?? "unknown";
   const fatigue = data.fatigueReport ?? {};
+  const locale = normalizeLocale(data.locale);
 
   return `Eres un analista de rendimiento deportivo juvenil especializado en fatiga y gestión de carga.
 
@@ -101,7 +105,9 @@ Formato: JSON con estructura:
   "confidence_score": number,
   "data_completeness": number,
   "not_evaluated": ["string · aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto"]
-}`;
+}
+
+${languageDirective(locale)}`;
 }
 
 export default withHandler(
