@@ -67,6 +67,7 @@ const LiveHubPage = lazyWithRetry(() => import("./pages/LiveHubPage"));
 const LiveMatchPage = lazyWithRetry(() => import("./pages/LiveMatchPage"));
 const LiveSummaryPage = lazyWithRetry(() => import("./pages/LiveSummaryPage"));
 const CompareRivalPage = lazyWithRetry(() => import("./pages/CompareRivalPage"));
+const MatchReportPage = lazyWithRetry(() => import("./pages/MatchReportPage"));
 const ParentDashboardPage = lazyWithRetry(() => import("./pages/ParentDashboardPage"));
 const CoachDashboardPage = lazyWithRetry(() => import("./pages/CoachDashboardPage"));
 const WellbeingDashboardPage = lazyWithRetry(() => import("./pages/WellbeingDashboardPage"));
@@ -236,6 +237,7 @@ const App = () => {
                 <Route path="/live/:matchId" element={<P><LiveMatchPage /></P>} />
                 <Route path="/live/:matchId/summary" element={<P><LiveSummaryPage /></P>} />
                 <Route path="/equipo/rival" element={<P><CompareRivalPage /></P>} />
+                <Route path="/equipo/partido" element={<P><MatchReportPage /></P>} />
                 <Route path="/coach" element={<P><CoachDashboardPage /></P>} />
                 <Route path="/wellbeing" element={<P><WellbeingDashboardPage /></P>} />
                 <Route path="/family/:playerId" element={<P><ParentDashboardPage /></P>} />

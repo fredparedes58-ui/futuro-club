@@ -3455,7 +3455,9 @@
     "postPhv": "Post-PHV",
     "inPhv": "In PHV",
     "viewAll": "View all ({{count}})",
-    "memberFallback": "Member"
+    "memberFallback": "Member",
+    "matchReport": "Match A vs B",
+    "matchReportDesc": "Comparative tactical report of two teams"
   },
   "telegramConnect": {
     "toastLinked": "✅ Telegram linked · you can now chat with the bot",
@@ -4940,5 +4942,44 @@
     "generating": "Generating…",
     "error": "Could not generate the report. Try again.",
     "hint": "Generate a narrative dropout-risk report with AI (intervention plan)."
+  },
+  "teamReport": {
+    "noContent": "No match data",
+    "executiveSummary": "Executive summary",
+    "overallRating": "Overall rating",
+    "tacticalOverview": "Tactical overview",
+    "style": "Playing style",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "keyBattles": "Key battles",
+    "momentumShifts": "Momentum shifts",
+    "recommendations": "Recommendations",
+    "home": "Home",
+    "away": "Away",
+    "vs": "vs"
+  },
+  "matchReportPage": {
+    "namesRequiredToast": "Enter both team names",
+    "errorGenerating": "Could not generate the report",
+    "generatedToast": "Tactical report generated",
+    "errorGeneric": "Something went wrong",
+    "resultTitle": "{{home}} vs {{away}}",
+    "resultSubtitle": "Comparative tactical report · VITAS",
+    "edit": "Edit",
+    "headerTitle": "Match A vs B",
+    "headerSubtitle": "Comparative tactical report of two teams",
+    "homeTitle": "Home team",
+    "awayTitle": "Away team",
+    "contextLabel": "Match context (optional)",
+    "contextPlaceholder": "Competition, stage, conditions, history…",
+    "analyzing": "Analyzing…",
+    "generate": "Generate tactical report",
+    "footer": "The report is AI-generated from what you describe. With little data, confidence will be lower.",
+    "teamNameLabel": "Team name",
+    "teamNamePlaceholder": "e.g. Example FC",
+    "formationLabel": "Formation",
+    "formationPlaceholder": "e.g. 4-3-3",
+    "notesLabel": "Tactical notes",
+    "notesPlaceholder": "Style, strengths, weaknesses, key players…"
   }
 }

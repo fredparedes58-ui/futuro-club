@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/command";
 import {
   Users, Activity, Swords, Grid3x3, Zap, BarChart3, Target,
-  Sparkles, Trophy, FileText, Search, Heart, Briefcase, Brain, Eye,
+  Sparkles, Trophy, FileText, Search, Heart, Briefcase, Brain, Eye, ClipboardList,
 } from "lucide-react";
 import { useAllPlayers } from "@/hooks/usePlayers";
 
@@ -41,6 +41,7 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   { id: "match-day",  label: "Match-day Live",     hint: "Tagear eventos en directo", Icon: Activity, to: "/live",            keywords: ["partido","live","directo","cronometro"] },
   { id: "rival",      label: "Plan vs Rival",      hint: "Plan de partido + drills",  Icon: Swords,   to: "/equipo/rival",    keywords: ["rival","oponente","compare","plan"] },
+  { id: "match",      label: "Partido A vs B",     hint: "Informe táctico comparativo", Icon: ClipboardList, to: "/equipo/partido", keywords: ["partido","match","informe","tactico","comparar","equipos"] },
   { id: "team-base",  label: "Análisis táctico",   hint: "5 reportes equipo · 9 cuadrantes", Icon: Grid3x3, to: "/equipo/baseline", keywords: ["equipo","tactico","cuadrantes","baseline"] },
   { id: "lab",        label: "VITAS.LAB",          hint: "Subir vídeo y analizar",    Icon: Zap,      to: "/lab",             keywords: ["video","analizar","lab","subir"] },
   { id: "rankings",   label: "Rankings",           hint: "Tus jugadores por VSI",     Icon: BarChart3,to: "/rankings",        keywords: ["jugadores","ranking","vsi","listado"] },

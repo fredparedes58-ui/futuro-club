@@ -12,6 +12,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { teamReportOutputSchema, validateLLMReport } from "./_outputSchemas";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -24,12 +25,14 @@ const inputSchema = z.object({
   pressing: z.record(z.unknown()).optional(),
   passNetwork: z.record(z.unknown()).optional(),
   playerContext: z.record(z.unknown()).optional(),
+  locale: z.enum(["es", "en"]).optional(),
 }).passthrough();
 
 const PROMPT_VERSION = "v1.0.0";
 
-const SYSTEM_PROMPT = `Eres un analista táctico de fútbol profesional de VITAS Football Intelligence.
-Genera un informe táctico de equipo en español, breve y accionable.
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres un analista táctico de fútbol profesional de VITAS Football Intelligence.
+Genera un informe táctico de equipo, breve y accionable.
 
 Estructura tu respuesta como JSON con este formato:
 {
@@ -50,7 +53,10 @@ Estructura tu respuesta como JSON con este formato:
   "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
-CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.`;
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
+
+${languageDirective(locale)}`;
+}
 
 export default withHandler(
   { schema: inputSchema, requireAuth: true, allowServiceToken: true, maxRequests: 100 },
@@ -93,6 +99,8 @@ Red de pases: ${JSON.stringify(body.passNetwork ?? {}, null, 2)}
 
 Genera el informe táctico.`;
 
+    const locale = normalizeLocale(body.locale);
+
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -104,7 +112,7 @@ Genera el informe táctico.`;
         model: "claude-3-5-haiku-20241022",
         max_tokens: 1024,
         temperature: 0.3,
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(locale),
         messages: [{ role: "user", content: userMessage }],
       }),
     });
