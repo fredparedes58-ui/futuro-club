@@ -208,6 +208,74 @@ async function saveAttendanceApi(input: AttendanceInput): Promise<{ status: stri
   return data.data ?? data;
 }
 
+// ─── AI Burnout Report (agente burnout-report) ──────────────────────────────
+
+export interface BurnoutReportInput {
+  playerId: string;
+  playerName?: string;
+  playerAge: number;
+  riskScore: number;
+  riskLevel: "low" | "moderate" | "high" | "critical";
+  primaryFactor: string;
+  factors?: Record<string, { score: number; weight: number } | null>;
+  engagement?: DropoutRiskAssessment["engagement"];
+  overtraining?: DropoutRiskAssessment["overtraining"];
+  motivation?: DropoutRiskAssessment["motivation"];
+  attendance?: DropoutRiskAssessment["attendance"];
+  questionnaireSummary?: string;
+  interventionActions?: Array<{ audience: string; action: string; priority: string }>;
+}
+
+export interface AiReportResult {
+  report: Record<string, unknown>;
+  source?: string;
+  model?: string;
+}
+
+async function burnoutReportApi(input: BurnoutReportInput): Promise<AiReportResult> {
+  const res = await fetch(`${API_BASE}/burnout-report`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "Unknown error");
+    throw new Error(`Burnout report failed: ${errText}`);
+  }
+  const json = await res.json();
+  const payload = json.data ?? json;
+  return {
+    report: (payload.report ?? {}) as Record<string, unknown>,
+    source: payload.source,
+    model: payload.model,
+  };
+}
+
+/**
+ * Build the burnout-report agent input from a dropout risk assessment.
+ * Todos los campos que el agente necesita ya vienen en el assessment.
+ */
+export function buildBurnoutInput(
+  risk: DropoutRiskAssessment,
+  playerName: string,
+  playerAge: number,
+): BurnoutReportInput {
+  return {
+    playerId: risk.playerId,
+    playerName,
+    playerAge,
+    riskScore: risk.riskScore,
+    riskLevel: risk.riskLevel,
+    primaryFactor: risk.primaryFactor,
+    factors: risk.factors,
+    engagement: risk.engagement,
+    overtraining: risk.overtraining,
+    motivation: risk.motivation,
+    attendance: risk.attendance,
+    interventionActions: risk.intervention?.actions,
+  };
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────
 
 /**
@@ -284,6 +352,15 @@ export function useSaveAttendance() {
       });
     },
   });
+}
+
+/**
+ * Generate an AI burnout/dropout report for a player (mutation).
+ * Llama al agente burnout-report vía /api/wellbeing/burnout-report.
+ * El agente cae a mock marcado si falta API key o falla → la UI nunca rompe.
+ */
+export function useBurnoutReport() {
+  return useMutation({ mutationFn: burnoutReportApi });
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────

@@ -4905,5 +4905,40 @@
     "pillars": "Work pillars",
     "metricsToTrack": "Metrics to track",
     "reviewCheckpoints": "Review checkpoints"
+  },
+  "coachingReport": {
+    "noContent": "No coaching data",
+    "summary": "Session summary",
+    "whatWorkedWell": "What worked well",
+    "whatToImprove": "What to improve",
+    "nextSession": "Next session plan",
+    "focus": "Focus",
+    "drills": "Drills",
+    "weeklyPlan": "Weekly plan",
+    "spotlight": "Player spotlight",
+    "player": "Player",
+    "action": "Action",
+    "phvAlerts": "PHV alerts",
+    "sectionTitle": "AI coaching report",
+    "generate": "Generate AI report",
+    "generating": "Generating…",
+    "error": "Could not generate the report. Try again.",
+    "hint": "Generate a narrative session report with AI (summary, plan and PHV alerts)."
+  },
+  "burnoutReport": {
+    "noContent": "No wellbeing data",
+    "title": "Dropout risk · Wellbeing",
+    "escalation": "Escalate to management / psychologist",
+    "summary": "Overall situation",
+    "primaryConcern": "Primary concern",
+    "positiveSignals": "Positive signals",
+    "interventionPlan": "Intervention plan · 2 weeks",
+    "loadAdjustment": "Load adjustment",
+    "followUp": "Next review",
+    "sectionTitle": "AI wellbeing report",
+    "generate": "Generate AI report",
+    "generating": "Generating…",
+    "error": "Could not generate the report. Try again.",
+    "hint": "Generate a narrative dropout-risk report with AI (intervention plan)."
   }
 }

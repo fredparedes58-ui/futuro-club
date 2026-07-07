@@ -130,6 +130,44 @@ async function analyzeSessionApi(input: AnalyzeSessionInput): Promise<AnalyzeSes
   return data.data ?? data;
 }
 
+// ─── AI Coaching Report (agente coaching-assistant) ─────────────────────────
+
+export interface CoachingReportInput {
+  teamId: string;
+  teamName?: string;
+  sessionAnalysis: Record<string, unknown>;
+  recentSessions?: Array<Record<string, unknown>>;
+  recommendation?: Record<string, unknown>;
+  phvDistribution?: { prePhv?: number; circaPhv?: number; postPhv?: number };
+  teamAvgAge?: number;
+  playerHighlights?: Array<Record<string, unknown>>;
+}
+
+export interface AiReportResult {
+  report: Record<string, unknown>;
+  source?: string;
+  model?: string;
+}
+
+async function coachingReportApi(input: CoachingReportInput): Promise<AiReportResult> {
+  const res = await fetch(`${API_BASE}/coaching-report`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "Unknown error");
+    throw new Error(`Coaching report failed: ${errText}`);
+  }
+  const json = await res.json();
+  const payload = json.data ?? json;
+  return {
+    report: (payload.report ?? {}) as Record<string, unknown>,
+    source: payload.source,
+    model: payload.model,
+  };
+}
+
 // ─── Hooks ────────────────────────────────────────────────────────────────
 
 /**
@@ -191,6 +229,16 @@ export function useAnalyzeSession() {
       });
     },
   });
+}
+
+/**
+ * Generate an AI coaching report for the team (mutation).
+ * Llama al agente coaching-assistant vía /api/coaching/coaching-report.
+ * El agente cae a mock marcado (source:"fallback*") si falta API key o falla,
+ * así que la UI nunca se rompe.
+ */
+export function useCoachingReport() {
+  return useMutation({ mutationFn: coachingReportApi });
 }
 
 // ─── Mock Data ────────────────────────────────────────────────────────────

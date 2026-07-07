@@ -15,14 +15,16 @@ import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ClipboardList, Calendar, TrendingUp, Users, Loader2, AlertCircle,
-  BarChart3, Activity,
+  BarChart3, Activity, Sparkles,
 } from "lucide-react";
 
 import {
   useCoachingSessions,
   useSessionAnalysis,
   useSessionRecommendation,
+  useCoachingReport,
 } from "@/hooks/useCoachingSession";
+import CoachingReportView from "@/components/analysis/reports/CoachingReportView";
 
 import SessionTimelineView from "./SessionTimelineView";
 import SessionBalanceChart from "./SessionBalanceChart";
@@ -244,7 +246,14 @@ export default function CoachDashboard({ teamId, teamName }: Props) {
             />
           )}
           {tab === "planificacion" && (
-            <TabPlanificacion recommendation={recommendation} />
+            <TabPlanificacion
+              recommendation={recommendation}
+              teamId={teamId}
+              teamName={teamName}
+              sessionAnalysis={analysisQ.data}
+              sessionRecommendation={recommendationQ.data}
+              recentSessions={sessionsQ.data}
+            />
           )}
           {tab === "progresion" && (
             <TabProgresion />
@@ -353,9 +362,30 @@ function TabSesion({
 
 // ─── Tab: Planificación ──────────────────────────────────────────────────
 
-function TabPlanificacion({ recommendation }: { recommendation: SessionRecommendation }) {
+function TabPlanificacion({
+  recommendation,
+  teamId,
+  teamName,
+  sessionAnalysis,
+  sessionRecommendation,
+  recentSessions,
+}: {
+  recommendation: SessionRecommendation;
+  teamId: string;
+  teamName?: string;
+  sessionAnalysis?: Record<string, unknown>;
+  sessionRecommendation?: Record<string, unknown>;
+  recentSessions?: unknown[];
+}) {
   return (
     <div className="space-y-4">
+      <CoachingReportSection
+        teamId={teamId}
+        teamName={teamName}
+        sessionAnalysis={sessionAnalysis}
+        sessionRecommendation={sessionRecommendation}
+        recentSessions={recentSessions}
+      />
       <NextSessionRecommender
         areasToImprove={recommendation.areasToImprove}
         nextSessionDrills={recommendation.nextSessionDrills}
@@ -365,6 +395,71 @@ function TabPlanificacion({ recommendation }: { recommendation: SessionRecommend
         weeklyPlan={recommendation.weeklyPlan}
         loadAdjustment={recommendation.loadAdjustment}
       />
+    </div>
+  );
+}
+
+// ─── AI Coaching Report Section ────────────────────────────────────────────
+
+function CoachingReportSection({
+  teamId,
+  teamName,
+  sessionAnalysis,
+  sessionRecommendation,
+  recentSessions,
+}: {
+  teamId: string;
+  teamName?: string;
+  sessionAnalysis?: Record<string, unknown>;
+  sessionRecommendation?: Record<string, unknown>;
+  recentSessions?: unknown[];
+}) {
+  const { t } = useTranslation();
+  const mutation = useCoachingReport();
+
+  const handleGenerate = () => {
+    // El endpoint session-recommendation devuelve { recommendation: {...} };
+    // pasamos el objeto interno al agente cuando existe.
+    const rec = (sessionRecommendation?.recommendation ?? sessionRecommendation ?? {}) as Record<string, unknown>;
+    mutation.mutate({
+      teamId,
+      teamName,
+      sessionAnalysis: sessionAnalysis ?? {},
+      recommendation: rec,
+      recentSessions: recentSessions as Array<Record<string, unknown>> | undefined,
+    });
+  };
+
+  return (
+    <div className="glass rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+          {t("coachingReport.sectionTitle")}
+        </span>
+        {!mutation.data && (
+          <button
+            onClick={handleGenerate}
+            disabled={mutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors disabled:opacity-50"
+          >
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+            {mutation.isPending ? t("coachingReport.generating") : t("coachingReport.generate")}
+          </button>
+        )}
+      </div>
+
+      {mutation.isError && (
+        <div className="flex items-start gap-1.5 text-[11px] text-rose-400">
+          <AlertCircle size={12} className="mt-0.5 shrink-0" />
+          <span>{t("coachingReport.error")}</span>
+        </div>
+      )}
+
+      {mutation.data && <CoachingReportView report={mutation.data.report} />}
+
+      {!mutation.data && !mutation.isPending && !mutation.isError && (
+        <p className="text-[11px] text-muted-foreground">{t("coachingReport.hint")}</p>
+      )}
     </div>
   );
 }
