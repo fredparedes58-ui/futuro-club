@@ -47,6 +47,11 @@ const GenerateInsightsSchema = z.object({
       score: z.object({ ours: z.number(), theirs: z.number() }).optional(),
     })
     .optional(),
+  // FASE 5 · idioma del reporte + maduración biológica del equipo (opcionales)
+  locale: z.enum(["es", "en"]).optional(),
+  phvDistribution: z
+    .object({ prePhv: z.number().optional(), circaPhv: z.number().optional(), postPhv: z.number().optional() })
+    .optional(),
 });
 
 export default withHandler(
@@ -57,7 +62,7 @@ export default withHandler(
     maxRequests: 15,
   },
   async ({ body }) => {
-    const { matchId, team, matchInfo } = body as z.infer<typeof GenerateInsightsSchema>;
+    const { matchId, team, matchInfo, locale, phvDistribution } = body as z.infer<typeof GenerateInsightsSchema>;
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return errorResponse("Supabase no configurado", 503);
@@ -119,6 +124,8 @@ export default withHandler(
       team: team ?? {},
       phaseDurations,
       possessionPct,
+      locale,
+      phvDistribution,
       teamHotZonesByPhase: teamHeatmaps.map((h) => ({
         phase: h.phase_type,
         zones: h.hot_zones,

@@ -14,6 +14,8 @@ import { isLocalSrc, readVideoAsBase64, extractKeyframesFromVideo, getOptimalFra
 import type { Track } from "@/lib/yolo/types";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
@@ -189,6 +191,8 @@ export function useTeamIntelligence() {
           videoId,
           yoloTrackData,
           analysisFocus: analysisFocus ?? null,
+          // FASE 5 · idioma del reporte = idioma activo de la app (bilingüe ES/EN)
+          locale: normalizeLocale(i18n.language),
         },
         (msg) => setState(prev => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
       );
