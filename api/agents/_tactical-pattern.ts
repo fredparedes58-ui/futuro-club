@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import {
   TacticalPatternInputSchema,
   TacticalPatternOutputSchema,
@@ -28,7 +29,7 @@ import {
 export const config = { runtime: "edge" };
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
-const MODEL = "claude-3-5-sonnet-20241022";
+const MODEL = MODELS.reasoning;
 
 function generateFallback(data: z.infer<typeof TacticalPatternInputSchema>): z.infer<typeof TacticalPatternOutputSchema> {
   const totalSec = Object.values(data.phaseDurations).reduce((a, b) => a + b, 0) || 1;
@@ -91,7 +92,6 @@ export default withHandler(
         body: JSON.stringify({
           model: MODEL,
           max_tokens: 2500,
-          temperature: 0.4,
           messages: [{ role: "user", content: prompt }],
         }),
       });

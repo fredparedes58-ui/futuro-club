@@ -9,6 +9,7 @@
  */
 
 import { z } from "zod";
+import { MODELS } from "../_lib/models";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { rivalScoutOutputSchema, validateLLMReport } from "./_outputSchemas";
@@ -143,9 +144,8 @@ Genera el informe de scouting completo.`;
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
+        model: MODELS.reasoning,
         max_tokens: 1024,
-        temperature: 0.3,
         system: buildSystemPrompt(locale),
         messages: [{ role: "user", content: userMessage }],
       }),

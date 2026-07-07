@@ -13,6 +13,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
+import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
@@ -95,7 +96,7 @@ async function callClaude(systemPrompt: string, userMessage: string, apiKey: str
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
+      model: MODELS.reasoning,
       max_tokens: 2500,
       system: [
         {
@@ -172,7 +173,7 @@ y recomendación.`;
         playerId: input.playerId,
         videoId: input.videoId,
         promptVersion: PROMPT_VERSION,
-        model: "claude-sonnet-4-5",
+        model: MODELS.reasoning,
         report,
         generatedAt: new Date().toISOString(),
       };

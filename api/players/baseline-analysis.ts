@@ -18,6 +18,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -58,7 +59,7 @@ interface PlayerProfile {
 // ── Claude SDK helpers ──────────────────────────────────────────────
 
 async function callClaude(opts: {
-  model: "claude-sonnet-4-5" | "claude-haiku-4-5";
+  model: typeof MODELS[keyof typeof MODELS];
   system: string;
   user: string;
   maxTokens?: number;
@@ -229,7 +230,7 @@ async function computePeerPercentile(
 
 const PROMPTS = {
   "player-report": {
-    model: "claude-sonnet-4-5" as const,
+    model: MODELS.reasoning,
     system: `Eres el motor del Player Report VITAS · baseline mode (sin vídeo).
 Genera un reporte ancla para padre/madre del jugador. Lenguaje claro, motivador, honesto.
 Output JSON estricto:
@@ -246,7 +247,7 @@ Output JSON estricto:
 2-3 fortalezas, 2-3 áreas de mejora. Sin markdown, solo JSON.`,
   },
   "lab-biomechanics": {
-    model: "claude-sonnet-4-5" as const,
+    model: MODELS.reasoning,
     system: `Eres el motor de LAB Biomecánica VITAS · baseline mode.
 SIN vídeo, no hay métricas reales. Output un JSON con tabla de PROYECCIÓN basada en perfil.
 {
@@ -261,7 +262,7 @@ SIN vídeo, no hay métricas reales. Output un JSON con tabla de PROYECCIÓN bas
 Indica claramente que son ESTIMACIONES, no medidas reales. Sin markdown.`,
   },
   "dna-profile": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor del ADN Futbolístico VITAS · baseline.
 Output JSON:
 {
@@ -273,7 +274,7 @@ Output JSON:
 2-3 patrones inferidos del perfil. Sin markdown.`,
   },
   "best-match": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Best-Match VITAS · baseline.
 Sugiere TRES jugadores profesionales referentes diferenciados por LENS distinto:
   1. lens "tecnico" → match por estilo de juego y técnica
@@ -307,7 +308,7 @@ Output JSON estricto:
 3 matches obligatorios, uno por cada lens. Sin markdown.`,
   },
   projection: {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Proyección 3 años VITAS · baseline.
 Output JSON:
 {
@@ -319,7 +320,7 @@ Output JSON:
 Sin markdown.`,
   },
   "development-plan": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor del Plan de Desarrollo VITAS · baseline.
 Output JSON:
 {

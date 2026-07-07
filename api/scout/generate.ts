@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -314,7 +315,7 @@ RESPONDE ÚNICAMENTE JSON:
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-haiku-4-5",
+            model: MODELS.fast,
             max_tokens: 1024,
             temperature: 0.3,
             system: systemPrompt,

@@ -18,6 +18,7 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
+import { MODELS } from "../_lib/models";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 
@@ -53,7 +54,7 @@ interface PlayerSummary {
 }
 
 async function callClaude(opts: {
-  model: "claude-sonnet-4-5" | "claude-haiku-4-5";
+  model: (typeof MODELS)[keyof typeof MODELS];
   system: string;
   user: string;
   maxTokens?: number;
@@ -196,7 +197,7 @@ equipo y la distribución PHV. Sé honesto sobre las limitaciones.`}`;
 
 const TEAM_PROMPTS = {
   "team-overview": {
-    model: "claude-sonnet-4-5" as const,
+    model: MODELS.reasoning,
     system: `Eres el motor del Team Overview VITAS · baseline mode.
 Output JSON estricto:
 {
@@ -210,7 +211,7 @@ Output JSON estricto:
 3 fortalezas, 3 debilidades. Sin markdown.`,
   },
   "tactical-profile": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor del Tactical Profile VITAS · baseline.
 Sugiere formación táctica + estilo + fases ofensiva/defensiva basado en el perfil.
 Output JSON:
@@ -224,7 +225,7 @@ Output JSON:
 Sin markdown.`,
   },
   "phv-stratification": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de PHV Stratification VITAS.
 Analiza el mix de fases de maduración del equipo y sugiere planes diferenciados.
 Output JSON:
@@ -238,7 +239,7 @@ Output JSON:
 Sin markdown.`,
   },
   "opponent-readiness": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Opponent Readiness VITAS · baseline.
 Sin vídeo del rival, sugiere preparación genérica basada en debilidades del equipo.
 Output JSON:
@@ -250,7 +251,7 @@ Output JSON:
 Sin markdown.`,
   },
   "tactical-zones": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Tactical Zones VITAS · baseline.
 Estima eficacia ofensiva y defensiva por las 9 ZONAS DEL CAMPO (3 tercios x 3 carriles)
 basado en el perfil del equipo. SIN vídeo, son ESTIMACIONES proyectadas.

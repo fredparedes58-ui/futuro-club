@@ -18,6 +18,7 @@ import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 import { phvFallback } from "../_lib/agentFallbacks";
+import { MODELS } from "../_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -110,7 +111,7 @@ export default withHandler(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model:       "claude-haiku-4-5",
+        model:       MODELS.fast,
         max_tokens:  1024,
         temperature: 0,
         system:      PHV_CALCULATOR_PROMPT,

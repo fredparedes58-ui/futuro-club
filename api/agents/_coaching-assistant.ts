@@ -14,6 +14,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
+import { MODELS } from "../_lib/models";
 
 export const config = { runtime: "edge" };
 
@@ -150,9 +151,8 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-3-5-haiku-20241022",
+          model: MODELS.reasoning,
           max_tokens: 2000,
-          temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -199,7 +199,7 @@ export default withHandler(
       return successResponse({
         report: validation.report,
         promptVersion: PROMPT_VERSION,
-        model: "claude-3-5-haiku-20241022",
+        model: MODELS.reasoning,
         ragEnriched: !!ragContext,
         inputTokens: result.usage?.input_tokens ?? 0,
         outputTokens: result.usage?.output_tokens ?? 0,

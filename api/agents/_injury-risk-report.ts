@@ -12,6 +12,7 @@
  */
 
 import { z } from "zod";
+import { MODELS } from "../_lib/models";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
@@ -150,7 +151,7 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-haiku-4-5",
+          model: MODELS.fast,
           max_tokens: 1500,
           temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
@@ -177,7 +178,7 @@ export default withHandler(
       return successResponse({
         report,
         promptVersion: PROMPT_VERSION,
-        model: "claude-haiku-4-5",
+        model: MODELS.fast,
         inputTokens: json.usage?.input_tokens ?? 0,
         outputTokens: json.usage?.output_tokens ?? 0,
       });

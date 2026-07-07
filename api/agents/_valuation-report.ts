@@ -14,6 +14,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
@@ -167,9 +168,8 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: MODELS.reasoning,
           max_tokens: 2000,
-          temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -201,7 +201,7 @@ export default withHandler(
       return successResponse({
         report,
         promptVersion: PROMPT_VERSION,
-        model: "claude-sonnet-4-20250514",
+        model: MODELS.reasoning,
         inputTokens: json.usage?.input_tokens ?? 0,
         outputTokens: json.usage?.output_tokens ?? 0,
       });

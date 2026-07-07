@@ -11,6 +11,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import { teamReportOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
@@ -109,9 +110,8 @@ Genera el informe táctico.`;
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
+        model: MODELS.reasoning,
         max_tokens: 1024,
-        temperature: 0.3,
         system: buildSystemPrompt(locale),
         messages: [{ role: "user", content: userMessage }],
       }),

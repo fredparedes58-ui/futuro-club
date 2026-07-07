@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { MODELS } from "../_lib/models";
 import { createClient } from "@supabase/supabase-js";
 
 // Node.js runtime for Gemini video analysis (up to 120s)
@@ -62,7 +63,7 @@ const EVENT_WEIGHTS: Record<string, number> = {
 };
 
 async function callClaude(opts: {
-  model: "claude-sonnet-4-5" | "claude-haiku-4-5";
+  model: typeof MODELS[keyof typeof MODELS];
   system: string;
   user: string;
   maxTokens?: number;
@@ -231,7 +232,7 @@ duelo perdido -1, amarilla -1, roja -3.${videoObs ? buildVideoSection(videoObs) 
 
 const PROMPTS = {
   "team-summary": {
-    model: "claude-sonnet-4-5" as const,
+    model: MODELS.reasoning,
     system: `Eres el motor de Match Summary VITAS. Analiza el partido en directo y produce
 un resumen para coach + padres. Lenguaje claro, motivador, honesto.
 
@@ -248,7 +249,7 @@ Output JSON:
 3 momentos clave. Sin markdown.`,
   },
   "per-player": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Player Insights VITAS post-partido baseline.
 Para los TOP 5 jugadores por impacto neto, da un insight breve.
 
@@ -266,7 +267,7 @@ Output JSON:
 Sin markdown.`,
   },
   "tactical-take": {
-    model: "claude-haiku-4-5" as const,
+    model: MODELS.fast,
     system: `Eres el motor de Tactical Take VITAS post-partido.
 Output JSON:
 {
