@@ -429,19 +429,33 @@ export default withHandler(
     const successfulReports = reports.filter((r) => r.success);
 
     // ── 6. Persistir cada reporte exitoso en `reports` table ────────
-    const reportInserts = successfulReports.map((r) => ({
-      tenant_id: analysis.tenant_id,
-      analysis_id: analysis.id,
-      player_id: analysis.player_id,
-      report_type: r.name,
-      content: r.data?.data?.report ?? r.data ?? {},
-      prompt_version: r.data?.data?.promptVersion ?? "v1.0.0",
-      model: r.model,
-      input_tokens: 0,
-      output_tokens: 0,
-      cost_eur: 0,
-      is_latest: true,
-    }));
+    // Si el agente respondió con fallback/mock, propagar el flag DENTRO del
+    // content — antes se despojaba el envelope (source/fallback/model:"mock")
+    // y la UI mostraba datos ficticios como reales.
+    const reportInserts = successfulReports.map((r) => {
+      const envelope = (r.data?.data ?? {}) as Record<string, unknown>;
+      let content = (envelope.report ?? r.data ?? {}) as Record<string, unknown>;
+      const isFallback =
+        envelope.fallback === true ||
+        envelope.model === "mock" ||
+        (typeof envelope.source === "string" && envelope.source.startsWith("fallback"));
+      if (isFallback && content && typeof content === "object") {
+        content = { ...content, _fallback: true, _source: (envelope.source as string) ?? "fallback" };
+      }
+      return {
+        tenant_id: analysis.tenant_id,
+        analysis_id: analysis.id,
+        player_id: analysis.player_id,
+        report_type: r.name,
+        content,
+        prompt_version: r.data?.data?.promptVersion ?? "v1.0.0",
+        model: r.model,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_eur: 0,
+        is_latest: true,
+      };
+    });
 
     if (reportInserts.length > 0) {
       await supabase.from("reports").insert(reportInserts);

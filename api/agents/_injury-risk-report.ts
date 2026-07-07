@@ -140,7 +140,7 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-haiku-4-5",
           max_tokens: 1500,
           temperature: 0.3,
           messages: [{ role: "user", content: prompt }],
@@ -167,7 +167,7 @@ export default withHandler(
       return successResponse({
         report,
         promptVersion: PROMPT_VERSION,
-        model: "claude-sonnet-4-20250514",
+        model: "claude-haiku-4-5",
         inputTokens: json.usage?.input_tokens ?? 0,
         outputTokens: json.usage?.output_tokens ?? 0,
       });

@@ -2125,6 +2125,7 @@
       "development-plan": "Development Plan"
     },
     "noContent": "No content",
+    "fallbackNotice": "Sample data — AI analysis was unavailable for this report.",
     "tableMetric": "Metric",
     "tableValue": "Value",
     "tableInterpretation": "Interpretation",

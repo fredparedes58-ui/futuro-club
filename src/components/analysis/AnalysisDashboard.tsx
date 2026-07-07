@@ -341,9 +341,27 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
     return <p className="text-xs text-muted-foreground italic">{t("analysisDashboard.noContent")}</p>;
   }
 
-  // Best-match shape (top3 + primary OR legacy single-match)
+  // El agente respondió con fallback/mock → avisar SIEMPRE antes del contenido
+  // (los números de un fallback son de ejemplo, no del análisis real)
+  const fallbackNotice = report._fallback ? (
+    <p className="text-[11px] text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2 mb-3">
+      ⚠ {t("analysisDashboard.fallbackNotice")}
+    </p>
+  ) : null;
+  if (fallbackNotice) {
+    const { _fallback, _source, ...rest } = report as Record<string, unknown> & { _fallback?: boolean; _source?: string };
+    void _fallback; void _source;
+    return (
+      <div>
+        {fallbackNotice}
+        <ReportRenderer report={rest} />
+      </div>
+    );
+  }
+
+  // Best-match shape (narrator primary_match OR top3+primary OR legacy single-match)
   const top3 = report.top3 as Array<BestMatchItem> | undefined;
-  const isBestMatch = !!top3 || (typeof report.nombre === "string" && typeof report.score === "number");
+  const isBestMatch = !!top3 || !!report.primary_match || (typeof report.nombre === "string" && typeof report.score === "number");
   if (isBestMatch) {
     return <BestMatchSection report={report} />;
   }
@@ -606,6 +624,46 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
   const { t } = useTranslation();
   const top3 = report.top3 as BestMatchItem[] | undefined;
   const primary = report.primary as BestMatchItem | undefined;
+
+  // Shape del agente narrador (_best-match-narrator): primary_match + other_matches
+  // + caveat. Antes caía al renderer genérico y se perdía todo salvo el título.
+  const pm = report.primary_match as { player?: string; club?: string; similarity_pct?: number; narrative?: string } | undefined;
+  if (pm) {
+    const others = (report.other_matches as Array<{ player?: string; similarity_pct?: number; shared_trait?: string }> | undefined) ?? [];
+    const headline = report.headline as string | undefined;
+    const caveat = report.caveat as string | undefined;
+    const pct = Math.round(pm.similarity_pct ?? 0);
+    const pctColor = pct >= 80 ? "text-green-400" : pct >= 60 ? "text-electric" : "text-amber-400";
+    return (
+      <div className="space-y-3">
+        {headline && <p className="text-sm font-display font-semibold text-foreground">{headline}</p>}
+        <div className="rounded-xl p-3 bg-primary/10 border border-primary/30">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-display font-bold text-sm text-foreground truncate">{pm.player ?? "—"}</div>
+              {pm.club && <div className="text-[10px] text-muted-foreground">{pm.club}</div>}
+            </div>
+            <span className={`font-mono font-bold text-sm shrink-0 ${pctColor}`}>{pct}%</span>
+          </div>
+          {pm.narrative && <p className="text-xs text-foreground leading-relaxed mt-2">{pm.narrative}</p>}
+        </div>
+        {others.length > 0 && (
+          <div className="grid gap-1.5">
+            {others.map((o, i) => (
+              <div key={i} className="rounded-lg px-3 py-2 bg-secondary/30 border border-border flex items-center justify-between gap-2 text-xs">
+                <span className="font-semibold text-foreground truncate">{o.player ?? "—"}</span>
+                {o.shared_trait && <span className="text-muted-foreground truncate flex-1">{o.shared_trait}</span>}
+                <span className="font-mono text-muted-foreground shrink-0">{Math.round(o.similarity_pct ?? 0)}%</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {caveat && (
+          <p className="text-[11px] text-amber-500/90 leading-relaxed border-l-2 border-amber-500/40 pl-2">{caveat}</p>
+        )}
+      </div>
+    );
+  }
 
   // Legacy fallback: single match shape
   if (!top3 || top3.length === 0) {

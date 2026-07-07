@@ -120,10 +120,12 @@ export default withHandler(
   async ({ body }) => {
     const data = body as z.infer<typeof valuationReportSchema>;
 
-    if (!ANTHROPIC_API_KEY) {
-      return successResponse({
+    // Fallback determinista: la app NUNCA rompe por fallo del LLM (regla CLAUDE.md).
+    // `source` permite al consumidor distinguir el fallback de un reporte real.
+    const fallbackReport = (source: string, detail: string) =>
+      successResponse({
         report: {
-          evaluacionGeneral: "Reporte no disponible — API key no configurada",
+          evaluacionGeneral: `Reporte no disponible — ${detail}`,
           tierAnalisis: "N/A",
           comparablesProfesionales: [],
           factoresClave: [],
@@ -133,7 +135,11 @@ export default withHandler(
         },
         promptVersion: PROMPT_VERSION,
         fallback: true,
+        source,
       });
+
+    if (!ANTHROPIC_API_KEY) {
+      return fallbackReport("fallback_no_key", "API key no configurada");
     }
 
     const prompt = buildPrompt(data);
@@ -157,7 +163,7 @@ export default withHandler(
       if (!res.ok) {
         const errText = await res.text();
         console.error(`[valuation-report] Anthropic ${res.status}:`, errText);
-        return errorResponse({ code: "llm_error", message: `Anthropic ${res.status}`, status: 502 });
+        return fallbackReport("fallback_llm_error", `error del modelo (${res.status})`);
       }
 
       const json = await res.json();
@@ -165,7 +171,7 @@ export default withHandler(
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return errorResponse({ code: "parse_error", message: "No JSON in response", status: 500 });
+        return fallbackReport("fallback_parse_error", "respuesta del modelo sin JSON");
       }
 
       const report = JSON.parse(jsonMatch[0]);
@@ -179,11 +185,10 @@ export default withHandler(
       });
     } catch (err) {
       console.error("[valuation-report] Error:", err);
-      return errorResponse({
-        code: "agent_error",
-        message: err instanceof Error ? err.message : "Unknown error",
-        status: 500,
-      });
+      return fallbackReport(
+        "fallback_exception",
+        err instanceof Error ? err.message : "error desconocido",
+      );
     }
   },
 );
