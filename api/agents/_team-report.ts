@@ -14,6 +14,7 @@ import { successResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { teamReportOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -31,7 +32,7 @@ const inputSchema = z.object({
 
 const PROMPT_VERSION = "v1.0.0";
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres un analista táctico de fútbol profesional de VITAS Football Intelligence.
 Genera un informe táctico de equipo, breve y accionable.
 
@@ -56,7 +57,7 @@ Estructura tu respuesta como JSON con este formato:
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${categoryDirective(category, locale)}`;
 }
 
 export default withHandler(
@@ -101,6 +102,11 @@ Red de pases: ${JSON.stringify(body.passNetwork ?? {}, null, 2)}
 Genera el informe táctico.`;
 
     const locale = normalizeLocale(body.locale);
+    // C1 multi-categoría: override explícito > edad cronológica > default "youth"
+    const category = resolveCategory({
+      age: (body.playerContext as { chronologicalAge?: number } | undefined)?.chronologicalAge,
+      category: (body as { category?: unknown }).category,
+    });
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -112,7 +118,7 @@ Genera el informe táctico.`;
       body: JSON.stringify({
         model: MODELS.reasoning,
         max_tokens: 1024,
-        system: buildSystemPrompt(locale),
+        system: buildSystemPrompt(locale, category),
         messages: [{ role: "user", content: userMessage }],
       }),
     });

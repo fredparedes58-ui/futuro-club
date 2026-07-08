@@ -15,6 +15,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -34,15 +35,15 @@ const matchSchema = z.object({
 
 const PROMPT_VERSION = "best-match-v1.1.0"; // v1.1 = schema tolerante
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor narrador de Best-Match de VITAS Football Intelligence.
 
-Tu misión: convertir el top-5 de jugadores profesionales similares (calculado por algoritmo determinista) en una narrativa motivadora pero honesta para padres y coaches.
+Tu misión: convertir el top-5 de jugadores profesionales similares (calculado por algoritmo determinista) en una narrativa motivadora pero honesta para ${category === "senior" ? "cuerpo técnico y dirección deportiva" : "padres y coaches"}.
 
 REGLAS:
 - Habla del comparable principal (#1) con detalle, los otros como referencia rápida
 - Sé honesto: si la similaridad <70%, mátizalo ("comparte rasgos con")
-- NO prometas que el niño "será como" el pro · solo describe similitudes actuales
+- NO prometas que ${category === "senior" ? "el jugador" : "el niño"} "será como" el pro · solo describe similitudes actuales
 - Mantén tono inspirador pero realista
 - Cita el club y posición del comparable principal
 
@@ -69,7 +70,7 @@ CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
 
 async function callHaiku(systemPrompt: string, userMessage: string, apiKey: string) {
@@ -102,6 +103,10 @@ export default withHandler(
 
     const input = body as z.infer<typeof matchSchema>;
     const locale = normalizeLocale((input as { locale?: unknown }).locale);
+    const category = resolveCategory({
+      age: input.playerContext?.chronologicalAge,
+      category: (input as { category?: unknown }).category,
+    });
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -110,7 +115,7 @@ export default withHandler(
       const similarityShape = input.similarity as { matches?: unknown[] } | null | undefined;
       const matches = (similarityShape?.matches ?? []) as unknown[];
 
-      const userMessage = `JUGADOR JUVENIL:
+      const userMessage = `${category === "senior" ? "JUGADOR SÉNIOR" : "JUGADOR JUVENIL"}:
 ${JSON.stringify(input.playerContext, null, 2)}
 
 TOP-5 SIMILAR PROS (calculado por similitud coseno):
@@ -118,7 +123,7 @@ ${JSON.stringify(matches.slice(0, 5), null, 2)}
 
 Genera el reporte Best-Match en JSON estricto.`;
 
-      const narrative = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
+      const narrative = await callHaiku(buildSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

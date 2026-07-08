@@ -20,6 +20,12 @@ import {
   phvConsideration,
   type ReportLocale,
 } from "../../src/lib/shared/locale";
+import {
+  resolveCategory,
+  categoryDirective,
+  phvApplies,
+  type PlayerCategory,
+} from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -42,7 +48,7 @@ const inputSchema = z.object({
 
 const PROMPT_VERSION = "v1.0.0";
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres un analista de scouting de fútbol de VITAS Football Intelligence.
 Tu trabajo es analizar al equipo rival y producir un informe de scouting accionable.
 
@@ -81,7 +87,7 @@ Responde como JSON:
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? `\n\n${categoryDirective(category, locale)}` : ""}`;
 }
 
 export default withHandler(
@@ -121,6 +127,8 @@ export default withHandler(
     }
 
     const locale = normalizeLocale(body.locale);
+    // Sin fuente de edad en el input (análisis de equipo rival) → solo override explícito.
+    const category = resolveCategory({ category: (body as { category?: unknown }).category });
     const phvLine = phvDistributionLine(body.phvDistribution, locale);
     const phvNote = phvConsideration(body.phvDistribution, locale);
 
@@ -133,7 +141,7 @@ Jugadores clave: ${JSON.stringify(body.keyPlayers ?? [], null, 2)}
 Patrones de build-up: ${JSON.stringify(body.buildUpPatterns ?? [], null, 2)}
 Zonas descubiertas: ${JSON.stringify(body.gaps ?? [], null, 2)}
 Pressing: ${JSON.stringify(body.pressing ?? {}, null, 2)}
-${phvLine ? `\n${phvLine}\n${phvNote}\n` : ""}
+${phvLine && phvApplies(category) ? `\n${phvLine}\n${phvNote}\n` : ""}
 Genera el informe de scouting completo.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -146,7 +154,7 @@ Genera el informe de scouting completo.`;
       body: JSON.stringify({
         model: MODELS.reasoning,
         max_tokens: 1024,
-        system: buildSystemPrompt(locale),
+        system: buildSystemPrompt(locale, category),
         messages: [{ role: "user", content: userMessage }],
       }),
     });

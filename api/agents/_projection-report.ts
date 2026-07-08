@@ -20,6 +20,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -42,14 +43,14 @@ const projectionSchema = z.object({
 
 const PROMPT_VERSION = "projection-v1.1.0"; // v1.1 = schema tolerante (PHV null OK)
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor de Proyección 3 años de VITAS.
 
-Recibes la curva proyectada (calculada deterministicamente con coeficientes PHV) y las debilidades actuales. Tu misión es narrar qué significa esa proyección para el jugador.
+Recibes la curva proyectada ${category === "senior" ? "(calculada deterministicamente)" : "(calculada deterministicamente con coeficientes PHV)"} y las debilidades actuales. Tu misión es narrar qué significa esa proyección para el jugador.
 
 REGLAS:
 - Sé HONESTO: si la curva sube poco, no la infles
-- Si está en "during_phv", explica que la proyección es más volátil
+- ${category === "senior" ? "Explica la volatilidad de la proyección según forma reciente e historial de rendimiento (sin maduración)" : `Si está en "during_phv", explica que la proyección es más volátil`}
 - Identifica los 2-3 sub-scores que más impactarán el VSI futuro
 - Sugiere qué pasa si trabaja sus debilidades (escenario optimista) vs si no (escenario base)
 
@@ -90,7 +91,7 @@ REGLAS ABSOLUTAS DE DATOS:
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? `\n\n${categoryDirective(category, locale)}` : ""}`;
 }
 
 /**
@@ -203,7 +204,12 @@ ${JSON.stringify(input.historicalVsi ?? "primer análisis", null, 2)}
 Genera el reporte Proyección 3 años en JSON estricto, usando los valores de la curva proyectada.`;
 
       const locale = normalizeLocale(input.locale);
-      const narrative = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
+      // C1 multi-categoría: override explícito > edad cronológica > default youth
+      const category = resolveCategory({
+        age: input.playerContext?.chronologicalAge,
+        category: (input as { category?: unknown }).category,
+      });
+      const narrative = await callHaiku(buildSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

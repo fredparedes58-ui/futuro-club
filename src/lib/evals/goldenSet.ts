@@ -116,6 +116,43 @@ export const GOLDEN_SET: GoldenCase[] = [
     },
     ruleset: { requiredFields: ["sessionSummary"] },
   },
+  // ── Casos SÉNIOR/PROFESIONAL (C3 multi-categoría) ─────────────────────────
+  // La edad ≥18 hace que el agente derive category="senior" (resolveCategory).
+  // El ruleset con category:"senior" activa no_youth_framing (nada de padres/
+  // PHV/academia en el reporte) y desactiva la regla contractual.
+  {
+    id: "player-report-senior",
+    agent: "player-report",
+    endpoint: "/api/agents/player-report",
+    input: {
+      playerId: "eval-senior",
+      playerContext: { chronologicalAge: 26, position: "MID", secondaryPositions: [] },
+      biomechanics: {},
+      vsi: null,
+      similarity: null,
+      phv: null, // adulto: sin maturity offset
+      locale: "es",
+    },
+    ruleset: {
+      requiredFields: ["executive_summary", "confidence_score"],
+      ignoreFields: ["comparable_pro"],
+      category: "senior",
+    },
+    notes: "Pro de 26 años con datos escasos → sin nota para padres, sin PHV, lenguaje de rendimiento; confianza baja.",
+  },
+  {
+    id: "dna-profile-senior",
+    agent: "dna-profile",
+    endpoint: "/api/agents/dna-profile",
+    input: {
+      playerId: "eval-senior",
+      playerContext: { chronologicalAge: 26, position: "MID" },
+      biomechanics: {},
+      locale: "es",
+    },
+    ruleset: { requiredFields: ["confidence_score"], category: "senior" },
+    notes: "ADN futbolístico de un adulto: sin framing de academia ni desarrollo madurativo.",
+  },
   {
     id: "valuation-sparse",
     agent: "valuation-report",

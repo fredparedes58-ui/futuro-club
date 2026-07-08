@@ -25,6 +25,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -44,7 +45,8 @@ const dnaSchema = z.object({
 
 const PROMPT_VERSION = "dna-profile-v1.1.0"; // v1.1 = schema tolerante
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
+  const catDirective = categoryDirective(category, locale);
   return `Eres el motor de ADN Futbolístico de VITAS.
 
 Tu misión: producir el "ADN" del jugador combinando análisis de estilo (anteriormente _tactical-label) con análisis de rol natural (anteriormente _role-profile).
@@ -97,7 +99,7 @@ CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${catDirective ? `\n\n${catDirective}` : ""}`;
 }
 
 async function callHaiku(systemPrompt: string, userMessage: string, apiKey: string) {
@@ -146,7 +148,11 @@ ${JSON.stringify(input.biomechanics ?? "no_data", null, 2)}
 Genera el ADN Futbolístico en JSON estricto.`;
 
       const locale = normalizeLocale((input as { locale?: unknown }).locale);
-      const dna = await callHaiku(buildSystemPrompt(locale), userMessage, apiKey);
+      const category = resolveCategory({
+        age: input.playerContext.chronologicalAge,
+        category: (input as { category?: unknown }).category,
+      });
+      const dna = await callHaiku(buildSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

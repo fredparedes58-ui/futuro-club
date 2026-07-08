@@ -103,3 +103,51 @@ describe("outputValidators · evaluateReport integral", () => {
     expect(r.violations.some((v) => v.rule === "is_fallback")).toBe(true);
   });
 });
+
+describe("outputValidators · multi-categoría (C3)", () => {
+  const SENIOR_CLEAN = {
+    executive_summary: "Mediocentro de 26 años en buen momento de forma. Nivel actual competitivo para la categoría; encaje natural en el rol de organizador.",
+    strengths: [{ title: "Circulación", evidence: "92% de pases completados en el clip analizado" }],
+    confidence_score: 55,
+    data_completeness: 50,
+    not_evaluated: ["duelo aéreo"],
+  };
+
+  it("reporte sénior limpio pasa (sin framing juvenil)", () => {
+    const r = evaluateReport(SENIOR_CLEAN, { category: "senior", requiredFields: ["executive_summary"] });
+    expect(r.critical).toBe(0);
+    expect(r.passed).toBe(true);
+  });
+
+  it("caza biología juvenil en reporte sénior como CRÍTICO (PHV en un adulto = fabricación)", () => {
+    const r = evaluateReport(
+      { executive_summary: "Está en plena ventana PHV y su maduración sugiere margen de crecimiento." },
+      { category: "senior" },
+    );
+    expect(r.violations.some((v) => v.rule === "no_youth_framing" && v.severity === "critical")).toBe(true);
+    expect(r.passed).toBe(false);
+  });
+
+  it("caza framing de audiencia juvenil en sénior como warning (padres/desarrollo)", () => {
+    const r = evaluateReport(
+      { executive_summary: "Nota para los padres: el jugador muestra gran potencial de desarrollo." },
+      { category: "senior" },
+    );
+    const hits = r.violations.filter((v) => v.rule === "no_youth_framing");
+    expect(hits.length).toBeGreaterThan(0);
+    expect(hits.every((v) => v.severity === "warning")).toBe(true);
+  });
+
+  it("en senior la regla contractual se salta automáticamente (mercado legítimo en pro)", () => {
+    const report = { executive_summary: "Su valor de mercado actual justifica una renovación de contrato." };
+    const senior = evaluateReport(report, { category: "senior" });
+    const youth = evaluateReport(report, {});
+    expect(youth.violations.some((v) => v.rule === "no_contractual_language")).toBe(true);
+    expect(senior.violations.some((v) => v.rule === "no_contractual_language")).toBe(false);
+  });
+
+  it("en youth (default) no_youth_framing NO corre (los reportes juveniles hablan de PHV legítimamente)", () => {
+    const r = evaluateReport({ executive_summary: "En ventana PHV; nota para los padres incluida." }, {});
+    expect(r.violations.some((v) => v.rule === "no_youth_framing")).toBe(false);
+  });
+});
