@@ -15,6 +15,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { MODELS } from "../_lib/models";
+import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -45,13 +46,15 @@ function buildPrompt(data: z.infer<typeof coachingAssistantSchema>, ragContext =
   const analysis = data.sessionAnalysis;
   const highlights = data.playerHighlights ?? [];
   const recommendation = data.recommendation ?? {};
+  // C1 multi-categoría · override explícito > edad promedio del equipo > default youth
+  const category = resolveCategory({ age: data.teamAvgAge, category: (data as { category?: unknown }).category });
 
-  return `Eres un asistente de coaching para fútbol juvenil. Generas reportes de sesión de entrenamiento en español, usando lenguaje profesional pero accesible para entrenadores de academia.
+  return `Eres un asistente de coaching para ${category === "senior" ? "fútbol profesional" : "fútbol juvenil"}. Generas reportes de sesión de entrenamiento en español, usando lenguaje profesional pero accesible para ${category === "senior" ? "el cuerpo técnico" : "entrenadores de academia"}.
 
 ## CONTEXTO DEL EQUIPO
 - Nombre: ${teamName}
-- Edad promedio: ${avgAge} años
-- Distribución PHV: ${phv ? `pre-PHV: ${phv.prePhv ?? 0}%, circa-PHV: ${phv.circaPhv ?? 0}%, post-PHV: ${phv.postPhv ?? 0}%` : "No disponible"}
+- Edad promedio: ${avgAge} años${category === "senior" ? "" : `
+- Distribución PHV: ${phv ? `pre-PHV: ${phv.prePhv ?? 0}%, circa-PHV: ${phv.circaPhv ?? 0}%, post-PHV: ${phv.postPhv ?? 0}%` : "No disponible"}`}
 
 ## ANÁLISIS DE LA SESIÓN
 ${JSON.stringify(analysis, null, 2)}
@@ -66,7 +69,7 @@ ${JSON.stringify(recommendation, null, 2)}
 ${data.recentSessions ? JSON.stringify(data.recentSessions.slice(-4), null, 2) : "Sin historial"}
 ${ragContext ? `\n## BASE DE CONOCIMIENTO (metodología LTAD / drills)\n${ragContext}\n` : ""}
 ## INSTRUCCIONES
-Genera un reporte de coaching en español con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y adapta las recomendaciones a la edad del equipo y su fase LTAD. Cuando apliques metodología o drills de la BASE DE CONOCIMIENTO, cita la fuente (atributo source del contexto).
+Genera un reporte de coaching en español con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y ${category === "senior" ? "adapta las recomendaciones al contexto competitivo y la carga del equipo" : "adapta las recomendaciones a la edad del equipo y su fase LTAD"}. Cuando apliques metodología o drills de la BASE DE CONOCIMIENTO, cita la fuente (atributo source del contexto).
 
 ### 1. Resumen de la Sesión
 Párrafo de 2-3 oraciones resumiendo lo que funcionó y el balance general.
@@ -87,7 +90,7 @@ Jugadores que merecen atención especial (positiva o de seguimiento).
 Resumen del plan semanal recomendado.
 
 ### 7. Alertas PHV
-Si hay jugadores en periodo de crecimiento, alertas específicas.
+${category === "senior" ? "Equipo sénior: la maduración biológica/PHV no aplica. Devuelve phvAlerts: null." : "Si hay jugadores en periodo de crecimiento, alertas específicas."}
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
@@ -103,7 +106,7 @@ Formato JSON:
   "confidence_score": number (0-100 · confianza real en el análisis según los datos disponibles),
   "data_completeness": number (0-100 · % de dimensiones evaluadas con datos reales, no inferidos),
   "not_evaluated": string[] (aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto)
-}`;
+}${category === "senior" ? "\n\n" : ""}${categoryDirective(category)}`;
 }
 
 export default withHandler(

@@ -17,6 +17,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -47,6 +48,8 @@ const valuationReportSchema = z.object({
   analysisMode: z.string().optional(),
   // FASE 5 · idioma del reporte (evita que Zod lo recorte del sharedContext)
   locale: z.enum(["es", "en"]).optional(),
+  // C1 multi-categoría · evita que Zod recorte la categoría del sharedContext
+  category: z.enum(["youth", "senior"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
@@ -59,14 +62,17 @@ function buildPrompt(data: z.infer<typeof valuationReportSchema>): string {
   const injuryRisk = data.injuryRisk ?? {};
   const vsi = data.vsi;
   const locale = normalizeLocale((data as { locale?: unknown }).locale);
+  // C1 multi-categoría: override explícito > edad cronológica > default "youth"
+  const category = resolveCategory({ age: data.playerContext?.chronologicalAge, category: data.category });
+  const catDirective = categoryDirective(category, locale);
 
-  return `Eres un director deportivo de academia de futbol juvenil con 20 anos de experiencia en deteccion de talento.
-Tu audiencia son directores tecnicos, scouts y directivos de academias.
+  return `Eres un director deportivo de ${category === "senior" ? "futbol profesional" : "academia de futbol juvenil"} con 20 anos de experiencia en deteccion de talento.
+Tu audiencia son ${category === "senior" ? "cuerpo tecnico, scouts y direccion deportiva de clubes" : "directores tecnicos, scouts y directivos de academias"}.
 
 ## CONTEXTO DEL JUGADOR
 - Edad cronologica: ${age} anos
-- Posicion principal: ${position}
-- Offset PHV: ${phvOffset !== null ? `${phvOffset} anos` : "No disponible"}
+- Posicion principal: ${position}${category === "senior" ? "" : `
+- Offset PHV: ${phvOffset !== null ? `${phvOffset} anos` : "No disponible"}`}
 - VSI actual: ${JSON.stringify(vsi)}
 
 ## MODELO DE VALORACION (deterministico VITAS)
@@ -115,16 +121,16 @@ Genera un reporte de valoracion predictiva en formato JSON con esta estructura e
 }
 
 REGLAS:
-- Se honesto y realista. No inflar expectativas. La mayoria de juveniles NO llegan a profesional
+- Se honesto y realista. No inflar expectativas. ${category === "senior" ? "Evalua el nivel real de rendimiento actual, sin inflar el techo del jugador" : "La mayoria de juveniles NO llegan a profesional"}
 - Si el VSI es <60, ser cauteloso con las proyecciones
-- Si el jugador esta en ventana PHV, mencionar que la valoracion puede cambiar post-crecimiento
+- ${category === "senior" ? "Considera la fase de carrera (edad vs pico de rendimiento de la posicion) al proyectar la valoracion" : "Si el jugador esta en ventana PHV, mencionar que la valoracion puede cambiar post-crecimiento"}
 - Maximo 3 comparables profesionales (de la misma posicion)
 - Si hay riesgo de lesion alto, reflejarlo como riesgo de valoracion
 - Los comparables deben ser realistas para el nivel del jugador
 - CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el analisis segun los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad
 - Responde SOLO con JSON valido, sin texto adicional
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${catDirective ? `\n\n${catDirective}` : ""}`;
 }
 
 export default withHandler(

@@ -21,6 +21,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeLocale } from "../../src/lib/shared/locale";
+import { resolveCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -41,6 +42,8 @@ const orchestratorSchema = z.object({
   teamAnalysis: z.record(z.unknown()).optional(),
   /** FASE 5 · idioma de los reportes (default es); se propaga a todos los agentes */
   locale: z.enum(["es", "en"]).optional(),
+  /** C1 multi-categoría · override explícito; si falta se deriva de la edad */
+  category: z.enum(["youth", "senior"]).optional(),
 });
 
 /** Default report agents for individual player analysis */
@@ -145,7 +148,7 @@ async function sendCompletionEmail(
 export default withHandler(
   { schema: orchestratorSchema, requireAuth: false, maxRequests: 50 },
   async ({ body }) => {
-    const { analysisId, mode = "player", teamAnalysis, locale } = body as z.infer<typeof orchestratorSchema>;
+    const { analysisId, mode = "player", teamAnalysis, locale, category } = body as z.infer<typeof orchestratorSchema>;
     const reportLocale = normalizeLocale(locale);
     const startedAt = Date.now();
 
@@ -440,6 +443,9 @@ export default withHandler(
       analysisMode: mode,
       // FASE 5 · idioma propagado a todos los agentes de reporte
       locale: reportLocale,
+      // C1 multi-categoría · override explícito o derivada de la edad real del
+      // jugador (anthro). Default youth (framing más protegido) si no hay datos.
+      category: resolveCategory({ age: anthro?.chronological_age, category }),
     };
 
     const reportPromises = activeAgents.map((agent) =>

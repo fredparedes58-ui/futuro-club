@@ -14,6 +14,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -40,6 +41,8 @@ const fatigueReportSchema = z.object({
   fatigueHistory: z.array(z.record(z.unknown())).optional(),
   // FASE 5 · idioma del reporte (default "es") — reportes bilingües ES/EN
   locale: z.enum(["es", "en"]).optional(),
+  // C1 multi-categoría · evita que Zod recorte la categoría del sharedContext
+  category: z.enum(["youth", "senior"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
@@ -51,13 +54,15 @@ function buildPrompt(data: z.infer<typeof fatigueReportSchema>): string {
   const phvCategory = (data.phv as Record<string, unknown>)?.category ?? (data.phv as Record<string, unknown>)?.phv_category ?? "unknown";
   const fatigue = data.fatigueReport ?? {};
   const locale = normalizeLocale(data.locale);
+  // C1 multi-categoría · override explícito > edad cronológica > default youth
+  const category = resolveCategory({ age: data.playerContext?.chronologicalAge, category: data.category });
 
-  return `Eres un analista de rendimiento deportivo juvenil especializado en fatiga y gestión de carga.
+  return `Eres un analista de rendimiento deportivo ${category === "senior" ? "profesional" : "juvenil"} especializado en fatiga y gestión de carga.
 
 ## CONTEXTO DEL JUGADOR
 - Edad cronológica: ${age} años
-- Posición: ${position}
-- Offset PHV: ${phvOffset !== null ? `${phvOffset} años (${phvCategory})` : "No disponible"}
+- Posición: ${position}${category === "senior" ? "" : `
+- Offset PHV: ${phvOffset !== null ? `${phvOffset} años (${phvCategory})` : "No disponible"}`}
 
 ## DATOS DE FATIGA DE LA SESIÓN
 ${JSON.stringify(fatigue, null, 2)}
@@ -85,10 +90,13 @@ CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en
 - Factores de riesgo identificados
 - Zonas corporales más expuestas
 
-### 4. Ajustes PHV
+${category === "senior" ? `### 4. Ajustes de Umbrales Individuales
+- Jugador sénior: NO menciones maduración biológica/PHV — no aplica a adultos
+- Umbrales personalizados aplicados (sprint, metabolic, ACWR) según el perfil y la carga del jugador
+- En el campo "ajustesPHV" del JSON usa banda "senior" y recomendaciones de gestión de carga adulta` : `### 4. Ajustes PHV
 - Cómo la maduración biológica afecta los umbrales de fatiga
 - Umbrales personalizados aplicados (sprint, metabolic, ACWR)
-- Recomendaciones específicas por banda de maduración
+- Recomendaciones específicas por banda de maduración`}
 
 ### 5. Protocolo de Recuperación
 - Plan de recuperación para las próximas 48-72 horas
@@ -108,7 +116,7 @@ Formato: JSON con estructura:
   "not_evaluated": ["string · aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto"]
 }
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
 
 export default withHandler(

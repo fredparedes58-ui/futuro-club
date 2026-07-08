@@ -37,6 +37,8 @@ const schema = z.object({
   playedPosition: z.string().nullable().optional(),
   /** FASE 5 · idioma de los reportes; se propaga al orchestrator y agentes */
   locale: z.enum(["es", "en"]).optional(),
+  /** C1 multi-categoría · override explícito (si falta, el orchestrator deriva de la edad) */
+  category: z.enum(["youth", "senior"]).optional(),
 });
 
 export default withHandler(
@@ -57,6 +59,7 @@ export default withHandler(
       eventSummary,
       playedPosition,
       locale,
+      category,
     } = body as z.infer<typeof schema>;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -138,7 +141,7 @@ export default withHandler(
             "Content-Type": "application/json",
             Authorization: `Bearer ${INTERNAL_TOKEN}`,
           },
-          body: JSON.stringify({ analysisId, locale }),
+          body: JSON.stringify({ analysisId, locale, category }),
         }
       );
 

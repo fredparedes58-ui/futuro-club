@@ -14,6 +14,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
+import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -47,8 +48,9 @@ function buildPrompt(data: z.infer<typeof behavioralReportSchema>): string {
   const age = data.playerAge;
   const pos = data.position ?? "No especificada";
   const s = data.scores;
+  const category = resolveCategory({ age: data.playerAge, category: (data as { category?: unknown }).category });
 
-  return `Eres un psicólogo deportivo especializado en fútbol juvenil. Generas perfiles conductuales en español, usando lenguaje profesional pero accesible para entrenadores de academia.
+  return `Eres un psicólogo deportivo especializado en ${category === "senior" ? "fútbol profesional" : "fútbol juvenil"}. Generas perfiles conductuales en español, usando lenguaje profesional pero accesible para ${category === "senior" ? "el cuerpo técnico" : "entrenadores de academia"}.
 
 ## DATOS DEL JUGADOR
 - Nombre: ${name}
@@ -74,7 +76,7 @@ ${(data.strengths ?? []).join("\n") || "No disponibles"}
 ${(data.developmentAreas ?? []).join("\n") || "No disponibles"}
 
 ## INSTRUCCIONES
-Genera un reporte de perfil conductual en español con las siguientes secciones. Adapta el lenguaje a la edad del jugador y su fase de desarrollo.
+Genera un reporte de perfil conductual en español con las siguientes secciones. Adapta el lenguaje a la edad del jugador y su ${category === "senior" ? "momento de carrera" : "fase de desarrollo"}.
 
 ### Formato JSON:
 {
@@ -90,7 +92,7 @@ Genera un reporte de perfil conductual en español con las siguientes secciones.
   "not_evaluated": string[] (aspectos que no se pudieron evaluar por falta de datos; array vacío si todo cubierto)
 }
 
-CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.`;
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.${category === "senior" ? "\n\n" : ""}${categoryDirective(category)}`;
 }
 
 export default withHandler(

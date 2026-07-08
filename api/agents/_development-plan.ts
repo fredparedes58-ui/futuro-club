@@ -18,6 +18,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -39,16 +40,16 @@ const planSchema = z.object({
 
 const PROMPT_VERSION = "dev-plan-v1.1.0"; // v1.1 = schema tolerante + scanning
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor de generación de Planes de Desarrollo de VITAS.
 
-Tu misión: producir un plan estructurado de 12 semanas para un jugador juvenil de fútbol, priorizando sus debilidades detectadas y respetando su ventana de desarrollo PHV.
+Tu misión: producir un plan estructurado de 12 semanas para ${category === "senior" ? "un jugador sénior/profesional de fútbol" : "un jugador juvenil de fútbol"}, priorizando sus debilidades detectadas y ${category === "senior" ? "orientándolo al rendimiento y la forma actual" : "respetando su ventana de desarrollo PHV"}.
 
 REGLAS:
-- Si phvStatus es "during_phv" (estirón): NO programes cargas pesadas. Foco técnico-coordinativo.
-- Si offset PHV es "early" (estirón en curso): reduce trabajo de fuerza absoluta.
+${category === "senior" ? `- Ajusta las cargas al calendario competitivo y al estado de forma actual del jugador.` : `- Si phvStatus es "during_phv" (estirón): NO programes cargas pesadas. Foco técnico-coordinativo.
+- Si offset PHV es "early" (estirón en curso): reduce trabajo de fuerza absoluta.`}
 - Si VSI subscore "technique" <60: priorizar drills técnicos.
-- Si VSI subscore "physical" <60 y phvStatus="post_phv": fuerza progresiva.
+${category === "senior" ? `- Si VSI subscore "physical" <60: fuerza progresiva.` : `- Si VSI subscore "physical" <60 y phvStatus="post_phv": fuerza progresiva.`}
 - Si VSI subscore "tactical" <60: situaciones de juego reducidas.
 - Si scanning.scan_rate < p25 de su edad: AÑADIR drill "shoulder check pre-recepción"
   (girar cabeza 2-3 veces antes de recibir el balón) en el primer bloque.
@@ -59,7 +60,7 @@ REGLAS:
 POLIVALENCIA · si player.secondaryPositions[] tiene elementos:
 - El plan debe afianzar la polivalencia: incluir drills específicos de cada posición declarada
 - Ejemplo: principal LB + secundarias DM/CAM → 60% drills LB, 25% DM, 15% CAM
-- Ajusta carga PHV según la posición más exigente del set declarado
+${category === "senior" ? `- Ajusta la carga según la posición más exigente del set declarado` : `- Ajusta carga PHV según la posición más exigente del set declarado`}
 - Si videoContext.playedPosition existe, prioriza drills correctivos de la posición jugada
 - Si el agente detecta una posición no declarada con potencial, sugiérela en metrics_to_track como discovery
 
@@ -100,7 +101,7 @@ REGLAS ABSOLUTAS DE DATOS:
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
 
 async function fetchRagDrills(weaknesses: string[], baseUrl: string, authToken: string) {
@@ -179,6 +180,11 @@ export default withHandler(
 
     const input = body as z.infer<typeof planSchema>;
     const locale = normalizeLocale((input as { locale?: unknown }).locale);
+    // C1 multi-categoría · override explícito > edad cronológica > default youth
+    const category = resolveCategory({
+      age: input.playerContext.chronologicalAge,
+      category: (input as { category?: unknown }).category,
+    });
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -214,7 +220,7 @@ ${ragDrills.map((d: { content?: string }, i: number) => `${i + 1}. ${d.content?.
 
 Genera el Plan de Desarrollo de 12 semanas en JSON estricto.`;
 
-      const plan = await callClaudeHaiku(buildSystemPrompt(locale), userMessage, apiKey);
+      const plan = await callClaudeHaiku(buildSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

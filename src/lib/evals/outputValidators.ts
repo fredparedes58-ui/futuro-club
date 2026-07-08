@@ -159,6 +159,30 @@ export function checkNotFallback(_report: ReportLike, source?: string): Violatio
   return [];
 }
 
+// Framing juvenil en reportes de SÉNIOR/PROFESIONAL (plan C3 multi-categoría).
+// Biología inventada (PHV/maduración en un adulto) = critical (fabricación);
+// framing de audiencia (padres, "potencial de desarrollo") = warning.
+const YOUTH_BIOLOGY_TERMS = ["phv", "maduración", "maduracion", "estirón", "estiron", "pico de crecimiento", "maturity offset"];
+const YOUTH_AUDIENCE_TERMS = ["padres", "para la familia", "potencial de desarrollo", "academia juvenil", "bienestar juvenil"];
+
+/** En categoría senior, el reporte NO debe usar framing/biología juvenil. */
+export function checkNoYouthFraming(report: ReportLike): Violation[] {
+  const out: Violation[] = [];
+  for (const s of collectStrings(report)) {
+    const low = s.toLowerCase();
+    const bio = YOUTH_BIOLOGY_TERMS.find((t) => low.includes(t));
+    if (bio) {
+      out.push({ rule: "no_youth_framing", severity: "critical", message: `Biología juvenil en reporte sénior ("${bio}") — no aplica a adultos`, evidence: s.slice(0, 140) });
+      continue;
+    }
+    const aud = YOUTH_AUDIENCE_TERMS.find((t) => low.includes(t));
+    if (aud) {
+      out.push({ rule: "no_youth_framing", severity: "warning", message: `Framing de academia juvenil en reporte sénior ("${aud}")`, evidence: s.slice(0, 140) });
+    }
+  }
+  return out;
+}
+
 /* ── Orquestador ────────────────────────────────────────────────── */
 
 export interface EvalRuleset {
@@ -172,6 +196,10 @@ export interface EvalRuleset {
   ignoreFields?: string[];
   /** source del reporte, si se conoce (para detectar fallback). */
   source?: string;
+  /** Categoría del caso (C3 multi-categoría). "senior" activa no_youth_framing
+   *  y desactiva no_contractual_language (hablar de mercado puede ser legítimo
+   *  en profesional; en menores sigue prohibido). Default: "youth". */
+  category?: "youth" | "senior";
 }
 
 export interface ReportEvalResult {
@@ -185,6 +213,11 @@ export interface ReportEvalResult {
 /** Corre todas las reglas aplicables sobre un reporte. */
 export function evaluateReport(report: ReportLike, ruleset: EvalRuleset = {}): ReportEvalResult {
   const skip = new Set(ruleset.skip ?? []);
+  const senior = ruleset.category === "senior";
+  // En senior, hablar de mercado/traspasos puede ser legítimo → se salta la
+  // regla contractual automáticamente (en youth sigue activa).
+  if (senior) skip.add("no_contractual_language");
+
   // Para el escaneo de texto, excluye campos que legítimamente contienen
   // nombres/dominios (p.ej. comparable_pro). Reglas numéricas/schema usan todo.
   const textReport: ReportLike = { ...report };
@@ -194,6 +227,7 @@ export function evaluateReport(report: ReportLike, ruleset: EvalRuleset = {}): R
     ...checkNoFamousComparison(textReport),
     ...checkNoFabricatedApprox(textReport),
     ...checkNoContractualLanguage(textReport),
+    ...(senior ? checkNoYouthFraming(textReport) : []),
     ...checkNumericRanges(report),
     ...checkConfidenceCalibration(report),
     ...checkNotFallback(report, ruleset.source),

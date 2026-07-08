@@ -15,6 +15,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -33,7 +34,8 @@ const labSchema = z.object({
 
 const PROMPT_VERSION = "lab-biomech-v1.1.0"; // v1.1 · añadido scanning rate
 
-function buildLabSystemPrompt(locale: ReportLocale): string {
+function buildLabSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
+  const catDirective = categoryDirective(category, locale);
   return `Eres el motor de generación de reportes biomecánicos LAB de VITAS Football Intelligence.
 
 Tu misión: producir un informe técnico denso y profesional dirigido a entrenadores y preparadores físicos sobre las métricas biomecánicas extraídas del análisis automático de vídeo.
@@ -44,13 +46,13 @@ ESTILO OBLIGATORIO:
 - Identifica fortalezas y debilidades sin endulzar
 - Si una asimetría es >12% señálala como riesgo de lesión
 - Si trunkInclination >35° en sprint, indica posible déficit de core
-- Si strideFrequency <2.5 Hz para edad >12, indica déficit explosividad
-- Adapta a la edad biológica (no cronológica) si tienes PHV
+${category === "senior" ? "- Si strideFrequency <2.5 Hz, indica déficit explosividad" : "- Si strideFrequency <2.5 Hz para edad >12, indica déficit explosividad"}
+${category === "senior" ? "- Interpreta las métricas contra estándares de rendimiento adulto/profesional (sin ajuste madurativo)" : "- Adapta a la edad biológica (no cronológica) si tienes PHV"}
 
 SCANNING (lectura de juego):
 - Si recibes datos de scanning, INCLUYE una sección dedicada
 - Cita scan_rate (scans/segundo) y comparalo con el percentil
-- Pedri sub-12 = 0.51 scans/seg · si está cerca, mencionar comparable
+${category === "senior" ? "- Compara con la referencia de élite profesional: los mediocentros de mayor nivel superan ~0.5 scans/seg antes de recibir" : "- Pedri sub-12 = 0.51 scans/seg · si está cerca, mencionar comparable"}
 - Bilateralidad >40% = jugador equilibrado mirando a ambos lados
 - Bilateralidad <20% = "punto ciego" hacia un lado (CRÍTICO en mediocentros)
 - scan_rate < p25 = trabajar "shoulder check" antes de recibir
@@ -75,7 +77,7 @@ CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${catDirective ? `\n\n${catDirective}` : ""}`;
 }
 
 interface LabReportInput {
@@ -137,6 +139,10 @@ export default withHandler(
 
     const input = body as LabReportInput;
     const locale = normalizeLocale((body as { locale?: unknown }).locale);
+    const category = resolveCategory({
+      age: input.playerContext.chronologicalAge,
+      category: (body as { category?: unknown }).category,
+    });
 
     // ── Cache: mismo input → mismo reporte ──────────────────────
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
@@ -167,7 +173,7 @@ una sección "Lectura de juego (Scanning)" con la frecuencia, comparable
 y recomendación.`;
 
     try {
-      const report = await callClaude(buildLabSystemPrompt(locale), userMessage, apiKey);
+      const report = await callClaude(buildLabSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,

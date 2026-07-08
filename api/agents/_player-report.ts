@@ -21,6 +21,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
 import { MODELS } from "../_lib/models";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
 
@@ -43,17 +44,17 @@ const playerReportSchema = z.object({
 
 const PROMPT_VERSION = "player-report-v2.1.0"; // v2.1 = schema tolerante + scanning
 
-function buildSystemPrompt(locale: ReportLocale): string {
+function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor del Player Report de VITAS Football Intelligence.
 
-Tu misión: producir el reporte ancla del producto. Es el primer reporte que ven padres y coaches. Debe ser comprensible, motivador, honesto y accionable.
+Tu misión: producir el reporte ancla del producto. Es el primer reporte que ven ${category === "senior" ? "el cuerpo técnico y la dirección deportiva" : "padres y coaches"}. Debe ser comprensible, motivador, honesto y accionable.
 
-DESTINATARIO PRIMARIO: padre/madre del jugador. Secundario: coach.
+DESTINATARIO PRIMARIO: ${category === "senior" ? "cuerpo técnico. Secundario: dirección deportiva" : "padre/madre del jugador. Secundario: coach"}.
 
 ESTILO:
-- Lenguaje claro, sin jerga excesiva (adaptado a familia)
+- Lenguaje claro, ${category === "senior" ? "con terminología de rendimiento (adaptado a cuerpo técnico)" : "sin jerga excesiva (adaptado a familia)"}
 - Cita siempre el VSI Score y el tier explícitamente
-- Si hay PHV, explícalo en una frase ("tu hijo está pre-estirón / en estirón / post-estirón")
+- ${category === "senior" ? "NO menciones PHV ni maduración biológica: valora estado de forma y rendimiento actual" : `Si hay PHV, explícalo en una frase ("tu hijo está pre-estirón / en estirón / post-estirón")`}
 - 2-3 fortalezas concretas con dato
 - 2-3 áreas de mejora claras (sin endulzar)
 - Una recomendación concreta para próximas 4 semanas
@@ -100,15 +101,15 @@ REGLAS ABSOLUTAS DE DATOS:
 SCORING RUBRIC (desglose obligatorio):
 - Técnica (35%): pases, control, regate, tiro — basado en video features observados
 - Físico (20%): velocidad, resistencia, duelos — basado en tracking data
-- Proyección + PHV (25%): margen de mejora por edad madurativa (PHV Mirwald), tendencia de evolución
+- ${category === "senior" ? "Proyección (25%): proyección de rendimiento y estado de forma, tendencia de evolución" : "Proyección + PHV (25%): margen de mejora por edad madurativa (PHV Mirwald), tendencia de evolución"}
 - Fit contextual (20%): encaje con posición, estilo de juego, necesidades del equipo
 
 El score final DEBE ser la suma ponderada de estos 4 componentes.
-Incluir desglose visible: "Técnica: 72 | Físico: 65 | Proyección+PHV: 85 | Fit: 70 → VSI: 74"
+Incluir desglose visible: "Técnica: 72 | Físico: 65 | Proyección${category === "senior" ? "" : "+PHV"}: 85 | Fit: 70 → VSI: 74"
 
 NO incluyas markdown ni texto fuera del JSON.
 
-${languageDirective(locale)}`;
+${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
 
 async function callSonnet(systemPrompt: string, userMessage: string, apiKey: string) {
@@ -141,6 +142,10 @@ export default withHandler(
 
     const input = body as z.infer<typeof playerReportSchema>;
     const locale = normalizeLocale(input.locale);
+    const category = resolveCategory({
+      age: input.playerContext.chronologicalAge,
+      category: (input as { category?: unknown }).category,
+    });
     const cacheKey = await hashInput({ ...input, promptVersion: PROMPT_VERSION });
     const cached = await getCached(cacheKey);
     if (cached) return successResponse({ ...cached, fromCache: true });
@@ -163,7 +168,7 @@ ${JSON.stringify(input.similarity?.matches?.[0] ?? "no_data", null, 2)}
 
 Genera el Player Report en JSON estricto.`;
 
-      const report = await callSonnet(buildSystemPrompt(locale), userMessage, apiKey);
+      const report = await callSonnet(buildSystemPrompt(locale, category), userMessage, apiKey);
 
       const result = {
         playerId: input.playerId,
