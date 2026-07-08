@@ -22,7 +22,18 @@ interface TrackingRequest {
   videoUrl: string;
   sampleFps?: number;
   classes?: number[];
+  /** Duración del vídeo en segundos (el cliente la conoce del archivo). */
+  durationSec?: number;
 }
+
+/**
+ * Techo de duración para el proxy SÍNCRONO. El runtime edge corta a ~25s y
+ * Modal procesa a sample_fps → un vídeo largo (p.ej. 90 min) SIEMPRE haría
+ * timeout, y hoy el cliente caía a mock silenciosamente (datos falsos).
+ * Este guard rechaza el vídeo largo por adelantado (fail-fast, sin bloquear la
+ * GPU) para que vaya por el flujo async (upload → cola). Configurable por env.
+ */
+const MAX_SYNC_TRACK_SEC = Number(process.env.MAX_SYNC_TRACK_SEC ?? 240);
 
 interface ModalResponse {
   status: string;
@@ -80,6 +91,20 @@ export default withHandler(
   const body = (ctxBody ?? {}) as TrackingRequest;
   if (!body.videoUrl) {
     return json({ error: "missing_fields", required: ["videoUrl"] }, 400);
+  }
+
+  // GUARD: el proxy síncrono es SOLO para clips. Un vídeo largo haría timeout
+  // en edge (~25s) → se rechaza por adelantado para que vaya por la cola async.
+  if (typeof body.durationSec === "number" && body.durationSec > MAX_SYNC_TRACK_SEC) {
+    return json(
+      {
+        error: "video_too_long_for_sync",
+        maxSyncSec: MAX_SYNC_TRACK_SEC,
+        durationSec: body.durationSec,
+        hint: "Vídeo demasiado largo para tracking en vivo. Súbelo por el flujo de análisis completo (cola async); el proxy síncrono es solo para clips cortos.",
+      },
+      413,
+    );
   }
 
   let modalResp: Response;
