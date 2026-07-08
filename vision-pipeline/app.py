@@ -1,8 +1,9 @@
 """
 VITAS · Vision Pipeline — Modal app
 
-Single-file Modal app that runs YOLOv11 + ByteTrack on a video to extract
-player tracks and ball positions. Designed to avoid common Modal pitfalls:
+Single-file Modal app that runs YOLOv11 + BoT-SORT (con Re-ID por apariencia)
+on a video to extract player tracks and ball positions. Designed to avoid
+common Modal pitfalls:
 
 - All Pydantic models defined here (no cross-file imports)
 - Pinned versions for every dependency
@@ -52,9 +53,12 @@ image = (
     # System packages required by opencv/ffmpeg
     .apt_install("ffmpeg", "libgl1", "libglib2.0-0", "libsm6", "libxext6", "libxrender1")
     .pip_install(
-        "ultralytics==8.3.40",          # YOLOv11 + tracker
+        # V1 vision roadmap: 8.3.40 → 8.3.170. El Re-ID nativo de BoT-SORT
+        # (`with_reid` + `model: auto`, sin pesos extra) llegó en 8.3.114;
+        # nos quedamos en la línea 8.3.x para evitar breaking changes de 8.4.
+        "ultralytics==8.3.170",         # YOLOv11 + BoT-SORT con Re-ID
         "opencv-python-headless==4.10.0.84",
-        "numpy<2.0",                    # YOLO not compatible with numpy 2.x yet
+        "numpy<2.0",                    # pin conservador (compatible con 8.3.x)
         "httpx==0.27.2",
         "pydantic==2.9.2",
         "fastapi[standard]==0.115.5",
@@ -74,6 +78,34 @@ WEIGHTS_FILE = f"{WEIGHTS_DIR}/{YOLO_MODEL}"
 
 # Secret with the API key (configured via `modal secret create vitas-api-key`)
 api_secret = modal.Secret.from_name("vitas-api-key", required_keys=["API_KEY"])
+
+# ── Tracker config (V1 vision roadmap) ────────────────────────────────
+# BoT-SORT + Re-ID en vez de ByteTrack pelado. En 90 min de partido,
+# ByteTrack acumula ID-switches en cada cruce/oclusión → heatmaps y métricas
+# por jugador sucios. El Re-ID por apariencia (embeddings del propio detector,
+# `model: auto` → cero pesos extra) re-asocia jugadores tras oclusiones.
+# Se escribe a disco en runtime porque la app es single-file por diseño.
+# Basado en los defaults oficiales de botsort.yaml @ v8.3.170; solo se tunea
+# lo justificado: track_buffer (oclusiones largas) + with_reid (el objetivo V1).
+BOTSORT_REID_YAML = """\
+tracker_type: botsort
+track_high_thresh: 0.25
+track_low_thresh: 0.1
+new_track_thresh: 0.25
+# Buffer de track perdido, en FRAMES MUESTREADOS (a sample_fps=5 → 60 = 12 s
+# de tolerancia a oclusión antes de matar el track; default 30 = 6 s).
+track_buffer: 60
+match_thresh: 0.8
+fuse_score: True
+# Compensación de movimiento global de cámara (broadcast/panning)
+gmc_method: sparseOptFlow
+# Re-ID por apariencia (defaults oficiales; model auto = features del detector)
+proximity_thresh: 0.5
+appearance_thresh: 0.8
+with_reid: True
+model: auto
+"""
+TRACKER_YAML_PATH = "/root/vitas-botsort-reid.yaml"
 
 
 # ── Pydantic schemas (defined here, no imports from other files) ──────
@@ -141,7 +173,7 @@ def health() -> dict:
     secrets=[api_secret],
 )
 def track_video(req: TrackingRequest) -> dict:
-    """Download a video, run YOLOv11 + ByteTrack, return player + ball tracks."""
+    """Download a video, run YOLOv11 + BoT-SORT(Re-ID), return player + ball tracks."""
     # Imports inside the function so Modal's image cache picks them up
     import cv2  # type: ignore
     import httpx  # type: ignore
@@ -207,9 +239,13 @@ def track_video(req: TrackingRequest) -> dict:
         f"sampling at {req.sample_fps}fps"
     )
 
-    # 4. Run YOLO+ByteTrack on the video (Ultralytics built-in tracker)
+    # 4. Run YOLO + BoT-SORT(Re-ID) on the video (V1 vision roadmap)
     # `vid_stride` makes YOLO skip frames to match our sample fps
     vid_stride = max(1, int(round(src_fps / req.sample_fps)))
+
+    # Tracker config escrita en runtime (app single-file, sin ficheros extra)
+    with open(TRACKER_YAML_PATH, "w") as f:
+        f.write(BOTSORT_REID_YAML)
 
     players: list[PlayerAppearance] = []
     ball: list[BallPosition] = []
@@ -220,7 +256,7 @@ def track_video(req: TrackingRequest) -> dict:
             source=tmp.name,
             stream=True,
             persist=True,
-            tracker="bytetrack.yaml",
+            tracker=TRACKER_YAML_PATH,
             classes=req.classes,
             conf=0.3,
             vid_stride=vid_stride,
