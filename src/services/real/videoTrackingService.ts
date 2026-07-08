@@ -17,6 +17,14 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STORAGE_KEY = "vitas_video_tracking_results";
 
+/**
+ * Techo de duración para el tracking SÍNCRONO (proxy edge ~25s). Por encima de
+ * esto NO se llama al proxy (haría timeout → antes caía a mock silencioso); el
+ * vídeo largo debe ir por el flujo de análisis completo (cola async). Debe
+ * coincidir con MAX_SYNC_TRACK_SEC del servidor (api/coaching/_track-players).
+ */
+const MAX_SYNC_TRACK_SEC = 240;
+
 export interface PlayerAppearance {
   trackId: number;
   timestampMs: number;
@@ -80,7 +88,9 @@ export interface TrackingProgress {
     | "calling_pipeline"
     | "processing"
     | "finished"
-    | "fallback";
+    | "fallback"
+    /** Vídeo demasiado largo para tracking síncrono → usar análisis completo (async). */
+    | "too_long";
   pct: number;
   message: string;
 }
@@ -94,6 +104,8 @@ interface TrackOptions {
   onProgress?: TrackingListener;
   /** If true, skip cache and run a fresh analysis */
   force?: boolean;
+  /** Duración del vídeo (s). Si supera el techo síncrono, se omite el proxy. */
+  durationSec?: number;
 }
 
 /**
@@ -101,7 +113,7 @@ interface TrackOptions {
  * unavailable and the caller hasn't provided a mock fallback.
  */
 export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | null> {
-  const { videoId, videoUrl, sampleFps = 5, onProgress, force = false } = opts;
+  const { videoId, videoUrl, sampleFps = 5, onProgress, force = false, durationSec } = opts;
 
   // 1. Cache hit?
   if (!force) {
@@ -125,6 +137,18 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
     return null;
   }
 
+  // 2b. Guard de duración: el proxy síncrono es solo para clips. Un vídeo
+  // largo haría timeout en edge (~25s) → NO lo llamamos (antes caía a mock
+  // silencioso); el usuario debe usar el flujo de análisis completo (async).
+  if (typeof durationSec === "number" && durationSec > MAX_SYNC_TRACK_SEC) {
+    onProgress?.({
+      stage: "too_long",
+      pct: 100,
+      message: `Vídeo de ${Math.round(durationSec / 60)} min: demasiado largo para tracking en vivo. Súbelo por Análisis completo (procesado en segundo plano).`,
+    });
+    return null;
+  }
+
   // 3. Call the Modal-backed Edge proxy
   onProgress?.({
     stage: "calling_pipeline",
@@ -138,7 +162,7 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
     resp = await fetch("/api/coaching/track-players", {
       method: "POST",
       headers: { ...authHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({ videoUrl, sampleFps }),
+      body: JSON.stringify({ videoUrl, sampleFps, durationSec }),
     });
   } catch (err) {
     console.warn("[videoTrackingService] fetch failed, fallback to mock:", err);
@@ -156,6 +180,16 @@ export async function trackVideo(opts: TrackOptions): Promise<TrackingResult | n
       stage: "fallback",
       pct: 100,
       message: "Inferencia real no configurada — usar mock local",
+    });
+    return null;
+  }
+
+  if (resp.status === 413) {
+    // El servidor rechazó el vídeo por largo (guard MAX_SYNC_TRACK_SEC).
+    onProgress?.({
+      stage: "too_long",
+      pct: 100,
+      message: "Vídeo demasiado largo para tracking en vivo. Súbelo por Análisis completo (procesado en segundo plano).",
     });
     return null;
   }
