@@ -250,6 +250,7 @@
   "players": {
     "form": {
       "newTitle": "New Player",
+      "fixErrors": "Fix the fields before continuing",
       "editTitle": "Edit Player",
       "newSubtitle": "Register a new player in VITAS",
       "editSubtitle": "Update data and metrics",
@@ -561,7 +562,7 @@
     "uniformColor": "Uniform Color",
     "jerseyHint": "The AI will identify the player by jersey number and color for individual analysis.",
     "selectPlayerFirst": "Select a player first",
-    "deleteConfirm": "Delete {name}?"
+    "deleteConfirm": "Delete {{name}}?"
   },
   "billing": {
     "title": "Plan.",
@@ -1812,8 +1813,8 @@
     "pricingHeading": "Three plans for three moments",
     "pricingSubtitle": "Free to try · Pro for independent coaches · Club for full academies.",
     "planFreeDesc": "To try the platform",
-    "planFreeFeature1": "1 player",
-    "planFreeFeature2": "1 AI analysis per month",
+    "planFreeFeature1": "5 players",
+    "planFreeFeature2": "3 AI analyses per month",
     "planFreeFeature3": "Access to the database of 365+ La Liga players",
     "planFreeFeature4": "PHV-corrected VSI",
     "planProDesc": "For independent coaches",
@@ -2457,6 +2458,19 @@
         "description": "Press ⌘K (or Ctrl+K) at any time to search players, actions, or jump straight to any page. The floating button at the top right also opens it."
       }
     }
+  },
+  "globalSearch": {
+    "triggerAriaLabel": "Global search",
+    "triggerTitle": "Search (⌘K)",
+    "searchLabel": "Search",
+    "inputPlaceholder": "Search players, actions or pages…",
+    "noResults": "No results",
+    "quickActionsHeading": "Quick actions",
+    "playersHeading": "Players ({{count}})",
+    "goToProfile": "View profile",
+    "familyView": "Family view · {{name}}",
+    "viewReports": "Reports · {{name}}",
+    "viewEvolution": "Evolution · {{name}}"
   },
   "playerHeatmap": {
     "noData": "No position data to generate heatmap",
@@ -3164,7 +3178,7 @@
   "playerAnalysisPage": {
     "playerFallback": "Player",
     "backToHistory": "Back to history",
-    "reportsSubtitle": "AI reports · 6 analyses",
+    "reportsSubtitle": "AI reports",
     "printAria": "Print / PDF",
     "printTitle": "Print / Export PDF",
     "shareAria": "Share",

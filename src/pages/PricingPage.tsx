@@ -179,6 +179,15 @@ export default function PricingPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
+  // No mostrar testimonios/casos mientras solo contengan plantillas "[…]"
+  // (evita reseñas y resultados falsos ante visitantes de la página pública).
+  const realTestimonials = TESTIMONIALS.filter(
+    (x) => !x.quote.includes("[") && !x.author.includes("[") && !x.club.includes("["),
+  );
+  const realCaseStudies = CASE_STUDIES.filter(
+    (x) => !x.club.includes("[") && !x.metric.includes("["),
+  );
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -311,7 +320,8 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Testimonials */}
+        {/* Testimonials — solo si hay testimonios reales (sin plantillas) */}
+        {realTestimonials.length > 0 && (
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
@@ -323,7 +333,7 @@ export default function PricingPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
-            {TESTIMONIALS.map((t, i) => (
+            {realTestimonials.map((t, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 15 }}
@@ -349,8 +359,10 @@ export default function PricingPage() {
             ))}
           </div>
         </section>
+        )}
 
-        {/* Case studies */}
+        {/* Case studies — solo si hay casos reales (sin plantillas) */}
+        {realCaseStudies.length > 0 && (
         <section className="space-y-6">
           <div className="text-center space-y-2">
             <h2 className="font-display font-bold text-2xl md:text-3xl">
@@ -362,7 +374,7 @@ export default function PricingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {CASE_STUDIES.map((cs, i) => (
+            {realCaseStudies.map((cs, i) => (
               <div key={i} className="glass rounded-xl p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-display font-semibold text-primary uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10">
@@ -378,6 +390,7 @@ export default function PricingPage() {
             ))}
           </div>
         </section>
+        )}
 
         {/* FAQ short */}
         <section className="space-y-4">

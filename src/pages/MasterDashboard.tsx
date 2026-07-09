@@ -9,8 +9,6 @@ import {
   Users,
   FileText,
   Settings,
-  Search,
-  SlidersHorizontal,
   ExternalLink,
   TrendingUp,
   Shield,
@@ -75,9 +73,13 @@ const MasterDashboard = () => {
           p.phvCategory === "early" ? "high"
           : p.phvCategory === "late" ? "low"
           : pct > 70 ? "low" : "med";
-        return { id: p.id, name: p.name, position: p.position, academy: "VITAS Academy", vsi: p.vsi, biasAlert };
+        const academy =
+          (user?.user_metadata?.organization as string | undefined) ||
+          (user?.user_metadata?.academyName as string | undefined) ||
+          "";
+        return { id: p.id, name: p.name, position: p.position, academy, vsi: p.vsi, biasAlert };
       });
-  }, [players, searchQuery]);
+  }, [players, searchQuery, user]);
 
   // VSI tier distribution
   const vsiTiers = useMemo(() => {
@@ -310,17 +312,6 @@ const MasterDashboard = () => {
                     ({playerReports.length})
                   </span>
                 </h2>
-                <div className="flex items-center gap-2">
-                  <button className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-                    <SlidersHorizontal size={14} />
-                  </button>
-                  <button
-                    className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={() => setSearchQuery(searchQuery ? "" : " ")}
-                  >
-                    <Search size={14} />
-                  </button>
-                </div>
               </div>
 
               {/* Search input */}
@@ -361,7 +352,7 @@ const MasterDashboard = () => {
                                 {report.name}
                               </h4>
                               <p className="text-[10px] text-muted-foreground">
-                                {report.position} · {report.academy}
+                                {report.position}{report.academy ? ` · ${report.academy}` : ""}
                               </p>
                             </div>
                           </div>
@@ -499,9 +490,12 @@ const MasterDashboard = () => {
               <p className="text-xs text-muted-foreground mb-4">
                 {t("master.expertDeskDesc")}
               </p>
-              <button className="w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm hover:bg-primary/90 transition-colors">
+              <a
+                href="mailto:soporte@vitas.app?subject=VITAS%20Expert%20Desk"
+                className="block w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm text-center hover:bg-primary/90 transition-colors"
+              >
                 {t("master.contactExpert")}
-              </button>
+              </a>
             </motion.div>
           </div>
         </div>
