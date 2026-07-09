@@ -398,21 +398,31 @@ const Rankings = () => {
                   <span>·</span>
                   <span>{player.age}a</span>
                   <span>·</span>
-                  <span
-                    className={
-                      player.phvCategory === "late"
-                        ? "text-primary font-semibold"
+                  {/* Blindaje anti-falso-positivo: lejos del PHV (|offset|>2.5) el
+                      timing de Mirwald no es fiable → "por determinar" en vez de
+                      afirmar precoz/tardío con confianza visual (coherente con la
+                      tarjeta PHV del hub). */}
+                  {Math.abs(player.phvOffset ?? 0) > 2.5 ? (
+                    <span className="text-muted-foreground">
+                      {t("maturity.timing.unknown")}
+                    </span>
+                  ) : (
+                    <span
+                      className={
+                        player.phvCategory === "late"
+                          ? "text-primary font-semibold"
+                          : player.phvCategory === "early"
+                          ? "text-gold"
+                          : "text-muted-foreground"
+                      }
+                    >
+                      {player.phvCategory === "late"
+                        ? t("players.rankings.phvFilter.late")
                         : player.phvCategory === "early"
-                        ? "text-gold"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {player.phvCategory === "late"
-                      ? t("players.rankings.phvFilter.late")
-                      : player.phvCategory === "early"
-                      ? t("players.rankings.phvFilter.early")
-                      : t("players.rankings.phvFilter.onTime")}
-                  </span>
+                        ? t("players.rankings.phvFilter.early")
+                        : t("players.rankings.phvFilter.onTime")}
+                    </span>
+                  )}
                   {/* Percentile badge */}
                   <span className="text-primary font-mono font-semibold">
                     P{player.percentileInAgeGroup}
