@@ -29,6 +29,18 @@ export interface MirwaldInput {
 
 export interface MirwaldResult {
   offset: number;                // años respecto al PHV (Mirwald maturity offset)
+  /**
+   * Edad predicha del PHV = edad cronológica − maturity offset (Mirwald 2002).
+   * Es la magnitud científicamente válida: "a qué edad se estima el estirón".
+   */
+  ageAtPHV: number;
+  /**
+   * @deprecated NO tiene base científica: el maturity offset son "años respecto
+   * al PHV", no un delta de edad, así que `edad + offset` produce valores
+   * absurdos (un niño de 9 con offset −3.8 daría "5.2"). Se mantiene solo para
+   * compatibilidad temporal; usar `ageAtPHV` (APHV) y el motor de maduración
+   * (src/lib/phv/maturity.ts). Se eliminará al migrar los consumidores.
+   */
   biologicalAge: number;
   chronologicalAge: number;
   /** Convención interna del codebase (timeline propio, NO vs pares). */
@@ -74,6 +86,9 @@ export function computeMirwald(input: MirwaldInput): MirwaldResult {
   }
 
   offset = Number(offset.toFixed(2));
+  // APHV = edad − offset (Mirwald 2002: el offset se RESTA de la edad).
+  const ageAtPHV = Number((age - offset).toFixed(2));
+  // Legacy inválido (ver @deprecated en la interfaz). No usar.
   const biologicalAge = Number((age + offset).toFixed(2));
 
   let phvStatus: MirwaldResult["phvStatus"];
@@ -92,6 +107,7 @@ export function computeMirwald(input: MirwaldInput): MirwaldResult {
 
   return {
     offset,
+    ageAtPHV,
     biologicalAge,
     chronologicalAge: age,
     phvStatus,
