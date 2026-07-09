@@ -238,11 +238,11 @@ const PlayerComparison = () => {
       name: t("compare.ubiIndex"),
       description: t("compare.ubiDesc"),
       icon: <Target size={18} className="text-electric" />,
-      getValueA: () => advA
-        ? Math.round(advA.ubi.ubiScore * 100)
+      getValueA: () => advA?.ubi
+        ? Math.round(advA.ubi.ubi * 100)
         : Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "late" ? 5 : -3)),
-      getValueB: () => advB
-        ? Math.round(advB.ubi.ubiScore * 100)
+      getValueB: () => advB?.ubi
+        ? Math.round(advB.ubi.ubi * 100)
         : Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "late" ? 5 : -3)),
     },
   ];

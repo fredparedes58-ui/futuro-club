@@ -86,14 +86,17 @@ function GaugeRing({ value, max, label }: { value: number; max: number; label: s
 
 function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
   const { t } = useTranslation();
+  // Guarda: un análisis guardado malformado (sin formacion) reventaba el tab
+  // Informe (pantalla en blanco) al leer report.formacion.sistema sobre undefined.
+  if (!report?.formacion) return null;
   return (
     <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Users} title={t("teamAnalysis.teamSummary")} subtitle={t("teamAnalysis.playersAnalyzed", { count: report.equipoAnalizado.jugadoresDetectados })} />
+      <SectionHeader icon={Users} title={t("teamAnalysis.teamSummary")} subtitle={t("teamAnalysis.playersAnalyzed", { count: report.equipoAnalizado?.jugadoresDetectados ?? 0 })} />
 
       <div className="flex items-center gap-2 mb-3">
         <Badge className="text-xs font-display">{report.formacion.sistema}</Badge>
         <Badge variant="secondary" className="text-[9px]">
-          {t("teamAnalysis.possession")} {report.posesion.porcentaje}%
+          {t("teamAnalysis.possession")} {report.posesion?.porcentaje ?? 0}%
         </Badge>
         {report.formacion.rigidez >= 7 && (
           <Badge variant="outline" className="text-[9px]">{t("teamAnalysis.rigid")}</Badge>
@@ -102,7 +105,7 @@ function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
 
       <p className="text-xs text-muted-foreground leading-relaxed mb-3">{report.resumenEjecutivo}</p>
 
-      {report.formacion.variantes.length > 0 && (
+      {(report.formacion.variantes?.length ?? 0) > 0 && (
         <div className="text-[11px] text-muted-foreground">
           <span className="font-medium text-foreground">{t("teamAnalysis.variants")}: </span>
           {report.formacion.variantes.join("; ")}
@@ -190,7 +193,7 @@ function JugadoresTable({ jugadores, onSelect }: {
       <SectionHeader icon={Activity} title={t("teamAnalysis.playersTitle")} subtitle={t("teamAnalysis.playersDesc")} />
 
       <div className="space-y-1.5">
-        {jugadores.map((j, i) => {
+        {(jugadores ?? []).map((j, i) => {
           const rendColor = RENDIMIENTO_COLORS[j.rendimiento] ?? "#6B7280";
           const totalPases = j.pases.completados + j.pases.fallados;
           const precPases = totalPases > 0 ? Math.round((j.pases.completados / totalPases) * 100) : 0;
