@@ -7,7 +7,7 @@
  *   - 1 match → auto-redirect a /tactical/<matchId>
  *   - 2+ → grid selector con fecha de cómputo
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Activity, Video, Lock, Sparkles, ChevronRight, Wand2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 
 import { usePlan } from "@/hooks/usePlan";
 import { useTacticalMatchList, tacticalKeys } from "@/hooks/useTacticalHeatmap";
-import { PlayerService } from "@/services/real/playerService";
+import { useAllPlayers } from "@/hooks/usePlayers";
 import { AnalysisVideoUploadDialog } from "@/components/video/AnalysisVideoUploadDialog";
 import { seedDemoMatch } from "@/lib/tactical/mockSeeder";
 
@@ -31,7 +31,11 @@ export default function TacticalIndexPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
 
-  const uploadTarget = useMemo(() => PlayerService.getAll()[0] ?? null, []);
+  // Fuente reactiva (Supabase) en vez de un snapshot de localStorage congelado:
+  // antes, si el pull no había terminado, se ocultaba el CTA "Subir video" y
+  // salía "Crear primer jugador" pese a tener jugadores en la nube.
+  const { data: players = [] } = useAllPlayers();
+  const uploadTarget = players[0] ?? null;
 
   async function handleSeedDemo() {
     setSeeding(true);

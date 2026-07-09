@@ -4,7 +4,6 @@
  *
  * Página de detalle de un match con heatmaps por fase. Feature gate Pro+.
  */
-import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Activity, Lock } from "lucide-react";
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 import { usePlan } from "@/hooks/usePlan";
 import { TacticalDashboard } from "@/components/tactical/TacticalDashboard";
-import { PlayerService } from "@/services/real/playerService";
+import { useAllPlayers } from "@/hooks/usePlayers";
 
 export default function TacticalMatchPage() {
   const { matchId } = useParams<{ matchId: string }>();
@@ -22,11 +21,11 @@ export default function TacticalMatchPage() {
 
   // Pick first player as upload target (the modal needs a playerId because
   // the analysis pipeline is per-player; team matches use the captain or
-  // first available player as anchor).
-  const uploadTarget = useMemo(() => {
-    const players = PlayerService.getAll();
-    return players[0] ?? null;
-  }, []);
+  // first available player as anchor). Fuente reactiva (Supabase) en vez de un
+  // snapshot de localStorage congelado, para no perder el target si el pull
+  // aún no había terminado.
+  const { data: players = [] } = useAllPlayers();
+  const uploadTarget = players[0] ?? null;
 
   if (!canUseBehavioral) {
     return (
