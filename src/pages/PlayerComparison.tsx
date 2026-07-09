@@ -202,9 +202,10 @@ const PlayerComparison = () => {
     fullMark: 100,
   }));
 
-  // PHV labels
+  // PHV labels. OJO: el enum phvCategory está invertido respecto al lenguaje de
+  // pares: "early" = pre-PHV = madurador TARDÍO; "late" = post-PHV = PRECOZ.
   const phvLabel = (cat: string) =>
-    cat === "early" ? t("compare.phvEarly") : cat === "late" ? t("compare.phvLate") : t("compare.phvNormal");
+    cat === "early" ? t("compare.phvLate") : cat === "late" ? t("compare.phvEarly") : t("compare.phvNormal");
 
   const phvTagA = phvLabel(playerA.phvCategory);
   const phvTagB = phvLabel(playerB.phvCategory);
@@ -238,12 +239,14 @@ const PlayerComparison = () => {
       name: t("compare.ubiIndex"),
       description: t("compare.ubiDesc"),
       icon: <Target size={18} className="text-electric" />,
+      // phvCategory "early" = pre-PHV = madurador TARDÍO (talento infravalorado)
+      // → recibe el ajuste al alza; "late" = post-PHV = precoz → a la baja.
       getValueA: () => advA?.ubi
         ? Math.round(advA.ubi.ubi * 100)
-        : Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "late" ? 5 : -3)),
+        : Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "early" ? 5 : playerA.phvCategory === "late" ? -3 : 0)),
       getValueB: () => advB?.ubi
         ? Math.round(advB.ubi.ubi * 100)
-        : Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "late" ? 5 : -3)),
+        : Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "early" ? 5 : playerB.phvCategory === "late" ? -3 : 0)),
     },
   ];
 
@@ -260,7 +263,7 @@ const PlayerComparison = () => {
   const aiWinner = playerA.vsi >= playerB.vsi ? playerA : playerB;
   const probabilityElite = (
     aiWinner.vsi * 0.95 +
-    (aiWinner.phvCategory === "late" ? 5 : 0)
+    (aiWinner.phvCategory === "early" ? 5 : 0) // "early" = madurador tardío (su talento emergerá)
   ).toFixed(1);
 
   return (
@@ -516,9 +519,9 @@ const PlayerComparison = () => {
               <span className="font-semibold text-foreground">{playerB.name}</span>{t("playerComparison.analysisBiasFilter")}{" "}
               <span className="text-primary font-bold">{aiWinner.name}</span> {t("playerComparison.analysisHigherCeiling")}{" "}
               <span className="font-bold text-foreground">
-                {aiWinner.phvCategory === "late"
+                {aiWinner.phvCategory === "early"
                   ? t("playerComparison.maturationLate")
-                  : aiWinner.phvCategory === "early"
+                  : aiWinner.phvCategory === "late"
                   ? t("playerComparison.maturationEarly")
                   : t("playerComparison.maturationNormal")}
               </span>{" "}

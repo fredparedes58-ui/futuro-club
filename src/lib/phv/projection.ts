@@ -16,7 +16,7 @@
  *     converge A LA BAJA.
  */
 
-import type { MaturationAssessment } from "./maturation";
+import type { MaturityAssessment } from "./maturity";
 
 export interface ProjectionPoint {
   age: number;
@@ -43,19 +43,19 @@ const MATURITY_AGE = 20; // convergencia biológica ~20
  * Proyecta el percentil de un jugador a madurez.
  *
  * @param currentPercentile  percentil actual (crudo, vs pares por edad)
- * @param maturation         estado de maduración (da el factor de ajuste)
+ * @param assessment         evaluación canónica (timing + factor gateado)
  * @param chronologicalAge   edad actual
  */
 export function projectToMaturity(
   currentPercentile: number,
-  maturation: MaturationAssessment,
+  assessment: MaturityAssessment,
   chronologicalAge: number,
 ): MaturityProjection {
   const cur = Math.max(1, Math.min(99, currentPercentile));
 
-  // Percentil "de madurez" = percentil ajustado por el factor de maduración
-  // aplicado sobre el percentil (aprox: el talento real sin ruido físico).
-  const adjustedRaw = cur * maturation.adjustmentFactor;
+  // Percentil "de madurez" = percentil ajustado por el factor CANÓNICO (que es
+  // 1 cuando el timing no es firme → no proyecta convergencia sin base).
+  const adjustedRaw = cur * assessment.adjustmentFactor;
   const projected = Math.max(1, Math.min(99, Math.round(adjustedRaw)));
 
   // Curva: de la edad actual a la de madurez, el gap se cierra linealmente.
@@ -76,13 +76,20 @@ export function projectToMaturity(
   let headline: string;
   let narrative: string;
 
-  if (maturation.status === "late_maturer" && delta >= 3) {
+  if (assessment.timing === "unknown") {
+    // Timing no afirmado (lejos del PHV o sin datos): NO proyectamos convergencia.
+    headline = `Proyección preliminar (p${cur})`;
+    narrative =
+      `El timing de maduración aún no puede afirmarse con fiabilidad, así que no ` +
+      `proyectamos una convergencia. Añade la altura de ambos padres (%talla adulta) ` +
+      `o vuelve cerca del PHV para una proyección fiable.`;
+  } else if (assessment.timing === "late" && delta >= 3) {
     headline = `Proyección: p${cur} hoy → p${projected} a los ${endAge}`;
     narrative =
       `Como madurador tardío, su percentil actual (p${cur}) está frenado por la maduración. ` +
       `Cuando sus pares dejen de tener ventaja física (~${endAge} años), su talento real emerge: ` +
       `proyectamos p${projected}. Este es exactamente el jugador que el sesgo del madurador precoz descarta hoy.`;
-  } else if (maturation.status === "early_maturer" && delta <= -3) {
+  } else if (assessment.timing === "early" && delta <= -3) {
     headline = `Proyección: p${cur} hoy → p${projected} a los ${endAge}`;
     narrative =
       `Como madurador precoz, parte de su percentil actual (p${cur}) es ventaja física temporal. ` +

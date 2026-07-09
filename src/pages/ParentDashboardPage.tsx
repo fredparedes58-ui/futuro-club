@@ -223,7 +223,7 @@ export default function ParentDashboardPage() {
 
           {rawPlayer?.phvCategory && (
             <div className="mt-3 text-[11px] text-foreground">
-              {t("parentDashboardPage.phaseLabel")} <span className="font-display font-bold">{PHV_EMOJIS[rawPlayer.phvCategory] ? `${PHV_EMOJIS[rawPlayer.phvCategory]} ${t(`parentDashboardPage.phv_${rawPlayer.phvCategory}`)}` : rawPlayer.phvCategory}</span>
+              {t("parentDashboardPage.phaseLabel")} <span className="font-display font-bold">{PHV_EMOJIS[rawPlayer.phvCategory] ? `${PHV_EMOJIS[rawPlayer.phvCategory]} ${t(`parentDashboardPage.phv_${rawPlayer.phvCategory === "ontme" ? "ontime" : rawPlayer.phvCategory}`)}` : rawPlayer.phvCategory}</span>
             </div>
           )}
         </motion.div>

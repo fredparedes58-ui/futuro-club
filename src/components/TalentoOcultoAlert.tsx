@@ -13,6 +13,7 @@ import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Player } from "@/services/real/playerService";
+import { playerMaturity } from "@/lib/phv/playerMaturity";
 
 interface Props {
   player: Player;
@@ -20,27 +21,19 @@ interface Props {
 
 export default function TalentoOcultoAlert({ player }: Props) {
   const { t } = useTranslation();
-  // Solo mostrar si:
-  // 1. Tiene datos de PHV
-  // 2. Está en categoría "early" (pre-pico) o su maturityOffset es < -0.5
-  const isPrePeak =
-    player.phvCategory === "early" ||
-    (typeof player.maturityOffset === "number" && player.maturityOffset < -0.5);
 
-  if (!isPrePeak || !player.phvAge) return null;
+  // Fuente única: solo es "talento oculto" un madurador TARDÍO con confianza
+  // suficiente. Antes usaba campos inexistentes (phvAge/maturityOffset) → nunca
+  // se mostraba; y sin gating habría marcado a cualquier pre-púber (falso positivo).
+  const a = playerMaturity(player);
+  if (a.timing !== "late" || (a.confidence !== "high" && a.confidence !== "moderate")) return null;
 
-  // Calcular edad madurativa vs cronológica
-  const chronoAge = player.age;
-  const maturityDiff = typeof player.maturityOffset === "number"
-    ? Math.abs(player.maturityOffset).toFixed(1)
-    : null;
+  const chronoAge = a.chronologicalAge != null ? Math.round(a.chronologicalAge) : player.age;
+  const maturityDiff = a.maturityOffset != null ? Math.abs(a.maturityOffset).toFixed(1) : null;
 
-  // Proyección simple: VSI actual + bonus por potencial de crecimiento
+  // Proyección: VSI corregido por el factor canónico de maduración.
   const currentVsi = player.vsi ?? 0;
-  const projectedBonus = typeof player.maturityOffset === "number"
-    ? Math.min(Math.round(Math.abs(player.maturityOffset) * 10), 20)
-    : 12;
-  const projectedVsi = Math.min(currentVsi + projectedBonus, 99);
+  const projectedVsi = Math.min(99, Math.round(currentVsi * a.adjustmentFactor));
 
   return (
     <motion.div

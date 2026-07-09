@@ -311,14 +311,15 @@ export const UBIService = {
   ): UBIResult {
     const raeComp = raeResult ? (raeResult.birthQuartile - 1) / 3 : 0;
 
-    // Sesgo PHV: late maturers (offset muy negativo) son más penalizados
+    // Sesgo PHV. OJO enum invertido: "early" = pre-PHV = madurador TARDÍO
+    // (offset NEGATIVO) → físicamente por detrás hoy, más SUBESTIMADO → mayor
+    // sesgo. "late" = post-PHV = PRECOZ (offset positivo) → sobreestimado ahora,
+    // sesgo inverso menor. (Antes las ramas estaban cruzadas y phvComp salía 0.)
     let phvComp = 0;
     if (phvOffset !== null && phvCategory !== null) {
-      if (phvCategory === "late") {
-        // offset negativo grande → más sesgo
+      if (phvCategory === "early") {
         phvComp = Math.min(1, Math.max(0, -phvOffset / 2));
-      } else if (phvCategory === "early") {
-        // early maturers también sufren sesgo inverso (sobreestimados ahora, riesgo futuro)
+      } else if (phvCategory === "late") {
         phvComp = Math.min(0.5, Math.max(0, phvOffset / 2));
       }
     }
@@ -397,11 +398,13 @@ export const TruthFilterService = {
     phvCategory: "early" | "ontme" | "late" | null,
     raeResult: RAEResult | null
   ): TruthFilterCase {
-    if (phvCategory === "early" || (phvOffset !== null && phvOffset > 0.5)) {
-      return "early_maturers";
+    // OJO enum invertido: phvCategory "late" = post-PHV = madurador PRECOZ
+    // (offset positivo); "early" = pre-PHV = madurador TARDÍO (offset negativo).
+    if (phvCategory === "late" || (phvOffset !== null && phvOffset > 0.5)) {
+      return "early_maturers"; // precoz (ventaja física temporal)
     }
-    if (phvCategory === "late" || (phvOffset !== null && phvOffset < -0.5)) {
-      return "late_maturers";
+    if (phvCategory === "early" || (phvOffset !== null && phvOffset < -0.5)) {
+      return "late_maturers"; // tardío (talento infravalorado)
     }
     if (raeResult && raeResult.birthQuartile <= 2) {
       return "ontme_high_rae";
@@ -423,8 +426,9 @@ export const TruthFilterService = {
 
     switch (filterCase) {
       case "early_maturers": {
-        // Magnitud proporcional al offset: más adelantado → mayor corrección
-        const magnitude = phvOffset !== null ? Math.min(8, Math.round(phvOffset * 4)) : 3;
+        // Magnitud proporcional al offset positivo (precoz); clamp a 0 para no
+        // invertir el signo del delta si llega un offset inesperado.
+        const magnitude = phvOffset !== null ? Math.min(8, Math.max(0, Math.round(phvOffset * 4))) : 3;
         delta = -magnitude;
         confidence = phvOffset !== null ? 0.85 : 0.60;
         explanation = `Madurador temprano (PHV offset +${phvOffset?.toFixed(1) ?? "?"} años). `
