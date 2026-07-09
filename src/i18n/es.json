@@ -1110,6 +1110,9 @@
     "errDelete": "Error al eliminar"
   },
   "biasAudit": {
+    "accessRestricted": "Acceso restringido",
+    "accessRestrictedDesc": "Solo administradores pueden ver la auditoría de sesgo del modelo.",
+    "backToHome": "Volver al inicio",
     "title": "Auditoría de Sesgo IA",
     "exportPdf": "Exportar PDF",
     "exportPdfTitle": "Exportar informe de equidad (PDF)",

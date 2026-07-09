@@ -1110,6 +1110,9 @@
     "errDelete": "Error deleting"
   },
   "biasAudit": {
+    "accessRestricted": "Access restricted",
+    "accessRestrictedDesc": "Only administrators can view the model bias audit.",
+    "backToHome": "Back to home",
     "title": "AI Bias Audit",
     "exportPdf": "Export PDF",
     "exportPdfTitle": "Export equity report (PDF)",

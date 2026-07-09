@@ -20,6 +20,7 @@ import {
   useDeleteListing,
 } from "@/hooks/useTransferMarket";
 import { InquiryInbox } from "@/components/transfer/InquiryInbox";
+import { useAuth } from "@/context/AuthContext";
 import {
   LISTING_TYPE_LABELS,
   LISTING_STATUS_LABELS,
@@ -29,6 +30,7 @@ export default function ListingDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: listing, isLoading } = useListing(id);
   const createInquiry = useCreateInquiry();
   const deleteListing = useDeleteListing();
@@ -65,6 +67,10 @@ export default function ListingDetailPage() {
       </div>
     );
   }
+
+  // Solo el vendedor (o un listing demo local sin dueño) puede borrar. Antes el
+  // botón se mostraba a cualquiera sobre listings ajenos y daba falso éxito.
+  const canDelete = !listing.sellerUserId || listing.sellerUserId === user?.id;
 
   const snap = listing.playerSnapshot ?? {};
   const priceLabel =
@@ -103,6 +109,7 @@ export default function ListingDetailPage() {
   }
 
   async function handleDelete() {
+    if (!canDelete) return;
     if (!confirm(t("listingDetailPage.confirmDelete"))) return;
     try {
       await deleteListing.mutateAsync(listing!.id);
@@ -127,9 +134,11 @@ export default function ListingDetailPage() {
               {snap.name ?? "Listing"}
             </h1>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleDelete} className="text-rose-400">
-            <Trash2 className="size-4" />
-          </Button>
+          {canDelete && (
+            <Button variant="ghost" size="icon" onClick={handleDelete} className="text-rose-400">
+              <Trash2 className="size-4" />
+            </Button>
+          )}
         </div>
       </header>
 
