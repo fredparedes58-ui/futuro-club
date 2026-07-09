@@ -13,15 +13,15 @@
  * o con 20 jugadores del club (picker).
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Target, UserPlus, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowLeft, Target, UserPlus, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { PlayerService } from "@/services/real/playerService";
+import { useAllPlayers } from "@/hooks/usePlayers";
 import { usePlan } from "@/hooks/usePlan";
 
 export default function IDPIndexPage() {
@@ -29,14 +29,17 @@ export default function IDPIndexPage() {
   const navigate = useNavigate();
   const { canUseIDP } = usePlan();
 
-  const players = useMemo(() => PlayerService.getAll(), []);
+  // Fuente reactiva (Supabase) en vez de un snapshot de localStorage congelado
+  // en useMemo([]): antes /idp podía quedarse en "sin jugadores" tras un
+  // refresh/deep-link si el pull aún no había terminado.
+  const { data: players = [], isLoading: playersLoading } = useAllPlayers();
 
-  // Auto-redirect if only one player
+  // Auto-redirect if only one player (espera a que carguen)
   useEffect(() => {
-    if (canUseIDP && players.length === 1) {
+    if (canUseIDP && !playersLoading && players.length === 1) {
       navigate(`/idp/${players[0].id}`, { replace: true });
     }
-  }, [canUseIDP, players, navigate]);
+  }, [canUseIDP, playersLoading, players, navigate]);
 
   // Feature gate
   if (!canUseIDP) {
@@ -80,7 +83,12 @@ export default function IDPIndexPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {players.length === 0 ? (
+        {playersLoading ? (
+          // ── Cargando jugadores ──
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="size-6 text-cyan-400 animate-spin" />
+          </div>
+        ) : players.length === 0 ? (
           // ── 0 players ──
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
             <UserPlus className="size-10 text-cyan-400 mx-auto mb-3" />
