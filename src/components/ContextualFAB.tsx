@@ -35,6 +35,7 @@ interface FabAction {
 }
 
 const HIDDEN_PATTERNS = [
+  /^\/$/, /^\/pricing/,        // landing/precios públicos (visitante sin sesión)
   /^\/login/, /^\/register/, /^\/forgot/, /^\/reset/,
   /^\/share/, /^\/onboarding/, /^\/terms/, /^\/privacy/,
   /^\/live\/[^/]+$/,           // durante el partido NO molestar

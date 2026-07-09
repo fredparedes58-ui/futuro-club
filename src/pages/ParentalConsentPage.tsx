@@ -132,7 +132,12 @@ interface ConsentFormData {
 function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentFormProps) {
   const [guardianName, setGuardianName] = useState(player.parental_consent_guardian_name ?? "");
   const [guardianEmail, setGuardianEmail] = useState(player.parental_consent_guardian_email ?? "");
-  const [action, setAction] = useState<"grant" | "deny">("grant");
+  // Preselecciona según el estado: si ya está concedido, la acción por defecto es
+  // REVOCAR ("deny"); antes salía "grant" preseleccionado y "Revocar" reconcedía
+  // el consentimiento de un menor (escritura RGPD incorrecta).
+  const [action, setAction] = useState<"grant" | "deny">(
+    player.parental_consent_status === "granted" ? "deny" : "grant",
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

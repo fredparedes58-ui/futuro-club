@@ -7,13 +7,15 @@
  * Feature gate: Club plan.
  */
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart } from "lucide-react";
+import { ArrowLeft, Heart, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WellbeingDashboard from "@/components/wellbeing/WellbeingDashboard";
 import { RoleGuard } from "@/components/RoleGuard";
+import { usePlan } from "@/hooks/usePlan";
 
 export default function WellbeingDashboardPage() {
   const navigate = useNavigate();
+  const { canUseTeamWellbeing } = usePlan();
 
   return (
     <RoleGuard
@@ -55,10 +57,24 @@ export default function WellbeingDashboardPage() {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-5xl mx-auto px-4 py-6">
-        <WellbeingDashboard />
-      </main>
+      {/* Content — gate de plan Club (además del gate de rol) */}
+      {!canUseTeamWellbeing ? (
+        <main className="max-w-3xl mx-auto px-4 py-12 text-center">
+          <Lock size={32} className="text-amber-400 mx-auto mb-3" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            Función del plan Club
+          </h2>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+            El panel de Bienestar del Equipo (riesgo de abandono, engagement e
+            intervención) está disponible en el plan Club.
+          </p>
+          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+        </main>
+      ) : (
+        <main className="max-w-5xl mx-auto px-4 py-6">
+          <WellbeingDashboard />
+        </main>
+      )}
     </div>
     </RoleGuard>
   );

@@ -26,6 +26,16 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { BiasEquityReport } from "@/components/bias/BiasEquityReport";
 
+// Gate de admin (mismo criterio que AdminDashboardPage/AdminManagePlanPage):
+// esta auditoría interna de sesgo del modelo IA no debe verla cualquier usuario.
+const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "fredparedes58@gmail.com")
+  .split(",").map((s: string) => s.trim().toLowerCase());
+
+function isAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+}
+
 /* ── Types ─────────────────────────────────────────────────────── */
 
 interface BiasRow {
@@ -173,6 +183,26 @@ export default function BiasAuditDashboard() {
     { id: "visibility" as const, label: t("biasAudit.tabVisibility"), icon: <Eye size={14} /> },
     { id: "recency" as const, label: t("biasAudit.tabRecency"), icon: <Clock size={14} /> },
   ];
+
+  // Gate: solo admin. Un no-admin que teclee /admin/bias no debe ver la
+  // auditoría interna de sesgo del modelo (igual que /admin y /admin/plans).
+  if (!isAdmin(user?.email)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="glass rounded-xl p-6 max-w-md text-center">
+          <Shield size={28} className="text-destructive mx-auto mb-2" />
+          <h2 className="font-display font-bold text-lg text-foreground mb-1">{t("biasAudit.accessRestricted")}</h2>
+          <p className="text-xs text-muted-foreground mb-4">{t("biasAudit.accessRestrictedDesc")}</p>
+          <button
+            onClick={() => navigate("/")}
+            className="text-xs font-display font-semibold text-primary hover:underline"
+          >
+            {t("biasAudit.backToHome")}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

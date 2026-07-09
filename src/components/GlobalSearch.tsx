@@ -18,7 +18,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Command as CommandPrimitive, CommandDialog, CommandEmpty, CommandGroup,
   CommandInput, CommandItem, CommandList, CommandSeparator,
@@ -56,8 +56,16 @@ const QUICK_ACTIONS: QuickAction[] = [
   { id: "scanning",   label: "Scanning IQ",        hint: "Escaneo previo a recepción", Icon: Eye,     to: "/scanning",        keywords: ["scanning","escaneo","scan","vision","cabeza"] },
 ];
 
+// Rutas públicas/auth donde el buscador (que navega a rutas protegidas) no debe
+// mostrarse — coherente con BottomNav y ContextualFAB, que sí se ocultan aquí.
+const HIDDEN_ON = [
+  /^\/$/, /^\/login/, /^\/register/, /^\/forgot/, /^\/reset/,
+  /^\/pricing/, /^\/terms/, /^\/privacy/, /^\/share/, /^\/aceptar-invitacion/,
+];
+
 export default function GlobalSearch() {
   const { t } = useTranslation();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
@@ -92,6 +100,9 @@ export default function GlobalSearch() {
     setQuery("");
     navigate(to);
   }
+
+  // Oculto en rutas públicas/auth (tras los hooks para no romper su orden).
+  if (HIDDEN_ON.some((re) => re.test(location.pathname))) return null;
 
   return (
     <>
