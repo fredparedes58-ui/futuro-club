@@ -2481,6 +2481,30 @@
     "viewReports": "Reports · {{name}}",
     "viewEvolution": "Evolution · {{name}}"
   },
+  "maturity": {
+    "status": {
+      "pre_phv": "Pre-PHV (growth spurt pending)",
+      "circa_phv": "In PHV (growth spurt)",
+      "post_phv": "Post-PHV (consolidated)",
+      "unknown": "Undetermined"
+    },
+    "timing": {
+      "early": "Early maturer",
+      "on_time": "On-time maturation",
+      "late": "Late maturer",
+      "unknown": "Timing undetermined"
+    },
+    "confidence": {
+      "high": "High confidence",
+      "moderate": "Medium confidence",
+      "low": "Preliminary (low confidence)",
+      "none": "Insufficient data"
+    },
+    "ageAtPHV": "Estimated PHV",
+    "percentPAH": "% adult height",
+    "yearsUnit": "yrs",
+    "addParentsHint": "Add both parents' heights for the percentage-of-adult-height method (more reliable)."
+  },
   "playerHeatmap": {
     "noData": "No position data to generate heatmap",
     "title": "Heatmap",
