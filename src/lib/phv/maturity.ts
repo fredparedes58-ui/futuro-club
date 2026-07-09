@@ -111,13 +111,18 @@ function adjustmentFor(timing: MaturityTiming): number {
  * > Mirwald offset. Nunca inventa: si no hay datos, method "insufficient_data".
  */
 export function resolveMaturity(input: MaturityInput): MaturityAssessment {
+  // El sexo es sexo-específico en AMBOS métodos (medias de timing 13.7/12.1 y
+  // coeficientes Khamis-Roche/Mirwald). Asumir "M" para una chica sin sexo
+  // registrado daría %PAH/estado/timing erróneos → si el sexo no es conocido,
+  // no calculamos (dato insuficiente), en vez de inventar sobre un sexo asumido.
+  const sexKnown = input.sex === "M" || input.sex === "F";
   const sex: Sex = input.sex === "F" ? "F" : "M";
   const age =
     typeof input.ageYears === "number" && Number.isFinite(input.ageYears)
       ? input.ageYears
       : undefined;
 
-  const kr = canComputeKhamisRoche({
+  const kr = sexKnown && canComputeKhamisRoche({
     sex,
     ageYears: age,
     heightCm: input.heightCm ?? undefined,
@@ -135,7 +140,7 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
       })
     : null;
 
-  const mir = canComputeMirwald({
+  const mir = sexKnown && canComputeMirwald({
     age,
     height: input.heightCm ?? undefined,
     weight: input.weightKg ?? undefined,
@@ -150,7 +155,7 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
       })
     : null;
 
-  // Sin ningún método → no afirmamos nada.
+  // Sin ningún método (datos insuficientes o sexo no registrado) → no afirmamos nada.
   if (!kr && !mir) {
     return {
       method: "insufficient_data",
@@ -158,8 +163,9 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
       status: "unknown",
       timing: "unknown",
       adjustmentFactor: 1,
-      validityNote:
-        "Faltan datos antropométricos (edad, altura, peso) para estimar la maduración.",
+      validityNote: !sexKnown
+        ? "Sexo no registrado: no se puede estimar la maduración con fiabilidad."
+        : "Faltan datos antropométricos (edad, altura, peso) para estimar la maduración.",
     };
   }
 
@@ -182,26 +188,28 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
   let validityNote: string | undefined;
 
   if (kr) {
-    // %PAH disponible → método preferido, confianza alta.
+    // %PAH disponible → método preferido. La confianza "high" es del ESTADO
+    // (%PAH, robusto). El TIMING vs pares se deriva del APHV de Mirwald SOLO si
+    // está dentro de la ventana de validez; si no, queda "unknown" (no se apoya
+    // en %PAH: no tenemos percentiles de %PAH por edad). timing="unknown" es la
+    // señal para que la UI no muestre precoz/tardío.
     method = "khamis_roche_pah";
     confidence = "high";
-    // El timing vs pares se deriva del APHV de Mirwald si está en ventana; si no,
-    // se apoya en la banda %PAH interpretada por edad (misma dirección).
     if (ageAtPHV !== undefined && offset !== undefined && Math.abs(offset) <= MIRWALD_VALID_WINDOW_YEARS) {
       timing = timingFromAphv(ageAtPHV, sex);
     } else {
-      // Fuera de ventana Mirwald: no forzamos una etiqueta de APHV poco fiable;
-      // el %PAH da el ESTADO con confianza, pero el timing queda indeterminado.
       timing = "unknown";
       validityNote =
         "Estado por %talla adulta (Khamis-Roche) fiable; el timing vs pares no se afirma por estar lejos del PHV.";
     }
-  } else if (mir && offset !== undefined && ageAtPHV !== undefined) {
+  } else {
+    // Único caso restante: kr nulo pero mir no-nulo (el early-return descartó
+    // el caso sin ningún método, y computeMirwald siempre da offset+ageAtPHV).
     method = "mirwald_offset";
-    const nearPhv = Math.abs(offset) <= MIRWALD_VALID_WINDOW_YEARS;
+    const nearPhv = offset !== undefined && ageAtPHV !== undefined && Math.abs(offset) <= MIRWALD_VALID_WINDOW_YEARS;
     if (nearPhv) {
-      confidence = mir.estimated ? "moderate" : "high";
-      timing = timingFromAphv(ageAtPHV, sex);
+      confidence = mir!.estimated ? "moderate" : "high";
+      timing = timingFromAphv(ageAtPHV as number, sex);
     } else {
       // Lejos del PHV (p.ej. pre-púber de 9 años): Mirwald está sesgado hacia la
       // media → NO afirmamos precoz/tardío (evita falso positivo). Confianza baja.
@@ -210,9 +218,6 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
       validityNote =
         "Estimación preliminar: la edad está lejos del PHV, donde la predicción de Mirwald pierde fiabilidad. Añade altura de ambos padres para un cálculo por %talla adulta (Khamis-Roche).";
     }
-  } else {
-    method = "insufficient_data";
-    confidence = "none";
   }
 
   return {

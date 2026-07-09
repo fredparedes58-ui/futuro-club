@@ -118,17 +118,19 @@ export function computeMirwald(input: MirwaldInput): MirwaldResult {
   };
 }
 
-/** True si el jugador tiene datos suficientes para un PHV client-side. */
+/** True si el jugador tiene datos suficientes y en rango para un PHV válido.
+ *  Mirwald se validó en ~8-18 años; fuera de ese rango (o con antropometría
+ *  absurda) no emitimos un estado/offset categórico. */
 export function canComputeMirwald(p: {
   age?: number;
   height?: number;
   weight?: number;
 }): boolean {
+  const inRange = (v: unknown, lo: number, hi: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
   return (
-    typeof p.age === "number" &&
-    typeof p.height === "number" &&
-    p.height > 0 &&
-    typeof p.weight === "number" &&
-    p.weight > 0
+    inRange(p.age, 8, 18) &&
+    inRange(p.height, 90, 230) &&
+    inRange(p.weight, 15, 150)
   );
 }

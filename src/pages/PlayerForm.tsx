@@ -40,10 +40,18 @@ const formSchema = z.object({
   weight: z.number({ invalid_type_error: "Ingresa el peso" }).min(20, "Mínimo 20 kg").max(120, "Máximo 120 kg"),
   sittingHeight: z.number().min(40).max(120).optional().or(z.literal(0).transform(() => undefined)),
   legLength: z.number().min(40).max(130).optional().or(z.literal(0).transform(() => undefined)),
-  // Maduración: fecha de nacimiento (edad decimal exacta) + alturas parentales (%PAH)
+  // Maduración: fecha de nacimiento (edad decimal exacta) + alturas parentales (%PAH).
+  // preprocess: vacío/0/NaN → undefined (opcional válido); solo un número fuera de
+  // rango real falla → evita que la "zona muerta" bloquee el guardado en silencio.
   birthDate: z.string().optional().or(z.literal("")),
-  motherHeightCm: z.number().min(120).max(210).optional().or(z.literal(0).transform(() => undefined)),
-  fatherHeightCm: z.number().min(120).max(230).optional().or(z.literal(0).transform(() => undefined)),
+  motherHeightCm: z.preprocess(
+    (v) => (v == null || v === 0 || v === "" || (typeof v === "number" && !Number.isFinite(v)) ? undefined : v),
+    z.number().min(130, "Entre 130 y 210 cm").max(210, "Entre 130 y 210 cm").optional(),
+  ),
+  fatherHeightCm: z.preprocess(
+    (v) => (v == null || v === 0 || v === "" || (typeof v === "number" && !Number.isFinite(v)) ? undefined : v),
+    z.number().min(140, "Entre 140 y 230 cm").max(230, "Entre 140 y 230 cm").optional(),
+  ),
   competitiveLevel: z.string().min(1, "Selecciona el nivel"),
   minutesPlayed: z.number().min(0).default(0),
   metrics: z.object({
@@ -336,6 +344,7 @@ const PlayerForm = () => {
             age: data.age,
             position: data.position,
             secondaryPositions: data.secondaryPositions ?? [],
+            gender: data.gender,
             foot: data.foot,
             height: data.height,
             weight: data.weight,
@@ -427,7 +436,7 @@ const PlayerForm = () => {
         </div>
       </motion.div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSubmit, () => toast.error(t("players.form.fixErrors")))} className="space-y-5">
         {/* Progress · solo en modo creación con steps */}
         {useSteps && (
           <motion.div variants={item} className="space-y-2">
@@ -735,6 +744,7 @@ const PlayerForm = () => {
                   placeholder={t("players.form.optional")}
                   {...register("motherHeightCm", { valueAsNumber: true })}
                 />
+                {errors.motherHeightCm && <p className="text-[10px] text-destructive">{errors.motherHeightCm.message}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="fatherHeightCm" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
@@ -749,6 +759,7 @@ const PlayerForm = () => {
                   placeholder={t("players.form.optional")}
                   {...register("fatherHeightCm", { valueAsNumber: true })}
                 />
+                {errors.fatherHeightCm && <p className="text-[10px] text-destructive">{errors.fatherHeightCm.message}</p>}
               </div>
             </div>
             <p className="text-[9px] text-muted-foreground">{t("players.form.parentsHeightHint")}</p>

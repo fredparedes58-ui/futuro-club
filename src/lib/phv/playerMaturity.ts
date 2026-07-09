@@ -34,7 +34,9 @@ export function playerMaturity(
   at?: string | Date,
 ): MaturityAssessment {
   return resolveMaturity({
-    sex: player.gender === "F" ? "F" : "M",
+    // Sexo honesto: si no es "M"/"F" explícito, se pasa undefined → el motor lo
+    // trata como dato insuficiente y no afirma timing sobre un sexo asumido.
+    sex: player.gender === "M" || player.gender === "F" ? player.gender : undefined,
     ageYears: resolveChronologicalAge(player, at),
     heightCm: player.height ?? undefined,
     weightKg: player.weight ?? undefined,
