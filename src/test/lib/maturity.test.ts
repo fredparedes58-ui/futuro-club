@@ -131,4 +131,27 @@ describe("resolveMaturity · motor canónico + anti-falso-positivo", () => {
       motherHeightCm: 162, fatherHeightCm: 176 };
     expect(resolveMaturity(input)).toEqual(resolveMaturity(input));
   });
+
+  it("sexo NO registrado (datos completos) → NO calcula sobre sexo asumido (blindaje)", () => {
+    const m = resolveMaturity({ ageYears: 14, heightCm: 165, weightKg: 55,
+      motherHeightCm: 165, fatherHeightCm: 178 }); // sin sex
+    expect(m.method).toBe("insufficient_data");
+    expect(m.timing).toBe("unknown");
+    expect(m.adjustmentFactor).toBe(1);
+    expect(m.validityNote).toMatch(/[Ss]exo/);
+  });
+
+  it("antropometría absurda → no pasa el gate (garbage-in no da resultado categórico)", () => {
+    const m = resolveMaturity({ sex: "M", ageYears: 14, heightCm: 20, weightKg: 400,
+      motherHeightCm: 250, fatherHeightCm: 250 });
+    expect(m.method).toBe("insufficient_data");
+    expect(m.status).toBe("unknown");
+  });
+
+  it("edad fuera del dominio Mirwald (20a) y sin padres → no emite estado categórico", () => {
+    const m = resolveMaturity({ sex: "M", ageYears: 20, heightCm: 180, weightKg: 72 });
+    expect(m.method).toBe("insufficient_data");
+    expect(m.status).toBe("unknown");
+    expect(m.timing).toBe("unknown");
+  });
 });

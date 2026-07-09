@@ -113,17 +113,18 @@ export function canComputeKhamisRoche(p: {
   motherHeightCm?: number | null;
   fatherHeightCm?: number | null;
 }): boolean {
-  const pos = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v > 0;
+  // Cotas de plausibilidad humana: datos absurdos (altura 20cm, peso 400kg,
+  // padre 250cm) NO deben pasar el gate y producir un %PAH con apariencia de
+  // confianza (garbage-in → garbage-out con nota de validez, no un resultado).
+  const inRange = (v: unknown, lo: number, hi: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
   return (
     (p.sex === "M" || p.sex === "F") &&
-    typeof p.ageYears === "number" &&
-    Number.isFinite(p.ageYears) &&
-    p.ageYears >= KR_MIN_AGE &&
-    p.ageYears <= KR_MAX_AGE &&
-    pos(p.heightCm) &&
-    pos(p.weightKg) &&
-    pos(p.motherHeightCm) &&
-    pos(p.fatherHeightCm)
+    inRange(p.ageYears, KR_MIN_AGE, KR_MAX_AGE) &&
+    inRange(p.heightCm, 90, 230) &&
+    inRange(p.weightKg, 15, 150) &&
+    inRange(p.motherHeightCm, 130, 210) &&
+    inRange(p.fatherHeightCm, 140, 230)
   );
 }
 

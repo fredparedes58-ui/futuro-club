@@ -2481,6 +2481,30 @@
     "viewReports": "Reportes · {{name}}",
     "viewEvolution": "Evolución · {{name}}"
   },
+  "maturity": {
+    "status": {
+      "pre_phv": "Pre-PHV (estirón pendiente)",
+      "circa_phv": "En PHV (estirón en curso)",
+      "post_phv": "Post-PHV (consolidado)",
+      "unknown": "Sin determinar"
+    },
+    "timing": {
+      "early": "Madurador precoz",
+      "on_time": "Maduración en fase",
+      "late": "Madurador tardío",
+      "unknown": "Timing por determinar"
+    },
+    "confidence": {
+      "high": "Confianza alta",
+      "moderate": "Confianza media",
+      "low": "Preliminar (baja confianza)",
+      "none": "Sin datos suficientes"
+    },
+    "ageAtPHV": "PHV estimado",
+    "percentPAH": "% talla adulta",
+    "yearsUnit": "años",
+    "addParentsHint": "Añade la altura de ambos padres para el cálculo por % de talla adulta (más fiable)."
+  },
   "playerHeatmap": {
     "noData": "Sin datos de posición para generar mapa de calor",
     "title": "Mapa de Calor",
