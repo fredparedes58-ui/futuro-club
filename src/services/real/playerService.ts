@@ -42,6 +42,11 @@ export const PlayerSchema = z.object({
   gender: z.enum(["M", "F"]).default("M"),
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
+  // ── Inputs de maduración (para edad decimal exacta y %PAH Khamis-Roche) ──
+  // Se persisten en el jsonb `data` de la tabla players (sin migración).
+  birthDate: z.string().optional(),                        // ISO YYYY-MM-DD → edad decimal
+  motherHeightCm: z.number().min(120).max(210).optional(), // para %PAH (Khamis-Roche)
+  fatherHeightCm: z.number().min(120).max(230).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

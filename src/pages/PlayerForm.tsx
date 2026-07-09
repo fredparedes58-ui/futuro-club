@@ -40,6 +40,10 @@ const formSchema = z.object({
   weight: z.number({ invalid_type_error: "Ingresa el peso" }).min(20, "Mínimo 20 kg").max(120, "Máximo 120 kg"),
   sittingHeight: z.number().min(40).max(120).optional().or(z.literal(0).transform(() => undefined)),
   legLength: z.number().min(40).max(130).optional().or(z.literal(0).transform(() => undefined)),
+  // Maduración: fecha de nacimiento (edad decimal exacta) + alturas parentales (%PAH)
+  birthDate: z.string().optional().or(z.literal("")),
+  motherHeightCm: z.number().min(120).max(210).optional().or(z.literal(0).transform(() => undefined)),
+  fatherHeightCm: z.number().min(120).max(230).optional().or(z.literal(0).transform(() => undefined)),
   competitiveLevel: z.string().min(1, "Selecciona el nivel"),
   minutesPlayed: z.number().min(0).default(0),
   metrics: z.object({
@@ -240,6 +244,9 @@ const PlayerForm = () => {
       weight: 58,
       sittingHeight: 0,
       legLength: 0,
+      birthDate: "",
+      motherHeightCm: 0,
+      fatherHeightCm: 0,
       competitiveLevel: "Regional",
       minutesPlayed: 0,
       metrics: DEFAULT_METRICS,
@@ -266,6 +273,9 @@ const PlayerForm = () => {
       weight: player.weight,
       sittingHeight: player.sittingHeight ?? 0,
       legLength: player.legLength ?? 0,
+      birthDate: player.birthDate ?? "",
+      motherHeightCm: player.motherHeightCm ?? 0,
+      fatherHeightCm: player.fatherHeightCm ?? 0,
       competitiveLevel: player.competitiveLevel,
       minutesPlayed: player.minutesPlayed,
       metrics: player.metrics,
@@ -285,7 +295,7 @@ const PlayerForm = () => {
   // Campos de cada paso para validación parcial (trigger)
   const STEP_FIELDS = {
     1: ["name", "age", "position", "gender", "foot"] as const,
-    2: ["height", "weight", "sittingHeight", "legLength", "competitiveLevel", "minutesPlayed"] as const,
+    2: ["height", "weight", "sittingHeight", "legLength", "birthDate", "motherHeightCm", "fatherHeightCm", "competitiveLevel", "minutesPlayed"] as const,
     3: ["metrics"] as const,
   };
 
@@ -331,6 +341,9 @@ const PlayerForm = () => {
             weight: data.weight,
             sittingHeight: data.sittingHeight || undefined,
             legLength: data.legLength || undefined,
+            birthDate: data.birthDate || undefined,
+            motherHeightCm: data.motherHeightCm || undefined,
+            fatherHeightCm: data.fatherHeightCm || undefined,
             competitiveLevel: data.competitiveLevel,
             minutesPlayed: data.minutesPlayed,
             updatedAt: new Date().toISOString(),
@@ -354,6 +367,9 @@ const PlayerForm = () => {
           weight: data.weight,
           sittingHeight: data.sittingHeight || undefined,
           legLength: data.legLength || undefined,
+          birthDate: data.birthDate || undefined,
+          motherHeightCm: data.motherHeightCm || undefined,
+          fatherHeightCm: data.fatherHeightCm || undefined,
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
           metrics: data.metrics,
@@ -687,6 +703,55 @@ const PlayerForm = () => {
               />
               <p className="text-[9px] text-muted-foreground">{t("players.form.legLengthHint")}</p>
             </div>
+          </div>
+
+          {/* Maduración biológica (opcional) — precisión del cálculo PHV */}
+          <div className="space-y-3 rounded-lg border border-border/60 bg-secondary/20 p-3">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {t("players.form.maturationInputsNote")}
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="birthDate" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                {t("players.form.birthDate")}
+              </Label>
+              <Input
+                id="birthDate"
+                type="date"
+                {...register("birthDate")}
+              />
+              <p className="text-[9px] text-muted-foreground">{t("players.form.birthDateHint")}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="motherHeightCm" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                  {t("players.form.motherHeight")}
+                </Label>
+                <Input
+                  id="motherHeightCm"
+                  type="number"
+                  min={0}
+                  max={210}
+                  step={0.5}
+                  placeholder={t("players.form.optional")}
+                  {...register("motherHeightCm", { valueAsNumber: true })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="fatherHeightCm" className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                  {t("players.form.fatherHeight")}
+                </Label>
+                <Input
+                  id="fatherHeightCm"
+                  type="number"
+                  min={0}
+                  max={230}
+                  step={0.5}
+                  placeholder={t("players.form.optional")}
+                  {...register("fatherHeightCm", { valueAsNumber: true })}
+                />
+              </div>
+            </div>
+            <p className="text-[9px] text-muted-foreground">{t("players.form.parentsHeightHint")}</p>
           </div>
 
           {/* Nivel competitivo + Minutos */}
