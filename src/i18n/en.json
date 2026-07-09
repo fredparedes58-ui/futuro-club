@@ -410,9 +410,9 @@
       "sortName": "Name",
       "phvFilter": {
         "all": "All",
-        "late": "Late ⭐",
+        "late": "Early",
         "onTime": "Normal",
-        "early": "Early"
+        "early": "Late ⭐"
       },
       "bioMaturation": "Biological Maturation (PHV)",
       "ofPlayers": "{filtered} of {total} players",
