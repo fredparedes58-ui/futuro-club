@@ -250,6 +250,7 @@
   "players": {
     "form": {
       "newTitle": "Nuevo Jugador",
+      "fixErrors": "Revisa los campos antes de continuar",
       "editTitle": "Editar Jugador",
       "newSubtitle": "Registra un nuevo jugador en VITAS",
       "editSubtitle": "Actualiza datos y métricas",
@@ -561,7 +562,7 @@
     "uniformColor": "Color Uniforme",
     "jerseyHint": "La IA identificará al jugador por dorsal y color para el análisis individual.",
     "selectPlayerFirst": "Selecciona un jugador primero",
-    "deleteConfirm": "¿Eliminar a {name}?"
+    "deleteConfirm": "¿Eliminar a {{name}}?"
   },
   "billing": {
     "title": "Plan.",
@@ -1812,8 +1813,8 @@
     "pricingHeading": "Tres planes para tres momentos",
     "pricingSubtitle": "Free para probar · Pro para coaches independientes · Club para academias completas.",
     "planFreeDesc": "Para probar la plataforma",
-    "planFreeFeature1": "1 jugador",
-    "planFreeFeature2": "1 análisis IA al mes",
+    "planFreeFeature1": "5 jugadores",
+    "planFreeFeature2": "3 análisis IA al mes",
     "planFreeFeature3": "Acceso a la base de +365 jugadores de La Liga",
     "planFreeFeature4": "VSI corregido por PHV",
     "planProDesc": "Para coaches independientes",
@@ -2457,6 +2458,19 @@
         "description": "Pulsa ⌘K (o Ctrl+K) en cualquier momento para buscar jugadores, acciones o ir directo a cualquier página. El botón flotante arriba a la derecha también lo abre."
       }
     }
+  },
+  "globalSearch": {
+    "triggerAriaLabel": "Búsqueda global",
+    "triggerTitle": "Buscar (⌘K)",
+    "searchLabel": "Buscar",
+    "inputPlaceholder": "Buscar jugadores, acciones o páginas…",
+    "noResults": "Sin resultados",
+    "quickActionsHeading": "Acciones rápidas",
+    "playersHeading": "Jugadores ({{count}})",
+    "goToProfile": "Ver perfil",
+    "familyView": "Vista familia · {{name}}",
+    "viewReports": "Reportes · {{name}}",
+    "viewEvolution": "Evolución · {{name}}"
   },
   "playerHeatmap": {
     "noData": "Sin datos de posición para generar mapa de calor",
@@ -3164,7 +3178,7 @@
   "playerAnalysisPage": {
     "playerFallback": "Jugador",
     "backToHistory": "Volver al historial",
-    "reportsSubtitle": "Reportes IA · 6 análisis",
+    "reportsSubtitle": "Reportes IA",
     "printAria": "Imprimir / PDF",
     "printTitle": "Imprimir / Exportar PDF",
     "shareAria": "Compartir",

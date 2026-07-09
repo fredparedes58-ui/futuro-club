@@ -519,7 +519,7 @@ const SettingsPage = () => {
             <p className="font-display font-semibold text-sm text-foreground">{t("settings.apiKeys")}</p>
             <p className="text-[10px] text-muted-foreground">Supabase · Anthropic · Bunny</p>
           </div>
-          <ChevronRight size={16} className="text-muted-foreground" />
+          <Check size={14} className="text-primary" />
         </div>
       </motion.div>
 

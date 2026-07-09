@@ -240,7 +240,6 @@ export default function PublicLanding() {
             <a href="#features" className="hover:text-foreground transition-colors">{t("publicLanding.navFeatures")}</a>
             <a href="#phv" className="hover:text-foreground transition-colors">PHV</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">{t("publicLanding.navPlans")}</a>
-            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </nav>
           <nav className="flex items-center gap-3">
             {isLoggedIn ? (
