@@ -19,7 +19,7 @@ export const GLOSSARY: Record<string, GlossaryTerm> = {
   phv: {
     term: "PHV",
     short: "Peak Height Velocity",
-    long: "Pico de velocidad de crecimiento. VITAS corrige las métricas por la edad biológica (maduración), no solo la cronológica.",
+    long: "Pico de velocidad de crecimiento. VITAS estima la maduración por el % de talla adulta (Khamis-Roche) y la edad del PHV (APHV = edad − offset de Mirwald), y corrige el rendimiento según el timing vs pares (madurador precoz/tardío), no solo la edad cronológica.",
   },
   vaep: {
     term: "VAEP",

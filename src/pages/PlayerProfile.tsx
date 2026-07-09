@@ -57,11 +57,14 @@ const item = {
 };
 
 // ─── Mapa PHV ─────────────────────────────────────────────────────────────────
+// OJO: el enum phvCategory está invertido respecto al lenguaje de pares:
+// "early" = pre-PHV = madurador TARDÍO (usa las etiquetas *late*, el hidden gem);
+// "late"  = post-PHV = madurador PRECOZ (usa las etiquetas *early*).
 const phvInfo: Record<string, { labelKey: string; color: string; descKey: string }> = {
   early: {
-    labelKey: "players.profile.phv.earlyLabel",
-    color: "text-gold",
-    descKey: "players.profile.phv.earlyDesc",
+    labelKey: "players.profile.phv.lateLabel",
+    color: "text-primary",
+    descKey: "players.profile.phv.lateDesc",
   },
   "on-time": {
     labelKey: "players.profile.phv.onTimeLabel",
@@ -69,9 +72,9 @@ const phvInfo: Record<string, { labelKey: string; color: string; descKey: string
     descKey: "players.profile.phv.onTimeDesc",
   },
   late: {
-    labelKey: "players.profile.phv.lateLabel",
-    color: "text-primary",
-    descKey: "players.profile.phv.lateDesc",
+    labelKey: "players.profile.phv.earlyLabel",
+    color: "text-gold",
+    descKey: "players.profile.phv.earlyDesc",
   },
 };
 
@@ -136,7 +139,7 @@ const PlayerProfile = () => {
 
   useEffect(() => {
     if (phvResult) {
-      toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? t("playerProfile.phvCategoryEarly") : phvResult.category === "late" ? t("playerProfile.phvCategoryLate") : t("playerProfile.phvCategoryNormal"), offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
+      toast.success(t("toasts.phvCalculated", { category: phvResult.category === "early" ? t("playerProfile.phvCategoryLate") : phvResult.category === "late" ? t("playerProfile.phvCategoryEarly") : t("playerProfile.phvCategoryNormal"), offset: `${phvResult.offset > 0 ? "+" : ""}${phvResult.offset}` }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phvResult]);

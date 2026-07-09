@@ -6,6 +6,7 @@
 
 import type { Player } from "./playerService";
 import type { ScoutInsightOutput } from "@/agents/contracts";
+import { playerMaturity } from "@/lib/phv/playerMaturity";
 
 // Avatares por defecto usando iniciales (sin CDN externo)
 const PLACEHOLDER_AVATARS = [
@@ -115,10 +116,14 @@ export function computeDashboardStats(players: Player[]) {
     0
   );
 
-  // "Talentos ocultos" = jugadores early con VSI < 65 (potencial subestimado por PHV)
-  const hiddenTalents = players.filter(
-    (p) => p.phvCategory === "early" && p.vsi < 65
-  ).length;
+  // "Talentos ocultos" = madurador TARDÍO (con confianza) y VSI < 65 (potencial
+  // subestimado por maduración). Gateado por el motor canónico para no contar
+  // a cualquier pre-púber como talento oculto (falso positivo).
+  const hiddenTalents = players.filter((p) => {
+    if (p.vsi >= 65) return false;
+    const m = playerMaturity(p);
+    return m.timing === "late" && (m.confidence === "high" || m.confidence === "moderate");
+  }).length;
 
   return {
     activePlayers: players.length,

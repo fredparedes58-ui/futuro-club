@@ -210,7 +210,7 @@ export default withHandler(
   <div class="info-grid">
     <div class="info-card"><div class="label">Altura</div><div class="value">${height} cm</div></div>
     <div class="info-card"><div class="label">Peso</div><div class="value">${weight} kg</div></div>
-    <div class="info-card"><div class="label">Maduración</div><div class="value">${phvCategory === "ontme" ? "On-Time" : phvCategory === "early" ? "Temprana" : "Tardía"}</div></div>
+    <div class="info-card"><div class="label">Maduración</div><div class="value">${phvCategory === "ontme" ? "En fase" : phvCategory === "early" ? "Tardía" : "Precoz"}</div></div>
     <div class="info-card"><div class="label">VSI</div><div class="value">${vsi.toFixed(1)}</div></div>
   </div>
 

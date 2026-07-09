@@ -20,6 +20,7 @@ import {
 import { PlayerService } from "@/services/real/playerService";
 import { computeDashboardStats } from "@/services/real/adapters";
 import { MetricsService } from "@/services/real/metricsService";
+import { playerMaturity } from "@/lib/phv/playerMaturity";
 import { useTranslation } from "react-i18next";
 
 const sidebarItems = [
@@ -69,9 +70,14 @@ const MasterDashboard = () => {
       )
       .map((p) => {
         const pct = MetricsService.calculatePercentile(p.vsi, allVSIs);
+        // Sesgo desde el motor canónico, con gating: solo marcamos "high" (talento
+        // infravalorado) a un madurador TARDÍO con confianza suficiente, no a
+        // cualquier pre-púber (evita falso positivo).
+        const mat = playerMaturity(p);
+        const matFirm = mat.confidence === "high" || mat.confidence === "moderate";
         const biasAlert: "low" | "med" | "high" =
-          p.phvCategory === "early" ? "high"
-          : p.phvCategory === "late" ? "low"
+          matFirm && mat.timing === "late" ? "high"
+          : matFirm && mat.timing === "early" ? "low"
           : pct > 70 ? "low" : "med";
         const academy =
           (user?.user_metadata?.organization as string | undefined) ||

@@ -85,7 +85,7 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
 
     const rawVSI = typeof p.vsi === "number" ? p.vsi : null;
     const currentPercentile = rawVSI != null ? vsiToPercentile(rawVSI) : 50;
-    const projection = projectToMaturity(currentPercentile, maturation, age!);
+    const projection = projectToMaturity(currentPercentile, assessment, age!);
     const shield = assessGrowthSpurtShield(mirwald.offset, String(p.name ?? "el jugador"));
 
     // VSI ajustado con el factor CANÓNICO (1 cuando el timing no es firme →
