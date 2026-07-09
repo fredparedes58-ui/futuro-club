@@ -25,20 +25,26 @@ Cada sprint es un PR aislado y desplegable (misma disciplina que el resto del pr
 
 ---
 
-## SPRINT V1 · Tracker: ByteTrack → BoT-SORT + Re-ID  ⭐ *mayor salto / menor esfuerzo*
+## SPRINT V1 · Tracker: ByteTrack → BoT-SORT + Re-ID  ⭐ *mayor salto / menor esfuerzo* — ✅ HECHO
 **Por qué primero:** el mayor impacto en calidad con el menor cambio. Re-ID por apariencia reduce drásticamente los cambios de ID en 90 min.
+
+> **Estado:** ✅ desplegado. `ultralytics 8.3.40 → 8.3.170`, `botsort.yaml` con `with_reid: True` (`model: auto`, cero pesos extra) + `track_buffer: 60` (12 s de oclusión a 5 fps). Deploy Modal verificado (health 200). ⏳ A/B (ID-switches vs ByteTrack) pendiente de clips reales.
 
 - **Alcance:** en `vision-pipeline/app.py`, cambiar el tracker de Ultralytics de ByteTrack a `botsort.yaml` con `with_reid: True`; tunear (`conf`, `iou`, `match_thresh`, embedder). Mantener EXACTO el contrato de salida (`players[]`, `ball[]`, etc.) para no romper el cliente.
 - **Entregable:** Modal redeployado con BoT-SORT+Re-ID (`modal deploy` con `PYTHONUTF8=1`, ver gotchas en memoria).
 - **Aceptación:** en un clip con cruces/oclusiones, **menos ID switches** que ByteTrack (medir antes/después, aunque sea manual sobre un clip corto).
 - **Esfuerzo:** S · **Riesgo:** bajo · **Dep:** deploy Modal.
 
-## SPRINT V2 · Identidad server-side (portar el stack del navegador a Modal)
+## SPRINT V2 · Identidad server-side (portar el stack del navegador a Modal) — ✅ HECHO (equipo) · ⏳ dorsal diferido
 **Por qué:** un `track_id` no es identidad. Quieres que un jugador conserve su **identidad real (equipo + dorsal)** todo el partido.
 
-- **Alcance:** llevar la lógica de `teamClassifier` (clustering de color de camiseta) + `colorReId` + `dorsalOCR` (número de dorsal) + `playerIdentityManager` a un **post-proceso server-side** sobre la salida de Modal. Decisión técnica: reimplementar en Python dentro de `app.py` (crops → color/OCR) **o** un endpoint post-proceso Node. Recomendado: Python en `app.py` (evita round-trip de crops).
-- **Entregable:** salida enriquecida con `team` + `jerseyNumber` estable por jugador, además del `track_id`.
-- **Aceptación:** en un clip, un jugador mantiene la misma identidad tras una oclusión; dorsal detectado en ≥X% de jugadores.
+> **Estado:** ✅ **clasificación de equipo por color de camiseta** desplegada (PR #22). En `app.py`: por track se muestrea el color del torso (banda 20-55% vert / 20-80% horiz, mediana LAB, cap 40 muestras) → **2-means determinista** → `team_a`/`team_b`; outliers (portero/árbitro) = `other` vía umbral MAD. Salida enriquecida con `team` + `team_color` (RGB) por jugador + leyenda `teams`. Campos opcionales (backward-compatible). Propagado por `api/coaching/_track-players.ts` y `videoTrackingService`. Deploy Modal + Vercel verificados.
+>
+> **Pendiente (incremento futuro V2.1):** **OCR de dorsal** (`jerseyNumber`) — mayor riesgo (sensible a resolución/broadcast), se abordará con clips reales para calibrar. La identidad de EQUIPO ya cubre el caso de uso principal (heatmaps/táctica por equipo).
+
+- **Alcance (hecho):** clustering de color de camiseta en Python dentro de `app.py` (evita round-trip de crops). **Diferido:** `dorsalOCR` + `jerseyNumber`.
+- **Entregable:** ✅ salida con `team` + `team_color` estable por track. ⏳ `jerseyNumber` en V2.1.
+- **Aceptación:** ⏳ A/B de acierto de asignación de equipo pendiente de clips reales (mismo bloqueo que V1).
 - **Esfuerzo:** M–L · **Riesgo:** medio (OCR de dorsal es sensible a resolución) · **Dep:** V1.
 
 ## SPRINT V3 · Endurecer detección de balón
@@ -95,8 +101,8 @@ Cada sprint es un PR aislado y desplegable (misma disciplina que el resto del pr
 
 | Sprint | Qué | Esfuerzo | Riesgo | Depende de |
 |---|---|---|---|---|
-| **V1** ⭐ | Tracker → BoT-SORT + Re-ID | S | bajo | — |
-| **V2** | Identidad server-side (equipo/dorsal) | M–L | medio | V1 |
+| **V1** ⭐ ✅ | Tracker → BoT-SORT + Re-ID | S | bajo | — |
+| **V2** ✅ (equipo) | Identidad server-side (equipo ✅ / dorsal ⏳) | M–L | medio | V1 |
 | **V3** | Detección de balón robusta | M | medio | V1 |
 | **V4** | Async 90 min (spawn+callback+polling) | L | medio | V1 (ideal V2–V3) |
 | **V5** | Coste/throughput (fps, in-play, A10G) | S–M | bajo | V4 |
