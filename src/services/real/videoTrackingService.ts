@@ -30,6 +30,10 @@ export interface PlayerAppearance {
   timestampMs: number;
   bbox: [number, number, number, number]; // [x1, y1, x2, y2] pixels
   confidence: number;
+  /** V2 · equipo por color de camiseta: "team_a" | "team_b" | "other" | null. */
+  team?: string | null;
+  /** V2 · RGB representativo del equipo [r,g,b], o null si no clasificado. */
+  teamColor?: number[] | null;
 }
 
 export interface BallPosition {
@@ -58,6 +62,8 @@ export interface TrackingResult {
   ballStops: BallStop[];
   totalPlayerTracks: number;
   totalBallDetections: number;
+  /** V2 · leyenda de equipos detectados {"team_a": [r,g,b], ...}. */
+  teams?: Record<string, number[]>;
   createdAt: string;
 }
 

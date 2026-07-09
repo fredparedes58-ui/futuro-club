@@ -121,6 +121,10 @@ class PlayerAppearance(BaseModel):
     timestamp_ms: int
     bbox: list[float]  # [x1, y1, x2, y2] in pixels
     confidence: float
+    # V2 vision roadmap · identidad server-side: equipo por color de camiseta.
+    # "team_a" | "team_b" | "other" (portero/árbitro/outlier) | None (sin datos).
+    team: Optional[str] = None
+    team_color: Optional[list[int]] = None  # RGB representativo del cluster
 
 
 class BallPosition(BaseModel):
@@ -149,6 +153,9 @@ class TrackingResponse(BaseModel):
     # Aggregations the client can use directly
     total_player_tracks: int
     total_ball_detections: int
+    # V2 · leyenda de equipos detectados: {"team_a": [r,g,b], "team_b": [r,g,b]}.
+    # Vacío si no se pudo clasificar (menos de 2 tracks con color).
+    teams: dict[str, list[int]] = Field(default_factory=dict)
 
 
 # ── Health check (cheap, no GPU needed) ───────────────────────────────
@@ -177,7 +184,40 @@ def track_video(req: TrackingRequest) -> dict:
     # Imports inside the function so Modal's image cache picks them up
     import cv2  # type: ignore
     import httpx  # type: ignore
+    import numpy as np  # type: ignore
     from ultralytics import YOLO  # type: ignore
+
+    # ── V2 · helpers de identidad por equipo (color de camiseta) ──────────
+    def _torso_color(img, box):
+        """Color mediano (LAB) de la banda del torso — robusto a fondo/piel."""
+        h, w = img.shape[:2]
+        x1 = max(0, min(int(box[0]), w - 1)); x2 = max(0, min(int(box[2]), w))
+        y1 = max(0, min(int(box[1]), h - 1)); y2 = max(0, min(int(box[3]), h))
+        bw, bh = x2 - x1, y2 - y1
+        if bw < 6 or bh < 12:
+            return None
+        # Banda torso: vertical 20-55% (camiseta, evita cabeza y short/piernas),
+        # horizontal central 20-80% (evita brazos/fondo).
+        crop = img[y1 + int(bh * 0.20): y1 + int(bh * 0.55),
+                   x1 + int(bw * 0.20): x1 + int(bw * 0.80)]
+        if crop.size == 0:
+            return None
+        lab = cv2.cvtColor(crop, cv2.COLOR_BGR2LAB).reshape(-1, 3)
+        return np.median(lab, axis=0)
+
+    def _kmeans2(feats, iters=15):
+        """2-means determinista (init por puntos más distantes)."""
+        c0 = feats[int(np.argmax(np.linalg.norm(feats - feats.mean(axis=0), axis=1)))]
+        c1 = feats[int(np.argmax(np.linalg.norm(feats - c0, axis=1)))]
+        cents = np.stack([c0, c1]).astype(np.float64)
+        labels = np.zeros(len(feats), dtype=int)
+        for _ in range(iters):
+            dists = np.stack([np.linalg.norm(feats - cents[k], axis=1) for k in range(2)], axis=1)
+            labels = np.argmin(dists, axis=1)
+            for k in range(2):
+                if np.any(labels == k):
+                    cents[k] = feats[labels == k].mean(axis=0)
+        return labels, cents
 
     t0 = time.time()
     print(f"[VITAS] Request video_url={req.video_url[:80]}, sample_fps={req.sample_fps}")
@@ -249,6 +289,8 @@ def track_video(req: TrackingRequest) -> dict:
 
     players: list[PlayerAppearance] = []
     ball: list[BallPosition] = []
+    track_colors: dict[int, list] = {}  # V2 · track_id → muestras de color de torso
+    teams_legend: dict[str, list] = {}  # V2 · {"team_a": [r,g,b], ...}
 
     frames_processed = 0
     try:
@@ -285,14 +327,21 @@ def track_video(req: TrackingRequest) -> dict:
                     if cls_int == 0:  # person
                         if ids is None:
                             continue
+                        tid = int(ids[i])
                         players.append(
                             PlayerAppearance(
-                                track_id=int(ids[i]),
+                                track_id=tid,
                                 timestamp_ms=timestamp_ms,
                                 bbox=[float(x) for x in xyxy[i]],
                                 confidence=float(conf[i]),
                             )
                         )
+                        # V2 · muestra de color de torso (cap 40/track para acotar coste)
+                        samples = track_colors.setdefault(tid, [])
+                        if len(samples) < 40 and result.orig_img is not None:
+                            col = _torso_color(result.orig_img, xyxy[i])
+                            if col is not None:
+                                samples.append(col)
                     elif cls_int == 32:  # sports ball
                         x1, y1, x2, y2 = xyxy[i]
                         ball.append(
@@ -310,6 +359,43 @@ def track_video(req: TrackingRequest) -> dict:
             os.unlink(tmp.name)
         except OSError:
             pass
+
+    # 4b. Team classification by jersey color (V2 vision roadmap)
+    # Agrupa los tracks en 2 equipos por color mediano del torso; los outliers
+    # (portero/árbitro) se marcan "other". Le da identidad de EQUIPO a cada
+    # jugador — imprescindible para heatmaps/táctica; antes solo había track_id.
+    tids = [t for t, cs in track_colors.items() if cs]
+    if len(tids) >= 2:
+        feats = np.stack([np.median(np.stack(track_colors[t]), axis=0) for t in tids])
+        labels, cents = _kmeans2(feats)
+        dists = np.array([np.linalg.norm(feats[i] - cents[labels[i]]) for i in range(len(tids))])
+        med = np.median(dists)
+        mad = np.median(np.abs(dists - med)) + 1e-6
+        thr = med + 2.5 * mad  # outliers robustos = portero/árbitro
+        cent_bgr = [cv2.cvtColor(np.uint8([[c]]), cv2.COLOR_LAB2BGR)[0, 0] for c in cents]
+        team_by_track: dict[int, dict] = {}
+        for i, t in enumerate(tids):
+            if dists[i] > thr:
+                team_by_track[t] = {"team": "other", "color": None}
+            else:
+                lab_i = int(labels[i])
+                bgr = cent_bgr[lab_i]
+                team_by_track[t] = {
+                    "team": f"team_{'ab'[lab_i]}",
+                    "color": [int(bgr[2]), int(bgr[1]), int(bgr[0])],  # RGB
+                }
+        for p in players:
+            info = team_by_track.get(p.track_id)
+            if info:
+                p.team = info["team"]
+                p.team_color = info["color"]
+        # Leyenda: solo equipos que quedaron asignados (no "other").
+        for lab_i in range(2):
+            if np.any(labels == lab_i) and np.any(
+                (labels == lab_i) & (dists <= thr)
+            ):
+                bgr = cent_bgr[lab_i]
+                teams_legend[f"team_{'ab'[lab_i]}"] = [int(bgr[2]), int(bgr[1]), int(bgr[0])]
 
     # 5. Derive ball stops (ball static within 30px for >2 seconds)
     ball_stops: list[BallStop] = []
@@ -357,7 +443,8 @@ def track_video(req: TrackingRequest) -> dict:
     elapsed = time.time() - t0
     print(
         f"[VITAS] Done in {elapsed:.1f}s · {frames_processed} frames · "
-        f"{unique_tracks} player tracks · {len(ball)} ball detections · {len(ball_stops)} stops"
+        f"{unique_tracks} player tracks · {len(ball)} ball detections · "
+        f"{len(ball_stops)} stops · {len(teams_legend)} teams"
     )
 
     return TrackingResponse(
@@ -371,6 +458,7 @@ def track_video(req: TrackingRequest) -> dict:
         ball_stops=ball_stops,
         total_player_tracks=unique_tracks,
         total_ball_detections=len(ball),
+        teams=teams_legend,
     ).model_dump()
 
 

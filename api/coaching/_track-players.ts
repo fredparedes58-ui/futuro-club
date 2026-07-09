@@ -47,6 +47,10 @@ interface ModalResponse {
     timestamp_ms: number;
     bbox: number[];
     confidence: number;
+    // V2 · identidad de equipo (color de camiseta). Opcional: Modal antiguo o
+    // clips con <2 tracks no los rellenan → el cliente los trata como undefined.
+    team?: string | null;
+    team_color?: number[] | null;
   }>;
   ball: Array<{
     timestamp_ms: number;
@@ -62,6 +66,8 @@ interface ModalResponse {
   }>;
   total_player_tracks: number;
   total_ball_detections: number;
+  // V2 · leyenda de equipos {"team_a": [r,g,b], ...}. Opcional (compat.).
+  teams?: Record<string, number[]>;
 }
 
 const CORS_HEADERS: Record<string, string> = {
@@ -154,6 +160,8 @@ export default withHandler(
       timestampMs: p.timestamp_ms,
       bbox: p.bbox,
       confidence: p.confidence,
+      team: p.team ?? null,
+      teamColor: p.team_color ?? null,
     })),
     ball: data.ball.map((b) => ({
       timestampMs: b.timestamp_ms,
@@ -169,6 +177,7 @@ export default withHandler(
     })),
     totalPlayerTracks: data.total_player_tracks,
     totalBallDetections: data.total_ball_detections,
+    teams: data.teams ?? {},
   });
   },
 );
