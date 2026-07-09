@@ -19,25 +19,25 @@ import {
   assessMaturation,
   projectToMaturity,
   assessGrowthSpurtShield,
-  bioBandFor,
-  chronoBandLabel,
   type MirwaldResult,
   type MaturationAssessment,
   type MaturityProjection,
   type GrowthSpurtShield,
 } from "@/lib/phv";
+import { playerMaturity } from "@/lib/phv/playerMaturity";
+import type { MaturityAssessment } from "@/lib/phv/maturity";
 
 export interface PHVProduct {
+  /** Evaluación canónica (fuente ÚNICA para la UI: estado/timing/%PAH/APHV). */
+  assessment: MaturityAssessment;
   mirwald: MirwaldResult;
+  /** @deprecated status-as-timing; solo para projection/shield legacy. */
   maturation: MaturationAssessment;
   projection: MaturityProjection;
   shield: GrowthSpurtShield;
-  bioBandLabel: string;
-  chronoBandLabel: string;
-  rebands: boolean;
   /** VSI crudo del jugador (si existe). */
   rawVSI: number | null;
-  /** VSI ajustado por maduración. */
+  /** VSI ajustado por maduración (factor gateado: 1 si el timing no es firme). */
   adjustedVSI: number | null;
   playerName: string;
 }
@@ -68,28 +68,39 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
     });
 
     const maturation = assessMaturation(mirwald);
+
+    // Evaluación canónica (científica, con edad decimal + %PAH si hay padres +
+    // gating anti-falso-positivo). Es la que consume la UI.
+    const assessment = playerMaturity({
+      age,
+      birthDate: typeof p.birthDate === "string" ? p.birthDate : null,
+      height,
+      weight,
+      sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : null,
+      legLength: typeof p.legLength === "number" ? p.legLength : null,
+      gender: (p.gender as "M" | "F") ?? null,
+      motherHeightCm: typeof p.motherHeightCm === "number" ? p.motherHeightCm : null,
+      fatherHeightCm: typeof p.fatherHeightCm === "number" ? p.fatherHeightCm : null,
+    });
+
     const rawVSI = typeof p.vsi === "number" ? p.vsi : null;
     const currentPercentile = rawVSI != null ? vsiToPercentile(rawVSI) : 50;
     const projection = projectToMaturity(currentPercentile, maturation, age!);
     const shield = assessGrowthSpurtShield(mirwald.offset, String(p.name ?? "el jugador"));
 
-    const bioBand = bioBandFor(mirwald.biologicalAge);
-    const chrono = chronoBandLabel(age!);
-    const rebands = bioBand.label.replace("Bio ", "") !== chrono;
-
+    // VSI ajustado con el factor CANÓNICO (1 cuando el timing no es firme →
+    // no infla/penaliza sin base; blindaje anti-falso-positivo).
     const adjustedVSI =
       rawVSI != null
-        ? Math.max(0, Math.min(100, Number((rawVSI * maturation.adjustmentFactor).toFixed(1))))
+        ? Math.max(0, Math.min(100, Number((rawVSI * assessment.adjustmentFactor).toFixed(1))))
         : null;
 
     return {
+      assessment,
       mirwald,
       maturation,
       projection,
       shield,
-      bioBandLabel: bioBand.label,
-      chronoBandLabel: chrono,
-      rebands,
       rawVSI,
       adjustedVSI,
       playerName: String(p.name ?? "Jugador"),
