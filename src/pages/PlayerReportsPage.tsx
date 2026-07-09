@@ -232,26 +232,33 @@ export default function PlayerReportsPage() {
     );
   }
 
+  // Solo filas con reporte generado: evita contar/renderizar/calcular tendencia
+  // sobre report null (getAvg(null) reventaba toda la página → pantalla en blanco)
+  // y corrige el contador que mostraba más reportes que tarjetas visibles.
+  const rows = (analyses ?? []).filter(
+    (a) => (a as { report: unknown }).report != null,
+  ) as { id: string; created_at: string; report: unknown; video_id?: string }[];
+
   // Summary stats
-  const total = analyses?.length ?? 0;
+  const total = rows.length;
   const firstDate = total > 0
-    ? new Date(analyses![analyses!.length - 1].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })
+    ? new Date(rows[rows.length - 1].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })
     : "";
   const lastDate = total > 0
-    ? new Date(analyses![0].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })
+    ? new Date(rows[0].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })
     : "";
 
   // Trend calculation
   let trendDelta = 0;
   if (total >= 2) {
-    const getAvg = (report: VideoIntelligenceOutput) => {
-      const dims = report.estadoActual?.dimensiones;
+    const getAvg = (report: VideoIntelligenceOutput | null | undefined) => {
+      const dims = report?.estadoActual?.dimensiones;
       if (!dims) return 0;
       const scores = Object.values(dims).map((d: { score: number }) => d?.score ?? 0);
       return scores.reduce((a, b) => a + b, 0) / scores.length;
     };
-    const latest = analyses![0].report as VideoIntelligenceOutput;
-    const oldest = analyses![analyses!.length - 1].report as VideoIntelligenceOutput;
+    const latest = rows[0].report as VideoIntelligenceOutput;
+    const oldest = rows[rows.length - 1].report as VideoIntelligenceOutput;
     trendDelta = getAvg(latest) - getAvg(oldest);
   }
 
@@ -345,7 +352,7 @@ export default function PlayerReportsPage() {
         )}
 
         {/* Report cards */}
-        {analyses?.map((a, idx) => (
+        {rows.map((a, idx) => (
           <ReportCard
             key={a.id ?? idx}
             analysis={a as { id: string; created_at: string; report: unknown; video_id?: string }}

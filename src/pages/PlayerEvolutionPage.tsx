@@ -65,8 +65,8 @@ const DIM_SHORT: Record<string, string> = {
 
 type AnalysisRow = { id: string; created_at: string; report: unknown; video_id?: string };
 
-function getScores(report: VideoIntelligenceOutput) {
-  const dims = report.estadoActual?.dimensiones;
+function getScores(report: VideoIntelligenceOutput | null | undefined) {
+  const dims = report?.estadoActual?.dimensiones;
   if (!dims) return null;
   const scores: Record<string, number> = {};
   for (const key of DIM_KEYS) {
@@ -349,8 +349,12 @@ export default function PlayerEvolutionPage() {
     );
   }
 
-  // Sort chronologically (oldest first for charts)
-  const sorted = [...(analyses ?? [])].reverse() as AnalysisRow[];
+  // Sort chronologically (oldest first for charts).
+  // Filtra filas sin reporte generado (analysis completed_partial con 0 reportes)
+  // para no petar al leer report.estadoActual sobre null (pantalla en blanco).
+  const sorted = [...(analyses ?? [])].filter(
+    (a) => (a as AnalysisRow).report != null,
+  ).reverse() as AnalysisRow[];
   const total = sorted.length;
 
   // Build chart data (oldest → newest)
