@@ -95,6 +95,7 @@ REGLAS DE ESCRITURA (obligatorias):
 - metric: nombre corto de la métrica más destacada (ej: "VSI", "Velocidad", "Visión")
 - metricValue: valor con unidad (ej: "82.4", "+14%", "1er percentil")
 - tags: máximo 4, en minúsculas con guión (ej: "phv-early", "breakout", "lateral-derecho")
+- TERMINOLOGÍA DE MADURACIÓN (crítica, no la inviertas): phvCategory "early" = PRE-PHV = el jugador AÚN NO ha dado el estirón → en lenguaje de pares es un MADURADOR TARDÍO (físicamente por detrás de sus pares hoy; su talento suele estar INFRAVALORADO). phvCategory "late" = POST-PHV = MADURADOR PRECOZ (ventaja física temporal que sus pares igualarán). NUNCA describas a un jugador "early"/pre-PHV como "maduración temprana" ni "precoz": vs pares es TARDÍO. Usa siempre el término peer-relativo correcto (tardío ↔ early/pre-PHV, precoz ↔ late/post-PHV).
 - recommendedDrills: máximo 3 objetos {name, reason} de drills recomendados del contexto RAG
 - actionItems: máximo 3 acciones concretas para el entrenador
 - benchmark: una frase comparativa (ej: "Percentil 85 en velocidad para Sub-15")

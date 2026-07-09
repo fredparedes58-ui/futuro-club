@@ -276,12 +276,14 @@ const VitasLab = () => {
   const [playedPosition, setPlayedPosition] = useState<string>("");
   const v2 = usePlayerAnalysisV2();
   const analysisReport = v2.isCompleted ? mapV2ToReport(v2.result) : null;
+  const { data: players = [] } = useAllPlayers();
 
   // ── Fatigue Detection ──
-  const selectedPlayerObj = undefined as { phvOffset?: number } | undefined; // resolved below after players load
+  // phvOffset real del jugador seleccionado (antes quedaba fijo en null y la
+  // corrección por madurez nunca se aplicaba — ni aquí ni en el panel xG).
   const fatigue = useFatigue({
     playerId: selectedPlayerId ?? "",
-    phvOffset: null, // Will be populated from player data when available
+    phvOffset: players.find((p) => p.id === selectedPlayerId)?.phvOffset ?? null,
   });
 
   // ── One-Click Analysis Orchestrator ──
@@ -464,9 +466,9 @@ const VitasLab = () => {
     { id: 4, x: 20, y: 92, label: "P4" },
   ]);
 
-  // Videos y players DEBEN declararse ANTES de useTracking para poder pasar localVideoSrc
+  // Videos DEBEN declararse ANTES de useTracking para poder pasar localVideoSrc
+  // (players se declara arriba, junto al resto de datos del jugador seleccionado)
   const { data: videos = [] } = useVideos();
-  const { data: players = [] } = useAllPlayers();
 
   // Detectar video local para pasarlo al tracking
   const trackingVideo = videos.find(v => v.id === selectedVideoId);
@@ -2055,8 +2057,8 @@ const VitasLab = () => {
                 {/* ── xG Panel (Sprint 6) ── */}
                 <XgPanel
                   summary={xgSummary}
-                  phvActive={!!selectedPlayerObj?.phvOffset}
-                  phvOffset={selectedPlayerObj?.phvOffset ?? null}
+                  phvActive={!!selectedPlayer?.phvOffset}
+                  phvOffset={selectedPlayer?.phvOffset ?? null}
                 />
 
                 {/* ── Analysis View Mode Toggle (Sprint 8) ── */}
