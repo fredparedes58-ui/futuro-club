@@ -18,6 +18,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
+import { playerMaturity, maturityStatusKey, maturityConfidenceKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 import VsiGauge from "@/components/VsiGauge";
 
 export default function PlayerHubPrint() {
@@ -52,15 +53,21 @@ export default function PlayerHubPrint() {
     return <div className="p-8 text-center">{t("playerHubPrint.playerNotFound")}</div>;
   }
 
-  const phvLabel =
-    player.phvCategory === "early" ? t("playerHubPrint.phvLabelEarly") :
-    player.phvCategory === "late" ? t("playerHubPrint.phvLabelLate") :
-    player.phvCategory ? t("playerHubPrint.phvLabelOntime") : t("playerHubPrint.phvLabelNone");
+  // Maduración desde el motor canónico (fuente única · #22). Antes el PDF leía
+  // player.phvAge (campo inexistente → siempre "No disponible") y player.phvCategory
+  // crudo (campo almacenado poco fiable). Esta sección es STATUS-based (Pre/En/
+  // Post-PHV), así que mapeamos por maturity.status, no por timing-vs-pares.
+  const maturity = playerMaturity(player as PlayerMaturityInput);
+  const phvLabel = t(maturityStatusKey(maturity.status));
 
   const phvColor =
-    player.phvCategory === "early" ? "#10b981" :
-    player.phvCategory === "late" ? "#3b82f6" :
-    player.phvCategory ? "#f59e0b" : "#94a3b8";
+    maturity.status === "pre_phv" ? "#10b981" :    // ventana neuromotora abierta
+    maturity.status === "post_phv" ? "#3b82f6" :   // consolidado
+    maturity.status === "circa_phv" ? "#f59e0b" :  // estirón en curso
+    "#94a3b8";                                     // unknown
+
+  const ageAtPhv = maturity.ageAtPHV;
+  const hasMaturity = maturity.confidence !== "none" && Number.isFinite(ageAtPhv);
 
   const today = new Date().toLocaleDateString("es-ES", {
     day: "numeric", month: "long", year: "numeric",
@@ -238,7 +245,7 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 1 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS · Football Intelligence · {t("playerHubPrint.maturationalAge")}: {player.phvAge ? t("playerHubPrint.yearsValue", { count: player.phvAge.toFixed(1) }) : t("playerHubPrint.notAvailable")} · {phvLabel}</span>
+            <span>VITAS · Football Intelligence · {t("playerHubPrint.maturationalAge")}: {hasMaturity ? t("playerHubPrint.yearsValue", { count: ageAtPhv!.toFixed(1) }) : t("playerHubPrint.notAvailable")} · {phvLabel}</span>
             <span>{t("playerHubPrint.pageOf", { current: 1, total: 2 })} · {player.name} · {today}</span>
           </div>
         </div>
@@ -264,14 +271,17 @@ export default function PlayerHubPrint() {
             </h2>
             <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 16, fontSize: 12, lineHeight: 1.7, color: "#334155" }}>
               <strong style={{ color: phvColor }}>{phvLabel}</strong>
-              {player.phvCategory === "early" && (
+              {maturity.status === "pre_phv" && (
                 <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyEarly")}</p>
               )}
-              {player.phvCategory === "late" && (
+              {maturity.status === "post_phv" && (
                 <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyLate")}</p>
               )}
-              {(player.phvCategory === "ontme" || !player.phvCategory) && (
+              {maturity.status === "circa_phv" && (
                 <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyOntime")}</p>
+              )}
+              {maturity.status === "unknown" && (
+                <p style={{ margin: "8px 0 0 0" }}>{maturity.validityNote ?? t("maturity.confidence.none")}</p>
               )}
             </div>
           </div>
@@ -328,7 +338,7 @@ export default function PlayerHubPrint() {
 
           {/* Footer página 2 */}
           <div style={{ position: "absolute", bottom: "16mm", left: "16mm", right: "16mm", display: "flex", justifyContent: "space-between", fontSize: 9, color: "#94a3b8", borderTop: "1px solid #e2e8f0", paddingTop: 8 }}>
-            <span>VITAS v2.0 · {t("playerHubPrint.mirwaldEvaluation")} · {t("playerHubPrint.confidence")}: {player.phvAge ? t("playerHubPrint.confidenceMediumHigh") : t("playerHubPrint.confidencePartial")}</span>
+            <span>VITAS v2.0 · {t("playerHubPrint.mirwaldEvaluation")} · {t("playerHubPrint.confidence")}: {t(maturityConfidenceKey(maturity.confidence))}</span>
             <span>{t("playerHubPrint.pageOf", { current: 2, total: 2 })} · {player.name} · {today}</span>
           </div>
         </div>

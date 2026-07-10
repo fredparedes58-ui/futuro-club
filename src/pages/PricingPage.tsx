@@ -16,6 +16,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/AuthContext";
 import {
   Check, X, ArrowRight, Zap, Shield, BarChart3,
   Brain, Video, TrendingUp, Star, Quote,
@@ -178,6 +179,10 @@ const CASE_STUDIES: CaseStudy[] = [
 export default function PricingPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user } = useAuth();
+  // Un visitante sin sesión no puede entrar a /billing (requiere auth) → primero
+  // se registra. Con sesión, va directo a gestionar su plan (#14).
+  const paidCtaTarget = user ? "/billing" : "/register";
 
   // No mostrar testimonios/casos mientras solo contengan plantillas "[…]"
   // (evita reseñas y resultados falsos ante visitantes de la página pública).
@@ -255,7 +260,7 @@ export default function PricingPage() {
                 key={plan}
                 plan={plan}
                 featured={plan === "pro"}
-                onCta={() => navigate(plan === "free" ? "/register" : "/billing")}
+                onCta={() => navigate(plan === "free" ? "/register" : paidCtaTarget)}
                 index={idx}
               />
             ))}
@@ -442,7 +447,7 @@ export default function PricingPage() {
               <ArrowRight size={14} />
             </button>
             <button
-              onClick={() => navigate("/billing")}
+              onClick={() => navigate(paidCtaTarget)}
               className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border/40 text-foreground font-display font-semibold text-sm uppercase tracking-wider hover:bg-muted/40 transition-colors"
             >
               {t("pricingPage.viewProClubPlans")}
