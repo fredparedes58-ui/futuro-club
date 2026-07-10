@@ -22,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import VideoUpload from "@/components/VideoUpload";
+import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
 
 type AnalysisMode = "text" | "video";
 
@@ -153,8 +154,14 @@ export default function TeamBaselinePage() {
             <div className="text-left space-y-3">
               {!videoAnalysis && !analyzingVideo && (
                 <VideoUpload
-                  onUploadComplete={(cdnUrl) => {
-                    if (cdnUrl) handleVideoAnalysis(cdnUrl);
+                  onDone={(videoId) => {
+                    // VideoUpload expone onDone(videoId), no onUploadComplete
+                    // (prop inexistente → subir vídeo no hacía nada · #3).
+                    // Resolvemos el videoId a una URL reproducible para el agente.
+                    const video = VideoService.getById(videoId);
+                    const url = video ? getBestVideoUrl(video) : null;
+                    if (url) handleVideoAnalysis(url);
+                    else toast.error(t("teamBaselinePage.errorAnalyzingVideo"));
                   }}
                 />
               )}

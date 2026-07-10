@@ -74,11 +74,13 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
         alert(t("videoUpload.fileTooLarge", { max: MAX_SIZE_MB }));
         return;
       }
-      upload(file, { title: title || file.name, onDuplicate: handleDuplicate }).then(() => {
-        if (state.videoId && onDone) onDone(state.videoId);
+      upload(file, { title: title || file.name, onDuplicate: handleDuplicate }).then((videoId) => {
+        // upload() devuelve el videoId real resuelto; antes leíamos
+        // state.videoId de la closure (stale) y el callback no disparaba (#26).
+        if (videoId && onDone) onDone(videoId);
       });
     },
-    [upload, title, state.videoId, onDone, handleDuplicate, t]
+    [upload, title, onDone, handleDuplicate, t]
   );
 
   const onDrop = useCallback(
