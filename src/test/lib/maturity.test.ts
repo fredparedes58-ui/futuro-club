@@ -18,9 +18,8 @@ describe("Mirwald · APHV = edad − offset (corrección A)", () => {
     const r = computeMirwald({ chronologicalAge: 14, height: 165, weight: 55, gender: "M" });
     // APHV = 14 − offset. offset negativo (pre-PHV) → APHV > 14.
     expect(r.ageAtPHV).toBeCloseTo(14 - r.offset, 5);
-    // El legacy biologicalAge (edad+offset) es justo lo contrario (inválido).
-    expect(r.biologicalAge).toBeCloseTo(14 + r.offset, 5);
-    expect(r.ageAtPHV).not.toBeCloseTo(r.biologicalAge, 1);
+    // El legacy biologicalAge (edad+offset, inválido) fue retirado del resultado.
+    expect(r).not.toHaveProperty("biologicalAge");
   });
 });
 

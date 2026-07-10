@@ -53,8 +53,6 @@ export function phvFallback(body: PHVInput, reason: FallbackReason) {
   const factor = category === "early" ? 1.12 : category === "late" ? 0.92 : 1.0;
   const adjustedVSI = Math.min(100, Math.max(0, Math.round(vsi * factor * 100) / 100));
 
-  const biologicalAge = Math.round((age + offset) * 100) / 100;
-
   // Confidence is lower than Claude's (0.5/0.62 vs 0.74/0.92)
   const confidence = hasRealData ? 0.62 : 0.5;
 
@@ -66,7 +64,6 @@ export function phvFallback(body: PHVInput, reason: FallbackReason) {
 
   return {
     playerId: body.playerId,
-    biologicalAge,
     chronologicalAge: age,
     offset: Math.round(offset * 100) / 100,
     category,

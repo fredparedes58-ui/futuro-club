@@ -21,7 +21,6 @@ describe("phvFallback", () => {
   it("returns all required fields", () => {
     const result = phvFallback(baseInput, "no_api_key");
     expect(result).toHaveProperty("playerId", "p1");
-    expect(result).toHaveProperty("biologicalAge");
     expect(result).toHaveProperty("chronologicalAge", 14);
     expect(result).toHaveProperty("offset");
     expect(result).toHaveProperty("category");
@@ -86,13 +85,13 @@ describe("phvFallback", () => {
     const result = phvFallback({
       playerId: "p2", chronologicalAge: 14,
     }, "parse_error");
-    expect(result.biologicalAge).toBeGreaterThan(0);
+    expect(typeof result.offset).toBe("number");
     expect(result._fallbackReason).toBe("parse_error");
   });
 
-  it("biologicalAge = chronologicalAge + offset", () => {
+  it("no longer emits the retired biologicalAge field", () => {
     const result = phvFallback(baseInput, "no_api_key");
-    expect(result.biologicalAge).toBeCloseTo(result.chronologicalAge + result.offset, 1);
+    expect(result).not.toHaveProperty("biologicalAge");
   });
 
   it("developmentWindow is critical during PHV", () => {

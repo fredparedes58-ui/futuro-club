@@ -26,9 +26,9 @@ export const BIO_BANDS: BioBand[] = [
   { key: "bio-senior", label: "Bio Senior", minBioAge: 19, maxBioAge: 99 },
 ];
 
-export function bioBandFor(biologicalAge: number): BioBand {
+export function bioBandFor(bioAge: number): BioBand {
   return (
-    BIO_BANDS.find((b) => biologicalAge >= b.minBioAge && biologicalAge < b.maxBioAge) ??
+    BIO_BANDS.find((b) => bioAge >= b.minBioAge && bioAge < b.maxBioAge) ??
     BIO_BANDS[BIO_BANDS.length - 1]
   );
 }
@@ -45,7 +45,7 @@ export function chronoBandLabel(age: number): string {
 
 export interface BioBandedPlayer<T> {
   player: T;
-  biologicalAge: number;
+  bioAge: number;
   bioBand: BioBand;
   chronoBand: string;
   /** true si el jugador cambia de banda al usar bio-edad (el caso interesante). */
@@ -54,21 +54,21 @@ export interface BioBandedPlayer<T> {
 
 /**
  * Agrupa una lista de jugadores por banda biológica.
- * `getBio` extrae (biologicalAge, chronologicalAge) de cada jugador.
+ * `getBio` extrae (bioAge, chronologicalAge) de cada jugador.
  */
 export function groupByBioBand<T>(
   players: T[],
-  getBio: (p: T) => { biologicalAge: number; chronologicalAge: number },
+  getBio: (p: T) => { bioAge: number; chronologicalAge: number },
 ): Map<string, BioBandedPlayer<T>[]> {
   const groups = new Map<string, BioBandedPlayer<T>[]>();
 
   for (const player of players) {
-    const { biologicalAge, chronologicalAge } = getBio(player);
-    const bioBand = bioBandFor(biologicalAge);
+    const { bioAge, chronologicalAge } = getBio(player);
+    const bioBand = bioBandFor(bioAge);
     const chronoBand = chronoBandLabel(chronologicalAge);
     const entry: BioBandedPlayer<T> = {
       player,
-      biologicalAge,
+      bioAge,
       bioBand,
       chronoBand,
       reband: bioBand.label.replace("Bio ", "") !== chronoBand,

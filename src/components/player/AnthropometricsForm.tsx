@@ -15,7 +15,7 @@ import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Ruler, Save, Loader2, Pencil, Trash2, Plus, X, Calendar,
-  AlertCircle, Sparkles, WifiOff,
+  AlertCircle, WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -38,7 +38,6 @@ interface Props {
 
 interface PhvResult {
   offset: number;
-  biologicalAge: number;
   category: "early" | "ontime" | "late";
   phv_status: "pre_phv" | "during_phv" | "post_phv";
   development_window: "critical" | "active" | "stable";
@@ -78,7 +77,6 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [lastResult, setLastResult] = useState<PhvResult | null>(null);
 
   // Offline queue para mediciones · resilencia ante red intermitente
   const offline = useOfflineMutation({
@@ -137,7 +135,6 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
       sitting: fallback?.sittingHeightCm ? String(fallback.sittingHeightCm) : "",
       leg:     fallback?.legLengthCm     ? String(fallback.legLengthCm)     : "",
     });
-    setLastResult(null);
     setError(null);
     setShowForm(true);
   }
@@ -150,7 +147,6 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
       sitting: row.sitting_height_cm ? String(row.sitting_height_cm) : "",
       leg:     row.leg_length_cm     ? String(row.leg_length_cm)     : "",
     });
-    setLastResult(null);
     setError(null);
     setShowForm(true);
   }
@@ -302,37 +298,6 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", 
           )}
         </div>
       )}
-
-      {/* PHV resultado */}
-      <AnimatePresence>
-        {lastResult && !showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="rounded-xl p-3 border-2 bg-secondary/30"
-            style={{ borderColor: PHV_LABELS[lastResult.category].color }}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <Sparkles size={12} className="text-primary" />
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                {t("anthroForm.phvCalcTitle")}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl">{PHV_LABELS[lastResult.category].emoji}</span>
-              <div>
-                <div className="font-display font-bold text-lg" style={{ color: PHV_LABELS[lastResult.category].color }}>
-                  {phvLabel(lastResult.category)}
-                </div>
-                <div className="text-[10px] text-muted-foreground">
-                  {t("anthroForm.maturationLabel")} {lastResult.offset > 0 ? "+" : ""}{lastResult.offset} {t("anthroForm.yearsUnit")} · {t("anthroForm.bioAgeLabel")} {lastResult.biologicalAge}a
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Formulario · alta o edición */}
       <AnimatePresence>

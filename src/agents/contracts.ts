@@ -22,9 +22,10 @@ export const PHVInputSchema = z.object({
 
 export const PHVOutputSchema = z.object({
   playerId: z.string(),
-  biologicalAge: z.number(),
   chronologicalAge: z.number(),
-  offset: z.number(),                          // biologicalAge - chronologicalAge
+  // Mirwald maturity offset (años respecto al PHV). La magnitud válida derivada
+  // es ageAtPHV = chronologicalAge − offset (motor en src/lib/phv/maturity.ts).
+  offset: z.number(),
   category: z.enum(["early", "ontme", "late"]),
   phvStatus: z.enum(["pre_phv", "during_phv", "post_phv"]),
   developmentWindow: z.enum(["critical", "active", "stable"]),

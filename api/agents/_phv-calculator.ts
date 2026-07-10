@@ -33,7 +33,6 @@ type PhvInput = z.infer<typeof phvSchema>;
 
 interface PhvResult {
   playerId: string;
-  biologicalAge: number;
   chronologicalAge: number;
   offset: number;
   category: "early" | "ontime" | "late";
@@ -183,13 +182,11 @@ export default withHandler(
     try {
       const input = body as PhvInput;
       const { offset, formula, inputsUsed, confidence } = calculateMaturityOffset(input);
-      const biologicalAge = Number((input.chronologicalAge + offset).toFixed(2));
       const { category, phvStatus, developmentWindow } = categorize(offset);
       const adjustedVSI = adjustVSI(input.currentVSI, category);
 
       const partialResult = {
         playerId: input.playerId,
-        biologicalAge,
         chronologicalAge: input.chronologicalAge,
         offset,
         category,
