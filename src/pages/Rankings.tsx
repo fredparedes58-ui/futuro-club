@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsService";
 import FeatureHint from "@/components/FeatureHint";
 import { RequirePermission } from "@/components/RequirePermission";
+import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const rankIcons = [
@@ -398,31 +399,22 @@ const Rankings = () => {
                   <span>·</span>
                   <span>{player.age}a</span>
                   <span>·</span>
-                  {/* Blindaje anti-falso-positivo: lejos del PHV (|offset|>2.5) el
-                      timing de Mirwald no es fiable → "por determinar" en vez de
-                      afirmar precoz/tardío con confianza visual (coherente con la
-                      tarjeta PHV del hub). */}
-                  {Math.abs(player.phvOffset ?? 0) > 2.5 ? (
-                    <span className="text-muted-foreground">
-                      {t("maturity.timing.unknown")}
-                    </span>
-                  ) : (
-                    <span
-                      className={
-                        player.phvCategory === "late"
-                          ? "text-primary font-semibold"
-                          : player.phvCategory === "early"
-                          ? "text-gold"
-                          : "text-muted-foreground"
-                      }
-                    >
-                      {player.phvCategory === "late"
-                        ? t("players.rankings.phvFilter.late")
-                        : player.phvCategory === "early"
-                        ? t("players.rankings.phvFilter.early")
-                        : t("players.rankings.phvFilter.onTime")}
-                    </span>
-                  )}
+                  {/* Timing de maduración desde el motor canónico (misma fuente
+                      que la tarjeta PHV): la respuesta del API incluye la
+                      antropometría/sexo del jugador. "por determinar" cuando no
+                      es fiable (lejos del PHV / sin datos) → sin falso positivo. */}
+                  {(() => {
+                    const mat = playerMaturity(player as unknown as PlayerMaturityInput);
+                    const cls =
+                      mat.timing === "late" ? "text-primary font-semibold"
+                      : mat.timing === "early" ? "text-gold"
+                      : "text-muted-foreground";
+                    return (
+                      <span className={cls}>
+                        {t(maturityTimingKey(mat.timing))}{mat.timing === "late" ? " ⭐" : ""}
+                      </span>
+                    );
+                  })()}
                   {/* Percentile badge */}
                   <span className="text-primary font-mono font-semibold">
                     P{player.percentileInAgeGroup}

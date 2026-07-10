@@ -66,6 +66,14 @@ type PlayerRow = {
   foot: string;
   height: number;
   weight: number;
+  // Campos de maduración para que el cliente compute el timing canónico
+  // (resolveMaturity) con la misma fuente en ambas rutas (RPC/fallback).
+  gender: "M" | "F";
+  birthDate: string | null;
+  sittingHeight: number | null;
+  legLength: number | null;
+  motherHeightCm: number | null;
+  fatherHeightCm: number | null;
 };
 
 const rankingsCache = new Map<string, { data: PlayerRow[]; timestamp: number }>();
@@ -216,6 +224,12 @@ export default withHandler(
           foot: (d.foot as string) ?? "right",
           height: (d.height as number) ?? 170,
           weight: (d.weight as number) ?? 60,
+          gender: (d.gender as "M" | "F") ?? "M",
+          birthDate: (d.birthDate as string) ?? null,
+          sittingHeight: (d.sittingHeight as number) ?? null,
+          legLength: (d.legLength as number) ?? null,
+          motherHeightCm: (d.motherHeightCm as number) ?? null,
+          fatherHeightCm: (d.fatherHeightCm as number) ?? null,
         };
       });
 
