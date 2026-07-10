@@ -7,6 +7,7 @@
  * Feature gate: Club plan.
  */
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Heart, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import WellbeingDashboard from "@/components/wellbeing/WellbeingDashboard";
@@ -15,6 +16,7 @@ import { usePlan } from "@/hooks/usePlan";
 
 export default function WellbeingDashboardPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { canUseTeamWellbeing } = usePlan();
 
   return (
@@ -23,12 +25,12 @@ export default function WellbeingDashboardPage() {
       fallback={
         <div className="min-h-screen bg-background flex items-center justify-center px-4">
           <div className="text-center space-y-3">
-            <p className="font-display font-bold text-lg text-foreground">Acceso restringido</p>
+            <p className="font-display font-bold text-lg text-foreground">{t("wellbeingDashboardPage.accessRestricted")}</p>
             <p className="text-sm text-muted-foreground">
-              Solo entrenadores y directores pueden ver el bienestar del equipo.
+              {t("wellbeingDashboardPage.accessRestrictedDesc")}
             </p>
             <button onClick={() => navigate("/pulse")} className="text-primary text-sm font-display underline">
-              Volver al dashboard
+              {t("wellbeingDashboardPage.backToDashboard")}
             </button>
           </div>
         </div>
@@ -50,7 +52,7 @@ export default function WellbeingDashboardPage() {
             <div className="flex items-center gap-2">
               <Heart size={18} className="text-rose-400" />
               <h1 className="text-lg font-display font-bold text-foreground">
-                Bienestar del Equipo
+                {t("wellbeingDashboardPage.title")}
               </h1>
             </div>
           </div>
@@ -62,13 +64,12 @@ export default function WellbeingDashboardPage() {
         <main className="max-w-3xl mx-auto px-4 py-12 text-center">
           <Lock size={32} className="text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold text-foreground mb-2">
-            Función del plan Club
+            {t("wellbeingDashboardPage.clubFeatureTitle")}
           </h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
-            El panel de Bienestar del Equipo (riesgo de abandono, engagement e
-            intervención) está disponible en el plan Club.
+            {t("wellbeingDashboardPage.clubFeatureDesc")}
           </p>
-          <Button onClick={() => navigate("/billing")}>Ver planes</Button>
+          <Button onClick={() => navigate("/billing")}>{t("wellbeingDashboardPage.viewPlans")}</Button>
         </main>
       ) : (
         <main className="max-w-5xl mx-auto px-4 py-6">

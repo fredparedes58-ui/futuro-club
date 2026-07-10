@@ -4097,6 +4097,15 @@
     "metricDefending": "DEFENDING",
     "metricStamina": "PHYSICAL"
   },
+  "wellbeingDashboardPage": {
+    "accessRestricted": "Access restricted",
+    "accessRestrictedDesc": "Only coaches and directors can view team wellbeing.",
+    "backToDashboard": "Back to dashboard",
+    "title": "Team Wellbeing",
+    "clubFeatureTitle": "Club plan feature",
+    "clubFeatureDesc": "The Team Wellbeing panel (dropout risk, engagement and intervention) is available on the Club plan.",
+    "viewPlans": "View plans"
+  },
   "wellbeingDashboard": {
     "backToTeam": "Back to team",
     "teamWellbeingPanel": "Team Wellbeing Panel",

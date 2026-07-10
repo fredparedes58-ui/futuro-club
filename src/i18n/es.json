@@ -4097,6 +4097,15 @@
     "metricDefending": "DEFENSA",
     "metricStamina": "FÍSICO"
   },
+  "wellbeingDashboardPage": {
+    "accessRestricted": "Acceso restringido",
+    "accessRestrictedDesc": "Solo entrenadores y directores pueden ver el bienestar del equipo.",
+    "backToDashboard": "Volver al dashboard",
+    "title": "Bienestar del Equipo",
+    "clubFeatureTitle": "Función del plan Club",
+    "clubFeatureDesc": "El panel de Bienestar del Equipo (riesgo de abandono, engagement e intervención) está disponible en el plan Club.",
+    "viewPlans": "Ver planes"
+  },
   "wellbeingDashboard": {
     "backToTeam": "Volver al equipo",
     "teamWellbeingPanel": "Panel de Bienestar del Equipo",
