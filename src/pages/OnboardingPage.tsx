@@ -82,7 +82,7 @@ const OnboardingPage = () => {
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const prev = () => setStep((s) => Math.max(s - 1, 1));
 
-  const handleFinish = async () => {
+  const handleFinish = async (opts?: { skipPlayer?: boolean }) => {
     if (!user || !profileType) return;
     setSaving(true);
     try {
@@ -100,8 +100,9 @@ const OnboardingPage = () => {
         onboardingCompleted: true,
       });
 
-      // Crear primer jugador si se proporcionó nombre
-      if (playerName.trim()) {
+      // Crear primer jugador solo si NO se omite y se dio nombre (flag explícito,
+      // no depende de setState asíncrono → "Omitir"/"demo" ya no crean jugador).
+      if (!opts?.skipPlayer && playerName.trim()) {
         PlayerService.create({
           name: playerName.trim(),
           age: parseInt(playerAge) || 14,
@@ -362,8 +363,7 @@ const OnboardingPage = () => {
               <button
                 onClick={() => {
                   DemoDataService.seed();
-                  setPlayerName(""); // No crear jugador manual si elige demo
-                  handleFinish();
+                  handleFinish({ skipPlayer: true }); // demo → no crear jugador manual
                 }}
                 disabled={saving}
                 className="w-full glass rounded-xl p-3 flex items-center gap-3 border border-transparent hover:border-primary/30 transition-all text-left"
@@ -389,14 +389,14 @@ const OnboardingPage = () => {
                 <Button
                   variant="ghost"
                   className="flex-1 text-muted-foreground"
-                  onClick={() => { setPlayerName(""); handleFinish(); }}
+                  onClick={() => handleFinish({ skipPlayer: true })}
                   disabled={saving}
                 >
                   {t("common.skip")}
                 </Button>
                 <Button
                   className="flex-1 gap-2"
-                  onClick={handleFinish}
+                  onClick={() => handleFinish()}
                   disabled={saving}
                 >
                   {saving ? t("common.saving") : (

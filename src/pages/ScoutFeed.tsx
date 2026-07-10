@@ -390,7 +390,19 @@ const ScoutFeed = () => {
   const generateMutation = useGenerateInsights();
   const updateMutation = useUpdateInsight();
 
-  const insights = data?.insights ?? [];
+  // "Cargar más" acumula páginas (antes reemplazaba: al subir offset la query
+  // nueva sustituía la lista y se perdían los insights anteriores).
+  const [accumulated, setAccumulated] = useState<NonNullable<typeof data>["insights"]>([]);
+  useEffect(() => {
+    const page = data?.insights;
+    if (!page) return;
+    setAccumulated((prev) =>
+      (filters.offset ?? 0) === 0
+        ? page
+        : [...prev, ...page.filter((i) => !prev.some((p) => p.id === i.id))],
+    );
+  }, [data, filters.offset]);
+  const insights = accumulated;
   const unreadCount = data?.unread ?? 0;
   const totalCount = data?.total ?? 0;
 

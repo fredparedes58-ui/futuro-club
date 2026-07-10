@@ -996,7 +996,7 @@ const PlayerProfile = () => {
       {playerVideos && playerVideos.length >= 2 && (
         <motion.div variants={item}>
           <button
-            onClick={() => navigate(`/players/${player.id}/intelligence?compare=1`)}
+            onClick={() => navigate(`/players/${player.id}/evolution`)}
             className="w-full glass rounded-xl p-4 flex items-center justify-between hover:border-electric/40 border border-electric/20 transition-colors group"
           >
             <div className="flex items-center gap-3">
