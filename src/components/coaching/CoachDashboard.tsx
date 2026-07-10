@@ -25,6 +25,7 @@ import {
   useCoachingReport,
 } from "@/hooks/useCoachingSession";
 import CoachingReportView from "@/components/analysis/reports/CoachingReportView";
+import DemoDataBanner from "@/components/DemoDataBanner";
 
 import SessionTimelineView from "./SessionTimelineView";
 import SessionBalanceChart from "./SessionBalanceChart";
@@ -187,6 +188,15 @@ export default function CoachDashboard({ teamId, teamName }: Props) {
   const analysisQ = useSessionAnalysis(latestSessionId);
   const recommendationQ = useSessionRecommendation(teamId);
 
+  // Aún no hay una sesión de entrenamiento real analizada → las pestañas de
+  // analítica pintan datos de muestra. Lo declaramos honestamente en la UI en
+  // lugar de presentar mock como métricas reales del equipo (#5).
+  const isDemoData =
+    !sessionsQ.data ||
+    sessionsQ.data.length === 0 ||
+    sessionsQ.data.every((s) => String(s.id).startsWith("mock-")) ||
+    (analysisQ.data as { mock?: boolean } | undefined)?.mock === true;
+
   // Mock fallback data
   const segments = useMemo(() => generateMockSegments(), []);
   const balance = useMemo(() => generateMockBalance(), []);
@@ -203,6 +213,8 @@ export default function CoachDashboard({ teamId, teamName }: Props) {
 
   return (
     <div className="space-y-4">
+      {isDemoData && <DemoDataBanner messageKey="demoData.coach" />}
+
       {/* Tab bar */}
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
         {TABS.map(({ key, labelKey, icon: Icon }) => {

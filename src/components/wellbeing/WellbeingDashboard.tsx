@@ -5,18 +5,22 @@
  * Grid of players ordered by dropout risk. Click → detail.
  * Used in /wellbeing page for coaches and directors.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2, AlertCircle, Users } from "lucide-react";
 import {
   useDropoutRisk,
   useEngagementHistory,
   useAttendance,
   useBurnoutReport,
+  useTeamDropoutRisk,
+  useTeamEngagement,
   buildBurnoutInput,
   type DropoutRiskAssessment,
+  type EngagementSnapshot,
 } from "@/hooks/useWellbeing";
+import { useAllPlayers } from "@/hooks/usePlayers";
 
 import TeamRiskOverview from "./TeamRiskOverview";
 import DropoutRiskGauge from "./DropoutRiskGauge";
@@ -28,52 +32,64 @@ import InterventionPlanView from "./InterventionPlanView";
 import EngagementMiniCard from "@/components/coaching/EngagementMiniCard";
 import BurnoutReportView from "@/components/analysis/reports/BurnoutReportView";
 
-// Edad por defecto (el panel de equipo usa jugadores mock sin edad); el agente
+// Edad por defecto cuando el jugador no tiene edad registrada; el agente
 // refleja la falta de datos en su confidence_score.
 const DEFAULT_PLAYER_AGE = 13;
 
-// ─── Mock team data ──────────────────────────────────────────────────────
+// ─── Heatmap semanal (a partir de snapshots reales de engagement) ──────────
 
-const MOCK_TEAM_PLAYERS = [
-  { id: "p1", name: "Marco López" },
-  { id: "p2", name: "Lucas García" },
-  { id: "p3", name: "Pablo Martínez" },
-  { id: "p4", name: "Diego Fernández" },
-  { id: "p5", name: "Andrés Rodríguez" },
-  { id: "p6", name: "Tomás Sánchez" },
-  { id: "p7", name: "Mateo Ruiz" },
-  { id: "p8", name: "Nicolás Torres" },
-];
+/** Lunes (ISO, YYYY-MM-DD) de la semana a la que pertenece la fecha dada. */
+function mondayOf(dateStr: string): string {
+  const d = new Date(`${dateStr.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateStr.slice(0, 10);
+  const dayFromMonday = (d.getDay() + 6) % 7; // Lun=0 … Dom=6
+  d.setDate(d.getDate() - dayFromMonday);
+  return d.toISOString().slice(0, 10);
+}
 
-function generateMockTeamRisk() {
-  return MOCK_TEAM_PLAYERS.map(p => {
-    const seed = p.id.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
-    const riskScore = 10 + (seed % 70);
-    const riskLevel: "low" | "moderate" | "high" | "critical" =
-      riskScore >= 75 ? "critical" : riskScore >= 50 ? "high" : riskScore >= 25 ? "moderate" : "low";
-    const factors = ["engagementDecline", "motivationType", "overtrainingRisk", "attendanceDecline", "vsiStagnation"];
+type HeatmapRow = {
+  playerId: string;
+  playerName: string;
+  weeks: Array<{ weekLabel: string; score: number | null }>;
+};
+
+/**
+ * Construye el heatmap engagement (jugadores × últimas 6 semanas) a partir de
+ * los snapshots reales por jugador. Semanas alineadas entre jugadores (mismas
+ * columnas); celdas sin datos = null (el heatmap las pinta vacías).
+ */
+function buildEngagementHeatmap(
+  players: Array<{ id: string; name: string }>,
+  snapshotsByPlayer: Array<EngagementSnapshot[] | undefined>,
+): HeatmapRow[] {
+  // Conjunto compartido de semanas (las 6 más recientes con algún dato).
+  const allWeeks = new Set<string>();
+  snapshotsByPlayer.forEach((snaps) => {
+    (snaps ?? []).forEach((s) => allWeeks.add(mondayOf(s.date)));
+  });
+  const weekKeys = [...allWeeks].sort().slice(-6);
+
+  return players.map((p, i) => {
+    const snaps = snapshotsByPlayer[i] ?? [];
+    // Media de engagementScore por semana.
+    const byWeek = new Map<string, { sum: number; n: number }>();
+    snaps.forEach((s) => {
+      const wk = mondayOf(s.date);
+      const acc = byWeek.get(wk) ?? { sum: 0, n: 0 };
+      acc.sum += s.engagementScore;
+      acc.n += 1;
+      byWeek.set(wk, acc);
+    });
     return {
       playerId: p.id,
       playerName: p.name,
-      riskScore,
-      riskLevel,
-      primaryFactor: factors[seed % factors.length],
-      engagementTrend: riskScore > 50 ? "declining" : "stable",
-      attendanceRate: 60 + (seed % 35),
+      weeks: weekKeys.map((wk) => {
+        const acc = byWeek.get(wk);
+        const label = wk.slice(8, 10) + "/" + wk.slice(5, 7); // dd/mm
+        return { weekLabel: label, score: acc ? Math.round(acc.sum / acc.n) : null };
+      }),
     };
   });
-}
-
-function generateMockHeatmapData() {
-  const weeks = ["S1", "S2", "S3", "S4", "S5", "S6"];
-  return MOCK_TEAM_PLAYERS.map(p => ({
-    playerId: p.id,
-    playerName: p.name,
-    weeks: weeks.map((w, i) => ({
-      weekLabel: w,
-      score: 35 + Math.round(Math.sin(i + p.name.length) * 25 + 25),
-    })),
-  }));
 }
 
 // ─── Player Detail View ──────────────────────────────────────────────────
@@ -220,8 +236,67 @@ export default function WellbeingDashboard() {
   const { t } = useTranslation();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
-  const teamRisk = generateMockTeamRisk();
-  const heatmapData = generateMockHeatmapData();
+  // Roster real del club (antes: 8 jugadores mock hardcodeados).
+  const { data: roster, isLoading: rosterLoading } = useAllPlayers();
+  const players = useMemo(
+    () => (roster ?? []).map((p) => ({ id: String(p.id), name: p.name })),
+    [roster],
+  );
+  const playerIds = useMemo(() => players.map((p) => p.id), [players]);
+
+  // Riesgo de abandono + engagement reales por jugador (batch).
+  const riskResults = useTeamDropoutRisk(playerIds);
+  const engagementResults = useTeamEngagement(playerIds);
+
+  const teamRisk = useMemo(
+    () =>
+      players.map((p, i) => {
+        const r = riskResults[i]?.data;
+        return {
+          playerId: p.id,
+          playerName: p.name,
+          riskScore: r?.riskScore ?? 0,
+          riskLevel: r?.riskLevel ?? ("low" as const),
+          primaryFactor: r?.primaryFactor ?? "—",
+          engagementTrend: r?.engagement?.trend ?? "stable",
+          attendanceRate: r?.attendance?.rate ?? 0,
+        };
+      }),
+    [players, riskResults],
+  );
+
+  const heatmapData = useMemo(
+    () => buildEngagementHeatmap(players, engagementResults.map((q) => q.data)),
+    [players, engagementResults],
+  );
+  const hasEngagementData = heatmapData.some((row) =>
+    row.weeks.some((w) => w.score !== null),
+  );
+
+  const risksLoading = riskResults.some((q) => q.isLoading);
+
+  // Empty state: sin roster todavía.
+  if (!rosterLoading && players.length === 0) {
+    return (
+      <div className="glass rounded-xl p-8 text-center space-y-2">
+        <Users size={24} className="mx-auto text-muted-foreground" />
+        <p className="text-sm font-display font-bold text-foreground">
+          {t("wellbeingDashboard.emptyTitle")}
+        </p>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          {t("wellbeingDashboard.emptyDescription")}
+        </p>
+      </div>
+    );
+  }
+
+  if (rosterLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={20} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -245,17 +320,20 @@ export default function WellbeingDashboard() {
           >
             {/* Team risk overview */}
             <div className="glass rounded-xl p-4 space-y-4">
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-                {t("wellbeingDashboard.teamWellbeingPanel")}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
+                  {t("wellbeingDashboard.teamWellbeingPanel")}
+                </span>
+                {risksLoading && <Loader2 size={12} className="animate-spin text-muted-foreground" />}
+              </div>
               <TeamRiskOverview
                 players={teamRisk}
                 onPlayerClick={setSelectedPlayerId}
               />
             </div>
 
-            {/* Engagement heatmap */}
-            <EngagementHeatmap data={heatmapData} />
+            {/* Engagement heatmap — solo si hay datos reales de engagement */}
+            {hasEngagementData && <EngagementHeatmap data={heatmapData} />}
           </motion.div>
         )}
       </AnimatePresence>

@@ -1174,6 +1174,12 @@
     "promptDriftTitle": "¿Qué es prompt drift?",
     "promptDriftDesc": "Si los scores suben consistentemente mes a mes sin cambios reales en los jugadores, puede indicar que los prompts de los agentes IA están derivando hacia evaluaciones más generosas. Esto es normal y se corrige ajustando las reglas de scoring periódicamente."
   },
+  "demoData": {
+    "title": "Datos de demostración.",
+    "generic": "Los valores mostrados son de ejemplo. Se reemplazarán por datos reales cuando estén disponibles.",
+    "coach": "La analítica de sesión (segmentos, balance, participación) usa datos de ejemplo hasta que analices un vídeo de entrenamiento del equipo.",
+    "wellbeing": "El bienestar del equipo mostrará datos reales cuando registres asistencia, cuestionarios o análisis de vídeo por jugador."
+  },
   "coachDash": {
     "tabSesion": "Última Sesión",
     "tabPlanificacion": "Planificación",
@@ -4081,7 +4087,9 @@
   },
   "wellbeingDashboard": {
     "backToTeam": "Volver al equipo",
-    "teamWellbeingPanel": "Panel de Bienestar del Equipo"
+    "teamWellbeingPanel": "Panel de Bienestar del Equipo",
+    "emptyTitle": "Aún no hay jugadores",
+    "emptyDescription": "Añade jugadores a tu equipo para ver el riesgo de abandono y el engagement por jugador."
   },
   "authContext": {
     "supabaseNotConfiguredWithKeys": "Supabase no configurado — agrega VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY",

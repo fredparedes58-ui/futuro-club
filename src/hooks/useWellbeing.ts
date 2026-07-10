@@ -14,7 +14,7 @@
  *   useSaveAttendance() — save attendance record
  */
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
@@ -288,6 +288,39 @@ export function useDropoutRisk(playerId: string | undefined) {
     enabled: !!playerId,
     staleTime: STALE_TIME,
     retry: 2,
+  });
+}
+
+/**
+ * Team-level dropout risk: one query per player (batched via useQueries).
+ * Comparte queryKey ["dropout-risk", id] con useDropoutRisk, así el detalle de
+ * jugador reutiliza la caché del overview. Sustituye al roster mock del panel.
+ */
+export function useTeamDropoutRisk(playerIds: string[]) {
+  return useQueries({
+    queries: playerIds.map((id) => ({
+      queryKey: ["dropout-risk", id],
+      queryFn: () => fetchDropoutRisk(id),
+      enabled: !!id,
+      staleTime: STALE_TIME,
+      retry: 2,
+    })),
+  });
+}
+
+/**
+ * Team-level engagement history: one query per player (batched).
+ * Comparte queryKey ["engagement-history", id] con useEngagementHistory.
+ */
+export function useTeamEngagement(playerIds: string[]) {
+  return useQueries({
+    queries: playerIds.map((id) => ({
+      queryKey: ["engagement-history", id],
+      queryFn: () => fetchEngagementHistory(id),
+      enabled: !!id,
+      staleTime: STALE_TIME,
+      retry: 2,
+    })),
   });
 }
 
