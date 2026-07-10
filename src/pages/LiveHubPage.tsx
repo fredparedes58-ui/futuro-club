@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
 import VideoUpload from "@/components/VideoUpload";
+import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
 
 interface MatchSummary {
   id: string;
@@ -207,10 +208,15 @@ export default function LiveHubPage() {
                 </div>
                 {!videoUrl ? (
                   <VideoUpload
-                    onUploadComplete={(cdnUrl) => {
-                      if (cdnUrl) {
-                        setVideoUrl(cdnUrl);
+                    onDone={(videoId) => {
+                      // Prop correcto onDone(videoId); onUploadComplete no existía.
+                      const video = VideoService.getById(videoId);
+                      const url = video ? getBestVideoUrl(video) : null;
+                      if (url) {
+                        setVideoUrl(url);
                         toast.success(t("liveHubPage.toastVideoUploaded"));
+                      } else {
+                        toast.error(t("liveHubPage.toastVideoError"));
                       }
                     }}
                   />

@@ -181,7 +181,7 @@ export function useVideoUpload(playerId?: string) {
                     if (playerId) {
                       queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
                     }
-                    return;
+                    return dup.videoId;
                   }
                   // decision === "upload" → continuar con flujo normal
                 }
@@ -298,7 +298,7 @@ export function useVideoUpload(playerId?: string) {
             if (playerId) {
               queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
             }
-            return;
+            return localId;
           }
           throw new Error(initData.error ?? "Init failed");
         }
@@ -510,6 +510,11 @@ export function useVideoUpload(playerId?: string) {
         if (playerId) {
           queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
         }
+
+        // Devolvemos el videoId real para que el llamador dispare onDone con el
+        // id correcto (antes VideoUpload leía state.videoId de una closure
+        // obsoleta y disparaba el callback con un valor stale o nulo · #26).
+        return videoId;
       } catch (err) {
         // Clean up blob URLs to prevent memory leaks
         const currentVideo = state.videoId ? VideoService.getById(state.videoId) : null;
@@ -523,6 +528,7 @@ export function useVideoUpload(playerId?: string) {
         // Show diagnostic message + raw error for debugging
         const errorMsg = rawMsg.length > 80 ? rawMsg : `${title}. ${description}`;
         setState((prev) => ({ ...prev, phase: "error", error: errorMsg }));
+        return null;
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps

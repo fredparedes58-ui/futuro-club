@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import VideoUpload from "@/components/VideoUpload";
+import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
 
 type AnalysisMode = "text" | "video";
 
@@ -199,8 +200,13 @@ export default function CompareRivalPage() {
                   </div>
                 ) : (
                   <VideoUpload
-                    onUploadComplete={(_, cdnUrl) => {
-                      if (cdnUrl) handleVideoAnalysis(cdnUrl);
+                    onDone={(videoId) => {
+                      // Prop correcto onDone(videoId); onUploadComplete no
+                      // existía → subir vídeo del rival no hacía nada (#4).
+                      const video = VideoService.getById(videoId);
+                      const url = video ? getBestVideoUrl(video) : null;
+                      if (url) handleVideoAnalysis(url);
+                      else toast.error(t("compareRivalPage.errorAnalyzingVideo"));
                     }}
                   />
                 )}

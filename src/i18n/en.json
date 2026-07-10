@@ -3843,6 +3843,7 @@
     "matchVideo": "Match video",
     "remove": "Remove",
     "toastVideoUploaded": "Video uploaded — it will be analyzed when the match ends",
+    "toastVideoError": "Couldn't get the uploaded video URL",
     "videoReady": "Video ready — Gemini will analyze both teams when the match ends",
     "videoAnalysisNote": "When the match ends, Gemini analyzes the video and enriches the reports with data from BOTH teams (home + away)",
     "creating": "Creating…",
