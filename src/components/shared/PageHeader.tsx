@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -12,6 +13,7 @@ interface PageHeaderProps {
 
 const PageHeader = ({ title, subtitle, backTo = "/", rightContent, gradient }: PageHeaderProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <motion.div
@@ -24,7 +26,7 @@ const PageHeader = ({ title, subtitle, backTo = "/", rightContent, gradient }: P
         <button
           onClick={() => navigate(backTo)}
           className="shrink-0 p-2 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors active:scale-95"
-          aria-label="Volver"
+          aria-label={t("components.pageHeader.backLabel")}
         >
           <ArrowLeft size={20} />
         </button>

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Shield, Users, BarChart3, RefreshCw,
@@ -43,6 +44,7 @@ const PLAN_LIMITS_MAP: Record<string, { analyses: number; players: number; teamM
 
 export default function AdminManagePlanPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data, isLoading, error, refetch, isRefetching } = useAdminOrgs();
   const managePlan = useManagePlan();
@@ -54,15 +56,15 @@ export default function AdminManagePlanPage() {
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="glass rounded-xl p-6 max-w-md text-center">
           <Shield size={28} className="text-destructive mx-auto mb-2" />
-          <h2 className="font-display font-bold text-lg text-foreground mb-1">Acceso restringido</h2>
+          <h2 className="font-display font-bold text-lg text-foreground mb-1">{t("adminManagePlanPage.accessRestricted")}</h2>
           <p className="text-xs text-muted-foreground mb-4">
-            Solo administradores pueden gestionar planes.
+            {t("adminManagePlanPage.accessRestrictedDesc")}
           </p>
           <button
             onClick={() => navigate("/admin")}
             className="text-xs font-display font-semibold text-primary hover:underline"
           >
-            Volver al dashboard
+            {t("adminManagePlanPage.backToDashboard")}
           </button>
         </div>
       </div>
@@ -78,9 +80,9 @@ export default function AdminManagePlanPage() {
         plan: newPlan,
         reason: `Admin manual change: ${org.plan} → ${newPlan}`,
       });
-      toast.success(`Plan de ${org.email} cambiado a ${newPlan.toUpperCase()}`);
+      toast.success(t("adminManagePlanPage.planChanged", { email: org.email, plan: newPlan.toUpperCase() }));
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+      toast.error(t("adminManagePlanPage.errorWithMessage", { message: err instanceof Error ? err.message : t("adminManagePlanPage.unknownError") }));
     } finally {
       setChangingPlan(null);
     }
@@ -89,9 +91,9 @@ export default function AdminManagePlanPage() {
   const handleResetQuota = async (org: OrgEntry) => {
     try {
       await resetQuota.mutateAsync({ userId: org.userId });
-      toast.success(`Quota de ${org.email} reseteada a 0`);
+      toast.success(t("adminManagePlanPage.quotaReset", { email: org.email }));
     } catch (err) {
-      toast.error(`Error: ${err instanceof Error ? err.message : "Unknown"}`);
+      toast.error(t("adminManagePlanPage.errorWithMessage", { message: err instanceof Error ? err.message : t("adminManagePlanPage.unknownError") }));
     }
   };
 
@@ -120,7 +122,7 @@ export default function AdminManagePlanPage() {
           </button>
           <Crown size={18} className="text-primary" />
           <h1 className="font-display font-bold text-sm uppercase tracking-wider flex-1">
-            Gestion de Planes
+            {t("adminManagePlanPage.title")}
           </h1>
           <button
             onClick={() => refetch()}
@@ -135,10 +137,10 @@ export default function AdminManagePlanPage() {
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard label="MRR Simulado" value={`€${mrr}`} sublabel="monthly recurring" />
-          <KpiCard label="Usuarios Pro" value={proCount} sublabel={`€${proCount * 19}/mes`} />
-          <KpiCard label="Usuarios Club" value={clubCount} sublabel={`€${clubCount * 79}/mes`} />
-          <KpiCard label="Conversion" value={`${conversionRate}%`} sublabel={`${proCount + clubCount}/${totalUsers} paid`} />
+          <KpiCard label={t("adminManagePlanPage.kpiMrr")} value={`€${mrr}`} sublabel={t("adminManagePlanPage.kpiMrrSub")} />
+          <KpiCard label={t("adminManagePlanPage.kpiProUsers")} value={proCount} sublabel={t("adminManagePlanPage.revenuePerMonth", { amount: proCount * 19 })} />
+          <KpiCard label={t("adminManagePlanPage.kpiClubUsers")} value={clubCount} sublabel={t("adminManagePlanPage.revenuePerMonth", { amount: clubCount * 79 })} />
+          <KpiCard label={t("adminManagePlanPage.kpiConversion")} value={`${conversionRate}%`} sublabel={t("adminManagePlanPage.paidRatio", { paid: proCount + clubCount, total: totalUsers })} />
         </div>
 
         {isLoading && (
@@ -151,7 +153,7 @@ export default function AdminManagePlanPage() {
           <div className="glass rounded-xl p-5 border border-destructive/30">
             <div className="flex items-center gap-2 text-destructive mb-1">
               <AlertCircle size={14} />
-              <p className="font-display font-semibold text-sm">Error al cargar organizaciones</p>
+              <p className="font-display font-semibold text-sm">{t("adminManagePlanPage.errorLoadingOrgs")}</p>
             </div>
             <p className="text-xs text-muted-foreground">{(error as Error).message}</p>
           </div>
@@ -162,9 +164,9 @@ export default function AdminManagePlanPage() {
           <div className="glass rounded-xl border border-border/30 overflow-hidden">
             <div className="px-4 py-3 border-b border-border/30">
               <h3 className="font-display font-semibold text-sm text-foreground uppercase tracking-wider">
-                Organizaciones ({data.total})
+                {t("adminManagePlanPage.orgsTitle", { total: data.total })}
               </h3>
-              <p className="text-[10px] text-muted-foreground">Mes: {data.month}</p>
+              <p className="text-[10px] text-muted-foreground">{t("adminManagePlanPage.month", { month: data.month })}</p>
             </div>
 
             <div className="divide-y divide-border/20">
@@ -201,7 +203,7 @@ export default function AdminManagePlanPage() {
                           </span>
                           <span className="flex items-center gap-1">
                             <Users size={10} />
-                            {org.memberCount} miembros
+                            {t("adminManagePlanPage.members", { count: org.memberCount })}
                           </span>
                         </div>
                       </div>
@@ -225,7 +227,7 @@ export default function AdminManagePlanPage() {
                           onClick={() => handleResetQuota(org)}
                           disabled={resetQuota.isPending}
                           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-primary disabled:opacity-50"
-                          title="Reset quota mensual"
+                          title={t("adminManagePlanPage.resetQuotaTitle")}
                         >
                           <RotateCcw size={13} />
                         </button>
@@ -237,7 +239,7 @@ export default function AdminManagePlanPage() {
 
               {orgs.length === 0 && (
                 <div className="px-4 py-8 text-center">
-                  <p className="text-xs text-muted-foreground">No hay organizaciones registradas.</p>
+                  <p className="text-xs text-muted-foreground">{t("adminManagePlanPage.noOrgs")}</p>
                 </div>
               )}
             </div>

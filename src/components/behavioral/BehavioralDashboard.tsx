@@ -7,6 +7,7 @@
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Loader2, Users, ArrowRight } from "lucide-react";
 import { useBehavioralProfile } from "@/hooks/useBehavioralProfile";
@@ -26,6 +27,7 @@ interface Props {
 
 export default function BehavioralDashboard({ playerId }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data: profile, isLoading } = useBehavioralProfile(playerId);
 
   // Mock data for visualizations (will be replaced with real data from profile)
@@ -120,14 +122,14 @@ export default function BehavioralDashboard({ playerId }: Props) {
         />
         <div className="mt-3 pt-3 border-t border-border flex items-center justify-between flex-wrap gap-2">
           <p className="text-[11px] text-muted-foreground">
-            Compara el escaneo de este jugador con el resto del equipo
+            {t("behavioralDashboard.compareScanning")}
           </p>
           <button
             onClick={() => navigate(`/scanning?playerId=${playerId}`)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-pink-500/10 hover:bg-pink-500/20 text-pink-500 text-[11px] font-display font-semibold transition-colors group"
           >
             <Users size={11} />
-            Ver vista de equipo
+            {t("behavioralDashboard.viewTeamView")}
             <ArrowRight size={11} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
         </div>
@@ -156,7 +158,7 @@ export default function BehavioralDashboard({ playerId }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="glass rounded-xl p-4 space-y-2">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-              Fortalezas
+              {t("behavioralDashboard.strengths")}
             </span>
             {(profile.strengths ?? []).map((s, i) => (
               <div key={i} className="flex items-start gap-2 text-[10px] text-foreground/80">
@@ -167,7 +169,7 @@ export default function BehavioralDashboard({ playerId }: Props) {
           </div>
           <div className="glass rounded-xl p-4 space-y-2">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
-              Áreas de Desarrollo
+              {t("behavioralDashboard.developmentAreas")}
             </span>
             {(profile.developmentAreas ?? []).map((a, i) => (
               <div key={i} className="flex items-start gap-2 text-[10px] text-foreground/80">
@@ -181,7 +183,11 @@ export default function BehavioralDashboard({ playerId }: Props) {
 
       {/* Data quality */}
       <div className="text-[9px] text-muted-foreground text-center">
-        {profile?.videosAnalyzed ?? 0} videos analizados · Confianza: {Math.round((profile?.confidence ?? 0.5) * 100)}% · {profile?.modelVersion ?? "v1.0.0"}
+        {t("behavioralDashboard.dataQuality", {
+          videos: profile?.videosAnalyzed ?? 0,
+          confidence: Math.round((profile?.confidence ?? 0.5) * 100),
+          version: profile?.modelVersion ?? "v1.0.0",
+        })}
       </div>
     </motion.div>
   );

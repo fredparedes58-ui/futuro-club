@@ -952,7 +952,15 @@
     "paused": "Paused",
     "scheduled": "Scheduled",
     "finished": "Finished",
-    "fetchError": "Error fetching matches"
+    "fetchError": "Error fetching matches",
+    "title": "Live Matches",
+    "loading": "Loading matches…",
+    "loadError": "Could not load matches. Please try again.",
+    "empty": "No matches at the moment",
+    "apiKeyWarningPre": "Configure",
+    "apiKeyWarningPost": "in Vercel",
+    "trackedPlayers_one": "{{count}} player tracked",
+    "trackedPlayers_other": "{{count}} players tracked"
   },
   "components": {
     "pageHeader": {
@@ -5059,5 +5067,100 @@
     "formationPlaceholder": "e.g. 4-3-3",
     "notesLabel": "Tactical notes",
     "notesPlaceholder": "Style, strengths, weaknesses, key players…"
+  },
+  "adminManagePlanPage": {
+    "accessRestricted": "Access restricted",
+    "accessRestrictedDesc": "Only administrators can manage plans.",
+    "backToDashboard": "Back to dashboard",
+    "title": "Plans Management",
+    "kpiMrr": "Simulated MRR",
+    "kpiMrrSub": "monthly recurring",
+    "kpiProUsers": "Pro Users",
+    "kpiClubUsers": "Club Users",
+    "kpiConversion": "Conversion",
+    "revenuePerMonth": "€{{amount}}/mo",
+    "paidRatio": "{{paid}}/{{total}} paid",
+    "planChanged": "{{email}}'s plan changed to {{plan}}",
+    "quotaReset": "{{email}}'s quota reset to 0",
+    "errorWithMessage": "Error: {{message}}",
+    "unknownError": "Unknown",
+    "errorLoadingOrgs": "Error loading organizations",
+    "orgsTitle": "Organizations ({{total}})",
+    "month": "Month: {{month}}",
+    "members_one": "{{count}} member",
+    "members_other": "{{count}} members",
+    "resetQuotaTitle": "Reset monthly quota",
+    "noOrgs": "No organizations registered."
+  },
+  "playerEvolutionPanel": {
+    "header": "Player Evolution",
+    "needTwoAnalyses": "You need at least 2 analyses to see the evolution",
+    "needMoreDesc": "Generate more VITAS Intelligence reports by analyzing the player's videos.",
+    "analysesCount_one": "{{count}} analysis",
+    "analysesCount_other": "{{count}} analyses",
+    "vsiEvolution": "VSI evolution (estimated)",
+    "comparisonPrev": "Comparison with previous analysis",
+    "dimEvolution": "Evolution by AI dimension",
+    "summaryTitle": "Evolution Summary",
+    "viewFull": "View full evolution",
+    "tooltipVsi": "Estimated VSI: {{vsi}}",
+    "metrics": {
+      "speed": "Speed",
+      "technique": "Technique",
+      "vision": "Vision",
+      "stamina": "Stamina",
+      "shooting": "Shooting",
+      "defending": "Defending"
+    },
+    "dims": {
+      "velocidadDecision": "Dec. Speed",
+      "tecnicaConBalon": "Technique",
+      "inteligenciaTactica": "Tactical",
+      "capacidadFisica": "Physical",
+      "liderazgoPresencia": "Leadership",
+      "eficaciaCompetitiva": "Effectiveness"
+    },
+    "summaryImproved": "{{label}} improved +{{delta}} points ({{prev}}→{{curr}}) since the first analysis",
+    "summaryDeclined": "{{label}} dropped {{delta}} points ({{prev}}→{{curr}})",
+    "summaryStable": "{{label}} stayed stable at {{curr}}",
+    "summaryBiggest": "Biggest improvement area: {{label}} (+{{pct}}%)",
+    "summaryNeedsAttention": "Area that needs attention: {{label}} ({{delta}})"
+  },
+  "idpTimeline": {
+    "empty": "No milestones generated for this plan.",
+    "week": "Week {{n}}"
+  },
+  "teamRiskGrid": {
+    "title": "Team Risk Map",
+    "noData": "No players with risk data",
+    "playerCount_one": "{{count}} player",
+    "playerCount_other": "{{count}} players",
+    "critical_one": "{{count}} critical",
+    "critical_other": "{{count}} critical",
+    "high_one": "{{count}} high",
+    "high_other": "{{count}} high",
+    "moderate_one": "{{count}} moderate",
+    "moderate_other": "{{count}} moderate",
+    "low_one": "{{count}} low",
+    "low_other": "{{count}} low",
+    "factor": "Factor: {{factor}}",
+    "limitedData": "Limited data"
+  },
+  "behavioralDashboard": {
+    "compareScanning": "Compare this player's scanning with the rest of the team",
+    "viewTeamView": "View team view",
+    "strengths": "Strengths",
+    "developmentAreas": "Development Areas",
+    "dataQuality": "{{videos}} videos analyzed · Confidence: {{confidence}}% · {{version}}"
+  },
+  "snapshotHistoryChart": {
+    "title": "Longitudinal evolution",
+    "riskLabel": "injury risk",
+    "offsetSuffix": "offset per analysis",
+    "records_one": "{{count}} record",
+    "records_other": "{{count}} records",
+    "emptyNoData": "No history yet. It will be populated with each video analysis of the player.",
+    "emptyNeedMore": "With 2+ analyses over time, you'll see the evolution curve here.",
+    "seriesRisk": "Injury risk"
   }
 }
