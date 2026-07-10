@@ -44,6 +44,10 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   const [title, setTitle] = useState("");
   const guideNeeded = useRecordingGuideNeeded();
   const [showGuide, setShowGuide] = useState(false);
+  // La guía se auto-muestra como máximo una vez por sesión en el primer intento
+  // de subida; luego el clic abre el selector directamente (evita bucle: guideNeeded
+  // sigue true hasta recargar salvo que el usuario marque "no volver a mostrar").
+  const autoGuideShownRef = useRef(false);
 
   /**
    * Callback para duplicados: muestra confirm nativo.
@@ -100,9 +104,10 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
 
   const isActive = state.phase !== "idle" && state.phase !== "error" && state.phase !== "done";
 
-  // Auto-show recording guide on first upload attempt
+  // Auto-show recording guide on first upload attempt (once per session).
   const handleUploadClick = () => {
-    if (guideNeeded && !showGuide) {
+    if (guideNeeded && !autoGuideShownRef.current) {
+      autoGuideShownRef.current = true;
       setShowGuide(true);
       return;
     }
@@ -147,7 +152,7 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
-            onClick={() => inputRef.current?.click()}
+            onClick={handleUploadClick}
             className={`relative border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
               dragging
                 ? "border-primary bg-primary/10"

@@ -145,3 +145,55 @@ describe("i18n translations", () => {
     });
   });
 });
+
+// ── Claves referenciadas por el código vs. presentes en los JSON ─────────────
+// Cierra un hueco de cobertura: los tests de componente mockean t() (echo de la
+// clave), así que NO detectan una clave t("...") ausente en es.json/en.json —
+// el usuario vería la clave cruda en producción. Aquí escaneamos el fuente real.
+//
+// Alcance: los componentes revisados en esta rama. AMPLIAR conforme se sanee la
+// deuda i18n del resto del repo (hay ~68 claves single-arg sin traducción en
+// MatchStatsPanel/SetPiecePage/AnalysisFocusSelector/TalentoOcultoAlert — un
+// escaneo global fallaría hoy; se documentan como tarea aparte).
+describe("i18n · claves referenciadas por componentes existen en los JSON", () => {
+  const esKeys = new Set(getAllKeys(es as Record<string, unknown>));
+  const enKeys = new Set(getAllKeys(en as Record<string, unknown>));
+
+  // Fuente leída como texto crudo vía Vite (sin `node:` builtins, que no están
+  // en los `types` del tsconfig de la app). Vite resuelve el glob de forma
+  // fiable en tiempo de transform.
+  const SOURCES = import.meta.glob(
+    ["../../components/VideoUpload.tsx", "../../components/RecordingGuide.tsx"],
+    { query: "?raw", import: "default", eager: true }
+  ) as Record<string, string>;
+
+  /** Extrae claves de llamadas t("clave") / t('clave', …) literales. */
+  function extractStaticKeys(src: string): string[] {
+    // Solo claves entre comillas; los backticks (template literals dinámicos)
+    // quedan fuera a propósito — no son verificables estáticamente.
+    const re = /\bt\(\s*(["'])([^"'`]+?)\1/g;
+    const keys: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src))) {
+      const key = m[2];
+      if (/^[\w.]+$/.test(key)) keys.push(key);
+    }
+    return [...new Set(keys)];
+  }
+
+  it("localiza el fuente de los componentes a escanear", () => {
+    expect(Object.keys(SOURCES).length).toBe(2);
+  });
+
+  for (const [filePath, src] of Object.entries(SOURCES)) {
+    const name = filePath.split("/").pop();
+    it(`${name}: toda clave t() literal existe en es.json y en.json`, () => {
+      const keys = extractStaticKeys(src);
+      // Sanity: si no hay claves, el regex se rompió (no es un pase falso).
+      expect(keys.length).toBeGreaterThan(0);
+      const missingEs = keys.filter((k) => !esKeys.has(k));
+      const missingEn = keys.filter((k) => !enKeys.has(k));
+      expect({ missingEs, missingEn }).toEqual({ missingEs: [], missingEn: [] });
+    });
+  }
+});

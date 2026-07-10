@@ -83,6 +83,27 @@ describe("VideoUpload", () => {
     expect(screen.getByText(/videoUpload\.formatsHint 2048/)).toBeDefined();
   });
 
+  it("auto-shows the recording guide on the first dropzone click, then opens the picker", () => {
+    // guideNeeded=true porque 'vitas_recording_guide_seen' no está en localStorage.
+    render(<VideoUpload />);
+    const dropzone = screen.getByText("videoUpload.dragOrClick");
+    const input = document.querySelector("input[type='file']") as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, "click");
+
+    // 1er clic → abre la guía de grabación (el gate handleUploadClick, antes
+    // código muerto: el dropzone llamaba a inputRef.click() directamente) y NO
+    // abre aún el selector de archivos.
+    fireEvent.click(dropzone);
+    expect(screen.getByText("recordingGuide.title")).toBeTruthy();
+    expect(clickSpy).not.toHaveBeenCalled();
+
+    // 2º clic → ya mostrada esta sesión → abre el selector (sin bucle de guía).
+    // El input es hijo del dropzone, así que su .click() sintético burbujea y
+    // el contador puede ser >1 en jsdom; basta con que se haya invocado.
+    fireEvent.click(dropzone);
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
   it("rejects files larger than MAX_SIZE_MB (2048)", () => {
     const upload = vi.fn(async () => null);
     mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
