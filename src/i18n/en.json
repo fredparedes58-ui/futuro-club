@@ -1174,6 +1174,12 @@
     "promptDriftTitle": "What is prompt drift?",
     "promptDriftDesc": "If scores rise consistently month over month with no real changes in the players, it may indicate that the AI agents' prompts are drifting toward more generous evaluations. This is normal and is corrected by periodically adjusting the scoring rules."
   },
+  "demoData": {
+    "title": "Demo data.",
+    "generic": "The values shown are sample data. They will be replaced with real data once available.",
+    "coach": "Session analytics (segments, balance, participation) use sample data until you analyze a team training video.",
+    "wellbeing": "Team wellbeing will show real data once you log attendance, questionnaires, or per-player video analysis."
+  },
   "coachDash": {
     "tabSesion": "Last Session",
     "tabPlanificacion": "Planning",
@@ -4081,7 +4087,9 @@
   },
   "wellbeingDashboard": {
     "backToTeam": "Back to team",
-    "teamWellbeingPanel": "Team Wellbeing Panel"
+    "teamWellbeingPanel": "Team Wellbeing Panel",
+    "emptyTitle": "No players yet",
+    "emptyDescription": "Add players to your team to see per-player dropout risk and engagement."
   },
   "authContext": {
     "supabaseNotConfiguredWithKeys": "Supabase not configured — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY",
