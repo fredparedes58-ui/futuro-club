@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Clock, Wifi, WifiOff } from "lucide-react";
 
@@ -33,13 +34,13 @@ interface LiveFixturesProps {
 
 const STATUS_CONFIG: Record<
   Fixture["status"],
-  { label: string; color: string; bg: string; pulse: boolean }
+  { labelKey: string; color: string; bg: string; pulse: boolean }
 > = {
-  IN_PLAY:   { label: "En Juego",    color: "text-emerald-400", bg: "bg-emerald-500/20", pulse: true },
-  PAUSED:    { label: "Pausado",     color: "text-yellow-400",  bg: "bg-yellow-500/20",  pulse: false },
-  TIMED:     { label: "Programado",  color: "text-muted-foreground", bg: "bg-white/5",   pulse: false },
-  SCHEDULED: { label: "Programado",  color: "text-muted-foreground", bg: "bg-white/5",   pulse: false },
-  FINISHED:  { label: "Finalizado",  color: "text-muted-foreground/60", bg: "bg-white/5", pulse: false },
+  IN_PLAY:   { labelKey: "liveFixtures.inPlay",    color: "text-emerald-400", bg: "bg-emerald-500/20", pulse: true },
+  PAUSED:    { labelKey: "liveFixtures.paused",    color: "text-yellow-400",  bg: "bg-yellow-500/20",  pulse: false },
+  TIMED:     { labelKey: "liveFixtures.scheduled", color: "text-muted-foreground", bg: "bg-white/5",   pulse: false },
+  SCHEDULED: { labelKey: "liveFixtures.scheduled", color: "text-muted-foreground", bg: "bg-white/5",   pulse: false },
+  FINISHED:  { labelKey: "liveFixtures.finished",  color: "text-muted-foreground/60", bg: "bg-white/5", pulse: false },
 };
 
 /* ── Fetcher ───────────────────────────────────────────────── */
@@ -53,6 +54,7 @@ async function fetchFixtures(): Promise<FixturesResponse> {
 /* ── Component ─────────────────────────────────────────────── */
 
 export default function LiveFixtures({ className = "", compact = false }: LiveFixturesProps) {
+  const { t } = useTranslation();
   const { data, isLoading, error, refetch } = useQuery<FixturesResponse>({
     queryKey: ["fixtures", "live"],
     queryFn: fetchFixtures,
@@ -85,7 +87,7 @@ export default function LiveFixtures({ className = "", compact = false }: LiveFi
         <div className="flex items-center gap-2">
           <Trophy size={compact ? 16 : 18} className="text-primary" />
           <h2 className={`font-display font-bold tracking-tight ${compact ? "text-sm" : "text-base"}`}>
-            Partidos en Vivo
+            {t("liveFixtures.title")}
           </h2>
           {hasLive && (
             <span className="relative flex h-2.5 w-2.5">
@@ -114,7 +116,7 @@ export default function LiveFixtures({ className = "", compact = false }: LiveFi
       {/* API key warning */}
       {apiMissing && (
         <div className="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-4 py-3 text-xs text-yellow-300 mb-3">
-          Configura <code className="font-mono bg-white/10 px-1 py-0.5 rounded">FOOTBALL_DATA_API_KEY</code> en Vercel
+          {t("liveFixtures.apiKeyWarningPre")} <code className="font-mono bg-white/10 px-1 py-0.5 rounded">FOOTBALL_DATA_API_KEY</code> {t("liveFixtures.apiKeyWarningPost")}
         </div>
       )}
 
@@ -122,21 +124,21 @@ export default function LiveFixtures({ className = "", compact = false }: LiveFi
       {isLoading && (
         <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground text-sm">
           <Clock size={14} className="animate-spin" />
-          Cargando partidos...
+          {t("liveFixtures.loading")}
         </div>
       )}
 
       {/* Error */}
       {error && !apiMissing && (
         <div className="rounded-xl bg-destructive/10 border border-destructive/20 px-4 py-3 text-xs text-destructive">
-          No se pudieron cargar los partidos. Intenta de nuevo.
+          {t("liveFixtures.loadError")}
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && !error && !apiMissing && fixtures.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-6">
-          No hay partidos en este momento
+          {t("liveFixtures.empty")}
         </p>
       )}
 
@@ -163,6 +165,7 @@ function FixtureCard({
   index: number;
   compact: boolean;
 }) {
+  const { t } = useTranslation();
   const cfg = STATUS_CONFIG[fixture.status];
   const isLive = fixture.status === "IN_PLAY";
 
@@ -191,7 +194,7 @@ function FixtureCard({
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
             </span>
           )}
-          {cfg.label}
+          {t(cfg.labelKey)}
         </div>
         {fixture.minute !== null && isLive && (
           <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded">
@@ -222,7 +225,7 @@ function FixtureCard({
       {/* Footer — tracked players & top performer */}
       {(fixture.playersTracked > 0 || fixture.topPerformer) && (
         <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/30 pt-2 mt-2">
-          <span>{fixture.playersTracked} jugadores rastreados</span>
+          <span>{t("liveFixtures.trackedPlayers", { count: fixture.playersTracked })}</span>
           {fixture.topPerformer && fixture.topVsi !== null && (
             <span className="text-primary font-medium">
               ⭐ {fixture.topPerformer} ({fixture.topVsi})

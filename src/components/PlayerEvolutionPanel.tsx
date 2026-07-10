@@ -12,6 +12,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   ArrowUpRight, ArrowDownRight, Minus, TrendingUp,
   Activity, BarChart3, FileText, ChevronRight,
@@ -42,28 +43,10 @@ interface Props {
 const METRIC_KEYS = ["speed", "technique", "vision", "stamina", "shooting", "defending"] as const;
 type MetricKey = typeof METRIC_KEYS[number];
 
-const METRIC_LABELS: Record<MetricKey, string> = {
-  speed:     "Velocidad",
-  technique: "Tecnica",
-  vision:    "Vision",
-  stamina:   "Resistencia",
-  shooting:  "Disparo",
-  defending: "Defensa",
-};
-
 const DIM_KEYS = [
   "velocidadDecision", "tecnicaConBalon", "inteligenciaTactica",
   "capacidadFisica", "liderazgoPresencia", "eficaciaCompetitiva",
 ] as const;
-
-const DIM_LABELS: Record<string, string> = {
-  velocidadDecision:   "Vel. Decision",
-  tecnicaConBalon:     "Tecnica",
-  inteligenciaTactica: "Tactica",
-  capacidadFisica:     "Fisica",
-  liderazgoPresencia:  "Liderazgo",
-  eficaciaCompetitiva: "Eficacia",
-};
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -120,6 +103,7 @@ function MetricsComparisonTable({ prev, curr }: {
   prev: Record<MetricKey, number>;
   curr: Record<MetricKey, number>;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-1.5">
       {METRIC_KEYS.map((key) => {
@@ -131,7 +115,7 @@ function MetricsComparisonTable({ prev, curr }: {
         return (
           <div key={key} className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${deltaBg(delta)}`}>
             <span className="text-[10px] font-display text-muted-foreground w-16 shrink-0">
-              {METRIC_LABELS[key]}
+              {t(`playerEvolutionPanel.metrics.${key}`)}
             </span>
             <span className="text-[10px] text-muted-foreground font-mono w-6 text-right">{prevVal}</span>
             <span className="text-[9px] text-muted-foreground">→</span>
@@ -158,6 +142,7 @@ function DimensionSparkline({ dimKey, data }: {
   dimKey: string;
   data: Array<{ date: string; value: number }>;
 }) {
+  const { t } = useTranslation();
   if (data.length < 2) return null;
   const first = data[0].value;
   const last = data[data.length - 1].value;
@@ -167,7 +152,7 @@ function DimensionSparkline({ dimKey, data }: {
   return (
     <div className="rounded-lg bg-secondary/30 border border-border p-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-display font-bold text-foreground">{DIM_LABELS[dimKey]}</span>
+        <span className="text-[9px] font-display font-bold text-foreground">{t(`playerEvolutionPanel.dims.${dimKey}`)}</span>
         <div className="flex items-center gap-0.5">
           <span className="text-[9px] text-muted-foreground">{first.toFixed(1)}</span>
           <span className="text-[8px] text-muted-foreground">→</span>
@@ -200,6 +185,7 @@ function DimensionSparkline({ dimKey, data }: {
 }
 
 function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
+  const { t } = useTranslation();
   const sorted = [...analyses].reverse(); // oldest first
   if (sorted.length < 2) return null;
 
@@ -210,12 +196,13 @@ function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
 
   if (!firstMetrics || !lastMetrics) return null;
 
-  const lines: string[] = [];
+  // `whole: true` → emphasize the entire line; otherwise emphasize the leading label word.
+  const lines: Array<{ text: string; whole: boolean }> = [];
 
   // Per-metric changes
   const deltas = METRIC_KEYS.map((key) => ({
     key,
-    label: METRIC_LABELS[key],
+    label: t(`playerEvolutionPanel.metrics.${key}`),
     prev: firstMetrics[key],
     curr: lastMetrics[key],
     delta: lastMetrics[key] - firstMetrics[key],
@@ -229,11 +216,11 @@ function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
 
   for (const d of sorted_deltas) {
     if (d.delta > 0) {
-      lines.push(`${d.label} mejoro +${d.delta} puntos (${d.prev}→${d.curr}) desde el primer analisis`);
+      lines.push({ text: t("playerEvolutionPanel.summaryImproved", { label: d.label, delta: d.delta, prev: d.prev, curr: d.curr }), whole: false });
     } else if (d.delta < 0) {
-      lines.push(`${d.label} bajo ${d.delta} puntos (${d.prev}→${d.curr})`);
+      lines.push({ text: t("playerEvolutionPanel.summaryDeclined", { label: d.label, delta: d.delta, prev: d.prev, curr: d.curr }), whole: false });
     } else {
-      lines.push(`${d.label} se mantuvo estable en ${d.curr}`);
+      lines.push({ text: t("playerEvolutionPanel.summaryStable", { label: d.label, curr: d.curr }), whole: false });
     }
   }
 
@@ -241,14 +228,14 @@ function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
   const bestImprovement = deltas.reduce((best, d) =>
     d.pct > (best?.pct ?? -Infinity) ? d : best, deltas[0]);
   if (bestImprovement.delta > 0) {
-    lines.push(`Area de mayor mejora: ${bestImprovement.label} (+${bestImprovement.pct}%)`);
+    lines.push({ text: t("playerEvolutionPanel.summaryBiggest", { label: bestImprovement.label, pct: bestImprovement.pct }), whole: true });
   }
 
   // Worst decline
   const worstDecline = deltas.reduce((worst, d) =>
     d.delta < (worst?.delta ?? Infinity) ? d : worst, deltas[0]);
   if (worstDecline.delta < 0) {
-    lines.push(`Area que necesita atencion: ${worstDecline.label} (${worstDecline.delta})`);
+    lines.push({ text: t("playerEvolutionPanel.summaryNeedsAttention", { label: worstDecline.label, delta: worstDecline.delta }), whole: true });
   }
 
   return (
@@ -256,17 +243,17 @@ function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
       <div className="flex items-center gap-1.5 mb-2">
         <FileText size={11} className="text-primary" />
         <span className="text-[10px] font-display font-bold text-foreground uppercase tracking-wider">
-          Resumen de Evolucion
+          {t("playerEvolutionPanel.summaryTitle")}
         </span>
       </div>
-      {lines.map((line, i) => (
+      {lines.map(({ text, whole }, i) => (
         <p key={i} className="text-[10px] text-muted-foreground leading-relaxed">
-          {line.startsWith("Area") ? (
-            <span className="font-bold text-foreground">{line}</span>
+          {whole ? (
+            <span className="font-bold text-foreground">{text}</span>
           ) : (
             <>
-              <span className="text-foreground font-semibold">{line.split(" ")[0]}</span>{" "}
-              {line.split(" ").slice(1).join(" ")}
+              <span className="text-foreground font-semibold">{text.split(" ")[0]}</span>{" "}
+              {text.split(" ").slice(1).join(" ")}
             </>
           )}
         </p>
@@ -279,6 +266,7 @@ function EvolutionSummaryText({ analyses }: { analyses: AnalysisRow[] }) {
 
 export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   // Sort oldest first
   const sorted = useMemo(() => [...(analyses ?? [])].reverse(), [analyses]);
@@ -333,16 +321,16 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp size={14} className="text-green-400" />
           <h2 className="font-display font-semibold text-sm text-foreground">
-            Evolucion del Jugador
+            {t("playerEvolutionPanel.header")}
           </h2>
         </div>
         <div className="text-center py-6 space-y-2">
           <TrendingUp size={24} className="mx-auto text-muted-foreground/50" />
           <p className="text-xs text-muted-foreground">
-            Necesitas al menos 2 analisis para ver la evolucion
+            {t("playerEvolutionPanel.needTwoAnalyses")}
           </p>
           <p className="text-[10px] text-muted-foreground">
-            Genera mas informes VITAS Intelligence analizando videos del jugador.
+            {t("playerEvolutionPanel.needMoreDesc")}
           </p>
         </div>
       </motion.div>
@@ -361,7 +349,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
     return (
       <div className="glass rounded-lg px-2 py-1.5 text-[10px] border border-border">
         <p className="text-muted-foreground">{d.dateLabel}</p>
-        <p className="text-primary font-bold">VSI Estimado: {d.vsi}</p>
+        <p className="text-primary font-bold">{t("playerEvolutionPanel.tooltipVsi", { vsi: d.vsi })}</p>
       </div>
     );
   };
@@ -377,10 +365,10 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         <div className="flex items-center gap-2">
           <TrendingUp size={14} className="text-green-400" />
           <h2 className="font-display font-semibold text-sm text-foreground">
-            Evolucion del Jugador
+            {t("playerEvolutionPanel.header")}
           </h2>
           <span className="text-[9px] font-display px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">
-            {total} analisis
+            {t("playerEvolutionPanel.analysesCount", { count: total })}
           </span>
         </div>
         <div className={`flex items-center gap-1 text-[10px] font-bold ${trendDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -394,7 +382,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         <div className="flex items-center gap-1.5 mb-2">
           <Activity size={11} className="text-primary" />
           <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-            Evolucion VSI (estimado)
+            {t("playerEvolutionPanel.vsiEvolution")}
           </span>
         </div>
         <ResponsiveContainer width="100%" height={120}>
@@ -427,7 +415,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
           <div className="flex items-center gap-1.5 mb-2">
             <BarChart3 size={11} className="text-electric" />
             <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-              Comparacion con analisis anterior
+              {t("playerEvolutionPanel.comparisonPrev")}
             </span>
           </div>
           <MetricsComparisonTable prev={prevMetrics} curr={currMetrics} />
@@ -439,7 +427,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         <div className="flex items-center gap-1.5 mb-2">
           <Activity size={11} className="text-primary" />
           <span className="text-[9px] font-display uppercase tracking-widest text-muted-foreground">
-            Evolucion por Dimension IA
+            {t("playerEvolutionPanel.dimEvolution")}
           </span>
         </div>
         <div className="grid grid-cols-2 gap-1.5">
@@ -457,7 +445,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         onClick={() => navigate(`/players/${playerId}/evolution`)}
         className="w-full flex items-center justify-center gap-1.5 text-[10px] font-display font-bold text-primary hover:text-primary/80 transition-colors pt-1"
       >
-        Ver evolucion completa <ChevronRight size={12} />
+        {t("playerEvolutionPanel.viewFull")} <ChevronRight size={12} />
       </button>
     </motion.div>
   );

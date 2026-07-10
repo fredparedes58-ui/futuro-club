@@ -7,6 +7,7 @@
  */
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { TrendingUp, LineChart as LineIcon } from "lucide-react";
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, Tooltip,
@@ -27,6 +28,7 @@ function fmtDate(iso: string): string {
 }
 
 export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
+  const { t } = useTranslation();
   const { data: snapshots = [], isLoading } = useMetricSnapshots(playerId);
 
   const data = useMemo(
@@ -34,7 +36,7 @@ export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
       snapshots.map((s) => ({
         date: fmtDate(s.snapshotDate),
         VSI: s.vsi != null ? Math.round(s.vsi) : null,
-        "Riesgo lesión": s.injuryRisk != null ? Math.round(s.injuryRisk) : null,
+        risk: s.injuryRisk != null ? Math.round(s.injuryRisk) : null,
         "PHV offset": s.phvOffset != null ? Number(s.phvOffset.toFixed(2)) : null,
       })),
     [snapshots],
@@ -51,13 +53,13 @@ export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
           <LineIcon size={16} className="text-cyan-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display font-semibold text-sm text-foreground">Evolución longitudinal</h2>
+          <h2 className="font-display font-semibold text-sm text-foreground">{t("snapshotHistoryChart.title")}</h2>
           <p className="text-[10px] text-muted-foreground">
-            <TermTooltip termKey="vsi" /> · riesgo de lesión · <TermTooltip termKey="phv" /> offset por análisis
+            <TermTooltip termKey="vsi" /> · {t("snapshotHistoryChart.riskLabel")} · <TermTooltip termKey="phv" /> {t("snapshotHistoryChart.offsetSuffix")}
           </p>
         </div>
         {snapshots.length > 0 && (
-          <span className="text-[10px] text-muted-foreground">{snapshots.length} registros</span>
+          <span className="text-[10px] text-muted-foreground">{t("snapshotHistoryChart.records", { count: snapshots.length })}</span>
         )}
       </div>
 
@@ -70,8 +72,8 @@ export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
           <TrendingUp className="size-6 text-muted-foreground/50" />
           <p className="text-xs text-muted-foreground">
             {data.length === 0
-              ? "Aún no hay histórico. Se poblará con cada análisis de vídeo del jugador."
-              : "Con 2+ análisis en el tiempo verás aquí la curva de evolución."}
+              ? t("snapshotHistoryChart.emptyNoData")
+              : t("snapshotHistoryChart.emptyNeedMore")}
           </p>
         </div>
       ) : (
@@ -86,7 +88,7 @@ export function SnapshotHistoryChart({ playerId, height = 240 }: Props) {
                 contentStyle={{ background: "rgba(15,23,42,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
               />
               <Legend wrapperStyle={{ fontSize: 10 }} />
-              <Area yAxisId="pct" type="monotone" dataKey="Riesgo lesión" stroke="#f43f5e" fill="rgba(244,63,94,0.12)" strokeWidth={1.5} connectNulls />
+              <Area yAxisId="pct" type="monotone" dataKey="risk" name={t("snapshotHistoryChart.seriesRisk")} stroke="#f43f5e" fill="rgba(244,63,94,0.12)" strokeWidth={1.5} connectNulls />
               <Line yAxisId="pct" type="monotone" dataKey="VSI" stroke="#22d3ee" strokeWidth={2.5} dot={{ r: 2 }} connectNulls />
               <Line yAxisId="phv" type="monotone" dataKey="PHV offset" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 3" dot={{ r: 2 }} connectNulls />
             </ComposedChart>

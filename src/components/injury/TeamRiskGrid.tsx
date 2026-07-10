@@ -10,6 +10,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Users, Shield, AlertTriangle, ArrowRight } from "lucide-react";
 import InjuryRiskGauge from "./InjuryRiskGauge";
 
@@ -48,6 +49,7 @@ export default function TeamRiskGrid({
   onPlayerClick,
   loading = false,
 }: TeamRiskGridProps) {
+  const { t } = useTranslation();
   const sorted = useMemo(() => [...players].sort(sortByRisk), [players]);
 
   const stats = useMemo(() => {
@@ -63,7 +65,7 @@ export default function TeamRiskGrid({
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <Users size={16} className="text-primary" />
-          <h3 className="font-display font-bold text-sm text-foreground">Mapa de Riesgo · Equipo</h3>
+          <h3 className="font-display font-bold text-sm text-foreground">{t("teamRiskGrid.title")}</h3>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -78,7 +80,7 @@ export default function TeamRiskGrid({
     return (
       <div className="text-center py-8">
         <Users size={24} className="text-muted-foreground/40 mx-auto mb-2" />
-        <p className="text-xs text-muted-foreground">Sin jugadores con datos de riesgo</p>
+        <p className="text-xs text-muted-foreground">{t("teamRiskGrid.noData")}</p>
       </div>
     );
   }
@@ -89,9 +91,9 @@ export default function TeamRiskGrid({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users size={16} className="text-primary" />
-          <h3 className="font-display font-bold text-sm text-foreground">Mapa de Riesgo · Equipo</h3>
+          <h3 className="font-display font-bold text-sm text-foreground">{t("teamRiskGrid.title")}</h3>
         </div>
-        <span className="text-[10px] text-muted-foreground">{players.length} jugadores</span>
+        <span className="text-[10px] text-muted-foreground">{t("teamRiskGrid.playerCount", { count: players.length })}</span>
       </div>
 
       {/* Summary badges */}
@@ -99,22 +101,22 @@ export default function TeamRiskGrid({
         {stats.critical > 0 && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20">
             <AlertTriangle size={10} className="text-red-500" />
-            <span className="text-[10px] font-bold text-red-500">{stats.critical} critico{stats.critical > 1 ? "s" : ""}</span>
+            <span className="text-[10px] font-bold text-red-500">{t("teamRiskGrid.critical", { count: stats.critical })}</span>
           </div>
         )}
         {stats.high > 0 && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20">
-            <span className="text-[10px] font-medium text-orange-500">{stats.high} alto{stats.high > 1 ? "s" : ""}</span>
+            <span className="text-[10px] font-medium text-orange-500">{t("teamRiskGrid.high", { count: stats.high })}</span>
           </div>
         )}
         {stats.moderate > 0 && (
           <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <span className="text-[10px] font-medium text-amber-500">{stats.moderate} moderado{stats.moderate > 1 ? "s" : ""}</span>
+            <span className="text-[10px] font-medium text-amber-500">{t("teamRiskGrid.moderate", { count: stats.moderate })}</span>
           </div>
         )}
         <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
           <Shield size={10} className="text-emerald-500" />
-          <span className="text-[10px] font-medium text-emerald-500">{stats.low} bajo{stats.low > 1 ? "s" : ""}</span>
+          <span className="text-[10px] font-medium text-emerald-500">{t("teamRiskGrid.low", { count: stats.low })}</span>
         </div>
       </div>
 
@@ -150,12 +152,12 @@ export default function TeamRiskGrid({
 
             {player.topFactor && (
               <p className="text-[9px] text-muted-foreground truncate">
-                Factor: {player.topFactor}
+                {t("teamRiskGrid.factor", { factor: player.topFactor })}
               </p>
             )}
 
             {player.coldStart && (
-              <p className="text-[8px] text-muted-foreground/50 mt-1">Datos limitados</p>
+              <p className="text-[8px] text-muted-foreground/50 mt-1">{t("teamRiskGrid.limitedData")}</p>
             )}
 
             <div className="flex items-center justify-end mt-1 opacity-0 group-hover:opacity-100 transition-opacity">

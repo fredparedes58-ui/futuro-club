@@ -7,6 +7,7 @@
 
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { CheckCircle2, Circle, XCircle, CircleDot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { IDPMilestone } from "@/lib/idp/idpTypes";
@@ -29,6 +30,7 @@ const STATUS_VISUAL: Record<
 };
 
 export function IDPTimeline({ milestones, onSelect, highlightGoalId }: Props) {
+  const { t } = useTranslation();
   const weeks = useMemo(() => {
     const map = new Map<number, IDPMilestone[]>();
     for (const m of milestones) {
@@ -42,7 +44,7 @@ export function IDPTimeline({ milestones, onSelect, highlightGoalId }: Props) {
   if (weeks.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-white/10 p-6 text-center text-sm text-slate-400">
-        No hay milestones generados para este plan.
+        {t("idpTimeline.empty")}
       </div>
     );
   }
@@ -53,7 +55,7 @@ export function IDPTimeline({ milestones, onSelect, highlightGoalId }: Props) {
         <div key={weekNum}>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
-              Semana {weekNum}
+              {t("idpTimeline.week", { n: weekNum })}
             </span>
             <div className="h-px flex-1 bg-white/5" />
             <span className="text-[10px] text-slate-600">
