@@ -371,7 +371,7 @@ export default function SetPieceFolderPage() {
                   <FolderRecCard
                     key={rec.id}
                     rec={rec}
-                    onOpen={() => navigate(`/set-pieces`)}
+                    onOpen={() => navigate(`/set-pieces?rec=${rec.id}`)}
                     onRemove={() => handleRemoveItem(rec.id, "recommendation")}
                   />
                 ))}

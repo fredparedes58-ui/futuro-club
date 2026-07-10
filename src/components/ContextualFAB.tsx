@@ -24,6 +24,24 @@ import {
   Plus, X, Activity, Swords, Grid3x3, Zap, Sparkles, FileText,
   TrendingUp, Share2, BarChart3, Target, Heart,
 } from "lucide-react";
+import { toast } from "sonner";
+
+/** Comparte la URL actual (Web Share API con fallback a portapapeles).
+ *  Antes emitía un CustomEvent sin ningún listener → botón muerto. */
+async function shareCurrentUrl() {
+  const url = window.location.href;
+  const nav = typeof navigator !== "undefined" ? navigator : undefined;
+  try {
+    if (nav && "share" in nav) {
+      await nav.share({ title: "VITAS", url });
+    } else if (nav?.clipboard) {
+      await nav.clipboard.writeText(url);
+      toast.success("Enlace copiado al portapapeles");
+    }
+  } catch {
+    /* el usuario canceló el diálogo de compartir — sin acción */
+  }
+}
 
 interface FabAction {
   id: string;
@@ -60,7 +78,7 @@ function actionsForRoute(pathname: string, params: Record<string, string | undef
     const idMatch = pathname.match(/\/(player|players)\/([^/]+)/);
     const id = idMatch?.[2];
     return [
-      { id: "share",  label: t("contextualFAB.share"),  Icon: Share2,  color: "#1A8FFF", onClick: () => window.dispatchEvent(new CustomEvent("vitas:share-current")) },
+      { id: "share",  label: t("contextualFAB.share"),  Icon: Share2,  color: "#1A8FFF", onClick: () => { void shareCurrentUrl(); } },
       { id: "live",   label: t("contextualFAB.matchDay"),  Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
       ...(id ? [{ id: "back-player", label: t("contextualFAB.profile"), Icon: BarChart3, color: "#10b981", onClick: () => navigate(`/player/${id}`) }] : []),
     ];

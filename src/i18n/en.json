@@ -1495,6 +1495,8 @@
     "tabStats": "Stats",
     "tabMovimiento": "Movement",
     "tabRol": "Role",
+    "compareRole": "Compare role",
+    "auditRole": "Audit",
     "tabMental": "Mental",
     "tabSalud": "Health",
     "tabBienestar": "Wellbeing",

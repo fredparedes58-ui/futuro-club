@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
   Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart, Shield, TrendingUp, Target, Briefcase,
+  GitCompare, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -501,6 +502,31 @@ export default function PlayerHubPage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Acciones del perfil de rol · antes /compare y /audit no tenían
+                      ningún punto de entrada en la UI (rutas huérfanas). */}
+                  {id && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => navigate(`/players/${id}/role-profile/compare`)}
+                      >
+                        <GitCompare size={14} />
+                        {t("playerHubPage.compareRole")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => navigate(`/players/${id}/role-profile/audit`)}
+                      >
+                        <ClipboardList size={14} />
+                        {t("playerHubPage.auditRole")}
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Banner descubrimiento · sugiere añadir nuevas posiciones detectadas en video */}
                   {Array.isArray((roleData as { positionAlternatives?: Array<{ code: string; fit: number; alreadyDeclared: boolean; reason: string; confidence: number }> }).positionAlternatives) && (

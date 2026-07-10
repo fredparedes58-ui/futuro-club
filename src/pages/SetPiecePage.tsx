@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2, Upload } from "lucide-react";
@@ -63,6 +63,7 @@ const TABS: Array<{ key: Tab; labelKey: string; icon: React.ElementType }> = [
 
 export default function SetPiecePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("events");
   const [filter, setFilter] = useState<SideFilter>("all");
@@ -123,6 +124,43 @@ export default function SetPiecePage() {
     () => [...customRecs, ...videoRecs, ...getRecommendations()],
     [customRecs, videoRecs],
   );
+
+  // Deep-links desde la carpeta de set pieces (antes ?event/?rec/?tab se
+  // ignoraban y todos los enlaces caían en la vista por defecto).
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const eventId = searchParams.get("event");
+    const recId = searchParams.get("rec");
+    let consumed = false;
+
+    if (eventId) {
+      const found = allEvents.find((e) => e.id === eventId);
+      if (found) {
+        setSelectedEvent(found);
+        setTab("events");
+        consumed = true;
+      }
+    } else if (recId) {
+      const found = recommendations.find((r) => r.id === recId);
+      if (found) {
+        setTab("recommendations");
+        consumed = true;
+      }
+    } else if (tabParam === "events" || tabParam === "stats" || tabParam === "recommendations") {
+      setTab(tabParam);
+      consumed = true;
+    }
+
+    // Limpiar los params una vez aplicados para no re-forzar al cambiar de tab.
+    if (consumed && (eventId || recId || tabParam)) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("event");
+      next.delete("rec");
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, allEvents, recommendations]);
 
   const isVideoRec = (r: SetPieceRecommendation) =>
     videoRecs.some((vr) => vr.id === r.id);
