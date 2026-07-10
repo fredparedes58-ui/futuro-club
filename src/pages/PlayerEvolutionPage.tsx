@@ -24,6 +24,7 @@ import {
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
 import EmptyState from "@/components/EmptyState";
+import ErrorState from "@/components/ErrorState";
 import { SnapshotHistoryChart } from "@/components/evolution/SnapshotHistoryChart";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import RadarChartComponent from "@/components/RadarChart";
@@ -338,7 +339,7 @@ export default function PlayerEvolutionPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading } = useSavedAnalysesV2(id ?? "");
+  const { data: analyses, isLoading, isError, refetch } = useSavedAnalysesV2(id ?? "");
 
   if (!player) {
     return (
@@ -482,11 +483,16 @@ export default function PlayerEvolutionPage() {
           </div>
         )}
 
+        {/* Error state — distinto del vacío: la carga de reportes falló (#24) */}
+        {!isLoading && isError && (
+          <ErrorState onRetry={() => refetch()} />
+        )}
+
         {/* Curva longitudinal desde snapshots (Sprint 5.4) — independiente de reportes */}
         {id && <SnapshotHistoryChart playerId={id} />}
 
         {/* Not enough data · empty state mejorado */}
-        {!isLoading && total < 2 && (
+        {!isLoading && !isError && total < 2 && (
           <EmptyState
             Icon={TrendingUp}
             title={total === 0 ? t("playerEvolutionPage.emptyNoReportsTitle") : t("playerEvolutionPage.emptyOneReportTitle")}

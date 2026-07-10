@@ -17,12 +17,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Play, Pause, Square, Undo2, Wifi, WifiOff,
-  Goal, Send, Shield, Activity, ChevronUp, ChevronDown, AlertCircle,
+  Goal, Send, Shield, Activity, ChevronUp, ChevronDown, AlertCircle, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useLiveMatch, type LiveEventType } from "@/hooks/useLiveMatch";
 import { useAllPlayers } from "@/hooks/usePlayers";
+import ErrorState from "@/components/ErrorState";
 
 interface EventButtonConfig {
   type: LiveEventType;
@@ -63,7 +64,7 @@ export default function LiveMatchPage() {
   const navigate = useNavigate();
   const { data: players = [] } = useAllPlayers();
   const {
-    match, events, elapsed, online, queueSize,
+    match, events, elapsed, online, queueSize, loading,
     addEvent, undoLast, updateMatchStatus,
   } = useLiveMatch(matchId ?? null);
 
@@ -122,6 +123,31 @@ export default function LiveMatchPage() {
   const selectedPlayer = players.find((p) => p.id === selectedPlayerId);
   const isLive = match?.status === "live";
   const isFinished = match?.status === "finished" || match?.status === "aborted";
+
+  // Cargando el partido.
+  if (loading && !match) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // No se pudo cargar el partido — antes se pintaba el tracker con defaults
+  // (0-0, "Mi equipo"), haciendo que un error/partido inexistente pareciera un
+  // partido vacío en marcha (#28).
+  if (!loading && !match) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 gap-4">
+        <ErrorState
+          title={t("liveMatchPage.notFoundTitle")}
+          description={t("liveMatchPage.notFoundDescription")}
+          onRetry={() => navigate("/live")}
+          retryLabel={t("liveMatchPage.backToHub")}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">

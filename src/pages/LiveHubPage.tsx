@@ -8,7 +8,7 @@
  *   - Click en un partido → /live/:matchId (continuar) o /live/:matchId/summary (terminado)
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -21,6 +21,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
 import VideoUpload from "@/components/VideoUpload";
 import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
+import ErrorState from "@/components/ErrorState";
 
 interface MatchSummary {
   id: string;
@@ -52,23 +53,31 @@ export default function LiveHubPage() {
   const [opponentName, setOpponentName] = useState("");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [showVideoUpload, setShowVideoUpload] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadMatches = useCallback(async () => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/live/matches", { headers });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMatches(data.data.matches as MatchSummary[]);
+      } else {
+        // Respuesta no-ok: es un error de carga, no "sin partidos" (#30).
+        setLoadError(true);
+      }
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const headers = await getAuthHeaders();
-        const res = await fetch("/api/live/matches", { headers });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          setMatches(data.data.matches as MatchSummary[]);
-        }
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    void loadMatches();
+  }, [loadMatches]);
 
   async function handleCreate() {
     if (creating) return;
@@ -249,13 +258,19 @@ export default function LiveHubPage() {
           </div>
         )}
 
-        {!loading && matches.length === 0 && !showForm && (
+        {!loading && loadError && (
+          <div className="py-2">
+            <ErrorState onRetry={() => { void loadMatches(); }} size="sm" />
+          </div>
+        )}
+
+        {!loading && !loadError && matches.length === 0 && !showForm && (
           <p className="text-center text-[11px] text-muted-foreground py-6">
             {t("liveHubPage.emptyState")}
           </p>
         )}
 
-        {!loading && matches.length > 0 && (
+        {!loading && !loadError && matches.length > 0 && (
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold pt-2">
               {t("liveHubPage.history", { count: matches.length })}

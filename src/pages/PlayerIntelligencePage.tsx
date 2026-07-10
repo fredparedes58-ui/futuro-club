@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import ErrorState from "@/components/ErrorState";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -719,7 +720,7 @@ export default function PlayerIntelligencePage() {
   const [showCard, setShowCard] = useState(false);
 
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading: loadingAnalyses } = useSavedAnalysesV2(id ?? "");
+  const { data: analyses, isLoading: loadingAnalyses, isError: errorAnalyses, refetch: refetchAnalyses } = useSavedAnalysesV2(id ?? "");
 
   // Hooks MUST be called before any early return (Rules of Hooks)
   const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState<number>(0);
@@ -820,6 +821,9 @@ export default function PlayerIntelligencePage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 size={24} className="animate-spin text-primary" />
               </div>
+            ) : errorAnalyses ? (
+              /* Error de carga — distinto del vacío (#24) */
+              <ErrorState onRetry={() => refetchAnalyses()} />
             ) : latestReport ? (
               <div className="space-y-4">
 

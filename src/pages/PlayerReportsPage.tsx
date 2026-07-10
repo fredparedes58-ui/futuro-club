@@ -22,6 +22,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { PlayerService } from "@/services/real/playerService";
 import { VideoService } from "@/services/real/videoService";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
+import ErrorState from "@/components/ErrorState";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
@@ -196,7 +197,7 @@ export default function PlayerReportsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const player = id ? PlayerService.getById(id) : null;
-  const { data: analyses, isLoading } = useSavedAnalysesV2(id ?? "");
+  const { data: analyses, isLoading, isError, refetch } = useSavedAnalysesV2(id ?? "");
   const [generating, setGenerating] = useState(false);
 
   async function handleGenerateBaseline() {
@@ -311,8 +312,13 @@ export default function PlayerReportsPage() {
           </div>
         )}
 
+        {/* Error state — distinto del vacío: la carga falló (#24) */}
+        {!isLoading && isError && (
+          <ErrorState onRetry={() => refetch()} />
+        )}
+
         {/* Empty state */}
-        {!isLoading && total === 0 && (
+        {!isLoading && !isError && total === 0 && (
           <div className="glass rounded-2xl p-6 text-center space-y-4">
             <Brain size={32} className="mx-auto text-primary/50" />
             <div className="space-y-1">
