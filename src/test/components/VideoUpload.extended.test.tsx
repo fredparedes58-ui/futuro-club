@@ -1,22 +1,37 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+/**
+ * VideoUpload component — Extended tests
+ * Cubre estados idle/error/done/phase2Pending con un mock de estado mutable
+ * tipado como UploadState (todas las phases asignables).
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import VideoUpload from "@/components/VideoUpload";
+import type { UploadState } from "@/hooks/useVideoUpload";
 
-// Mock the hook
-const mockState = {
-  phase: "idle" as const,
+// Estado inicial canónico (fuente única — evita literales duplicados que
+// derivan cuando UploadState gana un campo).
+const IDLE_STATE: UploadState = {
+  phase: "idle",
   progress: 0,
   encodeProgress: 0,
-  videoId: null as string | null,
-  error: null as string | null,
+  videoId: null,
+  error: null,
   video: null,
-  analysis: null as any,
+  analysis: null,
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
 };
 
-const mockUpload = vi.fn();
+// Estado mutable compartido; tipado como UploadState para que cada bloque
+// pueda asignar cualquier phase ("error", "done", …) sin narrowing a "idle".
+const mockState: UploadState = { ...IDLE_STATE };
+
+const resetState = (overrides: Partial<UploadState> = {}) => {
+  Object.assign(mockState, IDLE_STATE, overrides);
+};
+
+const mockUpload = vi.fn(async (): Promise<string | null> => null);
 const mockCancel = vi.fn();
 const mockReset = vi.fn();
 
@@ -29,9 +44,18 @@ vi.mock("@/hooks/useVideoUpload", () => ({
   }),
 }));
 
+// t() devuelve la clave (+ valores interpolados) — patrón estándar del repo.
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) =>
+      opts ? `${key} ${Object.values(opts).join(" ")}` : key,
+    i18n: { language: "es", changeLanguage: vi.fn() },
+  }),
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, className, onClick, onDragOver, onDragLeave, onDrop, ...rest }: any) => (
+    div: ({ children, className, onClick, onDragOver, onDragLeave, onDrop }: any) => (
       <div className={className} onClick={onClick} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
         {children}
       </div>
@@ -40,40 +64,31 @@ vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-vi.mock("lucide-react", () => ({
-  Upload: () => <span data-testid="upload-icon" />,
-  Video: () => <span data-testid="video-icon" />,
-  X: () => <span data-testid="x-icon" />,
-  CheckCircle2: () => <span data-testid="check-icon" />,
-  AlertCircle: () => <span data-testid="alert-icon" />,
-  Loader2: () => <span data-testid="loader-icon" />,
-  Zap: () => <span data-testid="zap-icon" />,
-  Film: () => <span data-testid="film-icon" />,
-  RefreshCw: () => <span data-testid="refresh-icon" />,
-}));
-
 describe("VideoUpload — idle state", () => {
   beforeEach(() => {
-    mockState.phase = "idle";
-    mockState.error = null;
-    mockState.phase2Pending = false;
-    mockState.videoId = null;
-    mockState.analysis = null;
+    vi.clearAllMocks();
+    resetState();
+  });
+
+  afterEach(() => {
+    // Restaura spies (p.ej. window.alert) aunque una aserción haya lanzado;
+    // el mockRestore inline se saltaría en ese caso y el spy fugaría.
+    vi.restoreAllMocks();
   });
 
   it("renders dropzone in idle state", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Arrastra un video/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.dragOrClick")).toBeTruthy();
   });
 
   it("renders title input in idle state", () => {
     render(<VideoUpload />);
-    expect(screen.getByPlaceholderText(/Título del video/i)).toBeTruthy();
+    expect(screen.getByPlaceholderText("videoUpload.titlePlaceholder")).toBeTruthy();
   });
 
   it("shows powered by badge", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Bunny Stream/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.poweredBy")).toBeTruthy();
   });
 
   it("rejects oversized files", () => {
@@ -86,52 +101,60 @@ describe("VideoUpload — idle state", () => {
 
     fireEvent.change(input, { target: { files: [bigFile] } });
     expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("2048"));
-    alertSpy.mockRestore();
+    expect(mockUpload).not.toHaveBeenCalled();
+    // restore lo hace el afterEach (robusto ante fallo de aserción).
   });
 });
 
 describe("VideoUpload — error state", () => {
   beforeEach(() => {
-    mockState.phase = "error";
-    mockState.error = "Network timeout";
-    mockState.phase2Pending = false;
-    mockState.videoId = null;
-    mockState.analysis = null;
+    vi.clearAllMocks();
+    resetState({ phase: "error", error: "Network timeout" });
   });
 
   it("shows error message", () => {
     render(<VideoUpload />);
+    expect(screen.getByText("videoUpload.uploadErrorTitle")).toBeTruthy();
     expect(screen.getByText("Network timeout")).toBeTruthy();
   });
 
   it("shows retry button", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Reintentar/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.retry")).toBeTruthy();
   });
 
   it("calls reset on retry click", () => {
     render(<VideoUpload />);
-    fireEvent.click(screen.getByText(/Reintentar/i));
+    fireEvent.click(screen.getByText("videoUpload.retry"));
     expect(mockReset).toHaveBeenCalled();
   });
 });
 
 describe("VideoUpload — done state", () => {
   beforeEach(() => {
-    mockState.phase = "done";
-    mockState.videoId = "test-video-123";
-    mockState.error = null;
-    mockState.phase2Pending = false;
-    mockState.analysis = {
-      formationHint: "4-3-3",
-      notes: "Good pressing",
-      keyMovements: ["Sprint", "Pass"],
-    };
+    vi.clearAllMocks();
+    resetState({
+      phase: "done",
+      progress: 100,
+      encodeProgress: 100,
+      videoId: "test-video-123",
+      analysis: {
+        formationHint: "4-3-3",
+        pressureZone: "medio campo",
+        keyMovements: ["Sprint", "Pass"],
+        playerCount: 10,
+        ballDetected: true,
+        tacticalPhase: "attack",
+        confidence: 0.8,
+        notes: "Good pressing",
+        analyzedAt: "2026-07-10T00:00:00.000Z",
+      },
+    });
   });
 
   it("shows success message", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Video subido y analizado/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.uploadedAnalyzed")).toBeTruthy();
   });
 
   it("shows video ID", () => {
@@ -143,25 +166,25 @@ describe("VideoUpload — done state", () => {
     render(<VideoUpload />);
     expect(screen.getByText("4-3-3")).toBeTruthy();
     expect(screen.getByText("Good pressing")).toBeTruthy();
+    expect(screen.getByText("Sprint")).toBeTruthy();
+    expect(screen.getByText("Pass")).toBeTruthy();
   });
 
   it("shows upload another button", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Subir otro video/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.uploadAnother")).toBeTruthy();
   });
 });
 
 describe("VideoUpload — phase2Pending state", () => {
   beforeEach(() => {
-    mockState.phase = "error";
-    mockState.phase2Pending = true;
-    mockState.error = null;
-    mockState.videoId = null;
-    mockState.analysis = null;
+    vi.clearAllMocks();
+    resetState({ phase: "error", phase2Pending: true });
   });
 
   it("shows phase 2 message instead of error", () => {
     render(<VideoUpload />);
-    expect(screen.getByText(/Módulo disponible en Fase 2/i)).toBeTruthy();
+    expect(screen.getByText("videoUpload.phase2ModuleTitle")).toBeTruthy();
+    expect(screen.getByText("videoUpload.phase2ConfigHint")).toBeTruthy();
   });
 });
