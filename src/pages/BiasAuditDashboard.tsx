@@ -25,6 +25,7 @@ import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { BiasEquityReport } from "@/components/bias/BiasEquityReport";
+import ErrorState from "@/components/ErrorState";
 
 // Gate de admin (mismo criterio que AdminDashboardPage/AdminManagePlanPage):
 // esta auditoría interna de sesgo del modelo IA no debe verla cualquier usuario.
@@ -137,7 +138,7 @@ export default function BiasAuditDashboard() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState<"overview" | "position" | "age" | "visibility" | "recency">("overview");
 
-  const { data: dashboard, isLoading: loadingDash, refetch: refetchDash } = useQuery({
+  const { data: dashboard, isLoading: loadingDash, isError: errorDash, refetch: refetchDash } = useQuery({
     queryKey: ["bias-dashboard"],
     queryFn: fetchBiasDashboard,
     staleTime: 60_000,
@@ -271,6 +272,11 @@ export default function BiasAuditDashboard() {
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={24} className="animate-spin text-primary" />
+          </div>
+        ) : errorDash ? (
+          /* Error de carga — distinto del vacío "sin sesgos detectados" (#20) */
+          <div className="py-8">
+            <ErrorState onRetry={() => refetchDash()} />
           </div>
         ) : (
           <>

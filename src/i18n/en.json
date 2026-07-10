@@ -1174,6 +1174,11 @@
     "promptDriftTitle": "What is prompt drift?",
     "promptDriftDesc": "If scores rise consistently month over month with no real changes in the players, it may indicate that the AI agents' prompts are drifting toward more generous evaluations. This is normal and is corrected by periodically adjusting the scoring rules."
   },
+  "errorState": {
+    "title": "Couldn't load the data",
+    "description": "Something went wrong while loading. Check your connection and try again.",
+    "retry": "Retry"
+  },
   "demoData": {
     "title": "Demo data.",
     "generic": "The values shown are sample data. They will be replaced with real data once available.",
@@ -2367,6 +2372,9 @@
   "liveMatchPage": {
     "myTeam": "My team",
     "vs": "vs",
+    "notFoundTitle": "Couldn't load the match",
+    "notFoundDescription": "This match doesn't exist or couldn't be retrieved. Check your connection and try again.",
+    "backToHub": "Back to matches",
     "homeShort": "HOME",
     "awayShort": "AWAY",
     "pause": "Pause",
@@ -2802,7 +2810,10 @@
     "newRec": "New",
     "badgeAiVideo": "AI · video",
     "badgeCustom": "Custom",
-    "editRec": "Edit"
+    "editRec": "Edit",
+    "emptyEventsTitle": "No plays",
+    "emptyEventsDescription": "No set-piece plays match the current filters.",
+    "clearFilters": "Clear filters"
   },
   "tacticalDashboard": {
     "emptyTitle": "No heatmap for this match",

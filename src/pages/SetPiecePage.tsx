@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2, Upload } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 import { toast } from "sonner";
 import {
   getAllSetPieces,
@@ -497,6 +498,22 @@ export default function SetPiecePage() {
               <div className="grid grid-cols-1 lg:grid-cols-[1fr,1.2fr] gap-4">
                 {/* List */}
                 <div className="space-y-2 max-h-[70vh] overflow-y-auto pr-1 lg:pr-2">
+                  {filteredEvents.length === 0 && (
+                    <EmptyState
+                      Icon={Crosshair}
+                      size="sm"
+                      title={t("setPiecePage.emptyEventsTitle")}
+                      description={t("setPiecePage.emptyEventsDescription")}
+                      primary={
+                        filter !== "all" || activeFolderId !== "all"
+                          ? {
+                              label: t("setPiecePage.clearFilters"),
+                              onClick: () => { setFilter("all"); setActiveFolderId("all"); },
+                            }
+                          : undefined
+                      }
+                    />
+                  )}
                   {filteredEvents.map((event) => {
                     const isCustom = isCustomEvent(event);
                     // intentionally include notesVersion to refresh counter

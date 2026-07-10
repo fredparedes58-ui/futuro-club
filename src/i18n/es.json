@@ -1174,6 +1174,11 @@
     "promptDriftTitle": "¿Qué es prompt drift?",
     "promptDriftDesc": "Si los scores suben consistentemente mes a mes sin cambios reales en los jugadores, puede indicar que los prompts de los agentes IA están derivando hacia evaluaciones más generosas. Esto es normal y se corrige ajustando las reglas de scoring periódicamente."
   },
+  "errorState": {
+    "title": "No se pudieron cargar los datos",
+    "description": "Ha ocurrido un error al cargar la información. Comprueba tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
   "demoData": {
     "title": "Datos de demostración.",
     "generic": "Los valores mostrados son de ejemplo. Se reemplazarán por datos reales cuando estén disponibles.",
@@ -2367,6 +2372,9 @@
   "liveMatchPage": {
     "myTeam": "Mi equipo",
     "vs": "vs",
+    "notFoundTitle": "No se pudo cargar el partido",
+    "notFoundDescription": "Este partido no existe o no se pudo recuperar. Comprueba tu conexión e inténtalo de nuevo.",
+    "backToHub": "Volver a partidos",
     "homeShort": "LOC",
     "awayShort": "VIS",
     "pause": "Pausa",
@@ -2802,7 +2810,10 @@
     "newRec": "Nueva",
     "badgeAiVideo": "IA · video",
     "badgeCustom": "Custom",
-    "editRec": "Editar"
+    "editRec": "Editar",
+    "emptyEventsTitle": "No hay jugadas",
+    "emptyEventsDescription": "No hay jugadas a balón parado que coincidan con los filtros actuales.",
+    "clearFilters": "Limpiar filtros"
   },
   "tacticalDashboard": {
     "emptyTitle": "Sin heatmap para este partido",
