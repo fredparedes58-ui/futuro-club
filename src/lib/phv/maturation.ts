@@ -30,7 +30,6 @@ export interface MaturationAssessment {
   label: string;
   /** Años por delante(+)/detrás(-) de su edad cronológica (= offset). */
   yearsVsPeers: number;
-  biologicalAge: number;
   chronologicalAge: number;
   /** Factor aplicado al VSI/métricas físicas (>1 sube, <1 baja). */
   adjustmentFactor: number;
@@ -45,7 +44,7 @@ export interface MaturationAssessment {
  * Umbral ±1.0 año (mismo que el categorize del agente).
  */
 export function assessMaturation(m: MirwaldResult): MaturationAssessment {
-  const yearsVsPeers = m.offset; // biologicalAge - chronologicalAge
+  const yearsVsPeers = m.offset; // años vs pares (= Mirwald maturity offset)
 
   let status: MaturationStatus;
   let label: string;
@@ -85,7 +84,6 @@ export function assessMaturation(m: MirwaldResult): MaturationAssessment {
     status,
     label,
     yearsVsPeers,
-    biologicalAge: m.biologicalAge,
     chronologicalAge: m.chronologicalAge,
     adjustmentFactor,
     tone,

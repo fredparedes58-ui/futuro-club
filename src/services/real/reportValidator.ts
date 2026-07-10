@@ -439,19 +439,20 @@ export function validateTeamReport(report: TeamIntelligenceOutput): ValidationRe
  * Validación rápida de coherencia para PHV output.
  */
 export function validatePHVOutput(
-  output: { biologicalAge: number; chronologicalAge: number; offset: number; category: string; adjustedVSI: number },
+  output: { ageAtPHV: number; chronologicalAge: number; offset: number; category: string; adjustedVSI: number },
   inputAge: number
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
 
-  // Offset debe ser biologicalAge - chronologicalAge
-  const expectedOffset = output.biologicalAge - output.chronologicalAge;
+  // APHV (Mirwald 2002): el offset se RESTA de la edad → ageAtPHV = edad − offset,
+  // por tanto offset debe ser chronologicalAge − ageAtPHV.
+  const expectedOffset = output.chronologicalAge - output.ageAtPHV;
   if (Math.abs(output.offset - expectedOffset) > 0.1) {
     issues.push({
       rule: "phv_offset_consistency",
       severity: "error",
-      fields: ["offset", "biologicalAge", "chronologicalAge"],
-      message: `offset (${output.offset}) no coincide con biologicalAge (${output.biologicalAge}) - chronologicalAge (${output.chronologicalAge}) = ${expectedOffset.toFixed(2)}.`,
+      fields: ["offset", "ageAtPHV", "chronologicalAge"],
+      message: `offset (${output.offset}) no coincide con chronologicalAge (${output.chronologicalAge}) - ageAtPHV (${output.ageAtPHV}) = ${expectedOffset.toFixed(2)}.`,
       suggestedFix: `Corrige offset a ${expectedOffset.toFixed(2)}.`,
     });
   }
@@ -468,14 +469,14 @@ export function validatePHVOutput(
     });
   }
 
-  // BiologicalAge plausible
-  if (output.biologicalAge < 7 || output.biologicalAge > 22) {
+  // ageAtPHV (edad estimada del estirón) plausible: el PHV ocurre ~9-18 años.
+  if (output.ageAtPHV < 8 || output.ageAtPHV > 18) {
     issues.push({
       rule: "phv_age_plausibility",
       severity: "error",
-      fields: ["biologicalAge"],
-      message: `biologicalAge ${output.biologicalAge} fuera de rango plausible (7-22).`,
-      suggestedFix: "Revisa el cálculo de la fórmula Mirwald. biologicalAge debe estar entre 7 y 22.",
+      fields: ["ageAtPHV"],
+      message: `ageAtPHV ${output.ageAtPHV} fuera de rango plausible (8-18).`,
+      suggestedFix: "Revisa el cálculo de la fórmula Mirwald. ageAtPHV debe estar entre 8 y 18.",
     });
   }
 

@@ -51,7 +51,7 @@ Pipeline principal: analiza video con Claude para rendimiento de jugador.
 ### POST `/api/agents/phv-calculator`
 Calcula Peak Height Velocity (maduracion biologica).
 - **Body:** `{ playerId: string, chronologicalAge: number, height?, weight?, sitingHeight?, legLength? }`
-- **Respuesta:** `{ success: true, data: { biologicalAge, offset, category, phvStatus, adjustedVSI, recommendation, confidence } }`
+- **Respuesta:** `{ success: true, data: { offset, category, phvStatus, adjustedVSI, recommendation, confidence } }` (la edad estimada del estirón se deriva como `ageAtPHV = chronologicalAge − offset`)
 
 ### POST `/api/agents/scout-insight`
 Genera insights de scouting para un jugador.

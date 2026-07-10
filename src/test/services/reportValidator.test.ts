@@ -473,7 +473,7 @@ describe("validateTeamReport", () => {
 describe("validatePHVOutput", () => {
   it("output PHV válido → valid=true, qualityScore=100", () => {
     const output = {
-      biologicalAge: 14.5,
+      ageAtPHV: 13.5, // = 14.0 − 0.5
       chronologicalAge: 14.0,
       offset: 0.5,
       category: "ontme",
@@ -488,11 +488,11 @@ describe("validatePHVOutput", () => {
   });
 
   describe("phv_offset_consistency", () => {
-    it("offset no coincide con bio - chrono → error", () => {
+    it("offset no coincide con chrono − ageAtPHV → error", () => {
       const output = {
-        biologicalAge: 15.0,
+        ageAtPHV: 13.5, // offset coherente sería 14.0 − 13.5 = 0.5
         chronologicalAge: 14.0,
-        offset: 2.5, // debería ser 1.0
+        offset: 2.5, // no coincide con 0.5
         category: "late",
         adjustedVSI: 60,
       };
@@ -509,7 +509,7 @@ describe("validatePHVOutput", () => {
   describe("phv_category_consistency", () => {
     it("categoría no coincide con offset → error", () => {
       const output = {
-        biologicalAge: 16.0,
+        ageAtPHV: 12.0, // = 14.0 − 2.0 (offset coherente)
         chronologicalAge: 14.0,
         offset: 2.0, // > 1 → debería ser "late"
         category: "early",
@@ -526,11 +526,11 @@ describe("validatePHVOutput", () => {
   });
 
   describe("phv_age_plausibility", () => {
-    it("biologicalAge fuera de 7-22 → error", () => {
+    it("ageAtPHV fuera de 8-18 → error", () => {
       const output = {
-        biologicalAge: 25,
+        ageAtPHV: 5, // < 8 → implausible (offset 9.0 = 14.0 − 5 coherente)
         chronologicalAge: 14.0,
-        offset: 11.0,
+        offset: 9.0,
         category: "late",
         adjustedVSI: 60,
       };
@@ -547,7 +547,7 @@ describe("validatePHVOutput", () => {
   describe("phv_vsi_range", () => {
     it("adjustedVSI fuera de 0-100 → error", () => {
       const output = {
-        biologicalAge: 14.5,
+        ageAtPHV: 13.5, // = 14.0 − 0.5
         chronologicalAge: 14.0,
         offset: 0.5,
         category: "ontme",

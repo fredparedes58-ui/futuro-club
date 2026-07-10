@@ -16,7 +16,6 @@ vi.mock("@/services/real/agentService", () => ({
         playerId: "p1",
         category: "ontme",
         offset: 0.3,
-        biologicalAge: 13.3,
         adjustedVSI: 72,
         confidence: 0.8,
         phvStatus: "during_phv",

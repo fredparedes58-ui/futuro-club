@@ -27,7 +27,8 @@ describe("phvFallback", () => {
   it("calculates Mirwald offset correctly", () => {
     const r = phvFallback(baseInput, "no_api_key");
     expect(typeof r.offset).toBe("number");
-    expect(r.biologicalAge).toBeCloseTo(baseInput.chronologicalAge + r.offset, 1);
+    // biologicalAge (edad+offset) fue retirado por inválido — ya no se emite.
+    expect(r).not.toHaveProperty("biologicalAge");
   });
 
   it("categorizes early (offset < -1)", () => {
