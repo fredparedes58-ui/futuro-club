@@ -2362,7 +2362,8 @@
     "enrichDatasetHint": "El plan será más preciso si enriqueces el dataset",
     "tagVideo": "video",
     "tagMental": "mental",
-    "tagHealth": "salud"
+    "tagHealth": "salud",
+    "videosAnalyzedLabel": "{{count}} videos analizados"
   },
   "liveMatchPage": {
     "myTeam": "Mi equipo",
@@ -2398,7 +2399,46 @@
     "toastFinishError": "Error al terminar"
   },
   "matchStatsPanel": {
-    "totalsCount": "{{count}} totales"
+    "totalsCount": "{{count}} totales",
+    "title": "Panel de Estadísticas",
+    "confidence": "confianza",
+    "total": "Total",
+    "offensive": "Ofensivas",
+    "defensive": "Defensivas",
+    "passes": "Pases",
+    "accuracy": "precisión",
+    "completed": "Completados",
+    "failed": "Fallados",
+    "duels": "Duelos",
+    "effectiveness": "efectividad",
+    "won": "Ganados",
+    "lost": "Perdidos",
+    "recoveries": "Recuperaciones",
+    "recoveriesSub": "balones recuperados",
+    "shots": "Disparos",
+    "shotsSub": "{{onTarget}} al arco · {{off}} fuera",
+    "shotsAccuracy": "{{percent}}% precisión",
+    "tackles": "Robos",
+    "tacklesSub": "tackles con contacto",
+    "interceptions": "Anticipaciones",
+    "interceptionsSub": "intercepciones sin contacto",
+    "turnovers": "Pérdidas",
+    "turnoversSub": "errores no forzados — menos es mejor",
+    "physicalPerformance": "Rendimiento físico",
+    "yoloPoseTracking": "Tracking pose YOLO",
+    "maxSpeed": "Vel. máx",
+    "avgSpeed": "Vel. prom",
+    "distance": "Distancia",
+    "sprints": "Sprints",
+    "intensityZones": "Zonas de intensidad",
+    "zoneWalk": "Caminar",
+    "zoneJog": "Trotar",
+    "zoneRun": "Correr",
+    "zoneSprint": "Sprint",
+    "noStats": "No hay estadísticas cuantitativas disponibles para este análisis",
+    "sourceYoloGemini": "Tracking + IA",
+    "sourceGeminiOnly": "Observación IA",
+    "sourceYoloOnly": "Tracking YOLO"
   },
   "notEvaluatedSection": {
     "title": "No evaluado",
@@ -2425,7 +2465,8 @@
     "shootingDefenseName": "Tiro y defensa",
     "shootingDefenseReason": "Métricas base en cero",
     "shootingDefenseHowToFix": "Los agentes llenarán estas métricas tras analizar videos",
-    "infoFooter": "VITAS muestra lo que NO sabe para que confíes en lo que SÍ sabe. Cada video que subas reduce esta lista y mejora la confianza de la evaluación."
+    "infoFooter": "VITAS muestra lo que NO sabe para que confíes en lo que SÍ sabe. Cada video que subas reduce esta lista y mejora la confianza de la evaluación.",
+    "dimensionsCount": "{{count}} dimensiones sin datos suficientes"
   },
   "onboardingTour": {
     "closeTour": "Cerrar tour",
@@ -2802,7 +2843,42 @@
     "newRec": "Nueva",
     "badgeAiVideo": "IA · video",
     "badgeCustom": "Custom",
-    "editRec": "Editar"
+    "editRec": "Editar",
+    "analyzeVideo": "Analizar video",
+    "badgeFromVideo": "De video",
+    "badgeNew": "Nuevo",
+    "cancel": "Cancelar",
+    "doubleClickToOpenFolder": "Doble-click para abrir la carpeta",
+    "editBoard": "Editar pizarrón",
+    "editBoardTitle": "Mover jugadores, dibujar flechas, añadir texto",
+    "editingBoard": "Editando pizarrón",
+    "editingOriginalWarningBody": "al guardar se creará una copia personalizada con tus cambios, sin modificar el original.",
+    "editingOriginalWarningTitle": "Editando un evento original:",
+    "eventData": "Datos del evento",
+    "fieldMatch": "Partido",
+    "fieldMinute": "Minuto",
+    "fieldPattern": "Patrón",
+    "fieldType": "Tipo",
+    "filterAll": "Todas",
+    "filterDefensive": "Defensivas",
+    "filterOffensive": "Ofensivas",
+    "foldersLabel": "Carpetas:",
+    "headerSubtitle": "Análisis táctico de balón parado · {{count}} jugadas detectadas",
+    "matchPlaceholder": "vs Rival FC · 12 Abr",
+    "newPlay": "Nueva jugada",
+    "openDedicatedFolder": "Abrir carpeta dedicada",
+    "playsCount": "{{count}} jugadas",
+    "save": "Guardar",
+    "tabEvents": "Eventos",
+    "tabRecommendations": "Recomendaciones",
+    "tabStats": "Estadísticas",
+    "tacticalDetail": "Detalle táctico",
+    "toastEventSavedAsCopy": "Evento guardado como copia editable",
+    "toastEventUpdated": "Evento actualizado",
+    "toastNeedThreeDetected": "Necesitas al menos 3 jugadas detectadas desde video para generar recomendaciones",
+    "toastRecsGenerated": "{{count}} recomendaciones generadas desde tus jugadas",
+    "uploadVideo": "Subir video",
+    "uploadVideoTitle": "Sube un video desde tu ordenador, móvil o cloud"
   },
   "tacticalDashboard": {
     "emptyTitle": "Sin heatmap para este partido",
@@ -2835,7 +2911,9 @@
     "maturityClause": " {{maturityDiff}} años",
     "currentVsi": "VSI Actual",
     "projectedVsi": "Proyección post-pico",
-    "projectionNote": "Proyectamos mejora significativa en los próximos 12-18 meses cuando complete el pico de crecimiento. La velocidad puede bajar temporalmente durante el estirón — es normal y esperado."
+    "projectionNote": "Proyectamos mejora significativa en los próximos 12-18 meses cuando complete el pico de crecimiento. La velocidad puede bajar temporalmente durante el estirón — es normal y esperado.",
+    "descriptionWithDiff": "{{name}} tiene {{chronoAge}} años cronológicos pero su maduración biológica indica que es {{maturityDiff}} años más joven madurativamente que sus compañeros de equipo. Su rendimiento actual está penalizado por el crecimiento.",
+    "projectionPostPeak": "Proyección post-pico"
   },
   "teamBaselinePage": {
     "reportTeamOverview": "Resumen del equipo",
@@ -3458,7 +3536,9 @@
     "dialogSuccess": "Análisis tactical procesándose. Aparecerá en la lista cuando termine.",
     "demoLoadedTitle": "Datos de demo cargados",
     "demoLoadedDesc": "Heatmap del partido de demo disponible.",
-    "demoLoadErrorTitle": "No se pudieron cargar los datos de demo"
+    "demoLoadErrorTitle": "No se pudieron cargar los datos de demo",
+    "heatmapCount": "{{count}} heatmaps",
+    "matchCount": "{{count}} matches con heatmap táctico computado."
   },
   "teamDashboard": {
     "notDetected": "No detectada",
@@ -3719,7 +3799,8 @@
     "toastNoteSaved": "Nota guardada",
     "toastNoteUpdated": "Nota actualizada",
     "confirmDelete": "¿Eliminar esta nota?",
-    "toastNoteDeleted": "Nota eliminada"
+    "toastNoteDeleted": "Nota eliminada",
+    "notesCount": "{{count}} notas"
   },
   "generateReelDialog": {
     "title": "Generar reel de highlights",
@@ -3943,7 +4024,8 @@
     "discovered": "descubierto",
     "lastVideo": "último {{date}}",
     "significantDiffPrefix": "Diferencia significativa ({{pts}} pts VSI). Considera dar más minutos como",
-    "significantDiffSuffix": "si la disponibilidad táctica lo permite."
+    "significantDiffSuffix": "si la disponibilidad táctica lo permite.",
+    "videoCount": "{{count}} videos"
   },
   "positionDiscoveryBanner": {
     "saveError": "No se pudo guardar la posición",
@@ -3964,7 +4046,8 @@
     "roiReturnLabel": "retorno",
     "roiRecoveredLabel": "recuperado/año",
     "roiCostLabel": "coste VITAS/año",
-    "ctaWellbeingDetail": "Ver detalle de bienestar y planes de intervención"
+    "ctaWellbeingDetail": "Ver detalle de bienestar y planes de intervención",
+    "playersAtRiskThisMonth": "{{count}} jugadores en riesgo este mes"
   },
   "roleProfileFilterBar": {
     "horizon": "Horizonte",
@@ -4140,7 +4223,9 @@
     "colorLabel": "Color:",
     "cancel": "Cancelar",
     "create": "Crear",
-    "newFolder": "Nueva carpeta"
+    "newFolder": "Nueva carpeta",
+    "folderCount": "{{count}} carpetas",
+    "inFoldersTitle": "En {{count}} carpetas"
   },
   "highlightsPage": {
     "subtitle": "Reels automáticos",
@@ -4785,7 +4870,8 @@
     "playerFallback": "Jugador {{id}}",
     "secondsInPhase": "{{seconds}}s en esta fase",
     "expandedSummary_one": "{{seconds}}s · {{count}} zona caliente",
-    "expandedSummary_other": "{{seconds}}s · {{count}} zonas calientes"
+    "expandedSummary_other": "{{seconds}}s · {{count}} zonas calientes",
+    "expandedSummary": "{{seconds}}s · {{count}} zonas calientes"
   },
   "positionFitRanking": {
     "title": "Ajuste por posición",
@@ -5039,5 +5125,17 @@
     "formationPlaceholder": "Ej. 4-3-3",
     "notesLabel": "Notas tácticas",
     "notesPlaceholder": "Estilo, fortalezas, debilidades, jugadores clave…"
+  },
+  "analysisFocusSelector": {
+    "title": "Enfoque del análisis",
+    "optional": "(opcional)",
+    "hintSingular": "La IA se concentrará especialmente en este aspecto del juego",
+    "hintPlural": "La IA se concentrará especialmente en estos aspectos del juego",
+    "offensive": "Ofensivas",
+    "defensive": "Defensivas",
+    "recovery": "Recuperación",
+    "duels": "Duelos",
+    "speed": "Velocidad",
+    "passing": "Pases"
   }
 }

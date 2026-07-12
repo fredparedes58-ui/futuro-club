@@ -2362,7 +2362,8 @@
     "enrichDatasetHint": "The plan will be more precise if you enrich the dataset",
     "tagVideo": "video",
     "tagMental": "mental",
-    "tagHealth": "health"
+    "tagHealth": "health",
+    "videosAnalyzedLabel": "{{count}} videos analyzed"
   },
   "liveMatchPage": {
     "myTeam": "My team",
@@ -2398,7 +2399,46 @@
     "toastFinishError": "Error ending match"
   },
   "matchStatsPanel": {
-    "totalsCount": "{{count}} total"
+    "totalsCount": "{{count}} total",
+    "title": "Stats Panel",
+    "confidence": "confidence",
+    "total": "Total",
+    "offensive": "Offensive",
+    "defensive": "Defensive",
+    "passes": "Passes",
+    "accuracy": "accuracy",
+    "completed": "Completed",
+    "failed": "Missed",
+    "duels": "Duels",
+    "effectiveness": "win rate",
+    "won": "Won",
+    "lost": "Lost",
+    "recoveries": "Recoveries",
+    "recoveriesSub": "balls recovered",
+    "shots": "Shots",
+    "shotsSub": "{{onTarget}} on target · {{off}} off",
+    "shotsAccuracy": "{{percent}}% accuracy",
+    "tackles": "Tackles",
+    "tacklesSub": "tackles with contact",
+    "interceptions": "Interceptions",
+    "interceptionsSub": "interceptions without contact",
+    "turnovers": "Turnovers",
+    "turnoversSub": "unforced errors — lower is better",
+    "physicalPerformance": "Physical performance",
+    "yoloPoseTracking": "YOLO pose tracking",
+    "maxSpeed": "Max speed",
+    "avgSpeed": "Avg speed",
+    "distance": "Distance",
+    "sprints": "Sprints",
+    "intensityZones": "Intensity zones",
+    "zoneWalk": "Walk",
+    "zoneJog": "Jog",
+    "zoneRun": "Run",
+    "zoneSprint": "Sprint",
+    "noStats": "No quantitative stats available for this analysis",
+    "sourceYoloGemini": "Tracking + AI",
+    "sourceGeminiOnly": "AI observation",
+    "sourceYoloOnly": "YOLO tracking"
   },
   "notEvaluatedSection": {
     "title": "Not evaluated",
@@ -2425,7 +2465,8 @@
     "shootingDefenseName": "Shooting and defense",
     "shootingDefenseReason": "Base metrics at zero",
     "shootingDefenseHowToFix": "The agents will fill these metrics after analyzing videos",
-    "infoFooter": "VITAS shows what it does NOT know so you can trust what it DOES know. Every video you upload shortens this list and improves evaluation confidence."
+    "infoFooter": "VITAS shows what it does NOT know so you can trust what it DOES know. Every video you upload shortens this list and improves evaluation confidence.",
+    "dimensionsCount": "{{count}} dimensions without enough data"
   },
   "onboardingTour": {
     "closeTour": "Close tour",
@@ -2802,7 +2843,42 @@
     "newRec": "New",
     "badgeAiVideo": "AI · video",
     "badgeCustom": "Custom",
-    "editRec": "Edit"
+    "editRec": "Edit",
+    "analyzeVideo": "Analyze video",
+    "badgeFromVideo": "From video",
+    "badgeNew": "New",
+    "cancel": "Cancel",
+    "doubleClickToOpenFolder": "Double-click to open the folder",
+    "editBoard": "Edit board",
+    "editBoardTitle": "Move players, draw arrows, add text",
+    "editingBoard": "Editing board",
+    "editingOriginalWarningBody": "saving will create a custom copy with your changes, without modifying the original.",
+    "editingOriginalWarningTitle": "Editing an original event:",
+    "eventData": "Event data",
+    "fieldMatch": "Match",
+    "fieldMinute": "Minute",
+    "fieldPattern": "Pattern",
+    "fieldType": "Type",
+    "filterAll": "All",
+    "filterDefensive": "Defensive",
+    "filterOffensive": "Offensive",
+    "foldersLabel": "Folders:",
+    "headerSubtitle": "Set piece tactical analysis · {{count}} plays detected",
+    "matchPlaceholder": "vs Rival FC · Apr 12",
+    "newPlay": "New play",
+    "openDedicatedFolder": "Open dedicated folder",
+    "playsCount": "{{count}} plays",
+    "save": "Save",
+    "tabEvents": "Events",
+    "tabRecommendations": "Recommendations",
+    "tabStats": "Stats",
+    "tacticalDetail": "Tactical detail",
+    "toastEventSavedAsCopy": "Event saved as an editable copy",
+    "toastEventUpdated": "Event updated",
+    "toastNeedThreeDetected": "You need at least 3 plays detected from video to generate recommendations",
+    "toastRecsGenerated": "{{count}} recommendations generated from your plays",
+    "uploadVideo": "Upload video",
+    "uploadVideoTitle": "Upload a video from your computer, phone or cloud"
   },
   "tacticalDashboard": {
     "emptyTitle": "No heatmap for this match",
@@ -2835,7 +2911,9 @@
     "maturityClause": " {{maturityDiff}} years",
     "currentVsi": "Current VSI",
     "projectedVsi": "Post-peak projection",
-    "projectionNote": "We project significant improvement over the next 12-18 months once they complete their growth peak. Speed may temporarily drop during the growth spurt — this is normal and expected."
+    "projectionNote": "We project significant improvement over the next 12-18 months once they complete their growth peak. Speed may temporarily drop during the growth spurt — this is normal and expected.",
+    "descriptionWithDiff": "{{name}} is {{chronoAge}} years old chronologically, but their biological maturation indicates they are {{maturityDiff}} years younger in maturity than their teammates. Their current performance is penalized by growth.",
+    "projectionPostPeak": "Post-peak projection"
   },
   "teamBaselinePage": {
     "reportTeamOverview": "Team overview",
@@ -3458,7 +3536,9 @@
     "dialogSuccess": "Tactical analysis processing. It will appear in the list when it finishes.",
     "demoLoadedTitle": "Demo data loaded",
     "demoLoadedDesc": "Demo match heatmap available.",
-    "demoLoadErrorTitle": "Could not load the demo data"
+    "demoLoadErrorTitle": "Could not load the demo data",
+    "heatmapCount": "{{count}} heatmaps",
+    "matchCount": "{{count}} matches with computed tactical heatmaps."
   },
   "teamDashboard": {
     "notDetected": "Not detected",
@@ -3719,7 +3799,8 @@
     "toastNoteSaved": "Note saved",
     "toastNoteUpdated": "Note updated",
     "confirmDelete": "Delete this note?",
-    "toastNoteDeleted": "Note deleted"
+    "toastNoteDeleted": "Note deleted",
+    "notesCount": "{{count}} notes"
   },
   "generateReelDialog": {
     "title": "Generate highlights reel",
@@ -3943,7 +4024,8 @@
     "discovered": "discovered",
     "lastVideo": "last {{date}}",
     "significantDiffPrefix": "Significant difference ({{pts}} pts VSI). Consider giving more minutes as",
-    "significantDiffSuffix": "if tactical availability allows."
+    "significantDiffSuffix": "if tactical availability allows.",
+    "videoCount": "{{count}} videos"
   },
   "positionDiscoveryBanner": {
     "saveError": "Could not save the position",
@@ -3964,7 +4046,8 @@
     "roiReturnLabel": "return",
     "roiRecoveredLabel": "recovered/year",
     "roiCostLabel": "VITAS cost/year",
-    "ctaWellbeingDetail": "View wellbeing detail and intervention plans"
+    "ctaWellbeingDetail": "View wellbeing detail and intervention plans",
+    "playersAtRiskThisMonth": "{{count}} players at risk this month"
   },
   "roleProfileFilterBar": {
     "horizon": "Horizon",
@@ -4140,7 +4223,9 @@
     "colorLabel": "Color:",
     "cancel": "Cancel",
     "create": "Create",
-    "newFolder": "New folder"
+    "newFolder": "New folder",
+    "folderCount": "{{count}} folders",
+    "inFoldersTitle": "In {{count}} folders"
   },
   "highlightsPage": {
     "subtitle": "Automatic reels",
@@ -4785,7 +4870,8 @@
     "playerFallback": "Player {{id}}",
     "secondsInPhase": "{{seconds}}s in this phase",
     "expandedSummary_one": "{{seconds}}s · {{count}} hot zone",
-    "expandedSummary_other": "{{seconds}}s · {{count}} hot zones"
+    "expandedSummary_other": "{{seconds}}s · {{count}} hot zones",
+    "expandedSummary": "{{seconds}}s · {{count}} hot zones"
   },
   "positionFitRanking": {
     "title": "Position fit",
@@ -5039,5 +5125,17 @@
     "formationPlaceholder": "e.g. 4-3-3",
     "notesLabel": "Tactical notes",
     "notesPlaceholder": "Style, strengths, weaknesses, key players…"
+  },
+  "analysisFocusSelector": {
+    "title": "Analysis focus",
+    "optional": "(optional)",
+    "hintSingular": "The AI will focus especially on this aspect of the game",
+    "hintPlural": "The AI will focus especially on these aspects of the game",
+    "offensive": "Offensive",
+    "defensive": "Defensive",
+    "recovery": "Recovery",
+    "duels": "Duels",
+    "speed": "Speed",
+    "passing": "Passing"
   }
 }

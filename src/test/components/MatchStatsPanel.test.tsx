@@ -2,10 +2,14 @@
  * MatchStatsPanel — Tests
  * Verifica renderizado con diferentes combinaciones de datos.
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
+// i18n REAL (no mock): así el test valida además que las claves matchStatsPanel.*
+// existen en es.json — si faltara una, t() devolvería la clave cruda y las
+// aserciones de copy español fallarían (que es exactamente lo que pasaba).
+import i18n from "@/i18n";
 
 // Mock framer-motion para evitar animaciones en tests
 vi.mock("framer-motion", () => {
@@ -57,6 +61,12 @@ const fullData: MC = {
 };
 
 describe("MatchStatsPanel", () => {
+  beforeAll(async () => {
+    // El detector de idioma en jsdom resolvería "en-US"; fijamos español
+    // porque las aserciones validan el copy es-ES.
+    await i18n.changeLanguage("es");
+  });
+
   describe("con solo eventos", () => {
     it("renderiza título principal", () => {
       render(<MatchStatsPanel data={eventosData} />);
@@ -162,7 +172,8 @@ describe("MatchStatsPanel", () => {
 
   describe("sin datos válidos", () => {
     it("no renderiza nada si metricas es null/undefined via computeMatchStats", () => {
-      // @ts-expect-error — testing null case
+      // data={null} no da error de tipos con strict:false — la directiva
+      // ts-expect-error que había aquí estaba "unused" (TS2578) y se retiró.
       const { container } = render(<MatchStatsPanel data={null} />);
       expect(container.firstChild).toBeNull();
     });

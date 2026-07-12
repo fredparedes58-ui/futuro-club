@@ -151,10 +151,8 @@ describe("i18n translations", () => {
 // clave), así que NO detectan una clave t("...") ausente en es.json/en.json —
 // el usuario vería la clave cruda en producción. Aquí escaneamos el fuente real.
 //
-// Alcance: los componentes revisados en esta rama. AMPLIAR conforme se sanee la
-// deuda i18n del resto del repo (hay ~68 claves single-arg sin traducción en
-// MatchStatsPanel/SetPiecePage/AnalysisFocusSelector/TalentoOcultoAlert — un
-// escaneo global fallaría hoy; se documentan como tarea aparte).
+// Alcance: componentes ya saneados (deuda de la conversión i18n aaa1953 pagada
+// en esta rama). AMPLIAR la lista al sanear más componentes.
 describe("i18n · claves referenciadas por componentes existen en los JSON", () => {
   const esKeys = new Set(getAllKeys(es as Record<string, unknown>));
   const enKeys = new Set(getAllKeys(en as Record<string, unknown>));
@@ -163,7 +161,22 @@ describe("i18n · claves referenciadas por componentes existen en los JSON", () 
   // en los `types` del tsconfig de la app). Vite resuelve el glob de forma
   // fiable en tiempo de transform.
   const SOURCES = import.meta.glob(
-    ["../../components/VideoUpload.tsx", "../../components/RecordingGuide.tsx"],
+    [
+      "../../components/VideoUpload.tsx",
+      "../../components/RecordingGuide.tsx",
+      "../../components/MatchStatsPanel.tsx",
+      "../../components/AnalysisFocusSelector.tsx",
+      "../../components/TalentoOcultoAlert.tsx",
+      "../../components/NotEvaluatedSection.tsx",
+      "../../components/PositionComparison.tsx",
+      "../../components/setPiece/EventNotesPanel.tsx",
+      "../../components/setPiece/FolderPicker.tsx",
+      "../../components/idp/IDPDataRichnessBanner.tsx",
+      "../../components/tactical/PlayerHeatmapGrid.tsx",
+      "../../components/retention/RetentionRadarCard.tsx",
+      "../../pages/SetPiecePage.tsx",
+      "../../pages/TacticalIndexPage.tsx",
+    ],
     { query: "?raw", import: "default", eager: true }
   ) as Record<string, string>;
 
@@ -182,7 +195,7 @@ describe("i18n · claves referenciadas por componentes existen en los JSON", () 
   }
 
   it("localiza el fuente de los componentes a escanear", () => {
-    expect(Object.keys(SOURCES).length).toBe(2);
+    expect(Object.keys(SOURCES).length).toBe(14);
   });
 
   for (const [filePath, src] of Object.entries(SOURCES)) {
