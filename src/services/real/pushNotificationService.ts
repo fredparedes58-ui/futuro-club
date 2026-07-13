@@ -4,7 +4,12 @@
  * Requiere: VITE_VAPID_PUBLIC_KEY en env vars.
  */
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+// Leído en tiempo de llamada (no en carga de módulo): así los tests pueden
+// stubbear el env con vi.stubEnv (el import estático se iza por encima del stub)
+// y no depende de que exista un .env en el entorno. Vite inlinea igual en prod.
+function getVapidPublicKey(): string | undefined {
+  return import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -31,7 +36,8 @@ export const PushNotificationService = {
 
   async subscribe(): Promise<PushSubscription | null> {
     if (!this.isSupported()) return null;
-    if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith("placeholder")) {
+    const vapidKey = getVapidPublicKey();
+    if (!vapidKey || vapidKey.startsWith("placeholder")) {
       console.warn("[Push] VITE_VAPID_PUBLIC_KEY not configured");
       return null;
     }
@@ -42,7 +48,7 @@ export const PushNotificationService = {
 
       const subscription = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
       // Save subscription to backend (include JWT for auth)

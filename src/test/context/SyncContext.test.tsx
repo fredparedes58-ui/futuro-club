@@ -18,6 +18,14 @@ vi.mock("@/hooks/useSupabaseSync", () => ({
   useSupabaseSync: () => mockState,
 }));
 
+// SyncProvider now also runs useLocalStorageMigration(), which calls useAuth().
+// Mock AuthContext so <SyncProvider> can render without a real <AuthProvider>.
+// Returning configured:false + user:null makes the migration hook a no-op
+// (its effect early-returns when !configured) — matching the offline default.
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ user: null, session: null, loading: false, configured: false }),
+}));
+
 // Simple consumer component for testing
 function SyncConsumer() {
   const state = useSyncState();

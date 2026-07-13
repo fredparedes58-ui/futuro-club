@@ -2,8 +2,30 @@
  * VITAS · Tests — DrillCard Component
  * Verifica: renderizado, truncamiento, expand/collapse, badges
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+
+// DrillCard migró a react-i18next: el botón usa t("intelDrillCard.showMore") /
+// t("intelDrillCard.showLess"). En el entorno de test no hay i18n provider, así
+// que t() devolvería la clave cruda. Mockeamos useTranslation (mismo patrón que
+// UsageMeter/BottomNav.test.tsx) resolviendo las claves a las traducciones
+// reales de es.json → "intelDrillCard", para seguir aseverando el texto real de
+// UI ("Ver más" / "Ver menos").
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, fallback?: string) => {
+      const es: Record<string, string> = {
+        "intelDrillCard.defaultTitle": "Ejercicio",
+        "intelDrillCard.showLess": "Ver menos",
+        "intelDrillCard.showMore": "Ver más",
+        "intelDrillCard.usefulPrompt": "Útil?",
+      };
+      return es[key] ?? fallback ?? key;
+    },
+    i18n: { language: "es", changeLanguage: vi.fn() },
+  }),
+}));
+
 import DrillCard from "@/components/intelligence/DrillCard";
 
 describe("DrillCard", () => {

@@ -191,9 +191,11 @@ describe("withHandler", () => {
 
   // ─── rawBody ────────────────────────────────────────
   it("skips body parsing when rawBody is true", async () => {
-    const handler = withHandler({ rawBody: true }, async ({ req }) => {
-      const text = await req.text();
-      return new Response(JSON.stringify({ ok: true, data: { raw: text } }));
+    // Contrato: con rawBody:true withHandler lee el cuerpo UNA vez y lo entrega
+    // en ctx.rawBody (== ctx.body). El handler debe usar ctx.rawBody, NO re-leer
+    // req.text() (el cuerpo ya está consumido → "body used already").
+    const handler = withHandler({ rawBody: true }, async ({ rawBody }) => {
+      return new Response(JSON.stringify({ ok: true, data: { raw: rawBody } }));
     });
     const req = new Request("https://example.com/api/test", {
       method: "POST",

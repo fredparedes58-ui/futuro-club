@@ -77,10 +77,12 @@ describe("BottomNav", () => {
     expect(screen.getByText("nav.rankings")).toBeDefined();
   });
 
-  it("renderiza 6 items cuando isClub es true (incluye Team)", () => {
+  it("renderiza el item de equipo (incluye Team)", () => {
     mockUsePlan.mockReturnValue({ isClub: true, plan: "club", isAdmin: false });
     render(<BottomNav />);
-    expect(screen.getByText("nav.team")).toBeDefined();
+    // El item de equipo ahora vive siempre en BASE_NAV con la clave i18n `nav.equipo`
+    // (antes era `nav.team` y condicional a isClub). BottomNav.tsx:18,172.
+    expect(screen.getByText("nav.equipo")).toBeDefined();
   });
 
   it("se oculta en ruta /login", () => {

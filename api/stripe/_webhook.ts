@@ -20,7 +20,7 @@ import { paymentConfirmEmail, planCancelledEmail } from "../_lib/emailTemplates"
 
 export default withHandler(
   { rawBody: true },
-  async ({ req }) => {
+  async ({ req, rawBody }) => {
     const stripeKey     = process.env.STRIPE_SECRET_KEY;
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     const supabaseUrl   = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
@@ -37,7 +37,10 @@ export default withHandler(
       apiVersion: "2026-03-25.dahlia" as Stripe.LatestApiVersion,
     });
 
-    const body = await req.text();
+    // withHandler ya consumió el cuerpo (rawBody:true) y nos pasa el texto crudo
+    // en ctx.rawBody. Re-leer req.text() aquí devolvía "" / lanzaba "body used
+    // already" → la verificación de firma de Stripe fallaba SIEMPRE (400/500).
+    const body = rawBody ?? "";
     let event: Stripe.Event;
     try {
       event = await stripe.webhooks.constructEventAsync(body, sig, webhookSecret);

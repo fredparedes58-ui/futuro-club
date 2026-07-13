@@ -1,7 +1,29 @@
 import { describe, it, expect } from "vitest";
+import type { ReactElement } from "react";
 import { render, screen } from "@testing-library/react";
+import i18next from "i18next";
+import { initReactI18next, I18nextProvider } from "react-i18next";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import type { AdvancedPlayerMetrics } from "@/services/real/advancedMetricsService";
+import esTranslations from "@/i18n/es.json";
+
+// AdvancedMetricsPanel se migró a react-i18next. Sin un proveedor i18n, t()
+// devuelve las claves crudas (p.ej. "advancedMetricsPanel.fieldCoverageLabel")
+// y las aserciones sobre el texto en español fallan. Montamos una instancia
+// i18n de test con las traducciones reales de es.json, con idioma fijado a "es"
+// (sin LanguageDetector, para que sea determinista) de modo que las pruebas
+// verifiquen la salida en español que la app produce en producción.
+const testI18n = i18next.createInstance();
+testI18n.use(initReactI18next).init({
+  lng: "es",
+  fallbackLng: "es",
+  resources: { es: { translation: esTranslations } },
+  interpolation: { escapeValue: false },
+});
+
+function renderPanel(ui: ReactElement) {
+  return render(<I18nextProvider i18n={testI18n}>{ui}</I18nextProvider>);
+}
 
 function makeMetrics(overrides: Partial<AdvancedPlayerMetrics> = {}): AdvancedPlayerMetrics {
   return {
@@ -64,28 +86,28 @@ function makeMetrics(overrides: Partial<AdvancedPlayerMetrics> = {}): AdvancedPl
 describe("AdvancedMetricsPanel", () => {
   it("muestra VAEP cuando status=calculated", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText("VAEP")).toBeInTheDocument();
     expect(screen.getByText("2.40")).toBeInTheDocument();
   });
 
   it("muestra tracking con fieldCoverage", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText("Cobertura de campo")).toBeInTheDocument();
     expect(screen.getByText("42.5%")).toBeInTheDocument();
   });
 
   it("muestra drillScore biomecánico", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText("DrillScore")).toBeInTheDocument();
     expect(screen.getByText("82")).toBeInTheDocument();
   });
 
   it("muestra top actions del VAEP", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText(/tiro/i)).toBeInTheDocument();
     expect(screen.getByText(/pase/i)).toBeInTheDocument();
   });
@@ -97,19 +119,19 @@ describe("AdvancedMetricsPanel", () => {
         status: "stub_no_data", message: "Sin acciones SPADL",
       },
     });
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText(/sin acciones spadl/i)).toBeInTheDocument();
   });
 
   it("muestra badge de calidad cuando se provee qualityScore", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} qualityScore={0.85} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} qualityScore={0.85} />);
     expect(screen.getByText(/excelente/i)).toBeInTheDocument();
   });
 
   it("muestra issues de calidad si se proveen", () => {
     const metrics = makeMetrics();
-    render(
+    renderPanel(
       <AdvancedMetricsPanel
         metrics={metrics}
         qualityScore={0.5}
@@ -122,7 +144,7 @@ describe("AdvancedMetricsPanel", () => {
 
   it("velocidad máxima se muestra cuando hay tracking calculado", () => {
     const metrics = makeMetrics();
-    render(<AdvancedMetricsPanel metrics={metrics} />);
+    renderPanel(<AdvancedMetricsPanel metrics={metrics} />);
     expect(screen.getByText(/velocidad máx/i)).toBeInTheDocument();
     expect(screen.getByText(/8\.2 m\/s/)).toBeInTheDocument();
   });

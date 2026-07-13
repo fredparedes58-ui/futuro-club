@@ -111,16 +111,13 @@ describe("roleProfileService", () => {
       expect(result).toBeNull();
     });
 
-    it("returns metrics-only profile when no video analyses exist", async () => {
+    it("returns null when no video analyses exist (empty state, no metrics-only fallback)", async () => {
+      // El perfil de rol EXIGE vídeo (commit "role profile requires video"); el
+      // fallback metrics-only quedó deprecado. Sin vídeo → null → la UI muestra
+      // empty state en vez de fabricar un perfil de baja confianza.
       setupSupabaseMock([]);
       const result = await fetchRoleProfile("p1");
-      // Now returns a basic profile from player metrics instead of null
-      expect(result).not.toBeNull();
-      expect(result!.sample_tier).toBe("bronze");
-      expect(result!.overall_confidence).toBeLessThanOrEqual(0.4);
-      expect(result!.risks.some(r => r.code === "NO_VIDEO_ANALYSIS")).toBe(true);
-      expect(result!.player_name).toBe("Samu");
-      expect(result!.evidence).toEqual([]); // no evidence without video
+      expect(result).toBeNull();
     });
 
     it("calls agent with video analysis data when analyses exist", async () => {
@@ -232,13 +229,11 @@ describe("roleProfileService", () => {
   });
 
   describe("fetchPositionFit", () => {
-    it("returns positions from metrics-only profile when no video analyses", async () => {
+    it("returns no positions when no video analyses (role profile requires video)", async () => {
       setupSupabaseMock([]);
       const result = await fetchPositionFit("p1");
-      // Metrics-only profile now provides a position estimate
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toHaveProperty("code");
-      expect(result[0].confidence).toBeLessThanOrEqual(0.4);
+      // Sin vídeo el perfil es null → sin estimación de posición (empty state).
+      expect(result).toEqual([]);
     });
 
     it("returns positions from profile when available", async () => {
@@ -406,42 +401,14 @@ describe("roleProfileService", () => {
     });
   });
 
-  describe("metrics-only profile details", () => {
-    it("strengths come from high metrics (>= 65)", async () => {
+  // El perfil metrics-only (fortalezas/gaps/posición/identidad derivadas solo de
+  // métricas manuales, sin vídeo) quedó DEPRECADO: fetchRoleProfile devuelve null
+  // sin análisis de vídeo. Ver commit "role profile requires video".
+  describe("metrics-only profile (deprecated)", () => {
+    it("no fabrica perfil sin vídeo — devuelve null (empty state)", async () => {
       setupSupabaseMock([]);
       const result = await fetchRoleProfile("p1");
-      // mockPlayer has technique=80, vision=75, speed=70 (all >= 65)
-      expect(result!.strengths.length).toBeGreaterThan(0);
-      const labels = result!.strengths.map(s => s.label);
-      expect(labels).toContain("Técnica");
-      expect(labels).toContain("Visión de juego");
-      expect(labels).toContain("Velocidad");
-    });
-
-    it("gaps come from low metrics (< 45) — none for mockPlayer", async () => {
-      setupSupabaseMock([]);
-      const result = await fetchRoleProfile("p1");
-      // mockPlayer has no metric < 45, so gaps should be empty
-      expect(result!.gaps).toEqual([]);
-    });
-
-    it("maps Mediocentro to RCM position code", async () => {
-      setupSupabaseMock([]);
-      const result = await fetchRoleProfile("p1");
-      expect(result!.positions[0].code).toBe("RCM");
-    });
-
-    it("identity.dominant reflects highest capability area", async () => {
-      setupSupabaseMock([]);
-      const result = await fetchRoleProfile("p1");
-      // technique=80, shooting=60 → technical avg = 70
-      // speed=70, stamina=65 → physical avg = 67.5
-      // vision=75 → tactical = 75
-      // So dominant should be "defensivo" (tactical >= physical and tactical >= technical)
-      // Wait: tacticalScore=75, technicalScore=70, physicalScore=67.5→68
-      // The logic is: tech >= tac && tech >= phys ? tecnico : tac >= phys ? defensivo : fisico
-      // 70 >= 75 = false → 75 >= 68 = true → "defensivo"
-      expect(result!.identity.dominant).toBe("defensivo");
+      expect(result).toBeNull();
     });
   });
 });

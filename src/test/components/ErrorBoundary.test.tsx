@@ -5,6 +5,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+// ErrorBoundary was migrated to react-i18next: its fallback UI renders via
+// <Translation> using keys (errorBoundary.title/description/retry). Import the
+// real i18n instance so those keys resolve to their intended Spanish text
+// instead of being echoed as raw keys.
+import i18n from "@/i18n";
 
 // Mock Sentry
 vi.mock("@/lib/sentry", () => ({
@@ -18,10 +23,14 @@ function ThrowError({ shouldThrow }: { shouldThrow: boolean }) {
 }
 
 describe("ErrorBoundary", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     // Suppress console.error for expected errors
     vi.spyOn(console, "error").mockImplementation(() => {});
+    // Force Spanish so <Translation> resolves keys to the intended visible
+    // text ("Algo salió mal" / "Reintentar") deterministically, regardless of
+    // the jsdom navigator language picked up by LanguageDetector.
+    await i18n.changeLanguage("es");
   });
 
   it("renderiza children normalmente sin error", () => {
