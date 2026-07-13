@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,18 @@ vi.mock("@/components/WelcomeGuide", () => ({
 
 import Dashboard from "@/pages/Dashboard";
 
+// Dashboard llama useQueryClient() (para invalidar queries en "cargar demo"),
+// por lo que el render debe ir dentro de un QueryClientProvider real
+// (mismo patrón que los tests de hooks). Los hooks de datos siguen mockeados.
+function renderDashboard() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <Dashboard />
+    </QueryClientProvider>,
+  );
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("Dashboard", () => {
@@ -119,12 +132,12 @@ describe("Dashboard", () => {
   });
 
   it("renderiza titulo VITAS.", () => {
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByText("VITAS.")).toBeDefined();
   });
 
   it("renderiza 4 stat cards cuando stats cargadas", () => {
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByText("42")).toBeDefined();
     expect(screen.getByText("128")).toBeDefined();
     expect(screen.getByText("74")).toBeDefined();
@@ -133,33 +146,33 @@ describe("Dashboard", () => {
 
   it("muestra skeleton mientras carga stats", () => {
     mockUseDashboardStats.mockReturnValue({ data: null, isLoading: true, isError: false });
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByTestId("stats-skeleton")).toBeDefined();
   });
 
   it("muestra empty state cuando no hay jugadores", () => {
     mockUseTrendingPlayers.mockReturnValue({ data: [], isLoading: false, isError: false });
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByText("dashboard.noPlayers.title")).toBeDefined();
     expect(screen.getByText("dashboard.noPlayers.description")).toBeDefined();
   });
 
   it("navega al hacer click en quick access", () => {
-    render(<Dashboard />);
+    renderDashboard();
     const masterBtn = screen.getByText("dashboard.quickAccess.masterDashboard");
     fireEvent.click(masterBtn.closest("button")!);
     expect(mockNavigate).toHaveBeenCalledWith("/master");
   });
 
   it("renderiza player cards cuando hay jugadores", () => {
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByTestId("player-card")).toBeDefined();
     expect(screen.getByText("Test Player")).toBeDefined();
   });
 
   it("muestra skeleton de players mientras carga", () => {
     mockUseTrendingPlayers.mockReturnValue({ data: null, isLoading: true, isError: false });
-    render(<Dashboard />);
+    renderDashboard();
     expect(screen.getByTestId("players-skeleton")).toBeDefined();
   });
 });

@@ -485,9 +485,10 @@ export const VAEPService = {
    * Fórmula (Decroos et al., 2019):
    *   VAEP(a) = [P(gol_after) - P(gol_before)] - [P(concede_after) - P(concede_before)]
    *
-   * STUB: Si las acciones no tienen scoreProbBefore/After, devuelve status="stub_no_data".
-   * Para activar: conectar un modelo xG (p.ej. StatsBomb open data) que rellene
-   * las probabilidades en cada SPADLAction.
+   * Sin acciones → status="stub_no_data". Si las acciones traen probabilidades
+   * del proveedor (scoreProb/concedeProb Before/After) se usan tal cual; si no,
+   * se derivan con el modelo zone-xG propio (enrichActionWithXg) a partir de las
+   * coordenadas, y el status resultante es "calculated" (xG zonal · modelo VITAS).
    */
   calculate(input: VAEPInput): VAEPResult {
     if (!input.actions.length) {

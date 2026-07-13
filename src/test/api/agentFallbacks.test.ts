@@ -175,7 +175,9 @@ describe("roleProfileFallback", () => {
 
   it("maps position to correct code", () => {
     const result = roleProfileFallback(baseInput, "no_api_key");
-    expect(result.topPositions[0].code).toBe("DM"); // mediocentro → DM
+    // "mediocentro" (interior genérico) → RCM/LCM según lateralidad (foot=right → R);
+    // "DM" queda reservado para "pivote"/"mediocentro defensivo".
+    expect(result.topPositions[0].code).toBe("RCM");
   });
 
   it("maps portero to GK", () => {

@@ -98,9 +98,11 @@ describe("UBIService", () => {
       expect(result.ubi).toBeLessThanOrEqual(0.1);
     });
 
-    it("Q4 + late maturer = sesgo alto (ambos componentes)", () => {
+    it("Q4 + madurador tardío = sesgo alto (ambos componentes)", () => {
+      // Enum invertido: phvCategory "early" = pre-PHV = madurador TARDÍO
+      // (offset negativo, hidden gem infravalorado) → phvComponent alto.
       const rae: RAEResult = { birthQuartile: 4, ageAdvantageMonths: 11, raeBiasFactor: 1.0, label: "late_cohort" };
-      const result = UBIService.calculate(rae, -2, "late");
+      const result = UBIService.calculate(rae, -2, "early");
       expect(result.raeComponent).toBe(1); // (4-1)/3 = 1
       expect(result.phvComponent).toBe(1); // clamp(-(-2)/2, 0, 1) = 1
       expect(result.ubi).toBe(1); // 0.55*1 + 0.45*1 = 1
@@ -108,7 +110,7 @@ describe("UBIService", () => {
 
     it("vsICorrectionFactor es 1 + UBI * 0.12", () => {
       const rae: RAEResult = { birthQuartile: 4, ageAdvantageMonths: 11, raeBiasFactor: 1.0, label: "late_cohort" };
-      const result = UBIService.calculate(rae, -2, "late");
+      const result = UBIService.calculate(rae, -2, "early"); // madurador tardío
       expect(result.vsICorrectionFactor).toBe(1.12); // 1 + 1.0 * 0.12
     });
 
@@ -118,11 +120,13 @@ describe("UBIService", () => {
       expect(result.vsICorrectionFactor).toBe(1);
     });
 
-    it("early maturer tiene phvComponent > 0 (sobreestimado)", () => {
+    it("madurador precoz tiene phvComponent > 0 (sobreestimado)", () => {
+      // phvCategory "late" = post-PHV = madurador PRECOZ (offset positivo,
+      // ventaja física temporal) → phvComponent positivo pero capado a 0.5.
       const rae: RAEResult = { birthQuartile: 2, ageAdvantageMonths: 3, raeBiasFactor: 1.16, label: "mid_cohort_early" };
-      const result = UBIService.calculate(rae, 1.5, "early");
+      const result = UBIService.calculate(rae, 1.5, "late");
       expect(result.phvComponent).toBeGreaterThan(0);
-      // early phvComp = min(0.5, max(0, 1.5/2)) = 0.75 → capped at 0.5
+      // late phvComp = min(0.5, max(0, 1.5/2)) = 0.75 → capped at 0.5
       expect(result.phvComponent).toBeLessThanOrEqual(0.5);
     });
 
@@ -139,9 +143,9 @@ describe("UBIService", () => {
       const r1 = UBIService.calculate(raeOnly, 0, "ontme");
       expect(r1.ubi).toBeCloseTo(0.55, 2); // 0.55 * 1 + 0.45 * 0
 
-      // Solo PHV (Q1, late -2)
+      // Solo PHV (Q1, madurador tardío = enum "early", offset -2)
       const q1: RAEResult = { birthQuartile: 1, ageAdvantageMonths: 0, raeBiasFactor: 1.22, label: "early_cohort" };
-      const r2 = UBIService.calculate(q1, -2, "late");
+      const r2 = UBIService.calculate(q1, -2, "early");
       expect(r2.ubi).toBeCloseTo(0.45, 2); // 0.55 * 0 + 0.45 * 1
     });
   });
@@ -156,7 +160,8 @@ describe("TruthFilterService", () => {
     });
 
     it("late maturer → late_maturers", () => {
-      expect(TruthFilterService.detectCase(-1.5, "late", null)).toBe("late_maturers");
+      // madurador tardío = enum "early" (pre-PHV, offset negativo)
+      expect(TruthFilterService.detectCase(-1.5, "early", null)).toBe("late_maturers");
     });
 
     it("ontme + Q1 → ontme_high_rae", () => {
@@ -190,7 +195,8 @@ describe("TruthFilterService", () => {
     });
 
     it("late maturer aumenta VSI (delta positivo)", () => {
-      const result = TruthFilterService.apply(60, -2.0, "late", null);
+      // madurador tardío = enum "early" (pre-PHV, offset negativo)
+      const result = TruthFilterService.apply(60, -2.0, "early", null);
       expect(result.filterCase).toBe("late_maturers");
       expect(result.delta).toBeGreaterThan(0);
       expect(result.adjustedVSI).toBeGreaterThan(60);
@@ -206,8 +212,9 @@ describe("TruthFilterService", () => {
     });
 
     it("late maturer delta max es +10", () => {
-      const result = TruthFilterService.apply(50, -4.0, "late", null);
-      // magnitude = min(10, round(4.0 * 4)) = min(10, 16) = 10
+      // madurador tardío = enum "early"; magnitud usa abs(offset)
+      const result = TruthFilterService.apply(50, -4.0, "early", null);
+      // magnitude = min(10, round(|−4.0| * 4)) = min(10, 16) = 10
       expect(result.delta).toBe(10);
     });
 
@@ -253,12 +260,15 @@ describe("VAEPService", () => {
       expect(result.vaepTotal).toBeNull();
     });
 
-    it("retorna stub_no_data si faltan probabilidades", () => {
+    it("deriva VAEP con xG zonal cuando faltan probabilidades del proveedor", () => {
+      // Antes esto devolvía stub_no_data; ahora, con coordenadas válidas en el
+      // campo, VITAS rellena las probabilidades con su modelo zone-xG y calcula.
       const actions: SPADLAction[] = [{
         actionId: "a1", type: "pass", startX: 30, startY: 34, endX: 50, endY: 34, result: "success",
       }];
       const result = VAEPService.calculate({ actions, minutesPlayed: 90 });
-      expect(result.status).toBe("stub_no_data");
+      expect(result.status).toBe("calculated");
+      expect(result.vaepTotal).not.toBeNull();
     });
 
     it("calcula VAEP real con probabilidades completas", () => {

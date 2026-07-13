@@ -20,6 +20,21 @@ vi.mock("framer-motion", () => {
   return { motion, AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</> };
 });
 
+// MatchStatsPanel migró a react-i18next: ahora todos los textos de UI se
+// resuelven vía t("matchStatsPanel.*"). Mockeamos react-i18next con un t()
+// que devuelve la clave (y anexa los valores de interpolación) — mismo patrón
+// que src/test/components/VideoUpload.test.tsx. Así las aserciones verifican
+// que el componente cablea la clave i18n correcta para cada dato, de forma
+// determinista y sin depender de las traducciones. Los ratings cualitativos
+// ("Bueno", "Competitivo", …) NO usan i18n: vienen de constantes del servicio.
+vi.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, opts?: Record<string, unknown>) =>
+      opts ? `${key} ${Object.values(opts).join(" ")}` : key,
+    i18n: { language: "es", changeLanguage: vi.fn() },
+  }),
+}));
+
 type MC = NonNullable<VideoIntelligenceOutput["metricasCuantitativas"]>;
 
 const eventosData: MC = {
@@ -60,7 +75,8 @@ describe("MatchStatsPanel", () => {
   describe("con solo eventos", () => {
     it("renderiza título principal", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/panel de estadísticas/i)).toBeInTheDocument();
+      // El título por defecto ahora es la clave i18n matchStatsPanel.title
+      expect(screen.getByText("matchStatsPanel.title")).toBeInTheDocument();
     });
 
     it("muestra rating compuesto", () => {
@@ -72,60 +88,65 @@ describe("MatchStatsPanel", () => {
 
     it("muestra KPI Pases con precisión", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/pases/i)).toBeInTheDocument();
+      // Título vía clave i18n; el valor de precisión (80%) sigue siendo texto crudo
+      expect(screen.getByText("matchStatsPanel.passes")).toBeInTheDocument();
       expect(screen.getByText("80%")).toBeInTheDocument();
     });
 
     it("muestra KPI Duelos con efectividad", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/duelos/i)).toBeInTheDocument();
+      // 6 ganados / 10 = 60% de efectividad
+      expect(screen.getByText("matchStatsPanel.duels")).toBeInTheDocument();
       expect(screen.getByText("60%")).toBeInTheDocument();
     });
 
     it("muestra recuperaciones", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/recuperaciones/i)).toBeInTheDocument();
-      expect(screen.getByText(/balones recuperados/i)).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.recoveries")).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.recoveriesSub")).toBeInTheDocument();
     });
 
     it("muestra disparos con sub-label al arco/fuera", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/disparos/i)).toBeInTheDocument();
-      expect(screen.getByText(/3 al arco · 2 fuera/i)).toBeInTheDocument();
+      // El sub-label interpola alArco=3 y fuera=2 en la clave shotsSub
+      expect(screen.getByText("matchStatsPanel.shots")).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.shotsSub 3 2")).toBeInTheDocument();
     });
 
     it("no muestra sección físicas", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.queryByText(/rendimiento físico/i)).not.toBeInTheDocument();
+      expect(screen.queryByText("matchStatsPanel.physicalPerformance")).not.toBeInTheDocument();
     });
 
     it("muestra totales agregados", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/ofensivas/i)).toBeInTheDocument();
-      expect(screen.getByText(/defensivas/i)).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.offensive")).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.defensive")).toBeInTheDocument();
     });
 
     it("muestra fuente correcta", () => {
       render(<MatchStatsPanel data={eventosData} />);
-      expect(screen.getByText(/observación ia/i)).toBeInTheDocument();
+      // fuente "gemini_only" → clave sourceGeminiOnly (dentro de un <p> con más texto)
+      expect(screen.getByText(/matchStatsPanel\.sourceGeminiOnly/)).toBeInTheDocument();
     });
   });
 
   describe("con solo físicas", () => {
     it("muestra sección rendimiento físico", () => {
       render(<MatchStatsPanel data={fisicasData} />);
-      expect(screen.getByText(/rendimiento físico/i)).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.physicalPerformance")).toBeInTheDocument();
     });
 
     it("muestra velocidad máxima", () => {
       render(<MatchStatsPanel data={fisicasData} />);
-      expect(screen.getByText(/vel\. máx/i)).toBeInTheDocument();
+      // Etiqueta vía clave i18n; el valor 28.5 km/h sigue siendo texto crudo
+      expect(screen.getByText("matchStatsPanel.maxSpeed")).toBeInTheDocument();
       expect(screen.getByText("28.5")).toBeInTheDocument();
     });
 
     it("muestra zonas de intensidad", () => {
       render(<MatchStatsPanel data={fisicasData} />);
-      expect(screen.getByText(/zonas de intensidad/i)).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.intensityZones")).toBeInTheDocument();
     });
 
     it("no muestra KPIs de eventos", () => {
@@ -136,20 +157,22 @@ describe("MatchStatsPanel", () => {
 
     it("muestra fuente correcta", () => {
       render(<MatchStatsPanel data={fisicasData} />);
-      expect(screen.getByText(/tracking yolo/i)).toBeInTheDocument();
+      // fuente "yolo_only" → clave sourceYoloOnly (dentro de un <p> con más texto)
+      expect(screen.getByText(/matchStatsPanel\.sourceYoloOnly/)).toBeInTheDocument();
     });
   });
 
   describe("con ambas secciones (full)", () => {
     it("muestra eventos Y físicas", () => {
       render(<MatchStatsPanel data={fullData} />);
-      expect(screen.getByText(/pases/i)).toBeInTheDocument();
-      expect(screen.getByText(/rendimiento físico/i)).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.passes")).toBeInTheDocument();
+      expect(screen.getByText("matchStatsPanel.physicalPerformance")).toBeInTheDocument();
     });
 
     it("fuente es Tracking + IA", () => {
       render(<MatchStatsPanel data={fullData} />);
-      expect(screen.getByText(/tracking \+ ia/i)).toBeInTheDocument();
+      // fuente "yolo+gemini" → clave sourceYoloGemini (dentro de un <p> con más texto)
+      expect(screen.getByText(/matchStatsPanel\.sourceYoloGemini/)).toBeInTheDocument();
     });
   });
 

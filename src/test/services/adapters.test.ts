@@ -1,10 +1,27 @@
 /**
  * Tests for data adapters — adaptPlayerForUI, adaptInsightForUI, computeDashboardStats
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { adaptPlayerForUI, adaptInsightForUI, computeDashboardStats } from "@/services/real/adapters";
 import type { Player } from "@/services/real/playerService";
 import type { ScoutInsightOutput } from "@/agents/contracts";
+
+// hiddenTalents delega en el motor canónico playerMaturity (probado aparte).
+// Lo mockeamos para testear el CONTRATO DE GATING del adapter en aislamiento,
+// sin acoplarnos a umbrales antropométricos del motor. Clave por id de jugador.
+vi.mock("@/lib/phv/playerMaturity", () => {
+  const M: Record<string, { timing: string; confidence: string }> = {
+    gem_a:       { timing: "late", confidence: "high" },      // madurador tardío firme
+    gem_b:       { timing: "late", confidence: "moderate" },  // tardío, confianza media
+    gem_highvsi: { timing: "late", confidence: "high" },      // tardío pero VSI alto
+    lowconf:     { timing: "late", confidence: "none" },      // tardío sin confianza
+    precoz:      { timing: "early", confidence: "high" },     // precoz
+    unk:         { timing: "unknown", confidence: "none" },   // sin datos
+  };
+  return {
+    playerMaturity: (p: { id: string }) => M[p.id] ?? { timing: "unknown", confidence: "none" },
+  };
+});
 
 const makePlayer = (overrides: Partial<Player> = {}): Player => ({
   id: "p1",
@@ -69,9 +86,11 @@ describe("adaptPlayerForUI", () => {
     expect(ui.phvCategory).toBe("late");
   });
 
-  it("defaults phvCategory to on-time when undefined", () => {
+  it("phvCategory is null when undefined (no se asume on-time)", () => {
+    // Rework de maduración: no fabricar "on-time" cuando falta el dato; null =
+    // desconocido, así la UI no afirma un timing que no calculó.
     const ui = adaptPlayerForUI(makePlayer({ phvCategory: undefined }));
-    expect(ui.phvCategory).toBe("on-time");
+    expect(ui.phvCategory).toBeNull();
   });
 
   it("generates avatar URL with encoded name", () => {
@@ -96,9 +115,9 @@ describe("adaptPlayerForUI", () => {
     expect(ui.trending).toBe("stable");
   });
 
-  it("defaults phvOffset to 0", () => {
+  it("phvOffset is null when undefined (no se asume 0)", () => {
     const ui = adaptPlayerForUI(makePlayer({ phvOffset: undefined }));
-    expect(ui.phvOffset).toBe(0);
+    expect(ui.phvOffset).toBeNull();
   });
 });
 
@@ -189,12 +208,15 @@ describe("computeDashboardStats", () => {
     expect(stats.drillsCompleted).toBe(5);
   });
 
-  it("counts hidden talents (early + vsi < 65)", () => {
+  it("counts hidden talents: madurador tardío confiable + VSI < 65 (gateado por playerMaturity)", () => {
     const stats = computeDashboardStats([
-      makePlayer({ phvCategory: "early", vsi: 55 }), // ✓ hidden
-      makePlayer({ id: "p2", phvCategory: "early", vsi: 70 }), // ✗ vsi too high
-      makePlayer({ id: "p3", phvCategory: "ontme", vsi: 50 }), // ✗ not early
+      makePlayer({ id: "gem_a", vsi: 55 }),       // ✓ tardío + confianza alta + VSI<65
+      makePlayer({ id: "gem_b", vsi: 60 }),       // ✓ tardío + confianza media + VSI<65
+      makePlayer({ id: "gem_highvsi", vsi: 70 }), // ✗ VSI >= 65
+      makePlayer({ id: "lowconf", vsi: 50 }),     // ✗ tardío pero sin confianza (anti-falso-positivo)
+      makePlayer({ id: "precoz", vsi: 40 }),      // ✗ precoz, no tardío
+      makePlayer({ id: "unk", vsi: 30 }),         // ✗ timing desconocido
     ]);
-    expect(stats.hiddenTalents).toBe(1);
+    expect(stats.hiddenTalents).toBe(2);
   });
 });

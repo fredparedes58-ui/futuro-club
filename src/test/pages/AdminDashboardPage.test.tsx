@@ -44,13 +44,33 @@ vi.mock("framer-motion", () => {
 
 import AdminDashboardPage from "@/pages/AdminDashboardPage";
 
+// ── i18n ─────────────────────────────────────────────────────────────────────
+// The page migrated to react-i18next; its t() returns raw keys unless an
+// i18next instance is provided. We build a dedicated instance pinned to "es"
+// (no LanguageDetector → deterministic) loaded with the real translations, so
+// assertions can target the actual Spanish copy the user sees.
+import { I18nextProvider, initReactI18next } from "react-i18next";
+import { createInstance } from "i18next";
+import esTranslations from "@/i18n/es.json";
+
+const testI18n = createInstance();
+testI18n.use(initReactI18next).init({
+  resources: { es: { translation: esTranslations } },
+  lng: "es",
+  fallbackLng: "es",
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+});
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={["/admin"]}>
-      <AdminDashboardPage />
-    </MemoryRouter>
+    <I18nextProvider i18n={testI18n}>
+      <MemoryRouter initialEntries={["/admin"]}>
+        <AdminDashboardPage />
+      </MemoryRouter>
+    </I18nextProvider>
   );
 }
 
@@ -144,7 +164,8 @@ describe("AdminDashboardPage", () => {
         isRefetching: false,
       });
       renderPage();
-      expect(screen.getByText(/error al cargar analíticas/i)).toBeInTheDocument();
+      // i18n copy is now "Error al cargar las analíticas" (adminDashboardPage.errorLoadingAnalytics)
+      expect(screen.getByText(/error al cargar las analíticas/i)).toBeInTheDocument();
       expect(screen.getByText(/network timeout/i)).toBeInTheDocument();
     });
   });
@@ -171,7 +192,8 @@ describe("AdminDashboardPage", () => {
 
     it("tab Uso IA muestra breakdown de endpoints", () => {
       renderPage();
-      fireEvent.click(screen.getByRole("button", { name: /uso ia/i }));
+      // Tab label is now "Uso" (adminDashboardPage.tabUsage), no longer "Uso IA"
+      fireEvent.click(screen.getByRole("button", { name: /^uso$/i }));
       expect(screen.getByText(/mes actual vs anterior/i)).toBeInTheDocument();
       expect(screen.getByText("Scout Insight")).toBeInTheDocument();
       expect(screen.getByText("Video Intelligence")).toBeInTheDocument();
@@ -203,7 +225,8 @@ describe("AdminDashboardPage", () => {
       });
       renderPage();
       fireEvent.click(screen.getByRole("button", { name: /insights/i }));
-      expect(screen.getByText(/sin insights generados/i)).toBeInTheDocument();
+      // Empty-state copy is now "Aún no hay insights" (adminDashboardPage.noInsightsYet)
+      expect(screen.getByText(/aún no hay insights/i)).toBeInTheDocument();
     });
 
     it("botón refresh llama a refetch", () => {
@@ -212,7 +235,8 @@ describe("AdminDashboardPage", () => {
         data: makeAnalytics(), isLoading: false, error: null, refetch, isRefetching: false,
       });
       renderPage();
-      fireEvent.click(screen.getByLabelText(/refrescar/i));
+      // Refresh button aria-label is now "Actualizar" (adminDashboardPage.refresh)
+      fireEvent.click(screen.getByLabelText(/actualizar/i));
       expect(refetch).toHaveBeenCalled();
     });
   });

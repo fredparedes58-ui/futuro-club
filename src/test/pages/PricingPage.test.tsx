@@ -30,15 +30,42 @@ vi.mock("framer-motion", () => {
   return { motion, AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</> };
 });
 
+// PricingPage now calls useAuth() to route paid CTAs (logged-out → /register,
+// logged-in → /billing). Mock it as a logged-out visitor (the public-page
+// scenario) so we don't need the full AuthProvider/Supabase stack.
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 import PricingPage from "@/pages/PricingPage";
+
+// ── i18n ─────────────────────────────────────────────────────────────────────
+// PricingPage migrated to react-i18next; its t() returns raw keys unless an
+// i18next instance is provided. Build a dedicated instance pinned to "es"
+// (no LanguageDetector → deterministic) loaded with the real translations, so
+// assertions can target the actual Spanish copy the user sees.
+import { I18nextProvider, initReactI18next } from "react-i18next";
+import { createInstance } from "i18next";
+import esTranslations from "@/i18n/es.json";
+
+const testI18n = createInstance();
+testI18n.use(initReactI18next).init({
+  resources: { es: { translation: esTranslations } },
+  lng: "es",
+  fallbackLng: "es",
+  interpolation: { escapeValue: false },
+  react: { useSuspense: false },
+});
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function renderPage() {
   return render(
-    <MemoryRouter initialEntries={["/pricing"]}>
-      <PricingPage />
-    </MemoryRouter>
+    <I18nextProvider i18n={testI18n}>
+      <MemoryRouter initialEntries={["/pricing"]}>
+        <PricingPage />
+      </MemoryRouter>
+    </I18nextProvider>
   );
 }
 
@@ -106,29 +133,34 @@ describe("PricingPage", () => {
   });
 
   describe("testimonios", () => {
-    it("renderiza sección de testimonios", () => {
+    // La página ahora filtra testimonios con plantillas "[…]" y solo renderiza
+    // la sección si hay testimonios reales (PricingPage.tsx:189-191,329). Con
+    // todos los testimonios en placeholder, la sección NO debe aparecer para no
+    // mostrar reseñas falsas a visitantes de la página pública.
+    it("oculta la sección de testimonios mientras solo hay plantillas", () => {
       renderPage();
-      expect(screen.getByText(/lo que dicen clubes/i)).toBeInTheDocument();
+      expect(screen.queryByText(/lo que dicen clubes/i)).not.toBeInTheDocument();
     });
 
-    it("usa placeholders no inventa nombres reales", () => {
+    it("no muestra placeholders de testimonio al visitante", () => {
       renderPage();
-      // Todos los testimonios tienen "[Pendiente..." como guard contra datos inventados
-      const placeholders = screen.getAllByText(/\[pendiente de testimonio real\]/i);
-      expect(placeholders.length).toBeGreaterThanOrEqual(3);
+      // Guard contra datos inventados: los placeholders "[Pendiente…]" nunca
+      // deben renderizarse en la página pública.
+      expect(screen.queryAllByText(/\[pendiente de testimonio real\]/i)).toHaveLength(0);
     });
   });
 
   describe("case studies", () => {
-    it("renderiza sección de casos de uso", () => {
+    // Igual que testimonios: la sección de casos se filtra por plantillas y solo
+    // se renderiza con casos reales (PricingPage.tsx:192-194,370).
+    it("oculta la sección de casos mientras solo hay plantillas", () => {
       renderPage();
-      expect(screen.getByText(/casos de uso reales/i)).toBeInTheDocument();
+      expect(screen.queryByText(/casos de uso reales/i)).not.toBeInTheDocument();
     });
 
-    it("usa placeholders para clientes pendientes", () => {
+    it("no muestra placeholders de cliente pendiente al visitante", () => {
       renderPage();
-      const pendings = screen.getAllByText(/\[cliente pendiente\]/i);
-      expect(pendings.length).toBeGreaterThanOrEqual(2);
+      expect(screen.queryAllByText(/\[cliente pendiente\]/i)).toHaveLength(0);
     });
   });
 
