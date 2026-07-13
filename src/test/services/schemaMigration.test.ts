@@ -108,10 +108,18 @@ describe("SchemaMigrationService", () => {
     });
 
     it("returns false when localStorage throws", () => {
-      const origSetItem = localStorage.setItem;
-      localStorage.setItem = () => { throw new Error("QuotaExceeded"); };
+      // Reemplazar el global localStorage entero (vi.stubGlobal) en vez de tocar
+      // setItem: las jsdom de local (Windows) y CI (Linux) difieren en si setItem
+      // es propiedad propia de la instancia o del prototipo, así que ni la
+      // reasignación directa ni spyOn(Storage.prototype) funcionan en ambos.
+      vi.stubGlobal("localStorage", {
+        setItem: () => { throw new Error("QuotaExceeded"); },
+        removeItem: vi.fn(),
+        getItem: vi.fn(),
+        clear: vi.fn(),
+      });
       expect(SchemaMigrationService.isStorageWritable()).toBe(false);
-      localStorage.setItem = origSetItem;
+      vi.unstubAllGlobals();
     });
   });
 
