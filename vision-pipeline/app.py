@@ -482,3 +482,98 @@ def track(payload: dict, authorization: Optional[str] = Header(default=None)) ->
 
     # Call the GPU function synchronously
     return track_video.remote(req)
+
+
+# ── Async path (Vision V4) ────────────────────────────────────────────
+# Para partidos completos (90 min) el proxy síncrono de Vercel hace timeout
+# (~25 s en edge). El flujo async: track_async (spawn, responde {call_id} al
+# instante) → run_track_and_callback (corre en GPU, timeout largo) → POST
+# firmado al webhook de la app cuando termina.
+#
+# Contrato del callback (pineado por api/webhooks/__tests__/modal-tracking.test.ts):
+#   body JSON snake_case: {"job_id","status":"done"|"failed","result"|"error"}
+#   header X-Vitas-Signature = HMAC-SHA256(MODAL_CALLBACK_SECRET, body) hex minúsculas.
+#   La firma es del CONTENIDO (rawBody), no del job_id.
+#
+# MODAL_CALLBACK_SECRET viaja como clave EXTRA del secret vitas-api-key (no en el
+# payload del spawn). Deploy:
+#   modal secret create vitas-api-key API_KEY=... MODAL_CALLBACK_SECRET=...
+# (required_keys sigue siendo solo API_KEY; la extra se lee de os.environ.)
+
+@app.function(
+    image=image,
+    gpu="T4",
+    timeout=3600,            # 60 min: cubre un partido a sample_fps bajo en T4
+    retries=1,               # el webhook es idempotente → un callback repetido es seguro
+    volumes={WEIGHTS_DIR: weights_volume},
+    secrets=[api_secret],
+)
+def run_track_and_callback(payload: dict, job_id: str, callback_url: str) -> dict:
+    """Corre el tracking y hace POST firmado al webhook. Spawneada por track_async."""
+    import hashlib
+    import hmac
+    import json
+
+    import httpx  # type: ignore
+
+    secret = os.environ.get("MODAL_CALLBACK_SECRET", "")
+
+    # Ejecuta la MISMA lógica que track_video en ESTE contenedor GPU (.local()
+    # corre el cuerpo inline, sin anidar otro contenedor).
+    try:
+        req = TrackingRequest.model_validate(payload)
+        result = track_video.local(req)
+        if isinstance(result, dict) and result.get("status") == "ok":
+            out = {"job_id": job_id, "status": "done", "result": result}
+        else:
+            reason = result.get("reason") if isinstance(result, dict) else "unknown"
+            out = {"job_id": job_id, "status": "failed", "error": f"tracking_failed: {reason}"}
+    except Exception as err:  # noqa: BLE001 — cualquier fallo debe notificar al webhook
+        out = {"job_id": job_id, "status": "failed", "error": str(err)[:1000]}
+
+    # Firma el CONTENIDO exacto que se envía (mismos bytes → misma firma en el TS).
+    body = json.dumps(out, separators=(",", ":")).encode("utf-8")
+    headers = {"Content-Type": "application/json"}
+    if secret:
+        headers["X-Vitas-Signature"] = hmac.new(
+            secret.encode("utf-8"), body, hashlib.sha256
+        ).hexdigest()
+
+    try:
+        resp = httpx.post(callback_url, content=body, headers=headers, timeout=30)
+        delivered = resp.status_code
+    except Exception as err:  # noqa: BLE001 — el resultado ya corrió; solo reportamos
+        delivered = -1
+        print(f"[run_track_and_callback] callback POST failed for job {job_id}: {err}")
+
+    return {"job_id": job_id, "status": out["status"], "callback_http": delivered}
+
+
+@app.function(image=image, secrets=[api_secret], timeout=60)
+@modal.fastapi_endpoint(method="POST")
+def track_async(payload: dict, authorization: Optional[str] = Header(default=None)) -> dict:
+    """Valida el bearer, spawnea el tracking y responde {call_id} al instante."""
+    expected = os.environ.get("API_KEY", "")
+    if not expected:
+        return {"status": "error", "reason": "server_misconfigured"}
+    if authorization != f"Bearer {expected}":
+        return {"status": "error", "reason": "unauthorized"}
+
+    job_id = payload.get("job_id")
+    callback_url = payload.get("callback_url")
+    if not job_id or not callback_url:
+        return {
+            "status": "error",
+            "reason": "invalid_request",
+            "detail": "job_id and callback_url are required",
+        }
+
+    # Valida los campos de tracking (video_url/sample_fps/classes); job_id y
+    # callback_url son extra y Pydantic los ignora.
+    try:
+        TrackingRequest.model_validate(payload)
+    except Exception as err:
+        return {"status": "error", "reason": "invalid_request", "detail": str(err)}
+
+    call = run_track_and_callback.spawn(payload, job_id, callback_url)
+    return {"call_id": call.object_id}
