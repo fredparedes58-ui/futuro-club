@@ -76,6 +76,17 @@ export const env = {
   get upstashRedisUrl() { return optional("UPSTASH_REDIS_REST_URL"); },
   get upstashRedisToken() { return optional("UPSTASH_REDIS_REST_TOKEN"); },
 
+  // ─── App public origin ───
+  // Convención única (review V4): VITAS_PUBLIC_URL ?? PUBLIC_URL ?? VERCEL_URL.
+  // Nunca devuelve string vacío → las callback_url jamás salen relativas.
+  get publicUrl() {
+    return (
+      process.env.VITAS_PUBLIC_URL ??
+      process.env.PUBLIC_URL ??
+      `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`
+    );
+  },
+
   // ─── Security ───
   get cronSecret() { return required("CRON_SECRET"); },
   get adminSecret() { return optional("ADMIN_SECRET"); },
