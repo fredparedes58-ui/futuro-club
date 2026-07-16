@@ -104,6 +104,12 @@ interface HandlerContext<T> {
   body: T;
   ip: string;
   userId: string | null;
+  /**
+   * true si la request entró con token de servicio (CRON/ADMIN/INTERNAL/SERVICE_ROLE).
+   * Úsalo para checks de ownership — NO infieras "servicio" de userId===null,
+   * que es un contrato implícito frágil (optionalAuth también deja userId null).
+   */
+  isServiceCall: boolean;
   method: string;
   query: Record<string, string>;
   headers: Record<string, string>;
@@ -303,6 +309,7 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
         body,
         ip,
         userId,
+        isServiceCall,
         method: req.method,
         query,
         headers: headersMap,

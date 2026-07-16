@@ -18,6 +18,7 @@
  */
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
 import analyzeSession from "./_analyze-session";
 import coachingAssistant from "../agents/_coaching-assistant";
 import trackPlayers from "./_track-players";
@@ -54,8 +55,13 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "track-async": trackAsync,     // V4 · enqueue tracking GPU (vídeos largos)
   "track-status": trackStatus,   // V4 · polling del job
 
-  "session-analysis": async (req: Request) => {
-    const sessionId = new URL(req.url).searchParams.get("sessionId");
+  // Lecturas con service key (bypassa RLS) → requieren auth. Antes eran
+  // públicas: cualquiera podía enumerar playerIds/teamIds y exfiltrar datos
+  // (incl. reportes de menores en parent-report) — hallazgo de la review V4.
+  "session-analysis": withHandler(
+    { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+    async ({ query }) => {
+    const sessionId = query.sessionId;
     if (!sessionId) return errorResponse("sessionId required", 400);
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ sessionId, session: null, source: "no_supabase" });
@@ -76,10 +82,12 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       console.error("[coaching/session-analysis] error:", err);
       return errorResponse("Internal error", 500);
     }
-  },
+  }),
 
-  "session-recommendation": async (req: Request) => {
-    const teamId = new URL(req.url).searchParams.get("teamId");
+  "session-recommendation": withHandler(
+    { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+    async ({ query }) => {
+    const teamId = query.teamId;
     if (!teamId) return errorResponse("teamId required", 400);
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ teamId, recommendation: null, source: "no_supabase" });
@@ -140,10 +148,12 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       console.error("[coaching/session-recommendation] error:", err);
       return errorResponse("Internal error", 500);
     }
-  },
+  }),
 
-  "parent-report": async (req: Request) => {
-    const playerId = new URL(req.url).searchParams.get("playerId");
+  "parent-report": withHandler(
+    { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+    async ({ query }) => {
+    const playerId = query.playerId;
     if (!playerId) return errorResponse("playerId required", 400);
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ playerId, report: null, source: "no_supabase" });
@@ -174,7 +184,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       console.error("[coaching/parent-report] error:", err);
       return errorResponse("Internal error", 500);
     }
-  },
+  }),
 };
 
 export default async function handler(req: Request): Promise<Response> {

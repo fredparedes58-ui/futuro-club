@@ -1,7 +1,7 @@
 /**
  * Tests · V4 async tracking — webhook de callback de Modal.
- * La firma se computa con el edgeCrypto REAL (HMAC del job_id) para que el
- * test guarde el contrato exacto que emite track-async.
+ * La firma se computa con el edgeCrypto REAL sobre el rawBody EXACTO (mismo
+ * contrato que emitirá Modal en V4.3): X-Vitas-Signature = HMAC(secret, body).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 import { hmacSha256Hex } from "../../_lib/edgeCrypto";
@@ -20,7 +20,6 @@ vi.mock("../../_lib/auth", () => ({
 
 process.env.VITE_SUPABASE_URL = "https://sb.test";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
-process.env.MODAL_CALLBACK_SECRET = "cb-secret";
 
 let handler: (req: Request) => Promise<Response>;
 beforeAll(async () => {
@@ -34,10 +33,10 @@ function jsonRes(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), { status });
 }
 
-async function signedPost(payload: unknown, jobIdForSig?: string): Promise<Request> {
+/** Firma el rawBody EXACTO que se envía (HMAC del contenido, no del job_id). */
+async function signedPost(payload: unknown): Promise<Request> {
   const raw = JSON.stringify(payload);
-  const jobId = jobIdForSig ?? (payload as { job_id?: string }).job_id ?? "";
-  const sig = await hmacSha256Hex("cb-secret", jobId);
+  const sig = await hmacSha256Hex("cb-secret", raw);
   return new Request("https://example.com/api/webhooks/modal-tracking", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Vitas-Signature": sig },
@@ -46,21 +45,19 @@ async function signedPost(payload: unknown, jobIdForSig?: string): Promise<Reque
 }
 
 describe("webhook modal-tracking", () => {
-  beforeEach(() => fetchMock.mockReset());
-
-  it("400 con JSON inválido", async () => {
-    const res = await handler(new Request("https://example.com/api/webhooks/modal-tracking", {
-      method: "POST", body: "not-json",
-    }));
-    expect(res.status).toBe(400);
+  beforeEach(() => {
+    fetchMock.mockReset();
+    process.env.MODAL_CALLBACK_SECRET = "cb-secret";
   });
 
-  it("400 sin job_id", async () => {
-    const res = await handler(await signedPost({ status: "done" }, "whatever"));
-    expect(res.status).toBe(400);
+  it("503 fail-closed sin MODAL_CALLBACK_SECRET (nunca fail-open)", async () => {
+    delete process.env.MODAL_CALLBACK_SECRET;
+    const res = await handler(await signedPost({ job_id: "job-1", status: "done", result: {} }));
+    expect(res.status).toBe(503);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("401 con firma inválida", async () => {
+  it("401 con firma inválida (sin tocar la DB)", async () => {
     const req = new Request("https://example.com/api/webhooks/modal-tracking", {
       method: "POST",
       headers: { "X-Vitas-Signature": "deadbeef" },
@@ -68,53 +65,68 @@ describe("webhook modal-tracking", () => {
     });
     const res = await handler(req);
     expect(res.status).toBe(401);
-    expect(fetchMock).not.toHaveBeenCalled(); // nunca tocó la DB
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("404 si el job no existe", async () => {
-    fetchMock.mockResolvedValueOnce(jsonRes([]));
-    const res = await handler(await signedPost({ job_id: "ghost", status: "done", result: {} }));
-    expect(res.status).toBe(404);
+  it("401 si el body cambia tras firmar (firma es del contenido)", async () => {
+    const raw = JSON.stringify({ job_id: "job-1", status: "done", result: { ok: 1 } });
+    const sig = await hmacSha256Hex("cb-secret", raw);
+    // Reusar la firma con un body forjado distinto
+    const forged = new Request("https://example.com/api/webhooks/modal-tracking", {
+      method: "POST",
+      headers: { "X-Vitas-Signature": sig },
+      body: JSON.stringify({ job_id: "job-1", status: "done", result: { hacked: true } }),
+    });
+    const res = await handler(forged);
+    expect(res.status).toBe(401);
   });
 
-  it("happy path done: escribe result y finished_at", async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRes([{ id: "job-1", status: "processing" }])) // lookup
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));             // patch
+  it("400 sin job_id (firma válida)", async () => {
+    const res = await handler(await signedPost({ status: "done", result: {} }));
+    expect(res.status).toBe(400);
+  });
 
+  it("estado no terminal (heartbeat) → 200 ignored, no escribe", async () => {
+    const res = await handler(await signedPost({ job_id: "job-1", status: "processing" }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).data.ignored).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("happy path done: PATCH atómico condicional con representación", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes([{ id: "job-1" }])); // PATCH devuelve 1 fila
     const res = await handler(
       await signedPost({ job_id: "job-1", status: "done", result: { totalPlayerTracks: 20 } }),
     );
     expect(res.status).toBe(200);
-
-    const patch = JSON.parse(fetchMock.mock.calls[1][1].body);
+    const patchCall = fetchMock.mock.calls[0];
+    expect(String(patchCall[0])).toContain("status=in.(queued,processing)"); // condición atómica
+    const patch = JSON.parse(patchCall[1].body);
     expect(patch.status).toBe("done");
     expect(patch.result.totalPlayerTracks).toBe(20);
-    expect(patch.finished_at).toBeTruthy();
   });
 
-  it("failed: escribe error", async () => {
+  it("done sin result → failed", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes([{ id: "job-1" }]));
+    const res = await handler(await signedPost({ job_id: "job-1", status: "done" }));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).status).toBe("failed");
+  });
+
+  it("idempotente: PATCH condicional no afecta filas (ya finalizado) → 200 idempotent", async () => {
     fetchMock
-      .mockResolvedValueOnce(jsonRes([{ id: "job-1", status: "processing" }]))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
-
-    const res = await handler(
-      await signedPost({ job_id: "job-1", status: "failed", error: "gpu oom" }),
-    );
+      .mockResolvedValueOnce(jsonRes([]))                          // PATCH: 0 filas (ya done/failed)
+      .mockResolvedValueOnce(jsonRes([{ id: "job-1", status: "done" }])); // SELECT: existe, done
+    const res = await handler(await signedPost({ job_id: "job-1", status: "done", result: {} }));
     expect(res.status).toBe(200);
-    const patch = JSON.parse(fetchMock.mock.calls[1][1].body);
-    expect(patch.status).toBe("failed");
-    expect(patch.error).toBe("gpu oom");
+    expect((await res.json()).data.idempotent).toBe(true);
   });
 
-  it("idempotente: job ya done → no re-escribe", async () => {
-    fetchMock.mockResolvedValueOnce(jsonRes([{ id: "job-1", status: "done" }]));
-    const res = await handler(
-      await signedPost({ job_id: "job-1", status: "done", result: {} }),
-    );
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.data.idempotent).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(1); // solo el lookup, sin PATCH
+  it("404: PATCH 0 filas y el job no existe", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonRes([]))  // PATCH 0 filas
+      .mockResolvedValueOnce(jsonRes([])); // SELECT vacío
+    const res = await handler(await signedPost({ job_id: "ghost", status: "done", result: {} }));
+    expect(res.status).toBe(404);
   });
 });

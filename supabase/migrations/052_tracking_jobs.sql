@@ -38,8 +38,10 @@ CREATE INDEX IF NOT EXISTS idx_tracking_jobs_org   ON tracking_jobs(org_id);
 CREATE INDEX IF NOT EXISTS idx_tracking_jobs_video ON tracking_jobs(video_id);
 
 -- ── RPC atómica de claim (patrón 040: FOR UPDATE SKIP LOCKED) ───────────────
--- La usa el cron de red de seguridad (V4.5) para re-lanzar jobs 'queued' cuyo
--- spawn falló, sin doble-despacho si dos invocaciones solapan.
+-- SEMÁNTICA DE RESCATE (review V4): un job spawneado con éxito pasa a
+-- 'processing' con modal_call_id en track-async; este RPC solo reclama los
+-- 'queued' SIN modal_call_id (el proceso murió entre insert y spawn). Sin ese
+-- filtro, el cron V4.5 re-lanzaría jobs que YA corren en Modal (GPU doble).
 CREATE OR REPLACE FUNCTION claim_queued_tracking_jobs(batch_size INT DEFAULT 3)
 RETURNS SETOF tracking_jobs
 LANGUAGE sql
@@ -53,6 +55,7 @@ AS $$
     SELECT id
     FROM tracking_jobs
     WHERE status = 'queued'
+      AND modal_call_id IS NULL
     ORDER BY created_at ASC
     FOR UPDATE SKIP LOCKED
     LIMIT batch_size
@@ -61,8 +64,9 @@ AS $$
 $$;
 
 COMMENT ON FUNCTION claim_queued_tracking_jobs IS
-  'Atomically claims queued tracking jobs. FOR UPDATE SKIP LOCKED prevents '
-  'double-dispatch when cron invocations overlap (mirror of claim_queued_analyses).';
+  'Atomically claims queued tracking jobs whose Modal spawn never happened '
+  '(modal_call_id IS NULL). FOR UPDATE SKIP LOCKED prevents double-dispatch '
+  'when cron invocations overlap (mirror of claim_queued_analyses).';
 
 -- ── RLS (patrón 038) ─────────────────────────────────────────────────────────
 -- La API escribe siempre con service_role (bypassa RLS); estas policies son la

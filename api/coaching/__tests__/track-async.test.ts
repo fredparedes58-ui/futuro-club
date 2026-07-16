@@ -16,7 +16,7 @@ vi.mock("../../_lib/auth", () => ({
   verifyAuth: vi.fn().mockResolvedValue({ userId: "user-123", error: null }),
 }));
 
-// Env de módulo (SUPABASE_*) se lee en import → fijar ANTES del dynamic import.
+// Env de módulo (SUPABASE_*) se lee vía env.ts en cada llamada → fijar antes.
 process.env.VITE_SUPABASE_URL = "https://sb.test";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
 
@@ -47,21 +47,35 @@ function jsonRes(payload: unknown, status = 200): Response {
   return new Response(JSON.stringify(payload), { status });
 }
 
+/** dedup query devuelve vacío (no hay job pendiente) por defecto. */
+function noDup(): Response {
+  return jsonRes([]);
+}
+
 describe("track-async (enqueue + spawn)", () => {
   beforeEach(() => {
     fetchMock.mockReset();
     process.env.MODAL_TRACK_ASYNC_URL = "https://modal.test/track_async";
     process.env.MODAL_API_KEY = "modal-key";
     process.env.MODAL_CALLBACK_SECRET = "cb-secret";
-    process.env.PUBLIC_URL = "https://vitas.test";
+    process.env.VITAS_PUBLIC_URL = "https://vitas.test";
+    delete process.env.PUBLIC_URL;
   });
 
-  it("503 real_inference_disabled sin MODAL_TRACK_ASYNC_URL", async () => {
+  it("503 real_inference_disabled (shape a pelo) sin MODAL_TRACK_ASYNC_URL", async () => {
     delete process.env.MODAL_TRACK_ASYNC_URL;
     const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
     expect(res.status).toBe(503);
     const body = await res.json();
-    expect(body.errorDetail.code).toBe("real_inference_disabled");
+    // Mismo contrato que _track-players: campo top-level `error`.
+    expect(body.error).toBe("real_inference_disabled");
+  });
+
+  it("503 real_inference_disabled sin MODAL_CALLBACK_SECRET (fail-fast, no fail-open en el webhook)", async () => {
+    delete process.env.MODAL_CALLBACK_SECRET;
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("real_inference_disabled");
   });
 
   it("400 si videoUrl falta o no es URL", async () => {
@@ -69,14 +83,29 @@ describe("track-async (enqueue + spawn)", () => {
     expect(res.status).toBe(400);
   });
 
-  it("happy path: inserta job, spawnea en Modal con callback firmado y responde 202", async () => {
+  it("413 si el vídeo supera el techo async", async () => {
+    process.env.MAX_ASYNC_TRACK_SEC = "7200";
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/m.mp4", durationSec: 999999 }));
+    expect(res.status).toBe(413);
+    delete process.env.MAX_ASYNC_TRACK_SEC;
+  });
+
+  it("dedup: job pendiente para el mismo vídeo → devuelve el existente, sin spawn", async () => {
+    fetchMock.mockResolvedValueOnce(jsonRes([{ id: "job-existing", status: "processing" }])); // dedup HIT
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.jobId).toBe("job-existing");
+    expect(body.data.deduped).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1); // solo el dedup, nunca insert/spawn
+  });
+
+  it("happy path: dedup vacío → inserta, spawnea, marca processing, 202", async () => {
     fetchMock
-      // 1 · INSERT tracking_jobs
-      .mockResolvedValueOnce(jsonRes([{ id: "job-1", status: "queued" }], 201))
-      // 2 · Modal spawn
-      .mockResolvedValueOnce(jsonRes({ call_id: "call-9" }))
-      // 3 · PATCH modal_call_id
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+      .mockResolvedValueOnce(noDup())                                   // 0 dedup
+      .mockResolvedValueOnce(jsonRes([{ id: "job-1" }], 201))           // 1 insert
+      .mockResolvedValueOnce(jsonRes({ call_id: "call-9" }))            // 2 spawn
+      .mockResolvedValueOnce(jsonRes([{ id: "job-1" }]));              // 3 PATCH processing
 
     const res = await trackAsync(
       post({ videoUrl: "https://cdn.test/match.mp4", durationSec: 5400, sampleFps: 5 }),
@@ -84,40 +113,57 @@ describe("track-async (enqueue + spawn)", () => {
     expect(res.status).toBe(202);
     const body = await res.json();
     expect(body.data.jobId).toBe("job-1");
+    expect(body.data.status).toBe("processing");
 
-    // Insert lleva user_id del JWT y estado inicial queued (default en DB)
-    const insertCall = fetchMock.mock.calls[0];
+    // insert lleva user_id del JWT
+    const insertCall = fetchMock.mock.calls[1];
     expect(String(insertCall[0])).toContain("/rest/v1/tracking_jobs");
     expect(JSON.parse(insertCall[1].body).user_id).toBe("user-123");
 
-    // Spawn lleva job_id + callback firmado
-    const spawnCall = fetchMock.mock.calls[1];
+    // spawn: job_id + callback_url absoluto, SIN callback_token (Modal firma su lado)
+    const spawnCall = fetchMock.mock.calls[2];
     expect(String(spawnCall[0])).toBe("https://modal.test/track_async");
     const spawnBody = JSON.parse(spawnCall[1].body);
     expect(spawnBody.job_id).toBe("job-1");
     expect(spawnBody.callback_url).toBe("https://vitas.test/api/webhooks/modal-tracking");
-    expect(spawnBody.callback_token).toMatch(/^[0-9a-f]{64}$/); // HMAC-SHA256 hex
+    expect(spawnBody.callback_token).toBeUndefined();
+
+    // PATCH marca processing + modal_call_id (crítico para el claim RPC)
+    const patchCall = fetchMock.mock.calls[3];
+    expect(String(patchCall[0])).toContain("tracking_jobs?id=eq.job-1");
+    const patchBody = JSON.parse(patchCall[1].body);
+    expect(patchBody.status).toBe("processing");
+    expect(patchBody.modal_call_id).toBe("call-9");
   });
 
   it("spawn fallido → job marcado failed y 502", async () => {
     fetchMock
-      .mockResolvedValueOnce(jsonRes([{ id: "job-2", status: "queued" }], 201)) // insert
-      .mockResolvedValueOnce(new Response("boom", { status: 500 }))             // modal 500
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));              // PATCH failed
+      .mockResolvedValueOnce(noDup())                             // dedup
+      .mockResolvedValueOnce(jsonRes([{ id: "job-2" }], 201))     // insert
+      .mockResolvedValueOnce(new Response("boom", { status: 500 })) // spawn 500
+      .mockResolvedValueOnce(jsonRes([{ id: "job-2" }]));         // PATCH failed
 
     const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
     expect(res.status).toBe(502);
-
-    const patchCall = fetchMock.mock.calls[2];
-    expect(String(patchCall[0])).toContain("tracking_jobs?id=eq.job-2");
+    const patchCall = fetchMock.mock.calls[3];
     expect(JSON.parse(patchCall[1].body).status).toBe("failed");
   });
 
-  it("insert fallido → 500 enqueue_failed sin tocar Modal", async () => {
-    fetchMock.mockResolvedValueOnce(new Response("rls", { status: 403 }));
+  it("insert fallido → 500 sin tocar Modal", async () => {
+    fetchMock
+      .mockResolvedValueOnce(noDup())                              // dedup
+      .mockResolvedValueOnce(new Response("rls", { status: 403 })); // insert 403
     const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
     expect(res.status).toBe(500);
-    expect(fetchMock).toHaveBeenCalledTimes(1); // nunca llegó al spawn
+    expect(fetchMock).toHaveBeenCalledTimes(2); // dedup + insert, nunca spawn
+  });
+
+  it("insert 201 sin representación → 500 enqueue_failed (no TypeError)", async () => {
+    fetchMock
+      .mockResolvedValueOnce(noDup())
+      .mockResolvedValueOnce(jsonRes([], 201)); // representación vacía
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(500);
   });
 });
 
@@ -125,9 +171,7 @@ describe("track-status (polling)", () => {
   beforeEach(() => fetchMock.mockReset());
 
   const row = (over: Record<string, unknown> = {}) => [{
-    id: "job-1", user_id: "user-123", status: "processing", result: null,
-    error: null, attempts: 1, created_at: "2026-07-16T00:00:00Z",
-    started_at: null, finished_at: null, ...over,
+    id: "job-1", user_id: "user-123", status: "processing", error: null, ...over,
   }];
 
   it("400 sin jobId", async () => {
@@ -147,22 +191,25 @@ describe("track-status (polling)", () => {
     expect(res.status).toBe(403);
   });
 
-  it("200 processing: sin result durante el polling", async () => {
+  it("200 processing: sin result y sin segundo fetch", async () => {
     fetchMock.mockResolvedValueOnce(jsonRes(row()));
     const res = await trackStatus(get("https://example.com/api/coaching/track-status?jobId=job-1"));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.status).toBe("processing");
     expect(body.data.result).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1); // no se pide result mientras no está done
   });
 
-  it("200 done: incluye result", async () => {
-    fetchMock.mockResolvedValueOnce(
-      jsonRes(row({ status: "done", result: { totalPlayerTracks: 22 } })),
-    );
+  it("200 done: segundo fetch trae el result", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonRes(row({ status: "done" })))              // status row
+      .mockResolvedValueOnce(jsonRes([{ result: { totalPlayerTracks: 22 } }])); // result aparte
     const res = await trackStatus(get("https://example.com/api/coaching/track-status?jobId=job-1"));
     const body = await res.json();
     expect(body.data.status).toBe("done");
     expect(body.data.result.totalPlayerTracks).toBe(22);
+    // el primer SELECT no pide result
+    expect(String(fetchMock.mock.calls[0][0])).toContain("select=id,user_id,status,error");
   });
 });

@@ -76,21 +76,29 @@ create function claim_queued_tracking_jobs(batch_size int default 3) ...
 ```
 
 ### 4.2 · Modal `vision-pipeline/app.py` — spawn + callback
-- Nueva `@app.function(timeout=1800)` `run_track_and_callback(payload, callback_url, token)`:
+- Nueva `@app.function(timeout=1800)` `run_track_and_callback(payload, callback_url)`:
   corre el tracking existente (reutiliza la lógica de `track()`), y al terminar
-  hace `requests.post(callback_url, json={jobId, result}, headers={X-Modal-Token})`.
-- Nuevo `@modal.fastapi_endpoint(POST)` `track_async(payload)`:
+  hace `requests.post(callback_url, data=body, headers={"X-Vitas-Signature": sig})`
+  donde **`body` es el JSON serializado** `{"job_id","status":"done"|"failed","result"|"error"}`
+  (snake_case) y **`sig = HMAC-SHA256(MODAL_CALLBACK_SECRET, body)`** en hex minúsculas.
+- Nuevo `@modal.fastapi_endpoint(POST)` `track_async(payload)`: recibe
+  `{video_url, sample_fps, classes, job_id, callback_url}`, hace
   `run_track_and_callback.spawn(...)` y responde `{ call_id }` al instante.
-- El token es un HMAC corto (secreto compartido `MODAL_CALLBACK_SECRET`) para que
-  el webhook no acepte payloads falsos.
+- **La firma es del CONTENIDO (rawBody), no del `job_id`** — así una firma
+  observada no puede re-adjuntarse a un payload forjado. Modal guarda su propia
+  copia de `MODAL_CALLBACK_SECRET` (Modal secret); el secreto NUNCA viaja en el
+  spawn. Contrato exacto pineado por `api/webhooks/__tests__/modal-tracking.test.ts`.
 
 ### 4.3 · API (TS, sí verificable sin clip)
 - `POST /api/coaching/track-async` — crea fila `tracking_jobs` (queued), llama a
   `track_async` de Modal (spawn), guarda `modal_call_id`, responde `{ jobId }`.
   Reutiliza `withHandler` (auth + rate-limit + allowServiceToken).
-- `POST /api/webhooks/modal-tracking` — verifica el token HMAC, escribe
-  `result` + `status='done'` (o `failed`) en la fila. `rawBody:true` +
-  `ctx.rawBody` (ojo al bug de doble-consumo del stream, ver RAG `_ingest`).
+- `POST /api/webhooks/modal-tracking` — verifica `HMAC(secret, rawBody)`
+  (fail-closed: sin `MODAL_CALLBACK_SECRET` → 503), escribe `result` +
+  `status='done'` (o `failed`) con un **PATCH atómico condicional**
+  `status=in.(queued,processing)` (evita que un retry tardío pise un resultado
+  final). Estados no terminales → `200 {ignored}`. `rawBody:true` + `ctx.rawBody`
+  (ojo al bug de doble-consumo del stream, ver RAG `_ingest`).
 - `GET /api/coaching/track-status?jobId=` — devuelve `{ status, result?, error? }`
   para el polling del cliente.
 - (Red de seguridad) `GET /api/crons/process-tracking-queue` — reencola jobs
