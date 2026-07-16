@@ -22,6 +22,7 @@ import {
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -67,19 +68,20 @@ const MOCK_AUDIT: AuditEntry[] = [
 /* ── Status helpers ────────────────────────────────────────────── */
 
 const statusConfig = {
-  pending: { label: "Pendiente", icon: <Clock size={14} />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
-  granted: { label: "Autorizado", icon: <CheckCircle2 size={14} />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-  denied: { label: "Denegado", icon: <XCircle size={14} />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
-  not_required: { label: "No requerido", icon: <CheckCircle2 size={14} />, color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border" },
+  pending: { label: "parentalConsentPage.status.pending", icon: <Clock size={14} />, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/30" },
+  granted: { label: "parentalConsentPage.status.granted", icon: <CheckCircle2 size={14} />, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+  denied: { label: "parentalConsentPage.status.denied", icon: <XCircle size={14} />, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30" },
+  not_required: { label: "parentalConsentPage.status.notRequired", icon: <CheckCircle2 size={14} />, color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border" },
 };
 
+// Maps audit action codes to translation keys resolved with t() at render time.
 const actionLabels: Record<string, string> = {
-  consent_requested: "Consentimiento solicitado",
-  consent_granted: "Consentimiento concedido",
-  consent_denied: "Consentimiento denegado",
-  consent_revoked: "Consentimiento revocado",
-  data_exported: "Datos exportados (DSAR)",
-  deletion_requested: "Eliminación solicitada",
+  consent_requested: "parentalConsentPage.action.consent_requested",
+  consent_granted: "parentalConsentPage.action.consent_granted",
+  consent_denied: "parentalConsentPage.action.consent_denied",
+  consent_revoked: "parentalConsentPage.action.consent_revoked",
+  data_exported: "parentalConsentPage.action.data_exported",
+  deletion_requested: "parentalConsentPage.action.deletion_requested",
 };
 
 /* ── Fetch helpers ─────────────────────────────────────────────── */
@@ -130,6 +132,7 @@ interface ConsentFormData {
 }
 
 function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentFormProps) {
+  const { t } = useTranslation();
   const [guardianName, setGuardianName] = useState(player.parental_consent_guardian_name ?? "");
   const [guardianEmail, setGuardianEmail] = useState(player.parental_consent_guardian_email ?? "");
   // Preselecciona según el estado: si ya está concedido, la acción por defecto es
@@ -163,11 +166,11 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
           <div className="flex items-center gap-2 mb-1">
             <Shield size={16} className="text-primary" />
             <h2 className="text-sm font-display font-bold text-foreground uppercase tracking-wider">
-              Consentimiento Parental
+              {t("parentalConsentPage.title")}
             </h2>
           </div>
           <p className="text-xs text-muted-foreground">
-            RGPD Art. 8 · LOPD Art. 7 · Obligatorio para menores de 14 años
+            {t("parentalConsentPage.form.legalRef")}
           </p>
         </div>
 
@@ -177,7 +180,10 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
           <div>
             <p className="text-sm font-display font-bold text-foreground">{player.name}</p>
             <p className="text-[10px] text-muted-foreground">
-              {player.age_years} años · Nacimiento: {player.birth_date ? new Date(player.birth_date).toLocaleDateString("es-ES") : "—"}
+              {t("parentalConsentPage.form.playerMeta", {
+                age: player.age_years,
+                date: player.birth_date ? new Date(player.birth_date).toLocaleDateString("es-ES") : "—",
+              })}
             </p>
           </div>
         </div>
@@ -185,7 +191,7 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-display font-semibold text-foreground mb-1">
-              Nombre completo del tutor legal
+              {t("parentalConsentPage.form.guardianNameLabel")}
             </label>
             <input
               type="text"
@@ -195,13 +201,13 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
               value={guardianName}
               onChange={(e) => setGuardianName(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg bg-card border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
-              placeholder="María Pérez García"
+              placeholder={t("parentalConsentPage.form.guardianNamePlaceholder")}
             />
           </div>
 
           <div>
             <label className="block text-xs font-display font-semibold text-foreground mb-1">
-              Email del tutor legal
+              {t("parentalConsentPage.form.guardianEmailLabel")}
             </label>
             <input
               type="email"
@@ -209,16 +215,16 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
               value={guardianEmail}
               onChange={(e) => setGuardianEmail(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg bg-card border border-border text-sm font-display text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
-              placeholder="madre@email.com"
+              placeholder={t("parentalConsentPage.form.guardianEmailPlaceholder")}
             />
             <p className="text-[9px] text-muted-foreground mt-1">
-              Se enviará confirmación por email. El enlace caduca en 24h.
+              {t("parentalConsentPage.form.emailNotice")}
             </p>
           </div>
 
           {/* Action selector */}
           <div className="space-y-2">
-            <label className="block text-xs font-display font-semibold text-foreground">Acción</label>
+            <label className="block text-xs font-display font-semibold text-foreground">{t("parentalConsentPage.form.actionLabel")}</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -230,7 +236,7 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
                 }`}
               >
                 <UserCheck size={14} />
-                Autorizar IA
+                {t("parentalConsentPage.form.authorizeAI")}
               </button>
               <button
                 type="button"
@@ -242,22 +248,22 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
                 }`}
               >
                 <UserX size={14} />
-                Denegar IA
+                {t("parentalConsentPage.form.denyAI")}
               </button>
             </div>
           </div>
 
           {/* Legal notice */}
           <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-1">
-            <p className="text-[10px] text-foreground font-display font-semibold">Lo que incluye el consentimiento:</p>
+            <p className="text-[10px] text-foreground font-display font-semibold">{t("parentalConsentPage.form.includesTitle")}</p>
             <ul className="text-[9px] text-muted-foreground space-y-0.5 list-disc list-inside">
-              <li>Análisis biomecánico de video con IA (postura, movimiento)</li>
-              <li>Generación de informes tácticos con Claude</li>
-              <li>Cálculo de maduración biológica (PHV Mirwald)</li>
-              <li>Almacenamiento de métricas de rendimiento</li>
+              <li>{t("parentalConsentPage.form.includes1")}</li>
+              <li>{t("parentalConsentPage.form.includes2")}</li>
+              <li>{t("parentalConsentPage.form.includes3")}</li>
+              <li>{t("parentalConsentPage.form.includes4")}</li>
             </ul>
             <p className="text-[9px] text-muted-foreground mt-1">
-              El consentimiento puede revocarse en cualquier momento. Los datos se eliminan en 30 días tras la revocación.
+              {t("parentalConsentPage.form.revocationNotice")}
             </p>
           </div>
 
@@ -267,7 +273,7 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
               onClick={onClose}
               className="flex-1 py-2.5 rounded-lg border border-border text-xs font-display font-semibold text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancelar
+              {t("parentalConsentPage.form.cancel")}
             </button>
             <button
               type="submit"
@@ -283,12 +289,12 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
               ) : action === "grant" ? (
                 <>
                   <UserCheck size={14} />
-                  Registrar autorización
+                  {t("parentalConsentPage.form.registerAuthorization")}
                 </>
               ) : (
                 <>
                   <UserX size={14} />
-                  Registrar denegación
+                  {t("parentalConsentPage.form.registerDenial")}
                 </>
               )}
             </button>
@@ -307,6 +313,7 @@ interface DSARModalProps {
 }
 
 function DSARModal({ player, onClose }: DSARModalProps) {
+  const { t } = useTranslation();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -323,12 +330,12 @@ function DSARModal({ player, onClose }: DSARModalProps) {
         a.download = `dsar_export_${player.name.replace(/\s/g, "_")}_${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success("Datos exportados correctamente");
+        toast.success(t("parentalConsentPage.toast.exportSuccess"));
       } else {
-        toast.info("Exportación DSAR no disponible sin Supabase");
+        toast.info(t("parentalConsentPage.toast.exportUnavailable"));
       }
     } catch {
-      toast.error("Error al exportar datos");
+      toast.error(t("parentalConsentPage.toast.exportError"));
     } finally {
       setExporting(false);
     }
@@ -343,13 +350,13 @@ function DSARModal({ player, onClose }: DSARModalProps) {
           p_requested_by: "admin",
         });
         if (error) throw error;
-        toast.success("Solicitud de eliminación registrada");
+        toast.success(t("parentalConsentPage.toast.deletionSuccess"));
       } else {
-        toast.info("Solicitud registrada (modo demo)");
+        toast.info(t("parentalConsentPage.toast.deletionDemo"));
       }
       onClose();
     } catch {
-      toast.error("Error al solicitar eliminación");
+      toast.error(t("parentalConsentPage.toast.deletionError"));
     } finally {
       setDeleting(false);
     }
@@ -371,8 +378,8 @@ function DSARModal({ player, onClose }: DSARModalProps) {
         className="glass rounded-2xl p-6 max-w-md w-full space-y-4 border border-border/40"
       >
         <div>
-          <h2 className="text-sm font-display font-bold text-foreground">Derechos ARCO · {player.name}</h2>
-          <p className="text-[10px] text-muted-foreground">Acceso, Rectificación, Cancelación, Oposición</p>
+          <h2 className="text-sm font-display font-bold text-foreground">{t("parentalConsentPage.dsar.title", { name: player.name })}</h2>
+          <p className="text-[10px] text-muted-foreground">{t("parentalConsentPage.dsar.subtitle")}</p>
         </div>
 
         <div className="space-y-2">
@@ -383,8 +390,8 @@ function DSARModal({ player, onClose }: DSARModalProps) {
           >
             {exporting ? <Loader2 size={16} className="animate-spin text-primary" /> : <Download size={16} className="text-primary" />}
             <div className="text-left">
-              <p className="text-xs font-display font-semibold text-foreground">Exportar datos (DSAR)</p>
-              <p className="text-[9px] text-muted-foreground">Descarga JSON con todos los datos del jugador</p>
+              <p className="text-xs font-display font-semibold text-foreground">{t("parentalConsentPage.dsar.exportTitle")}</p>
+              <p className="text-[9px] text-muted-foreground">{t("parentalConsentPage.dsar.exportDesc")}</p>
             </div>
           </button>
 
@@ -395,8 +402,8 @@ function DSARModal({ player, onClose }: DSARModalProps) {
           >
             {deleting ? <Loader2 size={16} className="animate-spin text-red-400" /> : <Trash2 size={16} className="text-red-400" />}
             <div className="text-left">
-              <p className="text-xs font-display font-semibold text-red-400">Solicitar eliminación</p>
-              <p className="text-[9px] text-muted-foreground">Marca para revisión por admin · Se borra en 30 días</p>
+              <p className="text-xs font-display font-semibold text-red-400">{t("parentalConsentPage.dsar.deletionTitle")}</p>
+              <p className="text-[9px] text-muted-foreground">{t("parentalConsentPage.dsar.deletionDesc")}</p>
             </div>
           </button>
         </div>
@@ -405,7 +412,7 @@ function DSARModal({ player, onClose }: DSARModalProps) {
           onClick={onClose}
           className="w-full py-2 rounded-lg border border-border text-xs font-display text-muted-foreground hover:text-foreground transition-colors"
         >
-          Cerrar
+          {t("parentalConsentPage.dsar.close")}
         </button>
       </motion.div>
     </motion.div>
@@ -415,6 +422,7 @@ function DSARModal({ player, onClose }: DSARModalProps) {
 /* ── Main Component ────────────────────────────────────────────── */
 
 export default function ParentalConsentPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -469,14 +477,14 @@ export default function ParentalConsentPage() {
       return { playerId: data.playerId, status: newStatus };
     },
     onSuccess: () => {
-      toast.success("Consentimiento registrado correctamente");
+      toast.success(t("parentalConsentPage.toast.consentSuccess"));
       queryClient.invalidateQueries({ queryKey: ["consent-players"] });
       queryClient.invalidateQueries({ queryKey: ["consent-audit"] });
       setShowConsentForm(false);
       setSelectedPlayer(null);
     },
     onError: () => {
-      toast.error("Error al registrar consentimiento");
+      toast.error(t("parentalConsentPage.toast.consentError"));
     },
   });
 
@@ -492,10 +500,10 @@ export default function ParentalConsentPage() {
   const deniedCount = players?.filter(p => p.parental_consent_status === "denied").length ?? 0;
 
   const tabs = [
-    { id: "pending" as const, label: "Pendientes", count: pendingCount, icon: <Clock size={14} /> },
-    { id: "granted" as const, label: "Autorizados", count: grantedCount, icon: <UserCheck size={14} /> },
-    { id: "denied" as const, label: "Denegados", count: deniedCount, icon: <UserX size={14} /> },
-    { id: "audit" as const, label: "Auditoría", count: auditLog?.length ?? 0, icon: <FileText size={14} /> },
+    { id: "pending" as const, label: t("parentalConsentPage.tabs.pending"), count: pendingCount, icon: <Clock size={14} /> },
+    { id: "granted" as const, label: t("parentalConsentPage.tabs.granted"), count: grantedCount, icon: <UserCheck size={14} /> },
+    { id: "denied" as const, label: t("parentalConsentPage.tabs.denied"), count: deniedCount, icon: <UserX size={14} /> },
+    { id: "audit" as const, label: t("parentalConsentPage.tabs.audit"), count: auditLog?.length ?? 0, icon: <FileText size={14} /> },
   ];
 
   return (
@@ -512,10 +520,10 @@ export default function ParentalConsentPage() {
           </button>
           <Shield size={18} className="text-primary" />
           <h1 className="font-display font-bold text-sm uppercase tracking-wider flex-1">
-            Consentimiento Parental
+            {t("parentalConsentPage.title")}
           </h1>
           <span className="text-[9px] font-display font-bold uppercase tracking-wider px-2 py-1 rounded bg-primary/10 text-primary">
-            RGPD
+            {t("parentalConsentPage.header.badge")}
           </span>
         </div>
 
@@ -548,7 +556,7 @@ export default function ParentalConsentPage() {
         {!SUPABASE_CONFIGURED && (
           <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
             <Info size={14} />
-            <span>Datos de ejemplo — conecta Supabase para gestionar consentimientos reales</span>
+            <span>{t("parentalConsentPage.mockBanner")}</span>
           </div>
         )}
 
@@ -558,10 +566,10 @@ export default function ParentalConsentPage() {
             <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-xs font-display font-bold text-amber-400">
-                {pendingCount} {pendingCount === 1 ? "menor" : "menores"} sin consentimiento parental
+                {t("parentalConsentPage.pendingWarning.title", { count: pendingCount })}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                El análisis con IA está bloqueado para estos jugadores hasta que su tutor legal autorice el procesamiento de datos.
+                {t("parentalConsentPage.pendingWarning.desc")}
               </p>
             </div>
           </div>
@@ -573,7 +581,7 @@ export default function ParentalConsentPage() {
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar jugador…"
+              placeholder={t("parentalConsentPage.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 rounded-lg bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
@@ -594,7 +602,9 @@ export default function ParentalConsentPage() {
             {filteredPlayers.length === 0 ? (
               <div className="glass rounded-xl p-8 text-center">
                 <p className="text-xs text-muted-foreground">
-                  {searchQuery ? "No se encontraron jugadores" : `No hay jugadores con estado "${tabs.find(t => t.id === activeTab)?.label}"`}
+                  {searchQuery
+                    ? t("parentalConsentPage.list.emptyNoResults")
+                    : t("parentalConsentPage.list.emptyWithStatus", { status: tabs.find(tab => tab.id === activeTab)?.label })}
                 </p>
               </div>
             ) : (
@@ -614,18 +624,18 @@ export default function ParentalConsentPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-display font-bold text-foreground">{player.name}</p>
                         <p className="text-[10px] text-muted-foreground">
-                          {player.age_years} años
+                          {t("parentalConsentPage.list.ageYears", { age: player.age_years })}
                           {player.birth_date && ` · ${new Date(player.birth_date).toLocaleDateString("es-ES")}`}
                         </p>
                         {player.parental_consent_guardian_name && (
                           <p className="text-[10px] text-muted-foreground mt-0.5">
-                            Tutor: {player.parental_consent_guardian_name}
+                            {t("parentalConsentPage.list.guardian", { name: player.parental_consent_guardian_name })}
                             {player.parental_consent_guardian_email && ` · ${player.parental_consent_guardian_email}`}
                           </p>
                         )}
                         {player.parental_consent_granted_at && (
                           <p className="text-[9px] text-muted-foreground">
-                            Autorizado el {new Date(player.parental_consent_granted_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
+                            {t("parentalConsentPage.list.grantedOn", { date: new Date(player.parental_consent_granted_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }) })}
                           </p>
                         )}
                       </div>
@@ -633,7 +643,7 @@ export default function ParentalConsentPage() {
                         {/* Status badge */}
                         <span className={`flex items-center gap-1 text-[9px] font-display font-bold uppercase px-2 py-1 rounded ${cfg.bg} ${cfg.color}`}>
                           {cfg.icon}
-                          {cfg.label}
+                          {t(cfg.label)}
                         </span>
                       </div>
                     </div>
@@ -646,7 +656,7 @@ export default function ParentalConsentPage() {
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-display font-semibold hover:bg-primary/20 transition-colors"
                         >
                           <Send size={12} />
-                          Gestionar consentimiento
+                          {t("parentalConsentPage.list.manageConsent")}
                         </button>
                       )}
                       {player.parental_consent_status === "granted" && (
@@ -655,7 +665,7 @@ export default function ParentalConsentPage() {
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-[10px] font-display font-semibold hover:text-foreground transition-colors"
                         >
                           <UserX size={12} />
-                          Revocar
+                          {t("parentalConsentPage.list.revoke")}
                         </button>
                       )}
                       {player.parental_consent_status === "denied" && (
@@ -664,7 +674,7 @@ export default function ParentalConsentPage() {
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-[10px] font-display font-semibold hover:bg-primary/20 transition-colors"
                         >
                           <UserCheck size={12} />
-                          Solicitar de nuevo
+                          {t("parentalConsentPage.list.requestAgain")}
                         </button>
                       )}
                       <button
@@ -687,7 +697,7 @@ export default function ParentalConsentPage() {
           <div className="space-y-2">
             {(auditLog ?? []).length === 0 ? (
               <div className="glass rounded-xl p-8 text-center">
-                <p className="text-xs text-muted-foreground">No hay registros de auditoría</p>
+                <p className="text-xs text-muted-foreground">{t("parentalConsentPage.audit.empty")}</p>
               </div>
             ) : (
               (auditLog ?? []).map(entry => {
@@ -700,10 +710,10 @@ export default function ParentalConsentPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-display font-semibold text-foreground">
-                          {actionLabels[entry.action] ?? entry.action}
+                          {t(actionLabels[entry.action] ?? entry.action)}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {playerName} · {entry.actor_email ?? "Sistema"}
+                          {playerName} · {entry.actor_email ?? t("parentalConsentPage.audit.system")}
                         </p>
                       </div>
                       <span className="text-[9px] text-muted-foreground">
