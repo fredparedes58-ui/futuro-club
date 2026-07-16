@@ -31,6 +31,7 @@ import {
   supabaseConfigured,
   patchTrackingJob,
 } from "../_lib/supabaseRest";
+import { env } from "../_lib/env";
 
 export const config = { runtime: "edge" };
 
@@ -47,14 +48,6 @@ const schema = z.object({
   /** Solo llamadas de servicio: atribuye el job a un usuario concreto. */
   userId: z.string().uuid().optional(),
 });
-
-function publicBaseUrl(): string {
-  return (
-    process.env.VITAS_PUBLIC_URL ??
-    process.env.PUBLIC_URL ??
-    `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`
-  );
-}
 
 export default withHandler(
   { method: ["POST"], schema, requireAuth: true, allowServiceToken: true, maxRequests: 10 },
@@ -162,7 +155,7 @@ export default withHandler(
           sample_fps: body.sampleFps ?? 5,
           classes: [0, 32],
           job_id: jobId,
-          callback_url: `${publicBaseUrl()}/api/webhooks/modal-tracking`,
+          callback_url: `${env.publicUrl}/api/webhooks/modal-tracking`,
         }),
       });
     } catch (err) {
