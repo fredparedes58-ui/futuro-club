@@ -118,7 +118,7 @@ create function claim_queued_tracking_jobs(batch_size int default 3) ...
 |------|-----------|----------------------|
 | **V4.1** | Migración `052_tracking_jobs` + RPC + RLS | ✅ (SQL + test RLS) |
 | **V4.2** | Endpoints TS: track-async / webhook / track-status + tests | ✅ (unit + `vitest.api`) |
-| **V4.3** | Modal `track_async` + `run_track_and_callback` (deploy) | ⚠️ smoke (health), E2E necesita clip |
+| **V4.3** | Modal `track_async` + `run_track_and_callback` (código ✅, deploy pendiente) | ⚠️ py_compile OK; deploy+smoke pendiente |
 | **V4.4** | Cliente: enqueue+poll en videoTrackingService | ✅ (unit con fetch mock) |
 | **V4.5** | Cron red-de-seguridad + observabilidad (Slack ping) | ✅ |
 | **V4.6** | **E2E real con un clip largo** + benchmark | ❌ **bloqueado en A2 (Pedro)** |
@@ -132,6 +132,25 @@ create function claim_queued_tracking_jobs(batch_size int default 3) ...
   `038_multi_academy_isolation`; `players.id` es `text`.
 - El contrato de salida de Modal (`TrackingResponse` con `team`/`teamColor`/
   `teams` de V2) ya está tipado en `_track-players.ts` y el cliente — reutilizar.
+
+## Despliegue de V4.3 (Modal) — pasos exactos
+El código de `track_async` + `run_track_and_callback` ya está en
+`vision-pipeline/app.py` (py_compile OK). Para activarlo:
+1. Añadir la clave del callback al secret existente (extra, no rompe API_KEY):
+   `modal secret create vitas-api-key API_KEY=<actual> MODAL_CALLBACK_SECRET=<nuevo>`
+   (en Windows: `set PYTHONUTF8=1 & set PYTHONIOENCODING=utf-8` antes; ver gotchas).
+2. `modal deploy vision-pipeline/app.py` → nueva URL
+   `https://<org>--vitas-vision-track-async.modal.run`.
+3. Env vars en Vercel (production): `MODAL_TRACK_ASYNC_URL` = esa URL;
+   `MODAL_CALLBACK_SECRET` = **el mismo** valor del paso 1; `VITAS_PUBLIC_URL` =
+   `https://futuro-club.vercel.app`.
+4. Smoke: `POST /api/coaching/track-async` con un clip corto y un `job_id` de
+   prueba → 202; verificar que la fila pasa a `processing` y luego el webhook la
+   deja `done`. (E2E de 90 min = V4.6, bloqueado en clip real.)
+
+Nota: Modal emite `result` en snake_case (igual que el `track` síncrono); el
+webhook lo guarda verbatim y **V4.4 (cliente)** hará el mapeo snake→camel (la
+misma lógica que `_track-players.ts` ya aplica en la ruta síncrona).
 
 ## Decisión de producto pendiente (Pedro)
 Modal está desplegado pero **huérfano**. B1 lo convierte en la ruta oficial para
