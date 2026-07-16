@@ -29,93 +29,36 @@ import {
 
 interface PlanFeature {
   key: keyof typeof PLAN_LIMITS["free"];
-  label: string;
+  /** i18n key (label-map pattern) — resolved with t() at render time. */
+  labelKey: string;
 }
 
 const FEATURES: PlanFeature[] = [
-  { key: "players", label: "Jugadores registrables" },
-  { key: "analyses", label: "Análisis IA al mes" },
-  { key: "vaep", label: "Métricas VAEP + Tracking desde video" },
-  { key: "pdf", label: "Exportar informes PDF" },
-  { key: "roles", label: "Gestión de equipo multi-rol" },
-  { key: "pushNotifications", label: "Notificaciones push" },
+  { key: "players", labelKey: "pricingPage.features.players" },
+  { key: "analyses", labelKey: "pricingPage.features.analyses" },
+  { key: "vaep", labelKey: "pricingPage.features.vaep" },
+  { key: "pdf", labelKey: "pricingPage.features.pdf" },
+  { key: "roles", labelKey: "pricingPage.features.roles" },
+  { key: "pushNotifications", labelKey: "pricingPage.features.pushNotifications" },
 ];
 
 interface CompetitorRow {
-  feature: string;
+  /** Stable id — cell texts live in i18n under pricingPage.competitors.<id>.* */
+  id: string;
   icon: React.ElementType;
-  vitas: string;
-  wyscout: string;
-  hudl: string;
-  instat: string;
 }
 
-/** Datos públicos: precios orientativos y features en sitios oficiales. */
+/** Datos públicos: precios orientativos y features en sitios oficiales.
+ *  Los textos de cada celda se resuelven con t() (label-map pattern). */
 const COMPETITORS: CompetitorRow[] = [
-  {
-    feature: "Precio desde",
-    icon: Zap,
-    vitas: "€19/mes",
-    wyscout: "€2.000+/año",
-    hudl: "€1.500+/año",
-    instat: "Bajo consulta",
-  },
-  {
-    feature: "Ajuste biológico PHV",
-    icon: TrendingUp,
-    vitas: "✅ Integrado",
-    wyscout: "❌",
-    hudl: "❌",
-    instat: "❌",
-  },
-  {
-    feature: "Detección talento oculto",
-    icon: Brain,
-    vitas: "✅ Pre-pico PHV",
-    wyscout: "❌",
-    hudl: "❌",
-    instat: "❌",
-  },
-  {
-    feature: "Nivel de confianza visible",
-    icon: Shield,
-    vitas: "✅ Por evaluación",
-    wyscout: "❌",
-    hudl: "❌",
-    instat: "❌",
-  },
-  {
-    feature: "Auto-auditoría sesgo IA",
-    icon: BarChart3,
-    vitas: "✅ Dashboard",
-    wyscout: "❌",
-    hudl: "❌",
-    instat: "❌",
-  },
-  {
-    feature: "RGPD menores con panel",
-    icon: Shield,
-    vitas: "✅ Consent + DSAR",
-    wyscout: "❓ Interno",
-    hudl: "❓ Interno",
-    instat: "❓",
-  },
-  {
-    feature: "Análisis IA de video",
-    icon: Video,
-    vitas: "✅ Incluido",
-    wyscout: "Limitado",
-    hudl: "Assist addon",
-    instat: "✅ Incluido",
-  },
-  {
-    feature: "Setup sin hardware",
-    icon: Zap,
-    vitas: "✅ Solo celular",
-    wyscout: "N/A",
-    hudl: "Cámaras propias",
-    instat: "N/A",
-  },
+  { id: "price", icon: Zap },
+  { id: "phv", icon: TrendingUp },
+  { id: "hiddenTalent", icon: Brain },
+  { id: "confidence", icon: Shield },
+  { id: "biasAudit", icon: BarChart3 },
+  { id: "gdpr", icon: Shield },
+  { id: "videoAi", icon: Video },
+  { id: "noHardware", icon: Zap },
 ];
 
 interface Testimonial {
@@ -303,17 +246,17 @@ export default function PricingPage() {
                 {COMPETITORS.map((row) => {
                   const Icon = row.icon;
                   return (
-                    <tr key={row.feature} className="border-b border-border/20 last:border-0">
+                    <tr key={row.id} className="border-b border-border/20 last:border-0">
                       <td className="py-3 pr-4 flex items-center gap-2">
                         <Icon size={12} className="text-primary shrink-0" />
-                        <span className="text-xs text-foreground">{row.feature}</span>
+                        <span className="text-xs text-foreground">{t(`pricingPage.competitors.${row.id}.feature`)}</span>
                       </td>
                       <td className="py-3 px-2 text-xs font-display font-semibold text-primary">
-                        {row.vitas}
+                        {t(`pricingPage.competitors.${row.id}.vitas`)}
                       </td>
-                      <td className="py-3 px-2 text-xs text-muted-foreground">{row.wyscout}</td>
-                      <td className="py-3 px-2 text-xs text-muted-foreground">{row.hudl}</td>
-                      <td className="py-3 px-2 text-xs text-muted-foreground">{row.instat}</td>
+                      <td className="py-3 px-2 text-xs text-muted-foreground">{t(`pricingPage.competitors.${row.id}.wyscout`)}</td>
+                      <td className="py-3 px-2 text-xs text-muted-foreground">{t(`pricingPage.competitors.${row.id}.hudl`)}</td>
+                      <td className="py-3 px-2 text-xs text-muted-foreground">{t(`pricingPage.competitors.${row.id}.instat`)}</td>
                     </tr>
                   );
                 })}
@@ -543,7 +486,7 @@ function PlanCard({
                 <X size={13} className="text-muted-foreground/50 shrink-0" />
               )}
               <span className={enabled ? "text-foreground" : "text-muted-foreground/60"}>
-                {feature.label}
+                {t(feature.labelKey)}
                 {display && (
                   <span className="ml-1 font-display font-semibold text-primary">({display})</span>
                 )}

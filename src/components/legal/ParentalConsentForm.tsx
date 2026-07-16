@@ -9,6 +9,7 @@
  */
 
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   playerId: string;
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
+  const { t } = useTranslation();
   const [parentName, setParentName] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [parentDni, setParentDni] = useState("");
@@ -32,7 +34,7 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
     setError(null);
 
     if (!acceptedTerms || !acceptedPrivacy) {
-      setError("Debes aceptar los términos y la política de privacidad");
+      setError(t("parentalConsentForm.errors.mustAccept"));
       return;
     }
 
@@ -55,12 +57,12 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Error al firmar");
+      if (!res.ok) throw new Error(data.message ?? t("parentalConsentForm.errors.signFailed"));
 
       setSuccess(true);
       onSuccess?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError(err instanceof Error ? err.message : t("parentalConsentForm.errors.unknown"));
     } finally {
       setSubmitting(false);
     }
@@ -70,13 +72,14 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
     return (
       <div className="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
         <div className="text-4xl mb-3">✉️</div>
-        <h2 className="font-rajdhani text-xl font-bold mb-2">Email enviado</h2>
+        <h2 className="font-rajdhani text-xl font-bold mb-2">{t("parentalConsentForm.success.title")}</h2>
         <p className="text-sm text-slate-600">
-          Hemos enviado un email a <strong>{parentEmail}</strong> para verificar tu identidad como tutor legal.
-          El enlace caduca en 24 horas.
+          {t("parentalConsentForm.success.bodyBefore")}{" "}
+          <strong>{parentEmail}</strong>{" "}
+          {t("parentalConsentForm.success.bodyAfter")}
         </p>
         <p className="text-xs text-slate-500 mt-4">
-          Una vez verificado, {childName ?? "el menor"} podrá usar VITAS.
+          {t("parentalConsentForm.success.footer", { name: childName ?? t("parentalConsentForm.minorFallback") })}
         </p>
       </div>
     );
@@ -86,19 +89,20 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
     <form onSubmit={handleSubmit} className="space-y-5 max-w-xl mx-auto">
       <header>
         <div className="text-xs uppercase tracking-widest text-purple-600 font-bold mb-1">
-          Consentimiento parental · GDPR Art. 8
+          {t("parentalConsentForm.header.eyebrow")}
         </div>
         <h2 className="font-rajdhani text-2xl font-bold mb-2">
-          Solo el padre/madre o tutor legal puede registrar a un menor
+          {t("parentalConsentForm.header.title")}
         </h2>
         <p className="text-sm text-slate-600">
-          Este consentimiento es <strong>obligatorio por ley</strong> para procesar datos de menores de 14 años.
-          Recibirás un email de verificación tras enviar el formulario.
+          {t("parentalConsentForm.header.descBefore")}{" "}
+          <strong>{t("parentalConsentForm.header.descEmphasis")}</strong>{" "}
+          {t("parentalConsentForm.header.descAfter")}
         </p>
       </header>
 
       <div>
-        <label className="block text-sm font-semibold mb-1">Nombre completo del tutor</label>
+        <label className="block text-sm font-semibold mb-1">{t("parentalConsentForm.fields.parentName")}</label>
         <input
           type="text"
           required
@@ -107,27 +111,27 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
           value={parentName}
           onChange={(e) => setParentName(e.target.value)}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
-          placeholder="María Pérez García"
+          placeholder={t("parentalConsentForm.placeholders.parentName")}
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-1">Email del tutor</label>
+        <label className="block text-sm font-semibold mb-1">{t("parentalConsentForm.fields.parentEmail")}</label>
         <input
           type="email"
           required
           value={parentEmail}
           onChange={(e) => setParentEmail(e.target.value)}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
-          placeholder="madre@email.com"
+          placeholder={t("parentalConsentForm.placeholders.parentEmail")}
         />
         <p className="text-xs text-slate-500 mt-1">
-          Recibirás el enlace de verificación aquí. Caduca en 24h.
+          {t("parentalConsentForm.hints.parentEmail")}
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-semibold mb-1">DNI/NIE del tutor</label>
+        <label className="block text-sm font-semibold mb-1">{t("parentalConsentForm.fields.parentDni")}</label>
         <input
           type="text"
           required
@@ -137,16 +141,16 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
           value={parentDni}
           onChange={(e) => setParentDni(e.target.value)}
           className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none uppercase"
-          placeholder="12345678X"
+          placeholder={t("parentalConsentForm.placeholders.parentDni")}
         />
         <p className="text-xs text-slate-500 mt-1">
-          Tu DNI se almacena cifrado · nunca lo guardamos en claro.
+          {t("parentalConsentForm.hints.parentDni")}
         </p>
       </div>
 
       <div>
         <label className="block text-sm font-semibold mb-1">
-          Fecha de nacimiento de {childName ?? "el menor"}
+          {t("parentalConsentForm.fields.childBirthdate", { name: childName ?? t("parentalConsentForm.minorFallback") })}
         </label>
         <input
           type="date"
@@ -168,11 +172,11 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
             required
           />
           <span className="text-sm text-slate-700">
-            He leído y acepto los{" "}
+            {t("parentalConsentForm.terms.before")}{" "}
             <a href="/legal/terms" target="_blank" className="text-blue-600 underline">
-              Términos y Condiciones
+              {t("parentalConsentForm.terms.link")}
             </a>{" "}
-            de VITAS.
+            {t("parentalConsentForm.terms.after")}
           </span>
         </label>
 
@@ -185,12 +189,11 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
             required
           />
           <span className="text-sm text-slate-700">
-            He leído y acepto la{" "}
+            {t("parentalConsentForm.privacy.before")}{" "}
             <a href="/legal/privacy" target="_blank" className="text-blue-600 underline">
-              Política de Privacidad
+              {t("parentalConsentForm.privacy.link")}
             </a>{" "}
-            y consiento expresamente el procesamiento de los datos de mi hijo/a (incluyendo
-            análisis biomecánico y vídeos) para los fines descritos.
+            {t("parentalConsentForm.privacy.after")}
           </span>
         </label>
       </div>
@@ -206,11 +209,11 @@ export function ParentalConsentForm({ playerId, childName, onSuccess }: Props) {
         disabled={submitting}
         className="w-full py-3.5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold disabled:opacity-50"
       >
-        {submitting ? "Enviando..." : "Firmar consentimiento y enviar verificación"}
+        {submitting ? t("parentalConsentForm.submit.sending") : t("parentalConsentForm.submit.default")}
       </button>
 
       <p className="text-xs text-center text-slate-500">
-        Puedes retirar este consentimiento en cualquier momento desde tu cuenta.
+        {t("parentalConsentForm.footerNote")}
       </p>
     </form>
   );

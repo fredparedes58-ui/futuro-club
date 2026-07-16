@@ -38,18 +38,6 @@ interface PlanFeature {
   club: string | boolean;
 }
 
-const FEATURES: PlanFeature[] = [
-  { label: "Jugadores",          free: "5",           pro: "25",          club: "Ilimitados"   },
-  { label: "Analisis IA / mes",  free: "3",           pro: "20",          club: "Ilimitados"   },
-  { label: "Miembros equipo",    free: "2",           pro: "5",           club: "50"           },
-  { label: "VAEP · Eventos",     free: false,         pro: true,          club: true           },
-  { label: "Exportar PDF",       free: false,         pro: true,          club: true           },
-  { label: "Notif. push",        free: false,         pro: true,          club: true           },
-  { label: "Roles / multi-user", free: false,         pro: false,         club: true           },
-  { label: "Analisis Equipo",    free: false,         pro: false,         club: true           },
-  { label: "Rival Scouting",     free: false,         pro: false,         club: true           },
-];
-
 // ─── Usage Bar Component ─────────────────────────────────────────────────────
 
 function UsageBar({
@@ -60,6 +48,7 @@ function UsageBar({
   used: number;
   limit: number;
 }) {
+  const { t } = useTranslation();
   const isUnlimited = limit >= 9999;
   const pct = isUnlimited ? 0 : Math.min(100, Math.round((used / limit) * 100));
   const isWarning = pct >= 80;
@@ -77,7 +66,7 @@ function UsageBar({
             <span className="ml-1.5 text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">80%</span>
           )}
           {isDanger && (
-            <span className="ml-1.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">LIMITE</span>
+            <span className="ml-1.5 text-[9px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-full">{t("billing.usage.limitReached")}</span>
           )}
         </span>
       </div>
@@ -101,6 +90,18 @@ const BillingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const planState = usePlan();
+
+  const FEATURES: PlanFeature[] = [
+    { label: t("billing.features.players"),       free: "5",   pro: "25",   club: t("billing.unlimited") },
+    { label: t("billing.features.aiAnalyses"),    free: "3",   pro: "20",   club: t("billing.unlimited") },
+    { label: t("billing.features.teamMembers"),   free: "2",   pro: "5",    club: "50"                   },
+    { label: t("billing.features.vaepEvents"),    free: false, pro: true,   club: true                   },
+    { label: t("billing.features.exportPdf"),     free: false, pro: true,   club: true                   },
+    { label: t("billing.features.pushNotif"),     free: false, pro: true,   club: true                   },
+    { label: t("billing.features.rolesMultiUser"),free: false, pro: false,  club: true                   },
+    { label: t("billing.features.teamAnalysis"),  free: false, pro: false,  club: true                   },
+    { label: t("billing.features.rivalScouting"), free: false, pro: false,  club: true                   },
+  ];
 
   // Manejar redirect desde Stripe (legacy)
   useEffect(() => {
@@ -159,7 +160,7 @@ const BillingPage = () => {
           {planState.plan !== "free" && (
             <p className={`font-display font-bold text-xl ${PLAN_COLOR[planState.plan]}`}>
               €{PLAN_PRICES[planState.plan].monthly}
-              <span className="text-xs font-normal text-muted-foreground">/mes</span>
+              <span className="text-xs font-normal text-muted-foreground">{t("common.perMonth")}</span>
             </p>
           )}
         </div>
@@ -168,19 +169,19 @@ const BillingPage = () => {
         <div className="space-y-3">
           <UsageBar
             icon={Users}
-            label="Jugadores"
+            label={t("billing.features.players")}
             used={planState.playerCount}
             limit={planState.limits.players}
           />
           <UsageBar
             icon={BarChart3}
-            label="Analisis IA este mes"
+            label={t("billing.usage.aiThisMonth")}
             used={planState.analysesUsed}
             limit={planState.limits.analyses}
           />
           <UsageBar
             icon={UserPlus}
-            label="Miembros equipo"
+            label={t("billing.features.teamMembers")}
             used={planState.teamMemberCount}
             limit={planState.teamMemberLimit}
           />
@@ -193,18 +194,18 @@ const BillingPage = () => {
           <div className="flex items-center gap-2 mb-2">
             <Zap size={14} className="text-primary" />
             <span className="font-display font-bold text-sm text-primary">
-              {planState.plan === "free" ? "Desbloquea mas con Pro o Club" : "Upgrade a Club"}
+              {planState.plan === "free" ? t("billing.upgrade.unlockFree") : t("billing.upgrade.toClub")}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mb-3">
-            Para cambiar tu plan, contacta al administrador de tu academia o escribe directamente.
+            {t("billing.upgrade.contactAdmin")}
           </p>
           <a
             href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request&body=Hola%2C%20me%20gustaria%20upgrade%20mi%20plan%20VITAS."
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-xs hover:bg-primary/90 transition-colors"
           >
             <Mail size={12} />
-            Solicitar upgrade
+            {t("billing.upgrade.requestButton")}
           </a>
         </motion.div>
       )}
@@ -272,10 +273,10 @@ const BillingPage = () => {
       {/* Footer info */}
       <motion.div variants={item} className="glass rounded-xl p-4 text-center space-y-1">
         <p className="text-[10px] font-display text-muted-foreground">
-          Los planes son gestionados por el administrador de la plataforma.
+          {t("billing.footer.managedByAdmin")}
         </p>
         <p className="text-[10px] font-display text-muted-foreground">
-          Contacta a tu admin para cambios de plan o preguntas sobre facturacion.
+          {t("billing.footer.contactAdmin")}
         </p>
       </motion.div>
     </motion.div>

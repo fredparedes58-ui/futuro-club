@@ -594,11 +594,30 @@
       "proClub": "Club profesional",
       "unlimited": "Ilimitados",
       "basic": "Básico",
-      "complete": "Completo"
+      "complete": "Completo",
+      "aiAnalyses": "Analisis IA / mes",
+      "teamMembers": "Miembros equipo",
+      "vaepEvents": "VAEP · Eventos",
+      "rolesMultiUser": "Roles / multi-user",
+      "teamAnalysis": "Analisis Equipo",
+      "rivalScouting": "Rival Scouting"
     },
     "footer": {
       "stripe": "Pagos procesados por Stripe · SSL cifrado",
-      "cancelAnytime": "Cancela en cualquier momento · Sin permanencia"
+      "cancelAnytime": "Cancela en cualquier momento · Sin permanencia",
+      "managedByAdmin": "Los planes son gestionados por el administrador de la plataforma.",
+      "contactAdmin": "Contacta a tu admin para cambios de plan o preguntas sobre facturacion."
+    },
+    "unlimited": "Ilimitados",
+    "usage": {
+      "aiThisMonth": "Analisis IA este mes",
+      "limitReached": "LIMITE"
+    },
+    "upgrade": {
+      "unlockFree": "Desbloquea mas con Pro o Club",
+      "toClub": "Upgrade a Club",
+      "contactAdmin": "Para cambiar tu plan, contacta al administrador de tu academia o escribe directamente.",
+      "requestButton": "Solicitar upgrade"
     }
   },
   "master": {
@@ -1786,7 +1805,73 @@
     "mostChosen": "Más elegido",
     "perMonth": "/mes",
     "unlimited": "Ilimitado",
-    "choosePlan": "Elegir {{plan}}"
+    "choosePlan": "Elegir {{plan}}",
+    "features": {
+      "players": "Jugadores registrables",
+      "analyses": "Análisis IA al mes",
+      "vaep": "Métricas VAEP + Tracking desde video",
+      "pdf": "Exportar informes PDF",
+      "roles": "Gestión de equipo multi-rol",
+      "pushNotifications": "Notificaciones push"
+    },
+    "competitors": {
+      "price": {
+        "feature": "Precio desde",
+        "vitas": "€19/mes",
+        "wyscout": "€2.000+/año",
+        "hudl": "€1.500+/año",
+        "instat": "Bajo consulta"
+      },
+      "phv": {
+        "feature": "Ajuste biológico PHV",
+        "vitas": "✅ Integrado",
+        "wyscout": "❌",
+        "hudl": "❌",
+        "instat": "❌"
+      },
+      "hiddenTalent": {
+        "feature": "Detección talento oculto",
+        "vitas": "✅ Pre-pico PHV",
+        "wyscout": "❌",
+        "hudl": "❌",
+        "instat": "❌"
+      },
+      "confidence": {
+        "feature": "Nivel de confianza visible",
+        "vitas": "✅ Por evaluación",
+        "wyscout": "❌",
+        "hudl": "❌",
+        "instat": "❌"
+      },
+      "biasAudit": {
+        "feature": "Auto-auditoría sesgo IA",
+        "vitas": "✅ Dashboard",
+        "wyscout": "❌",
+        "hudl": "❌",
+        "instat": "❌"
+      },
+      "gdpr": {
+        "feature": "RGPD menores con panel",
+        "vitas": "✅ Consent + DSAR",
+        "wyscout": "❓ Interno",
+        "hudl": "❓ Interno",
+        "instat": "❓"
+      },
+      "videoAi": {
+        "feature": "Análisis IA de video",
+        "vitas": "✅ Incluido",
+        "wyscout": "Limitado",
+        "hudl": "Assist addon",
+        "instat": "✅ Incluido"
+      },
+      "noHardware": {
+        "feature": "Setup sin hardware",
+        "vitas": "✅ Solo celular",
+        "wyscout": "N/A",
+        "hudl": "Cámaras propias",
+        "instat": "N/A"
+      }
+    }
   },
   "publicLanding": {
     "pulseSubtitle": "Inteligencia futbolística en tiempo real",
@@ -5162,5 +5247,143 @@
     "emptyNoData": "Aún no hay histórico. Se poblará con cada análisis de vídeo del jugador.",
     "emptyNeedMore": "Con 2+ análisis en el tiempo verás aquí la curva de evolución.",
     "seriesRisk": "Riesgo lesión"
+  },
+  "parentalConsentForm": {
+    "errors": {
+      "mustAccept": "Debes aceptar los términos y la política de privacidad",
+      "signFailed": "Error al firmar",
+      "unknown": "Error desconocido"
+    },
+    "success": {
+      "title": "Email enviado",
+      "bodyBefore": "Hemos enviado un email a",
+      "bodyAfter": "para verificar tu identidad como tutor legal. El enlace caduca en 24 horas.",
+      "footer": "Una vez verificado, {{name}} podrá usar VITAS."
+    },
+    "minorFallback": "el menor",
+    "header": {
+      "eyebrow": "Consentimiento parental · GDPR Art. 8",
+      "title": "Solo el padre/madre o tutor legal puede registrar a un menor",
+      "descBefore": "Este consentimiento es",
+      "descEmphasis": "obligatorio por ley",
+      "descAfter": "para procesar datos de menores de 14 años. Recibirás un email de verificación tras enviar el formulario."
+    },
+    "fields": {
+      "parentName": "Nombre completo del tutor",
+      "parentEmail": "Email del tutor",
+      "parentDni": "DNI/NIE del tutor",
+      "childBirthdate": "Fecha de nacimiento de {{name}}"
+    },
+    "placeholders": {
+      "parentName": "María Pérez García",
+      "parentEmail": "madre@email.com",
+      "parentDni": "12345678X"
+    },
+    "hints": {
+      "parentEmail": "Recibirás el enlace de verificación aquí. Caduca en 24h.",
+      "parentDni": "Tu DNI se almacena cifrado · nunca lo guardamos en claro."
+    },
+    "terms": {
+      "before": "He leído y acepto los",
+      "link": "Términos y Condiciones",
+      "after": "de VITAS."
+    },
+    "privacy": {
+      "before": "He leído y acepto la",
+      "link": "Política de Privacidad",
+      "after": "y consiento expresamente el procesamiento de los datos de mi hijo/a (incluyendo análisis biomecánico y vídeos) para los fines descritos."
+    },
+    "submit": {
+      "sending": "Enviando...",
+      "default": "Firmar consentimiento y enviar verificación"
+    },
+    "footerNote": "Puedes retirar este consentimiento en cualquier momento desde tu cuenta."
+  },
+  "parentalConsentPage": {
+    "title": "Consentimiento Parental",
+    "header": {
+      "badge": "RGPD"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "granted": "Autorizado",
+      "denied": "Denegado",
+      "notRequired": "No requerido"
+    },
+    "action": {
+      "consent_requested": "Consentimiento solicitado",
+      "consent_granted": "Consentimiento concedido",
+      "consent_denied": "Consentimiento denegado",
+      "consent_revoked": "Consentimiento revocado",
+      "data_exported": "Datos exportados (DSAR)",
+      "deletion_requested": "Eliminación solicitada"
+    },
+    "form": {
+      "legalRef": "RGPD Art. 8 · LOPD Art. 7 · Obligatorio para menores de 14 años",
+      "playerMeta": "{{age}} años · Nacimiento: {{date}}",
+      "guardianNameLabel": "Nombre completo del tutor legal",
+      "guardianNamePlaceholder": "María Pérez García",
+      "guardianEmailLabel": "Email del tutor legal",
+      "guardianEmailPlaceholder": "madre@email.com",
+      "emailNotice": "Se enviará confirmación por email. El enlace caduca en 24h.",
+      "actionLabel": "Acción",
+      "authorizeAI": "Autorizar IA",
+      "denyAI": "Denegar IA",
+      "includesTitle": "Lo que incluye el consentimiento:",
+      "includes1": "Análisis biomecánico de video con IA (postura, movimiento)",
+      "includes2": "Generación de informes tácticos con Claude",
+      "includes3": "Cálculo de maduración biológica (PHV Mirwald)",
+      "includes4": "Almacenamiento de métricas de rendimiento",
+      "revocationNotice": "El consentimiento puede revocarse en cualquier momento. Los datos se eliminan en 30 días tras la revocación.",
+      "cancel": "Cancelar",
+      "registerAuthorization": "Registrar autorización",
+      "registerDenial": "Registrar denegación"
+    },
+    "toast": {
+      "exportSuccess": "Datos exportados correctamente",
+      "exportUnavailable": "Exportación DSAR no disponible sin Supabase",
+      "exportError": "Error al exportar datos",
+      "deletionSuccess": "Solicitud de eliminación registrada",
+      "deletionDemo": "Solicitud registrada (modo demo)",
+      "deletionError": "Error al solicitar eliminación",
+      "consentSuccess": "Consentimiento registrado correctamente",
+      "consentError": "Error al registrar consentimiento"
+    },
+    "dsar": {
+      "title": "Derechos ARCO · {{name}}",
+      "subtitle": "Acceso, Rectificación, Cancelación, Oposición",
+      "exportTitle": "Exportar datos (DSAR)",
+      "exportDesc": "Descarga JSON con todos los datos del jugador",
+      "deletionTitle": "Solicitar eliminación",
+      "deletionDesc": "Marca para revisión por admin · Se borra en 30 días",
+      "close": "Cerrar"
+    },
+    "tabs": {
+      "pending": "Pendientes",
+      "granted": "Autorizados",
+      "denied": "Denegados",
+      "audit": "Auditoría"
+    },
+    "mockBanner": "Datos de ejemplo — conecta Supabase para gestionar consentimientos reales",
+    "pendingWarning": {
+      "title_one": "{{count}} menor sin consentimiento parental",
+      "title_other": "{{count}} menores sin consentimiento parental",
+      "desc": "El análisis con IA está bloqueado para estos jugadores hasta que su tutor legal autorice el procesamiento de datos."
+    },
+    "searchPlaceholder": "Buscar jugador…",
+    "list": {
+      "emptyNoResults": "No se encontraron jugadores",
+      "emptyWithStatus": "No hay jugadores con estado \"{{status}}\"",
+      "ageYears": "{{age}} años",
+      "guardian": "Tutor: {{name}}",
+      "grantedOn": "Autorizado el {{date}}",
+      "manageConsent": "Gestionar consentimiento",
+      "revoke": "Revocar",
+      "requestAgain": "Solicitar de nuevo"
+    },
+    "audit": {
+      "empty": "No hay registros de auditoría",
+      "system": "Sistema"
+    }
   }
 }
