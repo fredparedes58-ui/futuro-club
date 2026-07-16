@@ -21,6 +21,8 @@ import { errorResponse, successResponse } from "../_lib/apiResponse";
 import analyzeSession from "./_analyze-session";
 import coachingAssistant from "../agents/_coaching-assistant";
 import trackPlayers from "./_track-players";
+import trackAsync from "./_track-async";
+import trackStatus from "./_track-status";
 
 export const config = { runtime: "edge" };
 
@@ -49,6 +51,8 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "analyze-session": analyzeSession,
   "coaching-report": coachingAssistant,
   "track-players": trackPlayers,
+  "track-async": trackAsync,     // V4 · enqueue tracking GPU (vídeos largos)
+  "track-status": trackStatus,   // V4 · polling del job
 
   "session-analysis": async (req: Request) => {
     const sessionId = new URL(req.url).searchParams.get("sessionId");
