@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import io
 import os
+import shutil
 import tempfile
 import time
 from typing import Optional
@@ -248,7 +249,10 @@ def track_video(req: TrackingRequest) -> dict:
             f"/root/{YOLO_MODEL}",
         ]:
             if os.path.exists(candidate):
-                os.replace(candidate, WEIGHTS_FILE)
+                # shutil.move, NO os.replace: el volumen /weights es otro
+                # filesystem → os.replace lanza EXDEV "Invalid cross-device
+                # link" (bug latente pisado en el primer run GPU real, V4.6).
+                shutil.move(candidate, WEIGHTS_FILE)
                 break
         weights_volume.commit()
         print(f"[VITAS] Weights cached to volume")
