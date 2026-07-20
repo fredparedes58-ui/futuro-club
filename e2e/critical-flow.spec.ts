@@ -51,7 +51,7 @@ test.describe("Critical User Flow", () => {
     await expect(passwordInput.first()).toBeVisible();
   });
 
-  test("API health endpoint responds", async ({ request }) => {
+  test("API health endpoint responds @backend", async ({ request }) => {
     const response = await request.get("/api/health");
     expect(response.status()).toBeLessThan(500);
     const body = await response.json().catch(() => null);
@@ -60,18 +60,18 @@ test.describe("Critical User Flow", () => {
     }
   });
 
-  test("API returns 404 for unknown routes", async ({ request }) => {
+  test("API returns 404 for unknown routes @backend", async ({ request }) => {
     const response = await request.get("/api/nonexistent-route-xyz");
     expect(response.status()).toBe(404);
   });
 
-  test("scout insights endpoint requires auth", async ({ request }) => {
+  test("scout insights endpoint requires auth @backend", async ({ request }) => {
     const response = await request.get("/api/scout/insights");
     // Should return 401 without auth
     expect(response.status()).toBe(401);
   });
 
-  test("players CRUD endpoint requires auth", async ({ request }) => {
+  test("players CRUD endpoint requires auth @backend", async ({ request }) => {
     const response = await request.get("/api/players/crud");
     expect(response.status()).toBe(401);
   });

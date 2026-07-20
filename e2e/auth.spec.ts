@@ -24,7 +24,9 @@ test.describe("Authentication Flow", () => {
     await expect(emailInput).toBeVisible();
   });
 
-  test("login with invalid credentials shows error", async ({ page }) => {
+  // @backend: depende de un round-trip real a Supabase auth (red externa) para
+  // renderizar el error — no determinista contra el dev server offline.
+  test("login with invalid credentials shows error @backend", async ({ page }) => {
     await page.goto("/login");
     await page.fill('input[type="email"], input[name="email"]', "fake@test.com");
     await page.fill('input[type="password"]', "wrongpassword123");

@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 
 const BASE = process.env.E2E_BASE_URL ?? "https://futuro-club.vercel.app";
 
-test.describe("API Security", () => {
+// @backend: toda la suite pega a ${BASE:=prod} → depende de un backend real,
+// no del dev server offline. Se ejecuta cuando E2E_BASE_URL apunta a un deploy.
+test.describe("API Security @backend", () => {
   test("POST without auth returns 401", async ({ request }) => {
     const res = await request.post(`${BASE}/api/agents/phv-calculator`, {
       headers: { "Content-Type": "application/json" },
@@ -11,7 +13,9 @@ test.describe("API Security", () => {
     expect(res.status()).toBe(401);
     const body = await res.json();
     expect(body.ok).toBe(false);
-    expect(body.error.code).toBe("UNAUTHORIZED");
+    // El envelope real es errorDetail.code (apiResponse.ts), no error.code
+    // (error es el mensaje). La aserción vieja siempre daba undefined.
+    expect(body.errorDetail.code).toBe("UNAUTHORIZED");
   });
 
   test("GET on POST-only endpoint returns 405", async ({ request }) => {
@@ -47,7 +51,7 @@ test.describe("API Security", () => {
     });
     expect(res.status()).toBe(403);
     const body = await res.json();
-    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.errorDetail.code).toBe("FORBIDDEN");
   });
 
   test("rate limit headers are present", async ({ request }) => {

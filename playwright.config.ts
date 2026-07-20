@@ -8,6 +8,11 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   timeout: 30_000,
+  // Los tests @backend necesitan un backend real sirviendo /api (Edge functions
+  // de Vercel). El webServer local (`npm run dev`) NO los sirve → darían 502.
+  // Sin E2E_BASE_URL (corrida contra el dev server) los saltamos; con
+  // E2E_BASE_URL apuntando a un deploy real (preview/prod) se ejecutan todos.
+  grepInvert: process.env.E2E_BASE_URL ? undefined : /@backend/,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:5200",
     trace: "on-first-retry",

@@ -8,7 +8,7 @@ test.describe("Performance & Health", () => {
     expect(loadTime).toBeLessThan(5000);
   });
 
-  test("no console errors on landing page", async ({ page }) => {
+  test("no console errors on landing page @backend", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") errors.push(msg.text());
@@ -22,7 +22,7 @@ test.describe("Performance & Health", () => {
     expect(critical).toHaveLength(0);
   });
 
-  test("API health: main endpoint responds", async ({ request }) => {
+  test("API health: main endpoint responds @backend", async ({ request }) => {
     const base = process.env.E2E_BASE_URL ?? "https://futuro-club.vercel.app";
     const res = await request.get(`${base}/api/fixtures/live`);
     // Should respond (200 or 4xx) but not 5xx
