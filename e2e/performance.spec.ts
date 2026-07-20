@@ -8,7 +8,7 @@ test.describe("Performance & Health", () => {
     expect(loadTime).toBeLessThan(5000);
   });
 
-  test("no console errors on landing page", async ({ page }) => {
+  test("no console errors on landing page @backend", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (msg) => {
       if (msg.type() === "error") errors.push(msg.text());
