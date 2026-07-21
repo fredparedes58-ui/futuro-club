@@ -26,16 +26,21 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("[ErrorBoundary]", error, errorInfo);
 
-    // Report to Sentry if initialized
-    try {
-      import("@/lib/sentry").then(({ Sentry }) => {
+    // Report to Sentry if initialized. Fire-and-forget dynamic import; el
+    // try/catch síncrono NUNCA capturaba el rechazo de la promesa, así que un
+    // fallo del import (chunk-load en prod, o — en tests — el import
+    // resolviéndose DESPUÉS de que jsdom se desmonta) quedaba como unhandled
+    // rejection y tumbaba la suite (exit 1 con 0 tests fallidos). El .catch lo
+    // absorbe; el comportamiento en éxito no cambia.
+    void import("@/lib/sentry")
+      .then(({ Sentry }) => {
         Sentry.captureException(error, {
           contexts: { react: { componentStack: errorInfo.componentStack ?? "" } },
         });
+      })
+      .catch(() => {
+        // Sentry no disponible (sin configurar, fallo de carga, o teardown de test) — ignorar
       });
-    } catch {
-      // Sentry not available — ignore
-    }
   }
 
   handleReset = () => {
