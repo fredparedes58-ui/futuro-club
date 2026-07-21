@@ -1711,6 +1711,17 @@
     "generateReport": "Generate Report",
     "benchmarkLabel": "Benchmark: {{group}}"
   },
+  "playerPhvSection": {
+    "parentalTitle": "Parental data",
+    "parentalNote": "Both parents' heights enable the % predicted adult height method (Khamis-Roche), reliable even far from PHV. Date of birth gives the exact age.",
+    "birthDate": "Birth date",
+    "motherHeight": "Mother height (cm)",
+    "fatherHeight": "Father height (cm)",
+    "parentalSave": "Save parental data",
+    "parentalSaved": "Parental data saved — projection recalculated",
+    "parentalError": "Couldn't save parental data",
+    "parentalRangeError": "Heights out of plausible range (mother 120-210, father 120-230 cm)"
+  },
   "playerProfile": {
     "phvCategoryEarly": "Early",
     "phvCategoryLate": "Late",
