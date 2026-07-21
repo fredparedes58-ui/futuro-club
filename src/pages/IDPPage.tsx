@@ -83,7 +83,7 @@ export default function IDPPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate(`/player/${playerId}`)}
+              onClick={() => navigate(`/players/${playerId}`)}
               className="text-xs"
             >
               {t("idpPage.viewProfile")}

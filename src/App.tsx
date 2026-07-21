@@ -37,7 +37,6 @@ const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
 const ScoutFeed = lazyWithRetry(() => import("./pages/ScoutFeed"));
 const SoloDrill = lazyWithRetry(() => import("./pages/SoloDrill"));
 const Rankings = lazyWithRetry(() => import("./pages/Rankings"));
-const PlayerProfile = lazyWithRetry(() => import("./pages/PlayerProfile"));
 const PlayerHubPage = lazyWithRetry(() => import("./pages/PlayerHubPage"));
 const PlayerHubPrint = lazyWithRetry(() => import("./pages/PlayerHubPrint"));
 const PlayerComparison = lazyWithRetry(() => import("./pages/PlayerComparison"));
@@ -199,7 +198,8 @@ const App = () => {
                 <Route path="/scout" element={<P><ScoutFeed /></P>} />
                 <Route path="/drill" element={<P><SoloDrill /></P>} />
                 <Route path="/rankings" element={<P><Rankings /></P>} />
-                <Route path="/player/:id" element={<P><PlayerProfile /></P>} />
+                {/* Perfil clásico jubilado → Hub (fuente única de la ficha). */}
+                <Route path="/player/:id" element={<RedirectToHub tab="resumen" />} />
                 <Route path="/compare" element={<P><PlayerComparison /></P>} />
                 <Route path="/lab" element={<P><VitasLab /></P>} />
                 <Route path="/settings" element={<P><SettingsPage /></P>} />
@@ -219,8 +219,8 @@ const App = () => {
                 <Route path="/players/:id/role-profile" element={<P><RedirectToHub tab="rol" /></P>} />
                 <Route path="/players/:id/role-profile/compare" element={<P><RoleProfileCompare /></P>} />
                 <Route path="/players/:id/role-profile/audit" element={<P><RoleProfileAudit /></P>} />
-                {/* Vista clásica disponible vía /players/:id/classic si alguien la quiere */}
-                <Route path="/players/:id/classic" element={<P><PlayerProfile /></P>} />
+                {/* /classic jubilado → redirige al Hub (backward-compat de enlaces viejos). */}
+                <Route path="/players/:id/classic" element={<RedirectToHub tab="resumen" />} />
                 {/* Print-ready · 2 páginas A4 · descargable como PDF */}
                 <Route path="/players/:id/print" element={<P><PlayerHubPrint /></P>} />
                 <Route path="/players/:id/reports" element={<P><PlayerReportsPage /></P>} />

@@ -88,7 +88,7 @@ export function RetentionRadarCard() {
             {topAtRisk.map((a) => (
               <button
                 key={a.playerId}
-                onClick={() => navigate(`/player/${a.playerId}`)}
+                onClick={() => navigate(`/players/${a.playerId}`)}
                 className="w-full flex items-center gap-2.5 p-2.5 hover:bg-primary/5 transition-colors text-left first:rounded-t-lg last:rounded-b-lg"
               >
                 <span className={`inline-block w-2 h-2 rounded-full shrink-0 ${RISK_META[a.riskLevel].dot}`} />

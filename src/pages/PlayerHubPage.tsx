@@ -49,6 +49,7 @@ import PositionComparison from "@/components/PositionComparison";
 import BestMatchProByPosition from "@/components/BestMatchProByPosition";
 import { getPositionRollup } from "@/services/real/positionRollupService";
 import PlayerPhvSection from "@/components/player/PlayerPhvSection";
+import RadarChartComponent from "@/components/RadarChart";
 import { EmptyVideo, EmptyInsights, EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 import IdentityCard from "@/components/role-profile/IdentityCard";
 import CapabilityCards from "@/components/role-profile/CapabilityCards";
@@ -346,6 +347,23 @@ export default function PlayerHubPage() {
             >
               {/* Sprint 2: PHV como producto — titular arriba del resumen */}
               {id && <PHVProductSection playerId={id} />}
+
+              {/* Radar de métricas base (migrado del perfil clásico al jubilarlo).
+                  Siempre disponible: no requiere análisis de vídeo. */}
+              {player && (
+                <div className="glass rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain size={14} className="text-electric" />
+                    <h2 className="font-display font-semibold text-sm text-foreground">
+                      {t("players.profile.technicalProfile")}
+                    </h2>
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      {player.phvCategory ? t("players.profile.adjustedByPHV") : t("players.profile.noAdjustPHV")}
+                    </span>
+                  </div>
+                  <RadarChartComponent stats={player.metrics} />
+                </div>
+              )}
 
               {/* Empty state grande si no hay análisis · ilustración + CTAs */}
               {!hasAnalysis && (

@@ -544,7 +544,7 @@ const PlayerComparison = () => {
               {t("playerComparison.highPriorityTracking")}
             </p>
             <button
-              onClick={() => navigate(`/player/${aiWinner.id}`)}
+              onClick={() => navigate(`/players/${aiWinner.id}`)}
               className="w-full px-4 py-2.5 rounded-lg border border-border text-sm font-display font-bold text-foreground hover:bg-secondary transition-colors uppercase tracking-wider"
             >
               {t("playerComparison.viewFullProfile")}

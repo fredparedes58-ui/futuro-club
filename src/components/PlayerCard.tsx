@@ -16,7 +16,7 @@ const PlayerCard = ({ player }: { player: Player }) => {
     <motion.div
       whileHover={{ scale: 1.03, y: -4 }}
       whileTap={{ scale: 0.97 }}
-      onClick={() => navigate(`/player/${player.id}`)}
+      onClick={() => navigate(`/players/${player.id}`)}
       className="relative w-[180px] h-[240px] rounded-2xl overflow-hidden cursor-pointer group flex-shrink-0"
     >
       {/* Background gradient */}
