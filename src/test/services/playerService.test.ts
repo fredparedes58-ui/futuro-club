@@ -127,6 +127,38 @@ describe("PlayerService", () => {
     });
   });
 
+  describe("update (datos parentales / antropometría)", () => {
+    it("persiste alturas parentales + fecha de nacimiento", async () => {
+      const player = PlayerService.create(samplePlayer);
+      const updated = await PlayerService.update(player.id, {
+        birthDate: "2010-05-01",
+        motherHeightCm: 165,
+        fatherHeightCm: 180,
+      });
+      expect(updated).not.toBeNull();
+      expect(updated!.birthDate).toBe("2010-05-01");
+      expect(updated!.motherHeightCm).toBe(165);
+      expect(updated!.fatherHeightCm).toBe(180);
+      // persistido (no solo en memoria)
+      const reread = PlayerService.getById(player.id);
+      expect(reread!.fatherHeightCm).toBe(180);
+    });
+
+    it("es parcial: no pisa otros campos", async () => {
+      const player = PlayerService.create(samplePlayer);
+      await PlayerService.update(player.id, { motherHeightCm: 170 });
+      const reread = PlayerService.getById(player.id);
+      expect(reread!.name).toBe("Test Player");
+      expect(reread!.vsi).toBe(player.vsi);
+      expect(reread!.motherHeightCm).toBe(170);
+    });
+
+    it("retorna null para ID inexistente", async () => {
+      const result = await PlayerService.update("no-existe", { motherHeightCm: 165 });
+      expect(result).toBeNull();
+    });
+  });
+
   describe("sort", () => {
     it("ordena por VSI ascendente", () => {
       const p1 = PlayerService.create({ ...samplePlayer, name: "Alfa", metrics: { ...samplePlayer.metrics, speed: 90 } });

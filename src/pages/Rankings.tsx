@@ -315,7 +315,7 @@ const Rankings = () => {
               <motion.div
                 key={player.id}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate(`/player/${player.id}`)}
+                onClick={() => navigate(`/players/${player.id}`)}
                 className="flex flex-col items-center cursor-pointer"
               >
                 <VsiGauge value={player.vsi} size="sm" />

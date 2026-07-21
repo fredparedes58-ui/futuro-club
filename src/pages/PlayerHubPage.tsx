@@ -48,6 +48,7 @@ import PositionRollup, { type PositionRollupRow } from "@/components/PositionRol
 import PositionComparison from "@/components/PositionComparison";
 import BestMatchProByPosition from "@/components/BestMatchProByPosition";
 import { getPositionRollup } from "@/services/real/positionRollupService";
+import PlayerPhvSection from "@/components/player/PlayerPhvSection";
 import { EmptyVideo, EmptyInsights, EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 import IdentityCard from "@/components/role-profile/IdentityCard";
 import CapabilityCards from "@/components/role-profile/CapabilityCards";
@@ -140,8 +141,13 @@ export default function PlayerHubPage() {
     if (tab !== tabParam) setSearchParams({ tab }, { replace: true });
   }, [tab, tabParam, setSearchParams]);
 
-  // Player
-  const player: Player | null = useMemo(() => (id ? PlayerService.getById(id) : null), [id]);
+  // Player. phvRefresh fuerza re-lectura de localStorage tras guardar datos
+  // parentales en PlayerPhvSection (getById no es reactivo por sí solo).
+  const [phvRefresh, setPhvRefresh] = useState(0);
+  const player: Player | null = useMemo(() => {
+    void phvRefresh; // recomputa la lectura de localStorage tras guardar datos parentales
+    return id ? PlayerService.getById(id) : null;
+  }, [id, phvRefresh]);
 
   // Analyses
   const { data: analyses } = useSavedAnalysesV2(id ?? "");
@@ -470,6 +476,15 @@ export default function PlayerHubPage() {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
+              {/* Entrada UNIFICADA de datos PHV (medidas + alturas parentales) —
+                  antes solo estaba en el perfil clásico, alcanzable desde Rankings. */}
+              {player && (
+                <PlayerPhvSection
+                  player={player}
+                  hasPhv={!!player.phvCategory}
+                  onSaved={() => setPhvRefresh((v) => v + 1)}
+                />
+              )}
               <TrackingSnapshotPanel playerId={id ?? ""} snapshot={snapshot} />
             </motion.div>
           )}

@@ -172,6 +172,47 @@ export const PlayerService = {
   },
 
   /**
+   * Actualiza campos de identidad/antropometría del jugador (parcial).
+   * Para datos que NO son métricas ni PHV calculado: fecha de nacimiento,
+   * alturas parentales (Khamis-Roche), medidas base, sexo. Write-lock para no
+   * pisar updateMetrics/updatePHV concurrentes.
+   */
+  async update(
+    id: string,
+    partial: Partial<
+      Pick<
+        Player,
+        | "birthDate"
+        | "motherHeightCm"
+        | "fatherHeightCm"
+        | "height"
+        | "weight"
+        | "sittingHeight"
+        | "legLength"
+        | "gender"
+      >
+    >,
+  ): Promise<Player | null> {
+    await acquireWriteLock();
+    try {
+      const players = PlayerService.getAll();
+      const idx = players.findIndex((p) => p.id === id);
+      if (idx === -1) return null;
+
+      players[idx] = {
+        ...players[idx],
+        ...partial,
+        updatedAt: new Date().toISOString(),
+      };
+
+      StorageService.set(STORAGE_KEY, players);
+      return players[idx];
+    } finally {
+      releaseWriteLock();
+    }
+  },
+
+  /**
    * Elimina un jugador
    */
   delete(id: string): boolean {

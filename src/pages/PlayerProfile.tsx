@@ -5,7 +5,6 @@ import {
   RefreshCw, ChevronRight, UserCircle2, AlertCircle,
   Pencil, Trash2, Video, Plus, ChevronDown, Sparkles, Filter, FileDown,
   Activity, ClipboardList, FileText, Image, Save, Share2,
-  Ruler,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { calculateAdvancedMetrics, VAEPService, TrackingService } from "@/services/real/advancedMetricsService";
@@ -32,9 +31,7 @@ import PlayerEvolutionPanel from "@/components/PlayerEvolutionPanel";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import { PlayerTrackingService, type TrackingSnapshot, type TrackingSessionSummary } from "@/services/real/playerTrackingService";
 import { AnalyticsExporter, type SessionExportData } from "@/lib/tracking/analyticsExportPipeline";
-import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
-import GrowthVelocityChart from "@/components/player/GrowthVelocityChart";
-import { PhvWindowPlan } from "@/components/player/PhvWindowPlan";
+import PlayerPhvSection from "@/components/player/PlayerPhvSection";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -331,31 +328,10 @@ const PlayerProfile = () => {
         )}
       </motion.div>
 
-      {/* Antropometría · PHV */}
+      {/* Antropometría · PHV — sección unificada compartida con el Hub */}
       {rawPlayer && (
-        <motion.div variants={item} className="glass rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Ruler size={14} className="text-primary" />
-            <h2 className="font-display font-semibold text-sm text-foreground">{t("playerProfile.anthropometrics")}</h2>
-            <span className="text-[10px] text-muted-foreground ml-auto">PHV · Mirwald</span>
-          </div>
-          <AnthropometricsForm
-            playerId={rawPlayer.id}
-            chronologicalAge={rawPlayer.age}
-            gender={(rawPlayer as Player & { gender?: "M" | "F" }).gender ?? "M"}
-            fallback={{
-              heightCm: rawPlayer.height,
-              weightKg: rawPlayer.weight,
-              sittingHeightCm: (rawPlayer as unknown as Record<string, number>).sittingHeight,
-              legLengthCm:     (rawPlayer as unknown as Record<string, number>).legLength,
-            }}
-          />
-          <div className="mt-4 pt-4 border-t border-border/40">
-            <GrowthVelocityChart playerId={rawPlayer.id} />
-          </div>
-          <div className="mt-4 pt-4 border-t border-border/40">
-            <PhvWindowPlan playerId={rawPlayer.id} hasPhv={hasPHV} />
-          </div>
+        <motion.div variants={item}>
+          <PlayerPhvSection player={rawPlayer as Player} hasPhv={hasPHV} />
         </motion.div>
       )}
 
