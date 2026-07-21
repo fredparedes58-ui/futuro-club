@@ -165,7 +165,7 @@ export default function GlobalSearch() {
                   {filteredPlayers.map((p) => (
                     <CommandItem
                       key={p.id}
-                      onSelect={() => go(`/player/${p.id}`)}
+                      onSelect={() => go(`/players/${p.id}`)}
                       className="flex items-center gap-3 cursor-pointer"
                     >
                       <div className="w-7 h-7 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-[10px] font-display font-bold text-primary shrink-0">

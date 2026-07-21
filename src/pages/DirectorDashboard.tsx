@@ -212,7 +212,7 @@ const DirectorDashboard = () => {
                 {analytics.topPlayers.map((p, i) => (
                   <button
                     key={p.playerId}
-                    onClick={() => navigate(`/player/${p.playerId}`)}
+                    onClick={() => navigate(`/players/${p.playerId}`)}
                     className="w-full flex items-center gap-3 p-3 hover:bg-primary/5 transition-colors first:rounded-t-xl last:rounded-b-xl text-left"
                   >
                     <span className="w-5 text-center font-display font-bold text-sm text-muted-foreground">

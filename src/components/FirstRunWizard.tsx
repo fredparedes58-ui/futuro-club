@@ -184,7 +184,7 @@ export default function FirstRunWizard() {
   function handleGoToProfile() {
     if (!createdPlayerId) return;
     dismiss();
-    navigate(`/player/${createdPlayerId}`);
+    navigate(`/players/${createdPlayerId}`);
   }
 
   function handleGoToFamily() {

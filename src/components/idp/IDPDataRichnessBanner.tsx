@@ -78,7 +78,7 @@ export function IDPDataRichnessBanner({
       label: t("idpDataRichnessBanner.mentalProfileLabel"),
       description: t("idpDataRichnessBanner.mentalProfileDescription"),
       cta: t("idpDataRichnessBanner.mentalProfileCta"),
-      to: `/player/${playerId}?tab=mental`,
+      to: `/players/${playerId}?tab=mental`,
       color: "from-purple-500 to-pink-500",
     });
   }
@@ -89,7 +89,7 @@ export function IDPDataRichnessBanner({
       label: t("idpDataRichnessBanner.measurementsLabel"),
       description: t("idpDataRichnessBanner.measurementsDescription"),
       cta: t("idpDataRichnessBanner.measurementsCta"),
-      to: `/player/${playerId}/edit`,
+      to: `/players/${playerId}/edit`,
       color: "from-amber-500 to-orange-500",
     });
   }
@@ -100,7 +100,7 @@ export function IDPDataRichnessBanner({
       label: t("idpDataRichnessBanner.loadInjuriesLabel"),
       description: t("idpDataRichnessBanner.loadInjuriesDescription"),
       cta: t("idpDataRichnessBanner.loadInjuriesCta"),
-      to: `/player/${playerId}?tab=salud`,
+      to: `/players/${playerId}?tab=salud`,
       color: "from-rose-500 to-red-500",
     });
   }

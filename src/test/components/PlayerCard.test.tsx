@@ -63,10 +63,10 @@ describe("PlayerCard", () => {
     expect(screen.getByText("La Masia")).toBeDefined();
   });
 
-  it("navega a /player/{id} al hacer click", () => {
+  it("navega al Hub del jugador (/players/{id}) al hacer click", () => {
     render(<PlayerCard player={mockPlayer} />);
     fireEvent.click(screen.getByTestId("motion-div"));
-    expect(mockNavigate).toHaveBeenCalledWith("/player/p1");
+    expect(mockNavigate).toHaveBeenCalledWith("/players/p1");
   });
 
   it("renderiza imagen del jugador", () => {

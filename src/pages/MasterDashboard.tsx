@@ -346,7 +346,7 @@ const MasterDashboard = () => {
                       <div
                         key={report.id}
                         className="glass rounded-xl p-4 border border-border cursor-pointer hover:border-primary/30 transition-colors"
-                        onClick={() => navigate(`/player/${report.id}`)}
+                        onClick={() => navigate(`/players/${report.id}`)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">

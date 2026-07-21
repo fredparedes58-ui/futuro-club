@@ -324,7 +324,7 @@ export default function ParentDashboardPage() {
         {/* CTAs secundarios */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => navigate(`/player/${playerId}`)}
+            onClick={() => navigate(`/players/${playerId}`)}
             className="rounded-xl bg-secondary/30 border border-border p-3 hover:bg-secondary/50 text-center transition-colors"
           >
             <Activity size={14} className="text-electric mx-auto mb-1" />

@@ -401,7 +401,7 @@ const PlayerForm = () => {
         queryClient.invalidateQueries({ queryKey: ["player-raw", id] });
       }
 
-      navigate(isEditMode ? `/player/${id}` : "/rankings");
+      navigate(isEditMode ? `/players/${id}` : "/rankings");
     } catch (err) {
       toast.error(t("toasts.playerSaveError"));
       console.error(err);

@@ -60,9 +60,10 @@ const HIDDEN_PATTERNS = [
 ];
 
 function actionsForRoute(pathname: string, params: Record<string, string | undefined>, navigate: (to: string) => void, t: (key: string) => string): FabAction[] {
-  // Player profile: acciones del jugador
-  const playerMatch = pathname.match(/^\/player\/([^/]+)/);
-  if (playerMatch) {
+  // Ficha del jugador (Hub /players/:id, o el legacy /player/:id ya redirigido).
+  // Bare page, sin sub-ruta ni "new".
+  const playerMatch = pathname.match(/^\/players?\/([^/]+)$/);
+  if (playerMatch && playerMatch[1] !== "new") {
     const id = playerMatch[1];
     return [
       { id: "family",    label: t("contextualFAB.familyView"),  Icon: Heart,    color: "#EC4899", onClick: () => navigate(`/family/${id}`) },
@@ -80,7 +81,7 @@ function actionsForRoute(pathname: string, params: Record<string, string | undef
     return [
       { id: "share",  label: t("contextualFAB.share"),  Icon: Share2,  color: "#1A8FFF", onClick: () => { void shareCurrentUrl(); } },
       { id: "live",   label: t("contextualFAB.matchDay"),  Icon: Activity, color: "#22e88c", onClick: () => navigate("/live") },
-      ...(id ? [{ id: "back-player", label: t("contextualFAB.profile"), Icon: BarChart3, color: "#10b981", onClick: () => navigate(`/player/${id}`) }] : []),
+      ...(id ? [{ id: "back-player", label: t("contextualFAB.profile"), Icon: BarChart3, color: "#10b981", onClick: () => navigate(`/players/${id}`) }] : []),
     ];
   }
 

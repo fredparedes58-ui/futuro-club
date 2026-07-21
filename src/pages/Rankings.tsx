@@ -376,7 +376,7 @@ const Rankings = () => {
               key={player.id}
               variants={item}
               whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(`/player/${player.id}`)}
+              onClick={() => navigate(`/players/${player.id}`)}
               className="glass-vibrant rounded-xl p-3 flex items-center gap-3 cursor-pointer transition-colors"
             >
               {/* Posición en ranking */}

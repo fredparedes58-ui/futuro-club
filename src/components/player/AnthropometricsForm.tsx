@@ -1,7 +1,7 @@
 /**
  * VITAS · Antropometría + PHV
  *
- * Pantalla integrada en PlayerProfile que permite:
+ * Pantalla integrada en PlayerPhvSection (ficha del jugador · Hub) que permite:
  *   - Registrar nuevas mediciones (altura, peso, sentado, pierna)
  *   - Calcular el PHV (Mirwald) automáticamente al guardar
  *   - Ver el histórico completo de mediciones
