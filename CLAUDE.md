@@ -3,7 +3,7 @@
 ## Identidad del proyecto
 Plataforma de análisis deportivo de fútbol con corrección de maduración biológica (PHV).
 Detecta talento oculto en academias juveniles usando IA y visión computacional.
-**Diferenciador único:** modelo de visión entrenado con contexto PHV juvenil (ninguna plataforma lo tiene).
+**Diferenciador único:** corrección de maduración biológica (PHV) por fórmula (Mirwald/Khamis-Roche) aplicada en toda la plataforma + etiquetado táctico con contexto PHV vía LLM sobre el tracking. La visión de producción usa modelos pose de stock (YOLOv8n/YOLOv11m); el modelo propio afinado con footage juvenil (`vitas-pose-v1`) es objetivo de Fase 3, aún sin desplegar.
 
 ## Stack técnico
 - React 18.3 + TypeScript + Vite 8

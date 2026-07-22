@@ -1210,7 +1210,8 @@
     "title": "Demo data.",
     "generic": "The values shown are sample data. They will be replaced with real data once available.",
     "coach": "Session analytics (segments, balance, participation) use sample data until you analyze a team training video.",
-    "wellbeing": "Team wellbeing will show real data once you log attendance, questionnaires, or per-player video analysis."
+    "wellbeing": "Team wellbeing will show real data once you log attendance, questionnaires, or per-player video analysis.",
+    "behavioral": "The mental profile (decision speed, scanning IQ, resilience, leadership, archetype) is illustrative sample data, not measured. Real values require per-player behavioral tracking."
   },
   "coachDash": {
     "tabSesion": "Last Session",

@@ -1210,7 +1210,8 @@
     "title": "Datos de demostración.",
     "generic": "Los valores mostrados son de ejemplo. Se reemplazarán por datos reales cuando estén disponibles.",
     "coach": "La analítica de sesión (segmentos, balance, participación) usa datos de ejemplo hasta que analices un vídeo de entrenamiento del equipo.",
-    "wellbeing": "El bienestar del equipo mostrará datos reales cuando registres asistencia, cuestionarios o análisis de vídeo por jugador."
+    "wellbeing": "El bienestar del equipo mostrará datos reales cuando registres asistencia, cuestionarios o análisis de vídeo por jugador.",
+    "behavioral": "El perfil mental (velocidad de decisión, IQ de escaneo, resiliencia, liderazgo, arquetipo) es un dato de ejemplo ilustrativo, no medido. Los valores reales requieren seguimiento conductual por jugador."
   },
   "coachDash": {
     "tabSesion": "Última Sesión",
