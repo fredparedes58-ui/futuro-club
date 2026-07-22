@@ -28,7 +28,7 @@ import ErrorState from "@/components/ErrorState";
 interface EventButtonConfig {
   type: LiveEventType;
   label: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   color: string;
   short: string;
 }

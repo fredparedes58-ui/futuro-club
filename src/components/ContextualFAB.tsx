@@ -46,7 +46,7 @@ async function shareCurrentUrl() {
 interface FabAction {
   id: string;
   label: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   color: string;
   to?: string;
   onClick?: () => void;

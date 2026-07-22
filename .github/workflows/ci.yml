@@ -32,8 +32,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      # Typecheck REAL sobre tsconfig.app.json con baseline (antes: `tsc --noEmit`
+      # con el tsconfig raíz chequeaba 0 ficheros → falso verde). Falla solo ante
+      # errores netos-nuevos; la deuda conocida vive en scripts/typecheck-baseline.json.
       - name: TypeScript type check
-        run: npx tsc --noEmit
+        run: node scripts/typecheck-baseline.mjs
 
       - name: ESLint
         run: npm run lint

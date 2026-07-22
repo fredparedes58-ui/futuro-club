@@ -58,7 +58,7 @@ interface Proyeccion {
 
 const IMPACT_META: Record<
   string,
-  { color: string; chip: string; Icon: React.ComponentType<{ size?: number; className?: string }> }
+  { color: string; chip: string; Icon: React.ElementType }
 > = {
   positivo: { color: "text-green-400", chip: "bg-green-500/10 border-green-500/30 text-green-400", Icon: ArrowUpRight },
   negativo: { color: "text-red-400", chip: "bg-red-500/10 border-red-500/30 text-red-400", Icon: ArrowDownRight },

@@ -35,7 +35,7 @@ interface MatchSummary {
   ended_at: string | null;
 }
 
-const STATUS_META: Record<MatchSummary["status"], { labelKey: string; color: string; Icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+const STATUS_META: Record<MatchSummary["status"], { labelKey: string; color: string; Icon: React.ElementType }> = {
   live:     { labelKey: "liveHubPage.statusLive",     color: "#22e88c", Icon: Play },
   paused:   { labelKey: "liveHubPage.statusPaused",   color: "#F59E0B", Icon: Clock },
   finished: { labelKey: "liveHubPage.statusFinished", color: "#1A8FFF", Icon: Trophy },

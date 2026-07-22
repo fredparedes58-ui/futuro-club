@@ -606,7 +606,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
 function Section({
   Icon, title, color, children,
 }: {
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ElementType;
   title: string; color: string; children: React.ReactNode;
 }) {
   return (

@@ -555,7 +555,7 @@ function ParentIDPSection({ playerId }: { playerId: string }) {
 
 function SimpleStat({
   label, value, Icon,
-}: { label: string; value: string; Icon: React.ComponentType<{ size?: number; className?: string }> }) {
+}: { label: string; value: string; Icon: React.ElementType }) {
   return (
     <div className="rounded-xl bg-secondary/30 border border-border p-3 text-center">
       <Icon size={11} className="text-muted-foreground mx-auto mb-1" />
