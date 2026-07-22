@@ -38,8 +38,8 @@ Plataforma de análisis deportivo de fútbol **con corrección de maduración bi
 Detecta talento oculto en academias juveniles usando IA y visión computacional.
 
 ### Diferenciador único
-> **Único producto del mercado que entrena su modelo de visión con contexto PHV juvenil.**
-> Ningún competidor (Wyscout, InStat, Hudl) ajusta sus métricas por edad biológica.
+> **Corrección de maduración biológica (PHV) en toda la plataforma:** VITAS ajusta sus métricas por el momento madurativo del jugador (fórmula Mirwald/Khamis-Roche) y añade etiquetado táctico con contexto PHV sobre el tracking de vídeo. Ningún competidor (Wyscout, InStat, Hudl) corrige por maduración.
+> **En hoja de ruta (Fase 3):** modelo de visión propio afinado con footage de fútbol juvenil (`vitas-pose-v1`). Hoy el tracking usa modelos pose de stock (YOLOv8n / YOLOv11m).
 
 ### URLs
 | Entorno | URL |

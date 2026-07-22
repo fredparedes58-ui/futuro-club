@@ -30,6 +30,7 @@ import {
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { SquadMentalComposition } from "@/components/behavioral/SquadMentalComposition";
 import { ArchetypeShareCard } from "@/components/behavioral/ArchetypeShareCard";
+import DemoDataBanner from "@/components/DemoDataBanner";
 
 interface BehavioralScores {
   decisionSpeed: number;
@@ -343,6 +344,8 @@ export default function BehavioralOverviewPage() {
           <EmptyState onCreate={() => navigate("/players/new")} />
         ) : (
           <>
+            <DemoDataBanner messageKey="demoData.behavioral" />
+
             {/* Team summary */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <StatCard
