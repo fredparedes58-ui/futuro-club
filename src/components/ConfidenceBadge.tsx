@@ -55,7 +55,7 @@ function calculateConfidence(videosCount: number, hasTracking: boolean, player: 
   if (m.stamina && m.stamina > 0) completeDimensions++;
   if (m.shooting && m.shooting > 0) completeDimensions++;
   if (m.defending && m.defending > 0) completeDimensions++;
-  if (player.phvAge) completeDimensions++;
+  if (player.phvOffset != null) completeDimensions++;
   if (hasTracking) completeDimensions++;
 
   const dataFactor = 0.5 + (completeDimensions / totalDimensions) * 0.5;
@@ -73,7 +73,7 @@ function calculateConfidence(videosCount: number, hasTracking: boolean, player: 
   else factors.push({ key: "confidence.factorVideos", params: { count: videosCount } });
 
   if (!hasTracking) factors.push({ key: "confidence.factorNoTracking" });
-  if (!player.phvAge) factors.push({ key: "confidence.factorNoPhv" });
+  if (player.phvOffset == null) factors.push({ key: "confidence.factorNoPhv" });
   if (completeDimensions < totalDimensions * 0.7)
     factors.push({ key: "confidence.factorMissingDims", params: { count: totalDimensions - completeDimensions } });
 

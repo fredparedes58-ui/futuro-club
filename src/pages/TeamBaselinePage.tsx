@@ -36,7 +36,7 @@ interface TeamBaselineResponse {
   reportsFailed: number;
 }
 
-const REPORT_META: Record<string, { Icon: React.ComponentType<{ size?: number; className?: string }>; titleKey: string; color: string }> = {
+const REPORT_META: Record<string, { Icon: React.ElementType; titleKey: string; color: string }> = {
   "team-overview":     { Icon: Brain,    titleKey: "teamBaselinePage.reportTeamOverview",  color: "#0066CC" },
   "tactical-profile":  { Icon: Swords,   titleKey: "teamBaselinePage.reportTacticalProfile", color: "#B82BD9" },
   "tactical-zones":    { Icon: Grid3x3,  titleKey: "teamBaselinePage.reportTacticalZones", color: "#1A8FFF" },

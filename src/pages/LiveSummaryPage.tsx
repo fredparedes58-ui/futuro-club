@@ -324,7 +324,7 @@ export default function LiveSummaryPage() {
 }
 
 function Section({ title, Icon, color, children }: {
-  title: string; Icon: React.ComponentType<{ size?: number; className?: string }>; color: string; children: React.ReactNode;
+  title: string; Icon: React.ElementType; color: string; children: React.ReactNode;
 }) {
   return (
     <div className="glass rounded-2xl p-4 space-y-3">

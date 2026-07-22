@@ -35,7 +35,7 @@ function Section({
 }: {
   heading: string;
   color: string;
-  Icon?: React.ComponentType<{ size?: number; className?: string }>;
+  Icon?: React.ElementType;
   children: React.ReactNode;
 }) {
   return (

@@ -65,7 +65,7 @@ interface AnalysisData {
 
 const REPORT_META: Record<
   string,
-  { Icon: React.ComponentType<{ size?: number; className?: string }>; title: string; color: string }
+  { Icon: React.ElementType; title: string; color: string }
 > = {
   "player-report":    { Icon: BarChart3,    title: "Player Report",    color: "#0066CC" },
   "lab-biomechanics": { Icon: Activity,     title: "LAB Biomecánica",  color: "#B82BD9" },

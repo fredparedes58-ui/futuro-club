@@ -47,7 +47,7 @@ function detectMissing(player: Player, hasAnalysis: boolean, hasTracking: boolea
     });
   }
 
-  if (!player.phvAge) {
+  if (player.phvOffset == null) {
     missing.push({
       nameKey: "notEvaluatedSection.maturationAgeName",
       reasonKey: "notEvaluatedSection.maturationAgeReason",
