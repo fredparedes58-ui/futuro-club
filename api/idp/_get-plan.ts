@@ -8,6 +8,7 @@
  */
 
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
 import { computeSummary } from "../../src/lib/idp/idpProgressTracker";
 import type {
   DevelopmentPlan,
@@ -165,11 +166,17 @@ function rowToCheckin(r: DbCheckin): IDPCheckin {
   };
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  const url = new URL(req.url);
-  const playerId = url.searchParams.get("playerId");
-  const monthStart = url.searchParams.get("monthStart") ?? currentMonthStart();
-  const includeMetrics = url.searchParams.get("includeMetrics");
+// GET /api/idp/get-plan?playerId=...&monthStart=YYYY-MM-01
+// requireAuth: cierra el acceso anónimo (antes público → cualquiera podía leer
+// el plan de desarrollo completo + PII del staff de cualquier jugador).
+// allowServiceToken: permite llamadas internas (orchestrator/cron).
+// NOTA: el check de PROPIEDAD del jugador se añade en el PR de ownership.
+export default withHandler(
+  { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ query }) => {
+  const playerId = query.playerId;
+  const monthStart = query.monthStart ?? currentMonthStart();
+  const includeMetrics = query.includeMetrics;
 
   if (!playerId) return errorResponse("playerId required", 400);
 
@@ -185,7 +192,7 @@ export default async function handler(req: Request): Promise<Response> {
 
     // 1. Find the plan
     const planRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/development_plans?player_id=eq.${playerId}&month_start=eq.${monthStart}&select=*&order=created_at.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/development_plans?player_id=eq.${encodeURIComponent(playerId)}&month_start=eq.${encodeURIComponent(monthStart)}&select=*&order=created_at.desc&limit=1`,
       { headers },
     );
     if (!planRes.ok) {
@@ -236,4 +243,5 @@ export default async function handler(req: Request): Promise<Response> {
     console.error("[get-plan] error:", err);
     return errorResponse("Internal error fetching plan", 500);
   }
-}
+  },
+);

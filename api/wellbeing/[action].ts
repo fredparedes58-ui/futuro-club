@@ -4,16 +4,22 @@
  *
  *   GET  /api/wellbeing/dropout-risk?playerId=xxx → compute dropout risk on-demand
  *   POST /api/wellbeing/burnout-report → AI burnout report
- *   POST /api/wellbeing/save-questionnaire → persist wellbeing questionnaire
- *   POST /api/wellbeing/attendance → persist/upsert attendance record
+ *   POST /api/wellbeing/save-questionnaire → persist wellbeing questionnaire (auth required)
+ *   POST /api/wellbeing/attendance → persist/upsert attendance record (auth required)
  *
  * save-questionnaire y attendance persisten en Supabase (wellbeing_questionnaires
  * y attendance_records). Si Supabase no está configurado, devuelven
  * source:"client_only" para que el cliente lo guarde en su caché offline-first
  * (WellbeingService) — nunca se pierde el dato silenciosamente.
+ *
+ * SEGURIDAD: save-questionnaire y attendance eran POST anónimos (cualquiera
+ * podía escribir/sobrescribir datos de bienestar/asistencia de cualquier menor).
+ * Ahora exigen auth (requireAuth) + permiten token de servicio para llamadas
+ * internas. El check de PROPIEDAD del jugador se añade en el PR de ownership.
  */
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
 import dropoutRisk from "./_dropout-risk";
 import burnoutReport from "../agents/_burnout-report";
 
@@ -35,23 +41,14 @@ function supabaseHeaders(extra: Record<string, string> = {}): Record<string, str
   };
 }
 
-const routes: Record<string, (req: Request) => Promise<Response>> = {
-  "dropout-risk": dropoutRisk,
-  "burnout-report": burnoutReport,
-
-  "save-questionnaire": async (req: Request) => {
-    if (req.method !== "POST") return errorResponse("Method not allowed", 405);
-    let body: Record<string, unknown>;
-    try {
-      body = (await req.json()) as Record<string, unknown>;
-    } catch {
-      return errorResponse("Invalid JSON body", 400);
-    }
-
-    const playerId = body.playerId as string | undefined;
-    const respondent = body.respondent as string | undefined;
-    const responses = (body.responses ?? {}) as Record<string, unknown>;
-    const score = typeof body.score === "number" ? (body.score as number) : null;
+const saveQuestionnaire = withHandler(
+  { method: "POST", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ body }) => {
+    const b = (body ?? {}) as Record<string, unknown>;
+    const playerId = b.playerId as string | undefined;
+    const respondent = b.respondent as string | undefined;
+    const responses = (b.responses ?? {}) as Record<string, unknown>;
+    const score = typeof b.score === "number" ? (b.score as number) : null;
 
     if (!playerId) return errorResponse("playerId required", 400);
     if (!respondent || !VALID_RESPONDENTS.includes(respondent)) {
@@ -93,21 +90,17 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       return errorResponse("Internal error saving questionnaire", 500);
     }
   },
+);
 
-  attendance: async (req: Request) => {
-    if (req.method !== "POST") return errorResponse("Method not allowed", 405);
-    let body: Record<string, unknown>;
-    try {
-      body = (await req.json()) as Record<string, unknown>;
-    } catch {
-      return errorResponse("Invalid JSON body", 400);
-    }
-
-    const playerId = body.playerId as string | undefined;
-    const date = (body.date as string | undefined) ?? new Date().toISOString().split("T")[0];
-    const status = body.status as string | undefined;
-    const source = (body.source as string | undefined) ?? "manual";
-    const sessionId = (body.sessionId as string | undefined) ?? null;
+const attendance = withHandler(
+  { method: "POST", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ body }) => {
+    const b = (body ?? {}) as Record<string, unknown>;
+    const playerId = b.playerId as string | undefined;
+    const date = (b.date as string | undefined) ?? new Date().toISOString().split("T")[0];
+    const status = b.status as string | undefined;
+    const source = (b.source as string | undefined) ?? "manual";
+    const sessionId = (b.sessionId as string | undefined) ?? null;
 
     if (!playerId) return errorResponse("playerId required", 400);
     if (!status || !VALID_STATUS.includes(status)) {
@@ -158,6 +151,13 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       return errorResponse("Internal error saving attendance", 500);
     }
   },
+);
+
+const routes: Record<string, (req: Request) => Promise<Response>> = {
+  "dropout-risk": dropoutRisk,
+  "burnout-report": burnoutReport,
+  "save-questionnaire": saveQuestionnaire,
+  attendance,
 };
 
 export default async function handler(req: Request): Promise<Response> {

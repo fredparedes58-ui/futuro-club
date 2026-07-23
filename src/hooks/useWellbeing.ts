@@ -189,7 +189,7 @@ async function fetchAttendance(playerId: string): Promise<AttendanceProfile> {
 async function saveQuestionnaireApi(input: QuestionnaireInput): Promise<{ status: string }> {
   const res = await fetch(`${API_BASE}/save-questionnaire`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error("Failed to save questionnaire");
@@ -200,7 +200,7 @@ async function saveQuestionnaireApi(input: QuestionnaireInput): Promise<{ status
 async function saveAttendanceApi(input: AttendanceInput): Promise<{ status: string }> {
   const res = await fetch(`${API_BASE}/attendance`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await getAuthHeaders(),
     body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error("Failed to save attendance");
