@@ -6,13 +6,14 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer } from "../_lib/ownership";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
 
 export default withHandler(
-  { method: "GET", requireAuth: true, maxRequests: 60 },
-  async ({ query }) => {
+  { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ query, userId, isServiceCall }) => {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -24,6 +25,11 @@ export default withHandler(
 
     if (!playerId) {
       return errorResponse("playerId required", 400, "MISSING_PARAM");
+    }
+
+    // Ownership: solo el dueño del jugador puede leer su historial de lesiones.
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
 
     const res = await fetch(

@@ -20,6 +20,7 @@
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer } from "../_lib/ownership";
 import dropoutRisk from "./_dropout-risk";
 import burnoutReport from "../agents/_burnout-report";
 
@@ -43,7 +44,7 @@ function supabaseHeaders(extra: Record<string, string> = {}): Record<string, str
 
 const saveQuestionnaire = withHandler(
   { method: "POST", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-  async ({ body }) => {
+  async ({ body, userId, isServiceCall }) => {
     const b = (body ?? {}) as Record<string, unknown>;
     const playerId = b.playerId as string | undefined;
     const respondent = b.respondent as string | undefined;
@@ -66,6 +67,11 @@ const saveQuestionnaire = withHandler(
     // Sin Supabase → el cliente lo persiste en su caché offline-first.
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ playerId, questionnaire: row, source: "client_only" });
+    }
+
+    // Ownership: solo el dueño del jugador puede escribir su cuestionario.
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
 
     try {
@@ -94,7 +100,7 @@ const saveQuestionnaire = withHandler(
 
 const attendance = withHandler(
   { method: "POST", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-  async ({ body }) => {
+  async ({ body, userId, isServiceCall }) => {
     const b = (body ?? {}) as Record<string, unknown>;
     const playerId = b.playerId as string | undefined;
     const date = (b.date as string | undefined) ?? new Date().toISOString().split("T")[0];
@@ -120,6 +126,11 @@ const attendance = withHandler(
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ playerId, attendance: row, source: "client_only" });
+    }
+
+    // Ownership: solo el dueño del jugador puede registrar su asistencia.
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
 
     try {

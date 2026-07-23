@@ -9,6 +9,7 @@
 
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer } from "../_lib/ownership";
 import { computeSummary } from "../../src/lib/idp/idpProgressTracker";
 import type {
   DevelopmentPlan,
@@ -173,7 +174,7 @@ function rowToCheckin(r: DbCheckin): IDPCheckin {
 // NOTA: el check de PROPIEDAD del jugador se añade en el PR de ownership.
 export default withHandler(
   { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-  async ({ query }) => {
+  async ({ query, userId, isServiceCall }) => {
   const playerId = query.playerId;
   const monthStart = query.monthStart ?? currentMonthStart();
   const includeMetrics = query.includeMetrics;
@@ -182,6 +183,11 @@ export default withHandler(
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return successResponse({ plan: null, source: "no_supabase" });
+  }
+
+  // Ownership: solo el dueño del jugador (players.user_id) puede leer su plan.
+  if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+    return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
   }
 
   try {

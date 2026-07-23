@@ -19,6 +19,7 @@
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer, ownsSession } from "../_lib/ownership";
 import analyzeSession from "./_analyze-session";
 import coachingAssistant from "../agents/_coaching-assistant";
 import trackPlayers from "./_track-players";
@@ -60,11 +61,15 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   // (incl. reportes de menores en parent-report) — hallazgo de la review V4.
   "session-analysis": withHandler(
     { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-    async ({ query }) => {
+    async ({ query, userId, isServiceCall }) => {
     const sessionId = query.sessionId;
     if (!sessionId) return errorResponse("sessionId required", 400);
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ sessionId, session: null, source: "no_supabase" });
+    }
+    // Ownership: solo el coach dueño de la sesión (training_sessions.coach_id).
+    if (!isServiceCall && !(await ownsSession(sessionId, userId))) {
+      return errorResponse("No autorizado para esta sesión", 403, "FORBIDDEN");
     }
     try {
       const res = await fetch(
@@ -89,6 +94,11 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
     async ({ query }) => {
     const teamId = query.teamId;
     if (!teamId) return errorResponse("teamId required", 400);
+    // TODO(ownership): falta check de propiedad por equipo. El mapeo user→team/org
+    // no está resuelto en el esquema (no hay tabla teams; team_members sin org_id
+    // claro). Riesgo acotado: devuelve dato AGREGADO (balance del equipo, no PII de
+    // menores) y el caller del frontend no manda auth (401→mock). Pendiente: resolver
+    // el modelo team/org y filtrar por él (p.ej. training_sessions.coach_id del user).
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ teamId, recommendation: null, source: "no_supabase" });
     }
@@ -152,11 +162,15 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
 
   "parent-report": withHandler(
     { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-    async ({ query }) => {
+    async ({ query, userId, isServiceCall }) => {
     const playerId = query.playerId;
     if (!playerId) return errorResponse("playerId required", 400);
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ playerId, report: null, source: "no_supabase" });
+    }
+    // Ownership: solo el dueño del jugador (players.user_id) puede leer su reporte.
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
     try {
       const res = await fetch(
