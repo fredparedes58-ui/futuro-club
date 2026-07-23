@@ -110,7 +110,7 @@ VALORACIÓN COACH (0-100, subjetiva)
 PHV (maduración biológica · Mirwald)
 - Categoría: ${p.phv.category ?? "no calculado"}
 - Offset: ${p.phv.offset !== null ? `${p.phv.offset > 0 ? "+" : ""}${p.phv.offset} años` : "?"}
-- Edad biológica: ${p.phv.biological_age ?? "?"} años
+- APHV estimado: ${p.phv.offset !== null && p.age ? `${(p.age - p.phv.offset).toFixed(2)}a` : "—"}
 
 VSI cacheado: ${p.vsi}/100
 
