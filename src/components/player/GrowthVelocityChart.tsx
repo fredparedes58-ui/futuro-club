@@ -25,7 +25,6 @@ interface AnthroRow {
   weight_kg: number;
   chronological_age: number;
   maturity_offset: number;
-  biological_age: number;
   phv_category: "early" | "ontime" | "late";
   measured_at: string;
 }

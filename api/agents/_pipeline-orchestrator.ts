@@ -267,7 +267,6 @@ export default withHandler(
         vsi: vsi,
         phv: anthro
           ? {
-              biological_age: anthro.biological_age,
               chronological_age: anthro.chronological_age,
               offset: anthro.maturity_offset,
               category: anthro.phv_category,
@@ -388,7 +387,6 @@ export default withHandler(
         vsiHistory,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
-        biologicalAge: anthro?.biological_age ?? null,
         injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? null,
         injuryCategory: (injuryRiskResult as Record<string, unknown> | null)?.riskCategory ?? null,
         positionFitScores: [],

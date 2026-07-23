@@ -88,7 +88,6 @@ interface PlayerCtx {
   weight_kg: number | null;
   phv_category: string | null;
   phv_offset: number | null;
-  biological_age: number | null;
 }
 
 function buildContext(p: PlayerCtx): string {
@@ -168,12 +167,6 @@ export default withHandler(
       });
     }
 
-    const { data: anthro } = await supabase
-      .from("player_latest_anthropometrics")
-      .select("biological_age")
-      .eq("player_id", input.playerId)
-      .maybeSingle();
-
     const ctx: PlayerCtx = {
       name: pRow.name,
       age: pRow.age,
@@ -182,7 +175,6 @@ export default withHandler(
       weight_kg: pRow.weight_kg,
       phv_category: pRow.phv_category,
       phv_offset: Number(pRow.phv_offset) || 0,
-      biological_age: anthro?.biological_age ?? null,
     };
 
     // ── 2. Generar plan ────────────────────────────────────────
@@ -204,7 +196,6 @@ export default withHandler(
       latencyMs: Date.now() - startedAt,
       context: {
         chronologicalAge: ctx.age,
-        biologicalAge: ctx.biological_age,
         phvCategory: ctx.phv_category,
         phvOffset: ctx.phv_offset,
       },
