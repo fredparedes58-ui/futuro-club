@@ -3,7 +3,6 @@
  *
  * Used in:
  * - PlayerHubPage (tab "Salud") — CRUD for medical staff
- * - OnboardingWizard — optional retroactive injury entry
  *
  * Persists to Supabase `player_injuries` table via /api/injuries/save endpoint.
  * Fallback to localStorage if API unavailable.
