@@ -3,11 +3,12 @@
  * Routes /api/behavioral/{action} to the correct handler.
  *
  *   POST /api/behavioral/compute-profile → compute behavioral profile
- *   GET  /api/behavioral/get-profile → get stored profile
+ *   GET  /api/behavioral/get-profile → get stored profile (auth required)
  *   POST /api/behavioral/behavioral-report → AI behavioral report
  */
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
+import { withHandler } from "../_lib/withHandler";
 import computeProfile from "./_compute-profile";
 import behavioralReport from "../agents/_behavioral-report";
 
@@ -35,12 +36,18 @@ interface BehavioralRow {
   model_version: string;
 }
 
-const routes: Record<string, (req: Request) => Promise<Response>> = {
-  "compute-profile": computeProfile,
-  "behavioral-report": behavioralReport,
-  "get-profile": async (req: Request) => {
-    const url = new URL(req.url);
-    const playerId = url.searchParams.get("playerId");
+/**
+ * GET /api/behavioral/get-profile?playerId=xxx — perfil conductual de un menor.
+ * requireAuth: cierra el acceso anónimo (antes era público → cualquiera podía
+ * leer el perfil psicológico de cualquier jugador enumerando IDs).
+ * allowServiceToken: deja pasar llamadas internas (orchestrator/cron).
+ * NOTA: el check de PROPIEDAD (que el jugador pertenezca al usuario) se añade
+ * en el PR de ownership; aquí solo se exige autenticación.
+ */
+const getProfile = withHandler(
+  { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ query }) => {
+    const playerId = query.playerId;
     if (!playerId) return errorResponse("playerId required", 400);
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -50,7 +57,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
     try {
       // Último perfil conductual del jugador
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/behavioral_profiles?player_id=eq.${playerId}&select=*&order=analyzed_at.desc&limit=1`,
+        `${SUPABASE_URL}/rest/v1/behavioral_profiles?player_id=eq.${encodeURIComponent(playerId)}&select=*&order=analyzed_at.desc&limit=1`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
       if (!res.ok) {
@@ -94,6 +101,12 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
       return errorResponse("Internal error fetching profile", 500);
     }
   },
+);
+
+const routes: Record<string, (req: Request) => Promise<Response>> = {
+  "compute-profile": computeProfile,
+  "behavioral-report": behavioralReport,
+  "get-profile": getProfile,
 };
 
 export default async function handler(req: Request): Promise<Response> {

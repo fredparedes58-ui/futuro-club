@@ -81,7 +81,9 @@ async function fetchBehavioralProfile(playerId: string): Promise<BehavioralProfi
 
   // Fallback to the existing API endpoint (server-side compute)
   try {
-    const res = await fetch(`${API_BASE}/get-profile?playerId=${encodeURIComponent(playerId)}`);
+    const res = await fetch(`${API_BASE}/get-profile?playerId=${encodeURIComponent(playerId)}`, {
+      headers: await getAuthHeaders(),
+    });
     if (!res.ok) return generateMockProfile(playerId);
     const data = await res.json();
     if (data.data?.status === "not_implemented") return generateMockProfile(playerId);
