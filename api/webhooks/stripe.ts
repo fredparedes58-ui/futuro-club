@@ -34,6 +34,17 @@ interface StripeSubscription {
   metadata: Record<string, string>;
 }
 
+/** Comparación de hex en tiempo constante (evita timing side-channel en la firma). */
+function timingSafeEqualHex(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// Tolerancia de replay: rechazamos eventos con timestamp fuera de ±5 min.
+const SIGNATURE_TOLERANCE_SEC = 300;
+
 async function verifyStripeSignature(rawBody: string, signature: string | null): Promise<boolean> {
   if (!STRIPE_WEBHOOK_SECRET || !signature) return false;
   // Stripe uses format: t=timestamp,v1=signature
@@ -41,6 +52,13 @@ async function verifyStripeSignature(rawBody: string, signature: string | null):
   const timestamp = parts.find((p) => p.startsWith("t="))?.slice(2);
   const sig = parts.find((p) => p.startsWith("v1="))?.slice(3);
   if (!timestamp || !sig) return false;
+
+  // Replay protection: el timestamp firmado debe estar dentro de la tolerancia.
+  const tsSec = parseInt(timestamp, 10);
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(tsSec) || Math.abs(nowSec - tsSec) > SIGNATURE_TOLERANCE_SEC) {
+    return false;
+  }
 
   const signedPayload = `${timestamp}.${rawBody}`;
   const encoder = new TextEncoder();
@@ -56,7 +74,7 @@ async function verifyStripeSignature(rawBody: string, signature: string | null):
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  return computedSig === sig;
+  return timingSafeEqualHex(computedSig, sig);
 }
 
 function tierFromPriceId(priceId: string): string | null {
@@ -120,12 +138,17 @@ export default async function handler(req: Request) {
   const signature = req.headers.get("stripe-signature");
   const rawBody = await req.text();
 
-  // Verificar firma (en prod) · skip en dev sin secret
-  if (STRIPE_WEBHOOK_SECRET) {
-    const valid = await verifyStripeSignature(rawBody, signature);
-    if (!valid) {
-      return errorResponse({ code: "invalid_signature", message: "Firma Stripe inválida", status: 401 });
-    }
+  // Fail-CLOSED: sin secret configurado NO procesamos el webhook. Antes se
+  // saltaba la verificación cuando faltaba el secret → cualquiera podía
+  // falsificar un evento (p.ej. checkout.session.completed con su user_id) y
+  // auto-otorgarse un plan de pago. El secret DEBE estar configurado en prod.
+  if (!STRIPE_WEBHOOK_SECRET) {
+    console.error("[VITAS] STRIPE_WEBHOOK_SECRET no configurado — webhook rechazado");
+    return errorResponse({ code: "config_error", message: "Webhook no configurado", status: 503 });
+  }
+  const valid = await verifyStripeSignature(rawBody, signature);
+  if (!valid) {
+    return errorResponse({ code: "invalid_signature", message: "Firma Stripe inválida", status: 401 });
   }
 
   const event = JSON.parse(rawBody);
