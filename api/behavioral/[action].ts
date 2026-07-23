@@ -9,6 +9,7 @@
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer } from "../_lib/ownership";
 import computeProfile from "./_compute-profile";
 import behavioralReport from "../agents/_behavioral-report";
 
@@ -46,12 +47,17 @@ interface BehavioralRow {
  */
 const getProfile = withHandler(
   { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-  async ({ query }) => {
+  async ({ query, userId, isServiceCall }) => {
     const playerId = query.playerId;
     if (!playerId) return errorResponse("playerId required", 400);
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ playerId, profile: null, source: "no_supabase" });
+    }
+
+    // Ownership: solo el dueño del jugador (players.user_id) puede leer su perfil.
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
 
     try {

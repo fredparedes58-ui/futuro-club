@@ -7,6 +7,7 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
+import { ownsPlayer } from "../_lib/ownership";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
@@ -29,8 +30,8 @@ const InjurySaveSchema = z.object({
 });
 
 export default withHandler(
-  { method: "POST", schema: InjurySaveSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId }) => {
+  { method: "POST", schema: InjurySaveSchema, requireAuth: true, allowServiceToken: true, maxRequests: 30 },
+  async ({ body, userId, isServiceCall }) => {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -39,6 +40,12 @@ export default withHandler(
     }
 
     const { playerId, injuries } = body;
+
+    // Ownership: verificar propiedad ANTES del DELETE/INSERT (evita que un
+    // usuario sobrescriba o borre el historial de lesiones de otro jugador).
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
+    }
 
     // Get tenant_id from player
     const playerRes = await fetch(
