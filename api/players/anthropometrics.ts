@@ -83,9 +83,13 @@ function computePhv(input: {
   else if ((offset >= -2 && offset < -1) || (offset > 1 && offset <= 2)) development_window = "active";
   else development_window = "stable";
 
+  // NOTA: NO emitimos "biological_age = age + offset" — es un concepto inválido
+  // (el maturity offset de Mirwald son años respecto al PHV, no un delta de edad;
+  // sumarlo no tiene sentido). El cliente ya lo retiró (ver src/lib/phv/mirwald.ts
+  // y playerMaturity.ts). La maduración se representa con offset + category; el
+  // APHV válido (age − offset) se deriva donde se necesita.
   return {
     offset,
-    biologicalAge: Number((input.age + offset).toFixed(2)),
     category,
     phv_status,
     development_window,
@@ -223,7 +227,6 @@ export default withHandler(
           leg_length_cm: input.legLengthCm ?? null,
           chronological_age: input.chronologicalAge,
           maturity_offset: phv.offset,
-          biological_age: phv.biologicalAge,
           phv_category: phv.category,
           phv_status: phv.phv_status,
           development_window: phv.development_window,
@@ -302,7 +305,6 @@ export default withHandler(
         leg_length_cm: input.legLengthCm,
         chronological_age: input.chronologicalAge,
         maturity_offset: phv.offset,
-        biological_age: phv.biologicalAge,
         phv_category: phv.category,
         phv_status: phv.phv_status,
         development_window: phv.development_window,

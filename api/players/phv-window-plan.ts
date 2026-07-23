@@ -97,7 +97,6 @@ function buildContext(p: PlayerCtx): string {
   return `JUGADOR
 - Nombre: ${p.name ?? "—"}
 - Edad cronológica: ${p.age ?? "?"} años
-- Edad biológica: ${p.biological_age ?? "?"} años
 - Posición: ${p.position ?? "?"}
 - Altura: ${p.height_cm ?? "?"} cm · Peso: ${p.weight_kg ?? "?"} kg
 
