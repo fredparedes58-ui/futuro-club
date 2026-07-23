@@ -45,7 +45,6 @@ const valuationSchema = z.object({
   // PHV
   phvOffset: z.number().nullable().optional(),
   phvCategory: z.string().nullable().optional(),
-  biologicalAge: z.number().nullable().optional(),
 
   // Injury risk (from injury-risk-calculator)
   injuryRisk: z.number().min(0).max(100).nullable().optional(),
@@ -129,7 +128,6 @@ function vsiTrendScore(
 
 function phvCeilingScore(
   phvOffset: number | null,
-  biologicalAge: number | null,
   chronologicalAge: number | null,
 ): number {
   // Early developers often appear better but have less growth ceiling
@@ -274,7 +272,7 @@ export default withHandler(
 
     // Calculate each factor
     const vsiScore = vsiTrendScore(input.currentVsi ?? null, input.vsiHistory);
-    const phvScore = phvCeilingScore(input.phvOffset ?? null, input.biologicalAge ?? null, input.age ?? null);
+    const phvScore = phvCeilingScore(input.phvOffset ?? null, input.age ?? null);
     const versScore = versatilityScore(input.positionFitScores, input.position ?? null);
     const injScore = injuryAdjustmentScore(input.injuryRisk ?? null, input.injuryCategory ?? null);
     const ctxScore = contextScore(input.age ?? null, input.competitiveLevel);

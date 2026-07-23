@@ -52,7 +52,6 @@ interface AnthroRow {
   leg_length_cm: number | null;
   chronological_age: number;
   maturity_offset: number;
-  biological_age: number;
   phv_category: "early" | "ontime" | "late";
   phv_status: PhvResult["phv_status"];
   development_window: PhvResult["development_window"];

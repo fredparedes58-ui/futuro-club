@@ -50,7 +50,6 @@ interface PlayerProfile {
   phv: {
     category: string | null;
     offset: number | null;
-    biological_age: number | null;
   };
   vsi: number;
   tenant_id: string;
@@ -364,7 +363,7 @@ export default withHandler(
 
     const { data: anthro } = await supabase
       .from("player_latest_anthropometrics")
-      .select("biological_age, maturity_offset, phv_category")
+      .select("maturity_offset, phv_category")
       .eq("player_id", input.playerId)
       .maybeSingle();
 
@@ -389,7 +388,6 @@ export default withHandler(
       phv: {
         category:        anthro?.phv_category    ?? playerRow.phv_category ?? null,
         offset:          anthro?.maturity_offset ?? (Number(playerRow.phv_offset) || null),
-        biological_age:  anthro?.biological_age  ?? null,
       },
       vsi: Number(playerRow.vsi) || 0,
     };
