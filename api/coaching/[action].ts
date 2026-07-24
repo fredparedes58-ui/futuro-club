@@ -19,7 +19,7 @@
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { withHandler } from "../_lib/withHandler";
-import { ownsPlayer, ownsSession } from "../_lib/ownership";
+import { ownsPlayer, ownsSession, ownsTeam } from "../_lib/ownership";
 import analyzeSession from "./_analyze-session";
 import coachingAssistant from "../agents/_coaching-assistant";
 import trackPlayers from "./_track-players";
@@ -91,21 +91,22 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
 
   "session-recommendation": withHandler(
     { method: ["GET"], requireAuth: true, allowServiceToken: true, maxRequests: 60 },
-    async ({ query }) => {
+    async ({ query, userId, isServiceCall }) => {
     const teamId = query.teamId;
     if (!teamId) return errorResponse("teamId required", 400);
-    // TODO(ownership): falta check de propiedad por equipo. El mapeo user→team/org
-    // no está resuelto en el esquema (no hay tabla teams; team_members sin org_id
-    // claro). Riesgo acotado: devuelve dato AGREGADO (balance del equipo, no PII de
-    // menores) y el caller del frontend no manda auth (401→mock). Pendiente: resolver
-    // el modelo team/org y filtrar por él (p.ej. training_sessions.coach_id del user).
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return successResponse({ teamId, recommendation: null, source: "no_supabase" });
+    }
+    // Ownership: no hay tabla teams; el vínculo usuario↔equipo es ser coach de
+    // alguna sesión del equipo (training_sessions.coach_id, lo que exige la RLS).
+    // Sin eso, no hay nada legítimamente suyo que agregar.
+    if (!isServiceCall && !(await ownsTeam(teamId, userId))) {
+      return errorResponse("No autorizado para este equipo", 403, "FORBIDDEN");
     }
     try {
       // Últimas 8 sesiones completadas del equipo
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/training_sessions?team_id=eq.${teamId}&status=eq.completed&select=id,session_date,balance,total_load,duration_min&order=session_date.desc&limit=8`,
+        `${SUPABASE_URL}/rest/v1/training_sessions?team_id=eq.${encodeURIComponent(teamId)}&status=eq.completed&select=id,session_date,balance,total_load,duration_min&order=session_date.desc&limit=8`,
         { headers: sbHeaders() },
       );
       if (!res.ok) {
