@@ -175,12 +175,23 @@ export default withHandler(
     // 3. Generate insights for each player
     const generatedInsights: Array<Record<string, unknown>> = [];
     const errors: string[] = [];
+    const skipped: string[] = [];
 
     for (const player of players) {
       try {
         const playerAnalyses = analysesByPlayer.get(player.id) ?? [];
         const latestAnalysis = playerAnalyses[0] ?? null;
         const previousAnalysis = playerAnalyses[1] ?? null;
+
+        // Sin datos reales (0 minutos jugados Y sin análisis completado) → NO
+        // fabricamos una narrativa de scouting. El jugador entra al feed cuando
+        // tenga minutos jugados o un análisis de vídeo. (Evita insights inventados
+        // sobre cero datos, p.ej. "sugiere capacidad para acelerar desarrollo".)
+        const hasRealData = (player.minutes_played ?? 0) > 0 || playerAnalyses.length > 0;
+        if (!hasRealData) {
+          skipped.push(player.name);
+          continue;
+        }
 
         const context = detectContext(player, latestAnalysis, previousAnalysis);
 
@@ -403,6 +414,8 @@ RESPONDE ÚNICAMENTE JSON:
     return successResponse({
       generated: generatedInsights.length,
       insights: generatedInsights,
+      skippedNoData: skipped.length,
+      skipped: skipped.length > 0 ? skipped : undefined,
       errors: errors.length > 0 ? errors : undefined,
       totalPlayers: players.length,
     });

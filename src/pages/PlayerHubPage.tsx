@@ -150,6 +150,12 @@ export default function PlayerHubPage() {
     return id ? PlayerService.getById(id) : null;
   }, [id, phvRefresh]);
 
+  // PHV canónico GATEADO: null si no hay datos reales completos (Mirwald con
+  // altura sentado + longitud de pierna medidos, o Khamis-Roche con padres).
+  // Se usa para NO mostrar un PHV fabricado (jugador sin medición registrada).
+  const phvProduct = usePHVProduct(id);
+  const hasValidPhv = phvProduct !== null;
+
   // Analyses
   const { data: analyses } = useSavedAnalysesV2(id ?? "");
   const latestAnalysis = analyses?.[0];
@@ -235,8 +241,8 @@ export default function PlayerHubPage() {
     );
   }
 
-  const phvIcon = player.phvCategory === "early" ? "🟢" : player.phvCategory === "late" ? "🔵" : player.phvCategory ? "🟡" : "⚪";
-  const phvLabel = player.phvCategory === "early" ? t("playerHubPage.phvPre") : player.phvCategory === "late" ? t("playerHubPage.phvPost") : player.phvCategory ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
+  const phvIcon = !hasValidPhv ? "⚪" : player.phvCategory === "early" ? "🟢" : player.phvCategory === "late" ? "🔵" : player.phvCategory ? "🟡" : "⚪";
+  const phvLabel = !hasValidPhv ? t("playerHubPage.phvNoData") : player.phvCategory === "early" ? t("playerHubPage.phvPre") : player.phvCategory === "late" ? t("playerHubPage.phvPost") : player.phvCategory ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -358,7 +364,7 @@ export default function PlayerHubPage() {
                       {t("players.profile.technicalProfile")}
                     </h2>
                     <span className="text-[10px] text-muted-foreground ml-auto">
-                      {player.phvCategory ? t("players.profile.adjustedByPHV") : t("players.profile.noAdjustPHV")}
+                      {hasValidPhv ? t("players.profile.adjustedByPHV") : t("players.profile.noAdjustPHV")}
                     </span>
                   </div>
                   <RadarChartComponent stats={player.metrics} />
@@ -499,7 +505,7 @@ export default function PlayerHubPage() {
               {player && (
                 <PlayerPhvSection
                   player={player}
-                  hasPhv={!!player.phvCategory}
+                  hasPhv={hasValidPhv}
                   onSaved={() => setPhvRefresh((v) => v + 1)}
                 />
               )}
