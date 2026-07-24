@@ -55,6 +55,10 @@ export interface VSIResult {
  *   Las capacidades defensivas (anticipación, posicionamiento, duelo) son las que
  *   más tardan en madurar. Peso más bajo porque un jugador juvenil con defending
  *   bajo pero buena visión/técnica tiene alto potencial de mejora defensiva.
+ *
+ * ÍNDICES DISTINTOS: este es el VSI de FICHA (6 dims, desde métricas del coach,
+ * para rankings/tarjetas). El VSI de ANÁLISIS DE VÍDEO es otro (5 dims):
+ * api/agents/_vsi-calculator.ts. Son índices diferentes a propósito.
  */
 const VSI_WEIGHTS: Record<keyof PlayerMetrics, number> = {
   speed:     0.18,
