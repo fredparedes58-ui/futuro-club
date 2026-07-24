@@ -56,8 +56,21 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
     const age = typeof p.age === "number" ? p.age : undefined;
     const height = typeof p.height === "number" ? p.height : undefined;
     const weight = typeof p.weight === "number" ? p.weight : undefined;
+    const sittingHeight = typeof p.sittingHeight === "number" ? p.sittingHeight : undefined;
+    const legLength = typeof p.legLength === "number" ? p.legLength : undefined;
+    const hasParents =
+      typeof p.motherHeightCm === "number" && typeof p.fatherHeightCm === "number";
 
-    if (!canComputeMirwald({ age, height, weight })) return null;
+    // PHV solo con datos REALES completos — NO estimamos sitting/leg:
+    //  · Mirwald: edad + altura + peso + altura sentado + longitud de pierna MEDIDOS, o
+    //  · Khamis-Roche: edad + altura + peso + altura de AMBOS padres.
+    // Un jugador con solo altura/peso del alta (sin medición antropométrica registrada)
+    // NO obtiene PHV → evita mostrar una maduración fabricada.
+    const baseOk = canComputeMirwald({ age, height, weight });
+    const canMirwald =
+      baseOk && typeof sittingHeight === "number" && typeof legLength === "number";
+    const canKhamis = baseOk && hasParents;
+    if (!canMirwald && !canKhamis) return null;
 
     const mirwald = computeMirwald({
       chronologicalAge: age!,
