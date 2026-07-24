@@ -21,6 +21,14 @@
  *   - Proyección: PHV adjusted + edad biológica + tendencia histórica
  *
  * NO usa LLM — pura aritmética. Latencia <2ms.
+ *
+ * ÍNDICES DISTINTOS (no reconciliar a la ligera): este es el VSI de ANÁLISIS DE
+ * VÍDEO (5 dims). El VSI de la FICHA del jugador (rankings/tarjetas) es OTRO:
+ * src/services/real/metricsService.ts (6 dims desde métricas del coach). Son
+ * índices diferentes a propósito, no una duplicación.
+ * ESTADO ACTUAL (F3b): technique/mental/tactical llegan como ESTIMACIONES MVP
+ * desde el orchestrator (el pipeline de visión aún no las mide); solo physical y
+ * projection son señales reales → el VSI de vídeo es parcialmente estimado.
  */
 
 import { z } from "zod";

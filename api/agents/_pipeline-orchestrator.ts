@@ -206,16 +206,25 @@ export default withHandler(
       .maybeSingle();
 
     // ── 2. Calcular VSI (servicio determinista) ─────────────────────
-    // Subscores derivados de biomechanics + heuristics MVP
+    // Solo `physical` (biomecánica: frecuencia de zancada + asimetría) y
+    // `projection` (PHV/anthro) se derivan de señales REALES del análisis.
+    // technique/mental/tactical AÚN NO los mide el pipeline de visión → son
+    // ESTIMACIONES placeholder, no valores medidos. Por tanto el VSI de vídeo es
+    // PARCIALMENTE ESTIMADO; no debe tratarse como plenamente medido.
+    // TODO(F3b): sustituir por señales reales (p.ej. scan-rate → mental) cuando
+    // haya un clip de validación. Cambiar estos valores mueve el VSI en toda la
+    // app (rankings/reportes/valoración) → requiere validación antes de tocarlos.
+    const ESTIMATED_SUBSCORES_MVP = { technique: 65, mental: 60, tactical: 55 } as const;
+
     const bm = (analysis.biomechanics ?? {}) as Record<string, number>;
     const sprintNorm = Math.min(100, (bm.stride_frequency_hz ?? 0) * 25);
     const asymmetryPen = 100 - Math.min(100, (bm.asymmetry_pct ?? 0) * 5);
 
     const subscores = {
-      technique: 65,
+      technique: ESTIMATED_SUBSCORES_MVP.technique,
       physical: Math.round((sprintNorm + asymmetryPen) / 2),
-      mental: 60,
-      tactical: 55,
+      mental: ESTIMATED_SUBSCORES_MVP.mental,
+      tactical: ESTIMATED_SUBSCORES_MVP.tactical,
       projection: anthro?.adjusted_vsi ?? 70,
     };
 
