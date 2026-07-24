@@ -71,3 +71,27 @@ export async function ownsSession(sessionId: string | null | undefined, userId: 
     return false;
   }
 }
+
+/**
+ * ¿El usuario `userId` puede ver datos del equipo `teamId`?
+ * No existe tabla `teams` en el esquema — `training_sessions.team_id` es un
+ * soft-ref (UUID sin FK). El único vínculo usuario↔equipo es ser coach de al
+ * menos una sesión de ese equipo (training_sessions.coach_id), que es además
+ * lo que exige la RLS de la tabla. Fail-closed.
+ */
+export async function ownsTeam(teamId: string | null | undefined, userId: string | null): Promise<boolean> {
+  if (!teamId || !userId) return false;
+  const env = supabaseEnv();
+  if (!env) return false;
+  try {
+    const res = await fetch(
+      `${env.url}/rest/v1/training_sessions?team_id=eq.${encodeURIComponent(teamId)}&coach_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`,
+      { headers: serviceHeaders(env.key) },
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as Array<{ id: string }>;
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
