@@ -21,16 +21,22 @@ interface VitasCardProps {
   onClose?:  () => void;
 }
 
+// OJO: el enum phvCategory está INVERTIDO respecto al lenguaje de pares:
+// "early" = pre-PHV = madurador TARDÍO; "late" = post-PHV = PRECOZ
+// (ver src/lib/phv/maturation.ts y PlayerComparison.tsx). Por eso "early"
+// mapea a la etiqueta phvLate (TARDÍO) y "late" a phvEarly (PRECOZ).
 const PHV_LABEL_KEYS: Record<string, string> = {
-  early:  "vitasCard.phvEarly",
+  early:  "vitasCard.phvLate",   // pre-PHV → madurador TARDÍO
+  late:   "vitasCard.phvEarly",  // post-PHV → madurador PRECOZ
   ontme:  "vitasCard.phvNormal",
-  late:   "vitasCard.phvLate",
+  ontime: "vitasCard.phvNormal",
 };
 
 const PHV_COLORS: Record<string, string> = {
-  early:  "#F59E0B",
+  early:  "#3B82F6",  // TARDÍO
+  late:   "#F59E0B",  // PRECOZ
   ontme:  "#22C55E",
-  late:   "#3B82F6",
+  ontime: "#22C55E",
 };
 
 const METRIC_LABEL_KEYS: Record<string, string> = {
