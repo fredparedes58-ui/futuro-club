@@ -41,16 +41,20 @@ const getSchema = z.object({
 });
 
 // ── Helper · fórmula Mirwald (idéntica a _phv-calculator.ts) ─────────
+// sittingHeight y legLength son REQUERIDOS: NO estimamos (height*0.52). Estimar
+// fabrica una categoría PHV a partir de solo altura+peso+edad, saltándose el gate
+// del cliente (usePHVProduct exige sitting+leg reales o alturas de ambos padres).
+// El caller solo debe invocar computePhv cuando hay medidas reales; si no, PHV=null.
 function computePhv(input: {
   age: number;
   height: number;
   weight: number;
-  sittingHeight?: number;
-  legLength?: number;
+  sittingHeight: number;
+  legLength: number;
   gender: "M" | "F";
 }) {
-  const sh = input.sittingHeight ?? input.height * 0.52;
-  const ll = input.legLength ?? input.height * 0.48;
+  const sh = input.sittingHeight;
+  const ll = input.legLength;
 
   let offset: number;
   if (input.gender === "M") {
@@ -237,14 +241,18 @@ export default withHandler(
         });
       }
 
-      const phv = computePhv({
-        age: input.chronologicalAge,
-        height: input.heightCm,
-        weight: input.weightKg,
-        sittingHeight: input.sittingHeightCm,
-        legLength: input.legLengthCm,
-        gender: input.gender ?? "M",
-      });
+      // PHV solo con sitting+leg REALES (sin estimar). Si faltan → null (no fabricar).
+      const phv =
+        input.sittingHeightCm != null && input.legLengthCm != null
+          ? computePhv({
+              age: input.chronologicalAge,
+              height: input.heightCm,
+              weight: input.weightKg,
+              sittingHeight: input.sittingHeightCm,
+              legLength: input.legLengthCm,
+              gender: input.gender ?? "M",
+            })
+          : null;
 
       const { data: row, error } = await supabase
         .from("player_anthropometrics")
@@ -254,10 +262,10 @@ export default withHandler(
           sitting_height_cm: input.sittingHeightCm ?? null,
           leg_length_cm: input.legLengthCm ?? null,
           chronological_age: input.chronologicalAge,
-          maturity_offset: phv.offset,
-          phv_category: phv.category,
-          phv_status: phv.phv_status,
-          development_window: phv.development_window,
+          maturity_offset: phv?.offset ?? null,
+          phv_category: phv?.category ?? null,
+          phv_status: phv?.phv_status ?? null,
+          development_window: phv?.development_window ?? null,
           notes: input.notes,
         })
         .eq("id", id)
@@ -282,8 +290,8 @@ export default withHandler(
             weight_kg: input.weightKg,
             sitting_height: input.sittingHeightCm ?? null,
             leg_length: input.legLengthCm ?? null,
-            phv_category: phv.category,
-            phv_offset: phv.offset,
+            phv_category: phv?.category ?? null,
+            phv_offset: phv?.offset ?? null,
           }).eq("id", row.player_id);
         }
       }
@@ -317,14 +325,18 @@ export default withHandler(
       return errorResponse({ code: "player_not_found", message: "Jugador no existe", status: 404 });
     }
 
-    const phv = computePhv({
-      age: input.chronologicalAge,
-      height: input.heightCm,
-      weight: input.weightKg,
-      sittingHeight: input.sittingHeightCm,
-      legLength: input.legLengthCm,
-      gender: input.gender,
-    });
+    // PHV solo con sitting+leg REALES (sin estimar). Si faltan → null (no fabricar).
+    const phv =
+      input.sittingHeightCm != null && input.legLengthCm != null
+        ? computePhv({
+            age: input.chronologicalAge,
+            height: input.heightCm,
+            weight: input.weightKg,
+            sittingHeight: input.sittingHeightCm,
+            legLength: input.legLengthCm,
+            gender: input.gender,
+          })
+        : null;
 
     const { data: row, error } = await supabase
       .from("player_anthropometrics")
@@ -336,10 +348,10 @@ export default withHandler(
         sitting_height_cm: input.sittingHeightCm,
         leg_length_cm: input.legLengthCm,
         chronological_age: input.chronologicalAge,
-        maturity_offset: phv.offset,
-        phv_category: phv.category,
-        phv_status: phv.phv_status,
-        development_window: phv.development_window,
+        maturity_offset: phv?.offset ?? null,
+        phv_category: phv?.category ?? null,
+        phv_status: phv?.phv_status ?? null,
+        development_window: phv?.development_window ?? null,
         measured_by_user: userId,
         notes: input.notes,
       })
@@ -356,8 +368,8 @@ export default withHandler(
       weight_kg: input.weightKg,
       sitting_height: input.sittingHeightCm ?? null,
       leg_length: input.legLengthCm ?? null,
-      phv_category: phv.category,
-      phv_offset: phv.offset,
+      phv_category: phv?.category ?? null,
+      phv_offset: phv?.offset ?? null,
     }).eq("id", input.playerId);
 
     return successResponse({ saved: true, record: row, phv });
