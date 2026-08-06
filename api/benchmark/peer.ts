@@ -29,6 +29,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -79,8 +80,8 @@ function computeStats(values: number[], playerValue: number): MetricStats | null
 }
 
 export default withHandler(
-  { method: "GET", requireAuth: true, maxRequests: 60 },
-  async ({ query }) => {
+  { method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ query, userId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
       return errorResponse({
@@ -88,6 +89,12 @@ export default withHandler(
         message: params.error.errors[0]?.message ?? "playerId requerido",
         status: 400,
       });
+    }
+
+    // El jugador OBJETIVO debe pertenecer al usuario (el pool de peers es
+    // anonimizado cross-tenant a propósito — solo agregados, sin IDs).
+    if (!isServiceCall && !(await ownsPlayer(params.data.playerId, userId))) {
+      return errorResponse({ code: "forbidden", message: "No autorizado para este jugador", status: 403 });
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
