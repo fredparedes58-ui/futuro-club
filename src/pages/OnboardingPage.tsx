@@ -28,6 +28,7 @@ import {
   type UserRole,
 } from "@/services/real/userProfileService";
 import { PlayerService } from "@/services/real/playerService";
+import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { OrganizationService } from "@/services/real/organizationService";
 import { DemoDataService } from "@/services/real/demoDataService";
 
@@ -103,7 +104,7 @@ const OnboardingPage = () => {
       // Crear primer jugador solo si NO se omite y se dio nombre (flag explícito,
       // no depende de setState asíncrono → "Omitir"/"demo" ya no crean jugador).
       if (!opts?.skipPlayer && playerName.trim()) {
-        PlayerService.create({
+        const created = PlayerService.create({
           name: playerName.trim(),
           age: parseInt(playerAge) || 14,
           position: playerPosition,
@@ -118,6 +119,10 @@ const OnboardingPage = () => {
             stamina: 60, shooting: 50, defending: 50,
           },
         });
+        // Empujar a Supabase para que el jugador exista como sujeto de análisis
+        // de vídeo / PHV de servidor (antes: localStorage-only → el pipeline no lo
+        // encontraba). Best-effort · mismo patrón que PlayerPhvSection.
+        SupabasePlayerService.pushOne(user.id, created).catch(() => {});
       }
 
       toast.success(t("toasts.profileConfigured"));
