@@ -45,6 +45,7 @@ const makeState = (overrides: Partial<UploadState> = {}): UploadState => ({
   error: null,
   video: null,
   analysis: null,
+  analysisQueued: false,
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
@@ -141,7 +142,7 @@ describe("VideoUpload", () => {
     );
 
     render(<VideoUpload />);
-    expect(screen.getByText("videoUpload.uploadedAnalyzed")).toBeDefined();
+    expect(screen.getByText("videoUpload.uploaded")).toBeDefined();
     expect(screen.getByText(/v1/)).toBeDefined();
   });
 

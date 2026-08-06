@@ -18,6 +18,7 @@ const IDLE_STATE: UploadState = {
   error: null,
   video: null,
   analysis: null,
+  analysisQueued: false,
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
@@ -138,23 +139,13 @@ describe("VideoUpload — done state", () => {
       progress: 100,
       encodeProgress: 100,
       videoId: "test-video-123",
-      analysis: {
-        formationHint: "4-3-3",
-        pressureZone: "medio campo",
-        keyMovements: ["Sprint", "Pass"],
-        playerCount: 10,
-        ballDetected: true,
-        tacticalPhase: "attack",
-        confidence: 0.8,
-        notes: "Good pressing",
-        analyzedAt: "2026-07-10T00:00:00.000Z",
-      },
+      analysisQueued: true,
     });
   });
 
   it("shows success message", () => {
     render(<VideoUpload />);
-    expect(screen.getByText("videoUpload.uploadedAnalyzed")).toBeTruthy();
+    expect(screen.getByText("videoUpload.uploaded")).toBeTruthy();
   });
 
   it("shows video ID", () => {
@@ -162,12 +153,10 @@ describe("VideoUpload — done state", () => {
     expect(screen.getByText(/test-video-123/)).toBeTruthy();
   });
 
-  it("shows analysis results", () => {
+  it("shows analysis queued message (no 1-frame summary)", () => {
     render(<VideoUpload />);
-    expect(screen.getByText("4-3-3")).toBeTruthy();
-    expect(screen.getByText("Good pressing")).toBeTruthy();
-    expect(screen.getByText("Sprint")).toBeTruthy();
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("videoUpload.analysisQueuedTitle")).toBeTruthy();
+    expect(screen.getByText("videoUpload.analysisQueuedHint")).toBeTruthy();
   });
 
   it("shows upload another button", () => {

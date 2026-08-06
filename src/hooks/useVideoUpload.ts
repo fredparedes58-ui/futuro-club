@@ -5,7 +5,10 @@
  *   1. POST /api/upload/video-init  → get uploadUrl + videoId + accessKey
  *   2. PUT file directly to Bunny   → XHR for real progress %
  *   3. Poll /api/videos/{id}/status → wait for encode to finish
- *   4. POST /api/pipeline/start     → run Roboflow + TacticalLabel
+ *   4. El análisis REAL (Gemini vídeo completo → PHV + 6 reportes) corre ASYNC
+ *      vía el webhook de Bunny (bunny-uploaded → cola de analyses). Este hook YA
+ *      NO llama a /api/pipeline/start (análisis de 1 frame, retirado); expone
+ *      analysisQueued=true y el resultado aparece en la ficha (by-video polling).
  *
  * Returns upload state + controls.
  */
@@ -71,6 +74,12 @@ export interface UploadState {
   error: string | null;
   video: VideoRecord | null;
   analysis: VideoAnalysis | null;
+  /**
+   * true cuando el vídeo quedó subido+codificado y el análisis REAL (Gemini +
+   * PHV + 6 reportes) está encolado async vía el webhook de Bunny. Antes aquí se
+   * corría /api/pipeline/start (análisis de 1 frame, inferior) — retirado.
+   */
+  analysisQueued: boolean;
   phase2Pending: boolean;
   uploadSpeed: number;     // bytes per second
   etaSeconds: number;      // estimated time remaining
@@ -84,6 +93,7 @@ const INITIAL: UploadState = {
   error: null,
   video: null,
   analysis: null,
+  analysisQueued: false,
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
@@ -467,42 +477,25 @@ export function useVideoUpload(playerId?: string) {
           pollTimerRef.current = setTimeout(poll, POLL_INTERVAL_MS);
         });
 
-        // ── Step 4: Run analysis pipeline ────────────────────────────────────
-        setPhase("analyzing");
-
-        const pipelineRes = await fetch("/api/pipeline/start", {
-          method: "POST",
-          headers: await authHeaders(),
-          body: JSON.stringify({ videoId, playerId }),
-        });
-
-        // pipeline/start ahora retorna { success, report, pipelineMeta }
-        // (ya no retorna HTML — consume SSE internamente y devuelve JSON)
-        let pipelineData: {
-          success?: boolean;
-          report?: VideoAnalysis;
-          error?: string;
-        } = {};
-        try {
-          pipelineData = (await pipelineRes.json()) as typeof pipelineData;
-        } catch {
-          // JSON parse falló → continuar con analysis null (upload sigue exitoso)
-          console.warn("[useVideoUpload] pipeline response no es JSON válido");
-        }
-
-        let analysis: VideoAnalysis | null = null;
-        if (pipelineData.success && pipelineData.report) {
-          analysis = pipelineData.report;
-          VideoService.saveAnalysis(videoId, analysis);
-        }
-
+        // ── Step 4: El análisis REAL corre async ─────────────────────────────
+        // El vídeo ya está subido y codificado. El análisis con corrección PHV
+        // (Gemini observa el vídeo completo → biomecánica + VSI + 6 reportes) se
+        // dispara ASYNC vía el webhook de Bunny (bunny-uploaded → cola de
+        // analyses, que se procesa de inmediato) y aparece en la ficha del
+        // jugador (usePlayerAnalysisV2 / by-video hacen el polling).
+        //
+        // Antes aquí se llamaba a /api/pipeline/start = análisis de 1 SOLO frame
+        // (una thumbnail → Claude Haiku, sin tracking ni PHV), inferior y
+        // redundante con el pipeline real. Retirado (decisión de producto: la
+        // ruta canónica de análisis de jugador es la cola Gemini).
         const finalVideo = VideoService.getById(videoId);
 
         setState((prev) => ({
           ...prev,
           phase: "done",
           video: finalVideo,
-          analysis,
+          analysis: null,
+          analysisQueued: true,
         }));
 
         // Invalidate queries so UI refreshes
