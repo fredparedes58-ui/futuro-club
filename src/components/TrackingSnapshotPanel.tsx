@@ -16,6 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
+import { metricsTrustworthy } from "@/lib/yolo/fieldRegistration";
 import { EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 
 interface Props {
@@ -83,6 +84,18 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
           <Calendar size={10} /> {date}
         </span>
       </div>
+
+      {/* Aviso honesto: sin calibración verificada, las métricas físicas (en
+          metros) son orientativas — dependen de marcar/detectar los puntos del
+          campo (velocidad, distancia, sprints). */}
+      {!metricsTrustworthy(snapshot.calibrationConfidence ?? "none") && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2">
+          <FlaskConical size={12} className="text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-[10px] leading-relaxed text-foreground/70">
+            {t("trackingSnapshotPanel.calibrationCaveat")}
+          </p>
+        </div>
+      )}
 
       {/* Top-line stats grid */}
       <div className="grid grid-cols-2 gap-2">

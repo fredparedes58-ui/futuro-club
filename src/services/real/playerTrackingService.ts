@@ -9,6 +9,7 @@
  * el último prevalece).
  */
 import type { PhysicalMetrics, ScanEvent, DuelEvent, FieldPoint } from "@/lib/yolo/types";
+import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
 import type { TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 import type { FatigueReport } from "@/lib/fatigue/types";
@@ -41,6 +42,13 @@ export interface TrackingSnapshot {
   savedAt:        string;            // ISO
   durationSec:    number;            // duración aproximada de la sesión
   sessionMetrics: PhysicalMetrics;
+  /**
+   * Confianza de la calibración de campo (px↔metros) de esta sesión. Sin ella
+   * (o low/none), las métricas físicas — velocidad, distancia, sprints — son
+   * ORIENTATIVAS, no medidas: dependen de que se hayan marcado/detectado los
+   * puntos del campo. Los snapshots antiguos no la tienen (undefined) → aviso.
+   */
+  calibrationConfidence?: CalibrationConfidence;
   scanCount:      number;
   duelCount:      number;
   tracksCount:    number;

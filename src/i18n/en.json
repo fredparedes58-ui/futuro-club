@@ -4505,6 +4505,7 @@
     "emptyDescription": "Analyze a video in VITAS Lab to see how much and how the player scans, duels, distance, sprints and heat map.",
     "analyzeInLab": "Analyze in VITAS Lab",
     "snapshotTitle": "Movement + Scanning (VITAS Lab)",
+    "calibrationCaveat": "Physical metrics are indicative: this session has no verified field calibration. Speed, distance and sprints in meters depend on marking or detecting the pitch points — without that they are approximate.",
     "labelMaxSpeed": "MAX SPEED",
     "labelAvgSpeed": "AVG SPEED",
     "labelDistance": "DISTANCE",
