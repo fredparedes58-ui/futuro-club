@@ -302,31 +302,21 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
               <CheckCircle2 size={20} className="text-primary" />
               <div>
                 <p className="text-sm font-display font-semibold text-foreground">
-                  {t("videoUpload.uploadedAnalyzed")}
+                  {t("videoUpload.uploaded")}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {t("videoUpload.idLabel")} {state.videoId}
                 </p>
               </div>
             </div>
-            {state.analysis && (
+            {state.analysisQueued && (
               <div className="p-3 rounded-lg bg-secondary space-y-1">
                 <p className="text-xs font-display font-semibold text-foreground">
-                  {state.analysis.formationHint}
+                  {t("videoUpload.analysisQueuedTitle")}
                 </p>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  {state.analysis.notes}
+                  {t("videoUpload.analysisQueuedHint")}
                 </p>
-                <div className="flex gap-2 flex-wrap mt-1">
-                  {state.analysis.keyMovements.map((m, i) => (
-                    <span
-                      key={i}
-                      className="text-[9px] font-display px-1.5 py-0.5 rounded bg-primary/10 text-primary"
-                    >
-                      {m}
-                    </span>
-                  ))}
-                </div>
               </div>
             )}
             <button
