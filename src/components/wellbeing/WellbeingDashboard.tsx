@@ -31,6 +31,7 @@ import OvertrainingAlert from "./OvertrainingAlert";
 import InterventionPlanView from "./InterventionPlanView";
 import EngagementMiniCard from "@/components/coaching/EngagementMiniCard";
 import BurnoutReportView from "@/components/analysis/reports/BurnoutReportView";
+import DemoDataBanner from "@/components/DemoDataBanner";
 
 // Edad por defecto cuando el jugador no tiene edad registrada; el agente
 // refleja la falta de datos en su confidence_score.
@@ -122,6 +123,8 @@ function PlayerDetail({
         <ArrowLeft size={14} />
         {t("wellbeingDashboard.backToTeam")}
       </button>
+
+      {risk?.isMock && <DemoDataBanner messageKey="demoData.wellbeing" />}
 
       {risk && (
         <>
@@ -248,6 +251,10 @@ export default function WellbeingDashboard() {
   const riskResults = useTeamDropoutRisk(playerIds);
   const engagementResults = useTeamEngagement(playerIds);
 
+  // Banner honesto: si CUALQUIER assessment mostrado es mock de demostración
+  // (fallback cuando no hay asistencia/cuestionarios/vídeo reales por jugador).
+  const isDemoData = riskResults.some((q) => q.data?.isMock);
+
   const teamRisk = useMemo(
     () =>
       players.map((p, i) => {
@@ -318,6 +325,8 @@ export default function WellbeingDashboard() {
             exit={{ opacity: 0 }}
             className="space-y-6"
           >
+            {isDemoData && <DemoDataBanner messageKey="demoData.wellbeing" />}
+
             {/* Team risk overview */}
             <div className="glass rounded-xl p-4 space-y-4">
               <div className="flex items-center justify-between gap-2">

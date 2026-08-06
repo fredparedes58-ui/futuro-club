@@ -23,6 +23,8 @@ const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
 export interface DropoutRiskAssessment {
   playerId: string;
+  /** true si el assessment es MOCK de demostración (no medido) → banner honesto. */
+  isMock?: boolean;
   riskScore: number;
   riskLevel: "low" | "moderate" | "high" | "critical";
   primaryFactor: string;
@@ -411,6 +413,7 @@ function generateMockRiskAssessment(playerId: string): DropoutRiskAssessment {
 
   return {
     playerId,
+    isMock: true,
     riskScore,
     riskLevel,
     primaryFactor: "engagementDecline",
