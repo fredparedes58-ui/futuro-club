@@ -4505,6 +4505,7 @@
     "emptyDescription": "Analiza un video en VITAS Lab para ver cuánto y cómo escanea el jugador, duelos, distancia, sprints y mapa de calor.",
     "analyzeInLab": "Analizar en VITAS Lab",
     "snapshotTitle": "Movimiento + Escaneo (VITAS Lab)",
+    "calibrationCaveat": "Métricas físicas orientativas: esta sesión no tiene calibración de campo verificada. La velocidad, la distancia y los sprints en metros dependen de marcar o detectar los puntos del campo — sin eso son aproximadas.",
     "labelMaxSpeed": "VEL. MÁX",
     "labelAvgSpeed": "VEL. PROM",
     "labelDistance": "DISTANCIA",
