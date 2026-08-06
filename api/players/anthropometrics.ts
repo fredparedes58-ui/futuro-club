@@ -13,6 +13,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -102,16 +103,28 @@ export default withHandler(
     requireAuth: true,
     maxRequests: 60,
   },
-  async ({ req, userId, method, query }) => {
+  async ({ req, userId, isServiceCall, method, query }) => {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
     });
+
+    // Datos biométricos/maduración de MENORES: el check de propiedad
+    // (players.user_id) es obligatorio — SERVICE_ROLE salta RLS.
+    const forbidden = () =>
+      errorResponse({ code: "forbidden", message: "No autorizado para este jugador", status: 403 });
+
+    // GET/DELETE/PATCH resuelven el playerId de forma distinta (query vs fila);
+    // cada rama comprueba ownership antes de leer/mutar.
 
     // ── GET · histórico o última medida ──────────────────────────
     if (method === "GET") {
       const params = getSchema.safeParse(query);
       if (!params.success) {
         return errorResponse({ code: "invalid_params", message: "playerId requerido", status: 400 });
+      }
+
+      if (!isServiceCall && !(await ownsPlayer(params.data.playerId, userId))) {
+        return forbidden();
       }
 
       if (params.data.history === "true") {
@@ -146,6 +159,10 @@ export default withHandler(
         .select("player_id")
         .eq("id", id)
         .single();
+
+      if (!isServiceCall && !(await ownsPlayer(rowToDelete?.player_id, userId))) {
+        return forbidden();
+      }
 
       const { error } = await supabase
         .from("player_anthropometrics")
@@ -184,6 +201,17 @@ export default withHandler(
     if (method === "PATCH") {
       const id = query.id;
       if (!id) return errorResponse({ code: "missing_id", message: "Falta id en query", status: 400 });
+
+      // Resolver ownership por la fila ANTES de mutar.
+      const { data: rowOwner } = await supabase
+        .from("player_anthropometrics")
+        .select("player_id")
+        .eq("id", id)
+        .single();
+
+      if (!isServiceCall && !(await ownsPlayer(rowOwner?.player_id, userId))) {
+        return forbidden();
+      }
 
       const body = (await req.json().catch(() => null)) as unknown;
       const parsed = patchSchema.safeParse(body);
@@ -274,6 +302,10 @@ export default withHandler(
       });
     }
     const input = parsed.data;
+
+    if (!isServiceCall && !(await ownsPlayer(input.playerId, userId))) {
+      return forbidden();
+    }
 
     const { data: player } = await supabase
       .from("players")

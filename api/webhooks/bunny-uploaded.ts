@@ -53,10 +53,8 @@ const STATUS_FINISHED = 4;
 const STATUS_ERROR = 5;
 
 async function validateBunnySignature(body: string, signature: string | null): Promise<boolean> {
-  if (!BUNNY_WEBHOOK_SECRET) {
-    console.warn("[VITAS] BUNNY_WEBHOOK_SECRET not configured · skipping signature validation");
-    return true; // dev mode
-  }
+  // Fail-CLOSED: sin secret NO validamos como "ok" (ver guard en el handler).
+  if (!BUNNY_WEBHOOK_SECRET) return false;
   if (!signature) return false;
 
   try {
@@ -70,9 +68,22 @@ async function validateBunnySignature(body: string, signature: string | null): P
 export default withHandler(
   { schema: bunnySchema, requireAuth: false, maxRequests: 200 },
   async ({ body, headers, rawBody }) => {
+    // ── Fail-CLOSED sin secret ──────────────────────────────
+    // Consistente con stripe/modal-tracking: sin BUNNY_WEBHOOK_SECRET no podemos
+    // verificar la firma → rechazamos. Antes hacía fail-OPEN (aceptaba cualquier
+    // webhook), permitiendo forjar filas `analyses` y encolar procesamiento.
+    if (!BUNNY_WEBHOOK_SECRET) {
+      console.error("[VITAS] BUNNY_WEBHOOK_SECRET no configurado — rechazando webhook (fail-closed)");
+      return errorResponse({
+        code: "webhook_not_configured",
+        message: "Webhook signature secret not configured",
+        status: 503,
+      });
+    }
+
     // ── Validar firma Bunny ─────────────────────────────────
     const signature = headers?.["x-bunny-signature"] ?? null;
-    if (BUNNY_WEBHOOK_SECRET && !(await validateBunnySignature(rawBody ?? "", signature))) {
+    if (!(await validateBunnySignature(rawBody ?? "", signature))) {
       return errorResponse({
         code: "invalid_signature",
         message: "Bunny webhook signature mismatch",

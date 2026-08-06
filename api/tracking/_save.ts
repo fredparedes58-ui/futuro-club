@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayer } from "../_lib/ownership";
 
 export const config = { runtime: "edge" };
 
@@ -21,13 +22,19 @@ const TrackingSaveSchema = z.object({
 });
 
 export default withHandler(
-  { method: "POST", schema: TrackingSaveSchema, requireAuth: true, maxRequests: 60 },
-  async ({ body, userId }) => {
+  { method: "POST", schema: TrackingSaveSchema, requireAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ body, userId, isServiceCall }) => {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       return errorResponse("Supabase no configurado", 503, "CONFIG_MISSING");
+    }
+
+    // Si se asigna a un jugador, debe pertenecer al usuario (si no, el historial
+    // de _history se contamina con sesiones ajenas filtradas solo por player_id).
+    if (body.playerId && !isServiceCall && !(await ownsPlayer(body.playerId, userId))) {
+      return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
     }
 
     const row = {

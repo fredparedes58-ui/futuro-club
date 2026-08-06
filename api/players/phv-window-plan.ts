@@ -15,6 +15,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
 
@@ -136,13 +137,18 @@ async function callClaude(system: string, user: string): Promise<Record<string, 
 }
 
 export default withHandler(
-  { schema: bodySchema, requireAuth: true, maxRequests: 10 },
-  async ({ body }) => {
+  { schema: bodySchema, requireAuth: true, allowServiceToken: true, maxRequests: 10 },
+  async ({ body, userId, isServiceCall }) => {
     if (!ANTHROPIC_API_KEY) {
       return errorResponse({ code: "no_api_key", message: "missing", status: 500 });
     }
     const input = body as z.infer<typeof bodySchema>;
     const startedAt = Date.now();
+
+    // Perfil de jugador + generación LLM de pago → ownership obligatorio.
+    if (!isServiceCall && !(await ownsPlayer(input.playerId, userId))) {
+      return errorResponse({ code: "forbidden", message: "No autorizado para este jugador", status: 403 });
+    }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
