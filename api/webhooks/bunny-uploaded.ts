@@ -36,6 +36,10 @@ export const config = { runtime: "edge" };
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const BUNNY_WEBHOOK_SECRET = process.env.BUNNY_WEBHOOK_SECRET ?? "";
+const PUBLIC_URL =
+  process.env.VITAS_PUBLIC_URL ??
+  `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
+const CRON_SECRET = process.env.CRON_SECRET ?? "";
 
 const bunnySchema = z.object({
   VideoLibraryId: z.number(),
@@ -167,11 +171,25 @@ export default withHandler(
 
     console.log(`[VITAS] Analysis ${analysis.id} encolado para video ${video.id}`);
 
+    // Dispara el procesamiento INMEDIATO (fire-and-forget) en vez de esperar al
+    // cron diario (vercel.json: "0 6 * * *"). El cron queda como backstop para lo
+    // que se escape. Mismo patrón que modal-callback (void fetch). Downside
+    // acotado: si el trigger no sale, el comportamiento es el de antes (cron).
+    // Sin esto, la UI (usePlayerAnalysisV2) hace timeout a los 5 min esperando.
+    if (CRON_SECRET) {
+      void fetch(`${PUBLIC_URL}/api/crons/process-analyses-queue`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${CRON_SECRET}` },
+      }).catch((err) => console.error("[bunny-uploaded] trigger de cola falló:", err));
+    }
+
     return successResponse({
       analysisId: analysis.id,
       videoId: video.id,
       status: "queued",
-      estimatedStartIn: "<60s (próximo ciclo del cron)",
+      estimatedStartIn: CRON_SECRET
+        ? "inmediato (procesamiento disparado)"
+        : "<24h (cron diario · CRON_SECRET no configurado)",
     });
   }
 );
