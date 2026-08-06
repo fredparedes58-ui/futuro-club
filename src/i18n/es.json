@@ -2446,8 +2446,8 @@
     "cmPerYear": "cm/año",
     "height": "Altura",
     "velocity": "Velocidad",
-    "categoryEarly": "Pre-estirón (precoz)",
-    "categoryLate": "Post-estirón (tardío)",
+    "categoryEarly": "Pre-estirón",
+    "categoryLate": "Post-estirón",
     "categoryOntime": "En estirón (on-time)",
     "hint": "El <strong>APHV</strong> (Age at Peak Height Velocity) es la edad estimada del salto puberal del jugador. La <strong>ventana neuromotora</strong> (banda morada · APHV-1 a APHV+2) es el periodo de máxima plasticidad para entrenamiento técnico-coordinativo. Categoría actual: <strongCat>{{category}}</strongCat>."
   },

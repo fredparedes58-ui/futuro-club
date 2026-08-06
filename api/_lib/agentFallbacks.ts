@@ -56,10 +56,12 @@ export function phvFallback(body: PHVInput, reason: FallbackReason) {
   // Confidence is lower than Claude's (0.5/0.62 vs 0.74/0.92)
   const confidence = hasRealData ? 0.62 : 0.5;
 
+  // OJO: phvCategory está invertido vs pares — "early" = pre-PHV = madurador
+  // TARDÍO (talento oculto); "late" = post-PHV = PRECOZ (ventaja física temporal).
   const recommendations: Record<string, string> = {
-    early: "Jugador en maduración temprana. Aprovechar ventana de desarrollo con trabajo técnico-táctico.",
-    ontme: "Maduración normal para su edad. Mantener plan de desarrollo equilibrado.",
-    late: "Maduración tardía. Potencial de crecimiento futuro, priorizar técnica sobre físico.",
+    early: "Madurador tardío (aún pre-PHV): su físico no refleja todavía su talento. Priorizar técnica y paciencia; su rendimiento suele emerger tras el estirón.",
+    ontme: "Maduración en fase con su edad. Mantener plan de desarrollo equilibrado.",
+    late: "Madurador precoz (post-PHV): ventaja física posiblemente temporal. Que el VSI no la sobrevalore; reforzar técnica-táctica sobre el físico.",
   };
 
   return {
@@ -246,10 +248,11 @@ export function scoutInsightFallback(body: ScoutInput, reason: FallbackReason) {
     headline = `${p.name} muestra progresión destacada`;
     body_text = `VSI de ${vsi} con tendencia ascendente. Jugador en fase de despegue, monitorizar de cerca para optimizar su desarrollo.`;
   } else if (phv === "early" && speed > 75) {
+    // "early" = pre-PHV = madurador TARDÍO vs pares (no "temprana").
     type = "phv_alert";
     urgency = "high";
     headline = `Alerta PHV: ${p.name} en ventana crítica`;
-    body_text = `Maduración temprana detectada con velocidad ${speed}. Ventana crítica de desarrollo — priorizar técnica sobre carga física.`;
+    body_text = `Madurador tardío (aún pre-PHV) con velocidad ${speed}: rendimiento notable sin ventaja madurativa — señal de talento. Priorizar técnica sobre carga física.`;
   } else if (maxMetric > 85) {
     type = "drill_record";
     urgency = "medium";

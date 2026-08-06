@@ -2446,8 +2446,8 @@
     "cmPerYear": "cm/year",
     "height": "Height",
     "velocity": "Velocity",
-    "categoryEarly": "Pre-spurt (early)",
-    "categoryLate": "Post-spurt (late)",
+    "categoryEarly": "Pre-spurt",
+    "categoryLate": "Post-spurt",
     "categoryOntime": "In spurt (on-time)",
     "hint": "The <strong>APHV</strong> (Age at Peak Height Velocity) is the estimated age of the player's pubertal growth spurt. The <strong>neuromotor window</strong> (purple band · APHV-1 to APHV+2) is the period of maximum plasticity for technical-coordinative training. Current category: <strongCat>{{category}}</strongCat>."
   },

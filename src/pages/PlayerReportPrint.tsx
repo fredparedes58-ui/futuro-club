@@ -254,8 +254,11 @@ export default function PlayerReportPrint() {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-sm font-semibold text-purple-700 capitalize">
-                {rawPlayer.phvCategory === "ontme" ? t("playerReportPrint.maturationNormal") :
-                 rawPlayer.phvCategory === "early" ? t("playerReportPrint.maturationEarly") : t("playerReportPrint.maturationLate")}
+                {/* enum invertido: "early"=pre-PHV=madurador TARDÍO; "late"=post-PHV=PRECOZ.
+                    on-time / desconocido → Normal (rama default). */}
+                {rawPlayer.phvCategory === "early" ? t("playerReportPrint.maturationLate") :
+                 rawPlayer.phvCategory === "late" ? t("playerReportPrint.maturationEarly") :
+                 t("playerReportPrint.maturationNormal")}
               </span>
               <div className="flex gap-1 mt-1.5">
                 {["early", "ontme", "late"].map((cat) => (
