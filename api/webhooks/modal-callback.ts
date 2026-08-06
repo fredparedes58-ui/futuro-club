@@ -32,6 +32,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -124,9 +125,20 @@ export default withHandler(
   async ({ body }) => {
     const input = body as z.infer<typeof callbackSchema>;
 
-    // ── Validar callback token (timing-safe) ──────────────
-    const expectedToken = process.env.CRON_SECRET ?? "default-token";
-    if (input.callbackToken !== expectedToken) {
+    // ── Validar callback token (fail-closed + timing-safe) ─
+    // Antes usaba `CRON_SECRET ?? "default-token"` con `!==`: si CRON_SECRET no
+    // estaba configurado, "default-token" era una constante conocida → cualquiera
+    // falsificaba callbacks que escriben en `analyses` y disparan el pipeline LLM.
+    const expectedToken = process.env.CRON_SECRET;
+    if (!expectedToken) {
+      console.error("[modal-callback] CRON_SECRET no configurado — rechazando (fail-closed)");
+      return errorResponse({
+        code: "webhook_not_configured",
+        message: "Callback secret not configured",
+        status: 503,
+      });
+    }
+    if (!input.callbackToken || !timingSafeEqual(input.callbackToken, expectedToken)) {
       return errorResponse({
         code: "invalid_token",
         message: "Modal callback token mismatch",

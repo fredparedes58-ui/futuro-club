@@ -21,6 +21,7 @@
 
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
 
@@ -473,12 +474,16 @@ export default withHandler(
       return errorResponse({ code: "bot_not_configured", message: "TELEGRAM_BOT_TOKEN missing", status: 503 });
     }
 
-    // Verificar secret_token (Telegram lo pasa en header si lo setteamos)
-    if (WEBHOOK_SECRET) {
-      const got = req.headers.get("x-telegram-bot-api-secret-token");
-      if (got !== WEBHOOK_SECRET) {
-        return errorResponse({ code: "unauthorized_webhook", message: "Bad secret", status: 401 });
-      }
+    // Fail-CLOSED: exige el secret. Sin TELEGRAM_WEBHOOK_SECRET, cualquiera podía
+    // accionar el bot (agente Claude con tools sobre supabase execTool) → abuso de
+    // coste LLM y acceso a datos. Antes solo validaba si el secret estaba definido.
+    if (!WEBHOOK_SECRET) {
+      console.error("[tg] TELEGRAM_WEBHOOK_SECRET no configurado — rechazando (fail-closed)");
+      return errorResponse({ code: "webhook_not_configured", message: "TELEGRAM_WEBHOOK_SECRET missing", status: 503 });
+    }
+    const got = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
+    if (!timingSafeEqual(got, WEBHOOK_SECRET)) {
+      return errorResponse({ code: "unauthorized_webhook", message: "Bad secret", status: 401 });
     }
 
     const debugSteps: string[] = [];
