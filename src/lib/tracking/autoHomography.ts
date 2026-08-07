@@ -32,6 +32,7 @@ import {
   type RANSACResult,
 } from "@/lib/yolo/homography";
 import { captureVideoFrame } from "./autoCalibrationBridge";
+import { getFieldDimensions } from "@/lib/yolo/fieldFormatConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -307,13 +308,15 @@ function directCornerHomography(
     field: { x: 0, y: 0 }, // Will be assigned below
   }));
 
-  // Assign field coordinates based on corner ordering
-  // Corners are sorted: top-left, top-right, bottom-right, bottom-left
+  // Assign field coordinates based on corner ordering (top-left, top-right,
+  // bottom-right, bottom-left). FORMAT-AWARE: dimensiones del formato activo
+  // (F8 60×40 vs F11 105×68) para no inflar los metros en fútbol-8.
+  const { length: L, width: Wm } = getFieldDimensions();
   const fieldCorners = [
     { x: 0, y: 0 },
-    { x: 105, y: 0 },
-    { x: 105, y: 68 },
-    { x: 0, y: 68 },
+    { x: L, y: 0 },
+    { x: L, y: Wm },
+    { x: 0, y: Wm },
   ];
 
   for (let i = 0; i < correspondences.length; i++) {

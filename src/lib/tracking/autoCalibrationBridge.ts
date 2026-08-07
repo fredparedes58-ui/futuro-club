@@ -20,8 +20,9 @@ import {
   invertMatrix3x3,
   identityHomography,
 } from "@/lib/yolo/homography";
-import { FIELD_ANCHOR_PRESETS, type FieldAnchorPreset } from "@/lib/yolo/types";
+import { type FieldAnchorPreset } from "@/lib/yolo/types";
 import { autoComputeHomography, type AutoHomographyResult } from "./autoHomography";
+import { getFieldDimensions } from "@/lib/yolo/fieldFormatConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -251,21 +252,33 @@ export async function autoCalibrate(
 
 // ─── Homography computation from percentage corners ─────────────────────────
 
-function computeHomographyFromCorners(
+/**
+ * Homografía desde 4 esquinas (en %), FORMAT-AWARE: las esquinas del campo se
+ * toman de las dimensiones del formato ACTIVO (fútbol-8 60×40 vs fútbol-11 105×68).
+ * Sin esto, un partido F8 se medía contra 105×68 → distancias/velocidades infladas
+ * ~1.75× en silencio. `dims` permite inyectar dimensiones reales/test.
+ */
+export function computeHomographyFromCorners(
   cornersPct: Array<{ x: number; y: number }>,
   videoWidth: number,
   videoHeight: number,
+  dims: { length: number; width: number } = getFieldDimensions(),
 ): { H: Float64Array; Hinv: Float64Array } {
   try {
-    const presetAnchors = FIELD_ANCHOR_PRESETS["full_corners"];
-    const calibrationPoints = cornersPct.map((c) => ({
-      x: c.x,
-      y: c.y,
-    }));
+    // Esquinas del campo en el MISMO orden que FIELD_ANCHOR_PRESETS.full_corners
+    // (TL, TR, BR, BL) pero con las dimensiones del formato elegido por el usuario.
+    const { length: L, width: W } = dims;
+    const formatCorners = [
+      { field: { fx: 0, fy: 0 } },
+      { field: { fx: L, fy: 0 } },
+      { field: { fx: L, fy: W } },
+      { field: { fx: 0, fy: W } },
+    ];
+    const calibrationPoints = cornersPct.map((c) => ({ x: c.x, y: c.y }));
 
     const anchors = buildAnchors(
       calibrationPoints,
-      presetAnchors as unknown as Array<{ field: { fx: number; fy: number } }>,
+      formatCorners,
       videoWidth,
       videoHeight,
     );
