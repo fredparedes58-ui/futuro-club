@@ -42,6 +42,16 @@ export interface BallDetectorConfig {
   minBboxSize: number;
   /** Maximum aspect ratio deviation from 1.0 (default: 0.6) */
   maxAspectDeviation: number;
+  /**
+   * Corrección de anisotropía para el filtro de aspecto (default 1 = sin cambio).
+   *
+   * El FrameExtractor dibuja el vídeo en un canvas CUADRADO 640×640, así que un
+   * vídeo 16:9 se APLASTA: un balón redondo aparece como elipse (aspecto ≈ 1.78 en
+   * 16:9) y el filtro `maxAspectDeviation` lo descartaba SIEMPRE. Pasando aquí
+   * srcAspect = videoW/videoH, el aspecto se evalúa en proporciones reales:
+   *   arReal = (w/h) · aspectCorrection  → para un balón real da ≈ 1.
+   */
+  aspectCorrection?: number;
 }
 
 const DEFAULT_CONFIG: BallDetectorConfig = {
@@ -105,8 +115,10 @@ export function detectBallFromModelOutput(
     if (w > cfg.maxBboxSize || h > cfg.maxBboxSize) continue;
     if (w < cfg.minBboxSize || h < cfg.minBboxSize) continue;
 
-    // Aspect ratio filter (balls are roughly square)
-    const aspectRatio = Math.max(w, h) / Math.min(w, h);
+    // Aspect ratio filter (balls are roughly square). Se corrige la anisotropía
+    // del frame aplastado (16:9 → 640×640) para no descartar balones redondos.
+    const arRaw = (w / h) * (cfg.aspectCorrection ?? 1);
+    const aspectRatio = Math.max(arRaw, 1 / arRaw);
     if (aspectRatio - 1.0 > cfg.maxAspectDeviation) continue;
 
     if (classScore > bestScore) {
@@ -150,8 +162,9 @@ export function detectBallHeuristic(
     if (w > cfg.maxBboxSize || h > cfg.maxBboxSize) continue;
     if (w < cfg.minBboxSize || h < cfg.minBboxSize) continue;
 
-    // Must be roughly square
-    const aspectRatio = Math.max(w, h) / Math.min(w, h);
+    // Must be roughly square (corrigiendo la anisotropía del frame aplastado)
+    const arRaw = (w / h) * (cfg.aspectCorrection ?? 1);
+    const aspectRatio = Math.max(arRaw, 1 / arRaw);
     if (aspectRatio - 1.0 > cfg.maxAspectDeviation) continue;
 
     // Must have low-medium confidence (high confidence = likely a person)

@@ -84,6 +84,56 @@ describe("detectBallFromModelOutput (layout COCO detect [1,84,8400])", () => {
   });
 });
 
+describe("bug del aspecto en frame aplastado 16:9 → 640×640 (aspectCorrection)", () => {
+  // Un balón redondo de 16px en un vídeo 1920×1080, dibujado en 640×640, se
+  // aplasta: ancho ≈ 16·(640/1920)=5.33 px, alto ≈ 16·(640/1080)=9.48 px →
+  // aspecto ≈ 1.78. El filtro maxAspectDeviation 0.6 lo DESCARTA sin corrección.
+  const SQUASHED = { anchor: 200, cx: 320, cy: 320, w: 5.33, h: 9.48, classId: BALL_CLASS, score: 0.5 };
+
+  it("SIN corrección: el balón aplastado se descarta (reproduce el bug)", () => {
+    const out = makeOutput([SQUASHED]);
+    const det = detectBallFromModelOutput(out, NUM_CLASSES, BALL_CLASS, 640, 640, 640, {
+      confThreshold: 0.15, maxAspectDeviation: 0.6,
+    });
+    expect(det).toBeNull(); // bug: elipse 1.78 > 1.6 → fuera
+  });
+
+  it("CON aspectCorrection = 1920/1080 el mismo balón SÍ se detecta", () => {
+    const out = makeOutput([SQUASHED]);
+    const det = detectBallFromModelOutput(out, NUM_CLASSES, BALL_CLASS, 640, 640, 640, {
+      confThreshold: 0.15, maxAspectDeviation: 0.6, minBboxSize: 3,
+      aspectCorrection: 1920 / 1080, // srcAspect
+    });
+    expect(det).not.toBeNull();
+    expect(det!.center.x).toBeCloseTo(320, 3);
+  });
+
+  it("aspectCorrection no deja pasar cajas REALMENTE alargadas (no es un bypass)", () => {
+    // Una caja 5×30 (poste, pierna) sigue siendo elipse ~3.4 tras corregir 1.78 → fuera.
+    const out = makeOutput([{ anchor: 201, cx: 300, cy: 300, w: 5, h: 30, classId: BALL_CLASS, score: 0.5 }]);
+    const det = detectBallFromModelOutput(out, NUM_CLASSES, BALL_CLASS, 640, 640, 640, {
+      confThreshold: 0.15, maxAspectDeviation: 0.6, aspectCorrection: 1920 / 1080,
+    });
+    expect(det).toBeNull();
+  });
+});
+
+describe("modelo dedicado football-ball (layout 1 clase [1,5,8400])", () => {
+  it("decodifica el balón con numClasses=1, ballClassId=0", () => {
+    const anchors = 8400;
+    const data = new Float32Array((4 + 1) * anchors);
+    data[0 * anchors + 12] = 320; // cx
+    data[1 * anchors + 12] = 200; // cy
+    data[2 * anchors + 12] = 12;  // w
+    data[3 * anchors + 12] = 12;  // h
+    data[4 * anchors + 12] = 0.7; // score clase 0
+    const det = detectBallFromModelOutput(data, 1, 0, 640, 640, 640, { confThreshold: 0.15 });
+    expect(det).not.toBeNull();
+    expect(det!.confidence).toBeCloseTo(0.7, 5);
+    expect(det!.center.x).toBeCloseTo(320, 3);
+  });
+});
+
 describe("BALL_CONFIGS (FASE 2)", () => {
   it("yolo11s-detect apunta al modelo same-origin con clase 32 y 80 clases", () => {
     const cfg = BALL_CONFIGS["yolo11s-detect"];

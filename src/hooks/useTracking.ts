@@ -424,6 +424,11 @@ export function useTracking(options: UseTrackingOptions) {
             imageData,
             imgW: imageData.width,
             imgH: imageData.height,
+            // Aspecto del vídeo original: el frame se aplasta a 640×640 cuadrado
+            // → el detector corrige el filtro de aspecto (bug del balón elíptico).
+            srcAspect:
+              (videoRef.current?.videoWidth ?? 1280) /
+              (videoRef.current?.videoHeight ?? 720),
             homography: Array.from(homographyRef.current),
             timestampMs,
             frameIndex,
