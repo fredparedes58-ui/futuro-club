@@ -19,6 +19,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as tus from "tus-js-client";
+import {
+  getActiveFieldFormat,
+  setActiveFieldFormat,
+  type FieldFormat,
+} from "@/lib/yolo/fieldFormatConfig";
 
 interface Props {
   playerId: string;
@@ -54,7 +59,15 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState<string>("");
+  // Formato del partido: el usuario lo elige ANTES de analizar → selecciona
+  // internamente plantilla, dimensiones (metros) y métricas del campo correcto.
+  const [fieldFormat, setFieldFormat] = useState<FieldFormat>(getActiveFieldFormat());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function chooseFormat(fmt: FieldFormat) {
+    setFieldFormat(fmt);
+    setActiveFieldFormat(fmt);
+  }
 
   // Reset
   function reset() {
@@ -248,6 +261,30 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
               placeholder={t("videoUploader.titlePlaceholder")}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-1">{t("videoUploader.fieldFormatLabel")}</label>
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("videoUploader.fieldFormatLabel")}>
+              {(["f8", "f11"] as FieldFormat[]).map((fmt) => (
+                <button
+                  key={fmt}
+                  type="button"
+                  role="radio"
+                  aria-checked={fieldFormat === fmt}
+                  onClick={() => chooseFormat(fmt)}
+                  className={
+                    "px-4 py-3 rounded-xl border text-sm font-semibold transition-colors " +
+                    (fieldFormat === fmt
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-200 text-slate-600 hover:border-slate-300")
+                  }
+                >
+                  {t(fmt === "f8" ? "videoUploader.fieldFormatF8" : "videoUploader.fieldFormatF11")}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">{t("videoUploader.fieldFormatHint")}</p>
           </div>
 
           <div>

@@ -209,6 +209,89 @@ export function metricsTrustworthy(confidence: CalibrationConfidence): boolean {
   return confidence === "high" || confidence === "medium";
 }
 
+// ─── Sanity GEOMÉTRICA de la homografía (anti falso-positivo de dominio) ──────
+// classifyCalibration mira solo inliers+reproyección, y se afinó con broadcast.
+// En footage de academia (campos juveniles con doble juego de líneas, ángulo bajo)
+// el modelo confunde qué línea es cuál: RANSAC ajusta un subconjunto internamente
+// consistente (reproyección baja ENTRE esos puntos) pero la homografía es
+// geométricamente FALSA. Verificado con overlays reales: frames "high" (1-2.7px,
+// 6-12 inliers) con el campo reproyectado flotando o dibujado fuera del césped.
+// Este chequeo exige que los inliers estén REPARTIDOS por el campo (no agrupados →
+// no extrapolación) y que las esquinas del campo reproyecten a un cuadrilátero
+// convexo delante de la cámara. Es NECESARIO, no suficiente (el discriminador
+// definitivo es el soporte de líneas sobre el frame, que vive en el worker).
+
+// Condición NECESARIA conservadora: rechaza solo homografías degeneradas
+// (inliers casi colineales/agrupados → extrapolación) o geométricamente imposibles
+// (esquinas detrás de cámara / cuadrilátero cruzado). NO exige ver todo el campo
+// (eso rechazaría tomas cerradas legítimas). NO es suficiente para el dominio
+// academia: el discriminador definitivo es el soporte de líneas sobre el frame
+// (lineSupportScore, se aplica en el worker de tracking con acceso al píxel).
+// Umbrales como FRACCIÓN de las dimensiones del campo → válido para F11 y F8.
+const GEO = { minFxSpreadFrac: 0.19, minFySpreadFrac: 0.15, minAreaFrac: 0.03, minRegions: 1 } as const;
+
+export interface FieldGeometryAssessment {
+  ok: boolean;
+  fxSpreadM: number;
+  fySpreadM: number;
+  areaFrac: number;
+  regions: number;
+  convex: boolean;
+}
+
+function crossSign(o: { px: number; py: number }, a: { px: number; py: number }, b: { px: number; py: number }): number {
+  return Math.sign((a.px - o.px) * (b.py - o.py) - (a.py - o.py) * (b.px - o.px));
+}
+
+/** ¿Los 4 vértices (en orden) forman un cuadrilátero convexo sin auto-intersección? */
+function isConvexQuad(p: Array<{ px: number; py: number }>): boolean {
+  if (p.length !== 4) return false;
+  const signs: number[] = [];
+  for (let i = 0; i < 4; i++) signs.push(crossSign(p[i], p[(i + 1) % 4], p[(i + 2) % 4]));
+  return signs.every((s) => s > 0) || signs.every((s) => s < 0);
+}
+
+/**
+ * Evalúa si una homografía campo→píxel es geométricamente plausible dados los
+ * puntos de campo (m) que quedaron como inliers. Rechaza calibraciones fundadas
+ * en puntos agrupados (extrapolación) o que proyectan un campo imposible.
+ */
+export function assessFieldGeometry(
+  Hfield2pix: Float64Array,
+  inlierField: Array<{ fx: number; fy: number }>,
+  fieldLength: number = FIELD_LENGTH_M,
+  fieldWidth: number = FIELD_WIDTH_M,
+): FieldGeometryAssessment {
+  if (inlierField.length < 4) {
+    return { ok: false, fxSpreadM: 0, fySpreadM: 0, areaFrac: 0, regions: 0, convex: false };
+  }
+  const fxs = inlierField.map((p) => p.fx);
+  const fys = inlierField.map((p) => p.fy);
+  const fxSpread = Math.max(...fxs) - Math.min(...fxs);
+  const fySpread = Math.max(...fys) - Math.min(...fys);
+  const areaFrac = (fxSpread * fySpread) / (fieldLength * fieldWidth);
+  // Tercios del campo relativos a su largo (F11 105, F8 ~60) → format-agnostic.
+  const regions = new Set(fxs.map((fx) => (fx < fieldLength / 3 ? 0 : fx < (2 * fieldLength) / 3 ? 1 : 2))).size;
+
+  // Reproyectar las 4 esquinas del campo; deben quedar delante de cámara y convexas.
+  const cornerFields = [[0, 0], [fieldLength, 0], [fieldLength, fieldWidth], [0, fieldWidth]];
+  let allFront = true;
+  const cornerPx = cornerFields.map(([fx, fy]) => {
+    const w = Hfield2pix[6] * fx + Hfield2pix[7] * fy + Hfield2pix[8];
+    if (w <= 1e-9) allFront = false;
+    return fieldToPixel(Hfield2pix, fx, fy);
+  });
+  const convex = allFront && isConvexQuad(cornerPx);
+
+  const ok =
+    convex &&
+    fxSpread >= GEO.minFxSpreadFrac * fieldLength &&
+    fySpread >= GEO.minFySpreadFrac * fieldWidth &&
+    areaFrac >= GEO.minAreaFrac &&
+    regions >= GEO.minRegions;
+  return { ok, fxSpreadM: fxSpread, fySpreadM: fySpread, areaFrac, regions, convex };
+}
+
 export interface RegisterOptions {
   /** Confianza mínima del keypoint del modelo para usarlo (default 0.5). */
   minKeypointConfidence?: number;
@@ -216,12 +299,19 @@ export interface RegisterOptions {
   reprojThresholdPx?: number;
   /** Iteraciones RANSAC (default 300). */
   maxIterations?: number;
+  /**
+   * Plantilla de landmarks del FORMATO (fútbol-11 por defecto; fútbol-8 = otra).
+   * El formato lo elige el usuario ANTES del análisis y determina plantilla +
+   * dimensiones (metros) + sanity geométrica. Ver fieldFormatConfig.getFieldTemplate.
+   */
+  template?: readonly FieldLandmark[];
 }
 
 /**
  * Registra el campo a partir de los landmarks detectados por el modelo.
  * Geometría pura: empareja cada detección con su coord real de plantilla,
  * corre RANSAC, y devuelve la homografía + confianza. Sin efectos secundarios.
+ * `opts.template` selecciona el formato (F11 por defecto, F8 para campo reducido).
  */
 export function registerFieldFromLandmarks(
   detections: DetectedLandmark[],
@@ -229,14 +319,23 @@ export function registerFieldFromLandmarks(
 ): FieldRegistration {
   const minConf = opts.minKeypointConfidence ?? 0.5;
   const reproj = opts.reprojThresholdPx ?? 8.0;
+  const template = opts.template ?? FIELD_TEMPLATE;
+  const byId = template === FIELD_TEMPLATE ? TEMPLATE_BY_ID : new Map(template.map((l) => [l.id, l]));
+  // Dimensiones del formato (metros) = extensión de la plantilla → sanity geométrica.
+  let fieldLength = 0;
+  let fieldWidth = 0;
+  for (const l of template) {
+    if (l.field.fx > fieldLength) fieldLength = l.field.fx;
+    if (l.field.fy > fieldWidth) fieldWidth = l.field.fy;
+  }
 
   const filtered = detections.filter(
-    (d) => d.confidence >= minConf && TEMPLATE_BY_ID.has(d.id),
+    (d) => d.confidence >= minConf && byId.has(d.id),
   );
   if (filtered.length < 4) return NO_REGISTRATION;
 
   const correspondences = filtered.map((d) => {
-    const tpl = TEMPLATE_BY_ID.get(d.id)!;
+    const tpl = byId.get(d.id)!;
     return {
       pixel: { x: d.px, y: d.py },
       field: { x: tpl.field.fx, y: tpl.field.fy },
@@ -267,10 +366,22 @@ export function registerFieldFromLandmarks(
     return NO_REGISTRATION; // H singular → sin calibración usable
   }
 
+  let confidence = classifyCalibration(res.inlierCount, filtered.length, meanErr);
+  // Sanity geométrica: si es fiable POR NÚMEROS pero la homografía es implausible
+  // (inliers agrupados / campo reproyectado imposible), degradar a 'low' para que
+  // el gate NO deje pasar métricas en metros. Evita el falso-positivo de dominio.
+  if (confidence === "high" || confidence === "medium") {
+    const inlierField = res.inlierIndices.map((i) => ({
+      fx: correspondences[i].field.x,
+      fy: correspondences[i].field.y,
+    }));
+    if (!assessFieldGeometry(res.H, inlierField, fieldLength, fieldWidth).ok) confidence = "low";
+  }
+
   return {
     Hpix2field,
     Hfield2pix: res.H,
-    confidence: classifyCalibration(res.inlierCount, filtered.length, meanErr),
+    confidence,
     meanReprojErrorPx: meanErr,
     inlierCount: res.inlierCount,
     usedLandmarks: filtered.length,
@@ -291,11 +402,22 @@ export function registerFieldFromLandmarks(
  */
 export class FieldRegistrationAccumulator {
   private best = new Map<number, DetectedLandmark>();
+  private readonly template: readonly FieldLandmark[];
+  private readonly byId: Map<number, FieldLandmark>;
+
+  /**
+   * @param template plantilla del FORMATO (F11 por defecto; F8 para campo reducido).
+   * Determina qué ids se aceptan y qué plantilla usa register().
+   */
+  constructor(template: readonly FieldLandmark[] = FIELD_TEMPLATE) {
+    this.template = template;
+    this.byId = template === FIELD_TEMPLATE ? TEMPLATE_BY_ID : new Map(template.map((l) => [l.id, l]));
+  }
 
   /** Añade las detecciones de un frame, quedándose con la de mayor confianza por id. */
   add(detections: DetectedLandmark[]): void {
     for (const d of detections) {
-      if (!TEMPLATE_BY_ID.has(d.id)) continue;
+      if (!this.byId.has(d.id)) continue;
       const prev = this.best.get(d.id);
       if (!prev || d.confidence > prev.confidence) {
         this.best.set(d.id, d);
@@ -308,9 +430,9 @@ export class FieldRegistrationAccumulator {
     return this.best.size;
   }
 
-  /** Registra el campo con todo lo acumulado hasta ahora. */
+  /** Registra el campo con todo lo acumulado (usa la plantilla del formato). */
   register(opts: RegisterOptions = {}): FieldRegistration {
-    return registerFieldFromLandmarks([...this.best.values()], opts);
+    return registerFieldFromLandmarks([...this.best.values()], { template: this.template, ...opts });
   }
 
   reset(): void {

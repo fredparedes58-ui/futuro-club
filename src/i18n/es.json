@@ -1293,6 +1293,10 @@
     "next": "Siguiente"
   },
   "videoUploader": {
+    "fieldFormatLabel": "Formato del partido",
+    "fieldFormatF8": "⚽ Fútbol 8",
+    "fieldFormatF11": "Fútbol 11",
+    "fieldFormatHint": "Elígelo antes de analizar (fútbol 8 = líneas amarillas). Se guarda con el análisis; la calibración por formato se está activando.",
     "errorTooLarge": "El vídeo supera 500 MB · usa uno más corto",
     "errorTooSmall": "El vídeo es muy pequeño · ¿se grabó bien?",
     "errorNotVideo": "El archivo no es un vídeo",
