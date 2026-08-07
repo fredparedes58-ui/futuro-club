@@ -16,6 +16,7 @@ import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 import type { EventSummary, TacticalEvent } from "@/lib/tracking/eventDetectionEngine";
 import type { FatigueReport } from "@/lib/fatigue/types";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
+import { metricsTrustworthy, type CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
 
 // ─── Output types ───────────────────────────────────────────────────────────
 
@@ -41,6 +42,15 @@ export interface VisionMetrics {
     dataPoints: number;      // how many frames/events contributed
     sources: string[];       // e.g., ["yolo", "mediapipe", "eventEngine"]
   };
+
+  /**
+   * ¿Son FIABLES las métricas físicas en metros? Solo si el campo se calibró
+   * (metricsTrustworthy). Si es false, la UI NO debe presentar m/s ni metros
+   * como medida — mostrar "sin calibrar" en vez de un número inventado.
+   */
+  physicalReliable: boolean;
+  /** Confianza de calibración que respaldó (o no) las métricas físicas. */
+  calibrationConfidence: CalibrationConfidence;
 
   /** Physical metrics from YOLO tracking */
   physical: VisionPhysicalMetrics;
@@ -75,6 +85,13 @@ export interface VisionInputs {
   playerId: string;
   videoId: string | null;
   durationSec: number;
+
+  /**
+   * Confianza de la CALIBRACIÓN del campo (gate honesto). Sin ella (o low/none)
+   * las métricas físicas en metros son píxeles disfrazados → NO fiables. Default
+   * "none": si el caller no la pasa, se asume no calibrado (fail-closed).
+   */
+  calibrationConfidence?: CalibrationConfidence;
 
   // From YOLO tracker
   distanceCoveredM?: number;
@@ -111,9 +128,15 @@ export function orchestrateVisionMetrics(inputs: VisionInputs): VisionMetrics {
   const sources: string[] = [];
   let dataPoints = 0;
 
+  // Gate honesto: las métricas físicas en metros solo son fiables si el campo se
+  // calibró. Sin calibración válida, el tracking NO cuenta como fuente fiable (no
+  // debe inflar la confianza) y physicalReliable=false → la UI mostrará "sin calibrar".
+  const calibrationConfidence: CalibrationConfidence = inputs.calibrationConfidence ?? "none";
+  const physicalReliable = metricsTrustworthy(calibrationConfidence);
+
   // ── Physical metrics ──────────────────────────────────────────
   const hasTracking = (inputs.distanceCoveredM ?? 0) > 0 || (inputs.trackCount ?? 0) > 0;
-  if (hasTracking) {
+  if (hasTracking && physicalReliable) {
     sources.push("yolo");
     dataPoints += inputs.trackCount ?? 1;
   }
@@ -180,6 +203,8 @@ export function orchestrateVisionMetrics(inputs: VisionInputs): VisionMetrics {
       dataPoints,
       sources,
     },
+    physicalReliable,
+    calibrationConfidence,
     physical,
     events,
     tacticalEvents: inputs.tacticalEvents ?? [],
