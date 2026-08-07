@@ -1293,6 +1293,10 @@
     "next": "Next"
   },
   "videoUploader": {
+    "fieldFormatLabel": "Match format",
+    "fieldFormatF8": "⚽ 8-a-side",
+    "fieldFormatF11": "11-a-side",
+    "fieldFormatHint": "Pick it before analysing (8-a-side = yellow lines). Saved with the analysis; format-aware calibration is being rolled out.",
     "errorTooLarge": "The video exceeds 500 MB · use a shorter one",
     "errorTooSmall": "The video is too small · was it recorded properly?",
     "errorNotVideo": "The file is not a video",

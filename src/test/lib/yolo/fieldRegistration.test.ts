@@ -16,6 +16,7 @@ import {
 } from "@/lib/yolo/homography";
 import {
   FIELD_TEMPLATE,
+  FIELD_LENGTH_M,
   registerFieldFromLandmarks,
   classifyCalibration,
   metricsTrustworthy,
@@ -198,5 +199,30 @@ describe("decodeFieldKeypoints — salida YOLO-pose → landmarks", () => {
   it("sin objeto por encima del umbral → sin detecciones", () => {
     const data = new Float32Array((5 + K * 3) * A); // todo 0
     expect(decodeFieldKeypoints(data, K, IMGW, IMGH, MODEL)).toHaveLength(0);
+  });
+});
+
+// ─── Invariante de ORDEN de keypoints (blindaje anti-corrupción silenciosa) ───
+// El orden de FIELD_TEMPLATE DEBE coincidir con el del modelo/dataset base
+// (martinjolif/football-pitch-detection). El data.yaml del dataset trae este
+// flip_idx (espejo horizontal). Si alguien reordena FIELD_TEMPLATE sin actualizar
+// el modelo, mezclar/decodificar corrompe el entrenamiento en silencio. Este test
+// deriva el flip_idx de la GEOMETRÍA de la plantilla y lo compara con el del dataset.
+describe("Invariante de orden: flip_idx del dataset == espejo geométrico de FIELD_TEMPLATE", () => {
+  // Verbatim del data.yaml de martinjolif/football-pitch-detection.
+  const DATASET_FLIP_IDX = [24, 25, 26, 27, 28, 29, 22, 23, 21, 17, 18, 19, 20,
+    13, 14, 15, 16, 9, 10, 11, 12, 8, 6, 7, 0, 1, 2, 3, 4, 5, 31, 30];
+
+  it("cada landmark espejado (L-fx, fy) cae exactamente en el id del flip_idx", () => {
+    const byPos = (fx: number, fy: number) =>
+      FIELD_TEMPLATE.find((l) => Math.abs(l.field.fx - fx) < 1e-6 && Math.abs(l.field.fy - fy) < 1e-6);
+
+    const derived = FIELD_TEMPLATE.map((l) => {
+      const mirror = byPos(FIELD_LENGTH_M - l.field.fx, l.field.fy);
+      return mirror ? mirror.id : -1;
+    });
+
+    expect(derived).toEqual(DATASET_FLIP_IDX);
+    expect(DATASET_FLIP_IDX).toHaveLength(FIELD_TEMPLATE.length); // 32
   });
 });

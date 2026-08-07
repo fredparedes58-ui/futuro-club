@@ -89,6 +89,17 @@ def train(
             cfg[split] = p
     # El dataset es de un campo → 1 clase, 32 keypoints (x, y, visible)
     cfg.setdefault("kpt_shape", [32, 3])
+    # flip_idx OBLIGATORIO: con fliplr>0 (default 0.5) Ultralytics espeja la imagen
+    # izq↔der; sin remapear los índices de keypoints, corrompe la mitad de los batches.
+    # Este es el espejo horizontal exacto de FIELD_TEMPLATE (== flip_idx del data.yaml
+    # del dataset martinjolif). Lo fijamos explícito por si el yaml de origen no lo trae.
+    FLIP_IDX = [24, 25, 26, 27, 28, 29, 22, 23, 21, 17, 18, 19, 20, 13, 14, 15, 16,
+                9, 10, 11, 12, 8, 6, 7, 0, 1, 2, 3, 4, 5, 31, 30]
+    assert len(FLIP_IDX) == cfg["kpt_shape"][0], "flip_idx debe tener 32 índices"
+    if cfg.get("flip_idx") and list(cfg["flip_idx"]) != FLIP_IDX:
+        print(f"[VITAS] AVISO: flip_idx del yaml {cfg['flip_idx']} != esperado; se respeta el del yaml")
+    else:
+        cfg["flip_idx"] = FLIP_IDX
 
     work_yaml = "/tmp/vitas_pitch.yaml"
     with open(work_yaml, "w") as f:
