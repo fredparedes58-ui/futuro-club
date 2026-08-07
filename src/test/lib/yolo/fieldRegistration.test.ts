@@ -21,6 +21,7 @@ import {
   metricsTrustworthy,
   FieldRegistrationAccumulator,
   NO_REGISTRATION,
+  decodeFieldKeypoints,
   type DetectedLandmark,
 } from "@/lib/yolo/fieldRegistration";
 
@@ -152,5 +153,50 @@ describe("FieldRegistrationAccumulator — cámara fija", () => {
     const reg = acc.register({ minKeypointConfidence: 0.5 });
     // Con 1 solo landmark no calibra, pero comprobamos que no explota.
     expect(reg.confidence).toBe("none");
+  });
+});
+
+describe("decodeFieldKeypoints — salida YOLO-pose → landmarks", () => {
+  const K = FIELD_TEMPLATE.length; // 32
+  const MODEL = 640, IMGW = 1280, IMGH = 720, A = 8400;
+  const scale = Math.min(MODEL / IMGW, MODEL / IMGH); // 0.5
+  const padX = (MODEL - IMGW * scale) / 2;            // 0
+  const padY = (MODEL - IMGH * scale) / 2;            // 140
+
+  /** Tensor [1, 5+K*3, 8400] con el campo plantado en un ancla (letterboxed). */
+  function makePoseOutput(objConf = 0.95): Float32Array {
+    const data = new Float32Array((5 + K * 3) * A);
+    const anchor = 123;
+    data[4 * A + anchor] = objConf; // confianza de objeto
+    for (const lm of FIELD_TEMPLATE) {
+      const p = fieldToPixel(H_FIELD2PIX, lm.field.fx, lm.field.fy); // píxel imagen
+      const base = (5 + lm.id * 3) * A + anchor;
+      data[base] = p.px * scale + padX;      // a espacio del modelo (letterbox)
+      data[base + A] = p.py * scale + padY;
+      data[base + 2 * A] = 0.9;              // conf del keypoint
+    }
+    return data;
+  }
+
+  it("recupera los keypoints en píxeles de imagen (deshace el letterbox)", () => {
+    const dets = decodeFieldKeypoints(makePoseOutput(), K, IMGW, IMGH, MODEL);
+    expect(dets).toHaveLength(K);
+    const exp0 = fieldToPixel(H_FIELD2PIX, 0, 0); // corner_tl
+    expect(dets[0].px).toBeCloseTo(exp0.px, 1);
+    expect(dets[0].py).toBeCloseTo(exp0.py, 1);
+  });
+
+  it("decoder → registro recupera la homografía con confianza alta", () => {
+    const dets = decodeFieldKeypoints(makePoseOutput(), K, IMGW, IMGH, MODEL);
+    const reg = registerFieldFromLandmarks(dets);
+    expect(reg.confidence).toBe("high");
+    const f = pixelToField(reg.Hpix2field!, 300, 200); // esquina de la cámara → (0,0)
+    expect(f.fx).toBeCloseTo(0, 0);
+    expect(f.fy).toBeCloseTo(0, 0);
+  });
+
+  it("sin objeto por encima del umbral → sin detecciones", () => {
+    const data = new Float32Array((5 + K * 3) * A); // todo 0
+    expect(decodeFieldKeypoints(data, K, IMGW, IMGH, MODEL)).toHaveLength(0);
   });
 });
