@@ -1,3 +1,6 @@
+// @ts-nocheck — harness de validación PUNTUAL (dev): usa node:fs para leer un JSON
+// de scratchpad y se salta si no está. No es código de producción ni parte del
+// suite permanente; tsconfig.app.json (frontend) no tipa node, así que lo eximimos.
 /**
  * Validación end-to-end de la auto-calibración sobre imágenes REALES held-out.
  *
@@ -28,6 +31,7 @@ interface EvalImage {
   gt: Array<{ id: number; x: number; y: number }>;
 }
 
+// Vitest corre desde la raíz del repo. (`process` está permitido: fichero @ts-nocheck.)
 const JSON_PATH = join(process.cwd(), "scratchpad", "field_eval.json");
 const hasData = existsSync(JSON_PATH);
 

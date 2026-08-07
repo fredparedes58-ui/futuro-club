@@ -317,3 +317,59 @@ export class FieldRegistrationAccumulator {
     this.best.clear();
   }
 }
+
+// ─── Decoder de la salida ONNX (YOLOv8/YOLO11-pose) ──────────────────────────
+
+/**
+ * Decodifica el tensor de salida de un modelo de pose (1 clase = "campo",
+ * K keypoints) en las detecciones de landmarks, deshaciendo el letterbox.
+ *
+ * Layout YOLO-pose: canales = 4 (caja xywh) + 1 (conf objeto) + K*3 (x,y,conf por
+ * keypoint), en formato canal-mayor: outputData[c*numAnchors + i]. Para K=32 son
+ * 101 canales × 8400 anclas. El "campo" es un único objeto → tomamos el ancla de
+ * mayor confianza y leemos sus K keypoints. Keypoints en espacio del modelo
+ * (letterboxed a modelSize×modelSize) → se convierten a píxeles de la imagen.
+ *
+ * Geometría pura, testeable sin ONNX real (se le pasa un Float32Array sintético).
+ */
+export function decodeFieldKeypoints(
+  outputData: Float32Array,
+  numKeypoints: number,
+  imgW: number,
+  imgH: number,
+  modelSize = 640,
+  opts: { minObjectConfidence?: number } = {},
+): DetectedLandmark[] {
+  const channels = 5 + numKeypoints * 3;
+  const numAnchors = Math.round(outputData.length / channels);
+  if (numAnchors <= 0) return [];
+
+  // Letterbox (idéntico a preprocessBall: escala isótropa + padding centrado).
+  const scale = Math.min(modelSize / imgW, modelSize / imgH);
+  const padX = (modelSize - imgW * scale) / 2;
+  const padY = (modelSize - imgH * scale) / 2;
+
+  // Ancla de mayor confianza de objeto (canal 4).
+  let best = -1;
+  let bestConf = opts.minObjectConfidence ?? 0.3;
+  for (let i = 0; i < numAnchors; i++) {
+    const c = outputData[4 * numAnchors + i];
+    if (c > bestConf) { bestConf = c; best = i; }
+  }
+  if (best < 0) return [];
+
+  const dets: DetectedLandmark[] = [];
+  for (let k = 0; k < numKeypoints; k++) {
+    const base = (5 + k * 3) * numAnchors + best;
+    const kx = outputData[base];
+    const ky = outputData[base + numAnchors];
+    const kc = outputData[base + 2 * numAnchors];
+    dets.push({
+      id: k,
+      px: (kx - padX) / scale,
+      py: (ky - padY) / scale,
+      confidence: kc,
+    });
+  }
+  return dets;
+}
