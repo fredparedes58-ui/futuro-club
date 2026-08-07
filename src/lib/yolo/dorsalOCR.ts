@@ -232,17 +232,14 @@ export class DorsalOCR {
     // This would need a real OCR model for production accuracy
     if (transitions < 2) return null;
 
-    // For now, return a heuristic-based number estimate
-    // In production: Tesseract.js or trained digit classifier
-    // Using pixel density patterns as a rough proxy
-    const densityScore = Math.round(darkRatio * 100);
-    const possibleNumber = Math.max(1, Math.min(99, densityScore));
-
-    // Only return if we have reasonable confidence (>= 4 transitions = likely has digits)
-    if (transitions >= 4) {
-      return possibleNumber;
-    }
-
+    // FAIL-CLOSED (anti-fallo-silencioso). Este heurístico solo detecta que
+    // "parece haber un dorsal" (contraste + transiciones), pero NO puede LEER el
+    // dígito: la densidad de píxeles no es el número. La versión anterior devolvía
+    // round(darkRatio*100) → una camiseta oscura daba "dorsal 40" con confianza
+    // alta y atribuía las acciones al jugador equivocado. Hasta tener OCR real
+    // (Tesseract.js / clasificador de dígitos), NO inventamos un número: devolvemos
+    // null ("dorsal no legible"). Mejor sin dato que un dato falso.
+    void transitions; // presencia de dígitos detectada, pero sin lectura fiable
     return null;
   }
 }
