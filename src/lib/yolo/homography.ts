@@ -8,6 +8,7 @@
  */
 
 import type { PixelPoint, FieldPoint, CalibrationAnchor } from "./types";
+import { refineHomographyLM } from "./homographyRefine";
 
 // ─── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -314,27 +315,33 @@ export function computeHomographyRANSAC(
 
   if (!bestH || bestInlierCount < 4) return null;
 
-  // Refine: recompute homography from a subset of inliers. Nuestro solver solo
-  // toma 4, así que elegimos los 4 inliers MÁS SEPARADOS (evita subconjuntos casi
-  // colineales que degeneran la H) y SOLO aceptamos el refinamiento si no reduce
-  // los inliers (si no, mantenemos la mejor H del muestreo, que ya ajustaba bien).
+  // Refine: minimizar el error de reproyección GEOMÉTRICO sobre TODOS los inliers
+  // con Levenberg-Marquardt (SOTA de registro de campo), partiendo de la mejor H
+  // del muestreo. refineHomographyLM tiene salvaguarda dura: si no mejora el RMS o
+  // produce no-finitos, devuelve la H inicial → nunca empeora. (Antes: re-DLT con
+  // solo 4 inliers separados = error algebraico, desperdicia los otros ~28 puntos.)
   if (bestInlierCount > 4) {
     try {
-      const spread = pickSpreadIndices(correspondences, bestInlierIndices, 4);
-      const refinedAnchors = spread.map((i) => ({
-        pixel: { px: correspondences[i].pixel.x, py: correspondences[i].pixel.y },
-        field: { fx: correspondences[i].field.x, fy: correspondences[i].field.y },
+      const inlierCs = bestInlierIndices.map((i) => ({
+        pixel: { x: correspondences[i].pixel.x, y: correspondences[i].pixel.y },
+        field: { x: correspondences[i].field.x, y: correspondences[i].field.y },
       }));
-      const refinedH = computeHomography(refinedAnchors);
-      let refinedInliers = 0;
-      for (const i of bestInlierIndices) {
-        const c = correspondences[i];
-        const rp = fieldToPixel(refinedH, c.field.x, c.field.y);
-        if (Math.hypot(rp.px - c.pixel.x, rp.py - c.pixel.y) < reprojThreshold) {
-          refinedInliers++;
+      const refined = refineHomographyLM(bestH, inlierCs, { huberDeltaPx: reprojThreshold });
+      if (refined.improved) {
+        // Recontar inliers con la H refinada sobre TODAS las correspondencias.
+        let refinedInliers = 0;
+        for (let i = 0; i < n; i++) {
+          const c = correspondences[i];
+          const rp = fieldToPixel(refined.H, c.field.x, c.field.y);
+          if (Math.hypot(rp.px - c.pixel.x, rp.py - c.pixel.y) < reprojThreshold) {
+            refinedInliers++;
+          }
+        }
+        if (refinedInliers >= bestInlierCount) {
+          bestH = refined.H;
+          bestInlierCount = refinedInliers;
         }
       }
-      if (refinedInliers >= bestInlierCount) bestH = refinedH;
     } catch {
       // Keep original best if refinement fails
     }
@@ -346,47 +353,6 @@ export function computeHomographyRANSAC(
     inlierIndices: bestInlierIndices,
     iterations: maxIterations,
   };
-}
-
-/**
- * Elige `k` índices bien SEPARADOS en espacio de píxeles (farthest-point
- * sampling) entre los candidatos. Evita subconjuntos casi colineales/clusterados
- * que degeneran la homografía en el refinamiento.
- */
-function pickSpreadIndices(
-  correspondences: Array<{ pixel: { x: number; y: number } }>,
-  candidates: number[],
-  k: number,
-): number[] {
-  if (candidates.length <= k) return candidates.slice(0, k);
-  // Semilla: el punto más a la izquierda.
-  let start = candidates[0];
-  for (const i of candidates) {
-    if (correspondences[i].pixel.x < correspondences[start].pixel.x) start = i;
-  }
-  const picked: number[] = [start];
-  while (picked.length < k) {
-    let bestI = -1;
-    let bestD = -1;
-    for (const i of candidates) {
-      if (picked.includes(i)) continue;
-      let minD = Infinity;
-      for (const p of picked) {
-        const d = Math.hypot(
-          correspondences[i].pixel.x - correspondences[p].pixel.x,
-          correspondences[i].pixel.y - correspondences[p].pixel.y,
-        );
-        if (d < minD) minD = d;
-      }
-      if (minD > bestD) {
-        bestD = minD;
-        bestI = i;
-      }
-    }
-    if (bestI < 0) break;
-    picked.push(bestI);
-  }
-  return picked;
 }
 
 /** Sample 4 unique random indices from [0, n) */

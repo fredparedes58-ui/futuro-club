@@ -44,42 +44,82 @@ export interface FieldLandmark {
   field: FieldPoint;
 }
 
+// ─── Medidas FIFA reales (metros) ────────────────────────────────────────────
+// El esquema de Roboflow (SoccerPitchConfiguration) es paramétrico pero usa un
+// campo genérico 120×70 m y un área grande de 20.15 m de profundidad. Los puntos
+// que el modelo detecta en vídeo son los de campos REALES (área a 16.5 m), así que
+// re-derivamos las mismas 32 posiciones con medidas FIFA para no meter un error
+// sistemático en la conversión a metros.
+const PENALTY_BOX_WIDTH = 40.32; // ancho del área grande
+const PENALTY_BOX_LENGTH = 16.5; // profundidad del área grande (FIFA; Roboflow usa 20.15)
+const GOAL_BOX_WIDTH = 18.32;
+const GOAL_BOX_LENGTH = 5.5;
+const CENTRE_CIRCLE_RADIUS = 9.15;
+const PENALTY_SPOT_DISTANCE = 11;
+
+const L = FIELD_LENGTH_M; // 105
+const W = FIELD_WIDTH_M; // 68
+const PB_TOP = (W - PENALTY_BOX_WIDTH) / 2; // 13.84
+const PB_BOT = (W + PENALTY_BOX_WIDTH) / 2; // 54.16
+const GB_TOP = (W - GOAL_BOX_WIDTH) / 2; // 24.84
+const GB_BOT = (W + GOAL_BOX_WIDTH) / 2; // 43.16
+
+/**
+ * Los 32 landmarks del campo, EN EL ORDEN EXACTO en que los emite el modelo de
+ * keypoints (índice del array = `id` = canal de salida del modelo).
+ *
+ * Orden tomado de `SoccerPitchConfiguration.vertices` (roboflow/sports), que es el
+ * esquema con el que están entrenados los modelos públicos de field-detection
+ * (p.ej. `martinjolif/yolo-football-pitch-detection`, YOLOv8x-pose, kpt_shape [32,3]).
+ * Las COORDENADAS son FIFA (105×68) — ver nota arriba.
+ *
+ * Si algún día se usa un modelo con otro esquema, basta reordenar esta tabla: el
+ * resto del pipeline (RANSAC, confianza, gate) no cambia. Y si el orden no casara,
+ * el gate lo detecta solo (error de reproyección alto → confianza "none").
+ */
 export const FIELD_TEMPLATE: readonly FieldLandmark[] = [
-  // Esquinas
-  { id: 0, name: "corner_tl", field: { fx: 0, fy: 0 } },
-  { id: 1, name: "corner_tr", field: { fx: 105, fy: 0 } },
-  { id: 2, name: "corner_br", field: { fx: 105, fy: 68 } },
-  { id: 3, name: "corner_bl", field: { fx: 0, fy: 68 } },
-  // Área grande izquierda (16.5m; ancho 13.84–54.16)
-  { id: 4, name: "lpa_top_goal", field: { fx: 0, fy: 13.84 } },
-  { id: 5, name: "lpa_top_field", field: { fx: 16.5, fy: 13.84 } },
-  { id: 6, name: "lpa_bot_field", field: { fx: 16.5, fy: 54.16 } },
-  { id: 7, name: "lpa_bot_goal", field: { fx: 0, fy: 54.16 } },
-  // Área grande derecha (88.5–105)
-  { id: 8, name: "rpa_top_goal", field: { fx: 105, fy: 13.84 } },
-  { id: 9, name: "rpa_top_field", field: { fx: 88.5, fy: 13.84 } },
-  { id: 10, name: "rpa_bot_field", field: { fx: 88.5, fy: 54.16 } },
-  { id: 11, name: "rpa_bot_goal", field: { fx: 105, fy: 54.16 } },
-  // Área pequeña izquierda (5.5m; ancho 24.84–43.16)
-  { id: 12, name: "lga_top_goal", field: { fx: 0, fy: 24.84 } },
-  { id: 13, name: "lga_top_field", field: { fx: 5.5, fy: 24.84 } },
-  { id: 14, name: "lga_bot_field", field: { fx: 5.5, fy: 43.16 } },
-  { id: 15, name: "lga_bot_goal", field: { fx: 0, fy: 43.16 } },
-  // Área pequeña derecha (99.5–105)
-  { id: 16, name: "rga_top_goal", field: { fx: 105, fy: 24.84 } },
-  { id: 17, name: "rga_top_field", field: { fx: 99.5, fy: 24.84 } },
-  { id: 18, name: "rga_bot_field", field: { fx: 99.5, fy: 43.16 } },
-  { id: 19, name: "rga_bot_goal", field: { fx: 105, fy: 43.16 } },
-  // Puntos de penalti
-  { id: 20, name: "lpen_spot", field: { fx: 11, fy: 34 } },
-  { id: 21, name: "rpen_spot", field: { fx: 94, fy: 34 } },
-  // Línea media
-  { id: 22, name: "center_top", field: { fx: 52.5, fy: 0 } },
-  { id: 23, name: "center_bot", field: { fx: 52.5, fy: 68 } },
-  { id: 24, name: "center_mark", field: { fx: 52.5, fy: 34 } },
-  // Círculo central (r 9.15)
-  { id: 25, name: "cc_top", field: { fx: 52.5, fy: 24.85 } },
-  { id: 26, name: "cc_bot", field: { fx: 52.5, fy: 43.15 } },
+  // Línea de gol izquierda (x = 0)
+  { id: 0, name: "left_goalline_top_corner", field: { fx: 0, fy: 0 } },
+  { id: 1, name: "left_goalline_penaltybox_top", field: { fx: 0, fy: PB_TOP } },
+  { id: 2, name: "left_goalline_goalbox_top", field: { fx: 0, fy: GB_TOP } },
+  { id: 3, name: "left_goalline_goalbox_bot", field: { fx: 0, fy: GB_BOT } },
+  { id: 4, name: "left_goalline_penaltybox_bot", field: { fx: 0, fy: PB_BOT } },
+  { id: 5, name: "left_goalline_bot_corner", field: { fx: 0, fy: W } },
+  // Área pequeña izquierda (x = 5.5)
+  { id: 6, name: "left_goalbox_top", field: { fx: GOAL_BOX_LENGTH, fy: GB_TOP } },
+  { id: 7, name: "left_goalbox_bot", field: { fx: GOAL_BOX_LENGTH, fy: GB_BOT } },
+  // Punto de penalti izquierdo
+  { id: 8, name: "left_penalty_spot", field: { fx: PENALTY_SPOT_DISTANCE, fy: W / 2 } },
+  // Área grande izquierda (x = 16.5)
+  { id: 9, name: "left_penaltybox_top", field: { fx: PENALTY_BOX_LENGTH, fy: PB_TOP } },
+  { id: 10, name: "left_penaltybox_goalbox_top", field: { fx: PENALTY_BOX_LENGTH, fy: GB_TOP } },
+  { id: 11, name: "left_penaltybox_goalbox_bot", field: { fx: PENALTY_BOX_LENGTH, fy: GB_BOT } },
+  { id: 12, name: "left_penaltybox_bot", field: { fx: PENALTY_BOX_LENGTH, fy: PB_BOT } },
+  // Línea media + círculo central (x = 52.5)
+  { id: 13, name: "halfway_top", field: { fx: L / 2, fy: 0 } },
+  { id: 14, name: "centre_circle_top", field: { fx: L / 2, fy: W / 2 - CENTRE_CIRCLE_RADIUS } },
+  { id: 15, name: "centre_circle_bot", field: { fx: L / 2, fy: W / 2 + CENTRE_CIRCLE_RADIUS } },
+  { id: 16, name: "halfway_bot", field: { fx: L / 2, fy: W } },
+  // Área grande derecha (x = 88.5)
+  { id: 17, name: "right_penaltybox_top", field: { fx: L - PENALTY_BOX_LENGTH, fy: PB_TOP } },
+  { id: 18, name: "right_penaltybox_goalbox_top", field: { fx: L - PENALTY_BOX_LENGTH, fy: GB_TOP } },
+  { id: 19, name: "right_penaltybox_goalbox_bot", field: { fx: L - PENALTY_BOX_LENGTH, fy: GB_BOT } },
+  { id: 20, name: "right_penaltybox_bot", field: { fx: L - PENALTY_BOX_LENGTH, fy: PB_BOT } },
+  // Punto de penalti derecho
+  { id: 21, name: "right_penalty_spot", field: { fx: L - PENALTY_SPOT_DISTANCE, fy: W / 2 } },
+  // Área pequeña derecha (x = 99.5)
+  { id: 22, name: "right_goalbox_top", field: { fx: L - GOAL_BOX_LENGTH, fy: GB_TOP } },
+  { id: 23, name: "right_goalbox_bot", field: { fx: L - GOAL_BOX_LENGTH, fy: GB_BOT } },
+  // Línea de gol derecha (x = 105)
+  { id: 24, name: "right_goalline_top_corner", field: { fx: L, fy: 0 } },
+  { id: 25, name: "right_goalline_penaltybox_top", field: { fx: L, fy: PB_TOP } },
+  { id: 26, name: "right_goalline_goalbox_top", field: { fx: L, fy: GB_TOP } },
+  { id: 27, name: "right_goalline_goalbox_bot", field: { fx: L, fy: GB_BOT } },
+  { id: 28, name: "right_goalline_penaltybox_bot", field: { fx: L, fy: PB_BOT } },
+  { id: 29, name: "right_goalline_bot_corner", field: { fx: L, fy: W } },
+  // Círculo central: extremos izquierdo y derecho (y = 34)
+  { id: 30, name: "centre_circle_left", field: { fx: L / 2 - CENTRE_CIRCLE_RADIUS, fy: W / 2 } },
+  { id: 31, name: "centre_circle_right", field: { fx: L / 2 + CENTRE_CIRCLE_RADIUS, fy: W / 2 } },
 ];
 
 const TEMPLATE_BY_ID = new Map(FIELD_TEMPLATE.map((l) => [l.id, l]));

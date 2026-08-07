@@ -93,6 +93,29 @@ export const BALL_CONFIGS: Record<string, BallModelConfig> = {
     inputSize: 640,
     modelUrl: "/models/yolo11s-detect.onnx",
   },
+
+  /**
+   * FASE 3 · Balón DEDICADO a fútbol (recomendado).
+   * yolo11n fine-tuned SOLO en balón de fútbol (martinjolif/yolo-football-ball-detection,
+   * HF, AGPL-3.0) exportado con vision-pipeline/export_field_model.py.
+   * Ventaja sobre yolo11s-detect: aquel es COCO genérico (clase 32 "sports ball",
+   * entrenada con pelotas de cualquier deporte, normalmente grandes y en primer
+   * plano) → falla con el balón de fútbol pequeño/lejano/borroso. Este está afinado
+   * al dominio Y es 3.6× más pequeño (10.5MB vs 37.9MB) → viable también en móvil.
+   * Salida: 1 sola clase (0 = ball) → tensor [1, 5, 8400] en vez de [1, 84, 8400].
+   */
+  "football-ball": {
+    modelId: "football-ball",
+    ballClassId: 0,
+    personClassId: -1, // el modelo NO detecta personas (solo balón)
+    confThreshold: 0.15,
+    maxBboxSize: 48,
+    minBboxSize: 3,
+    useHeuristicFallback: true,
+    numClasses: 1,
+    inputSize: 640,
+    modelUrl: "/models/ball-football.onnx",
+  },
 };
 
 /** Football-specific model spec (for future model registry) */

@@ -53,6 +53,12 @@ export interface BallWorkerFrame {
   imgH: number;
   /** Model input size (default 640) */
   modelSize?: number;
+  /**
+   * Aspecto del vídeo ORIGINAL (videoW/videoH). El frame se dibuja en un canvas
+   * cuadrado (imageData 640×640), aplastando el 16:9 → corrige el filtro de
+   * aspecto del detector para no descartar balones redondos. Default 1.
+   */
+  srcAspect?: number;
   /** Person bounding boxes from pose model — for heuristic detection */
   personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }>;
   /** Homography matrix (9 values) for pixel→field conversion */
@@ -223,6 +229,9 @@ async function processBallFrame(cmd: BallWorkerFrame): Promise<void> {
           confThreshold: ballConfig.confThreshold,
           maxBboxSize: ballConfig.maxBboxSize,
           minBboxSize: ballConfig.minBboxSize,
+          // imageData es 640×640 aplastado desde el vídeo original → corrige el
+          // filtro de aspecto para no descartar el balón (redondo → elipse).
+          aspectCorrection: cmd.srcAspect ?? 1,
         },
       );
     }
