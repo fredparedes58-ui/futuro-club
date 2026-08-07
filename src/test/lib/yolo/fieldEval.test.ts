@@ -23,7 +23,7 @@ import {
   type DetectedLandmark,
   type FieldRegistration,
 } from "@/lib/yolo/fieldRegistration";
-import { pixelToField } from "@/lib/yolo/homography";
+import { pixelToField, fieldToPixel } from "@/lib/yolo/homography";
 
 interface EvalImage {
   name: string; w: number; h: number;
@@ -101,5 +101,54 @@ describe.skipIf(!hasData)("Auto-calibración sobre imágenes reales (held-out)",
     expect(images.length).toBeGreaterThan(0);
     expect(predOk / images.length).toBeGreaterThan(0.6);
     expect(median(reproj)).toBeLessThan(10);
+  });
+});
+
+// ── Estabilidad TEMPORAL sobre un vídeo real (clip de muestra público) ──────
+const VIDEO_PATH = join(process.cwd(), "scratchpad", "field_video_eval.json");
+const hasVideo = existsSync(VIDEO_PATH);
+
+describe.skipIf(!hasVideo)("Auto-calibración sobre VÍDEO real (estabilidad temporal)", () => {
+  const frames: EvalImage[] = hasVideo ? JSON.parse(readFileSync(VIDEO_PATH, "utf-8")) : [];
+
+  it("reporta fiabilidad + jitter a lo largo del clip", () => {
+    let ok = 0;
+    const reproj: number[] = [];
+    const conf: Record<string, number> = { high: 0, medium: 0, low: 0, none: 0 };
+    const centers: Array<{ px: number; py: number } | null> = [];
+
+    for (const fr of frames) {
+      const dets: DetectedLandmark[] = fr.pred.map((k) => ({ id: k.id, px: k.x, py: k.y, confidence: k.conf }));
+      const reg = registerFieldFromLandmarks(dets);
+      conf[reg.confidence]++;
+      if ((reg.confidence === "high" || reg.confidence === "medium") && reg.Hfield2pix) {
+        ok++;
+        reproj.push(reg.meanReprojErrorPx);
+        // Dónde cae el CENTRO del campo (52.5, 34) en píxeles este frame.
+        centers.push(fieldToPixel(reg.Hfield2pix, 52.5, 34));
+      } else {
+        centers.push(null);
+      }
+    }
+
+    // Jitter: salto en píxeles del centro del campo entre frames CONSECUTIVOS
+    // calibrados. En un clip que panea el centro se mueve suave; saltos = temblor.
+    const steps: number[] = [];
+    for (let i = 1; i < centers.length; i++) {
+      const a = centers[i - 1], b = centers[i];
+      if (a && b) steps.push(Math.hypot(b.px - a.px, b.py - a.py));
+    }
+
+    const p90 = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length * 0.9)];
+     
+    console.log(`\n╔═══ VÍDEO REAL · estabilidad temporal (${frames.length} frames, 1920×1080) ═══`);
+    console.log(`║ Confianza: high=${conf.high} medium=${conf.medium} low=${conf.low} none=${conf.none}`);
+    console.log(`║ Calibran fiables: ${ok}/${frames.length} (${Math.round(100 * ok / frames.length)}%)`);
+    console.log(`║ Reproyección: ${median(reproj).toFixed(2)} px (mediana), P90 ${p90(reproj)?.toFixed(2)} px`);
+    console.log(`║ Jitter centro campo (frame→frame): ${median(steps).toFixed(1)} px mediana, P90 ${p90(steps)?.toFixed(1)} px, max ${Math.max(...steps).toFixed(0)} px`);
+    console.log(`╚${"═".repeat(64)}`);
+
+    expect(frames.length).toBeGreaterThan(0);
+    expect(ok / frames.length).toBeGreaterThan(0.5);
   });
 });
