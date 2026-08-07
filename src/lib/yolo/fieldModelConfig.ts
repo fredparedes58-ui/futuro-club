@@ -48,20 +48,41 @@ export const FIELD_MODEL_CONFIGS: Record<string, FieldModelConfig> = {
   },
 
   /**
-   * Placeholder para el futuro modelo de keypoints de campo (Fase 2).
-   * Cuando exista el ONNX, poner su modelUrl y activarlo con setActiveFieldModel.
-   * Base recomendada: No-Bells-Just-Whistles / PnLCalib (pesos SoccerNet) o un
-   * YOLOv8-pose con 27 keypoints entrenado a FIELD_TEMPLATE.
+   * Modelo PROPIO de keypoints de campo (Fase 2b) — el recomendado.
+   * yolo11s-pose entrenado por nosotros en Modal (vision-pipeline/train_field_model.py)
+   * sobre el dataset público `martinjolif/football-pitch-detection` (CC-BY-4.0, 317
+   * imgs, 32 kpts, esquema SoccerPitchConfiguration = mismo orden que FIELD_TEMPLATE).
+   *
+   * 42 MB de ONNX (vs 279 MB del YOLOv8x público) → viable en el navegador.
+   * Métricas en validación: pose mAP50 0.995 · mAP50-95 0.914.
+   * OJO: esas métricas son sobre el MISMO dominio del dataset (broadcast de TV).
+   * En footage de móvil en campo de academia rendirá peor — el gate de confianza
+   * (classifyCalibration) es justamente la red de seguridad para ese caso.
    */
-  "field-keypoints-v1": {
-    id: "field-keypoints-v1",
-    modelUrl: "/models/field-keypoints.onnx",
+  "field-keypoints-s": {
+    id: "field-keypoints-s",
+    modelUrl: "/models/field-keypoints-s.onnx",
     numKeypoints: FIELD_TEMPLATE.length,
     inputSize: 640,
     minKeypointConfidence: 0.5,
     reprojThresholdPx: 8,
     registerEveryNFrames: 15,
-    notes: "PENDIENTE de exportar/entrenar (ver runbook). No desplegado.",
+    notes: "yolo11s-pose propio · 42MB · mAP50 .995 (dominio broadcast) · CC-BY-4.0 dataset",
+  },
+
+  /**
+   * Modelo público grande (YOLOv8x-pose, martinjolif). Máxima capacidad pero
+   * 279 MB en ONNX → solo viable SERVER-SIDE (Modal lo carga de HF directamente).
+   * No se sirve al navegador; se deja registrado para el path de servidor.
+   */
+  "field-keypoints-x": {
+    id: "field-keypoints-x",
+    numKeypoints: FIELD_TEMPLATE.length,
+    inputSize: 640,
+    minKeypointConfidence: 0.5,
+    reprojThresholdPx: 8,
+    registerEveryNFrames: 15,
+    notes: "YOLOv8x-pose público (HF martinjolif) · 279MB · SOLO server-side.",
   },
 };
 

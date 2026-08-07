@@ -22,6 +22,7 @@ const MODELS = [
   { file: "yolov11m-pose.onnx",  minBytes: 70_000_000 },  // default desktop (FASE 1)
   { file: "yolo11s-detect.onnx", minBytes: 30_000_000 },  // balón COCO genérico (FASE 2)
   { file: "ball-football.onnx",  minBytes:  8_000_000 },  // balón fine-tuned fútbol (FASE 3)
+  { file: "field-keypoints-s.onnx", minBytes: 35_000_000 }, // auto-calibración de campo (FASE 3)
 ];
 
 mkdirSync(OUT_DIR, { recursive: true });
