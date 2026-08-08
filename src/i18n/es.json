@@ -2251,6 +2251,7 @@
     "statusLabel": "Estado:",
     "estimatedTime": "~25 segundos · refresca la página",
     "tierLabel": "Tier ·",
+    "partiallyEstimated": "Parcialmente estimado · {{measured}}/5 dimensiones medidas",
     "vs": "vs",
     "technicalData": "Datos técnicos (avanzado)",
     "biomechanics": "Biomecánica",
