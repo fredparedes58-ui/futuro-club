@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
-  Brain, Gauge, HeartPulse, BatteryLow,
+  Brain, Gauge, HeartPulse, BatteryLow, FlaskConical,
 } from "lucide-react";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import PeerBenchmark from "@/components/PeerBenchmark";
@@ -45,6 +45,10 @@ interface AnalysisData {
     vsi?: number;
     tier?: string;
     tierLabel?: string;
+    /** Procedencia honesta (pipeline): fracción de sub-scores realmente medidos. */
+    measuredFraction?: number;
+    partiallyEstimated?: boolean;
+    subscoreProvenance?: Record<string, "measured" | "placeholder">;
     peer?: { percentile: number | null; peerCount: number; stratum: string } | null;
     trend?: {
       slope: number | null;
@@ -206,6 +210,14 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         {tier && (
           <div className="text-[11px] mt-1.5 text-muted-foreground">
             {t("analysisDashboard.tierLabel")} <span className="text-foreground font-semibold">{tier}</span>
+          </div>
+        )}
+        {vsi !== null && analysis.vsi?.partiallyEstimated && (
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-500">
+            <FlaskConical size={11} />
+            {t("analysisDashboard.partiallyEstimated", {
+              measured: Math.round((analysis.vsi?.measuredFraction ?? 0) * 5),
+            })}
           </div>
         )}
         {((analysis.vsi?.peer?.percentile !== null && analysis.vsi?.peer?.percentile !== undefined) ||
