@@ -27,9 +27,23 @@ export const PITCH_GEOM: Record<"f11" | "f8", PitchGeom> = {
   f8: { L: 60, W: 40, pbDepth: 9, pbHalf: 12, gbDepth: 3, gbHalf: 4, circleR: 6 },
 };
 
-/** Polilíneas del campo (coords de campo en metros) para un formato. */
-export function pitchPolylines(format: "f11" | "f8"): Array<Array<[number, number]>> {
-  const g = PITCH_GEOM[format];
+/**
+ * Polilíneas del campo (coords de campo en metros) para un formato.
+ *
+ * `dims` SOBREESCRIBE el largo/ancho nominal (PITCH_GEOM) — necesario porque el
+ * campo F8 real suele ser una SUBDIVISIÓN de F11 (borde blanco de medio F11,
+ * ~52.5×68), NO el nominal FFCV 60×40. Las áreas/círculo (pintado amarillo F8) son
+ * estándar y NO escalan con el borde. El caller (worker/T3) DEBE pasar las MISMAS
+ * dimensiones con las que construyó la plantilla → si no, las líneas se reproyectan
+ * fuera del campo y un high/medium válido se degradaría por error (falso negativo).
+ * Por defecto usa el nominal (backward-compatible).
+ */
+export function pitchPolylines(
+  format: "f11" | "f8",
+  dims?: { L?: number; W?: number },
+): Array<Array<[number, number]>> {
+  const base = PITCH_GEOM[format];
+  const g: PitchGeom = { ...base, L: dims?.L ?? base.L, W: dims?.W ?? base.W };
   const { L, W } = g;
   const cy = W / 2;
   const polys: Array<Array<[number, number]>> = [

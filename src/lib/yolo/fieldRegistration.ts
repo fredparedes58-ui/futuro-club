@@ -151,6 +151,13 @@ export interface FieldRegistration {
   inlierCount: number;
   usedLandmarks: number;
   source: "model" | "manual" | "none";
+  /**
+   * Soporte de líneas [0..1] (T2): fracción de líneas reproyectadas que caen
+   * sobre líneas reales del césped. Lo mide el worker (acceso al píxel) vía
+   * opts.evaluateLineSupport. null si no se evaluó (path puro / sin frame) o si el
+   * soporte resultó INCALCULABLE / fuera de contrato (evaluador roto o valor ∉[0,1]).
+   */
+  lineSupport?: number | null;
 }
 
 export const NO_REGISTRATION: FieldRegistration = {
@@ -161,12 +168,18 @@ export const NO_REGISTRATION: FieldRegistration = {
   inlierCount: 0,
   usedLandmarks: 0,
   source: "none",
+  lineSupport: null,
 };
 
 // Umbrales de clasificación (px de error de reproyección + nº de inliers).
 const HIGH = { minInliers: 6, maxErrPx: 3.0, minInlierRatio: 0.7 };
 const MEDIUM = { minInliers: 5, maxErrPx: 6.0, minInlierRatio: 0.5 };
 const LOW = { minInliers: 4, maxErrPx: 10.0 };
+
+// Umbral de SOPORTE DE LÍNEAS (T2) para confiar en high/medium: fracción [0..1] de
+// líneas reproyectadas que caen sobre líneas reales del césped. Validado en
+// lineSupport.test.ts (H correcta >0.8, falsa/desplazada <0.3) → 0.5 separa limpio.
+const MIN_LINE_SUPPORT = 0.5;
 
 /**
  * Clasifica la fiabilidad de una calibración a partir de sus inliers y su error
@@ -305,6 +318,25 @@ export interface RegisterOptions {
    * dimensiones (metros) + sanity geométrica. Ver fieldFormatConfig.getFieldTemplate.
    */
   template?: readonly FieldLandmark[];
+  /**
+   * Evaluador del SOPORTE DE LÍNEAS (T2 — el discriminador definitivo). Dada la
+   * homografía campo→píxel, devuelve la fracción [0..1] de líneas reproyectadas
+   * que caen sobre líneas reales del césped. Lo provee el WORKER (tiene acceso al
+   * píxel: lineSupportScore + máscaras line/green del frame). Es INYECCIÓN DE
+   * DEPENDENCIA: este módulo no importa el worker → sigue siendo geometría pura y
+   * testeable con un cierre sintético. Si se provee, un high/medium DEBE superar
+   * `minLineSupport` o se degrada a 'low' (mata el falso positivo "campo flotando").
+   */
+  evaluateLineSupport?: (Hfield2pix: Float64Array) => number;
+  /** Umbral de soporte de líneas para confiar en high/medium (default 0.5). */
+  minLineSupport?: number;
+  /**
+   * Si true (PATH DEL WORKER EN VIVO), un high/medium SIN evaluador de soporte se
+   * degrada a 'low': no se confía en métricas en metros sin verificar el píxel.
+   * Los tests puros y cualquier path sin frame lo dejan en false (= comportamiento
+   * actual, backward-compatible). Fail-closed: ante la duda, no confiar.
+   */
+  requireLineSupport?: boolean;
 }
 
 /**
@@ -367,15 +399,43 @@ export function registerFieldFromLandmarks(
   }
 
   let confidence = classifyCalibration(res.inlierCount, filtered.length, meanErr);
-  // Sanity geométrica: si es fiable POR NÚMEROS pero la homografía es implausible
-  // (inliers agrupados / campo reproyectado imposible), degradar a 'low' para que
-  // el gate NO deje pasar métricas en metros. Evita el falso-positivo de dominio.
+  let lineSupport: number | null = null;
+  // Doble sanity para high/medium, en orden de coste: (1) GEOMETRÍA barata y
+  // NECESARIA (inliers repartidos + campo convexo delante de cámara); (2) SOPORTE
+  // DE LÍNEAS sobre el frame = el discriminador DEFINITIVO (¿las líneas
+  // reproyectadas caen sobre líneas reales del césped?). Cualquiera que falle
+  // degrada a 'low' → el gate NO deja pasar métricas en metros. Mata el
+  // falso-positivo de dominio ("campo flotando" con reproyección baja).
   if (confidence === "high" || confidence === "medium") {
     const inlierField = res.inlierIndices.map((i) => ({
       fx: correspondences[i].field.x,
       fy: correspondences[i].field.y,
     }));
-    if (!assessFieldGeometry(res.H, inlierField, fieldLength, fieldWidth).ok) confidence = "low";
+    if (!assessFieldGeometry(res.H, inlierField, fieldLength, fieldWidth).ok) {
+      confidence = "low";
+    } else if (opts.evaluateLineSupport) {
+      // El worker (con acceso al píxel) mide el soporte real. FAIL-CLOSED estricto:
+      // solo se confía si el soporte es un número DENTRO DEL CONTRATO [0,1] y supera
+      // el umbral. Cualquier violación del contrato del caller (evaluador que lanza,
+      // NaN/±Infinity, o un valor fuera de rango como un conteo de muestras devuelto
+      // por error en vez de la fracción) → soporte incalculable (null) → degrada. Así
+      // un bug del futuro caller NO puede colar un high/medium sobre un campo flotando.
+      let support: number | null;
+      try {
+        const s = opts.evaluateLineSupport(res.H);
+        support = Number.isFinite(s) && s >= 0 && s <= 1 ? s : null;
+      } catch {
+        support = null;
+      }
+      lineSupport = support;
+      if (!(support !== null && support >= (opts.minLineSupport ?? MIN_LINE_SUPPORT))) {
+        confidence = "low";
+      }
+    } else if (opts.requireLineSupport) {
+      // Path en vivo que EXIGE verificación de píxel pero no aportó evaluador →
+      // no se puede confirmar → no confiar.
+      confidence = "low";
+    }
   }
 
   return {
@@ -386,7 +446,33 @@ export function registerFieldFromLandmarks(
     inlierCount: res.inlierCount,
     usedLandmarks: filtered.length,
     source: "model",
+    lineSupport,
   };
+}
+
+/**
+ * Opciones del PATH VIVO: `evaluateLineSupport` es OBLIGATORIO (no opcional). El
+ * tipo impide, en tiempo de compilación, registrar el campo sin el discriminador
+ * de soporte de líneas → el falso positivo "campo flotando" no puede reintroducirse
+ * "por olvido" cuando se cablee el modelo (T3, #16).
+ */
+export interface LiveRegisterOptions extends Omit<RegisterOptions, "requireLineSupport" | "evaluateLineSupport"> {
+  /** OBLIGATORIO: evaluador de soporte de líneas (worker, acceso al píxel). */
+  evaluateLineSupport: (Hfield2pix: Float64Array) => number;
+}
+
+/**
+ * Registro para el PATH VIVO (worker de tracking). Igual que
+ * registerFieldFromLandmarks pero EXIGE el evaluador de soporte de líneas por tipo
+ * y fuerza `requireLineSupport` (doble seguro: si el evaluador llegara undefined en
+ * runtime pese al tipo, high/medium se degrada igualmente). T3/#16 DEBE usar esta
+ * función (o Accumulator.registerLive), NO registerFieldFromLandmarks a secas.
+ */
+export function registerFieldLive(
+  detections: DetectedLandmark[],
+  opts: LiveRegisterOptions,
+): FieldRegistration {
+  return registerFieldFromLandmarks(detections, { ...opts, requireLineSupport: true });
 }
 
 // ─── Acumulador temporal (cámara ~fija de academia) ──────────────────────────
@@ -433,6 +519,14 @@ export class FieldRegistrationAccumulator {
   /** Registra el campo con todo lo acumulado (usa la plantilla del formato). */
   register(opts: RegisterOptions = {}): FieldRegistration {
     return registerFieldFromLandmarks([...this.best.values()], { template: this.template, ...opts });
+  }
+
+  /**
+   * Registro para el PATH VIVO: exige el evaluador de soporte de líneas por tipo
+   * (fail-closed estructural). Es el que debe usar el worker en T3/#16.
+   */
+  registerLive(opts: LiveRegisterOptions): FieldRegistration {
+    return registerFieldLive([...this.best.values()], { template: this.template, ...opts });
   }
 
   reset(): void {
