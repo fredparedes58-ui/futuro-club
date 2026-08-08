@@ -22,6 +22,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
+import { computeVsiProvenance, fatigueIsReliable } from "../_lib/metricsProvenance";
 
 export const config = { runtime: "edge" };
 
@@ -98,10 +99,28 @@ async function callInternal(endpoint: string, payload: unknown) {
 async function sendCompletionEmail(
   to: string,
   playerName: string,
-  vsi: number,
-  analysisLink: string
+  vsi: number | null,
+  analysisLink: string,
+  opts: { reportsGenerated: number; reportsTotal: number; partiallyEstimated: boolean } = {
+    reportsGenerated: 6,
+    reportsTotal: 6,
+    partiallyEstimated: false,
+  },
 ) {
   if (!RESEND_API_KEY) return false;
+
+  // Honesto: nunca "VSI 0" cuando no hay VSI; y reflejar reportes parciales.
+  const vsiDisplay = vsi != null ? String(vsi) : "N/D";
+  const vsiNote =
+    vsi == null
+      ? "no disponible en este análisis"
+      : opts.partiallyEstimated
+        ? "parcialmente estimado · algunas dimensiones son estimaciones"
+        : "/100 · sobre todos los reportes";
+  const partial = opts.reportsGenerated < opts.reportsTotal;
+  const reportsLine = partial
+    ? `Has recibido <strong>${opts.reportsGenerated} de ${opts.reportsTotal} reportes</strong> (algunos no se pudieron generar o usan datos de respaldo):`
+    : `Has recibido <strong>${opts.reportsGenerated} reportes profesionales</strong>:`;
 
   const html = `
 <!DOCTYPE html>
@@ -111,10 +130,10 @@ async function sendCompletionEmail(
     <p>El análisis biomecánico de <strong>${playerName}</strong> ya está disponible.</p>
     <div style="background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;padding:24px;border-radius:14px;text-align:center;margin:24px 0;">
       <div style="font-size:14px;opacity:0.9;letter-spacing:0.1em;text-transform:uppercase;">VSI Score</div>
-      <div style="font-size:56px;font-weight:700;line-height:1;margin:8px 0;">${vsi}</div>
-      <div style="font-size:13px;opacity:0.9;">/100 · sobre todos los reportes</div>
+      <div style="font-size:56px;font-weight:700;line-height:1;margin:8px 0;">${vsiDisplay}</div>
+      <div style="font-size:13px;opacity:0.9;">${vsiNote}</div>
     </div>
-    <p>Has recibido <strong>6 reportes profesionales</strong>:</p>
+    <p>${reportsLine}</p>
     <ul style="line-height:1.8;color:#475569;">
       <li>📊 <strong>Player Report</strong> · resumen ejecutivo</li>
       <li>🦴 <strong>LAB Biomechanics</strong> · análisis técnico</li>
@@ -138,7 +157,7 @@ async function sendCompletionEmail(
     body: JSON.stringify({
       from: process.env.RESEND_FROM_EMAIL ?? "VITAS <onboarding@resend.dev>",
       to: [to],
-      subject: `VITAS · Análisis de ${playerName} listo · VSI ${vsi}`,
+      subject: `VITAS · Análisis de ${playerName} listo${vsi != null ? ` · VSI ${vsi}` : ""}`,
       html,
     }),
   });
@@ -236,6 +255,20 @@ export default withHandler(
 
     const vsi = vsiRes.success ? (vsiRes.data?.data ?? vsiRes.data) : null;
 
+    // Procedencia honesta del VSI: 3/5 sub-scores son placeholder. Adjuntamos
+    // measuredFraction + origen por sub-score para que UI/email lo muestren como
+    // "parcialmente estimado (N/5 medidos)" y NO como una cifra plenamente medida.
+    const vsiProv = computeVsiProvenance(bm, anthro);
+    const vsiWithProvenance =
+      vsi && typeof vsi === "object"
+        ? {
+            ...(vsi as Record<string, unknown>),
+            measuredFraction: vsiProv.measuredFraction,
+            partiallyEstimated: vsiProv.partiallyEstimated,
+            subscoreProvenance: vsiProv.perSubscore,
+          }
+        : vsi;
+
     // ── 3a. Scan rate detection (NUEVO Sprint 4) ────────────────────
     // Si Modal devolvió keypoints, calcular scan rate del jugador
     let scanResult: unknown = null;
@@ -270,10 +303,19 @@ export default withHandler(
     });
 
     // ── 4. Persistir resultados deterministas en analysis ───────────
+    // La similarity se alimenta de sub-scores mayormente placeholder → si <50% del
+    // VSI está medido, se marca lowConfidence (el "comparable profesional" no debe
+    // presentarse como sólido cuando sale de estimaciones).
+    const rawSimilarity = similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null;
+    const similarity =
+      rawSimilarity && typeof rawSimilarity === "object"
+        ? { ...(rawSimilarity as Record<string, unknown>), lowConfidence: vsiProv.measuredFraction < 0.5 }
+        : rawSimilarity;
+
     await supabase
       .from("analyses")
       .update({
-        vsi: vsi,
+        vsi: vsiWithProvenance,
         phv: anthro
           ? {
               chronological_age: anthro.chronological_age,
@@ -281,7 +323,7 @@ export default withHandler(
               category: anthro.phv_category,
             }
           : null,
-        similarity: similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null,
+        similarity,
       })
       .eq("id", analysis.id);
 
@@ -361,6 +403,11 @@ export default withHandler(
     }
 
     // ── 4c. Injury risk calculator (deterministic, Sprint 10) ─────────
+    // Gate de fiabilidad: ACWR necesita ~4 semanas de carga. Con menos sesiones,
+    // pasar acwr/fatiga crudos produciría un riesgo de lesión "sólido" con datos
+    // insuficientes → se pasan como null y el calculador marca "datos insuficientes".
+    const fatigueReliable = fatigueIsReliable(fatigueHistory.length);
+    const fr = fatigueReport as Record<string, unknown> | null;
     let injuryRiskResult: unknown = null;
     try {
       const injuryCalcRes = await callInternal("/api/agents/injury-risk-calculator", {
@@ -368,10 +415,10 @@ export default withHandler(
         age: anthro?.chronological_age ?? null,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
-        acwrValue: (fatigueReport as Record<string, unknown> | null)?.acwr_value ?? null,
-        acwrZone: (fatigueReport as Record<string, unknown> | null)?.acwr_zone ?? null,
-        fatigueIndex: (fatigueReport as Record<string, unknown> | null)?.fatigue_index ?? null,
-        fatigueSeverity: (fatigueReport as Record<string, unknown> | null)?.fatigue_severity ?? null,
+        acwrValue: fatigueReliable ? (fr?.acwr_value ?? null) : null,
+        acwrZone: fatigueReliable ? (fr?.acwr_zone ?? null) : null,
+        fatigueIndex: fatigueReliable ? (fr?.fatigue_index ?? null) : null,
+        fatigueSeverity: fatigueReliable ? (fr?.fatigue_severity ?? null) : null,
         biomechanicsInjuryRisk: bm.injury_risk ?? null,
         asymmetryPct: bm.asymmetry_pct ?? null,
         injuryHistory,
@@ -590,12 +637,17 @@ export default withHandler(
         .maybeSingle();
 
       if (parentEmail?.parent_email && player) {
-        const vsiScore = (vsi as { vsi?: number })?.vsi ?? 0;
+        const vsiScore = (vsi as { vsi?: number })?.vsi ?? null; // null → email muestra "N/D", nunca "VSI 0"
         emailSent = await sendCompletionEmail(
           parentEmail.parent_email,
           player.name,
           vsiScore,
-          `${PUBLIC_URL}/player/${analysis.player_id}/analysis/${analysis.id}`
+          `${PUBLIC_URL}/player/${analysis.player_id}/analysis/${analysis.id}`,
+          {
+            reportsGenerated: successfulReports.length,
+            reportsTotal: activeAgents.length,
+            partiallyEstimated: vsiProv.partiallyEstimated,
+          },
         );
       }
     } catch {
