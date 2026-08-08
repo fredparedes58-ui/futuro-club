@@ -19,6 +19,7 @@ import {
 import {
   matchToTemplate,
   scoreCorrespondences,
+  templateForFormat,
   type PointCorrespondence,
 } from "./fieldTemplateMatch";
 import {
@@ -32,7 +33,7 @@ import {
   type RANSACResult,
 } from "@/lib/yolo/homography";
 import { captureVideoFrame } from "./autoCalibrationBridge";
-import { getFieldDimensions } from "@/lib/yolo/fieldFormatConfig";
+import { getActiveFieldFormat, getFieldDimensions } from "@/lib/yolo/fieldFormatConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -95,6 +96,13 @@ export async function autoComputeHomography(
   const vw = video.videoWidth || 1280;
   const vh = video.videoHeight || 720;
 
+  // FORMAT-AWARE (#20): plantilla + dimensiones del formato activo (F8/F11) → escala
+  // métrica correcta tanto en el matching como en el scale-prior del validador. Sin
+  // esto, un partido de fútbol-8 se emparejaría contra la plantilla 105×68 e inflaría
+  // los metros ~1.75×.
+  const format = getActiveFieldFormat();
+  const dims = getFieldDimensions(format);
+
   // ── 1. Multi-frame field line detection ──
   let bestDetection: FieldDetectionResult | null = null;
 
@@ -122,19 +130,19 @@ export async function autoComputeHomography(
   if (intersections.length < 4) {
     // Not enough intersections — try using detected corners directly
     if (bestDetection.corners.length >= 4) {
-      return directCornerHomography(bestDetection, vw, vh, cfg, startMs);
+      return directCornerHomography(bestDetection, vw, vh, cfg, startMs, dims);
     }
     return fallbackResult(vw, vh, startMs, bestDetection);
   }
 
-  // ── 3. Match intersections to FIFA template ──
-  const correspondences = matchToTemplate(intersections, vw, vh);
+  // ── 3. Match intersections to field template (del formato activo) ──
+  const correspondences = matchToTemplate(intersections, vw, vh, templateForFormat(format, dims));
   const templateScore = scoreCorrespondences(correspondences);
 
   if (correspondences.length < 4 || templateScore < 0.2) {
     // Template matching failed — try direct corners
     if (bestDetection.corners.length >= 4) {
-      return directCornerHomography(bestDetection, vw, vh, cfg, startMs);
+      return directCornerHomography(bestDetection, vw, vh, cfg, startMs, dims);
     }
     return fallbackResult(vw, vh, startMs, bestDetection);
   }
@@ -160,10 +168,11 @@ export async function autoComputeHomography(
       cfg,
       startMs,
       bestDetection,
+      dims,
     );
   }
 
-  // ── 5. Validate ──
+  // ── 5. Validate (scale-prior format-aware) ──
   const Hinv = invertMatrix3x3(ransacResult.H);
   const validation = validateHomography(
     ransacResult.H,
@@ -171,6 +180,7 @@ export async function autoComputeHomography(
     vw,
     vh,
     cfg.ballPositions,
+    { fieldLength: dims.length, fieldWidth: dims.width },
   );
 
   if (!validation.valid || validation.confidence < cfg.minConfidence) {
@@ -182,6 +192,7 @@ export async function autoComputeHomography(
       cfg,
       startMs,
       bestDetection,
+      dims,
     );
   }
 
@@ -261,6 +272,7 @@ function directCorrespondenceHomography(
   cfg: AutoHomographyConfig,
   startMs: number,
   fieldDetection: FieldDetectionResult | null,
+  dims: { length: number; width: number },
 ): AutoHomographyResult {
   // Take the 4 best correspondences
   const best4 = correspondences.slice(0, 4);
@@ -275,7 +287,10 @@ function directCorrespondenceHomography(
     if (!result) return fallbackResult(imgW, imgH, startMs, fieldDetection);
 
     const Hinv = invertMatrix3x3(result.H);
-    const validation = validateHomography(result.H, Hinv, imgW, imgH);
+    const validation = validateHomography(result.H, Hinv, imgW, imgH, undefined, {
+      fieldLength: dims.length,
+      fieldWidth: dims.width,
+    });
 
     return {
       H: result.H,
@@ -301,6 +316,7 @@ function directCornerHomography(
   imgH: number,
   cfg: AutoHomographyConfig,
   startMs: number,
+  dims: { length: number; width: number },
 ): AutoHomographyResult {
   const corners = detection.corners.slice(0, 4);
   const correspondences = corners.map((c) => ({
@@ -311,7 +327,7 @@ function directCornerHomography(
   // Assign field coordinates based on corner ordering (top-left, top-right,
   // bottom-right, bottom-left). FORMAT-AWARE: dimensiones del formato activo
   // (F8 60×40 vs F11 105×68) para no inflar los metros en fútbol-8.
-  const { length: L, width: Wm } = getFieldDimensions();
+  const { length: L, width: Wm } = dims;
   const fieldCorners = [
     { x: 0, y: 0 },
     { x: L, y: 0 },
@@ -328,7 +344,10 @@ function directCornerHomography(
     if (!result) return fallbackResult(imgW, imgH, startMs, detection);
 
     const Hinv = invertMatrix3x3(result.H);
-    const validation = validateHomography(result.H, Hinv, imgW, imgH, cfg.ballPositions);
+    const validation = validateHomography(result.H, Hinv, imgW, imgH, cfg.ballPositions, {
+      fieldLength: L,
+      fieldWidth: Wm,
+    });
 
     return {
       H: result.H,

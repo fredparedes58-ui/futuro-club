@@ -43,6 +43,9 @@ export interface ValidationCheck {
  * @param imageWidth - Source image width in pixels
  * @param imageHeight - Source image height in pixels
  * @param ballPositions - Optional ball field positions for cross-validation
+ * @param opts - Dimensiones del FORMATO (metros). Default FIFA 11 (105×68). Para
+ *   fútbol-8 pásale {fieldLength, fieldWidth} → el chequeo de dimensiones actúa como
+ *   SCALE-PRIOR correcto (rechaza homografías con escala implausible para el formato).
  */
 export function validateHomography(
   H: Float64Array,
@@ -50,9 +53,12 @@ export function validateHomography(
   imageWidth: number,
   imageHeight: number,
   ballPositions?: Array<{ x: number; y: number }>,
+  opts: { fieldLength?: number; fieldWidth?: number } = {},
 ): HomographyValidation {
   const checks: ValidationCheck[] = [];
   const issues: string[] = [];
+  const L = opts.fieldLength ?? FIELD_LENGTH;
+  const Wd = opts.fieldWidth ?? FIELD_WIDTH;
 
   // ── Check 1: Determinant sign ──
   const det = H[0] * (H[4] * H[8] - H[5] * H[7])
@@ -71,9 +77,9 @@ export function validateHomography(
   // ── Check 2: Field corners reproject to within image bounds ──
   const fieldCorners = [
     { fx: 0, fy: 0 },
-    { fx: FIELD_LENGTH, fy: 0 },
-    { fx: FIELD_LENGTH, fy: FIELD_WIDTH },
-    { fx: 0, fy: FIELD_WIDTH },
+    { fx: L, fy: 0 },
+    { fx: L, fy: Wd },
+    { fx: 0, fy: Wd },
   ];
 
   let cornersInImage = 0;
@@ -106,20 +112,29 @@ export function validateHomography(
   const fieldW = Math.abs(imgBottomRight.fx - imgTopLeft.fx);
   const fieldH = Math.abs(imgBottomRight.fy - imgTopLeft.fy);
 
-  // Field visible in frame should be between 20m and 200m in each dimension
-  const dimOk = fieldW > 10 && fieldW < 250 && fieldH > 10 && fieldH < 200;
-  const dimScore = dimOk ? Math.min(1.0, 1.0 - Math.abs(fieldW - FIELD_LENGTH) / FIELD_LENGTH * 0.5) : 0;
+  // SCALE-PRIOR (format-aware): el campo visible en el frame debe tener una escala
+  // plausible para el FORMATO. Las cotas se derivan de las ABSOLUTAS históricas de
+  // F11 (10–250m largo, 10–200m ancho) escaladas por L/105 y Wd/68 → con el default
+  // F11 son EXACTAMENTE las de antes (backward-compat), y escalan proporcionalmente a
+  // F8. Rechaza escalas absurdas (degeneradas / plantilla muy equivocada). Es un
+  // límite LAXO de plausibilidad: un campo F8 real (~60m) todavía cae dentro del
+  // rango F11, así que por sí solo NO discrimina el formato — la escala correcta la
+  // fija matchToTemplate; el discriminador fuerte es lineSupport.
+  const sL = L / FIELD_LENGTH;
+  const sW = Wd / FIELD_WIDTH;
+  const dimOk = fieldW > 10 * sL && fieldW < 250 * sL && fieldH > 10 * sW && fieldH < 200 * sW;
+  const dimScore = dimOk ? Math.min(1.0, 1.0 - Math.abs(fieldW - L) / L * 0.5) : 0;
 
   checks.push({
     name: "dimensions",
     passed: dimOk,
     score: Math.max(0, dimScore),
-    detail: `Visible field: ${fieldW.toFixed(1)}m × ${fieldH.toFixed(1)}m (expected ~${FIELD_LENGTH}×${FIELD_WIDTH})`,
+    detail: `Visible field: ${fieldW.toFixed(1)}m × ${fieldH.toFixed(1)}m (expected ~${L}×${Wd})`,
   });
   if (!dimOk) issues.push(`Dimensiones de campo implausibles: ${fieldW.toFixed(0)}m × ${fieldH.toFixed(0)}m`);
 
   // ── Check 4: Center field maps to reasonable location ──
-  const centerPixel = fieldToPixel(Hinv, FIELD_LENGTH / 2, FIELD_WIDTH / 2);
+  const centerPixel = fieldToPixel(Hinv, L / 2, Wd / 2);
   const centerInImage =
     centerPixel.px >= -imageWidth * 0.5 &&
     centerPixel.px <= imageWidth * 1.5 &&
@@ -130,7 +145,7 @@ export function validateHomography(
     name: "center_mapping",
     passed: centerInImage,
     score: centerInImage ? 1 : 0,
-    detail: `Center field (52.5, 34) → pixel (${centerPixel.px.toFixed(0)}, ${centerPixel.py.toFixed(0)})`,
+    detail: `Center field (${(L / 2).toFixed(1)}, ${(Wd / 2).toFixed(1)}) → pixel (${centerPixel.px.toFixed(0)}, ${centerPixel.py.toFixed(0)})`,
   });
   if (!centerInImage) issues.push("El centro del campo no se proyecta dentro de la imagen");
 
@@ -149,8 +164,8 @@ export function validateHomography(
     let insideCount = 0;
     for (const bp of ballPositions) {
       const inField =
-        bp.x >= -5 && bp.x <= FIELD_LENGTH + 5 &&
-        bp.y >= -5 && bp.y <= FIELD_WIDTH + 5;
+        bp.x >= -5 && bp.x <= L + 5 &&
+        bp.y >= -5 && bp.y <= Wd + 5;
       if (inField) insideCount++;
     }
     const ballRatio = insideCount / ballPositions.length;
