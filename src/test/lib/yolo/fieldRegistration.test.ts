@@ -18,6 +18,7 @@ import {
   FIELD_TEMPLATE,
   FIELD_LENGTH_M,
   registerFieldFromLandmarks,
+  registerFieldLive,
   classifyCalibration,
   metricsTrustworthy,
   FieldRegistrationAccumulator,
@@ -25,6 +26,7 @@ import {
   decodeFieldKeypoints,
   type DetectedLandmark,
 } from "@/lib/yolo/fieldRegistration";
+import { lineSupportScore, pitchPolylines } from "@/lib/tracking/lineSupport";
 
 // Cámara ficticia (1280×720) mirando el campo entero, en perspectiva (trapecio).
 // computeHomography devuelve campo→píxel directamente (fuente=campo, destino=píxel).
@@ -108,6 +110,207 @@ describe("registerFieldFromLandmarks — robustez", () => {
     // Todos con confianza 0.3 < 0.5 → filtrados → <4 → none.
     const reg = registerFieldFromLandmarks(allDets(0, 0.3), { minKeypointConfidence: 0.5 });
     expect(reg.confidence).toBe("none");
+  });
+});
+
+describe("registerFieldFromLandmarks — gate de SOPORTE DE LÍNEAS (T2)", () => {
+  it("soporte alto → mantiene high y registra lineSupport", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 0.9 });
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport).toBe(0.9);
+    expect(metricsTrustworthy(reg.confidence)).toBe(true);
+  });
+
+  it("soporte bajo → degrada high a low (mata el 'campo flotando')", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 0.1 });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBe(0.1);
+    expect(metricsTrustworthy(reg.confidence)).toBe(false);
+  });
+
+  it("requireLineSupport sin evaluador → degrada a low (fail-closed del path vivo)", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), { requireLineSupport: true });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBeNull();
+  });
+
+  it("sin evaluador y sin requireLineSupport → comportamiento actual intacto", () => {
+    const reg = registerFieldFromLandmarks(allDets(0));
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport).toBeNull();
+  });
+
+  it("respeta minLineSupport personalizado", () => {
+    const strict = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 0.6, minLineSupport: 0.8 });
+    expect(strict.confidence).toBe("low");
+    const lax = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 0.6, minLineSupport: 0.5 });
+    expect(lax.confidence).toBe("high");
+  });
+
+  it("evaluador que lanza → fail-closed (low, soporte incalculable = null)", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), {
+      evaluateLineSupport: () => {
+        throw new Error("boom");
+      },
+    });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBeNull();
+  });
+
+  it("soporte NaN → fail-closed (degrada, lineSupport null)", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => NaN });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBeNull();
+  });
+
+  it("soporte FUERA DE CONTRATO (>1, p.ej. un conteo devuelto por error) → degrada", () => {
+    // Escenario del caller que devuelve `.samples` (40) en vez de `.support`.
+    const reg = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 40 });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBeNull(); // no se registra un valor engañoso
+  });
+
+  it("soporte 1.0 exacto (borde del contrato) → mantiene high", () => {
+    const reg = registerFieldFromLandmarks(allDets(0), { evaluateLineSupport: () => 1 });
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport).toBe(1);
+  });
+
+  it("un base MEDIUM también se degrada por soporte bajo (no solo high)", () => {
+    // 5 landmarks repartidos por todo el campo → inliers=5 (<6) con error ~0 →
+    // classifyCalibration = 'medium' (no 'high'), geometría OK.
+    const mediumDets = [0, 24, 29, 5, 13].map((id) => synthDet(id, 0));
+    expect(registerFieldFromLandmarks(mediumDets).confidence).toBe("medium"); // base
+    const reg = registerFieldFromLandmarks(mediumDets, { evaluateLineSupport: () => 0.1 });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBe(0.1);
+  });
+
+  it("requireLineSupport CON evaluador de soporte alto → mantiene high (config del worker)", () => {
+    // La configuración real del path vivo: exige verificación de píxel Y la aporta.
+    const reg = registerFieldFromLandmarks(allDets(0), {
+      requireLineSupport: true,
+      evaluateLineSupport: () => 0.9,
+    });
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport).toBe(0.9);
+  });
+
+  it("el evaluador recibe la homografía campo→píxel (no la inversa)", () => {
+    let received: Float64Array | null = null;
+    registerFieldFromLandmarks(allDets(0), {
+      evaluateLineSupport: (H) => {
+        received = H;
+        return 0.9;
+      },
+    });
+    expect(received).not.toBeNull();
+    expect(received!.length).toBe(9);
+    // Proyectar (0,0) con la H recibida cae cerca de la esquina de la cámara (300,200).
+    const p = fieldToPixel(received!, 0, 0);
+    expect(p.px).toBeCloseTo(300, 0);
+    expect(p.py).toBeCloseTo(200, 0);
+  });
+
+  it("el evaluador NO se llama sin calibración usable (<4 dets)", () => {
+    let calls = 0;
+    const reg = registerFieldFromLandmarks([synthDet(0), synthDet(1), synthDet(2)], {
+      evaluateLineSupport: () => {
+        calls++;
+        return 0.9;
+      },
+    });
+    expect(reg.confidence).toBe("none");
+    expect(calls).toBe(0);
+  });
+});
+
+describe("gate T2 — composición con lineSupportScore REAL (máscaras sintéticas)", () => {
+  // Prueba que las DOS mitades componen: el gate espera un number, lineSupportScore
+  // devuelve {support}. Rasteriza líneas desde una H conocida y verifica que la
+  // misma H puntúa alto (se mantiene high) y una H desplazada puntúa bajo (degrada).
+  const W = 1280;
+  const H = 720;
+  function drawLineMask(Hf2p: Float64Array, polys: Array<Array<[number, number]>>): Uint8Array {
+    const m = new Uint8Array(W * H);
+    for (const poly of polys) {
+      for (let i = 1; i < poly.length; i++) {
+        const a = fieldToPixel(Hf2p, poly[i - 1][0], poly[i - 1][1]);
+        const b = fieldToPixel(Hf2p, poly[i][0], poly[i][1]);
+        const n = Math.max(2, Math.ceil(Math.hypot(b.px - a.px, b.py - a.py)));
+        for (let s = 0; s <= n; s++) {
+          const t = s / n;
+          const x = Math.round(a.px + (b.px - a.px) * t);
+          const y = Math.round(a.py + (b.py - a.py) * t);
+          if (x >= 0 && x < W && y >= 0 && y < H) m[y * W + x] = 1;
+        }
+      }
+    }
+    return m;
+  }
+  const polys = pitchPolylines("f11");
+  const green = new Uint8Array(W * H).fill(1);
+
+  it("H correcta + máscaras alineadas → soporte alto → high se mantiene", () => {
+    const base = registerFieldFromLandmarks(allDets(0));
+    const lineMask = drawLineMask(base.Hfield2pix!, polys);
+    const reg = registerFieldFromLandmarks(allDets(0), {
+      evaluateLineSupport: (Hf) => lineSupportScore(Hf, lineMask, green, W, H, polys).support,
+    });
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport!).toBeGreaterThan(0.8);
+  });
+
+  it("máscaras de OTRA H (desplazada) → soporte bajo → degrada a low", () => {
+    const base = registerFieldFromLandmarks(allDets(0));
+    const shifted = Float64Array.from(base.Hfield2pix!);
+    shifted[2] += 250;
+    shifted[5] += 180; // traslada la salida en píxeles → líneas desalineadas
+    const lineMask = drawLineMask(shifted, polys);
+    const reg = registerFieldFromLandmarks(allDets(0), {
+      evaluateLineSupport: (Hf) => lineSupportScore(Hf, lineMask, green, W, H, polys).support,
+    });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport!).toBeLessThan(0.5);
+  });
+});
+
+describe("registerFieldLive — path vivo fail-closed estructural (F2)", () => {
+  it("con evaluador y soporte alto → high", () => {
+    const reg = registerFieldLive(allDets(0), { evaluateLineSupport: () => 0.9 });
+    expect(reg.confidence).toBe("high");
+    expect(reg.lineSupport).toBe(0.9);
+  });
+
+  it("con evaluador y soporte bajo → degrada a low", () => {
+    const reg = registerFieldLive(allDets(0), { evaluateLineSupport: () => 0.1 });
+    expect(reg.confidence).toBe("low");
+  });
+
+  it("doble seguro: si un caller JS burla el tipo y no pasa evaluador → low", () => {
+    // Simula un caller JS que evita el chequeo de tipos. requireLineSupport:true
+    // (forzado por registerFieldLive) degrada igualmente → nunca high/medium ciego.
+     
+    const reg = registerFieldLive(allDets(0), {} as any);
+    expect(reg.confidence).toBe("low");
+  });
+});
+
+describe("FieldRegistrationAccumulator — propaga el gate de soporte de líneas (F7)", () => {
+  it("register() reenvía evaluateLineSupport (soporte bajo → low)", () => {
+    const acc = new FieldRegistrationAccumulator();
+    for (let f = 0; f < 3; f++) acc.add(allDets(0));
+    expect(acc.register().confidence).toBe("high"); // base sin gate de píxel
+    const reg = acc.register({ evaluateLineSupport: () => 0.1 });
+    expect(reg.confidence).toBe("low");
+    expect(reg.lineSupport).toBe(0.1);
+  });
+
+  it("registerLive() exige el evaluador y aplica el gate", () => {
+    const acc = new FieldRegistrationAccumulator();
+    for (let f = 0; f < 3; f++) acc.add(allDets(0));
+    expect(acc.registerLive({ evaluateLineSupport: () => 0.9 }).confidence).toBe("high");
+    expect(acc.registerLive({ evaluateLineSupport: () => 0.2 }).confidence).toBe("low");
   });
 });
 
