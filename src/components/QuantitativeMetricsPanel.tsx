@@ -12,6 +12,7 @@ import {
   Zap, Activity, Target, Swords, ShieldCheck, Crosshair,
 } from "lucide-react";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
+import CalibrationCaveat from "@/components/CalibrationCaveat";
 
 type MetricasCuantitativas = NonNullable<VideoIntelligenceOutput["metricasCuantitativas"]>;
 
@@ -55,6 +56,9 @@ export default function QuantitativeMetricsPanel({ data }: Props) {
           </span>
         </div>
       </div>
+
+      {/* Aviso honesto: las físicas dependen de calibración del campo */}
+      {fisicas && <CalibrationCaveat />}
 
       {/* Cards de métricas físicas (YOLO) */}
       {fisicas && (

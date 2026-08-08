@@ -2242,6 +2242,9 @@
     "notEvaluated": "Not evaluated",
     "notEvaluatedShort": "{{count}} without data"
   },
+  "calibrationCaveat": {
+    "text": "Physical metrics not calibrated — indicative only. They depend on detecting the pitch points; speed/distance in meters may not be exact."
+  },
   "analysisDashboard": {
     "errorLoadingReports": "Error loading reports",
     "errorGeneric": "Error",
