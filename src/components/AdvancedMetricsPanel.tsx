@@ -17,6 +17,7 @@ import {
 import type { AdvancedPlayerMetrics } from "@/services/real/advancedMetricsService";
 import type { TrackingSnapshot } from "@/services/real/playerTrackingService";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
+import CalibrationCaveat from "@/components/CalibrationCaveat";
 
 interface Props {
   metrics: AdvancedPlayerMetrics;
@@ -87,6 +88,9 @@ export function AdvancedMetricsPanel({ metrics, qualityScore, qualityIssues, tra
           </div>
         ) : null}
       />
+      {tracking.status === "calculated" && (
+        <CalibrationCaveat calibrationConfidence={trackingSnapshot?.calibrationConfidence} />
+      )}
 
       {/* Biomechanics */}
       <MetricCard

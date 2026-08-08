@@ -2242,6 +2242,9 @@
     "notEvaluated": "No evaluado",
     "notEvaluatedShort": "{{count}} sin datos"
   },
+  "calibrationCaveat": {
+    "text": "Métricas físicas sin calibrar — orientativas. Dependen de detectar los puntos del campo; velocidad/distancia en metros pueden no ser exactas."
+  },
   "analysisDashboard": {
     "errorLoadingReports": "Error cargando reportes",
     "errorGeneric": "Error",

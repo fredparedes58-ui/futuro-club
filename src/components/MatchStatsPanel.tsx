@@ -23,6 +23,7 @@ import {
   Flame, Eye, Hand, XCircle,
 } from "lucide-react";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
+import CalibrationCaveat from "@/components/CalibrationCaveat";
 import {
   computeMatchStats,
   RATING_LABEL_ES,
@@ -272,6 +273,9 @@ export default function MatchStatsPanel({ data, title }: Props) {
               {PHYSICAL_RATING_LABEL_ES[stats.fisicas.rating]}
             </span>
           </div>
+
+          {/* Aviso honesto: físicas dependen de calibración del campo */}
+          <CalibrationCaveat />
 
           {/* Físicas grid */}
           <div className="grid grid-cols-4 gap-2">
