@@ -591,6 +591,7 @@ const VitasLab = () => {
                         ? tracking.state.sessionMetrics.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics.avgSpeedMs)
                         : 0,
       sessionMetrics: tracking.state.sessionMetrics,
+      calibrationConfidence: tracking.state.calibrationConfidence,
       scanCount:      tracking.state.scanEvents.length,
       duelCount:      tracking.state.duelEvents.length,
       tracksCount:    tracking.state.currentTracks.length,
