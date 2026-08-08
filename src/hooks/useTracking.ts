@@ -30,6 +30,8 @@ import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
 import { autoCalibrate as runAutoCalibrate } from "@/lib/tracking/autoCalibrationBridge";
+import { autoCalibrationConfidence } from "@/lib/tracking/autoCalibrationConfidence";
+import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
 import type { PlayerIdentity } from "@/lib/yolo/playerIdentityManager";
 import type { TeamLabel } from "@/lib/yolo/teamClassifier";
 
@@ -59,6 +61,12 @@ export interface TrackingState {
   identities:      Map<number, PlayerIdentity>;
   /** Team assignments: trackId → "home"|"away" (Sprint 4) */
   teamAssignments: Map<number, "home" | "away">;
+  /**
+   * Confianza HONESTA de la calibración del campo (gate). Hoy la auto-calibración
+   * es heurística → 'none'/'low' (metricsTrustworthy=false → métricas físicas "sin
+   * calibrar"). Solo subirá con los validadores reales (T2) + modelo de campo (T3).
+   */
+  calibrationConfidence: CalibrationConfidence;
 }
 
 /** Callback for fatigue integration: receives field positions each frame */
@@ -138,6 +146,7 @@ export function useTracking(options: UseTrackingOptions) {
     possession:      "none",
     identities:      new Map(),
     teamAssignments: new Map(),
+    calibrationConfidence: "none",
   });
 
   const workerRef       = useRef<Worker | null>(null);
@@ -369,6 +378,11 @@ export function useTracking(options: UseTrackingOptions) {
           homographyInvRef.current = calibResult.Hinv;
           console.log(`[useTracking] Auto-calibration: confidence=${calibResult.confidence.toFixed(2)}`);
         }
+        // Gate HONESTO (T1): la auto-calibración es heurística → 'none'/'low', nunca
+        // fiable para métricas en metros. La UI usará metricsTrustworthy para mostrar
+        // "sin calibrar". El 'medium'/'high' llegará con T2 (validadores) + T3 (modelo).
+        const cc = autoCalibrationConfidence(calibResult);
+        setState((s) => ({ ...s, calibrationConfidence: cc }));
       } catch (err) {
         console.warn("[useTracking] Auto-calibration failed, using manual:", err);
       }
