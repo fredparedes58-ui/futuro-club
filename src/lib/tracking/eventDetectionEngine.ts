@@ -168,8 +168,23 @@ export class EventDetectionEngine {
     frameIndex: number,
     focusTrackId?: number | null,
     ballTrack?: { fieldPos: { fx: number; fy: number } | null; speedMs: number; visible: boolean } | null,
+    calibrationReliable = true,
   ): TacticalEvent[] {
     const frameEvents: TacticalEvent[] = [];
+
+    // Todos los eventos tácticos se deciden por posición/velocidad en METROS
+    // (umbrales fx>0.7·L, cruces desde banda, etc.). Sin calibración fiable esas
+    // posiciones no son de fiar → NO detectamos eventos (avanzamos el estado sin
+    // emitir, para no arrastrar un salto al recuperar la calibración).
+    if (!calibrationReliable) {
+      // Reseteamos el estado previo (NO guardamos posiciones no fiables): al recuperar
+      // la calibración, la primera frame fiable re-inicializa (guarda 175-179) en vez
+      // de comparar contra posiciones-basura → evita un evento espurio en el borde.
+      this.previousTracks = [];
+      this.previousTimestampMs = timestampMs;
+      return frameEvents;
+    }
+
     const dt = (timestampMs - this.previousTimestampMs) / 1000;
 
     if (dt <= 0 || this.previousTracks.length === 0) {

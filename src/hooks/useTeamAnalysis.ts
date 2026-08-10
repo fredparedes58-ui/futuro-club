@@ -59,6 +59,8 @@ export interface UseTeamAnalysisReturn {
     ballTrack: BallTrack | null,
     ballTeam: "home" | "away" | "contested" | "none",
     timestampMs: number,
+    /** ¿La calibración es fiable? Si no, no se acumula (análisis espacial). Default true. */
+    calibrationReliable?: boolean,
   ) => void;
   /** Record a pass event for pass network */
   addPassEvent: (
@@ -109,10 +111,14 @@ export function useTeamAnalysis(
       ballTrack: BallTrack | null,
       ballTeam: "home" | "away" | "contested" | "none",
       timestampMs: number,
+      calibrationReliable = true,
     ) => {
       if (!enabled) return;
 
-      engineRef.current.processFrame(tracks, identities, ballTrack, ballTeam, timestampMs);
+      engineRef.current.processFrame(tracks, identities, ballTrack, ballTeam, timestampMs, calibrationReliable);
+
+      // Sin calibración fiable no acumulamos posiciones rivales (análisis espacial).
+      if (!calibrationReliable) return;
 
       // Accumulate rival positions for later gap analysis
       const rivalPlayers: Array<{ trackId: number; pos: FieldPoint; speedMs: number }> = [];
@@ -190,6 +196,18 @@ export function useTeamAnalysis(
   );
 
   const generateReports = useCallback(() => {
+    // Sin frames espaciales fiables (calibración no fiable durante todo el clip) el
+    // informe sería solo defaults (posesión 50/50, PPDA 15…). Lo dejamos en null →
+    // el dashboard muestra su estado "sin datos" en vez de cifras falsas (#21/F2).
+    if (engineRef.current.frameCount === 0) {
+      setTeamReport(null);
+      setHomeFormation(null);
+      setAwayFormation(null);
+      setRivalReport(null);
+      setPossession(null);
+      return;
+    }
+
     // Team analysis
     const report = engineRef.current.generateReport();
     setTeamReport(report);

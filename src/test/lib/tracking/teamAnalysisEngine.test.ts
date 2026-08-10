@@ -47,4 +47,26 @@ describe("TeamAnalysisEngine — posesión en último tercio (regresión F3)", (
     const rep = engine.generateReport();
     expect(rep.cumulative.possession.homeFinalThirdPct).toBe(0);
   });
+
+  it("con calibración NO fiable los frames NO tienen efecto (informe = sin datos) [#21]", () => {
+    // Mismos frames que el primer test (balón local en último tercio) pero con
+    // calibrationReliable=false → no se acumula ninguno → informe idéntico al de un
+    // engine sin datos (en vez de un 100% de último tercio falso).
+    const gated = new TeamAnalysisEngine();
+    for (const ts of [0, 500, 1000]) {
+      gated.processFrame([], new Map(), ballAt(90), "home", ts, false);
+    }
+    const empty = new TeamAnalysisEngine(); // nunca alimentado
+    expect(gated.generateReport()).toEqual(empty.generateReport());
+    // Y contrasta con el caso fiable, que sí marcaría 100% de último tercio.
+    expect(gated.generateReport().cumulative.possession.homeFinalThirdPct).not.toBe(100);
+  });
+
+  it("frameCount refleja solo los frames fiables (señal para 'sin datos' en UI) [#21/F2]", () => {
+    const engine = new TeamAnalysisEngine();
+    for (const ts of [0, 500, 1000]) engine.processFrame([], new Map(), ballAt(90), "home", ts, false);
+    expect(engine.frameCount).toBe(0); // nada acumulado → UI debe tratar como sin datos
+    engine.processFrame([], new Map(), ballAt(90), "home", 1500, true); // uno fiable
+    expect(engine.frameCount).toBe(1);
+  });
 });
