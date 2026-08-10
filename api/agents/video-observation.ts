@@ -9,6 +9,7 @@
 
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -75,6 +76,10 @@ export default withHandler(
       if (!apiKey) {
         return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
       }
+
+      // Tripwire de presupuesto (054): Gemini vídeo es de las llamadas más caras.
+      if (await isOverBudget()) return budgetExceededResponse();
+      await recordSpendUsd("gemini-video");
 
       // Obtener video como base64 — desde URL (descarga server-side) o directo
       let videoBase64: string;

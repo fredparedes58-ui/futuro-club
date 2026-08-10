@@ -19,6 +19,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = { runtime: "edge" };
 
@@ -154,6 +155,11 @@ export default withHandler(
         503,
       );
     }
+
+    // Tripwire de presupuesto (054): este endpoint es requireAuth:false → gatearlo
+    // es clave. Corta si el mes superó el tope; fail-open si el ledger no responde.
+    if (await isOverBudget()) return budgetExceededResponse();
+    await recordSpendUsd("modal-compute");
 
     // 1. Call Modal track
     console.log(`[compute-from-video] Calling Modal for match ${input.matchId}`);

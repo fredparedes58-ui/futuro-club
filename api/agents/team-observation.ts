@@ -9,6 +9,7 @@
 
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -27,6 +28,10 @@ export default withHandler(
       if (!apiKey) {
         return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
       }
+
+      // Tripwire de presupuesto (054).
+      if (await isOverBudget()) return budgetExceededResponse();
+      await recordSpendUsd("gemini-text");
 
       const ctx = teamContext;
 
