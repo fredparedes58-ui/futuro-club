@@ -4,6 +4,12 @@
  * Includes report agents needed by pipeline-orchestrator.
  */
 import { errorResponse } from "../_lib/apiResponse";
+import {
+  isOverBudget,
+  recordSpendUsd,
+  budgetExceededResponse,
+  type SpendEstimateKey,
+} from "../_lib/budgetGuard";
 
 import phvCalculator from "./_phv-calculator";
 import playerSimilarity from "./_player-similarity";
@@ -74,10 +80,43 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "valuation-report": valuationReport,
 };
 
+// Agentes LLM de pago → estimación de coste para el ledger (tripwire 054).
+// Los deterministas (vsi/scan/injury-calc/valuation-model/progression) se omiten.
+const BILLABLE_ACTIONS: Record<string, SpendEstimateKey> = {
+  "player-report":          "claude-sonnet",
+  "lab-biomechanics-report":"claude-sonnet",
+  "valuation-report":       "claude-sonnet",
+  "team-intelligence":      "claude-sonnet",
+  "dna-profile":            "claude-haiku",
+  "best-match-narrator":    "claude-haiku",
+  "projection-report":      "claude-haiku",
+  "development-plan":       "claude-haiku",
+  "fatigue-report":         "claude-haiku",
+  "injury-risk-report":     "claude-haiku",
+  "team-report":            "claude-haiku",
+  "rival-scout-report":     "claude-haiku",
+  "role-profile":           "claude-haiku",
+  "tactical-label":         "claude-haiku",
+  "phv-calculator":         "claude-haiku",
+  "player-similarity":      "claude-haiku",
+};
+// El orquestador solo PRE-chequea: sus sub-agentes (vía HTTP) ya contabilizan.
+const PRECHECK_ONLY = new Set(["pipeline-orchestrator"]);
+
 export default async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const action = url.pathname.split("/").filter(Boolean).pop() ?? "";
   const fn = routes[action];
   if (!fn) return errorResponse(`Agent "${action}" not found`, 404);
-  return fn(req);
+
+  // Tripwire de presupuesto (054): corta llamadas de pago si el mes supera el tope.
+  const estKey = BILLABLE_ACTIONS[action];
+  if ((estKey || PRECHECK_ONLY.has(action)) && await isOverBudget()) {
+    return budgetExceededResponse();
+  }
+
+  const res = await fn(req);
+  // Contabiliza el gasto estimado solo si la llamada fue OK (aprox. conservadora).
+  if (estKey && res.ok) await recordSpendUsd(estKey);
+  return res;
 }

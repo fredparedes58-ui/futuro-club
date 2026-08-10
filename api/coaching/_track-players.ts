@@ -13,6 +13,7 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = {
   runtime: "edge",
@@ -98,6 +99,11 @@ export default withHandler(
   if (!body.videoUrl) {
     return json({ error: "missing_fields", required: ["videoUrl"] }, 400);
   }
+
+  // Tripwire de presupuesto (054): GPU Modal es la llamada más cara → corta si
+  // el mes ya superó el tope. Fail-open si el ledger no está disponible.
+  if (await isOverBudget()) return budgetExceededResponse();
+  await recordSpendUsd("modal-track-sync");
 
   // GUARD: el proxy síncrono es SOLO para clips. Un vídeo largo haría timeout
   // en edge (~25s) → se rechaza por adelantado para que vaya por la cola async.

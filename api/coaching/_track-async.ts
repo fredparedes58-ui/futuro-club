@@ -32,6 +32,7 @@ import {
   patchTrackingJob,
 } from "../_lib/supabaseRest";
 import { env } from "../_lib/env";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = { runtime: "edge" };
 
@@ -105,6 +106,10 @@ export default withHandler(
     }
     // dedup no-ok → seguimos (peor caso: job duplicado; mejor que bloquear).
 
+    // Tripwire de presupuesto (054): solo tras el dedup (un dedup-hit no gasta
+    // GPU). Si el mes superó el tope → no encolar ni spawnear. Fail-open.
+    if (await isOverBudget()) return budgetExceededResponse();
+
     // 2 ── Insertar el job (queued). Sin try/catch local: un throw de red debe
     // burbujear a withHandler, que SÍ loguea estructurado (el catch local lo
     // silenciaba — hallazgo de la review).
@@ -176,8 +181,11 @@ export default withHandler(
       });
     }
 
-    // Spawn aceptado. El parse del body es INFORMATIVO (call_id): si falla, el
-    // job sigue corriendo en Modal — nunca marcar failed por esto (review C3).
+    // Spawn aceptado → contabiliza el gasto estimado (la llamada de pago más cara).
+    await recordSpendUsd("modal-track-async");
+
+    // El parse del body es INFORMATIVO (call_id): si falla, el job sigue corriendo
+    // en Modal — nunca marcar failed por esto (review C3).
     const spawnData = (await spawn.json().catch(() => ({}))) as { call_id?: string };
 
     // 4 ── Marcar processing (+call_id). Crítico para que el claim RPC (rescate
