@@ -20,6 +20,8 @@ const BASE = "https://github.com/fredparedes58-ui/futuro-club/releases/download/
 const MODELS = [
   { file: "yolov8n-pose.onnx",   minBytes: 10_000_000 },  // baseline/fallback
   { file: "yolov11m-pose.onnx",  minBytes: 70_000_000 },  // default desktop (FASE 1)
+  { file: "yolov8n-pose-1280.onnx",  minBytes: 10_000_000 }, // #26 recall (imgsz 1280, opt-in)
+  { file: "yolov11m-pose-1280.onnx", minBytes: 70_000_000 }, // #26 recall (imgsz 1280, opset 18)
   { file: "yolo11s-detect.onnx", minBytes: 30_000_000 },  // balón COCO genérico (FASE 2)
   { file: "ball-football.onnx",  minBytes:  8_000_000 },  // balón fine-tuned fútbol (FASE 3)
   { file: "field-keypoints-s.onnx", minBytes: 35_000_000 }, // auto-calibración de campo (FASE 3)

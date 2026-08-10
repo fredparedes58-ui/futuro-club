@@ -392,10 +392,13 @@ export function useTracking(options: UseTrackingOptions) {
     // (device-aware: desktop → yolov11m-pose, móvil → yolov8n-pose;
     //  si el fichero no existe, el worker cae al nano local — nunca rompe)
     const worker = initWorker();
-    const modelUrl = getActiveModel().modelPath;
-    console.log(`[useTracking] Modelo activo: ${getActiveModel().id} (${modelUrl})`);
+    const activeModel = getActiveModel();
+    const modelUrl = activeModel.modelPath;
+    console.log(`[useTracking] Modelo activo: ${activeModel.id} (${modelUrl}, imgsz ${activeModel.inputSize})`);
 
-    worker.postMessage({ type: "INIT", modelUrl });
+    // inputSize del ModelSpec → el worker preprocessa/postprocessa a esa resolución
+    // (los modelos @1280 de #26 necesitan esto; default 640 = comportamiento previo).
+    worker.postMessage({ type: "INIT", modelUrl, inputSize: activeModel.inputSize });
 
     // Esperar a que el modelo esté listo (use refs to avoid stale closure)
     await new Promise<void>((resolve, reject) => {

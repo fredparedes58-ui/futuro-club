@@ -134,7 +134,7 @@ export interface VoronoiRegion {
 // ─── Worker messages ──────────────────────────────────────────────────────────
 
 export type WorkerCommand =
-  | { type: "INIT";  modelUrl: string }
+  | { type: "INIT";  modelUrl: string; inputSize?: number }
   | { type: "FRAME"; imageData: ImageData; frameIndex: number; timestampMs: number; homography: number[] }
   | { type: "RESET" }
 

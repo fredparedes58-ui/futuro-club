@@ -36,23 +36,23 @@ app = modal.App("vitas-onnx-export")
 
 
 @app.function(image=image, timeout=900)
-def export_onnx(model_name: str = "yolo11m-pose.pt") -> bytes:
-    """Download the .pt on Modal, export to ONNX, return the file bytes."""
+def export_onnx(model_name: str = "yolo11m-pose.pt", imgsz: int = 640) -> bytes:
+    """Download the .pt on Modal, export to ONNX (input fijo imgsz×imgsz), return bytes."""
     import os
 
     from ultralytics import YOLO  # type: ignore
 
     model = YOLO(model_name)
-    out_path = model.export(format="onnx", imgsz=640, opset=17, simplify=True, dynamic=False)
+    out_path = model.export(format="onnx", imgsz=imgsz, opset=17, simplify=True, dynamic=False)
     size_mb = os.path.getsize(out_path) / 1e6
-    print(f"[VITAS] Exported {model_name} -> {out_path} ({size_mb:.1f} MB)")
+    print(f"[VITAS] Exported {model_name} @ imgsz={imgsz} -> {out_path} ({size_mb:.1f} MB)")
     with open(out_path, "rb") as f:
         return f.read()
 
 
 @app.local_entrypoint()
-def main(model: str = "yolo11m-pose.pt", out: str = "public/models/yolov11m-pose.onnx"):
-    data = export_onnx.remote(model)
+def main(model: str = "yolo11m-pose.pt", out: str = "public/models/yolov11m-pose.onnx", imgsz: int = 640):
+    data = export_onnx.remote(model, imgsz)
     with open(out, "wb") as f:
         f.write(data)
-    print(f"[VITAS] Saved {out} ({len(data) / 1e6:.1f} MB)")
+    print(f"[VITAS] Saved {out} ({len(data) / 1e6:.1f} MB, imgsz={imgsz})")
