@@ -37,6 +37,7 @@ import { useTracking } from "@/hooks/useTracking";
 import { useMediaPipePose } from "@/hooks/useMediaPipePose";
 import { EventDetectionEngine } from "@/lib/tracking/eventDetectionEngine";
 import type { TacticalEvent, EventSummary } from "@/lib/tracking/eventDetectionEngine";
+import { metricsTrustworthy } from "@/lib/yolo/fieldRegistration";
 import { AnalyticsExporter } from "@/lib/tracking/analyticsExportPipeline";
 import type { SessionExportData, ExportFormat } from "@/lib/tracking/analyticsExportPipeline";
 import { detectFieldLines } from "@/lib/tracking/fieldLineDetector";
@@ -520,12 +521,18 @@ const VitasLab = () => {
     const timestampMs = videoEl ? videoEl.currentTime * 1000 : Date.now();
     const frameIndex = Math.round(timestampMs / 125);
 
+    // Los motores táctico/equipo son ESPACIALES (posiciones en metros). Solo son
+    // fiables con una calibración fiable; si no, no se les alimenta → no producen
+    // eventos/posesión falsos (anti-fallo-silencioso). Ver #21.
+    const calibReliable = metricsTrustworthy(tracking.state.calibrationConfidence);
+
     eventEngineRef.current.processFrame(
       tracks,
       timestampMs,
       frameIndex,
       tracking.state.focusTrackId,
       tracking.state.ballTrack ?? null,
+      calibReliable,
     );
 
     // Sprint 8: Feed team analysis engine
@@ -536,6 +543,7 @@ const VitasLab = () => {
         tracking.state.ballTrack ?? null,
         tracking.state.possession as "home" | "away" | "contested" | "none",
         timestampMs,
+        calibReliable,
       );
     }
 

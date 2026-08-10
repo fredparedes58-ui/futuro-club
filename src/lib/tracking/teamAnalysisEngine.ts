@@ -146,6 +146,15 @@ export class TeamAnalysisEngine {
   private defensiveActions = { home: 0, away: 0 };
   private opponentPasses = { home: 0, away: 0 };
 
+  /**
+   * Nº de frames ESPACIALES acumulados (solo se acumulan con calibración fiable).
+   * 0 → no hay datos fiables → el informe sería solo defaults → el consumidor debe
+   * tratarlo como "sin datos" (no mostrar 50/50 falso). Ver #21.
+   */
+  get frameCount(): number {
+    return this.frames.length;
+  }
+
   reset(): void {
     this.frames = [];
     this.homePassEvents = [];
@@ -163,7 +172,14 @@ export class TeamAnalysisEngine {
     ballTrack: BallTrack | null,
     ballTeam: "home" | "away" | "contested" | "none",
     timestampMs: number,
+    calibrationReliable = true,
   ): void {
+    // TODO el análisis de equipo es espacial (posiciones y distancias en metros:
+    // posesión por tercio, compacidad, amplitud, PPDA…). Sin calibración fiable esas
+    // cifras serían píxeles disfrazados → NO acumulamos el frame (el informe reflejará
+    // solo lo fiable, o quedará vacío). Anti-fallo-silencioso: mejor vacío que falso.
+    if (!calibrationReliable) return;
+
     const homePlayers: Array<{ trackId: number; pos: FieldPoint; speedMs: number }> = [];
     const awayPlayers: Array<{ trackId: number; pos: FieldPoint; speedMs: number }> = [];
 
