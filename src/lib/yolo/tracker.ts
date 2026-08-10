@@ -33,6 +33,22 @@ const MAX_DT_S           = 2.0;  // 2s máximo (si más, el track probablemente 
 const FIELD_MAX_X        = 115;  // metros (campo + margen)
 const FIELD_MAX_Y        = 78;   // metros (campo + margen)
 
+// ── Punto de contacto con el SUELO (pies) ────────────────────────────────────
+// La homografía px→m asume que el punto proyectado está EN EL SUELO. El centro del
+// bbox está a la altura del TORSO → al proyectarlo mete un error sistemático que
+// CRECE con el acercamiento a cámara (perspectiva) → contamina distancia/velocidad.
+// Usamos el borde INFERIOR-centro del bbox (x+w/2, y+h) = la suela, punto de suelo.
+//
+// Descartado usar los tobillos (COCO 15/16) pese a ser marginalmente más precisos:
+// alternar tobillo↔bbox según la confianza del keypoint (que oscila alrededor de un
+// umbral) inyectaría desplazamiento fantasma entre frames → distancia/sprints
+// espurios en un jugador quieto. El borde inferior es una referencia ÚNICA y estable
+// → sin ese falso movimiento (coherente con el principio anti-fallo-silencioso).
+/** Punto (px) donde el jugador toca el suelo, para proyectar a metros. */
+export function groundContactPx(det: Detection): { x: number; y: number } {
+  return { x: det.bbox[0] + det.bbox[2] / 2, y: det.bbox[1] + det.bbox[3] };
+}
+
 export class CentroidTracker {
   private tracks  = new Map<number, Track>();
   private nextId  = 1;
@@ -102,9 +118,8 @@ export class CentroidTracker {
         for (let di = 0; di < detections.length; di++) {
           if (matched.has(di)) continue;
           const det = detections[di];
-          const cx = det.bbox[0] + det.bbox[2] / 2;
-          const cy = det.bbox[1] + det.bbox[3] / 2;
-          const fp = pixelToField(H, cx, cy);
+          const g = groundContactPx(det);
+          const fp = pixelToField(H, g.x, g.y);
 
           const dist = Math.sqrt(
             (fp.fx - predicted.fx) ** 2 + (fp.fy - predicted.fy) ** 2,
@@ -127,9 +142,8 @@ export class CentroidTracker {
     // ── 2. Detecciones sin match → nuevos tracks ──────────────────────────────
     detections.forEach((det, di) => {
       if (matched.has(di)) return;
-      const cx = det.bbox[0] + det.bbox[2] / 2;
-      const cy = det.bbox[1] + det.bbox[3] / 2;
-      const fieldPos = pixelToField(H, cx, cy);
+      const g = groundContactPx(det);
+      const fieldPos = pixelToField(H, g.x, g.y);
 
       const newTrack: Track = {
         id:              this.nextId++,
@@ -169,10 +183,9 @@ export class CentroidTracker {
     H: Float64Array,
     timestampMs: number,
   ): void {
-    // Calcular posición en campo
-    const cx = det.bbox[0] + det.bbox[2] / 2;
-    const cy = det.bbox[1] + det.bbox[3] / 2;
-    const fieldPos = pixelToField(H, cx, cy);
+    // Calcular posición en campo (punto de contacto con el suelo = pies)
+    const g = groundContactPx(det);
+    const fieldPos = pixelToField(H, g.x, g.y);
 
     // Sanity check: si las coordenadas de campo están fuera de rango,
     // la homografía es inválida → no acumular métricas

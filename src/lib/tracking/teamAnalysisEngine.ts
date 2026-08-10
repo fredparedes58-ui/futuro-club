@@ -180,8 +180,10 @@ export class TeamAnalysisEngine {
       else if (team === "away") awayPlayers.push(entry);
     }
 
-    const ballPos = ballTrack?.fieldPosition
-      ? { fx: ballTrack.fieldPosition.fx, fy: ballTrack.fieldPosition.fy }
+    // BallTrack expone `fieldPos` (no `fieldPosition`) → antes ballPos era SIEMPRE
+    // null → posesión en último tercio siempre 0% (fallo silencioso).
+    const ballPos = ballTrack?.fieldPos
+      ? { fx: ballTrack.fieldPos.fx, fy: ballTrack.fieldPos.fy }
       : null;
 
     this.frames.push({ timestampMs, homePlayers, awayPlayers, ballPos, ballTeam });
