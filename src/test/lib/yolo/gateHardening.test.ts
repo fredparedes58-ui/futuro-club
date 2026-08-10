@@ -20,6 +20,11 @@ const DATASETS = [
   { tag: "ACADEMIA (FP)", path: join(FT, "predictions.json"), expectTrusted: "bajo" },
 ];
 
+// Arnés de dev: los JSON viven en scratchpad/ (gitignored) → ausentes en CI.
+// Se SALTA honestamente si no hay datos (antes hacía expect(anyData).toBe(true),
+// que rojaba CI y enmascaraba regresiones reales del job "Unit & API Tests").
+const HAS_DATA = DATASETS.some((ds) => existsSync(ds.path));
+
 function run(frames: EvalImage[]) {
   const conf = { high: 0, medium: 0, low: 0, none: 0 };
   for (const fr of frames) {
@@ -32,19 +37,18 @@ function run(frames: EvalImage[]) {
 }
 
 describe("Endurecimiento del gate: TP broadcast se mantienen, FP academia caen", () => {
-  it("reporta la distribución de confianza por dataset (con sanity geométrica)", () => {
-    let anyData = false;
+  it.skipIf(!HAS_DATA)("reporta la distribución de confianza por dataset (con sanity geométrica)", () => {
     const results: Record<string, ReturnType<typeof run>> = {};
     console.log(`\n╔═══ GATE ENDURECIDO · confianza por dataset ═══`);
     for (const ds of DATASETS) {
       if (!existsSync(ds.path)) { console.log(`║ ${ds.tag}: (sin datos)`); continue; }
-      anyData = true;
       const frames: EvalImage[] = JSON.parse(readFileSync(ds.path, "utf-8"));
       const r = run(frames);
       results[ds.tag] = r;
       console.log(`║ ${ds.tag}: fiables ${r.trusted}/${r.total} (${r.pct}%) · h/m/l/n=${r.conf.high}/${r.conf.medium}/${r.conf.low}/${r.conf.none}  [esperado: ${ds.expectTrusted}]`);
     }
     console.log(`╚${"═".repeat(58)}`);
-    expect(anyData).toBe(true);
+    // Sanity: al menos un dataset produjo resultados cuando hay datos presentes.
+    expect(Object.keys(results).length).toBeGreaterThan(0);
   }, 120000);
 });
