@@ -3,6 +3,7 @@
  * Patrón de mocks idéntico a api/_lib/__tests__/withHandler.test.ts.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
+import { isOverBudget } from "../../_lib/budgetGuard";
 
 vi.mock("../../_lib/rateLimit", () => ({
   checkRateLimit: vi.fn().mockResolvedValue({
@@ -14,6 +15,17 @@ vi.mock("../../_lib/rateLimit", () => ({
 
 vi.mock("../../_lib/auth", () => ({
   verifyAuth: vi.fn().mockResolvedValue({ userId: "user-123", error: null }),
+}));
+
+// El tripwire de presupuesto (054) hace fetch a Supabase; se mockea para no
+// descuadrar la secuencia de fetchMock (el guard tiene sus propios tests). Por
+// defecto NO bloquea; un test lo fuerza a true para verificar el corte.
+vi.mock("../../_lib/budgetGuard", () => ({
+  isOverBudget: vi.fn().mockResolvedValue(false),
+  recordSpendUsd: vi.fn().mockResolvedValue(undefined),
+  budgetExceededResponse: vi.fn(
+    () => new Response(JSON.stringify({ ok: false, code: "BUDGET_EXCEEDED" }), { status: 429 }),
+  ),
 }));
 
 // Env de módulo (SUPABASE_*) se lee vía env.ts en cada llamada → fijar antes.
@@ -60,6 +72,18 @@ describe("track-async (enqueue + spawn)", () => {
     process.env.MODAL_CALLBACK_SECRET = "cb-secret";
     process.env.VITAS_PUBLIC_URL = "https://vitas.test";
     delete process.env.PUBLIC_URL;
+  });
+
+  it("presupuesto excedido (054) → 429 BUDGET_EXCEEDED y NO spawnea Modal", async () => {
+    vi.mocked(isOverBudget).mockResolvedValueOnce(true);
+    fetchMock.mockResolvedValueOnce(noDup()); // dedup se consulta ANTES del gate
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(429);
+    // El gate corta tras el dedup: ni insert ni spawn a Modal.
+    const calledModal = fetchMock.mock.calls.some(
+      (c) => typeof c[0] === "string" && c[0].includes("modal.test"),
+    );
+    expect(calledModal).toBe(false);
   });
 
   it("503 real_inference_disabled (shape a pelo) sin MODAL_TRACK_ASYNC_URL", async () => {
