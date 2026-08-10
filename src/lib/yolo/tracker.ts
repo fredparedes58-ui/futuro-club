@@ -56,6 +56,28 @@ export function groundContactPx(det: Detection): { x: number; y: number } {
   return { x: det.bbox[0] + det.bbox[2] / 2, y: det.bbox[1] + det.bbox[3] };
 }
 
+// ── Gate fail-closed de atribución de identidad (#24) ────────────────────────
+// Nº mínimo de matches para juzgar la identidad y fracción mínima de matches IoU
+// FUERTES (vs recovered/kalman débiles). Fail-closed: pocos datos o mucha asociación
+// débil → identidad NO fiable → el consumidor NO debe atribuir métricas a un jugador.
+const MIN_IDENTITY_MATCHES = 5;
+const MIN_STRONG_MATCH_RATIO = 0.6;
+
+/**
+ * ¿La identidad de un track es fiable para atribuirle métricas? Solo si tuvo
+ * suficientes matches y la mayoría fueron IoU de alta confianza (no recuperaciones
+ * de baja confianza ni predicciones Kalman, que pueden saltar a otro jugador).
+ */
+export function isTrackIdentityReliable(
+  track: Pick<Track, "iouMatchCount" | "weakMatchCount">,
+): boolean {
+  const strong = track.iouMatchCount ?? 0;
+  const weak = track.weakMatchCount ?? 0;
+  const total = strong + weak;
+  if (total < MIN_IDENTITY_MATCHES) return false; // datos insuficientes → fail-closed
+  return strong / total >= MIN_STRONG_MATCH_RATIO;
+}
+
 export class CentroidTracker {
   private tracks  = new Map<number, Track>();
   private nextId  = 1;
@@ -131,6 +153,7 @@ export class CentroidTracker {
           matched.add(bestDi);
           matchedTrackIds.add(track.id);
           track.lastMatchKind = "kalman"; // sostenido por predicción → asociación débil
+          track.weakMatchCount = (track.weakMatchCount ?? 0) + 1;
           this.updateTrackWithDetection(track, detections[bestDi], H, timestampMs);
         }
       }
@@ -165,6 +188,8 @@ export class CentroidTracker {
         sprintCount:     0,
         kalman:          new KalmanLite2D(fieldPos.fx, fieldPos.fy),
         lastMatchKind:   "new",
+        iouMatchCount:   0,
+        weakMatchCount:  0,
       };
       newTrackIds.add(newTrack.id);
       this.tracks.set(newTrack.id, newTrack);
@@ -220,6 +245,8 @@ export class CentroidTracker {
       const track = trackList[ti];
       matchedTrackIds.add(track.id);
       track.lastMatchKind = kind;
+      if (kind === "iou") track.iouMatchCount = (track.iouMatchCount ?? 0) + 1;
+      else track.weakMatchCount = (track.weakMatchCount ?? 0) + 1; // "recovered" (baja conf)
       this.updateTrackWithDetection(track, detections[di], H, timestampMs);
     }
   }
