@@ -29,6 +29,7 @@ import {
 import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
+import { isTrackIdentityReliable } from "@/lib/yolo/tracker";
 import { autoCalibrate as runAutoCalibrate } from "@/lib/tracking/autoCalibrationBridge";
 import { autoCalibrationConfidence } from "@/lib/tracking/autoCalibrationConfidence";
 import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
@@ -102,6 +103,7 @@ const EMPTY_METRICS: PhysicalMetrics = {
   sprintCount: 0, sprintDistanceM: 0, maxAccelMs2: 0,
   intensityZones: { walk: 0, jog: 0, run: 0, sprint: 0 },
   scanCount: 0, duelsWon: 0, duelsLost: 0, avgVoronoiAreaM2: 0,
+  identityReliable: false,
 };
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
@@ -545,7 +547,7 @@ export function useTracking(options: UseTrackingOptions) {
 
 // ─── Calcular métricas de sesión ──────────────────────────────────────────────
 
-function computeSessionMetrics(
+export function computeSessionMetrics(
   tracks:       Track[],
   focusId:      number | null,
   scans:        ScanEvent[],
@@ -557,6 +559,11 @@ function computeSessionMetrics(
     : tracks;
 
   if (focusTracks.length === 0) return EMPTY_METRICS;
+
+  // Gate fail-closed de atribución (#24): las métricas solo son atribuibles a un
+  // jugador si la identidad del/los track(s) fue fiable (asociación mayormente IoU
+  // fuerte). Si no, un ID-switch pudo mezclar jugadores → no presentar como medidas.
+  const identityReliable = focusTracks.every(isTrackIdentityReliable);
 
   const speeds   = focusTracks.map(t => t.smoothSpeedMs).filter(s => s > 0);
   const maxSpeed = Math.max(...focusTracks.map(t => t.speedMs), 0);
@@ -597,5 +604,6 @@ function computeSessionMetrics(
     duelsWon:         focusDuels.filter(d => d.winnerId === focusId).length,
     duelsLost:        focusDuels.filter(d => d.winnerId !== null && d.winnerId !== focusId).length,
     avgVoronoiAreaM2: 0, // se calcula en el componente desde voronoiRegions
+    identityReliable,
   };
 }

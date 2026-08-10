@@ -830,27 +830,32 @@ const VitasLab = () => {
       // ── Prefer client-side data path when MediaPipe/tracking data exists ──
       const hasClientData = mediaPipe.biomechanics || tracking.state.sessionMetrics || eventSummary;
       if (hasClientData) {
-        // Build physical metrics from YOLO tracking. Las cifras en METROS
-        // (velocidad/distancia/sprints) solo son fiables con calibración fiable; si no,
-        // serían píxeles disfrazados → NO se envían al LLM (evita que las reporte como
-        // medidas). Se envía siempre el flag + las métricas independientes de escala.
+        // Build physical metrics from YOLO tracking. DOS gates fail-closed:
+        //  - CALIBRACIÓN: las cifras en metros (velocidad/distancia/sprints/duelos)
+        //    sin calibración fiable serían píxeles disfrazados.
+        //  - IDENTIDAD (#24): sin identidad fiable del track enfocado, las métricas
+        //    por-jugador pudieron acumularse tras un ID-switch → atribuidas al jugador
+        //    equivocado. Solo se envían al LLM si AMBOS gates pasan.
         const physicalMetrics: Record<string, unknown> = {};
         if (tracking.state.sessionMetrics) {
           const sm = tracking.state.sessionMetrics;
           const calibReliable = metricsTrustworthy(tracking.state.calibrationConfidence);
+          const identityReliable = sm.identityReliable ?? false;
           physicalMetrics.calibrationReliable = calibReliable;
           physicalMetrics.calibrationConfidence = tracking.state.calibrationConfidence;
-          if (calibReliable) {
+          physicalMetrics.identityReliable = identityReliable;
+          if (calibReliable && identityReliable) {
             physicalMetrics.maxSpeedMs = sm.maxSpeedMs;
             physicalMetrics.avgSpeedMs = sm.avgSpeedMs;
             physicalMetrics.distanceCoveredM = sm.distanceCoveredM;
             physicalMetrics.sprintCount = sm.sprintCount;
-            // Los duelos se detectan por distancia en METROS (≤1.8 m) → dependen de la
-            // calibración; sin ella, cifra espuria → no la enviamos al LLM.
+            // Duelos: distancia en metros (≤1.8 m) + por-jugador → calibración + identidad.
             physicalMetrics.duelCount = tracking.state.duelEvents.length;
           }
-          // Independientes de la escala métrica: escaneo (ángulo de cabeza) y conteo.
-          physicalMetrics.scanCount = tracking.state.scanEvents.length;
+          // Escaneo (ángulo de cabeza): indep. de calibración pero SÍ de identidad
+          // (es del jugador enfocado) → gatea solo por identidad.
+          if (identityReliable) physicalMetrics.scanCount = tracking.state.scanEvents.length;
+          // Conteo bruto de tracks: ni calibración ni identidad → siempre.
           physicalMetrics.tracksDetected = tracking.state.currentTracks.length;
         }
 

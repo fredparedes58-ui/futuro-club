@@ -76,10 +76,13 @@ export interface Track {
    *  - "kalman"     → sin detección; sostenido por predicción (más débil)
    *  - "new"        → track recién creado este frame
    *  - "lost"       → NO se asoció ninguna detección este frame (coasting/envejeciendo)
-   * Señal para el gate fail-closed de atribución (no atribuir métricas si la
-   * asociación fue débil demasiados frames). Hoy solo se produce; el gate es follow-up (#24).
+   * Señal para el gate fail-closed de atribución (#24).
    */
   lastMatchKind?: "iou" | "recovered" | "kalman" | "new" | "lost";
+  /** Nº de frames asociados por IoU de ALTA confianza (asociación fuerte/fiable). */
+  iouMatchCount?: number;
+  /** Nº de frames sostenidos por asociación DÉBIL (recovered baja-conf / kalman). */
+  weakMatchCount?: number;
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────
@@ -103,6 +106,12 @@ export interface PhysicalMetrics {
   duelsWon:         number;
   duelsLost:        number;
   avgVoronoiAreaM2: number;
+  /**
+   * ¿La IDENTIDAD del track enfocado fue fiable (asociación mayormente IoU fuerte)?
+   * Si es false, estas métricas pudieron acumularse tras un ID-switch → atribuidas al
+   * jugador equivocado → NO presentarlas como medidas (gate fail-closed, #24).
+   */
+  identityReliable?: boolean;
 }
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────

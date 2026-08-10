@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { groundContactPx, CentroidTracker } from "@/lib/yolo/tracker";
+import { groundContactPx, CentroidTracker, isTrackIdentityReliable } from "@/lib/yolo/tracker";
 import type { Detection, Keypoint } from "@/lib/yolo/types";
 
 function mkDet(bbox: [number, number, number, number]): Detection {
@@ -149,5 +149,50 @@ describe("CentroidTracker — asociación ByteTrack 2-etapas (#14)", () => {
     // Frame 2: detección MUY lejos (sin IoU ni <4 m) → el track no se asocia.
     const f2 = tr.update([det(900, 700, 20, 40, 0.9)], H, 125);
     expect(f2.find((t) => t.id === id)!.lastMatchKind).toBe("lost");
+  });
+
+  // ── Contadores de identidad (#24) ──────────────────────────────────────────
+  it("acumula iouMatchCount con asociaciones IoU de alta confianza consecutivas", () => {
+    const tr = new CentroidTracker();
+    const id = tr.update([det(100, 100, 20, 40, 0.9)], H, 0)[0].id; // new
+    tr.update([det(102, 101, 20, 40, 0.9)], H, 125); // iou +1
+    tr.update([det(104, 102, 20, 40, 0.9)], H, 250); // iou +1
+    const f = tr.update([det(106, 103, 20, 40, 0.9)], H, 375); // iou +1
+    const t = f.find((x) => x.id === id)!;
+    expect(t.iouMatchCount).toBe(3);
+    expect(t.weakMatchCount ?? 0).toBe(0);
+  });
+
+  it("las recuperaciones de baja confianza suman a weakMatchCount, no a iouMatchCount", () => {
+    const tr = new CentroidTracker();
+    const id = tr.update([det(100, 100, 20, 40, 0.9)], H, 0)[0].id; // new
+    tr.update([det(102, 101, 20, 40, 0.9)], H, 125); // iou +1
+    const f = tr.update([det(104, 102, 20, 40, 0.35)], H, 250); // recovered → weak +1
+    const t = f.find((x) => x.id === id)!;
+    expect(t.iouMatchCount).toBe(1);
+    expect(t.weakMatchCount).toBe(1);
+  });
+});
+
+describe("isTrackIdentityReliable (#24) — gate fail-closed de atribución", () => {
+  it("false si hay muy pocos matches (por debajo del mínimo, aunque sean todos fuertes)", () => {
+    // 4 fuertes < MIN_IDENTITY_MATCHES(5): identidad aún no probada.
+    expect(isTrackIdentityReliable({ iouMatchCount: 4, weakMatchCount: 0 })).toBe(false);
+  });
+
+  it("true si hay suficientes matches y la mayoría son IoU fuerte (ratio ≥ 0.6)", () => {
+    expect(isTrackIdentityReliable({ iouMatchCount: 5, weakMatchCount: 0 })).toBe(true);
+    expect(isTrackIdentityReliable({ iouMatchCount: 6, weakMatchCount: 4 })).toBe(true); // 0.6 exacto
+  });
+
+  it("false si demasiados matches son débiles (ratio < 0.6) → identidad no fiable", () => {
+    // total 10, fuertes 5 → ratio 0.5 < 0.6: sostenido a base de recuperaciones/kalman.
+    expect(isTrackIdentityReliable({ iouMatchCount: 5, weakMatchCount: 5 })).toBe(false);
+    expect(isTrackIdentityReliable({ iouMatchCount: 3, weakMatchCount: 3 })).toBe(false);
+  });
+
+  it("false con contadores ausentes (track recién creado, sin historial)", () => {
+    expect(isTrackIdentityReliable({})).toBe(false);
+    expect(isTrackIdentityReliable({ iouMatchCount: undefined, weakMatchCount: undefined })).toBe(false);
   });
 });
