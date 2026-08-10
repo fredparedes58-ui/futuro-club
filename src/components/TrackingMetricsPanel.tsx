@@ -9,6 +9,8 @@ import { motion } from "framer-motion";
 import { Zap, Activity, Timer, Eye, Swords, Map, Hexagon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PhysicalMetrics, Track, TrackingStatus, VoronoiRegion } from "@/lib/yolo/types";
+import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
+import CalibrationCaveat from "@/components/CalibrationCaveat";
 
 interface Props {
   status:       TrackingStatus;
@@ -21,11 +23,14 @@ interface Props {
   voronoiRegions?: VoronoiRegion[];
   showVoronoi?:    boolean;
   onToggleVoronoi?: () => void;
+  /** Confianza de calibración: si no es fiable, las cifras en metros son orientativas. */
+  calibrationConfidence?: CalibrationConfidence;
 }
 
 export default function TrackingMetricsPanel({
   status, tracks, focusTrackId, metrics, scanCount, duelCount, onFocusTrack,
   voronoiRegions = [], showVoronoi = false, onToggleVoronoi,
+  calibrationConfidence,
 }: Props) {
   const { t } = useTranslation();
   const focusTrack = tracks.find(t => t.id === focusTrackId);
@@ -81,6 +86,9 @@ export default function TrackingMetricsPanel({
           </div>
         </div>
       )}
+
+      {/* Aviso honesto: sin calibración fiable, las cifras en metros son orientativas */}
+      {(isTracking || metrics) && <CalibrationCaveat calibrationConfidence={calibrationConfidence} />}
 
       {/* Métricas en vivo */}
       <div className="grid grid-cols-2 gap-2">

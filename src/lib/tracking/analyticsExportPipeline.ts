@@ -37,6 +37,13 @@ export interface SessionExportData {
     durationSec: number;
     trackingFps: number;
     fieldDimensions: { lengthM: number; widthM: number };
+    /**
+     * ¿La calibración px→m era fiable? Si es false, TODAS las coordenadas y métricas
+     * en metros de este export son ORIENTATIVAS (píxeles disfrazados), no medidas.
+     * Se registra para que el consumidor downstream (EPTS/SPADL) no las tome como
+     * datos calibrados. Ver #22.
+     */
+    calibrationReliable: boolean;
   };
   /** Physical metrics summary */
   physicalMetrics: PhysicalMetrics;
@@ -156,11 +163,14 @@ export class AnalyticsExporter {
     const rows: string[][] = [];
     const decimation = options.positionDecimation ?? 1;
 
-    // Tracking positions CSV
+    // Tracking positions CSV. `calibration_reliable` avisa si las columnas en metros
+    // (position_x_m/y_m, speed_ms/kmh) son medidas fiables o estimaciones en píxeles.
+    const calibReliable = String(this.data.metadata.calibrationReliable);
     rows.push([
       "timestamp_ms", "position_x_m", "position_y_m",
       "speed_ms", "speed_kmh",
       "event_type", "event_outcome", "event_confidence",
+      "calibration_reliable",
     ]);
 
     // Build event lookup by timestamp
@@ -196,6 +206,7 @@ export class AnalyticsExporter {
         event?.type ?? "",
         event?.outcome ?? "",
         event ? event.confidence.toFixed(2) : "",
+        calibReliable,
       ]);
     }
 
@@ -225,6 +236,7 @@ export class AnalyticsExporter {
       metadata: {
         pitch_length: this.data.metadata.fieldDimensions.lengthM,
         pitch_width: this.data.metadata.fieldDimensions.widthM,
+        calibration_reliable: this.data.metadata.calibrationReliable,
       },
     }, null, 2);
   }
@@ -240,6 +252,9 @@ export class AnalyticsExporter {
     lines.push(`# Date: ${this.data.metadata.date}`);
     lines.push(`# FPS: ${this.data.metadata.trackingFps}`);
     lines.push(`# Field: ${this.data.metadata.fieldDimensions.lengthM}x${this.data.metadata.fieldDimensions.widthM}`);
+    if (!this.data.metadata.calibrationReliable) {
+      lines.push("# WARNING: calibration NOT reliable — coordinates/speeds are pixel-relative estimates, NOT calibrated meters");
+    }
     lines.push("# Format: FrameID;Timestamp;PlayerID;X;Y;Speed;Acceleration");
     lines.push("");
 
@@ -301,6 +316,8 @@ export class AnalyticsExporter {
         this.data.metadata.fieldDimensions.widthM,
       ],
       frame_rate: this.data.metadata.trackingFps,
+      // Si false, las coordenadas normalizadas provienen de una homografía no fiable.
+      calibration_reliable: this.data.metadata.calibrationReliable,
       tracking_data: frames,
       events: this.data.events.map(e => ({
         event_id: e.id,
@@ -354,6 +371,10 @@ export class AnalyticsExporter {
 <body>
   <h1>VITAS Football Intelligence</h1>
   <p class="meta">${meta.playerName} · ${meta.date} · ${Math.round(meta.durationSec / 60)} min · ${meta.trackingFps} FPS</p>
+${meta.calibrationReliable ? "" : `
+  <div style="background:#3a2a00;border:1px solid #a67c00;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;color:#ffcc66;font-size:0.85rem;">
+    ⚠️ Calibración no fiable — las métricas en metros/km·h (velocidad, distancia) son <strong>orientativas</strong> (estimaciones en píxeles), NO medidas calibradas.
+  </div>`}
 
   <h2>Métricas Físicas</h2>
   <div class="grid">

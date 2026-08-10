@@ -830,16 +830,27 @@ const VitasLab = () => {
       // ── Prefer client-side data path when MediaPipe/tracking data exists ──
       const hasClientData = mediaPipe.biomechanics || tracking.state.sessionMetrics || eventSummary;
       if (hasClientData) {
-        // Build physical metrics from YOLO tracking
+        // Build physical metrics from YOLO tracking. Las cifras en METROS
+        // (velocidad/distancia/sprints) solo son fiables con calibración fiable; si no,
+        // serían píxeles disfrazados → NO se envían al LLM (evita que las reporte como
+        // medidas). Se envía siempre el flag + las métricas independientes de escala.
         const physicalMetrics: Record<string, unknown> = {};
         if (tracking.state.sessionMetrics) {
           const sm = tracking.state.sessionMetrics;
-          physicalMetrics.maxSpeedMs = sm.maxSpeedMs;
-          physicalMetrics.avgSpeedMs = sm.avgSpeedMs;
-          physicalMetrics.distanceCoveredM = sm.distanceCoveredM;
-          physicalMetrics.sprintCount = sm.sprintCount;
+          const calibReliable = metricsTrustworthy(tracking.state.calibrationConfidence);
+          physicalMetrics.calibrationReliable = calibReliable;
+          physicalMetrics.calibrationConfidence = tracking.state.calibrationConfidence;
+          if (calibReliable) {
+            physicalMetrics.maxSpeedMs = sm.maxSpeedMs;
+            physicalMetrics.avgSpeedMs = sm.avgSpeedMs;
+            physicalMetrics.distanceCoveredM = sm.distanceCoveredM;
+            physicalMetrics.sprintCount = sm.sprintCount;
+            // Los duelos se detectan por distancia en METROS (≤1.8 m) → dependen de la
+            // calibración; sin ella, cifra espuria → no la enviamos al LLM.
+            physicalMetrics.duelCount = tracking.state.duelEvents.length;
+          }
+          // Independientes de la escala métrica: escaneo (ángulo de cabeza) y conteo.
           physicalMetrics.scanCount = tracking.state.scanEvents.length;
-          physicalMetrics.duelCount = tracking.state.duelEvents.length;
           physicalMetrics.tracksDetected = tracking.state.currentTracks.length;
         }
 
@@ -1654,6 +1665,7 @@ const VitasLab = () => {
                 voronoiRegions={tracking.state.voronoiRegions}
                 showVoronoi={showVoronoi}
                 onToggleVoronoi={() => setShowVoronoi(v => !v)}
+                calibrationConfidence={tracking.state.calibrationConfidence}
               />
 
               {/* MediaPipe + Event Detection Status */}
@@ -1769,6 +1781,7 @@ const VitasLab = () => {
                         durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
                         trackingFps: 8,
                         fieldDimensions: { lengthM: 105, widthM: 68 },
+                        calibrationReliable: metricsTrustworthy(tracking.state.calibrationConfidence),
                       },
                       physicalMetrics: tracking.state.sessionMetrics!,
                       biomechanics: mediaPipe.biomechanics,
