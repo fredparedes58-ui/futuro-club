@@ -87,6 +87,42 @@ export const MODELS: Record<string, ModelSpec> = {
     notes: "Default en desktop. ~10cm tracking accuracy. FP32, opset 17. Descarga única (Cache API). Móvil usa nano.",
   },
 
+  /** #26 — nano @ imgsz 1280: recall ~2× de jugadores pequeños/lejanos (opt-in). */
+  "yolov8n-pose-1280": {
+    id: "yolov8n-pose-1280",
+    name: "YOLOv8 Nano Pose (1280)",
+    family: "yolov8",
+    variant: "n",
+    task: "pose",
+    inputSize: 1280,
+    numKeypoints: 17,
+    confThreshold: 0.45,
+    nmsThreshold: 0.5,
+    modelPath: "/models/yolov8n-pose-1280.onnx",
+    sizeMb: 14,
+    accuracyFactor: 1.2,
+    dynamicBatch: false,
+    notes: "#26: recall ~2× vs 640 (medido: 7→15 det/frame). imgsz 1280, opset 18, ~4× cómputo. Ligero → candidato real-time desktop. OPT-IN: verificar latencia en navegador antes de hacerlo default.",
+  },
+
+  /** #26 — medium @ imgsz 1280: recall alto + keypoints medium (más pesado). */
+  "yolov11m-pose-1280": {
+    id: "yolov11m-pose-1280",
+    name: "YOLOv11 Medium Pose (1280)",
+    family: "yolov11",
+    variant: "m",
+    task: "pose",
+    inputSize: 1280,
+    numKeypoints: 17,
+    confThreshold: 0.40,
+    nmsThreshold: 0.45,
+    modelPath: "/models/yolov11m-pose-1280.onnx",
+    sizeMb: 84,
+    accuracyFactor: 2.5,
+    dynamicBatch: true,
+    notes: "#26: recall alto + keypoints medium. imgsz 1280, opset 18, ~9× cómputo vs 640 → probablemente offline/server, no real-time. OPT-IN.",
+  },
+
   /** Football-specific detection model: person (0) + ball (1) */
   "yolov8s-football": {
     id: "yolov8s-football",

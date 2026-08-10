@@ -23,7 +23,11 @@ ort.env.wasm.numThreads = 1;   // sin SharedArrayBuffer
 ort.env.wasm.simd       = true; // SIMD acelera en CPUs modernas
 ort.env.wasm.proxy      = false; // already inside a worker, no need for proxy
 
-const MODEL_INPUT_SIZE = 640;
+const DEFAULT_INPUT_SIZE = 640;
+// Tamaño de entrada del modelo ACTIVO (lo fija INIT desde ModelSpec.inputSize).
+// Los modelos @1280 (#26) preprocessan/postprocessan a 1280; default 640 = idéntico
+// al comportamiento previo (sin regresión para los modelos actuales).
+let modelInputSize     = DEFAULT_INPUT_SIZE;
 const CONF_THRESH      = 0.30;
 const IOU_THRESH       = 0.45;
 const NUM_KEYPOINTS    = 17;
@@ -38,6 +42,7 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
 
   switch (cmd.type) {
     case "INIT":
+      modelInputSize = cmd.inputSize ?? DEFAULT_INPUT_SIZE;
       await initModel(cmd.modelUrl);
       break;
     case "FRAME":
@@ -163,7 +168,7 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
 
 function preprocess(imageData: ImageData): ort.Tensor {
   const { width, height, data } = imageData;
-  const size   = MODEL_INPUT_SIZE;
+  const size   = modelInputSize;
   const tensor = new Float32Array(3 * size * size);
 
   // Calcular escala de resize con letterboxing
@@ -200,12 +205,14 @@ function postprocess(
   imgW:    number,
   imgH:    number
 ): Detection[] {
-  const size    = MODEL_INPUT_SIZE;
+  const size    = modelInputSize;
   const scale   = Math.min(size / imgW, size / imgH);
   const padX    = (size - imgW * scale) / 2;
   const padY    = (size - imgH * scale) / 2;
-  const numAnch = 8400;
   const numKp   = NUM_KEYPOINTS;
+  // Nº de anclas derivado del tamaño real del output (640→8400, 1280→33600, …),
+  // NO hardcodeado: 56 canales = 4 bbox + 1 conf + numKp×3.
+  const numAnch = Math.round(data.length / (5 + numKp * 3));
 
   const boxes:  Array<[number,number,number,number]> = [];
   const scores: number[] = [];
