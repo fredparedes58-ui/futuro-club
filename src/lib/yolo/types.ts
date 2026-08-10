@@ -69,6 +69,17 @@ export interface Track {
   team?:            "home" | "away" | "unknown";
   /** Identity confidence 0-1 */
   identityConfidence?: number;
+  /**
+   * Cómo se asoció el track a su detección en el ÚLTIMO frame (ByteTrack, #14):
+   *  - "iou"        → match fuerte con detección de ALTA confianza (fiable)
+   *  - "recovered"  → recuperado con detección de BAJA confianza (2ª etapa; débil)
+   *  - "kalman"     → sin detección; sostenido por predicción (más débil)
+   *  - "new"        → track recién creado este frame
+   *  - "lost"       → NO se asoció ninguna detección este frame (coasting/envejeciendo)
+   * Señal para el gate fail-closed de atribución (no atribuir métricas si la
+   * asociación fue débil demasiados frames). Hoy solo se produce; el gate es follow-up (#24).
+   */
+  lastMatchKind?: "iou" | "recovered" | "kalman" | "new" | "lost";
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────

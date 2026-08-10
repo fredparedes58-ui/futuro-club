@@ -18,6 +18,13 @@ const EMA_ALPHA    = 0.35;   // suavizado de velocidad (exponential moving avera
 const MAX_AGE      = 8;       // frames sin match antes de eliminar track
 const IOU_THRESH   = 0.25;    // umbral mínimo IoU para match
 const SPRINT_MS    = 5.83;    // m/s ≈ 21 km/h
+// ByteTrack (#14): umbral que separa detecciones de ALTA vs BAJA confianza para dar
+// PRIORIDAD de emparejado a las de alta (etapa 1) antes que a las de baja (etapa 2,
+// recuperación de oclusión) → menos ID-switches. NOTA: el spawn de tracks nuevos es
+// INCLUSIVO (§2, cualquier confianza) para no perder jugadores 0.30-0.50; la regla
+// ByteTrack de "baja no crea track" se aplicará con el worker low-conf feed en #25.
+// Tunable con footage real (el worker hoy ya filtra <0.30 antes del tracker).
+const HIGH_CONF    = 0.5;
 
 // ── Kalman fallback constants ────────────────────────────────────────────────
 /** Max distance (meters) for Kalman-predicted position matching */
@@ -71,29 +78,18 @@ export class CentroidTracker {
     const matched   = new Set<number>(); // índices de detecciones ya asignadas
     const matchedTrackIds = new Set<number>(); // IDs de tracks ya asignados
 
+    // ByteTrack (#14): separar detecciones por confianza. Alta = match principal y
+    // pueden CREAR tracks nuevos; baja = solo RECUPERAN tracks existentes (2ª etapa).
+    const highIdx: number[] = [];
+    const lowIdx: number[] = [];
+    detections.forEach((d, i) => (d.confidence >= HIGH_CONF ? highIdx : lowIdx).push(i));
+
     if (trackList.length > 0 && detections.length > 0) {
-      // Construir matriz de similitud
-      const iouMatrix: number[][] = trackList.map(t =>
-        detections.map(d => computeIoU(t.bbox, d.bbox))
-      );
-
-      // Greedy matching: asignar pares ordenados por IoU descendente
-      const pairs: Array<[number, number, number]> = []; // [trackIdx, detIdx, iou]
-      iouMatrix.forEach((row, ti) => {
-        row.forEach((iou, di) => { if (iou > IOU_THRESH) pairs.push([ti, di, iou]); });
-      });
-      pairs.sort((a, b) => b[2] - a[2]);
-
-      const usedTracks = new Set<number>();
-      for (const [ti, di] of pairs) {
-        if (usedTracks.has(ti) || matched.has(di)) continue;
-        usedTracks.add(ti);
-        matched.add(di);
-
-        const track = trackList[ti];
-        matchedTrackIds.add(track.id);
-        this.updateTrackWithDetection(track, detections[di], H, timestampMs);
-      }
+      // Etapa 1: match IoU con detecciones de ALTA confianza (asociación fuerte).
+      this.assignByIoU(trackList, detections, highIdx, matched, matchedTrackIds, H, timestampMs, "iou");
+      // Etapa 2 (ByteTrack): recuperar tracks aún sin match con detecciones de BAJA
+      // confianza → un jugador ocluido/borroso conserva su id en vez de switchear.
+      this.assignByIoU(trackList, detections, lowIdx, matched, matchedTrackIds, H, timestampMs, "recovered");
 
       // ── 1b. Kalman fallback for unmatched tracks ──────────────────────────
       // For tracks that failed IoU matching, use Kalman predicted position
@@ -134,12 +130,21 @@ export class CentroidTracker {
         if (bestDi >= 0) {
           matched.add(bestDi);
           matchedTrackIds.add(track.id);
+          track.lastMatchKind = "kalman"; // sostenido por predicción → asociación débil
           this.updateTrackWithDetection(track, detections[bestDi], H, timestampMs);
         }
       }
     }
 
-    // ── 2. Detecciones sin match → nuevos tracks ──────────────────────────────
+    // ── 2. Detecciones sin match → nuevos tracks (spawn INCLUSIVO) ────────────
+    // Se crean tracks desde CUALQUIER detección sin asociar (alta o baja confianza)
+    // para no perder jugadores lejanos/borrosos que el detector ve estable en
+    // 0.30-0.50 pero nunca ≥0.50 (evita una desaparición silenciosa del tracking).
+    // La regla ByteTrack de "baja confianza NO crea track" (supresión de fantasmas)
+    // se aplicará junto al worker low-conf feed en #25, donde se puede verificar con
+    // clip. Lo que #14 sí aporta ya: la asociación de 2 etapas da PRIORIDAD a las
+    // detecciones de alta confianza al emparejar tracks → menos ID-switches.
+    const newTrackIds = new Set<number>();
     detections.forEach((det, di) => {
       if (matched.has(di)) return;
       const g = groundContactPx(det);
@@ -159,19 +164,64 @@ export class CentroidTracker {
         distanceM:       0,
         sprintCount:     0,
         kalman:          new KalmanLite2D(fieldPos.fx, fieldPos.fy),
+        lastMatchKind:   "new",
       };
+      newTrackIds.add(newTrack.id);
       this.tracks.set(newTrack.id, newTrack);
     });
 
     // ── 3. Incrementar edad de tracks sin match y eliminar los viejos ─────────
     for (const [id, track] of this.tracks) {
       if (!matchedTrackIds.has(id)) {
+        // Track existente que NO recibió detección este frame → señal honesta "lost"
+        // (los recién creados conservan "new"). El gate fail-closed (#24) la necesita
+        // para no tratar un track a la deriva como asociación fiable.
+        if (!newTrackIds.has(id)) track.lastMatchKind = "lost";
         track.age++;
         if (track.age > this.maxAge) this.tracks.delete(id);
       }
     }
 
     return [...this.tracks.values()];
+  }
+
+  /**
+   * Asignación greedy por IoU de tracks aún sin match a un SUBCONJUNTO de
+   * detecciones (por índice). Se usa en 2 etapas ByteTrack: 1ª con las de alta
+   * confianza, 2ª con las de baja. Muta `matched`/`matchedTrackIds` y marca
+   * `track.lastMatchKind`. No crea tracks (eso lo decide update según la etapa).
+   */
+  private assignByIoU(
+    trackList: Track[],
+    detections: Detection[],
+    detIndices: number[],
+    matched: Set<number>,
+    matchedTrackIds: Set<number>,
+    H: Float64Array,
+    timestampMs: number,
+    kind: "iou" | "recovered",
+  ): void {
+    if (detIndices.length === 0) return;
+    const pairs: Array<[number, number, number]> = []; // [trackIdx, detIdx, iou]
+    for (let ti = 0; ti < trackList.length; ti++) {
+      if (matchedTrackIds.has(trackList[ti].id)) continue;
+      for (const di of detIndices) {
+        if (matched.has(di)) continue;
+        const iou = computeIoU(trackList[ti].bbox, detections[di].bbox);
+        if (iou > IOU_THRESH) pairs.push([ti, di, iou]);
+      }
+    }
+    pairs.sort((a, b) => b[2] - a[2]);
+    const usedTracks = new Set<number>();
+    for (const [ti, di] of pairs) {
+      if (usedTracks.has(ti) || matched.has(di) || matchedTrackIds.has(trackList[ti].id)) continue;
+      usedTracks.add(ti);
+      matched.add(di);
+      const track = trackList[ti];
+      matchedTrackIds.add(track.id);
+      track.lastMatchKind = kind;
+      this.updateTrackWithDetection(track, detections[di], H, timestampMs);
+    }
   }
 
   /**
