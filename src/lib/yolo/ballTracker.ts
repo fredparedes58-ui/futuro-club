@@ -232,7 +232,11 @@ export class BallTracker {
     if (this.kalman) {
       const pos = this.kalman.position;
       try {
-        const fp = pixelToField(pos.x, pos.y, H);
+        // Firma correcta: pixelToField(H, px, py). El orden estaba invertido →
+        // destructuraba un número como matriz → lanzaba SIEMPRE → fieldPos quedaba
+        // null en cada frame → posesión/eventos de balón nunca se emitían (fallo
+        // silencioso). El sanity-check de abajo sigue gateando por plausibilidad.
+        const fp = pixelToField(H, pos.x, pos.y);
         // Sanity check: ball should be within field bounds
         if (fp.fx >= -5 && fp.fx <= 110 && fp.fy >= -5 && fp.fy <= 73) {
           fieldPos = fp;

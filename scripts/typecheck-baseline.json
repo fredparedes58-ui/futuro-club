@@ -1,6 +1,6 @@
 {
   "_comment": "Baseline de errores tsc conocidos (tsconfig.app.json). NO editar a mano: regenerar con `node scripts/typecheck-baseline.mjs --update`. Objetivo: que solo baje. Ver scripts/typecheck-baseline.mjs.",
-  "total": 108,
+  "total": 104,
   "errors": {
     "api/_lib/usageGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 3,
     "src/components/FirstRunWizard.tsx::TS2345::Argument of type '(s: 1 | 2 | 3 | 4) => number' is not assignable to parameter of type 'SetStateAction<1 | 2 | 3 | 4>'.": 1,
@@ -28,8 +28,6 @@
     "src/lib/tracking/eventDetectionEngine.ts::TS2345::Argument of type '{ type: \"recovery\"; timestampMs: number; frameIndex: number; actorTrackId: number; startPosition: { fx: number; fy: number; }; confidence: number; metadata: { nearbyOpponents: number; }; }' is not assignable to parameter of type 'Omit<TacticalEvent, \"id\"> & { id?: string; }'.": 1,
     "src/lib/tracking/eventDetectionEngine.ts::TS2345::Argument of type '{ type: \"cross\"; timestampMs: number; frameIndex: number; actorTrackId: number; startPosition: { fx: number; fy: number; }; endPosition: { fx: number; fy: number; }; confidence: number; metadata: { fromSide: string; }; }' is not assignable to parameter of type 'Omit<TacticalEvent, \"id\"> & { id?: string; }'.": 1,
     "src/lib/tracking/eventDetectionEngine.ts::TS2345::Argument of type '{ type: \"carry\"; timestampMs: number; frameIndex: number; actorTrackId: number; startPosition: { fx: number; fy: number; }; endPosition: { fx: number; fy: number; }; outcome: \"success\"; confidence: number; metadata: { ...; }; }' is not assignable to parameter of type 'Omit<TacticalEvent, \"id\"> & { id?: string; }'.": 1,
-    "src/lib/tracking/teamAnalysisEngine.ts::TS2339::Property 'fieldPosition' does not exist on type 'BallTrack'.": 3,
-    "src/lib/yolo/ballTracker.ts::TS2345::Argument of type 'number' is not assignable to parameter of type 'Float64Array<ArrayBufferLike>'.": 1,
     "src/pages/LiveMatchPage.tsx::TS2339::Property 'secondaryPositions' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
     "src/pages/LiveSummaryPage.tsx::TS2352::Conversion of type 'AnalysisResult' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.": 1,
     "src/pages/PlayerComparison.tsx::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'VSIMetrics'.": 2,
