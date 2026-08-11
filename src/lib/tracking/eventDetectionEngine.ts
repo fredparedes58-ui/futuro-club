@@ -482,7 +482,10 @@ export class EventDetectionEngine {
       passesAttempted: passes.length,
       passesCompleted,
       duelsWon,
-      duelsLost: duels.length - duelsWon,
+      // Solo los duelos con resultado 'fail' cuentan como perdidos. Antes era
+      // (total - won), que metía los 'neutral' (indeterminados) como perdidos →
+      // sesgo sistemático a la baja. Un duelo sin ganador claro no es una derrota. (G3)
+      duelsLost: duels.filter(e => e.outcome === "fail").length,
       recoveries: byType.recovery ?? 0,
       sprintBursts: byType.sprint_burst ?? 0,
       pressTriggers: byType.press_trigger ?? 0,
