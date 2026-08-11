@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+#
+# Vitas — pre-commit
+#
+# Impide que entre al repo una métrica que pueda mentir.
+# Activar una vez con:   git config core.hooksPath .githooks
+#
+set -uo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+PY="${PYTHON:-python3}"
+command -v "$PY" >/dev/null 2>&1 || PY=python
+
+# Solo auditamos si el commit toca código o el registro. Un commit de docs no
+# necesita pagar el coste.
+CHANGED="$(git diff --cached --name-only --diff-filter=ACMR)"
+if ! echo "$CHANGED" | grep -qE '\.(ts|tsx|js|jsx|py)$|^config/metrics\.json$'; then
+  exit 0
+fi
+
+echo "› Auditoría de procedencia de métricas…"
+"$PY" scripts/audit_metrics.py
+STATUS=$?
+
+case "$STATUS" in
+  0)
+    echo "  OK."
+    ;;
+  2)
+    # Bootstrap: config/metrics.json todavía no existe (pre-G0). Avisa, no bloquea.
+    echo "  Registro de métricas aún no creado (G0 pendiente). Commit permitido."
+    ;;
+  *)
+    cat <<'EOF'
+
+  ───────────────────────────────────────────────────────────────
+  COMMIT BLOQUEADO — la auditoría de procedencia ha fallado.
+
+  Recuerda los invariantes (CLAUDE.md):
+    · Ningún número sin procedencia.
+    · Ante dato ausente se bloquea, nunca se estima.
+    · Un concepto, una implementación.
+
+  El contrato completo está en .claude/rules/metricas.md
+
+  Si necesitas saltártelo de forma consciente y puntual:
+    git commit --no-verify
+  Úsalo sabiendo que estás metiendo deuda de honestidad.
+  ───────────────────────────────────────────────────────────────
+
+EOF
+    exit 1
+    ;;
+esac
+
+# PHV y bio-banding no se tocan (CLAUDE.md, invariante 4).
+PHV_TOUCHED="$(echo "$CHANGED" | grep -E 'maturation|mirwald|bio_?band|biobanding' || true)"
+if [ -n "$PHV_TOUCHED" ]; then
+  echo ""
+  echo "  ⚠  Este commit toca PHV / bio-banding:"
+  echo "$PHV_TOUCHED" | sed 's/^/       /'
+  echo "     Invariante 4: no se modifican durante la remediación."
+  echo "     Si es intencionado (p. ej. G6), confirma que los valores golden no cambian."
+  echo ""
+fi
+
+exit 0

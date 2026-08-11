@@ -1,0 +1,69 @@
+{
+  "$comment": "Plantilla del registro. G0 debe producir config/metrics.json con TODAS las métricas del inventario. Este fichero solo documenta el esquema.",
+  "schema_version": 1,
+  "scan_roots": [
+    "src/lib",
+    "src/components/metrics",
+    "vitas"
+  ],
+  "calc_file_hint": "metric|score|speed|track|vsi|phv|duel|voronoi|retention|wellbeing|growth",
+  "metrics": [
+    {
+      "id": "phv_aphv",
+      "name": "PHV — edad en el pico de crecimiento",
+      "concept": "maduracion.aphv",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/maturation/mirwald.ts"],
+      "ui_paths": ["src/components/metrics/PhvCard.tsx"],
+      "allowed_literals": [],
+      "gated": true,
+      "notes": "NO TOCAR (CLAUDE.md inv. 4). Coeficientes de Mirwald en config/mirwald.ts con cita."
+    },
+    {
+      "id": "velocidad_max",
+      "name": "Velocidad máxima",
+      "concept": "fisicas.velocidad.max",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/tracking/speed.ts"],
+      "ui_paths": ["src/components/metrics/SpeedCard.tsx"],
+      "allowed_literals": [95],
+      "gated": true,
+      "notes": "G2: pico como p95 sobre ventana móvil, no último frame. Sin calibración → units px/s."
+    },
+    {
+      "id": "vsi_video_tecnica",
+      "name": "VSI vídeo — sub-score técnica",
+      "concept": "vsi.video.tecnica",
+      "provenance": "CONSTANTE",
+      "calc_paths": ["src/lib/vsi/video.ts"],
+      "ui_paths": [],
+      "allowed_literals": [],
+      "gated": true,
+      "notes": "G4: hoy es 65 fijo para todos. value debe ser null, no renderizable."
+    },
+    {
+      "id": "pases_estimados",
+      "name": "Pases (estimación IA)",
+      "concept": "eventos.pases",
+      "provenance": "ESTIMADA_LLM",
+      "calc_paths": ["src/lib/events/gemini.ts"],
+      "ui_paths": ["src/components/metrics/EventsPanel.tsx"],
+      "allowed_literals": [],
+      "gated": false,
+      "source_ref": "gemini-<version>",
+      "notes": "G1: la etiqueta debe ser 'Estimado por IA'. Prohibido el literal 'medidos'."
+    },
+    {
+      "id": "retencion_roi",
+      "name": "Radar de Retención — ROI",
+      "concept": "negocio.retencion.roi",
+      "provenance": "MOCK",
+      "calc_paths": ["src/lib/director/retention.ts"],
+      "ui_paths": ["src/components/director/RetentionRadar.tsx"],
+      "allowed_literals": [],
+      "gated": true,
+      "banner": true,
+      "notes": "G5: hoy sale de un hash del id. El ROI en € no se muestra mientras proceda de hash."
+    }
+  ]
+}
