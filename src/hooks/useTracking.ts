@@ -111,6 +111,8 @@ const EMPTY_METRICS: PhysicalMetrics = {
   avgSpeed: gated("Sin sesión de tracking"),
   distance: gated("Sin sesión de tracking"),
   space: gated("Sin sesión de tracking"),
+  scans: gated("Sin sesión de tracking"),
+  accel: gated("Sin sesión de tracking"),
 };
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
@@ -624,5 +626,7 @@ export function computeSessionMetrics(
     distance:         derived(distance, { units: "m",   calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
     // Espacio/Voronoi BLOQUEADO en el resumen: solo se computa en vivo → aquí sería 0.
     space:            gated("Voronoi de sesión no cableado (solo en vivo · G7)"),
+    scans:            derived(focusScans.length, { units: null, calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
+    accel:            derived(Math.max(...focusTracks.map(t => t.accelMs2), 0), { units: "m/s²", calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
   };
 }
