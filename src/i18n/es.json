@@ -2519,7 +2519,12 @@
     "toastFinishError": "Error al terminar"
   },
   "matchStatsPanel": {
-    "totalsCount": "{{count}} totales"
+    "totalsCount": "{{count}} totales",
+    "sourceYoloGemini": "Tracking (YOLO) + eventos estimados por IA",
+    "sourceGeminiOnly": "Estimado por IA (Gemini)",
+    "sourceYoloOnly": "Tracking en vídeo (YOLO)",
+    "physicalPerformance": "Rendimiento físico",
+    "yoloPoseTracking": "Tracking de pose (YOLO) · orientativo sin calibración"
   },
   "notEvaluatedSection": {
     "title": "No evaluado",
@@ -3418,7 +3423,7 @@
   },
   "quantitativeMetricsPanel": {
     "matchMetrics": "Métricas del Partido",
-    "measuredQuantitativeData": "Datos cuantitativos medidos",
+    "measuredQuantitativeData": "Datos cuantitativos estimados por IA (Gemini)",
     "maxSpeed": "Velocidad máx",
     "avg": "prom",
     "distance": "Distancia",
@@ -4495,6 +4500,7 @@
     "scansSub": "giros de cabeza",
     "metricDuels": "DUELOS",
     "duelsSub": "{{won}}G / {{lost}}P",
+    "duelsUnresolved": "Ganador no calculado (G3)",
     "metricSpace": "ESPACIO",
     "spaceSub": "área Voronoi",
     "intensityZones": "Zonas de intensidad",

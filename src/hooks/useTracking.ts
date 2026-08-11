@@ -30,6 +30,7 @@ import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
 import { isTrackIdentityReliable } from "@/lib/yolo/tracker";
+import { gated, derived } from "@/lib/metrics/MetricResult";
 import { autoCalibrate as runAutoCalibrate } from "@/lib/tracking/autoCalibrationBridge";
 import { autoCalibrationConfidence } from "@/lib/tracking/autoCalibrationConfidence";
 import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
@@ -104,6 +105,9 @@ const EMPTY_METRICS: PhysicalMetrics = {
   intensityZones: { walk: 0, jog: 0, run: 0, sprint: 0 },
   scanCount: 0, duelsWon: 0, duelsLost: 0, avgVoronoiAreaM2: 0,
   identityReliable: false,
+  duels: gated("Sin sesión de tracking"),
+  maxSpeed: gated("Sin sesión de tracking"),
+  sprints: gated("Sin sesión de tracking"),
 };
 
 // ─── Hook principal ───────────────────────────────────────────────────────────
@@ -605,5 +609,13 @@ export function computeSessionMetrics(
     duelsLost:        focusDuels.filter(d => d.winnerId !== null && d.winnerId !== focusId).length,
     avgVoronoiAreaM2: 0, // se calcula en el componente desde voronoiRegions
     identityReliable,
+    // Duelos G/P BLOQUEADOS: winnerId nunca se resuelve en la ruta tracking (poseAnalyzer
+    // deja winnerId=null) → won/lost serían siempre 0. Honesto: gated, no "0G/0P". (G3)
+    duels:            gated("Ganador de duelo no calculado (pendiente G3)"),
+    // Físicas envueltas en MetricResult (G1). DERIVADA + orientativa (confidence baja):
+    // sin calibración certificada son píxeles reescalados. Valores idénticos a los
+    // campos numéricos de arriba; el gate por calibración y el pico p95 son G2.
+    maxSpeed:         derived(maxSpeed, { units: "m/s", calibrated: false, confidence: 0.4 }),
+    sprints:          derived(sprints,  { units: null,  calibrated: false, confidence: 0.4 }),
   };
 }

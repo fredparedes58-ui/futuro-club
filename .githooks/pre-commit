@@ -21,7 +21,10 @@ if ! echo "$CHANGED" | grep -qE '\.(ts|tsx|js|jsx|py)$|^config/metrics\.json$'; 
 fi
 
 echo "› Auditoría de procedencia de métricas…"
-"$PY" scripts/audit_metrics.py
+# --baseline: solo bloquean violaciones NUEVAS (no la deuda pre-existente conocida).
+# La deuda se reduce con la remediación; regenerar baseline solo AL REDUCIRLA con
+# `python scripts/audit_metrics.py --update-baseline`.
+"$PY" scripts/audit_metrics.py --baseline
 STATUS=$?
 
 case "$STATUS" in
