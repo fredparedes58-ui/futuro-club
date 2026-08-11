@@ -4088,6 +4088,7 @@
   },
   "retentionRadarCard": {
     "defaultPlayerName": "Player",
+    "demoNotice": "Dropout risk is a sample estimate: it is not yet computed from real signals (attendance, questionnaires, engagement). The € ROI has been removed until it comes from real data.",
     "title": "Retention Radar",
     "subtitle": "Squad dropout risk · this month",
     "playersAtRiskThisMonth_one": "{{count}} player at risk this month",

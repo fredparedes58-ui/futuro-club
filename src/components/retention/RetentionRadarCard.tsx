@@ -9,15 +9,14 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { ShieldAlert, TrendingUp, ChevronRight, Euro } from "lucide-react";
+import { ShieldAlert, ChevronRight } from "lucide-react";
 import { PlayerService } from "@/services/real/playerService";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import {
   estimateDropoutRisk,
   bucketRisk,
-  computeRetentionROI,
   RISK_META,
   FACTOR_LABELS,
-  eur,
   type DropoutAssessment,
   type RiskLevel,
 } from "@/lib/retention";
@@ -28,7 +27,7 @@ export function RetentionRadarCard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const { assessments, buckets, roi } = useMemo(() => {
+  const { assessments, buckets } = useMemo(() => {
     const players = PlayerService.getAll();
     const list: DropoutAssessment[] = players.map((p) =>
       estimateDropoutRisk(String((p as { id: string }).id)),
@@ -37,12 +36,11 @@ export function RetentionRadarCard() {
       players.map((p) => [String((p as { id: string }).id), String((p as { name?: string }).name ?? t("retentionRadarCard.defaultPlayerName"))]),
     );
     const b = bucketRisk(list);
-    const r = computeRetentionROI({ playersAtRisk: b.atRisk });
     // Adjunta nombre + ordena por riesgo desc
     const withNames = list
       .map((a) => ({ ...a, name: nameById.get(a.playerId) ?? t("retentionRadarCard.defaultPlayerName") }))
       .sort((x, y) => y.riskScore - x.riskScore);
-    return { assessments: withNames, buckets: b, roi: r };
+    return { assessments: withNames, buckets: b };
   }, [t]);
 
   const topAtRisk = assessments.filter((a) => a.riskLevel === "high" || a.riskLevel === "critical").slice(0, 5);
@@ -64,6 +62,10 @@ export function RetentionRadarCard() {
         </div>
         <span className="text-2xl font-display font-bold text-rose-400 leading-none">{buckets.atRisk}</span>
       </div>
+
+      {/* Banner honesto (G5): los riesgos salen de un hash del id, no de señales
+          reales (asistencia/engagement/fatiga). Visible SIN scroll. */}
+      <DemoDataBanner messageKey="retentionRadarCard.demoNotice" />
 
       {/* Semáforos */}
       <div className="grid grid-cols-4 gap-2">
@@ -108,30 +110,9 @@ export function RetentionRadarCard() {
         </p>
       )}
 
-      {/* ROI en euros */}
-      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <Euro size={14} className="text-emerald-400" />
-          <h3 className="text-xs font-display font-semibold text-emerald-300">{roi.headline}</h3>
-        </div>
-        <p className="text-[11px] text-muted-foreground leading-snug">{roi.narrative}</p>
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="text-center">
-            <p className="font-display font-bold text-sm text-foreground flex items-center justify-center gap-0.5">
-              <TrendingUp size={11} className="text-emerald-400" /> {roi.roiMultiple.toFixed(1)}×
-            </p>
-            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiReturnLabel")}</p>
-          </div>
-          <div className="text-center">
-            <p className="font-display font-bold text-sm text-foreground">{eur(roi.revenueSaved)}</p>
-            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiRecoveredLabel")}</p>
-          </div>
-          <div className="text-center">
-            <p className="font-display font-bold text-sm text-foreground">{eur(roi.vitasAnnualCost)}</p>
-            <p className="text-[9px] text-muted-foreground">{t("retentionRadarCard.roiCostLabel")}</p>
-          </div>
-        </div>
-      </div>
+      {/* ROI en € RETIRADO (G5): procedía de computeRetentionROI sobre riesgos
+          hash-based → cifra en euros sintética. El plan prohíbe mostrar € mientras
+          no venga de señales reales. Volverá cuando el riesgo se derive de datos. */}
 
       {/* CTA */}
       <button
