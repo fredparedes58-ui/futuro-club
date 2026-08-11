@@ -4088,6 +4088,7 @@
   },
   "retentionRadarCard": {
     "defaultPlayerName": "Jugador",
+    "demoNotice": "El riesgo de abandono es una estimación de ejemplo: aún no se calcula desde señales reales (asistencia, cuestionarios, engagement). El ROI en € se ha retirado hasta que provenga de datos reales.",
     "title": "Radar de Retención",
     "subtitle": "Riesgo de abandono de la plantilla · este mes",
     "playersAtRiskThisMonth_one": "{{count}} jugador en riesgo este mes",
