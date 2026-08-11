@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { computeSessionMetrics } from "@/hooks/useTracking";
-import type { Track } from "@/lib/yolo/types";
+import type { Track, FieldPosition } from "@/lib/yolo/types";
 
 function mkTrack(id: number, iou: number, weak: number): Track {
   return {
@@ -54,5 +54,39 @@ describe("computeSessionMetrics — gate identityReliable (#24)", () => {
   it("sin tracks → EMPTY_METRICS con identityReliable=false (nunca fail-open)", () => {
     const m = computeSessionMetrics([], 1, [], []);
     expect(m.identityReliable).toBe(false);
+  });
+});
+
+/** Track con un perfil de velocidad dado (m/s por paso a 8 fps): construye las
+ *  posiciones de campo cuya distancia por paso produce esas velocidades. */
+function trackWithSpeedProfile(id: number, speedsMs: number[]): Track {
+  const dt = 0.125; // 8 fps
+  let fx = 0;
+  const positions: FieldPosition[] = [{ fx: 0, fy: 0, timestampMs: 0 }];
+  speedsMs.forEach((v, i) => {
+    fx += v * dt;
+    positions.push({ fx, fy: 0, timestampMs: (i + 1) * 125 });
+  });
+  return { ...mkTrack(id, 8, 1), positions };
+}
+
+describe("computeSessionMetrics — velocidad máx = pico de sesión, no último frame (G2)", () => {
+  it("captura la ráfaga del medio aunque el clip acabe lento (bug de agregación G1)", () => {
+    // Lento, RÁFAGA a 8 m/s en el medio, lento al final.
+    const speeds = [...Array(30).fill(0.5), ...Array(10).fill(8), ...Array(30).fill(0.5)];
+    const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
+    expect(m.maxSpeedMs).toBeGreaterThan(5);   // captura el pico (~8), no el final (~0.5)
+    expect(m.maxSpeedMs).toBeLessThanOrEqual(8.1);
+  });
+
+  it("p95 rechaza un único spike de jitter (no domina el máximo)", () => {
+    const speeds = [...Array(50).fill(3), 40]; // 50 muestras a 3 + 1 spike irreal
+    const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
+    expect(m.maxSpeedMs).toBeLessThan(5);      // ~3, el spike (clampeado + outlier) no manda
+  });
+
+  it("sin posiciones (posible en tests) → velocidad 0, no lanza", () => {
+    const m = computeSessionMetrics([mkTrack(1, 8, 1)], 1, [], []);
+    expect(m.maxSpeedMs).toBe(0);
   });
 });

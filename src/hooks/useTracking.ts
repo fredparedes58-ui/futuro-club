@@ -556,6 +556,15 @@ export function useTracking(options: UseTrackingOptions) {
 
 // ─── Calcular métricas de sesión ──────────────────────────────────────────────
 
+/** Percentil p (0-100) sobre una lista de valores. Robusto a outliers para el pico
+ *  de velocidad de la sesión (G2). Devuelve 0 si no hay muestras. */
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length));
+  return sorted[idx];
+}
+
 export function computeSessionMetrics(
   tracks:       Track[],
   focusId:      number | null,
@@ -574,9 +583,24 @@ export function computeSessionMetrics(
   // fuerte). Si no, un ID-switch pudo mezclar jugadores → no presentar como medidas.
   const identityReliable = focusTracks.every(isTrackIdentityReliable);
 
-  const speeds   = focusTracks.map(t => t.smoothSpeedMs).filter(s => s > 0);
-  const maxSpeed = Math.max(...focusTracks.map(t => t.speedMs), 0);
-  const avgSpeed = speeds.length ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
+  // Velocidad máx/media desde las MUESTRAS de velocidad de la sesión (derivadas de las
+  // posiciones de campo), no del último frame. Corrige el bug de agregación de G1:
+  //  · máx = percentil 95 (rechaza spikes de jitter), NO Math.max del frame final.
+  //  · media = media temporal de las muestras, NO la velocidad suavizada al final.
+  // Clamp fisiológico 12.5 m/s (= 45 km/h, el mismo tope del tracker) contra outliers. (G2)
+  const speedSamples: number[] = [];
+  for (const track of focusTracks) {
+    for (let i = 1; i < track.positions.length; i++) {
+      const a = track.positions[i - 1], b = track.positions[i];
+      const dt = (b.timestampMs - a.timestampMs) / 1000;
+      if (dt <= 0) continue;
+      speedSamples.push(Math.min(12.5, Math.hypot(b.fx - a.fx, b.fy - a.fy) / dt));
+    }
+  }
+  const maxSpeed = percentile(speedSamples, 95);
+  const avgSpeed = speedSamples.length
+    ? speedSamples.reduce((s, v) => s + v, 0) / speedSamples.length
+    : 0;
   const distance = focusTracks.reduce((s, t) => s + t.distanceM, 0);
   const sprints  = focusTracks.reduce((s, t) => s + t.sprintCount, 0);
 
