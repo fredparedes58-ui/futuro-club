@@ -135,7 +135,13 @@ export default function TrackingMetricsPanel({
           label={t("trackingMetricsPanel.metricDuels")}
           value={String(duelCount)}
           unit=""
-          sub={metrics ? t("trackingMetricsPanel.duelsSub", { won: metrics.duelsWon, lost: metrics.duelsLost }) : ""}
+          sub={
+            metrics?.duels && metrics.duels.value === null
+              ? t("trackingMetricsPanel.duelsUnresolved")
+              : metrics
+                ? t("trackingMetricsPanel.duelsSub", { won: metrics.duelsWon, lost: metrics.duelsLost })
+                : ""
+          }
         />
 
         {/* Espacio */}

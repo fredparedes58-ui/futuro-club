@@ -64,6 +64,10 @@ class Finding:
         loc = f"  ({self.where})" if self.where else ""
         return f"[{self.level}] {self.code} · {self.metric}: {self.detail}{loc}"
 
+    def key(self) -> str:
+        """Firma estable para el baseline: code + métrica + ubicación."""
+        return f"{self.code}::{self.metric}::{self.where}"
+
 
 @dataclass
 class Audit:
@@ -286,10 +290,21 @@ def check_orphans(metrics: list[dict], registry: dict, audit: Audit) -> None:
 # --------------------------------------------------------------------------- #
 
 def main() -> int:
+    # Windows: la consola cp1252 lanza UnicodeEncodeError con ·/→. Forzamos UTF-8
+    # para que ni el audit ni el pre-commit crasheen al imprimir hallazgos.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except Exception:
+            pass
     ap = argparse.ArgumentParser()
     ap.add_argument("--strict", action="store_true",
                     help="fallar también si el registro no existe todavía")
     ap.add_argument("--json", action="store_true", help="salida JSON")
+    ap.add_argument("--baseline", nargs="?", const="config/metrics.baseline.json", default=None,
+                    help="suprime findings ya conocidos del baseline; solo fallan los NUEVOS")
+    ap.add_argument("--update-baseline", action="store_true",
+                    help="regenera el baseline con los findings actuales y sale 0")
     args = ap.parse_args()
 
     if not REGISTRY.exists():
@@ -323,25 +338,63 @@ def main() -> int:
     check_mock_banner(metrics, audit)
     check_orphans(metrics, registry, audit)
 
-    if args.json:
-        print(json.dumps(
-            {"ok": not audit.errors,
-             "metrics_auditadas": len(metrics),
-             "findings": [f.__dict__ for f in audit.findings]},
-            indent=2, ensure_ascii=False))
-        return 1 if audit.errors else 0
+    baseline_default = "config/metrics.baseline.json"
 
-    print(f"Métricas en el registro: {len(metrics)}")
-    if not audit.findings:
-        print("Auditoría de procedencia: OK. Ninguna métrica puede mentir.")
+    # --update-baseline: registra los findings actuales como deuda conocida y sale 0.
+    if args.update_baseline:
+        path = REPO / (args.baseline or baseline_default)
+        keys = sorted({f.key() for f in audit.findings})
+        path.write_text(
+            json.dumps(
+                {"$comment": "Baseline del arnés de procedencia: findings CONOCIDOS (deuda de "
+                             "honestidad pre-existente que la remediación va reduciendo). Un finding "
+                             "NUEVO no listado aquí bloquea el commit. Regenerar (solo al reducir "
+                             "deuda): python scripts/audit_metrics.py --update-baseline",
+                 "count": len(keys), "known": keys},
+                indent=2, ensure_ascii=False),
+            encoding="utf-8")
+        print(f"Baseline actualizado: {len(keys)} findings conocidos -> {path.relative_to(REPO)}")
         return 0
 
-    for f in audit.findings:
+    # Carga del baseline (si se pide): suprime los findings ya conocidos.
+    known: set[str] = set()
+    if args.baseline:
+        bp = REPO / args.baseline
+        if bp.exists():
+            try:
+                known = set(json.loads(bp.read_text(encoding="utf-8")).get("known", []))
+            except json.JSONDecodeError:
+                print(f"[AVISO] baseline ilegible ({args.baseline}); se ignora.", file=sys.stderr)
+        reported = [f for f in audit.findings if f.key() not in known]
+    else:
+        reported = list(audit.findings)
+
+    reported_errors = [f for f in reported if f.level == "ERROR"]
+    n_baselined = len(audit.findings) - len(reported)
+
+    if args.json:
+        print(json.dumps(
+            {"ok": not reported_errors,
+             "metrics_auditadas": len(metrics),
+             "baselined": n_baselined,
+             "findings": [f.__dict__ for f in reported]},
+            indent=2, ensure_ascii=False))
+        return 1 if reported_errors else 0
+
+    print(f"Métricas en el registro: {len(metrics)}"
+          + (f" · {n_baselined} en baseline (conocidos)" if args.baseline else ""))
+    if not reported:
+        msg = "Ninguna violación nueva." if args.baseline else "Ninguna métrica puede mentir."
+        print(f"Auditoría de procedencia: OK. {msg}")
+        return 0
+
+    for f in reported:
         print(f.render())
 
-    n_err = len(audit.errors)
-    n_warn = len(audit.findings) - n_err
-    print(f"\n{n_err} error(es), {n_warn} aviso(s).")
+    n_err = len(reported_errors)
+    n_warn = len(reported) - n_err
+    tag = " NUEVO(s)" if args.baseline else ""
+    print(f"\n{n_err} error(es){tag}, {n_warn} aviso(s).")
     if n_err:
         print("Auditoría FALLIDA. Ver .claude/rules/metricas.md para el contrato.")
     return 1 if n_err else 0

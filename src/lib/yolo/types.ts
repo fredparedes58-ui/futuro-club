@@ -6,6 +6,7 @@
 import type { KalmanLite2D } from "./kalmanLite";
 import type { BallDetection } from "./ballDetector";
 import type { BallTrack } from "./ballTracker";
+import type { MetricResult } from "@/lib/metrics/MetricResult";
 
 // Re-export ball types for convenience
 export type { BallDetection, BallTrack };
@@ -112,6 +113,24 @@ export interface PhysicalMetrics {
    * jugador equivocado → NO presentarlas como medidas (gate fail-closed, #24).
    */
   identityReliable?: boolean;
+  /**
+   * Duelos ganados/perdidos como MetricResult (G1). Hoy BLOQUEADO: el ganador del
+   * duelo (winnerId) nunca se calcula en la ruta tracking → won/lost serían siempre
+   * 0, un "0 que significa no-medido". Se representa gated con gate_reason en vez de
+   * mostrar "0G/0P" (mentira). La resolución real del ganador es G3.
+   */
+  duels?: MetricResult<number>;
+  /**
+   * Velocidad máxima (m/s) como MetricResult (G1). DERIVADA y ORIENTATIVA sin
+   * calibración (confidence baja). El pico real (p95 sobre ventana, no el último
+   * frame) y el gate por calibración son G2. Valor idéntico al de maxSpeedMs.
+   */
+  maxSpeed?: MetricResult<number>;
+  /**
+   * Sprints como MetricResult (G1). DERIVADA y orientativa. Hoy cuenta FRAMES sobre
+   * umbral, no eventos (la semántica de eventos es G2). Valor idéntico a sprintCount.
+   */
+  sprints?: MetricResult<number>;
 }
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────
