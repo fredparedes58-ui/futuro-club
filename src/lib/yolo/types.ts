@@ -131,6 +131,16 @@ export interface PhysicalMetrics {
    * umbral, no eventos (la semántica de eventos es G2). Valor idéntico a sprintCount.
    */
   sprints?: MetricResult<number>;
+  /** Velocidad media (m/s) como MetricResult (G1). DERIVADA/orientativa. Valor = avgSpeedMs. */
+  avgSpeed?: MetricResult<number>;
+  /** Distancia (m) como MetricResult (G1). DERIVADA/orientativa. Valor = distanceCoveredM. */
+  distance?: MetricResult<number>;
+  /**
+   * Espacio/Voronoi de sesión (G1). BLOQUEADO: el Voronoi solo se computa EN VIVO, no
+   * se traslada al resumen → avgVoronoiAreaM2 es siempre 0 ("un 0 que significa
+   * no-calculado"). Gated en vez de mostrar "0 m²". El cableado real es G7.
+   */
+  space?: MetricResult<number>;
 }
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────

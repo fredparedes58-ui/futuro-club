@@ -29,6 +29,15 @@ export interface MetricResult<T = number> {
   source_ref?: string;        // ruta, id de sensor, o modelo+versión si ESTIMADA_LLM
 }
 
+/**
+ * Confianza por defecto de una métrica DERIVADA ORIENTATIVA (sin calibración de campo
+ * certificada → son píxeles reescalados, no metros fiables). Constante compartida para
+ * NO repetir el literal en cada ruta de cálculo (contrato `.claude/rules/metricas.md`:
+ * las constantes de una ruta de cálculo van fuera de ella). Este fichero no es
+ * calc_path de ninguna métrica, así que aquí el valor no es una "constante mágica".
+ */
+export const ORIENTATIVE_CONFIDENCE = 0.4;
+
 /** Error de violación del contrato de procedencia. */
 export class MetricContractError extends Error {
   constructor(message: string) {

@@ -65,8 +65,12 @@ class Finding:
         return f"[{self.level}] {self.code} · {self.metric}: {self.detail}{loc}"
 
     def key(self) -> str:
-        """Firma estable para el baseline: code + métrica + ubicación."""
-        return f"{self.code}::{self.metric}::{self.where}"
+        """Firma para el baseline: code + métrica + FICHERO (sin nº de línea).
+        Robusta a desplazamientos de línea al editar. Una violación en un fichero/
+        métrica ya conocidos se considera deuda existente; una NUEVA (otro fichero,
+        otra métrica, otro código de check) sí bloquea."""
+        where = re.sub(r":\d+$", "", self.where)
+        return f"{self.code}::{self.metric}::{where}"
 
 
 @dataclass
