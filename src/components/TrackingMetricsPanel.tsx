@@ -144,12 +144,18 @@ export default function TrackingMetricsPanel({
           }
         />
 
-        {/* Espacio */}
+        {/* Espacio — Voronoi de sesión bloqueado (solo en vivo); no mostramos "0 m²". */}
         <MetricCard
           icon={<Map size={12} className="text-purple-400" />}
           label={t("trackingMetricsPanel.metricSpace")}
-          value={metrics ? metrics.avgVoronoiAreaM2.toFixed(0) : "--"}
-          unit="m²"
+          value={
+            metrics?.space && metrics.space.value === null
+              ? t("trackingMetricsPanel.spaceUnresolved")
+              : metrics
+                ? metrics.avgVoronoiAreaM2.toFixed(0)
+                : "--"
+          }
+          unit={metrics?.space && metrics.space.value === null ? "" : "m²"}
           sub={t("trackingMetricsPanel.spaceSub")}
         />
       </div>

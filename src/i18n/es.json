@@ -4503,6 +4503,7 @@
     "duelsUnresolved": "Ganador no calculado (G3)",
     "metricSpace": "ESPACIO",
     "spaceSub": "área Voronoi",
+    "spaceUnresolved": "Solo en vivo",
     "intensityZones": "Zonas de intensidad",
     "zoneWalk": "Caminar",
     "zoneJog": "Trote",

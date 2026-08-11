@@ -4503,6 +4503,7 @@
     "duelsUnresolved": "Winner not computed (G3)",
     "metricSpace": "SPACE",
     "spaceSub": "Voronoi area",
+    "spaceUnresolved": "Live only",
     "intensityZones": "Intensity zones",
     "zoneWalk": "Walk",
     "zoneJog": "Jog",
