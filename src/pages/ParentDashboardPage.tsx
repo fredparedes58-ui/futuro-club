@@ -27,6 +27,7 @@ import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import PeerBenchmark from "@/components/PeerBenchmark";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
 import { useCurrentIDP } from "@/hooks/useIDP";
 import { IDPParentView } from "@/components/idp/IDPParentView";
@@ -385,6 +386,11 @@ function ParentWellbeingSection({ playerId }: { playerId: string }) {
         <Heart size={14} className="text-rose-400" />
         <span className="text-[11px] font-display font-bold text-foreground">{t("parentDashboardPage.wellbeing")}</span>
       </div>
+
+      {/* Banner honesto (G5): si el bienestar es MOCK de demostración (aún sin
+          cuestionarios/asistencia/engagement reales), el padre debe saberlo. Antes
+          salía sin aviso; la vista de equipo sí lo tenía. */}
+      {risk?.isMock && <DemoDataBanner messageKey="demoData.wellbeing" />}
 
       {/* Engagement bar */}
       <div className="space-y-1">
