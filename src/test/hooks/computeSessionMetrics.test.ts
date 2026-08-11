@@ -90,3 +90,23 @@ describe("computeSessionMetrics — velocidad máx = pico de sesión, no último
     expect(m.maxSpeedMs).toBe(0);
   });
 });
+
+describe("computeSessionMetrics — sprints = EVENTOS, no frames (G2)", () => {
+  it("un sprint continuo de 2 s a 8 m/s cuenta como 1 (no ~16 frames)", () => {
+    const speeds = Array(16).fill(8); // 16 pasos × 0.125 s = 2 s continuos
+    const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
+    expect(m.sprintCount).toBe(1);
+  });
+
+  it("un pico breve (< duración mínima) NO cuenta como sprint", () => {
+    const speeds = Array(4).fill(8); // 0.5 s < 1 s → 0
+    const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
+    expect(m.sprintCount).toBe(0);
+  });
+
+  it("dos sprints separados por trote cuentan como 2", () => {
+    const speeds = [...Array(16).fill(8), ...Array(16).fill(0.5), ...Array(16).fill(8)];
+    const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
+    expect(m.sprintCount).toBe(2);
+  });
+});

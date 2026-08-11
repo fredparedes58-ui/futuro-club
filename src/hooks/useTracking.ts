@@ -556,6 +556,45 @@ export function useTracking(options: UseTrackingOptions) {
 
 // ─── Calcular métricas de sesión ──────────────────────────────────────────────
 
+// Umbrales de sprint (m/s / s). ENTER/EXIT con HISTÉRESIS para no contar oscilaciones
+// alrededor del umbral; MIN_DURATION descarta picos de 1-2 frames. Procedencia:
+// 5.83 m/s (= 21 km/h) es umbral común en fútbol juvenil; EXIT e MIN_DURATION son
+// "pendiente de validar" (sin cita) → por eso `sprints` lleva confidence reducida.
+// (G2 · contrato .claude/rules/metricas.md)
+const SPRINT_ENTER_MS = 5.83;
+const SPRINT_EXIT_MS = 5.0;
+const SPRINT_MIN_DURATION_S = 1.0;
+
+/** Cuenta EVENTOS de sprint de un track (no frames): un tramo continuo por encima
+ *  del umbral que dura al menos SPRINT_MIN_DURATION_S. Corrige el bug de G1 donde
+ *  `sprintCount` sumaba frames (un sprint de 2 s a 8 fps ≈ 16). (G2) */
+function countSprintEvents(track: Track): number {
+  let events = 0;
+  let inSprint = false;
+  let startMs = 0;
+  const closeIfLongEnough = (endMs: number) => {
+    if (inSprint && (endMs - startMs) / 1000 >= SPRINT_MIN_DURATION_S) events++;
+    inSprint = false;
+  };
+  for (let i = 1; i < track.positions.length; i++) {
+    const a = track.positions[i - 1];
+    const b = track.positions[i];
+    const dt = (b.timestampMs - a.timestampMs) / 1000;
+    if (dt <= 0) continue;
+    const v = Math.hypot(b.fx - a.fx, b.fy - a.fy) / dt;
+    if (!inSprint && v >= SPRINT_ENTER_MS) {
+      inSprint = true;
+      startMs = a.timestampMs;
+    } else if (inSprint && v < SPRINT_EXIT_MS) {
+      closeIfLongEnough(a.timestampMs);
+    }
+  }
+  if (inSprint && track.positions.length > 0) {
+    closeIfLongEnough(track.positions[track.positions.length - 1].timestampMs);
+  }
+  return events;
+}
+
 /** Percentil p (0-100) sobre una lista de valores. Robusto a outliers para el pico
  *  de velocidad de la sesión (G2). Devuelve 0 si no hay muestras. */
 function percentile(values: number[], p: number): number {
@@ -602,7 +641,9 @@ export function computeSessionMetrics(
     ? speedSamples.reduce((s, v) => s + v, 0) / speedSamples.length
     : 0;
   const distance = focusTracks.reduce((s, t) => s + t.distanceM, 0);
-  const sprints  = focusTracks.reduce((s, t) => s + t.sprintCount, 0);
+  // Sprints como EVENTOS (no frames): tramos continuos sobre umbral con duración
+  // mínima e histéresis. Antes sumaba t.sprintCount (frames) → inflaba x10-x16. (G2)
+  const sprints  = focusTracks.reduce((s, t) => s + countSprintEvents(t), 0);
 
   const focusScans = scans.filter(s => !focusId || s.trackId === focusId);
   const focusDuels = duels.filter(d => !focusId || d.trackIds.includes(focusId));
