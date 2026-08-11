@@ -141,6 +141,17 @@ export interface PhysicalMetrics {
    * no-calculado"). Gated en vez de mostrar "0 m²". El cableado real es G7.
    */
   space?: MetricResult<number>;
+  /**
+   * Escaneos (head-scans) como MetricResult (G1). DERIVADA; indep. de calibración pero
+   * depende de identidad + confianza de keypoints (proxy de Jordet NO validado, posibles
+   * flips fantasma). Valor = scanCount.
+   */
+  scans?: MetricResult<number>;
+  /**
+   * Aceleración máxima (m/s²) como MetricResult (G1). DERIVADA/orientativa; mismo defecto
+   * de agregación que velocidad (último frame, no pico) → G2. Valor = maxAccelMs2.
+   */
+  accel?: MetricResult<number>;
 }
 
 // ─── Eventos ──────────────────────────────────────────────────────────────────
