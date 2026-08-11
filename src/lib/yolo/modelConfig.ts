@@ -164,8 +164,15 @@ export const MODELS: Record<string, ModelSpec> = {
 
 const STORAGE_KEY = "vitas_active_model";
 const DEFAULT_MODEL = "yolov8n-pose";
-/** FASE 1 vision upgrade: desktop puede con el modelo medium (45MB, ~10cm accuracy). */
-const DESKTOP_DEFAULT_MODEL = "yolov11m-pose";
+/**
+ * Default desktop = pose a 1280 (#26). Benchmark headless sobre clips reales 4K:
+ * a 640 el recall es ~0 (0.2-0.9 det/frame — el 4K reescalado a 640 hace desaparecer
+ * a los jugadores); a 1280 sube a 4-13 det/frame en jugadas activas (ángulo de banda).
+ * Como 640 quedaba inútil, 1280 es el default correcto pese a ~4× cómputo (móvil sigue
+ * en nano). El tiling/SAHI (recall pleno ~20) queda como mejora aparte. Override manual:
+ * localStorage `vitas_active_model`.
+ */
+const DESKTOP_DEFAULT_MODEL = "yolov11m-pose-1280";
 
 /**
  * Default consciente de dispositivo: móvil → nano (12MB, 8-15 FPS);
