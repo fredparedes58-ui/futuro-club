@@ -16,7 +16,8 @@ dist-ssr
 *.local
 
 dev-dist
-.claude
+.claude/*
+!.claude/rules/
 
 # Test coverage reports
 coverage/

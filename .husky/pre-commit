@@ -15,3 +15,11 @@ if [ -n "$ERRORS" ]; then
   exit 1
 fi
 echo "✅ api/ types OK"
+
+# 3. Auditoría de procedencia de métricas (arnés de honestidad — goal vitas).
+#    Reutiliza el hook completo de .githooks/pre-commit (detección de cambios +
+#    exit 0/2 pasa, otro = bloquea). NO cambiamos core.hooksPath: eso desactivaría
+#    Husky y se revertiría en el próximo `npm install`. Integrarlo aquí es estable.
+if [ -f .githooks/pre-commit ]; then
+  bash .githooks/pre-commit || exit 1
+fi
