@@ -100,7 +100,8 @@ def main():
     ap.add_argument("--model", choices=list(MODELS), default="nano")
     ap.add_argument("--tile", default="2x2")
     ap.add_argument("--fps", type=float, default=10.0)
-    ap.add_argument("--min-track", type=int, default=3, help="descartar pistas con menos frames")
+    ap.add_argument("--min-track", type=int, default=10, help="descartar pistas con menos frames (ruido/fragmentos)")
+    ap.add_argument("--gap", type=int, default=5, help="frames sin detección que una pista puede sobrevivir (re-cosido)")
     args = ap.parse_args()
 
     nx, ny = (int(x) for x in args.tile.lower().split("x"))
@@ -129,16 +130,23 @@ def main():
     heights = [b[3] - b[1] for bx in per_frame for b in bx]
     gate = LINK_MAX_FACTOR * (np.median(heights) if heights else 60.0)
 
-    # tracker nearest-neighbor con gating (greedy)
+    # tracker nearest-neighbor con gating y TOLERANCIA A HUECOS: una pista sigue
+    # "viva" hasta GAP_MAX frames sin detección (oclusión, fallo puntual) y se
+    # re-cose en cuanto reaparece cerca. Sin esto, cada frame perdido parte al
+    # jugador en una pista nueva (fragmentación → cientos de pistas basura).
+    GAP_MAX = args.gap
     tracks = []  # cada track: {'boxes': [(frame_idx, box)]}
     for fi, boxes in enumerate(per_frame):
         feet = [foot(b) for b in boxes]
         used = [False] * len(boxes)
-        for tr in tracks:
-            if tr["boxes"][-1][0] != fi - 1:
-                continue
-            last = foot(tr["boxes"][-1][1])
-            best, bd = -1, gate
+        # pistas cuya última detección está en [fi-GAP_MAX, fi-1], más recientes primero
+        alive = [tr for tr in tracks if 0 < fi - tr["boxes"][-1][0] <= GAP_MAX]
+        alive.sort(key=lambda tr: -tr["boxes"][-1][0])
+        for tr in alive:
+            last_fi, last_box = tr["boxes"][-1]
+            last = foot(last_box)
+            g = gate * (1 + 0.4 * (fi - last_fi - 1))  # más margen cuanto mayor el hueco
+            best, bd = -1, g
             for j, ft in enumerate(feet):
                 if used[j]:
                     continue
