@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITAS · Anotador de identidad (dorsal por pista)</title>
+<style>
+  :root {
+    --bg:#0E1620; --panel:#17222E; --edge:#2A3A4A; --text:#E8EDF2; --soft:#9FB0BF;
+    --signal:#E8A33D; --good:#5CBF8C; --bad:#E06B6B; --skip:#6F8090;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px; }
+  .app { display:grid; grid-template-columns:230px 1fr 320px; height:100vh; }
+  @media (max-width:1100px){ .app{ grid-template-columns:1fr; height:auto; } }
+
+  /* columna pistas */
+  .tracks { background:var(--panel); border-right:1px solid var(--edge); overflow-y:auto; padding:12px; }
+  .tracks h2 { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--soft); margin:0 0 10px; }
+  .trk { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--edge);
+    border-radius:9px; margin-bottom:6px; cursor:pointer; background:var(--bg); }
+  .trk.on { border-color:var(--signal); background:color-mix(in srgb,var(--signal) 12%,transparent); }
+  .trk .id { font-weight:800; }
+  .trk .meta { font-size:11px; color:var(--soft); margin-left:auto; text-align:right; line-height:1.3; }
+  .trk .badge { display:inline-block; min-width:20px; text-align:center; padding:1px 6px; border-radius:6px;
+    font-weight:800; font-size:12px; }
+  .b-done { background:var(--good); color:#06251a; } .b-anon { background:var(--skip); color:#0b141c; }
+  .b-pend { background:transparent; color:var(--soft); border:1px dashed var(--edge); }
+
+  /* escenario */
+  .stage { position:relative; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  #cv { max-width:100%; max-height:64vh; display:block; }
+  .drop { position:absolute; inset:16px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:10px; border:2px dashed var(--edge); border-radius:14px; color:var(--soft); text-align:center; padding:20px; }
+  .drop.hidden { display:none; }
+  .strip { grid-column:1/-1; background:var(--panel); border-top:1px solid var(--edge); padding:10px;
+    display:flex; gap:6px; overflow-x:auto; align-items:flex-end; min-height:120px; }
+  .crop { flex:0 0 auto; text-align:center; cursor:pointer; border:2px solid transparent; border-radius:8px; padding:2px; }
+  .crop.leg { border-color:var(--good); }
+  .crop canvas { display:block; border-radius:5px; background:#0b141c; }
+  .crop .fn { font-size:9px; color:var(--soft); margin-top:2px; font-variant-numeric:tabular-nums; }
+
+  /* panel derecho */
+  .side { background:var(--panel); border-left:1px solid var(--edge); padding:16px; overflow-y:auto;
+    display:flex; flex-direction:column; gap:14px; }
+  h1 { font-size:14px; margin:0; }
+  .sub { font-size:12px; color:var(--soft); margin:0; line-height:1.5; }
+  .card { background:var(--bg); border:1px solid var(--edge); border-radius:11px; padding:12px; }
+  .card h3 { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--signal); margin:0 0 9px; }
+  label { font-size:11px; color:var(--soft); display:block; margin:8px 0 3px; }
+  input, select, textarea { width:100%; font:inherit; font-size:13px; padding:7px 9px; border-radius:8px;
+    border:1px solid var(--edge); background:var(--panel); color:var(--text); }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .teamsel { display:flex; gap:6px; }
+  .teamsel button { flex:1; font-weight:700; padding:8px; border-radius:8px; border:1px solid var(--edge);
+    background:var(--panel); color:var(--soft); cursor:pointer; }
+  .teamsel button.on { border-color:var(--signal); color:var(--signal); background:color-mix(in srgb,var(--signal) 12%,transparent); }
+  .dorsals { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+  .dorsals button { min-width:34px; padding:7px 4px; border-radius:7px; border:1px solid var(--edge);
+    background:var(--panel); color:var(--text); cursor:pointer; font-weight:700; }
+  .dorsals button.on { background:var(--signal); color:#1a1205; border-color:var(--signal); }
+  .dorsals button.anon { color:var(--soft); }
+  .dorsals button.anon.on { background:var(--skip); color:#0b141c; border-color:var(--skip); }
+  .btns { display:flex; gap:8px; }
+  .btns button { flex:1; font:inherit; font-weight:700; font-size:13px; padding:10px; border-radius:9px;
+    border:1px solid var(--edge); background:var(--bg); color:var(--text); cursor:pointer; }
+  .btns button.primary { background:var(--signal); color:#1a1205; border-color:var(--signal); }
+  button:disabled { opacity:.4; cursor:default; }
+  .hint { font-size:11px; color:var(--soft); line-height:1.5; }
+  .hint code { background:var(--bg); padding:1px 5px; border-radius:4px; border:1px solid var(--edge); }
+  .stat { font-size:12px; color:var(--soft); font-variant-numeric:tabular-nums; }
+  .warn { color:var(--bad); }
+  input[type=file]{ display:none; }
+  .filebtn { display:inline-block; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px;
+    border:1px solid var(--edge); background:var(--bg); color:var(--text); cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- pistas -->
+  <div class="tracks">
+    <h2>Pistas <span id="tcount"></span></h2>
+    <div id="tracklist"></div>
+  </div>
+
+  <!-- escenario + filmstrip -->
+  <div style="display:flex;flex-direction:column;min-width:0;">
+    <div class="stage" id="stage" style="flex:1;">
+      <canvas id="cv"></canvas>
+      <div class="drop" id="drop">
+        <b>1) Carga <code>tracks.json</code> · 2) Carga la carpeta de frames</b>
+        <span class="hint">Genera el JSON con <code>python scripts/prelabel_tracks.py frames/ tracks.json</code></span>
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <label class="filebtn">tracks.json<input type="file" id="fJson" accept=".json"></label>
+          <label class="filebtn">carpeta frames<input type="file" id="fFrames" webkitdirectory multiple></label>
+        </div>
+      </div>
+    </div>
+    <div class="strip" id="strip"></div>
+  </div>
+
+  <!-- panel -->
+  <div class="side">
+    <div>
+      <h1>Anotador de identidad</h1>
+      <p class="sub">El modelo pre-etiquetó las cajas. Tú aportas la verdad: equipo, dorsal
+        y en qué frames el número es <b>legible</b>. Una pista sin dorsal legible es
+        <b>anónima</b> — es un resultado válido, no la fuerces.</p>
+    </div>
+
+    <div class="card">
+      <h3>Convocatoria</h3>
+      <div class="row2">
+        <div><label>Local · dorsales</label><input id="rosterL" placeholder="1,3,5,6,9,10"></div>
+        <div><label>Visitante · dorsales</label><input id="rosterV" placeholder="1,2,4,8,12"></div>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <div><label>Nombre local</label><input id="nameL" placeholder="CF Local"></div>
+        <div><label>Nombre visitante</label><input id="nameV" placeholder="CD Visita"></div>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <div><label>Color local</label><input id="colorL" placeholder="blanco"></div>
+        <div><label>Color visitante</label><input id="colorV" placeholder="verde"></div>
+      </div>
+    </div>
+
+    <div class="card" id="assignCard" style="opacity:.45;pointer-events:none;">
+      <h3>Pista <span id="curId"></span></h3>
+      <label>Equipo</label>
+      <div class="teamsel">
+        <button data-team="local" id="tmL">Local</button>
+        <button data-team="visitante" id="tmV">Visitante</button>
+      </div>
+      <label>Dorsal real (elige de la convocatoria del equipo)</label>
+      <div class="dorsals" id="dorsals"></div>
+      <p class="hint" style="margin-top:8px">En la tira de abajo, marca (clic) los frames donde
+        <b>tú</b> lees el número. Verde = legible. Atajo: <code>L</code> = alterna el frame visible.</p>
+      <div class="stat" id="legstat"></div>
+    </div>
+
+    <div class="card">
+      <h3>Metadatos del clip</h3>
+      <div class="row2">
+        <div><label>clip_id</label><input id="clipId" placeholder="cf_liga_p1"></div>
+        <div><label>fuente</label><input id="fuente" placeholder="IMG_2029.MOV"></div>
+      </div>
+      <div class="row2" style="margin-top:6px">
+        <div><label>cámara</label><select id="camara"><option value="fija">fija</option><option value="movil">móvil</option></select></div>
+        <div><label>condiciones</label><select id="cond"><option>buena</option><option>contraluz</option><option>lluvia</option><option>distancia_larga</option></select></div>
+      </div>
+      <label>anotador (tu nombre)</label><input id="anotador" placeholder="Nombre real">
+    </div>
+
+    <div class="stat" id="progress"></div>
+    <div class="btns">
+      <button id="btnExport" class="primary" disabled>Exportar fixture ↓</button>
+    </div>
+    <p class="hint">Descarga <code>anotacion.csv</code>, <code>convocatoria.json</code> y
+      <code>clip.meta.json</code> en <code>fixtures/identidad/&lt;clip_id&gt;/</code> y valida con
+      <code>python scripts/validate_fixtures.py</code>.</p>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let DOC = null;          // tracks.json
+let IMGS = {};           // basename -> HTMLImageElement
+let cur = null;          // track_id actual
+let curFrameIdx = 0;     // índice dentro de los frames de la pista actual
+const ANN = {};          // track_id -> {equipo, dorsal:(int|null), legible:Set(frameGlobal)}
+
+/* ── carga ── */
+$("fJson").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  DOC = JSON.parse(await f.text());
+  DOC.tracks.forEach(t => { if (!ANN[t.track_id]) ANN[t.track_id] = { equipo:null, dorsal:null, legible:new Set() }; });
+  if (DOC.fuente) $("fuente").value = DOC.fuente;
+  buildTrackList(); maybeReady();
+});
+$("fFrames").addEventListener("change", (e) => {
+  IMGS = {};
+  const files = [...e.target.files].filter(f => /\.(jpg|jpeg|png)$/i.test(f.name));
+  let left = files.length;
+  files.forEach(f => {
+    const img = new Image();
+    img.onload = () => { if (--left === 0) maybeReady(); };
+    img.src = URL.createObjectURL(f);
+    IMGS[f.name.split("/").pop()] = img;
+  });
+});
+function maybeReady() {
+  if (DOC && Object.keys(IMGS).length) {
+    $("drop").classList.add("hidden");
+    if (!cur) selectTrack(DOC.tracks[0].track_id);
+    drawStage(); refreshProgress();
+  }
+}
+
+/* ── lista de pistas ── */
+function buildTrackList() {
+  $("tcount").textContent = `(${DOC.n_tracks})`;
+  const el = $("tracklist"); el.innerHTML = "";
+  DOC.tracks.forEach(t => {
+    const a = ANN[t.track_id];
+    const div = document.createElement("div");
+    div.className = "trk" + (t.track_id === cur ? " on" : "");
+    div.innerHTML = `<span class="id">${t.track_id}</span>
+      <span class="meta">${t.n_frames}f<br>${statusBadge(a)}</span>`;
+    div.onclick = () => selectTrack(t.track_id);
+    el.appendChild(div);
+  });
+}
+function statusBadge(a) {
+  if (!a || !a.equipo) return `<span class="badge b-pend">·</span>`;
+  if (a.dorsal == null) return `<span class="badge b-anon">anón</span>`;
+  return `<span class="badge b-done">${a.dorsal}</span>`;
+}
+
+/* ── selección + render ── */
+function track(id){ return DOC.tracks.find(t => t.track_id === id); }
+function selectTrack(id) {
+  cur = id; const t = track(id);
+  curFrameIdx = t.boxes.findIndex(b => b.f === t.rep_frame); if (curFrameIdx < 0) curFrameIdx = 0;
+  $("curId").textContent = id;
+  $("assignCard").style.opacity = 1; $("assignCard").style.pointerEvents = "auto";
+  syncAssignUI(); buildTrackList(); drawStage(); buildStrip();
+}
+function rosterFor(team){
+  const raw = (team === "local" ? $("rosterL") : $("rosterV")).value;
+  return raw.split(",").map(s => parseInt(s.trim(),10)).filter(n => !isNaN(n));
+}
+function syncAssignUI() {
+  const a = ANN[cur];
+  $("tmL").classList.toggle("on", a.equipo === "local");
+  $("tmV").classList.toggle("on", a.equipo === "visitante");
+  const box = $("dorsals"); box.innerHTML = "";
+  if (a.equipo) {
+    rosterFor(a.equipo).forEach(n => {
+      const b = document.createElement("button");
+      b.textContent = n; b.className = a.dorsal === n ? "on" : "";
+      b.onclick = () => { a.dorsal = (a.dorsal === n ? null : n); syncAssignUI(); buildTrackList(); refreshProgress(); };
+      box.appendChild(b);
+    });
+  }
+  const anon = document.createElement("button");
+  anon.textContent = "anónimo"; anon.className = "anon" + (a.equipo && a.dorsal == null ? " on" : "");
+  anon.onclick = () => { a.dorsal = null; syncAssignUI(); buildTrackList(); refreshProgress(); };
+  box.appendChild(anon);
+  updateLegStat();
+}
+["tmL","tmV"].forEach(id => $(id).addEventListener("click", () => {
+  ANN[cur].equipo = $(id).dataset.team; syncAssignUI(); buildTrackList(); refreshProgress();
+}));
+
+function drawStage() {
+  if (!DOC || !cur) return;
+  const t = track(cur), fb = t.boxes[curFrameIdx];
+  const img = IMGS[DOC.frames[fb.f]];
+  const cv = $("cv"), ctx = cv.getContext("2d");
+  const maxW = $("stage").clientWidth - 4, maxH = window.innerHeight * 0.64;
+  const sc = Math.min(maxW / DOC.width, maxH / DOC.height);
+  cv.width = DOC.width * sc; cv.height = DOC.height * sc;
+  if (img) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  // otras cajas del frame, tenues
+  DOC.tracks.forEach(o => {
+    const ob = o.boxes.find(b => b.f === fb.f); if (!ob) return;
+    const on = o.track_id === cur;
+    ctx.strokeStyle = on ? "#E8A33D" : "rgba(150,160,170,.55)";
+    ctx.lineWidth = on ? 3 : 1.5;
+    ctx.strokeRect(ob.box[0]*sc, ob.box[1]*sc, (ob.box[2]-ob.box[0])*sc, (ob.box[3]-ob.box[1])*sc);
+    if (on) { ctx.fillStyle="#E8A33D"; ctx.font="bold 13px sans-serif";
+      ctx.fillText(cur, ob.box[0]*sc, Math.max(11, ob.box[1]*sc - 4)); }
+  });
+}
+
+/* ── filmstrip de la pista actual (para juzgar legibilidad) ── */
+function buildStrip() {
+  const t = track(cur), strip = $("strip"); strip.innerHTML = "";
+  const a = ANN[cur];
+  t.boxes.forEach((fb, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "crop" + (a.legible.has(fb.f) ? " leg" : "");
+    const c = document.createElement("canvas"); c.width = 56; c.height = 84;
+    const cx = c.getContext("2d"); const img = IMGS[DOC.frames[fb.f]];
+    if (img) {
+      const [x1,y1,x2,y2] = fb.box, pad = (y2-y1)*0.12;
+      const sx=Math.max(0,x1-pad), sy=Math.max(0,y1-pad);
+      const sw=(x2-x1)+pad*2, sh=(y2-y1)+pad*2;
+      cx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    }
+    const fn = document.createElement("div"); fn.className = "fn"; fn.textContent = fb.f;
+    wrap.appendChild(c); wrap.appendChild(fn);
+    wrap.onclick = () => { curFrameIdx = i; toggleLeg(fb.f, wrap); drawStage(); highlightStrip(); };
+    strip.appendChild(wrap);
+  });
+  highlightStrip();
+}
+function highlightStrip(){
+  [...$("strip").children].forEach((el,i)=> el.style.outline = (i===curFrameIdx) ? "2px solid #E8A33D" : "none");
+}
+function toggleLeg(fglobal, wrap) {
+  const a = ANN[cur];
+  if (a.legible.has(fglobal)) a.legible.delete(fglobal); else a.legible.add(fglobal);
+  if (wrap) wrap.classList.toggle("leg", a.legible.has(fglobal));
+  updateLegStat(); buildTrackList(); refreshProgress();
+}
+function updateLegStat(){
+  const t = track(cur), a = ANN[cur];
+  $("legstat").textContent = `${a.legible.size}/${t.n_frames} frames marcados legibles`;
+}
+document.addEventListener("keydown", (e) => {
+  if (!cur || !DOC) return;
+  const t = track(cur);
+  if (e.key === "l" || e.key === "L") { toggleLeg(t.boxes[curFrameIdx].f); buildStrip(); }
+  if (e.key === "ArrowRight") { curFrameIdx = Math.min(t.boxes.length-1, curFrameIdx+1); drawStage(); highlightStrip(); }
+  if (e.key === "ArrowLeft") { curFrameIdx = Math.max(0, curFrameIdx-1); drawStage(); highlightStrip(); }
+});
+
+/* ── progreso + export ── */
+function refreshProgress() {
+  const done = DOC.tracks.filter(t => ANN[t.track_id].equipo).length;
+  const anon = DOC.tracks.filter(t => ANN[t.track_id].equipo && ANN[t.track_id].dorsal == null).length;
+  $("progress").innerHTML = `${done}/${DOC.n_tracks} pistas con equipo · ${anon} anónimas` +
+    (done < DOC.n_tracks ? ` · <span class="warn">${DOC.n_tracks-done} sin asignar (no se exportan)</span>` : "");
+  $("btnExport").disabled = done === 0;
+}
+$("btnExport").addEventListener("click", exportFixture);
+function download(name, text) {
+  const b = new Blob([text], {type:"text/plain"}); const u = URL.createObjectURL(b);
+  const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u);
+}
+function exportFixture() {
+  // anotacion.csv — una fila por (frame, pista) para pistas con equipo asignado
+  let csv = "frame,track_id,dorsal_real,equipo,dorsal_legible\n";
+  DOC.tracks.forEach(t => {
+    const a = ANN[t.track_id]; if (!a.equipo) return;
+    t.boxes.forEach(fb => {
+      const leg = a.legible.has(fb.f) ? 1 : 0;
+      csv += `${fb.f},${t.track_id},${a.dorsal ?? ""},${a.equipo},${leg}\n`;
+    });
+  });
+  download("anotacion.csv", csv);
+
+  const conv = {
+    equipo_local: { nombre: $("nameL").value || "Local", color: $("colorL").value, dorsales: rosterFor("local") },
+    equipo_visitante: { nombre: $("nameV").value || "Visitante", color: $("colorV").value, dorsales: rosterFor("visitante") },
+  };
+  download("convocatoria.json", JSON.stringify(conv, null, 2));
+
+  const meta = {
+    clip_id: $("clipId").value || "sin_id",
+    fuente: $("fuente").value || (DOC.frames_dir || ""),
+    fps: DOC.fps || 0,
+    duracion_s: DOC.fps ? +(DOC.frames.length / DOC.fps).toFixed(1) : 0,
+    resolucion: `${DOC.width}x${DOC.height}`,
+    camara: $("camara").value,
+    condiciones: $("cond").value,
+    anotador: $("anotador").value || "",
+    fecha_anotacion: new Date().toISOString().slice(0,10),
+  };
+  download("clip.meta.json", JSON.stringify(meta, null, 2));
+}
+window.addEventListener("resize", drawStage);
+</script>
+</body>
+</html>

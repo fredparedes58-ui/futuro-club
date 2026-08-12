@@ -1,0 +1,14 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Conjunto CERRADO de dorsales por equipo (la convocatoria del partido). Un dorsal fuera de estas listas es imposible por construccion.",
+  "equipo_local": {
+    "nombre": "<rellenar>",
+    "color": "<rellenar: color dominante de la equipacion>",
+    "dorsales": []
+  },
+  "equipo_visitante": {
+    "nombre": "<rellenar>",
+    "color": "<rellenar>",
+    "dorsales": []
+  }
+}

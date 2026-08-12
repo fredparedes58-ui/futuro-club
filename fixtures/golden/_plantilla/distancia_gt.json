@@ -1,0 +1,10 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Distancia REAL recorrida por jugador (dorsal como clave). metodo y fuente obligatorios: sin declarar de donde sale el metro, no es ground truth.",
+  "metodo": "<rellenar: gps | manual_calibrado>",
+  "fuente": "<rellenar: p. ej. STATSports Apex, Catapult, medicion manual sobre campo calibrado>",
+  "jugadores": {
+    "<dorsal>": { "distancia_m": 0.0, "sprints": 0, "vel_max_ms": 0.0 }
+  },
+  "anotador": "<rellenar: nombre real>"
+}

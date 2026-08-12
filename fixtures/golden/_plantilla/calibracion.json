@@ -1,0 +1,10 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Copia _plantilla/ a fixtures/golden/<clip_id>/ y rellena. Metodo puntos_campo_medidos: >=4 puntos con pixel y coordenada real. O metodo gps si la distancia se mide con chaleco.",
+  "metodo": "<rellenar: puntos_campo_medidos | gps>",
+  "puntos": [
+    { "nombre": "<rellenar>", "px": [0, 0], "mundo_m": [0.0, 0.0] }
+  ],
+  "dimensiones_campo_m": { "largo": 0.0, "ancho": 0.0 },
+  "anotador": "<rellenar: nombre real>"
+}
