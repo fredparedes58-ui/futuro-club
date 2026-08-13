@@ -13,6 +13,15 @@
 
 import * as ort from "onnxruntime-web";
 import { CentroidTracker }  from "../lib/yolo/tracker";
+import {
+  computeTileRects,
+  cropImage,
+  offsetDetection,
+  globalNms,
+  iouXYWH,
+  type ImageLike,
+  type TilingConfig,
+} from "../lib/yolo/tiling";
 import type { Detection, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
 
 // ─── Configuración ─────────────────────────────────────────────────────────
@@ -32,6 +41,11 @@ const CONF_THRESH      = 0.30;
 const IOU_THRESH       = 0.45;
 const NUM_KEYPOINTS    = 17;
 
+// Tiling (SAHI) OPT-IN. null ⇒ inferencia de un solo paso (comportamiento por
+// defecto del tracking en vivo, sin regresión). Se activa desde INIT solo cuando
+// la ruta llamante (análisis diferido) lo pide vía localStorage `vitas_tiling`.
+let tilingConfig: TilingConfig | null = null;
+
 let session: ort.InferenceSession | null = null;
 const tracker = new CentroidTracker();
 
@@ -43,6 +57,7 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
   switch (cmd.type) {
     case "INIT":
       modelInputSize = cmd.inputSize ?? DEFAULT_INPUT_SIZE;
+      tilingConfig   = cmd.tiling ?? null;
       await initModel(cmd.modelUrl);
       break;
     case "FRAME":
@@ -126,21 +141,16 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
   }
 
   try {
-    // 1. Preprocesar ImageData → tensor [1, 3, 640, 640]
-    const inputTensor = preprocess(cmd.imageData);
-
-    // 2. Inferencia
-    const feeds: Record<string, ort.Tensor> = {};
-    feeds[session.inputNames[0]] = inputTensor;
-    const output = await session.run(feeds);
-
-    // 3. Postprocesar — output shape [1, 56, 8400]
-    const outputData = output[session.outputNames[0]].data as Float32Array;
-    const detections = postprocess(
-      outputData,
-      cmd.imageData.width,
-      cmd.imageData.height
-    );
+    // 1-3. Inferencia → detecciones en coords del frame completo.
+    //   · Sin tiling: un solo paso (preprocess → run → postprocess) — el
+    //     comportamiento por defecto del tracking en vivo.
+    //   · Con tiling (SAHI, opt-in): malla GxG solapada; cada tile se infiere a
+    //     resolución nativa, se mapea a coords globales y se fusiona con NMS global
+    //     antes de pasar al tracker. Recupera recall de jugadores pequeños/lejanos.
+    const detections =
+      tilingConfig && tilingConfig.grid > 1
+        ? await inferTiled(cmd.imageData, tilingConfig)
+        : await inferSingle(cmd.imageData);
 
     // 4. Actualizar tracker (usa timestamps reales, no FPS hardcoded)
     const H = new Float64Array(cmd.homography);
@@ -164,9 +174,47 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
   }
 }
 
-// ─── Preprocesar ImageData → Float32 tensor CHW normalizado ───────────────
+// ─── Inferencia sobre una imagen (frame completo o tile) ─────────────────────
 
-function preprocess(imageData: ImageData): ort.Tensor {
+/**
+ * Un solo paso: preprocess → run → postprocess. Devuelve detecciones en coords
+ * de píxel de la imagen dada (`img.width × img.height`).
+ */
+async function inferSingle(img: ImageLike): Promise<Detection[]> {
+  const inputTensor = preprocess(img);
+  const feeds: Record<string, ort.Tensor> = {};
+  feeds[session!.inputNames[0]] = inputTensor;
+  const output = await session!.run(feeds);
+  const outputData = output[session!.outputNames[0]].data as Float32Array;
+  return postprocess(outputData, img.width, img.height);
+}
+
+/**
+ * Tiling (SAHI): parte el frame en una malla GxG solapada, infiere cada tile a
+ * resolución nativa del modelo, mapea las detecciones a coords del frame completo
+ * (offset del tile) y las fusiona con NMS global. Recupera recall de jugadores
+ * pequeños/lejanos que el reescalado a 640/1280 hace desaparecer.
+ *
+ * COSTE: G² inferencias por frame (3×3 = 9×). Por eso es opt-in y está pensado
+ * para análisis diferido, no para el tracking en vivo.
+ */
+async function inferTiled(img: ImageLike, cfg: TilingConfig): Promise<Detection[]> {
+  const rects = computeTileRects(img.width, img.height, cfg.grid, cfg.overlap);
+  const all: Detection[] = [];
+  for (const rect of rects) {
+    const tile = cropImage(img, rect);
+    if (tile.width === 0 || tile.height === 0) continue;
+    const dets = await inferSingle(tile);
+    for (const d of dets) all.push(offsetDetection(d, rect.sx, rect.sy));
+  }
+  // NMS global: deduplica el mismo jugador visto en dos tiles solapados.
+  return globalNms(all, IOU_THRESH);
+}
+
+// ─── Preprocesar imagen → Float32 tensor CHW normalizado ──────────────────────
+// Acepta cualquier ImageLike (ImageData del frame completo o un tile recortado).
+
+function preprocess(imageData: ImageLike): ort.Tensor {
   const { width, height, data } = imageData;
   const size   = modelInputSize;
   const tensor = new Float32Array(3 * size * size);
@@ -277,21 +325,9 @@ function nms(
     keep.push(i);
     for (const j of idxs) {
       if (i === j || suppressed.has(j)) continue;
-      if (iouBoxes(boxes[i], boxes[j]) > iouThresh) suppressed.add(j);
+      // IoU de una sola implementación (tiling.ts) — antes duplicada aquí (#7).
+      if (iouXYWH(boxes[i], boxes[j]) > iouThresh) suppressed.add(j);
     }
   }
   return keep;
-}
-
-function iouBoxes(
-  a: [number,number,number,number],
-  b: [number,number,number,number]
-): number {
-  const ax2 = a[0]+a[2], ay2 = a[1]+a[3];
-  const bx2 = b[0]+b[2], by2 = b[1]+b[3];
-  const ix = Math.max(0, Math.min(ax2,bx2) - Math.max(a[0],b[0]));
-  const iy = Math.max(0, Math.min(ay2,by2) - Math.max(a[1],b[1]));
-  const inter = ix * iy;
-  if (!inter) return 0;
-  return inter / (a[2]*a[3] + b[2]*b[3] - inter);
 }

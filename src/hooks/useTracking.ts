@@ -12,6 +12,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { FrameExtractor, buildBunnyCdnUrl } from "@/lib/yolo/frameExtractor";
 import { PoseAnalyzer }  from "@/lib/yolo/poseAnalyzer";
 import { getActiveModel } from "@/lib/yolo/modelConfig";
+import { getTilingConfig } from "@/lib/yolo/tiling";
 import { computeVoronoi } from "@/lib/yolo/voronoi";
 import { buildAnchors, computeHomography, invertMatrix3x3, identityHomography } from "@/lib/yolo/homography";
 import {
@@ -405,11 +406,15 @@ export function useTracking(options: UseTrackingOptions) {
     const worker = initWorker();
     const activeModel = getActiveModel();
     const modelUrl = activeModel.modelPath;
-    console.log(`[useTracking] Modelo activo: ${activeModel.id} (${modelUrl}, imgsz ${activeModel.inputSize})`);
+    // Tiling (SAHI) OPT-IN: null por defecto → tracking en vivo plano (sin regresión
+    // de latencia). Solo se activa con override consciente en localStorage
+    // `vitas_tiling` (pensado para análisis diferido; G² inferencias/frame).
+    const tiling = getTilingConfig();
+    console.log(`[useTracking] Modelo activo: ${activeModel.id} (${modelUrl}, imgsz ${activeModel.inputSize})${tiling ? ` · tiling ${tiling.grid}×${tiling.grid}` : ""}`);
 
     // inputSize del ModelSpec → el worker preprocessa/postprocessa a esa resolución
     // (los modelos @1280 de #26 necesitan esto; default 640 = comportamiento previo).
-    worker.postMessage({ type: "INIT", modelUrl, inputSize: activeModel.inputSize });
+    worker.postMessage({ type: "INIT", modelUrl, inputSize: activeModel.inputSize, tiling });
 
     // Esperar a que el modelo esté listo (use refs to avoid stale closure)
     await new Promise<void>((resolve, reject) => {
