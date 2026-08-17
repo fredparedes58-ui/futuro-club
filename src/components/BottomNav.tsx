@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target, Briefcase, BookOpen, CreditCard } from "lucide-react";
+import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, Trophy, WifiOff, RefreshCw, Check, LayoutGrid, Crosshair, Heart, ClipboardList, Brain, Sparkles, Film, Eye, Target, Briefcase, BookOpen, CreditCard, Gauge } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -78,6 +78,13 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         label: "Plan IDP",
         descKey: "moreMenu.items.idp",
         color: "from-cyan-500 to-purple-500",
+      },
+      {
+        path: "/velocidad-sprint",
+        icon: Gauge,
+        label: "Velocidad Sprint",
+        descKey: "moreMenu.items.sprintSpeed",
+        color: "from-lime-500 to-emerald-500",
       },
     ],
   },
