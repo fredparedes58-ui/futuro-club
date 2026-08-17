@@ -536,6 +536,24 @@ export default function AnalysisReportPrint() {
         {fisicas && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.physicalMetrics")}</h2>
+            {/* Caveat de procedencia (#23): estas cifras vienen de la ruta de vídeo (Gemini/YOLO)
+                SIN calibración de campo → estimadas, no medidas. Nunca presentar como medición. */}
+            <div className="mb-3 rounded border border-amber-200 bg-amber-50 px-2 py-1.5 no-break">
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0">
+                  {t("analysisReportPrint.physicalCaveatBadge")}
+                </span>
+                <span className="text-[9px] text-amber-700 leading-tight">{t("analysisReportPrint.physicalCaveat")}</span>
+              </div>
+              {r.metricasCuantitativas && (
+                <div className="text-[8px] text-amber-600 mt-0.5">
+                  {t("analysisReportPrint.physicalSource", {
+                    fuente: r.metricasCuantitativas.fuente,
+                    pct: Math.round((r.metricasCuantitativas.confianza ?? 0) * 100),
+                  })}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-4 gap-3">
               <MetricCard label={t("analysisReportPrint.maxSpeed")} value={`${fisicas.velocidadMaxKmh} km/h`} />
               <MetricCard label={t("analysisReportPrint.avgSpeed")} value={`${fisicas.velocidadPromKmh} km/h`} />
