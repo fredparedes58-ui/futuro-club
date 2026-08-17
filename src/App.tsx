@@ -92,6 +92,7 @@ const TransferMarketPage = lazyWithRetry(() => import("./pages/TransferMarketPag
 const ListingDetailPage = lazyWithRetry(() => import("./pages/ListingDetailPage"));
 const CreateListingPage = lazyWithRetry(() => import("./pages/CreateListingPage"));
 const ScanningIntelligencePage = lazyWithRetry(() => import("./pages/ScanningIntelligencePage"));
+const SprintSpeed = lazyWithRetry(() => import("./pages/SprintSpeed"));
 
 // Suspense fallback for lazy routes — branded skeleton (Sprint 4.3)
 const LazyFallback = () => <RouteSkeleton />;
@@ -258,6 +259,7 @@ const App = () => {
                 <Route path="/transfer" element={<P><TransferMarketPage /></P>} />
                 <Route path="/transfer/new" element={<P><CreateListingPage /></P>} />
                 <Route path="/transfer/listing/:id" element={<P><ListingDetailPage /></P>} />
+                <Route path="/velocidad-sprint" element={<P><SprintSpeed /></P>} />
 
                 {/* Redirects for common broken URLs */}
               <Route path="/dashboard" element={<Navigate to="/pulse" replace />} />

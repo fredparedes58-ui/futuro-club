@@ -82,6 +82,7 @@
       "tactical": "Heatmap por 6 fases tácticas + insights IA",
       "coach": "Planificación de sesiones",
       "idp": "Plan de Desarrollo Individual mensual con IA",
+      "sprintSpeed": "Mide velocidad de sprint (m/s · km/h) por cronometraje",
       "wellbeing": "Riesgo de abandono · engagement",
       "behavioral": "Perfil mental del equipo · 7 dimensiones",
       "scanning": "Escaneo previo a la recepción del balón",
@@ -2291,6 +2292,29 @@
       "fisico": "Físico",
       "lider": "Liderazgo"
     }
+  },
+  "sprintSpeed": {
+    "title": "Velocidad de Sprint",
+    "intro": "Mide la velocidad de un sprint sobre una distancia CONOCIDA cronometrando entre marcas. No necesita calibrar la cámara. El vídeo no se sube a ningún sitio.",
+    "uploadPrompt": "Sube un vídeo del sprint",
+    "uploadHint": "Debe verse la carrera entera: desde la salida hasta pasar la meta.",
+    "chooseVideo": "Elegir vídeo",
+    "frameLabel": "frame {{frame}} · {{time}} s / {{total}} frames",
+    "distanceLabel": "Distancia conocida (m)",
+    "fpsLabel": "FPS del vídeo",
+    "fpsHint": "Usa 30 salvo que grabaras en cámara lenta (120/240).",
+    "markStart": "Marcar SALIDA",
+    "markFinish": "Marcar META",
+    "startAt": "Salida",
+    "finishAt": "Meta",
+    "shortcuts": "Atajos: ←/→ frame · Espacio play · S salida · L meta",
+    "speedMs": "{{value}} m/s",
+    "speedKmh": "{{value}} km/h",
+    "timeSummary": "{{dist}} m en {{time}} s · ±{{err}}% (±1 frame)",
+    "provenanceBadge": "Calculado · distancia real ÷ tiempo real",
+    "needMarks": "Marca salida y meta para ver la velocidad",
+    "finishAfterStart": "La meta debe ir DESPUÉS de la salida",
+    "reset": "Reiniciar marcas"
   },
   "analysisReportPrint": {
     "errorNoId": "ID de análisis no proporcionado",

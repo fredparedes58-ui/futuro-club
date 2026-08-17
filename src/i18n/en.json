@@ -82,6 +82,7 @@
       "tactical": "Heatmap across 6 tactical phases + AI insights",
       "coach": "Session planning",
       "idp": "Monthly Individual Development Plan with AI",
+      "sprintSpeed": "Measure sprint speed (m/s · km/h) with gate timing",
       "wellbeing": "Dropout risk · engagement",
       "behavioral": "Team mental profile · 7 dimensions",
       "scanning": "Pre-reception ball scanning",
@@ -2291,6 +2292,29 @@
       "fisico": "Physical",
       "lider": "Leadership"
     }
+  },
+  "sprintSpeed": {
+    "title": "Sprint Speed",
+    "intro": "Measures sprint speed over a KNOWN distance by timing between marks. No camera calibration needed. The video is not uploaded anywhere.",
+    "uploadPrompt": "Upload a sprint video",
+    "uploadHint": "The whole run must be visible: from the start to past the finish.",
+    "chooseVideo": "Choose video",
+    "frameLabel": "frame {{frame}} · {{time}} s / {{total}} frames",
+    "distanceLabel": "Known distance (m)",
+    "fpsLabel": "Video FPS",
+    "fpsHint": "Use 30 unless you filmed in slow motion (120/240).",
+    "markStart": "Mark START",
+    "markFinish": "Mark FINISH",
+    "startAt": "Start",
+    "finishAt": "Finish",
+    "shortcuts": "Shortcuts: ←/→ frame · Space play · S start · L finish",
+    "speedMs": "{{value}} m/s",
+    "speedKmh": "{{value}} km/h",
+    "timeSummary": "{{dist}} m in {{time}} s · ±{{err}}% (±1 frame)",
+    "provenanceBadge": "Calculated · real distance ÷ real time",
+    "needMarks": "Mark start and finish to see the speed",
+    "finishAfterStart": "Finish must be AFTER start",
+    "reset": "Reset marks"
   },
   "analysisReportPrint": {
     "errorNoId": "Analysis ID not provided",
