@@ -6,6 +6,7 @@
 import type { KalmanLite2D } from "./kalmanLite";
 import type { BallDetection } from "./ballDetector";
 import type { BallTrack } from "./ballTracker";
+import type { TilingConfig } from "./tiling";
 import type { MetricResult } from "@/lib/metrics/MetricResult";
 
 // Re-export ball types for convenience
@@ -183,7 +184,7 @@ export interface VoronoiRegion {
 // ─── Worker messages ──────────────────────────────────────────────────────────
 
 export type WorkerCommand =
-  | { type: "INIT";  modelUrl: string; inputSize?: number }
+  | { type: "INIT";  modelUrl: string; inputSize?: number; tiling?: TilingConfig | null }
   | { type: "FRAME"; imageData: ImageData; frameIndex: number; timestampMs: number; homography: number[] }
   | { type: "RESET" }
 
