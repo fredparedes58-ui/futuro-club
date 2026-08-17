@@ -1,0 +1,5 @@
+# PLANTILLA - no es dato real. Copia a fixtures/identidad/<clip_id>/anotacion.csv y rellena.
+# Una fila por (frame, pista). dorsal_real debe estar en la convocatoria del equipo.
+# dorsal_legible: 1 si un humano lee el dorsal EN ESTE frame, 0 si no. Deja dorsal_real
+# vacio solo si es imposible determinar el numero real de la pista (pista anonima).
+frame,track_id,dorsal_real,equipo,dorsal_legible

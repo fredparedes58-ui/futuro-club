@@ -1,0 +1,4 @@
+# PLANTILLA - no es dato real. Copia a fixtures/golden/<clip_id>/duelos_gt.csv y rellena.
+# Un duelo por fila. ganador = dorsal ganador, o "neutro" si no hay ganador claro.
+# tipo: aereo | suelo | 50-50. No inventes ganador sin haberlo juzgado a ojo.
+t_inicio_s,t_fin_s,jugador_a,jugador_b,ganador,tipo,anotador

@@ -1,0 +1,13 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Copia este directorio _plantilla/ a fixtures/identidad/<clip_id>/ y rellena. Pon __plantilla__ a false (o borra la clave). El validador ignora todo lo marcado como plantilla.",
+  "clip_id": "<rellenar: identificador corto y estable>",
+  "fuente": "<rellenar: nombre del fichero de vídeo>",
+  "fps": 0,
+  "duracion_s": 0,
+  "resolucion": "<rellenar: p. ej. 1920x1080>",
+  "camara": "<rellenar: fija | movil>",
+  "condiciones": "<rellenar: buena | contraluz | lluvia | distancia_larga>",
+  "anotador": "<rellenar: nombre real de quien anota>",
+  "fecha_anotacion": "<rellenar: YYYY-MM-DD>"
+}

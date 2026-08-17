@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITAS · Velocidad de sprint (distancia conocida)</title>
+<style>
+  :root { --bg:#0E1620; --panel:#17222E; --edge:#2A3A4A; --text:#E8EDF2; --soft:#9FB0BF;
+    --signal:#E8A33D; --good:#5CBF8C; --bad:#E06B6B; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,"Segoe UI",sans-serif; font-size:14px; }
+  .app { display:grid; grid-template-columns:1fr 360px; height:100vh; }
+  @media (max-width:900px){ .app{ grid-template-columns:1fr; height:auto; } }
+  .stage { position:relative; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; padding:10px; }
+  video { max-width:100%; max-height:74vh; display:none; background:#000; border-radius:8px; }
+  .drop { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    border:2px dashed var(--edge); border-radius:14px; color:var(--soft); text-align:center; padding:40px; margin:16px; }
+  .filebtn { display:inline-block; font-weight:700; font-size:13px; padding:9px 14px; border-radius:9px;
+    border:1px solid var(--edge); background:var(--bg); color:var(--text); cursor:pointer; }
+  .transport { display:flex; gap:6px; align-items:center; margin-top:10px; flex-wrap:wrap; justify-content:center; }
+  .transport button { font:inherit; font-weight:700; font-size:13px; padding:8px 11px; border-radius:8px;
+    border:1px solid var(--edge); background:var(--panel); color:var(--text); cursor:pointer; }
+  #scrub { width:min(560px,80vw); }
+  .readout { font-variant-numeric:tabular-nums; font-size:13px; color:var(--soft); margin-top:6px; }
+  .side { background:var(--panel); border-left:1px solid var(--edge); padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:13px; }
+  h1 { font-size:15px; margin:0; } .sub { font-size:12px; color:var(--soft); margin:0; line-height:1.5; }
+  .card { background:var(--bg); border:1px solid var(--edge); border-radius:12px; padding:13px; }
+  .card h3 { font-size:10px; letter-spacing:.13em; text-transform:uppercase; color:var(--signal); margin:0 0 9px; }
+  label { font-size:11px; color:var(--soft); display:block; margin:7px 0 3px; }
+  input { width:100%; font:inherit; font-size:14px; padding:8px 10px; border-radius:8px; border:1px solid var(--edge); background:var(--panel); color:var(--text); }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .mark { display:flex; gap:8px; }
+  .mark button { flex:1; font:inherit; font-weight:800; font-size:13px; padding:11px; border-radius:9px; border:1px solid var(--edge); cursor:pointer; color:#0E1620; }
+  .mark button.salida { background:var(--good); border-color:var(--good); }
+  .mark button.llegada { background:var(--signal); border-color:var(--signal); }
+  .mk { font-size:12px; color:var(--soft); margin-top:8px; font-variant-numeric:tabular-nums; }
+  .mk b { color:var(--text); }
+  .result { text-align:center; }
+  .result .big { font-size:40px; font-weight:800; line-height:1; margin:2px 0; font-variant-numeric:tabular-nums; }
+  .result .kmh { font-size:16px; color:var(--signal); font-weight:700; }
+  .result .t { font-size:12px; color:var(--soft); margin-top:6px; }
+  .badge { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.08em; padding:2px 8px; border-radius:6px;
+    background:color-mix(in srgb,var(--good) 18%,transparent); color:var(--good); border:1px solid var(--good); margin-top:8px; }
+  .btns button { width:100%; font:inherit; font-weight:700; font-size:13px; padding:10px; border-radius:9px; border:1px solid var(--edge); background:var(--bg); color:var(--text); cursor:pointer; }
+  .btns button.primary { background:var(--signal); color:#1a1205; border-color:var(--signal); }
+  button:disabled { opacity:.4; cursor:default; }
+  .hint { font-size:11px; color:var(--soft); line-height:1.5; }
+  .hint code { background:var(--bg); padding:1px 5px; border-radius:4px; border:1px solid var(--edge); }
+  input[type=file]{ display:none; }
+  .warn { color:var(--bad); }
+  table { width:100%; border-collapse:collapse; font-size:12px; margin-top:6px; }
+  td, th { text-align:left; padding:3px 4px; border-bottom:1px solid var(--edge); font-variant-numeric:tabular-nums; }
+  th { color:var(--soft); font-weight:600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="drop" id="drop">
+      <b>Carga el vídeo del sprint</b>
+      <span class="hint">Debe verse la carrera entera: desde la salida hasta pasar la meta.</span>
+      <label class="filebtn">🎬 Elegir vídeo<input type="file" id="file" accept="video/*"></label>
+    </div>
+    <video id="vid" playsinline></video>
+    <div class="transport" id="transport" style="display:none">
+      <button id="b10b">⏮ -10</button>
+      <button id="b1b">◀ -1</button>
+      <button id="play">▶/⏸</button>
+      <button id="b1f">+1 ▶</button>
+      <button id="b10f">+10 ⏭</button>
+    </div>
+    <input type="range" id="scrub" min="0" max="0" step="0.001" value="0" style="display:none">
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <h1>🏃 Velocidad de sprint</h1>
+      <p class="sub">Cronometraje entre marcas: <b>velocidad = distancia ÷ tiempo</b>. El tiempo sale
+        de contar frames, así que no hace falta calibrar la cámara. Solo sirve si el vídeo muestra la
+        carrera completa (salida y llegada).</p>
+    </div>
+
+    <div class="card">
+      <h3>Datos del test</h3>
+      <div class="row2">
+        <div><label>Distancia (m)</label><input id="dist" type="number" value="15" step="0.5"></div>
+        <div><label>FPS del vídeo</label><input id="fps" type="number" value="30" step="1"></div>
+      </div>
+      <label>Tu nombre (anotador)</label><input id="anot" placeholder="Nombre real">
+      <p class="hint" style="margin-top:8px">FPS: usa <b>30</b> salvo que grabaras en cámara lenta (120/240) — ahí pon esa cifra.</p>
+    </div>
+
+    <div class="card">
+      <h3>Marcar en el vídeo</h3>
+      <p class="hint" style="margin:0 0 9px">Avanza frame a frame (◀/▶ o flechas) hasta el instante justo y pulsa:</p>
+      <div class="mark">
+        <button class="salida" id="mSalida">◉ SALIDA</button>
+        <button class="llegada" id="mLlegada">◉ LLEGADA</button>
+      </div>
+      <div class="mk" id="mkInfo">Sin marcar</div>
+      <p class="hint" style="margin-top:8px">Atajos: <code>←</code>/<code>→</code> frame, <code>Espacio</code> play, <code>S</code> salida, <code>L</code> llegada.</p>
+    </div>
+
+    <div class="card result" id="resultCard" style="opacity:.4">
+      <h3>Resultado</h3>
+      <div class="big" id="ms">— m/s</div>
+      <div class="kmh" id="kmh">— km/h</div>
+      <div class="t" id="tsec">marca salida y llegada</div>
+      <div class="badge" id="prov" style="display:none">CALCULADO · dist. medida ÷ tiempo</div>
+      <div id="splitsBox"></div>
+    </div>
+
+    <div class="btns"><button id="export" class="primary" disabled>⬇ Exportar resultado (.json)</button></div>
+    <p class="hint">Opcional: si pones conos intermedios a distancias conocidas, usa <b>+ split</b> para
+      parciales (aceleración por tramos).</p>
+    <div class="btns"><button id="addSplit" disabled>+ split intermedio (marca actual)</button></div>
+  </aside>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const vid = $("vid");
+let salida = null, llegada = null;   // frame index
+let splits = [];                      // {dist_m, frame}
+
+const fps = () => Math.max(1, +$("fps").value || 30);
+const dist = () => Math.max(0, +$("dist").value || 0);
+const curFrame = () => Math.round(vid.currentTime * fps());
+
+/* carga */
+$("file").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  vid.src = URL.createObjectURL(f);
+  vid.style.display = "block"; $("drop").style.display = "none";
+  $("transport").style.display = "flex"; $("scrub").style.display = "block";
+});
+vid.addEventListener("loadedmetadata", () => { $("scrub").max = vid.duration; updateReadout(); });
+vid.addEventListener("timeupdate", updateReadout);
+vid.addEventListener("seeked", updateReadout);
+
+function updateReadout(){
+  $("scrub").value = vid.currentTime;
+  $("readout").innerHTML = `frame <b>${curFrame()}</b> · ${vid.currentTime.toFixed(3)} s` +
+    (vid.duration ? ` / ${vid.duration.toFixed(2)} s (${Math.round(vid.duration*fps())} frames)` : "");
+  compute();
+}
+
+/* transporte */
+function step(nFrames){ vid.pause(); vid.currentTime = Math.max(0, Math.min(vid.duration||0, vid.currentTime + nFrames/fps())); }
+$("b1f").onclick = () => step(1);   $("b1b").onclick = () => step(-1);
+$("b10f").onclick = () => step(10); $("b10b").onclick = () => step(-10);
+$("play").onclick = () => { vid.paused ? vid.play() : vid.pause(); };
+$("scrub").addEventListener("input", () => { vid.pause(); vid.currentTime = +$("scrub").value; });
+
+/* marcar */
+$("mSalida").onclick = () => { salida = curFrame(); renderMarks(); };
+$("mLlegada").onclick = () => { llegada = curFrame(); renderMarks(); };
+$("addSplit").onclick = () => {
+  const d = prompt("Distancia de esta marca desde la SALIDA (m):");
+  if (d === null) return;
+  const dm = parseFloat(d); if (isNaN(dm)) return;
+  splits.push({ dist_m: dm, frame: curFrame() }); renderMarks();
+};
+document.addEventListener("keydown", (e) => {
+  if (["INPUT","TEXTAREA"].includes(e.target.tagName)) return;
+  if (e.key === "ArrowRight") { step(1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { step(-1); e.preventDefault(); }
+  else if (e.key === " ") { vid.paused ? vid.play() : vid.pause(); e.preventDefault(); }
+  else if (e.key === "s" || e.key === "S") { salida = curFrame(); renderMarks(); }
+  else if (e.key === "l" || e.key === "L") { llegada = curFrame(); renderMarks(); }
+});
+
+function renderMarks(){
+  const fmt = (fr) => fr == null ? "—" : `frame ${fr} (${(fr/fps()).toFixed(3)} s)`;
+  $("mkInfo").innerHTML = `SALIDA: <b>${fmt(salida)}</b><br>LLEGADA: <b>${fmt(llegada)}</b>` +
+    (splits.length ? `<br>splits: ${splits.length}` : "");
+  $("addSplit").disabled = (salida == null);
+  compute();
+}
+
+function compute(){
+  const ok = salida != null && llegada != null && llegada > salida && dist() > 0;
+  const card = $("resultCard");
+  if (!ok) {
+    card.style.opacity = .4; $("ms").textContent = "— m/s"; $("kmh").textContent = "— km/h";
+    $("prov").style.display = "none"; $("splitsBox").innerHTML = "";
+    if (salida != null && llegada != null && llegada <= salida)
+      $("tsec").innerHTML = `<span class="warn">La llegada debe ir DESPUÉS de la salida</span>`;
+    else $("tsec").textContent = "marca salida y llegada";
+    $("export").disabled = true; return;
+  }
+  const t = (llegada - salida) / fps();
+  const v = dist() / t;
+  const errPct = (1/fps()) / t * 100; // ±1 frame
+  card.style.opacity = 1;
+  $("ms").textContent = v.toFixed(2) + " m/s";
+  $("kmh").textContent = (v*3.6).toFixed(1) + " km/h";
+  $("tsec").innerHTML = `${dist()} m en <b>${t.toFixed(3)} s</b> · ± ${errPct.toFixed(1)}% (±1 frame)`;
+  $("prov").style.display = "inline-block";
+  $("export").disabled = false;
+  // splits (segmentos entre salida(0m) - marcas - llegada(dist))
+  const pts = [{dist_m:0, frame:salida}, ...splits, {dist_m:dist(), frame:llegada}]
+    .filter(p => p.frame != null).sort((a,b) => a.frame - b.frame);
+  if (pts.length > 2) {
+    let html = `<table><tr><th>tramo</th><th>m</th><th>s</th><th>m/s</th></tr>`;
+    for (let i=1;i<pts.length;i++){
+      const dd = pts[i].dist_m - pts[i-1].dist_m, dt = (pts[i].frame - pts[i-1].frame)/fps();
+      html += `<tr><td>${pts[i-1].dist_m}→${pts[i].dist_m}</td><td>${dd.toFixed(1)}</td><td>${dt.toFixed(3)}</td><td><b>${dt>0?(dd/dt).toFixed(2):"—"}</b></td></tr>`;
+    }
+    $("splitsBox").innerHTML = html + "</table>";
+  } else $("splitsBox").innerHTML = "";
+}
+
+/* export */
+$("export").onclick = () => {
+  const t = (llegada - salida) / fps(), v = dist()/t;
+  const doc = {
+    tipo: "sprint_velocidad",
+    distancia_m: dist(), fps: fps(),
+    frame_salida: salida, frame_llegada: llegada,
+    tiempo_s: +t.toFixed(3),
+    velocidad_ms: +v.toFixed(2), velocidad_kmh: +(v*3.6).toFixed(1),
+    error_pct_1frame: +((1/fps())/t*100).toFixed(1),
+    splits: splits.map(s => ({...s, t_s:+(s.frame/fps()).toFixed(3)})),
+    provenance: "DERIVADA",   // distancia MEDIDA (cinta) ÷ tiempo MEDIDA (frames) => DERIVADA
+    units: "m/s",
+    anotador: $("anot").value || "",
+    fecha: new Date().toISOString().slice(0,10),
+  };
+  const b = new Blob([JSON.stringify(doc,null,2)], {type:"application/json;charset=utf-8"});
+  const a = document.createElement("a"); a.href = URL.createObjectURL(b);
+  a.download = "sprint_velocidad.json"; a.click();
+};
+</script>
+</body>
+</html>

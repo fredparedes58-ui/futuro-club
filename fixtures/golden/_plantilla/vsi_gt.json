@@ -1,0 +1,10 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Evaluacion experta humana (entrada subjetiva declarada). dorsal como clave. Escala 0-100. Es la entrada del evaluador, no un score del sistema.",
+  "evaluador": "<rellenar: nombre del entrenador/scout>",
+  "fecha": "<rellenar: YYYY-MM-DD>",
+  "escala": "0-100",
+  "jugadores": {
+    "<dorsal>": { "tecnica": 0, "tactica": 0, "fisico": 0, "mental": 0, "notas": "<rellenar>" }
+  }
+}

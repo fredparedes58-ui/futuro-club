@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VITAS · Anotador de campo (calibración px→metros)</title>
+<style>
+  :root { --bg:#0E1620; --panel:#17222E; --edge:#2A3A4A; --text:#E8EDF2; --soft:#9FB0BF;
+    --signal:#E8A33D; --good:#5CBF8C; --skip:#6F8090; --pitch:#1c3a2a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,"Segoe UI",sans-serif; }
+  .app { display:grid; grid-template-columns:1fr 360px; height:100vh; }
+  @media (max-width:900px){ .app{ grid-template-columns:1fr; height:auto; } }
+  .stage { position:relative; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .drop { position:absolute; inset:16px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:12px; color:var(--soft); border:2px dashed var(--edge); border-radius:14px; text-align:center; padding:20px; }
+  .drop.hidden { display:none; }
+  #canvas { max-width:100%; max-height:100vh; cursor:crosshair; display:block; }
+  .loupe { position:absolute; width:150px; height:150px; border:2px solid var(--signal); border-radius:50%;
+    pointer-events:none; display:none; background-repeat:no-repeat; box-shadow:0 4px 20px rgba(0,0,0,.6); z-index:5; }
+  .loupe::after { content:""; position:absolute; left:50%; top:50%; width:11px; height:11px; margin:-6px 0 0 -6px;
+    border:1px solid var(--signal); border-radius:50%; }
+  .side { background:var(--panel); border-left:1px solid var(--edge); padding:16px; display:flex; flex-direction:column;
+    gap:12px; overflow-y:auto; }
+  h1 { font-size:15px; margin:0; } .sub { font-size:12px; color:var(--soft); margin:0; line-height:1.5; }
+  .fmt { display:flex; gap:8px; }
+  .fmt button { flex:1; font:inherit; font-size:13px; font-weight:800; padding:9px; border-radius:9px; border:1px solid var(--edge);
+    background:var(--bg); color:var(--soft); cursor:pointer; }
+  .fmt button.on { border-color:var(--signal); color:var(--signal); background:color-mix(in srgb,var(--signal) 12%,transparent); }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  label { font-size:11px; color:var(--soft); display:block; margin:6px 0 3px; }
+  input { width:100%; font:inherit; font-size:13px; padding:7px 9px; border-radius:8px; border:1px solid var(--edge);
+    background:var(--bg); color:var(--text); }
+  input[type=file]{ display:none; }
+  .filebtn { display:inline-block; font-weight:700; font-size:12px; padding:8px 12px; border-radius:8px; border:1px solid var(--edge);
+    background:var(--bg); color:var(--text); cursor:pointer; }
+  .now { background:var(--bg); border:1px solid var(--edge); border-radius:12px; padding:12px; }
+  .now .k { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--signal); font-weight:800; }
+  .now .name { font-size:16px; font-weight:800; margin-top:4px; line-height:1.2; }
+  .now .prog { font-size:11px; color:var(--soft); margin-top:6px; font-variant-numeric:tabular-nums; }
+  svg.mini { width:100%; height:auto; background:var(--pitch); border-radius:10px; border:1px solid var(--edge); }
+  .dot { fill:var(--skip); } .dot.cur { fill:var(--signal); } .dot.done { fill:var(--good); }
+  .framebar { display:flex; align-items:center; gap:6px; }
+  .framebar button, .btns button { font:inherit; font-size:13px; font-weight:650; padding:9px; border-radius:9px;
+    border:1px solid var(--edge); background:var(--bg); color:var(--text); cursor:pointer; }
+  .framebar .lbl { flex:1; text-align:center; font-size:12px; color:var(--soft); font-variant-numeric:tabular-nums; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .btns button.primary { background:var(--signal); color:#1a1205; border-color:var(--signal); }
+  .btns button.wide { grid-column:1/3; }
+  button:disabled { opacity:.4; cursor:default; }
+  .hint { font-size:11px; color:var(--soft); line-height:1.5; }
+  .hint code { background:var(--bg); padding:1px 5px; border-radius:4px; border:1px solid var(--edge); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="loupe" id="loupe"></div>
+    <div class="drop" id="drop">
+      <b>Carga la carpeta <code>frames/</code> del kit</b>
+      <span class="hint">Marca los puntos del campo en varios frames repartidos.</span>
+      <label class="filebtn">📂 carpeta frames<input type="file" id="folder" webkitdirectory multiple></label>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <h1>🎯 Anotador de campo · calibración</h1>
+      <p class="sub">Marca dónde está cada punto del campo. Con eso saco <b>píxeles→metros</b>
+        (homografía) y las distancias salen en metros reales. La cámara de este clip se
+        mueve → marca <b>varios frames repartidos</b> (8-12 a lo largo del vídeo).</p>
+    </div>
+
+    <div class="fmt">
+      <button id="btn-f8" class="on">⚽ Fútbol 8</button>
+      <button id="btn-f11">Fútbol 11</button>
+    </div>
+
+    <div class="row2">
+      <div><label>Largo real (m)</label><input id="largo" type="number" value="60" step="0.5"></div>
+      <div><label>Ancho real (m)</label><input id="ancho" type="number" value="40" step="0.5"></div>
+    </div>
+    <p class="hint">Por defecto F8 FFCV (60×40). Si tu campo mide distinto, pon el largo×ancho reales:
+      las <b>esquinas, línea media y postes</b> escalan exacto (son los puntos clave).</p>
+
+    <label>Tu nombre (anotador)</label><input id="anot" placeholder="Nombre real">
+
+    <div class="framebar">
+      <button id="pf">◀ frame</button>
+      <span class="lbl" id="frameLbl">sin frames</span>
+      <button id="nf">frame ▶</button>
+    </div>
+
+    <div class="now">
+      <div class="k">Marca ahora</div>
+      <div class="name" id="curName">—</div>
+      <div class="prog" id="prog">Carga la carpeta de frames</div>
+    </div>
+
+    <svg class="mini" id="mini" viewBox="0 0 210 136"></svg>
+    <p class="hint">El punto <b style="color:var(--signal)">naranja</b> del mini-campo es el que toca marcar;
+      los <b style="color:var(--good)">verdes</b> ya están. Usa la <b>lupa</b> (aparece al pasar el ratón) para precisión.</p>
+
+    <div class="btns">
+      <button id="skip">No visible ⏭</button>
+      <button id="undo">Deshacer ↩</button>
+      <button id="ppt">◀ punto</button>
+      <button id="npt">punto ▶</button>
+      <button class="primary wide" id="export" disabled>⬇ Exportar calibración (.json)</button>
+    </div>
+    <p class="hint">Marca al menos <b>4-6 puntos por frame</b> (cuantos más y mejor repartidos, más precisa
+      la homografía). Al acabar, <b>Exporta</b>: descarga <code>calibracion.json</code> con todos los frames
+      marcados. Pásamelo y yo calculo la homografía y valido el error de reproyección.</p>
+  </aside>
+</div>
+
+<script>
+const FORMATS = {
+  f8: { label:"Fútbol 8", L:60, W:40, circleR:6, pb:{depth:9,half:12}, gb:{depth:3,half:4}, pts:[
+    ["Esquina sup-izq (línea de gol)",0,0],["Área grande izq · borde sup",0,8],["Área pequeña izq · borde sup",0,16],
+    ["Área pequeña izq · borde inf",0,24],["Área grande izq · borde inf",0,32],["Esquina inf-izq (línea de gol)",0,40],
+    ["Área pequeña izq · esquina sup (campo)",3,16],["Área pequeña izq · esquina inf (campo)",3,24],
+    ["Punto de penalti IZQUIERDO",9,20],["Área grande izq · esquina sup (campo)",9,8],["Área grande izq · esquina inf (campo)",9,32],
+    ["Línea media · borde SUPERIOR",30,0],["Círculo central · punto SUPERIOR",30,14],["Círculo central · punto INFERIOR",30,26],
+    ["Línea media · borde INFERIOR",30,40],["Círculo central · punto IZQUIERDO",24,20],["Círculo central · punto DERECHO",36,20],
+    ["Área grande der · esquina sup (campo)",51,8],["Punto de penalti DERECHO",51,20],["Área grande der · esquina inf (campo)",51,32],
+    ["Área pequeña der · esquina sup (campo)",57,16],["Área pequeña der · esquina inf (campo)",57,24],
+    ["Esquina sup-der (línea de gol)",60,0],["Área grande der · borde sup",60,8],["Área pequeña der · borde sup",60,16],
+    ["Área pequeña der · borde inf",60,24],["Área grande der · borde inf",60,32],["Esquina inf-der (línea de gol)",60,40],
+  ]},
+  f11: { label:"Fútbol 11", L:105, W:68, circleR:9.15, pb:{depth:16.5,half:20.16}, gb:{depth:5.5,half:9.16}, pts:[
+    ["Esquina sup-izq",0,0],["Área grande izq · borde sup",0,13.84],["Área pequeña izq · borde sup",0,24.84],
+    ["Área pequeña izq · borde inf",0,43.16],["Área grande izq · borde inf",0,54.16],["Esquina inf-izq",0,68],
+    ["Área pequeña izq · esquina sup",5.5,24.84],["Área pequeña izq · esquina inf",5.5,43.16],["Penalti IZQUIERDO",11,34],
+    ["Área grande izq · esquina sup",16.5,13.84],["Área grande izq · unión sup",16.5,24.84],["Área grande izq · unión inf",16.5,43.16],
+    ["Área grande izq · esquina inf",16.5,54.16],["Línea media · SUPERIOR",52.5,0],["Círculo · SUPERIOR",52.5,24.85],
+    ["Círculo · INFERIOR",52.5,43.15],["Línea media · INFERIOR",52.5,68],["Área grande der · esquina sup",88.5,13.84],
+    ["Área grande der · unión sup",88.5,24.84],["Área grande der · unión inf",88.5,43.16],["Área grande der · esquina inf",88.5,54.16],
+    ["Penalti DERECHO",94,34],["Área pequeña der · esquina sup",99.5,24.84],["Área pequeña der · esquina inf",99.5,43.16],
+    ["Esquina sup-der",105,0],["Área grande der · borde sup",105,13.84],["Área pequeña der · borde sup",105,24.84],
+    ["Área pequeña der · borde inf",105,43.16],["Área grande der · borde inf",105,54.16],["Esquina inf-der",105,68],
+    ["Círculo · IZQUIERDO",43.35,34],["Círculo · DERECHO",61.65,34],
+  ]},
+};
+
+const $ = (id) => document.getElementById(id);
+const canvas = $("canvas"), ctx = canvas.getContext("2d"), stage = $("stage"), loupe = $("loupe"), mini = $("mini");
+let FMT = "f8", F = FORMATS.f8, PTS = F.pts, N = PTS.length;
+let FRAMES = [];              // [{name, img}]
+let fi = 0, cur = 0, scale = 1;
+const MARKS = {};             // name -> array(N) de {x,y}|"skip"|null
+
+function curFrame(){ return FRAMES[fi]; }
+function curMarks(){ const n = curFrame().name; if(!MARKS[n]) MARKS[n] = new Array(N).fill(null); return MARKS[n]; }
+
+function setFormat(fmt){
+  FMT = fmt; F = FORMATS[fmt]; PTS = F.pts; N = PTS.length;
+  Object.keys(MARKS).forEach(k => delete MARKS[k]);  // cambiar formato reinicia marcas
+  cur = 0;
+  $("btn-f8").classList.toggle("on", fmt === "f8");
+  $("btn-f11").classList.toggle("on", fmt === "f11");
+  $("largo").value = F.L; $("ancho").value = F.W;
+  if (FRAMES.length) refresh();
+}
+
+/* carga de frames */
+$("folder").addEventListener("change", (e) => {
+  const files = [...e.target.files].filter(f => /\.(jpg|jpeg|png)$/i.test(f.name))
+    .sort((a,b) => a.name.localeCompare(b.name));
+  FRAMES = []; let left = files.length;
+  files.forEach(f => {
+    const img = new Image();
+    img.onload = () => { if (--left === 0) { $("drop").classList.add("hidden"); fi = 0; cur = 0; refresh(); } };
+    img.src = URL.createObjectURL(f);
+    FRAMES.push({ name: f.name.split("/").pop(), img });
+  });
+});
+
+/* mini campo */
+function buildMini(){
+  const pad = 8, sx = (210-2*pad)/F.L, sy = (136-2*pad)/F.W, cy = F.W/2, marks = curMarks();
+  let s = `<rect x="${pad}" y="${pad}" width="${F.L*sx}" height="${F.W*sy}" fill="none" stroke="#cfe" stroke-opacity=".35"/>`;
+  s += `<line x1="${pad+F.L/2*sx}" y1="${pad}" x2="${pad+F.L/2*sx}" y2="${pad+F.W*sy}" stroke="#cfe" stroke-opacity=".35"/>`;
+  s += `<circle cx="${pad+F.L/2*sx}" cy="${pad+cy*sy}" r="${F.circleR*sx}" fill="none" stroke="#cfe" stroke-opacity=".35"/>`;
+  const box = (x0,y0,w,h) => `<rect x="${pad+x0*sx}" y="${pad+y0*sy}" width="${w*sx}" height="${h*sy}" fill="none" stroke="#cfe" stroke-opacity=".3"/>`;
+  s += box(0,cy-F.pb.half,F.pb.depth,F.pb.half*2) + box(0,cy-F.gb.half,F.gb.depth,F.gb.half*2);
+  s += box(F.L-F.pb.depth,cy-F.pb.half,F.pb.depth,F.pb.half*2) + box(F.L-F.gb.depth,cy-F.gb.half,F.gb.depth,F.gb.half*2);
+  PTS.forEach((p,i) => {
+    const cls = marks[i] && marks[i] !== "skip" ? "done" : (i === cur ? "cur" : "");
+    s += `<circle class="dot ${cls}" cx="${pad+p[1]*sx}" cy="${pad+p[2]*sy}" r="${i===cur?4:2.6}"/>`;
+  });
+  mini.innerHTML = s;
+}
+
+function draw(){
+  const fr = curFrame(); if(!fr) return;
+  scale = Math.min(stage.clientWidth / fr.img.width, window.innerHeight / fr.img.height);
+  canvas.width = fr.img.width*scale; canvas.height = fr.img.height*scale;
+  ctx.drawImage(fr.img, 0, 0, canvas.width, canvas.height);
+  curMarks().forEach((m,i) => {
+    if(!m || m === "skip") return;
+    const x = m.x*scale, y = m.y*scale;
+    ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fillStyle = i===cur ? "#E8A33D" : "#5CBF8C"; ctx.fill();
+    ctx.strokeStyle = "#0E1620"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.fillText(i, x+7, y-7);
+  });
+}
+function refresh(){
+  const marks = curMarks();
+  $("frameLbl").textContent = `frame ${fi+1}/${FRAMES.length} · ${curFrame().name}`;
+  $("curName").textContent = cur < N ? `${cur}. ${PTS[cur][0]}` : "✓ Todos revisados";
+  const done = marks.filter(m => m && m !== "skip").length;
+  const framesOk = Object.values(MARKS).filter(mk => mk.filter(m => m && m!=="skip").length >= 4).length;
+  $("prog").textContent = `${F.label} · punto ${Math.min(cur+1,N)}/${N} · este frame: ${done} marcados · frames válidos: ${framesOk}`;
+  $("export").disabled = framesOk === 0;
+  buildMini(); draw();
+}
+
+/* marcar */
+canvas.addEventListener("click", (e) => {
+  if(!FRAMES.length || cur >= N) return;
+  const r = canvas.getBoundingClientRect();
+  curMarks()[cur] = { x:(e.clientX-r.left)/scale, y:(e.clientY-r.top)/scale };
+  advance();
+});
+function advance(){ const marks = curMarks(); let n = cur+1; while(n<N && marks[n] && marks[n]!=="skip") n++; cur = n; refresh(); }
+$("skip").onclick = () => { if(cur<N){ curMarks()[cur] = "skip"; advance(); } };
+$("undo").onclick = () => { if(cur>0) cur--; curMarks()[cur] = null; refresh(); };
+$("ppt").onclick = () => { cur = Math.max(0,cur-1); refresh(); };
+$("npt").onclick = () => { cur = Math.min(N-1,cur+1); refresh(); };
+$("pf").onclick = () => { if(fi>0){ fi--; cur=0; refresh(); } };
+$("nf").onclick = () => { if(fi<FRAMES.length-1){ fi++; cur=0; refresh(); } };
+$("btn-f8").onclick = () => setFormat("f8");
+$("btn-f11").onclick = () => setFormat("f11");
+
+/* lupa */
+canvas.addEventListener("mousemove", (e) => {
+  if(!FRAMES.length) return;
+  const r = canvas.getBoundingClientRect(), x = e.clientX-r.left, y = e.clientY-r.top, z = 2.5;
+  loupe.style.display = "block";
+  loupe.style.left = (x-75)+"px"; loupe.style.top = (y-75)+"px";
+  loupe.style.backgroundImage = `url(${canvas.toDataURL()})`;
+  loupe.style.backgroundSize = `${canvas.width*z}px ${canvas.height*z}px`;
+  loupe.style.backgroundPosition = `${-x*z+75}px ${-y*z+75}px`;
+});
+canvas.addEventListener("mouseleave", () => loupe.style.display = "none");
+
+/* export */
+function download(name, text){
+  const b = new Blob([text], {type:"application/json;charset=utf-8"}); const u = URL.createObjectURL(b);
+  const a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(u), 4000);
+}
+$("export").onclick = () => {
+  const largo = +$("largo").value || F.L, ancho = +$("ancho").value || F.W;
+  const sx = largo/F.L, sy = ancho/F.W;
+  const frames = [];
+  Object.entries(MARKS).forEach(([fn, marks]) => {
+    const pts = [];
+    marks.forEach((m,i) => {
+      if(m && m !== "skip") pts.push({ nombre:PTS[i][0], px:[Math.round(m.x),Math.round(m.y)],
+        mundo_m:[+(PTS[i][1]*sx).toFixed(2), +(PTS[i][2]*sy).toFixed(2)] });
+    });
+    if(pts.length >= 4) frames.push({ frame:fn, puntos:pts });
+  });
+  if(!frames.length){ alert("Marca al menos 4 puntos en algún frame."); return; }
+  const doc = { metodo:"puntos_campo_medidos", formato:FMT, dimensiones_campo_m:{largo,ancho},
+    anotador:$("anot").value||"", frames };
+  download("calibracion.json", JSON.stringify(doc, null, 2));
+  alert(`Exportado calibracion.json con ${frames.length} frame(s) calibrado(s).\nPásamelo y calculo la homografía px→metros.`);
+};
+window.addEventListener("resize", draw);
+</script>
+</body>
+</html>
