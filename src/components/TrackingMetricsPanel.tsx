@@ -10,6 +10,8 @@ import { Zap, Activity, Timer, Eye, Swords, Map, Hexagon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PhysicalMetrics, Track, TrackingStatus, VoronoiRegion } from "@/lib/yolo/types";
 import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
+import { metricsTrustworthy } from "@/lib/yolo/fieldRegistration";
+import { isTrackIdentityReliable } from "@/lib/yolo/tracker";
 import CalibrationCaveat from "@/components/CalibrationCaveat";
 
 interface Props {
@@ -62,6 +64,36 @@ export default function TrackingMetricsPanel({
            status === "error"         ? t("trackingMetricsPanel.statusError")           : t("trackingMetricsPanel.statusInactive")}
         </span>
       </div>
+
+      {/* Fiabilidad de sesión — SIN scroll (contrato identidad.md): calibración,
+          asociación de pistas e identidad de dorsal, declaradas honestamente. */}
+      {(isTracking || metrics) && tracks.length > 0 && (
+        <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2 space-y-1">
+          <p className="text-[9px] font-display font-bold uppercase tracking-widest text-muted-foreground">
+            {t("trackingMetricsPanel.reliabilityTitle")}
+          </p>
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">{t("trackingMetricsPanel.reliabilityCalibration")}</span>
+            <span className={`font-bold ${metricsTrustworthy(calibrationConfidence ?? "none") ? "text-green-500" : "text-amber-500"}`}>
+              {metricsTrustworthy(calibrationConfidence ?? "none")
+                ? t("trackingMetricsPanel.reliabilityCalibrated")
+                : t("trackingMetricsPanel.reliabilityUncalibrated")}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">{t("trackingMetricsPanel.reliabilityAssociation")}</span>
+            <span className="font-bold text-foreground tabular-nums">
+              {tracks.filter(isTrackIdentityReliable).length}/{tracks.length}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">{t("trackingMetricsPanel.reliabilityAnonymous")}</span>
+            <span className="font-bold text-amber-500 tabular-nums">
+              {tracks.filter(tr => tr.dorsalNumber == null).length}/{tracks.length}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Selector de jugador a seguir */}
       {tracks.length > 0 && (

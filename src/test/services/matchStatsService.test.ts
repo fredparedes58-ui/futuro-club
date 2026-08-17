@@ -71,6 +71,40 @@ describe("matchStatsService", () => {
     });
   });
 
+  describe("eventMetrics — MetricResult con provenance ESTIMADA_LLM", () => {
+    const res = computeMatchStats(mkEventosOnly())!;
+
+    it("cada evento presente sale envuelto con ESTIMADA_LLM y la confianza del análisis", () => {
+      expect(res.eventMetrics).toBeDefined();
+      const m = res.eventMetrics!.pasesCompletados;
+      expect(m.provenance).toBe("ESTIMADA_LLM");
+      expect(m.value).toBe(40);
+      expect(m.confidence).toBe(res.confianza);
+      expect(m.source_ref).toBe(res.fuente);
+      expect(m.calibrated).toBe(false);
+    });
+
+    it("los opcionales que el modelo NO reportó salen gateados (null + motivo), nunca 0", () => {
+      // mkEventosOnly no incluye robos/anticipaciones/perdidas
+      for (const key of ["robos", "anticipaciones", "perdidas"] as const) {
+        const m = res.eventMetrics![key];
+        expect(m.value).toBeNull();
+        expect(m.gate_reason).toBeTruthy();
+        expect(m.provenance).toBe("ESTIMADA_LLM");
+      }
+    });
+
+    it("es aditivo: los campos numéricos existentes no cambian", () => {
+      expect(res.pases!.completados).toBe(40);
+      expect(res.duelos!.ganados).toBe(6);
+    });
+
+    it("sin eventos no hay eventMetrics", () => {
+      const noEv = computeMatchStats(mkFisicasOnly())!;
+      expect(noEv.eventMetrics).toBeUndefined();
+    });
+  });
+
   describe("solo eventos (gemini_only)", () => {
     const res = computeMatchStats(mkEventosOnly())!;
 

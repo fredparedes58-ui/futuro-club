@@ -250,3 +250,16 @@ export function getTilingConfig(): TilingConfig | null {
     return null;
   }
 }
+
+/**
+ * Setter simétrico a `setActiveModelId`: persiste la config de tiling, o la
+ * elimina con `null` (= tiling apagado, el estado por defecto). Valida con
+ * `parseTilingConfig` — una config inválida equivale a apagar, nunca a un
+ * estado intermedio silencioso.
+ */
+export function setTilingConfig(config: TilingConfig | null): void {
+  if (typeof localStorage === "undefined") return;
+  const valid = config ? parseTilingConfig(config) : null;
+  if (valid) localStorage.setItem(STORAGE_KEY, JSON.stringify(valid));
+  else localStorage.removeItem(STORAGE_KEY);
+}

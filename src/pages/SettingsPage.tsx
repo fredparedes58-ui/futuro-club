@@ -20,6 +20,8 @@ import {
   BookOpen,
   RefreshCw,
   Loader2,
+  Cpu,
+  LayoutGrid,
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
@@ -35,6 +37,8 @@ import { useTranslation } from "react-i18next";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { useGdprExport } from "@/hooks/useGdprExport";
+import { MODELS, getActiveModelId, setActiveModelId } from "@/lib/yolo/modelConfig";
+import { getTilingConfig, setTilingConfig } from "@/lib/yolo/tiling";
 
 const SETTINGS_KEY = "settings";
 
@@ -89,6 +93,130 @@ const NOTIF_TYPE_LABEL_KEYS: Record<string, string> = {
   scoutInsights: "settingsPage.notifTypeScoutInsight",
   teamUpdates: "settingsPage.notifTypeTeamUpdate",
 };
+
+/**
+ * Ajustes de análisis de vídeo: modelo de pose + tiling (SAHI).
+ * Persisten en localStorage (`vitas_active_model` / `vitas_tiling`) — los mismos
+ * overrides que antes solo existían por consola. Los workers los leen al INIT,
+ * así que aplican al PRÓXIMO análisis (no al que esté en curso).
+ */
+function VideoAnalysisSettings() {
+  const { t } = useTranslation();
+  const [modelId, setModelId] = useState(() => getActiveModelId());
+  const [tiling, setTiling] = useState(() => getTilingConfig());
+
+  // Solo modelos de pose desplegados (custom/vitas-pose-v1 es Fase 3, no existe aún)
+  const poseModels = Object.values(MODELS).filter(
+    (m) => m.task === "pose" && m.family !== "custom",
+  );
+
+  const pickModel = (id: string) => {
+    setActiveModelId(id);
+    setModelId(id);
+    toast.success(t("videoAnalysisSettings.appliesNext"));
+  };
+  const toggleTiling = () => {
+    const next = tiling ? null : { grid: 2, overlap: 0.15 };
+    setTilingConfig(next);
+    setTiling(next);
+    toast.success(
+      next ? t("videoAnalysisSettings.tilingOnToast") : t("videoAnalysisSettings.tilingOffToast"),
+    );
+  };
+  const pickGrid = (grid: number) => {
+    const next = { grid, overlap: 0.15 };
+    setTilingConfig(next);
+    setTiling(next);
+    toast.success(t("videoAnalysisSettings.appliesNext"));
+  };
+
+  return (
+    <>
+      {/* Modelo de detección */}
+      <div className="glass rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+            <Cpu size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-sm text-foreground">{t("videoAnalysisSettings.modelTitle")}</p>
+            <p className="text-[10px] text-muted-foreground">{t("videoAnalysisSettings.modelDesc")}</p>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {poseModels.map((m) => (
+            <div
+              key={m.id}
+              className={`flex items-center justify-between rounded-lg px-3 py-2 cursor-pointer border transition-all ${
+                m.id === modelId
+                  ? "border-primary/50 bg-primary/10"
+                  : "border-transparent bg-secondary/40 hover:border-primary/20"
+              }`}
+              onClick={() => pickModel(m.id)}
+            >
+              <div>
+                <p className="text-xs font-display font-semibold text-foreground">{m.name}</p>
+                <p className="text-[9px] text-muted-foreground tabular-nums">
+                  {m.inputSize}px · {m.sizeMb} MB
+                </p>
+              </div>
+              {m.id === modelId && <Check size={16} className="text-primary" />}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tiling (SAHI) */}
+      <div
+        className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
+        onClick={toggleTiling}
+      >
+        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+          <LayoutGrid size={18} className="text-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="font-display font-semibold text-sm text-foreground">{t("videoAnalysisSettings.tilingTitle")}</p>
+          <p className="text-[10px] text-muted-foreground">{t("videoAnalysisSettings.tilingDesc")}</p>
+        </div>
+        {tiling
+          ? <ToggleRight size={28} className="text-primary" />
+          : <ToggleLeft size={28} className="text-muted-foreground" />
+        }
+      </div>
+
+      {tiling && (
+        <div className="glass rounded-xl p-4 space-y-3 ml-4 border-l-2 border-primary/20">
+          <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
+            {t("videoAnalysisSettings.gridLabel")}
+          </p>
+          <div className="flex gap-2">
+            {[2, 3].map((g) => (
+              <button
+                key={g}
+                onClick={() => pickGrid(g)}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-display font-bold border transition-all ${
+                  tiling.grid === g
+                    ? "border-primary/60 bg-primary/15 text-primary"
+                    : "border-border bg-secondary/40 text-muted-foreground hover:border-primary/30"
+                }`}
+              >
+                {g}×{g}
+                <span className="block text-[9px] font-normal">
+                  {t(g === 2 ? "videoAnalysisSettings.grid2Desc" : "videoAnalysisSettings.grid3Desc")}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            {t("videoAnalysisSettings.computeWarn")}
+          </p>
+        </div>
+      )}
+
+      <p className="text-[9px] text-muted-foreground px-1">{t("videoAnalysisSettings.appliesNextHint")}</p>
+    </>
+  );
+}
 
 function NotificationHistory() {
   const { t } = useTranslation();
@@ -494,6 +622,12 @@ const SettingsPage = () => {
           </div>
           <ChevronRight size={14} className="text-muted-foreground" />
         </button>
+      </motion.div>
+
+      {/* Análisis de vídeo (modelo + tiling) */}
+      <motion.div variants={item} className="space-y-2">
+        <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">{t("videoAnalysisSettings.title")}</h2>
+        <VideoAnalysisSettings />
       </motion.div>
 
       {/* Seguridad */}
