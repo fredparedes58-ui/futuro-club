@@ -21,19 +21,15 @@ import {
   AlertTriangle,
   Activity,
 } from "lucide-react";
-import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
 import ModelLoadingOverlay from "@/components/tracking/ModelLoadingOverlay";
 import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
-import PlayerHeatmap from "@/components/PlayerHeatmap";
 import VoronoiOverlay from "@/components/VoronoiOverlay";
 import { useTracking } from "@/hooks/useTracking";
 import { useMediaPipePose } from "@/hooks/useMediaPipePose";
 import { EventDetectionEngine } from "@/lib/tracking/eventDetectionEngine";
 import type { TacticalEvent, EventSummary } from "@/lib/tracking/eventDetectionEngine";
 import { metricsTrustworthy } from "@/lib/yolo/fieldRegistration";
-import { AnalyticsExporter } from "@/lib/tracking/analyticsExportPipeline";
-import type { SessionExportData, ExportFormat } from "@/lib/tracking/analyticsExportPipeline";
 import { detectFieldLines } from "@/lib/tracking/fieldLineDetector";
 import type { FieldDetectionResult } from "@/lib/tracking/fieldLineDetector";
 import pitchImage from "@/assets/pitch-field.jpg";
@@ -64,6 +60,8 @@ import { formatTime, container, item } from "./vitasLab/labUi";
 import LabStatusBar from "./vitasLab/LabStatusBar";
 import LabUploadPanel from "./vitasLab/LabUploadPanel";
 import LabResultsPanel from "./vitasLab/LabResultsPanel";
+import LabLiveTrackingPanel from "./vitasLab/LabLiveTrackingPanel";
+import LabExportButtons from "./vitasLab/LabExportButtons";
 
 const steps = [
   { id: 1, labelKey: "vitasLab.stepUpload", done: true },
@@ -1515,162 +1513,25 @@ const VitasLab = () => {
 
           {/* Tracking YOLO en vivo */}
           {showTracking && (
-            <div className="border-t border-border pt-3 space-y-3">
-              <TrackingMetricsPanel
-                status={tracking.state.status}
-                tracks={tracking.state.currentTracks}
-                focusTrackId={tracking.state.focusTrackId}
-                metrics={tracking.state.sessionMetrics}
-                scanCount={tracking.state.scanEvents.length}
-                duelCount={tracking.state.duelEvents.length}
-                onFocusTrack={tracking.setFocusTrackId}
-                voronoiRegions={tracking.state.voronoiRegions}
-                showVoronoi={showVoronoi}
-                onToggleVoronoi={() => setShowVoronoi(v => !v)}
-                calibrationConfidence={tracking.state.calibrationConfidence}
-              />
-
-              {/* MediaPipe + Event Detection Status */}
-              <div className="glass rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground">MediaPipe Pose</span>
-                  <span className={`text-[9px] font-display px-1.5 py-0.5 rounded-full ${
-                    mediaPipe.status === "processing" ? "bg-green-500/10 text-green-500 border border-green-500/20" :
-                    mediaPipe.status === "loading" ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
-                    mediaPipe.status === "complete" ? "bg-primary/10 text-primary border border-primary/20" :
-                    "bg-muted text-muted-foreground border border-border"
-                  }`}>
-                    {mediaPipe.status === "processing" ? `${mediaPipe.fps} FPS` :
-                     mediaPipe.status === "loading" ? t("vitasLab.loading") :
-                     mediaPipe.status === "complete" ? t("vitasLab.completed") :
-                     mediaPipe.status === "error" ? t("vitasLab.error") : t("vitasLab.waiting")}
-                  </span>
-                </div>
-                {mediaPipe.biomechanics && (
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <div className="text-center">
-                      <p className="text-[8px] text-muted-foreground uppercase">DrillScore</p>
-                      <p className="text-sm font-display font-black text-primary">{mediaPipe.biomechanics.drillScore}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[8px] text-muted-foreground uppercase">{t("vitasLab.symmetry")}</p>
-                      <p className="text-sm font-display font-black text-green-500">{mediaPipe.biomechanics.bilateralSymmetry}%</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-[8px] text-muted-foreground uppercase">{t("vitasLab.risk")}</p>
-                      <p className={`text-sm font-display font-black ${mediaPipe.biomechanics.injuryRisk > 50 ? "text-red-500" : "text-green-500"}`}>{mediaPipe.biomechanics.injuryRisk}</p>
-                    </div>
-                  </div>
-                )}
-                {eventSummary && eventSummary.totalEvents > 0 && (
-                  <div className="pt-1 border-t border-border/50">
-                    <p className="text-[9px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-1">{t("vitasLab.tacticalEvents")}</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {eventSummary.passesAttempted > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400">
-                          {t("vitasLab.passesLabel")} {eventSummary.passesCompleted}/{eventSummary.passesAttempted}
-                        </span>
-                      )}
-                      {eventSummary.duelsWon + eventSummary.duelsLost > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400">
-                          {t("vitasLab.duelsLabel")} {eventSummary.duelsWon}{t("vitasLab.wonAbbr")}/{eventSummary.duelsLost}{t("vitasLab.lostAbbr")}
-                        </span>
-                      )}
-                      {eventSummary.recoveries > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/10 text-green-400">
-                          {t("vitasLab.recoveriesAbbr")} {eventSummary.recoveries}
-                        </span>
-                      )}
-                      {eventSummary.sprintBursts > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400">
-                          Sprints {eventSummary.sprintBursts}
-                        </span>
-                      )}
-                      {eventSummary.shots > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400">
-                          {t("vitasLab.shotsLabel")} {eventSummary.shots}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Mapa de calor — jugador individual o equipo completo */}
-              {(() => {
-                if (tracking.state.focusTrackId) {
-                  // Modo jugador individual
-                  const focusTrack = tracking.state.currentTracks.find(
-                    t => t.id === tracking.state.focusTrackId
-                  );
-                  const positions = focusTrack?.positions ?? [];
-                  return positions.length > 0 ? (
-                    <PlayerHeatmap
-                      positions={positions}
-                      title={t("vitasLab.heatmapPlayer", { id: tracking.state.focusTrackId })}
-                    />
-                  ) : null;
-                }
-                // Modo equipo: unir posiciones de todos los tracks
-                const allPositions = tracking.state.currentTracks.flatMap(t => t.positions);
-                return allPositions.length > 0 ? (
-                  <PlayerHeatmap
-                    positions={allPositions}
-                    title={t("vitasLab.heatmapTeam", { count: tracking.state.currentTracks.length })}
-                  />
-                ) : null;
-              })()}
-            </div>
+            <LabLiveTrackingPanel
+              tracking={tracking}
+              mediaPipe={mediaPipe}
+              eventSummary={eventSummary}
+              showVoronoi={showVoronoi}
+              setShowVoronoi={setShowVoronoi}
+            />
           )}
 
           {/* Export Data — available after tracking completes (in advanced section) */}
-          {tracking.state.status === "complete" && tracking.state.sessionMetrics && (
-            <div className="flex gap-1.5">
-              {(["csv", "json", "html_report"] as ExportFormat[]).map(fmt => (
-                <button
-                  key={fmt}
-                  onClick={() => {
-                    const focusTrack = tracking.state.focusTrackId
-                      ? tracking.state.currentTracks.find(t => t.id === tracking.state.focusTrackId)
-                      : null;
-                    const exportData: SessionExportData = {
-                      metadata: {
-                        sessionId: `session_${Date.now()}`,
-                        playerId: selectedPlayerId ?? "unknown",
-                        playerName: selectedPlayer?.name ?? t("vitasLab.playerFallback"),
-                        videoId: selectedVideoId,
-                        date: new Date().toISOString().slice(0, 10),
-                        durationSec: tracking.state.sessionMetrics!.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics!.avgSpeedMs),
-                        trackingFps: 8,
-                        fieldDimensions: { lengthM: 105, widthM: 68 },
-                        calibrationReliable: metricsTrustworthy(tracking.state.calibrationConfidence),
-                      },
-                      physicalMetrics: tracking.state.sessionMetrics!,
-                      biomechanics: mediaPipe.biomechanics,
-                      tracks: tracking.state.currentTracks,
-                      focusTrackId: tracking.state.focusTrackId,
-                      events: tacticalEvents,
-                      eventSummary: eventSummary ?? {
-                        totalEvents: 0, byType: {} as Record<string, number>,
-                        passCompletionPct: 0, passesAttempted: 0, passesCompleted: 0,
-                        duelsWon: 0, duelsLost: 0, recoveries: 0, sprintBursts: 0,
-                        pressTriggers: 0, shots: 0, xgContributions: 0, vaepApprox: 0,
-                      } as EventSummary,
-                      scanEvents: tracking.state.scanEvents,
-                      duelEvents: tracking.state.duelEvents,
-                      focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })) ?? [],
-                    };
-                    const exporter = new AnalyticsExporter(exportData);
-                    exporter.download(fmt);
-                    toast.success(t("vitasLab.exportedAs", { format: fmt.toUpperCase() }));
-                  }}
-                  className="flex-1 py-1.5 rounded-lg border border-border text-[10px] font-display font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors uppercase"
-                >
-                  {fmt === "html_report" ? "HTML" : fmt.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          )}
+          <LabExportButtons
+            tracking={tracking}
+            biomechanics={mediaPipe.biomechanics}
+            selectedPlayerId={selectedPlayerId}
+            selectedPlayerName={selectedPlayer?.name}
+            selectedVideoId={selectedVideoId}
+            tacticalEvents={tacticalEvents}
+            eventSummary={eventSummary}
+          />
 
           </VitasLabOneClick>
         </motion.div>

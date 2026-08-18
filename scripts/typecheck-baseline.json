@@ -1,6 +1,6 @@
 {
   "_comment": "Baseline de errores tsc conocidos (tsconfig.app.json). NO editar a mano: regenerar con `node scripts/typecheck-baseline.mjs --update`. Objetivo: que solo baje. Ver scripts/typecheck-baseline.mjs.",
-  "total": 107,
+  "total": 106,
   "errors": {
     "api/_lib/budgetGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 4,
     "api/_lib/usageGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 3,
@@ -43,7 +43,7 @@
     "src/pages/PlayerReportPrint.tsx::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'PlayerMetrics'.": 2,
     "src/pages/RegisterPage.tsx::TS2554::Expected 2-3 arguments, but got 4.": 1,
     "src/pages/TeamAnalysisPage.tsx::TS2322::Type '{ fx?: number; fy?: number; }[]' is not assignable to type 'Position[]'.": 1,
-    "src/pages/VitasLab.tsx::TS2339::Property 'tMs' does not exist on type 'FieldPosition'.": 3,
+    "src/pages/VitasLab.tsx::TS2339::Property 'tMs' does not exist on type 'FieldPosition'.": 2,
     "src/pages/VitasLab.tsx::TS2551::Property 'injuryRiskFlags' does not exist on type 'BiomechanicsScore'. Did you mean 'injuryRisk'?": 1,
     "src/pages/VitasLab.tsx::TS2339::Property 'avgJointAngles' does not exist on type 'BiomechanicsScore'.": 1,
     "src/pages/VitasLab.tsx::TS2339::Property 'secondaryPositions' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
