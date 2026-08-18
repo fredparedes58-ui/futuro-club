@@ -32,6 +32,8 @@ import {
   Zap,
 } from "lucide-react";
 import TrackingMetricsPanel from "@/components/TrackingMetricsPanel";
+import ModelLoadingOverlay from "@/components/tracking/ModelLoadingOverlay";
+import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
 import VoronoiOverlay from "@/components/VoronoiOverlay";
@@ -1262,6 +1264,14 @@ const VitasLab = () => {
                   ))}
                 </AnimatePresence>
               </div>
+            )}
+            {/* Descarga del modelo, narrada (primera vez ~84 MB, luego cacheado) */}
+            {tracking.state.status === "loading-model" && (
+              <ModelLoadingOverlay
+                progress={tracking.state.modelProgress}
+                message={tracking.state.progressMessage}
+                sizeMb={getActiveModel().sizeMb}
+              />
             )}
             {/* Calibration Status */}
             <div className="absolute bottom-4 left-4 glass rounded-lg px-4 py-2 flex items-center gap-2">

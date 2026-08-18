@@ -2305,6 +2305,11 @@
     "streak_one": "{{count}} semana seguida",
     "streak_other": "{{count}} semanas seguidas"
   },
+  "modelLoading": {
+    "title": "Preparando el análisis",
+    "preparing": "Cargando…",
+    "context": "Modelo de detección · {{mb}} MB · se descarga una vez y queda guardado en tu dispositivo"
+  },
   "shareCard": {
     "button": "Compartir",
     "shareWhatsapp": "Compartir por WhatsApp",
