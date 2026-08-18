@@ -26,6 +26,8 @@ import type { BallDetection } from "../lib/yolo/ballDetector";
 import { BallTracker } from "../lib/yolo/ballTracker";
 import type { BallTrack } from "../lib/yolo/ballTracker";
 import type { BallModelConfig } from "../lib/yolo/ballModelConfig";
+import { computeTileRects, cropImage } from "../lib/yolo/tiling";
+import type { ImageLike, TilingConfig } from "../lib/yolo/tiling";
 
 // Mismo setup WASM que trackingWorker (sin SharedArrayBuffer, SIMD on)
 ort.env.wasm.wasmPaths  = "/";
@@ -38,6 +40,13 @@ ort.env.wasm.proxy      = false;
 export interface BallWorkerInit {
   type: "INIT";
   config?: Partial<BallModelConfig>;
+  /**
+   * Tiling (SAHI) opt-in — mismo ajuste `vitas_tiling` que el pose worker
+   * (resuelto en main thread; los workers no tienen localStorage). Solo aplica
+   * al modo standalone (Strategy 0). Benchmark real (docs/benchmark-balon-17.md):
+   * cobertura de balón 27% plano → 64% con 2×2.
+   */
+  tiling?: TilingConfig | null;
 }
 
 export interface BallWorkerFrame {
@@ -100,6 +109,8 @@ let ballConfig: BallModelConfig | null = null;
 const ballTracker = new BallTracker();
 // Sesión ONNX propia (solo modo standalone; null = modos combined/heuristic)
 let ballSession: ort.InferenceSession | null = null;
+// Tiling opt-in (null = pasada única, sin regresión de latencia)
+let tilingConfig: TilingConfig | null = null;
 
 // ─── Message Handler ───────────────────────────────────────────────────────
 
@@ -143,6 +154,7 @@ async function initBallTracking(cmd: BallWorkerInit): Promise<void> {
     ballConfig = cmd.config
       ? { ...defaultConfig, ...cmd.config }
       : defaultConfig;
+    tilingConfig = cmd.tiling ?? null;
 
     ballTracker.reset();
 
@@ -169,9 +181,11 @@ async function initBallTracking(cmd: BallWorkerInit): Promise<void> {
   }
 }
 
-// ─── Preprocess ImageData → tensor [1,3,size,size] (letterbox, igual que trackingWorker) ───
+// ─── Preprocess ImageLike → tensor [1,3,size,size] (letterbox, igual que trackingWorker) ───
+// ImageLike (estructural) en vez de ImageData: los crops de `cropImage` (tiling)
+// no son instancias de ImageData pero tienen la misma forma.
 
-function preprocessBall(imageData: ImageData, size: number): ort.Tensor {
+function preprocessBall(imageData: ImageLike, size: number): ort.Tensor {
   const { width, height, data } = imageData;
   const tensor = new Float32Array(3 * size * size);
 
@@ -197,6 +211,70 @@ function preprocessBall(imageData: ImageData, size: number): ort.Tensor {
   return new ort.Tensor("float32", tensor, [1, 3, size, size]);
 }
 
+// ─── Inferencia standalone (Strategy 0) ──────────────────────────────────────
+
+/** Una pasada del detect dedicado sobre `img`. Coordenadas en espacio de `img`. */
+async function inferBallStandalone(
+  img: ImageLike,
+  srcAspect: number,
+): Promise<BallDetection | null> {
+  if (!ballSession || !ballConfig) return null;
+  const size = ballConfig.inputSize ?? 640;
+  const inputTensor = preprocessBall(img, size);
+  const feeds: Record<string, ort.Tensor> = {};
+  feeds[ballSession.inputNames[0]] = inputTensor;
+  const output = await ballSession.run(feeds);
+  const outputData = output[ballSession.outputNames[0]].data as Float32Array;
+  return detectBallFromModelOutput(
+    outputData,
+    ballConfig.numClasses ?? 80,
+    ballConfig.ballClassId,
+    img.width,
+    img.height,
+    size,
+    {
+      confThreshold: ballConfig.confThreshold,
+      maxBboxSize: ballConfig.maxBboxSize,
+      minBboxSize: ballConfig.minBboxSize,
+      // El frame llega aplastado desde el vídeo original → corrige el filtro de
+      // aspecto para no descartar el balón (redondo → elipse). El aplastado es
+      // un escalado uniforme de TODO el canvas, así que la misma corrección vale
+      // para cualquier tile recortado de él.
+      aspectCorrection: srcAspect,
+    },
+  );
+}
+
+/**
+ * Tiling (SAHI) para el balón: recorta la malla G×G (con solape), infiere cada
+ * tile y devuelve el candidato de MAYOR confianza mapeado a coordenadas del
+ * frame completo. A diferencia de los jugadores (globalNms sobre N cajas), el
+ * balón es único por construcción → argmax, no NMS.
+ */
+async function inferBallTiled(
+  img: ImageLike,
+  cfg: TilingConfig,
+  srcAspect: number,
+): Promise<BallDetection | null> {
+  const rects = computeTileRects(img.width, img.height, cfg.grid, cfg.overlap);
+  let best: BallDetection | null = null;
+  for (const rect of rects) {
+    if (rect.sw <= 0 || rect.sh <= 0) continue;
+    const tile = cropImage(img, rect);
+    const det = await inferBallStandalone(tile, srcAspect);
+    if (!det) continue;
+    if (!best || det.confidence > best.confidence) {
+      // Mapear del espacio del tile al del frame completo
+      best = {
+        ...det,
+        bbox: [det.bbox[0] + rect.sx, det.bbox[1] + rect.sy, det.bbox[2], det.bbox[3]],
+        center: { x: det.center.x + rect.sx, y: det.center.y + rect.sy },
+      };
+    }
+  }
+  return best;
+}
+
 // ─── Process Frame ─────────────────────────────────────────────────────────
 
 async function processBallFrame(cmd: BallWorkerFrame): Promise<void> {
@@ -210,30 +288,13 @@ async function processBallFrame(cmd: BallWorkerFrame): Promise<void> {
 
     // Strategy 0 (FASE 2): inferencia standalone con el detect dedicado.
     // Coordenadas en espacio de frame (imageData) — el mismo que usa la
-    // homografía del pose pipeline.
+    // homografía del pose pipeline. Con tiling opt-in: G² pasadas, se queda
+    // el mejor candidato (el balón es único: argmax, no NMS).
     if (ballSession && cmd.imageData && ballConfig.ballClassId >= 0) {
-      const size = ballConfig.inputSize ?? 640;
-      const inputTensor = preprocessBall(cmd.imageData, size);
-      const feeds: Record<string, ort.Tensor> = {};
-      feeds[ballSession.inputNames[0]] = inputTensor;
-      const output = await ballSession.run(feeds);
-      const outputData = output[ballSession.outputNames[0]].data as Float32Array;
-      detection = detectBallFromModelOutput(
-        outputData,
-        ballConfig.numClasses ?? 80,
-        ballConfig.ballClassId,
-        cmd.imageData.width,
-        cmd.imageData.height,
-        size,
-        {
-          confThreshold: ballConfig.confThreshold,
-          maxBboxSize: ballConfig.maxBboxSize,
-          minBboxSize: ballConfig.minBboxSize,
-          // imageData es 640×640 aplastado desde el vídeo original → corrige el
-          // filtro de aspecto para no descartar el balón (redondo → elipse).
-          aspectCorrection: cmd.srcAspect ?? 1,
-        },
-      );
+      detection =
+        tilingConfig && tilingConfig.grid > 1
+          ? await inferBallTiled(cmd.imageData, tilingConfig, cmd.srcAspect ?? 1)
+          : await inferBallStandalone(cmd.imageData, cmd.srcAspect ?? 1);
     }
 
     // Strategy 1: Model-based detection (dedicated ball class in YOLO output)

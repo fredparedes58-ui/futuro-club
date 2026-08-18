@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
 import CalibrationCaveat from "@/components/CalibrationCaveat";
+import { ProvenanceBadge } from "@/components/metrics/MetricValue";
 import {
   computeMatchStats,
   RATING_LABEL_ES,
@@ -112,8 +113,11 @@ export default function MatchStatsPanel({ data, title }: Props) {
                 <h3 className="text-sm font-display font-bold text-foreground truncate">
                   {resolvedTitle}
                 </h3>
-                <p className="text-[9px] text-muted-foreground">
-                  {fuenteLabel} · {t("matchStatsPanel.confidence")} {Math.round(stats.confianza * 100)}%
+                <p className="text-[9px] text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                  {/* Procedencia declarada: los eventos del vídeo son estimación del modelo,
+                      no medición. La etiqueta la decide el componente canónico (metricas.md). */}
+                  {stats.eventMetrics && <ProvenanceBadge provenance="ESTIMADA_LLM" />}
+                  <span>{fuenteLabel} · {t("matchStatsPanel.confidence")} {Math.round(stats.confianza * 100)}%</span>
                 </p>
               </div>
             </div>

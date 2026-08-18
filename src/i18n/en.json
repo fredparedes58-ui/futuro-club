@@ -2293,6 +2293,21 @@
       "lider": "Leadership"
     }
   },
+  "videoAnalysisSettings": {
+    "title": "Video analysis",
+    "modelTitle": "Detection model",
+    "modelDesc": "Higher resolution sees smaller/farther players, but takes longer. The default is picked per device.",
+    "tilingTitle": "Tiling (zone analysis)",
+    "tilingDesc": "Splits the frame into zones and analyses each — detects small/far players the normal pass misses.",
+    "gridLabel": "Zone grid",
+    "grid2Desc": "4 passes · balanced",
+    "grid3Desc": "9 passes · max detail",
+    "computeWarn": "Tiling multiplies compute per zone (4× or 9×). Meant for deferred analysis, not live video: live playback may stutter.",
+    "tilingOnToast": "Tiling enabled (2×2)",
+    "tilingOffToast": "Tiling disabled",
+    "appliesNext": "Saved — applies to the next analysis",
+    "appliesNextHint": "Changes apply to the next analysis you start (not the one in progress)."
+  },
   "sprintSpeed": {
     "title": "Sprint Speed",
     "intro": "Measures sprint speed over a KNOWN distance by timing between marks. No camera calibration needed. The video is not uploaded anywhere.",
@@ -4512,6 +4527,12 @@
     "matchNotSpecified": "Match not specified"
   },
   "trackingMetricsPanel": {
+    "reliabilityTitle": "This session's reliability",
+    "reliabilityCalibration": "Field calibration",
+    "reliabilityCalibrated": "Trustworthy (metres)",
+    "reliabilityUncalibrated": "Uncalibrated (pixels)",
+    "reliabilityAssociation": "Tracks with reliable association",
+    "reliabilityAnonymous": "Tracks without jersey no. (anonymous)",
     "statusTracking": "TRACKING ACTIVE",
     "statusLoadingModel": "LOADING YOLO…",
     "statusReady": "READY",

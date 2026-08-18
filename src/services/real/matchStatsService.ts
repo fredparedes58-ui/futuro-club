@@ -15,6 +15,7 @@
  */
 
 import type { VideoIntelligenceOutput } from "@/agents/contracts";
+import { estimatedLLM, gated, type MetricResult } from "@/lib/metrics/MetricResult";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -112,6 +113,24 @@ export interface MatchStatsSummary {
   // Metadatos
   fuente: "yolo+gemini" | "gemini_only" | "yolo_only";
   confianza: number;           // 0–1
+
+  /**
+   * Eventos como `MetricResult` con provenance ESTIMADA_LLM (contrato de métricas):
+   * la salida del modelo de vídeo es una estimación, no una medición. ADITIVO —
+   * los campos numéricos de arriba siguen alimentando la UI existente y el rating.
+   */
+  eventMetrics?: {
+    pasesCompletados: MetricResult<number>;
+    pasesFallados:    MetricResult<number>;
+    duelosGanados:    MetricResult<number>;
+    duelosPerdidos:   MetricResult<number>;
+    recuperaciones:   MetricResult<number>;
+    robos:            MetricResult<number>;
+    anticipaciones:   MetricResult<number>;
+    perdidas:         MetricResult<number>;
+    disparosAlArco:   MetricResult<number>;
+    disparosFuera:    MetricResult<number>;
+  };
 }
 
 // ─── Benchmarks orientativos (sub-17 → pro) ───────────────────────────────────
@@ -365,6 +384,30 @@ export function computeMatchStats(
   const { rating: performanceRating, label: performanceLabel } =
     composeRating(pases, duelos, recuperaciones, disparos, fisicasOut);
 
+  // ── Eventos como MetricResult (provenance declarada) ─────
+  // El modelo de vídeo ESTIMA los eventos: nunca son una medición. Cada valor
+  // lleva ESTIMADA_LLM + la confianza del propio análisis + la fuente. Los campos
+  // opcionales que el modelo no reportó salen gateados (null + motivo), no en 0.
+  const evMeta = { confidence: confianza, source_ref: fuente } as const;
+  const evOpt = (v: number | undefined): MetricResult<number> =>
+    typeof v === "number"
+      ? estimatedLLM(v, evMeta)
+      : gated("No reportado por el modelo de vídeo", { provenance: "ESTIMADA_LLM", source_ref: fuente });
+  const eventMetrics: MatchStatsSummary["eventMetrics"] = ev
+    ? {
+        pasesCompletados: estimatedLLM(ev.pasesCompletados, evMeta),
+        pasesFallados:    estimatedLLM(ev.pasesFallados, evMeta),
+        duelosGanados:    estimatedLLM(ev.duelosGanados, evMeta),
+        duelosPerdidos:   estimatedLLM(ev.duelosPerdidos, evMeta),
+        recuperaciones:   estimatedLLM(ev.recuperaciones, evMeta),
+        robos:            evOpt(ev.robos),
+        anticipaciones:   evOpt(ev.anticipaciones),
+        perdidas:         evOpt(ev.perdidas),
+        disparosAlArco:   estimatedLLM(ev.disparosAlArco, evMeta),
+        disparosFuera:    estimatedLLM(ev.disparosFuera, evMeta),
+      }
+    : undefined;
+
   return {
     totalAcciones,
     totalOfensivas,
@@ -383,6 +426,7 @@ export function computeMatchStats(
     tieneFisicas: Boolean(fis),
     fuente,
     confianza,
+    eventMetrics,
   };
 }
 

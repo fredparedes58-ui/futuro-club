@@ -2293,6 +2293,21 @@
       "lider": "Liderazgo"
     }
   },
+  "videoAnalysisSettings": {
+    "title": "Análisis de vídeo",
+    "modelTitle": "Modelo de detección",
+    "modelDesc": "Más resolución = ve jugadores más lejanos, pero tarda más. El default se elige por dispositivo.",
+    "tilingTitle": "Tiling (análisis por zonas)",
+    "tilingDesc": "Divide el frame en zonas y analiza cada una — detecta jugadores pequeños/lejanos que el paso normal pierde.",
+    "gridLabel": "Malla de zonas",
+    "grid2Desc": "4 pasadas · equilibrado",
+    "grid3Desc": "9 pasadas · máximo detalle",
+    "computeWarn": "El tiling multiplica el cómputo por zona (4× o 9×). Pensado para análisis en diferido, no para vídeo en vivo: en directo puede ir a saltos.",
+    "tilingOnToast": "Tiling activado (2×2)",
+    "tilingOffToast": "Tiling desactivado",
+    "appliesNext": "Guardado — se aplica al próximo análisis",
+    "appliesNextHint": "Los cambios se aplican al próximo análisis que inicies (no al que esté en curso)."
+  },
   "sprintSpeed": {
     "title": "Velocidad de Sprint",
     "intro": "Mide la velocidad de un sprint sobre una distancia CONOCIDA cronometrando entre marcas. No necesita calibrar la cámara. El vídeo no se sube a ningún sitio.",
@@ -4512,6 +4527,12 @@
     "matchNotSpecified": "Match no especificado"
   },
   "trackingMetricsPanel": {
+    "reliabilityTitle": "Fiabilidad de esta sesión",
+    "reliabilityCalibration": "Calibración de campo",
+    "reliabilityCalibrated": "Fiable (metros)",
+    "reliabilityUncalibrated": "Sin calibrar (píxeles)",
+    "reliabilityAssociation": "Pistas con asociación fiable",
+    "reliabilityAnonymous": "Pistas sin dorsal (anónimas)",
     "statusTracking": "TRACKING ACTIVO",
     "statusLoadingModel": "CARGANDO YOLO…",
     "statusReady": "LISTO",

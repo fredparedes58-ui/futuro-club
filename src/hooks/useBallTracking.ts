@@ -17,6 +17,7 @@ import type { BallTrack } from "@/lib/yolo/ballTracker";
 import type { BallDetection } from "@/lib/yolo/ballDetector";
 import { getActiveBallConfig } from "@/lib/yolo/ballModelConfig";
 import type { BallModelConfig } from "@/lib/yolo/ballModelConfig";
+import { getTilingConfig } from "@/lib/yolo/tiling";
 import type { Track, FieldPoint } from "@/lib/yolo/types";
 import type {
   BallWorkerEvent,
@@ -159,6 +160,9 @@ export function useBallTracking(options: UseBallTrackingOptions = {}) {
     worker.postMessage({
       type: "INIT",
       config: resolved,
+      // Tiling opt-in (mismo ajuste vitas_tiling que el pose worker): en modo
+      // standalone multiplica la cobertura del balón (27%→64% medido, 2×2).
+      tiling: getTilingConfig(),
     });
   }, [config]);
 
