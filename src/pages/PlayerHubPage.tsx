@@ -49,6 +49,7 @@ import PositionComparison from "@/components/PositionComparison";
 import BestMatchProByPosition from "@/components/BestMatchProByPosition";
 import { getPositionRollup } from "@/services/real/positionRollupService";
 import PlayerPhvSection from "@/components/player/PlayerPhvSection";
+import SprintBestCard from "@/components/player/SprintBestCard";
 import RadarChartComponent from "@/components/RadarChart";
 import { EmptyVideo, EmptyInsights, EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 import IdentityCard from "@/components/role-profile/IdentityCard";
@@ -509,6 +510,9 @@ export default function PlayerHubPage() {
                   onSaved={() => setPhvRefresh((v) => v + 1)}
                 />
               )}
+              {/* Mejor sprint MEDIDO (test de puertas) — por encima del tracking
+                  derivado: es la física de mayor procedencia del sistema. */}
+              <SprintBestCard playerId={id ?? ""} />
               <TrackingSnapshotPanel playerId={id ?? ""} snapshot={snapshot} />
             </motion.div>
           )}
