@@ -2301,7 +2301,18 @@
     "ritualTitle": "¿Jugasteis este finde?",
     "firstTitle": "Empieza por el último partido",
     "ritualSubtitle": "Sube el vídeo y en ~5 min tienes insights, VSI y perfil de rol.",
-    "uploadCta": "Subir vídeo del partido"
+    "uploadCta": "Subir vídeo del partido",
+    "streak_one": "{{count}} semana seguida",
+    "streak_other": "{{count}} semanas seguidas"
+  },
+  "shareCard": {
+    "button": "Compartir",
+    "shareWhatsapp": "Compartir por WhatsApp",
+    "text": "Ficha VITAS de {{name}} — VSI corregido por maduración (PHV).",
+    "years": "años",
+    "leftFooted": "zurdo",
+    "pending": "Análisis pendiente — sube un vídeo del partido",
+    "tagline": "VSI corregido por maduración biológica (PHV)"
   },
   "sprintBestCard": {
     "title": "Mejor sprint (test)",

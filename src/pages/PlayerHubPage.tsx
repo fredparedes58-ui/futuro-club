@@ -50,6 +50,7 @@ import BestMatchProByPosition from "@/components/BestMatchProByPosition";
 import { getPositionRollup } from "@/services/real/positionRollupService";
 import PlayerPhvSection from "@/components/player/PlayerPhvSection";
 import SprintBestCard from "@/components/player/SprintBestCard";
+import ShareablePlayerCard from "@/components/player/ShareablePlayerCard";
 import RadarChartComponent from "@/components/RadarChart";
 import { EmptyVideo, EmptyInsights, EmptyTracking } from "@/components/illustrations/EmptyIllustrations";
 import IdentityCard from "@/components/role-profile/IdentityCard";
@@ -282,6 +283,7 @@ export default function PlayerHubPage() {
             </div>
 
             {/* Acciones */}
+            {player && <ShareablePlayerCard player={player} />}
             <Button
               variant="outline"
               size="sm"

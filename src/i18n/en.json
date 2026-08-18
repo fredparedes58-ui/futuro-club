@@ -2301,7 +2301,18 @@
     "ritualTitle": "Did you play this weekend?",
     "firstTitle": "Start with the latest match",
     "ritualSubtitle": "Upload the video and get insights, VSI and role profile in ~5 min.",
-    "uploadCta": "Upload match video"
+    "uploadCta": "Upload match video",
+    "streak_one": "{{count}} week streak",
+    "streak_other": "{{count}} weeks in a row"
+  },
+  "shareCard": {
+    "button": "Share",
+    "shareWhatsapp": "Share on WhatsApp",
+    "text": "{{name}}'s VITAS card — VSI corrected for biological maturity (PHV).",
+    "years": "yrs",
+    "leftFooted": "left-footed",
+    "pending": "Analysis pending — upload a match video",
+    "tagline": "VSI corrected for biological maturity (PHV)"
   },
   "sprintBestCard": {
     "title": "Best sprint (test)",
