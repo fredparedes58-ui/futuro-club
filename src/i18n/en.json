@@ -69,12 +69,9 @@
     "soon": "Soon",
     "comingSoon": "{{label}} coming soon",
     "groups": {
-      "tactics": "Tactics",
-      "training": "Training",
-      "health": "Health & wellbeing",
-      "mental": "Mental",
-      "multimedia": "Multimedia",
-      "market": "Market"
+      "analyze": "Analyze a match",
+      "player": "Player development",
+      "club": "Club management"
     },
     "items": {
       "setPieces": "Set piece analysis",
@@ -1913,9 +1910,9 @@
     "heroDescription": "VITAS is the first Football Intelligence platform with biological maturation correction (PHV). It spots hidden talent in youth academies that traditional systems misclassify based on current physique. Scouting, AI tactical analysis, and end-to-end management.",
     "watchDemo": "WATCH DEMO",
     "requestDemo": "Request a demo",
-    "statPlayers": "Players",
-    "statLiveSessions": "Live Sessions",
-    "statInsightsPerDay": "Insights/Day",
+    "statRefPlayers": "La Liga reference players",
+    "statAnalysisTime": "From video to insights",
+    "statFreeStart": "To get started (Free plan)",
     "uniqueDifferentiator": "Unique differentiator",
     "phvHeadingStart": "Your best player isn't the tallest.",
     "phvHeadingAccent": "It's the one who hasn't grown yet.",
@@ -2329,7 +2326,15 @@
     "provenanceBadge": "Calculated · real distance ÷ real time",
     "needMarks": "Mark start and finish to see the speed",
     "finishAfterStart": "Finish must be AFTER start",
-    "reset": "Reset marks"
+    "reset": "Reset marks",
+    "savePanelTitle": "Save to the player's profile",
+    "selectPlayer": "Pick a player…",
+    "noPlayers": "No players registered yet. Create one in Rankings → Add player.",
+    "save": "Save test",
+    "savedToast": "Test saved to the player's profile",
+    "historyTitle": "This player's tests",
+    "historyEmpty": "No saved tests yet.",
+    "viewProfile": "View profile"
   },
   "analysisReportPrint": {
     "errorNoId": "Analysis ID not provided",

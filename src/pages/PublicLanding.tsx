@@ -310,11 +310,12 @@ export default function PublicLanding() {
                 {t("publicLanding.requestDemo")}
               </Link>
             </div>
-            {/* Stats row */}
+            {/* Stats row — claims de PRODUCTO verificables, no métricas de uso
+                inventadas (los contadores anteriores no salían de ningún dato real). */}
             <div className="flex gap-8 pt-4">
-              <AnimatedStat value="12.847" label={t("publicLanding.statPlayers")} color="text-cyan-600" />
-              <AnimatedStat value="342" label={t("publicLanding.statLiveSessions")} color="text-cyan-600" />
-              <AnimatedStat value="1.893" label={t("publicLanding.statInsightsPerDay")} color="text-cyan-600" />
+              <AnimatedStat value="+365" label={t("publicLanding.statRefPlayers")} color="text-cyan-600" />
+              <AnimatedStat value="5 min" label={t("publicLanding.statAnalysisTime")} color="text-cyan-600" />
+              <AnimatedStat value="0€" label={t("publicLanding.statFreeStart")} color="text-cyan-600" />
             </div>
           </motion.div>
 

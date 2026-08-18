@@ -8,13 +8,16 @@
  * ⇒ velocidad DERIVADA. Todo corre en el navegador; el vídeo no se sube a ningún sitio.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { ArrowLeft, Gauge, Upload, Flag, Play, Pause, RotateCcw } from "lucide-react";
+import { ArrowLeft, Gauge, Upload, Flag, Play, Pause, RotateCcw, Save, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PlayerService } from "@/services/real/playerService";
+import { SprintTestService, type SprintTest } from "@/services/real/sprintTestService";
 
 export default function SprintSpeed() {
   const { t } = useTranslation();
@@ -30,6 +33,14 @@ export default function SprintSpeed() {
   const [distance, setDistance] = useState(15);
   const [startFrame, setStartFrame] = useState<number | null>(null);
   const [finishFrame, setFinishFrame] = useState<number | null>(null);
+
+  // Guardar al perfil: el test pertenece a un jugador (módulos que conversan)
+  const [players] = useState(() => PlayerService.getAll());
+  const [playerId, setPlayerId] = useState<string>("");
+  const [history, setHistory] = useState<SprintTest[]>([]);
+  useEffect(() => {
+    setHistory(playerId ? SprintTestService.getByPlayer(playerId) : []);
+  }, [playerId]);
 
   const curFrame = Math.round(currentTime * fps);
   const totalFrames = Math.round(duration * fps);
@@ -85,6 +96,27 @@ export default function SprintSpeed() {
   }, [startFrame, finishFrame, distance, fps]);
 
   const marksInvalid = startFrame != null && finishFrame != null && finishFrame <= startFrame;
+
+  function saveTest() {
+    if (!result || !playerId) return;
+    SprintTestService.add({
+      playerId,
+      fecha: new Date().toISOString().slice(0, 10),
+      distancia_m: distance,
+      tiempo_s: +result.time.toFixed(3),
+      velocidad_ms: +result.ms.toFixed(2),
+      velocidad_kmh: +result.kmh.toFixed(1),
+      fps,
+      error_pct: +result.errPct.toFixed(1),
+    });
+    setHistory(SprintTestService.getByPlayer(playerId));
+    toast.success(t("sprintSpeed.savedToast"));
+  }
+
+  function removeTest(id: string) {
+    SprintTestService.remove(id);
+    setHistory(playerId ? SprintTestService.getByPlayer(playerId) : []);
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -213,6 +245,59 @@ export default function SprintSpeed() {
               ) : (
                 <div className="text-sm text-muted-foreground">
                   {marksInvalid ? <span className="text-destructive">{t("sprintSpeed.finishAfterStart")}</span> : t("sprintSpeed.needMarks")}
+                </div>
+              )}
+            </div>
+
+            {/* Guardar en el perfil del jugador — el test no se pierde en la página */}
+            <div className="rounded-xl border border-border p-4 space-y-3">
+              <p className="text-xs font-display font-bold uppercase tracking-wider text-muted-foreground">
+                {t("sprintSpeed.savePanelTitle")}
+              </p>
+              {players.length === 0 ? (
+                <p className="text-xs text-muted-foreground">{t("sprintSpeed.noPlayers")}</p>
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    value={playerId}
+                    onChange={(e) => setPlayerId(e.target.value)}
+                    className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">{t("sprintSpeed.selectPlayer")}</option>
+                    {players.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} · {p.position}</option>
+                    ))}
+                  </select>
+                  <Button onClick={saveTest} disabled={!result || !playerId}>
+                    <Save size={15} className="mr-1" /> {t("sprintSpeed.save")}
+                  </Button>
+                </div>
+              )}
+
+              {playerId && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      {t("sprintSpeed.historyTitle")}
+                    </p>
+                    <Link to={`/players/${playerId}`} className="text-[11px] text-primary font-semibold hover:underline">
+                      {t("sprintSpeed.viewProfile")} →
+                    </Link>
+                  </div>
+                  {history.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">{t("sprintSpeed.historyEmpty")}</p>
+                  ) : (
+                    history.map((h) => (
+                      <div key={h.id} className="flex items-center justify-between text-[11px] tabular-nums border-b border-border/50 py-1">
+                        <span className="text-muted-foreground">{h.fecha}</span>
+                        <span>{h.distancia_m} m · {h.tiempo_s}s</span>
+                        <span className="font-bold">{h.velocidad_ms} m/s ({h.velocidad_kmh} km/h)</span>
+                        <button onClick={() => removeTest(h.id)} aria-label="delete" className="text-muted-foreground hover:text-destructive">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
