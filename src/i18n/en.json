@@ -2305,6 +2305,11 @@
     "streak_one": "{{count}} week streak",
     "streak_other": "{{count}} weeks in a row"
   },
+  "modelLoading": {
+    "title": "Preparing the analysis",
+    "preparing": "Loading…",
+    "context": "Detection model · {{mb}} MB · downloaded once and kept on your device"
+  },
   "shareCard": {
     "button": "Share",
     "shareWhatsapp": "Share on WhatsApp",
