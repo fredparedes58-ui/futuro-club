@@ -10,6 +10,7 @@
  */
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState } from "react";
+import TermTooltip from "@/components/shared/TermTooltip";
 
 interface VsiGaugeProps {
   value: number;
@@ -123,7 +124,8 @@ const VsiGauge = ({ value, size = "md", label = "VSI", showTier = false }: VsiGa
         </span>
         {size !== "sm" && (
           <span className={`${s.labelText} uppercase tracking-[0.18em] text-muted-foreground font-bold mt-0.5`}>
-            {label}
+            {/* Glosario inline: si el label es el término VSI, hover/focus explica qué es */}
+            {label === "VSI" ? <TermTooltip termKey="vsi">{label}</TermTooltip> : label}
           </span>
         )}
         {showTier && size === "xl" && (

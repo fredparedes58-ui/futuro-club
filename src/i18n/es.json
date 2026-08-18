@@ -69,12 +69,9 @@
     "soon": "Pronto",
     "comingSoon": "{{label}} llega próximamente",
     "groups": {
-      "tactics": "Tácticas",
-      "training": "Entrenamiento",
-      "health": "Salud y bienestar",
-      "mental": "Mental",
-      "multimedia": "Multimedia",
-      "market": "Mercado"
+      "analyze": "Analizar partido",
+      "player": "Desarrollo del jugador",
+      "club": "Gestión del club"
     },
     "items": {
       "setPieces": "Análisis de balón parado",
@@ -1913,9 +1910,9 @@
     "heroDescription": "VITAS es la primera plataforma de Football Intelligence con corrección de maduración biológica (PHV). Detecta talento oculto en academias juveniles que sistemas tradicionales clasifican erróneamente por su físico actual. Scouting, análisis táctico con IA y gestión integral.",
     "watchDemo": "VER DEMO",
     "requestDemo": "Solicitar demo",
-    "statPlayers": "Jugadores",
-    "statLiveSessions": "Sesiones Live",
-    "statInsightsPerDay": "Insights/Día",
+    "statRefPlayers": "Jugadores de referencia La Liga",
+    "statAnalysisTime": "De vídeo a insights",
+    "statFreeStart": "Para empezar (plan Free)",
     "uniqueDifferentiator": "Diferenciador único",
     "phvHeadingStart": "Tu mejor jugador no es el más alto.",
     "phvHeadingAccent": "Es el que aún no ha crecido.",
@@ -2329,7 +2326,15 @@
     "provenanceBadge": "Calculado · distancia real ÷ tiempo real",
     "needMarks": "Marca salida y meta para ver la velocidad",
     "finishAfterStart": "La meta debe ir DESPUÉS de la salida",
-    "reset": "Reiniciar marcas"
+    "reset": "Reiniciar marcas",
+    "savePanelTitle": "Guardar en el perfil del jugador",
+    "selectPlayer": "Elige jugador…",
+    "noPlayers": "No hay jugadores registrados todavía. Crea uno en Rankings → Añadir jugador.",
+    "save": "Guardar test",
+    "savedToast": "Test guardado en el perfil del jugador",
+    "historyTitle": "Tests de este jugador",
+    "historyEmpty": "Sin tests guardados todavía.",
+    "viewProfile": "Ver ficha"
   },
   "analysisReportPrint": {
     "errorNoId": "ID de análisis no proporcionado",

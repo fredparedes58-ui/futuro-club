@@ -35,17 +35,12 @@ type ExtraGroup = {
   }>;
 };
 
+// 3 hubs con el modelo mental del coach (antes: 7 grupos para 13 items):
+// "¿Qué hago?" → Analizar un partido · Desarrollar a un jugador · Gestionar el club.
 const EXTRA_GROUPS: ExtraGroup[] = [
   {
-    titleKey: "moreMenu.groups.tactics",
+    titleKey: "moreMenu.groups.analyze",
     items: [
-      {
-        path: "/set-pieces",
-        icon: Crosshair,
-        label: "Set Pieces",
-        descKey: "moreMenu.items.setPieces",
-        color: "from-amber-500 to-orange-500",
-      },
       {
         path: "/live",
         icon: Sparkles,
@@ -60,22 +55,29 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         descKey: "moreMenu.items.tactical",
         color: "from-cyan-500 to-purple-500",
       },
+      {
+        path: "/set-pieces",
+        icon: Crosshair,
+        label: "Set Pieces",
+        descKey: "moreMenu.items.setPieces",
+        color: "from-amber-500 to-orange-500",
+      },
+      {
+        path: "/highlights",
+        icon: Film,
+        label: "Highlights",
+        descKey: "moreMenu.items.highlights",
+        color: "from-emerald-500 to-teal-500",
+      },
     ],
   },
   {
-    titleKey: "moreMenu.groups.training",
+    titleKey: "moreMenu.groups.player",
     items: [
-      {
-        path: "/coach",
-        icon: ClipboardList,
-        label: "Coach",
-        descKey: "moreMenu.items.coach",
-        color: "from-blue-500 to-cyan-500",
-      },
       {
         path: "/idp",
         icon: Target,
-        label: "Plan IDP",
+        label: "Plan de desarrollo",
         descKey: "moreMenu.items.idp",
         color: "from-cyan-500 to-purple-500",
       },
@@ -86,23 +88,6 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         descKey: "moreMenu.items.sprintSpeed",
         color: "from-lime-500 to-emerald-500",
       },
-    ],
-  },
-  {
-    titleKey: "moreMenu.groups.health",
-    items: [
-      {
-        path: "/wellbeing",
-        icon: Heart,
-        label: "Bienestar",
-        descKey: "moreMenu.items.wellbeing",
-        color: "from-rose-500 to-red-500",
-      },
-    ],
-  },
-  {
-    titleKey: "moreMenu.groups.mental",
-    items: [
       {
         path: "/behavioral",
         icon: Brain,
@@ -117,23 +102,25 @@ const EXTRA_GROUPS: ExtraGroup[] = [
         descKey: "moreMenu.items.scanning",
         color: "from-pink-500 to-fuchsia-600",
       },
-    ],
-  },
-  {
-    titleKey: "moreMenu.groups.multimedia",
-    items: [
       {
-        path: "/highlights",
-        icon: Film,
-        label: "Highlights",
-        descKey: "moreMenu.items.highlights",
-        color: "from-emerald-500 to-teal-500",
+        path: "/wellbeing",
+        icon: Heart,
+        label: "Bienestar",
+        descKey: "moreMenu.items.wellbeing",
+        color: "from-rose-500 to-red-500",
       },
     ],
   },
   {
-    titleKey: "moreMenu.groups.market",
+    titleKey: "moreMenu.groups.club",
     items: [
+      {
+        path: "/coach",
+        icon: ClipboardList,
+        label: "Coach",
+        descKey: "moreMenu.items.coach",
+        color: "from-blue-500 to-cyan-500",
+      },
       {
         path: "/transfer",
         icon: Briefcase,
