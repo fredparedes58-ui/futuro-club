@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   CheckCircle2,
   RotateCcw,
@@ -21,6 +21,7 @@ import {
   Brain,
   Star,
   TrendingUp,
+  ArrowRight,
   Target,
   CircleAlert,
   AlertTriangle,
@@ -359,6 +360,26 @@ const VitasLab = () => {
   const [awayFormation, setAwayFormation]       = useState<string>("4-4-2");
   const [playerName, setPlayerName]             = useState<string>("");
   const [playerPosition, setPlayerPosition]     = useState<string>("");
+
+  // ── Preselección por URL (?playerId=…) ──
+  // 12 vistas ya enlazan a /lab?playerId=X (ficha, FAB, IDP, informes…); hasta
+  // ahora el Lab ignoraba el parámetro. Replica los 3 setters del selector manual
+  // (id + nombre + posición, que alimentan el PDF) y solo actúa si el usuario no
+  // ha elegido ya un jugador. En móvil es la ÚNICA vía de selección (el selector
+  // visual es desktop-only).
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    if (selectedPlayerId !== null) return;
+    const urlPlayerId = searchParams.get("playerId");
+    if (!urlPlayerId) return;
+    const p = players.find((pl) => pl.id === urlPlayerId);
+    if (!p) return;
+    setSelectedPlayerId(p.id);
+    if (p.name) setPlayerName(p.name);
+    if (p.position) setPlayerPosition(p.position);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [players, searchParams]);
+
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const labVideoRef = useRef<HTMLVideoElement | null>(null);
   const [videoDuration, setVideoDuration] = useState(0);
@@ -2313,6 +2334,26 @@ const VitasLab = () => {
                       ))}
                     </ul>
                   </div>
+                )}
+
+                {/* CTA: el análisis no muere en el Lab — continúa en la ficha */}
+                {selectedPlayerId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                  >
+                    <Button
+                      onClick={() => navigate(`/players/${selectedPlayerId}?tab=stats`)}
+                      className="w-full gap-2 font-display font-bold"
+                    >
+                      <TrendingUp size={15} />
+                      {t("vitasLab.viewInProfile", {
+                        name: selectedPlayer?.name ?? (playerName || t("vitasLab.playerFallback")),
+                      })}
+                      <ArrowRight size={15} />
+                    </Button>
+                  </motion.div>
                 )}
               </div>
             </motion.div>

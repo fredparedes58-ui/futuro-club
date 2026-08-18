@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Activity, Users, Zap, TrendingUp, Camera, LayoutDashboard, GitCompareArrows, Settings, Plus, Trophy, Swords, Grid3x3, Sparkles, BarChart3, FileText } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
+import PulseInboxHero from "@/components/pulse/PulseInboxHero";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { DemoDataService } from "@/services/real/demoDataService";
@@ -110,6 +111,12 @@ const Dashboard = () => {
             </div>
           }
         />
+      </motion.div>
+
+      {/* Inbox de hoy: qué hay nuevo desde tu última visita, o el ritual de subir
+          el último partido. Primera respuesta de la app, sin scroll. */}
+      <motion.div variants={item}>
+        <PulseInboxHero />
       </motion.div>
 
       {/* Hoy puedes… · quick action tiles */}

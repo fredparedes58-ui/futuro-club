@@ -2020,6 +2020,7 @@
     "stepUpload": "UPLOAD",
     "stepMapping": "MAPPING",
     "stepProcess": "PROCESS",
+    "viewInProfile": "View in {{name}}'s profile",
     "modeAllPlayers": "All Players",
     "modeAllPlayersDesc": "Global field coverage and heat maps",
     "modeManualTracking": "Manual Tracking",
@@ -2289,6 +2290,25 @@
       "fisico": "Physical",
       "lider": "Leadership"
     }
+  },
+  "pulseInbox": {
+    "eyebrow": "Today",
+    "newsTitle": "Since your last visit",
+    "newAnalyses_one": "new analysis",
+    "newAnalyses_other": "new analyses",
+    "newSessions_one": "new tracking session",
+    "newSessions_other": "new tracking sessions",
+    "ritualTitle": "Did you play this weekend?",
+    "firstTitle": "Start with the latest match",
+    "ritualSubtitle": "Upload the video and get insights, VSI and role profile in ~5 min.",
+    "uploadCta": "Upload match video"
+  },
+  "sprintBestCard": {
+    "title": "Best sprint (test)",
+    "detail": "{{dist}} m in {{time}} s · {{date}} · {{count}} test(s)",
+    "newTest": "New test",
+    "empty": "No sprint tests yet. Measure their real speed with a video and a known distance.",
+    "measureCta": "Measure their sprint"
   },
   "videoAnalysisSettings": {
     "title": "Video analysis",

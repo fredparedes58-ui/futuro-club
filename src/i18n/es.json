@@ -2020,6 +2020,7 @@
     "stepUpload": "SUBIR",
     "stepMapping": "MAPEO",
     "stepProcess": "PROCESAR",
+    "viewInProfile": "Ver en la ficha de {{name}}",
     "modeAllPlayers": "Todos los Jugadores",
     "modeAllPlayersDesc": "Cobertura global del campo y mapas de calor",
     "modeManualTracking": "Seguimiento Manual",
@@ -2289,6 +2290,25 @@
       "fisico": "Físico",
       "lider": "Liderazgo"
     }
+  },
+  "pulseInbox": {
+    "eyebrow": "Hoy",
+    "newsTitle": "Desde tu última visita",
+    "newAnalyses_one": "análisis nuevo",
+    "newAnalyses_other": "análisis nuevos",
+    "newSessions_one": "sesión de tracking nueva",
+    "newSessions_other": "sesiones de tracking nuevas",
+    "ritualTitle": "¿Jugasteis este finde?",
+    "firstTitle": "Empieza por el último partido",
+    "ritualSubtitle": "Sube el vídeo y en ~5 min tienes insights, VSI y perfil de rol.",
+    "uploadCta": "Subir vídeo del partido"
+  },
+  "sprintBestCard": {
+    "title": "Mejor sprint (test)",
+    "detail": "{{dist}} m en {{time}} s · {{date}} · {{count}} test(s)",
+    "newTest": "Nuevo test",
+    "empty": "Sin tests de sprint todavía. Mide su velocidad real con un vídeo y una distancia conocida.",
+    "measureCta": "Medir su sprint"
   },
   "videoAnalysisSettings": {
     "title": "Análisis de vídeo",
