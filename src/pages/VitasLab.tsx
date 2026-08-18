@@ -64,7 +64,7 @@ import KnowledgeSearch from "@/components/KnowledgeSearch";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-import { usePlayerAnalysisV2, type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
+import { usePlayerAnalysisV2 } from "@/hooks/usePlayerAnalysisV2";
 import { useFatigue } from "@/hooks/useFatigue";
 import FatiguePanel from "@/components/FatiguePanel";
 import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
@@ -76,13 +76,10 @@ import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import TeamDashboard from "@/components/TeamDashboard";
 import { useTeamAnalysis } from "@/hooks/useTeamAnalysis";
 import UpgradePrompt from "@/components/UpgradePrompt";
-
-interface CalibrationPoint {
-  id: number;
-  x: number;
-  y: number;
-  label: string;
-}
+import type { CalibrationPoint } from "./vitasLab/types";
+import { mapV2ToReport } from "./vitasLab/reportMapping";
+import { formatTime, container, item } from "./vitasLab/labUi";
+import LabStatusBar from "./vitasLab/LabStatusBar";
 
 const steps = [
   { id: 1, labelKey: "vitasLab.stepUpload", done: true },
@@ -116,149 +113,6 @@ const analysisModes = [
     icon: UserRound,
   },
 ];
-
-// ─── Report types ─────────────────────────────────────────────────────────────
-
-interface Dimension {
-  score: number;
-  observacion: string;
-}
-
-interface AnalysisReport {
-  estadoActual: {
-    resumenEjecutivo: string;
-    nivelActual: string;
-    fortalezasPrimarias: string[];
-    areasDesarrollo: string[];
-    dimensiones: {
-      velocidadDecision:   Dimension;
-      tecnicaConBalon:     Dimension;
-      inteligenciaTactica: Dimension;
-      capacidadFisica:     Dimension;
-      liderazgoPresencia:  Dimension;
-      eficaciaCompetitiva: Dimension;
-    };
-    ajusteVSIVideoScore: number;
-  };
-  adnFutbolistico: {
-    estiloJuego:     string;
-    arquetipoTactico: string;
-    patrones: Array<{ patron: string; frecuencia: string; descripcion: string }>;
-    mentalidad: string;
-  };
-  jugadorReferencia: {
-    bestMatch: {
-      nombre:   string;
-      posicion: string;
-      club:     string;
-      score:    number;
-      narrativa: string;
-    };
-  };
-  proyeccionCarrera: {
-    escenarioOptimista: { descripcion: string; nivelProyecto: string };
-    escenarioRealista:  { descripcion: string; nivelProyecto: string };
-    factoresClave:      string[];
-    riesgos:            string[];
-  };
-  planDesarrollo: {
-    objetivo6meses:  string;
-    objetivo18meses: string;
-    pilaresTrabajo:  Array<{ pilar: string; acciones: string[]; prioridad: string }>;
-  };
-  metricasCuantitativas?: {
-    fisicas?: {
-      velocidadMaxKmh:  number;
-      velocidadPromKmh: number;
-      distanciaM:       number;
-      sprints:          number;
-      zonasIntensidad:  { caminar: number; trotar: number; correr: number; sprint: number };
-    };
-    eventos?: {
-      pasesCompletados: number;
-      pasesFallados:    number;
-      precisionPases:   number;
-      recuperaciones:   number;
-      duelosGanados:    number;
-      duelosPerdidos:   number;
-      disparosAlArco:   number;
-      disparosFuera:    number;
-    };
-    fuente:     string;
-    confianza:  number;
-    heatmapPositions?: Array<{ fx: number; fy: number }>;
-  };
-  confianza: number;
-}
-
-// ── Bridge: mapea V2 reports al shape legacy que usa el panel de resultados ──
-function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
-  if (!result.reports || result.reports.length === 0) return null;
-  const get = (type: string) =>
-    (result.reports!.find((r) => r.report_type === type)?.content ?? {}) as Record<string, unknown>;
-
-  const pr  = get("player-report");
-  const dna = get("dna-profile");
-  const bm  = get("best-match");
-  const pj  = get("projection");
-  const dp  = get("development-plan");
-
-  const vsiScore = (result.vsi?.vsi as number) ?? 50;
-  const strengths   = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
-  const areasRaw    = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
-  const defaultDim  = { score: 0.5, observacion: "Calculado por pipeline GPU" };
-
-  return {
-    estadoActual: {
-      resumenEjecutivo:  (pr.executive_summary as string) ?? "Análisis completado · pipeline GPU + MediaPipe.",
-      nivelActual:       (pr.tier_label as string) ?? (result.vsi?.tierLabel as string) ?? "talent",
-      fortalezasPrimarias: strengths.map((s) => s.title),
-      areasDesarrollo:   areasRaw.map((a) => a.title),
-      dimensiones: {
-        velocidadDecision:   defaultDim,
-        tecnicaConBalon:     defaultDim,
-        inteligenciaTactica: defaultDim,
-        capacidadFisica:     defaultDim,
-        liderazgoPresencia:  defaultDim,
-        eficaciaCompetitiva: defaultDim,
-      },
-      ajusteVSIVideoScore: Math.round(vsiScore - 50),
-    },
-    adnFutbolistico: {
-      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
-      arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
-      patrones:         [],
-      mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
-    },
-    jugadorReferencia: {
-      bestMatch: (bm.nombre as string) ? {
-        nombre:   bm.nombre as string,
-        posicion: (bm.posicion as string) ?? "",
-        club:     (bm.club as string) ?? "",
-        score:    (bm.score as number) ?? 70,
-        narrativa:(bm.narrativa as string) ?? "",
-      } : null as never,
-    },
-    proyeccionCarrera: {
-      escenarioOptimista: {
-        descripcion:   ((pj.optimistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.descripcion as string ?? "Progresión favorable según análisis biomecánico",
-        nivelProyecto: ((pj.optimistic as Record<string,unknown>)?.level as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.nivelProyecto as string ?? "Semi-pro",
-      },
-      escenarioRealista: {
-        descripcion:   ((pj.realistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioRealista as Record<string,unknown>)?.descripcion as string ?? "Desarrollo consistente con dedicación sostenida",
-        nivelProyecto: ((pj.realistic as Record<string,unknown>)?.level as string) ?? (pj.escenarioRealista as Record<string,unknown>)?.nivelProyecto as string ?? "Amateur alto",
-      },
-      factoresClave: (pj.key_factors as string[]) ?? (pj.factoresClave as string[]) ?? [],
-      riesgos:       (pj.risks as string[]) ?? (pj.riesgos as string[]) ?? [],
-    },
-    planDesarrollo: {
-      objetivo6meses:  (dp.goal_6months as string) ?? (dp.objetivo6meses as string) ?? "Consolidar fundamentos técnicos",
-      objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
-      pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? (dp.pilaresTrabajo as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
-    },
-    confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
-  };
-}
 
 const VitasLab = () => {
   const { t } = useTranslation();
@@ -665,13 +519,6 @@ const VitasLab = () => {
 
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
-  const formatTime = (secs: number) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  };
-
   const drawOverlay = useCallback(() => {
     const canvas    = canvasRef.current;
     const container = containerRef.current;
@@ -1033,12 +880,6 @@ const VitasLab = () => {
 
   const effectiveDuration = videoDuration || totalTime;
   const progressPercent = (currentTime / effectiveDuration) * 100;
-
-  const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
-  const item = {
-    hidden: { opacity: 0, y: 16 },
-    show:   { opacity: 1, y: 0, transition: { duration: 0.4 } },
-  };
 
   // Dimension labels
   const dimLabels: Record<string, string> = {
@@ -2373,23 +2214,14 @@ const VitasLab = () => {
       </AnimatePresence>
 
       {/* Bottom Status Bar */}
-      <motion.div variants={item} className="px-4 py-2 border-t border-border flex items-center justify-between text-[10px] font-display text-muted-foreground tracking-wider">
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${v2.isProcessing ? "bg-yellow-400 animate-pulse" : "bg-primary"}`} />
-            {v2.isProcessing ? `PIPELINE: ${v2.state.step.toUpperCase()}` : "GPU_READY"}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${mediaPipe.status === "processing" ? "bg-green-400 animate-pulse" : mediaPipe.status === "complete" ? "bg-green-400" : "bg-muted-foreground"}`} />
-            MEDIAPIPE: {mediaPipe.status === "processing" ? `${mediaPipe.fps}FPS` : mediaPipe.status === "complete" ? `DONE·${mediaPipe.framesProcessed}f` : "STANDBY"}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-            ENGINE: YOLO+MediaPipe{eventSummary ? ` · ${eventSummary.totalEvents}evt` : ""}
-          </span>
-        </div>
-        <span>VITAS_STATION_004 // BUILD_3.0.0</span>
-      </motion.div>
+      <LabStatusBar
+        isProcessing={v2.isProcessing}
+        pipelineStep={v2.state.step}
+        mediaPipeStatus={mediaPipe.status}
+        mediaPipeFps={mediaPipe.fps}
+        mediaPipeFramesProcessed={mediaPipe.framesProcessed}
+        totalEvents={eventSummary?.totalEvents}
+      />
     </motion.div>
 
     {/* ── Upgrade Prompt Modal ── */}
