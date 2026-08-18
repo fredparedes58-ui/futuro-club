@@ -2,6 +2,7 @@
  * Dashboard — Tests
  * Renderizado de stats, skeleton, empty state, quick access navigation
  */
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,6 +12,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
+  // PulseInboxHero (Ola 2 UX) usa <Link> dentro del Dashboard
+  Link: ({ to, children, ...props }: { to: string; children?: React.ReactNode } & Record<string, unknown>) =>
+    React.createElement("a", { href: String(to), ...props }, children),
 }));
 
 vi.mock("react-i18next", () => ({
