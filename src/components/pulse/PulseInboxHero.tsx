@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { StorageService } from "@/services/real/storageService";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import { VideoService } from "@/services/real/videoService";
+import { weekStreak } from "@/lib/weekStreak";
 
 const LAST_VISIT_KEY = "pulse_last_visit"; // → vitas_pulse_last_visit
 
@@ -53,18 +54,21 @@ export default function PulseInboxHero() {
   const { t, i18n } = useTranslation();
 
   // Congelado al montar: cuenta contra la visita ANTERIOR, luego sella la nueva.
-  const { lastVisit, newSessions, newAnalyses } = useMemo(() => {
+  const { lastVisit, newSessions, newAnalyses, streak } = useMemo(() => {
     const last = StorageService.get<string | null>(LAST_VISIT_KEY, null);
-    const sessions = last
-      ? PlayerTrackingService.list().filter((s) => s.savedAt > last).length
-      : 0;
-    const analyses = last
-      ? VideoService.getAll().filter(
-          (v) => v.analysisResult?.analyzedAt && v.analysisResult.analyzedAt > last,
-        ).length
-      : 0;
-    return { lastVisit: last, newSessions: sessions, newAnalyses: analyses };
-     
+    const sessionDates = PlayerTrackingService.list().map((s) => s.savedAt);
+    const analysisDates = VideoService.getAll()
+      .map((v) => v.analysisResult?.analyzedAt)
+      .filter((d): d is string => Boolean(d));
+    const sessions = last ? sessionDates.filter((d) => d > last).length : 0;
+    const analyses = last ? analysisDates.filter((d) => d > last).length : 0;
+    return {
+      lastVisit: last,
+      newSessions: sessions,
+      newAnalyses: analyses,
+      streak: weekStreak([...sessionDates, ...analysisDates]),
+    };
+
   }, []);
 
   useEffect(() => {
@@ -100,6 +104,11 @@ export default function PulseInboxHero() {
         className="font-tactical text-[11px] font-semibold uppercase tracking-[0.28em] text-primary"
       >
         {t("pulseInbox.eyebrow")} · <span className="text-muted-foreground normal-case tracking-normal">{today}</span>
+        {streak >= 2 && (
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-orange-500/15 px-2 py-0.5 text-[10px] font-bold text-orange-400 normal-case tracking-normal align-middle">
+            🔥 {t("pulseInbox.streak", { count: streak })}
+          </span>
+        )}
       </motion.p>
 
       {hasNews ? (
