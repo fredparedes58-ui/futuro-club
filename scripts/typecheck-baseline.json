@@ -1,6 +1,6 @@
 {
   "_comment": "Baseline de errores tsc conocidos (tsconfig.app.json). NO editar a mano: regenerar con `node scripts/typecheck-baseline.mjs --update`. Objetivo: que solo baje. Ver scripts/typecheck-baseline.mjs.",
-  "total": 106,
+  "total": 105,
   "errors": {
     "api/_lib/budgetGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 4,
     "api/_lib/usageGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 3,
@@ -46,7 +46,6 @@
     "src/pages/VitasLab.tsx::TS2339::Property 'tMs' does not exist on type 'FieldPosition'.": 2,
     "src/pages/VitasLab.tsx::TS2551::Property 'injuryRiskFlags' does not exist on type 'BiomechanicsScore'. Did you mean 'injuryRisk'?": 1,
     "src/pages/VitasLab.tsx::TS2339::Property 'avgJointAngles' does not exist on type 'BiomechanicsScore'.": 1,
-    "src/pages/VitasLab.tsx::TS2339::Property 'secondaryPositions' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
     "src/services/rankingsService.ts::TS2339::Property 'competitiveLevel' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
     "src/services/rankingsService.ts::TS2339::Property 'foot' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
     "src/services/rankingsService.ts::TS2339::Property 'height' does not exist on type '{ id: string; name: string; age: number; position: string; positionShort: string; academy: string; vsi: number; phvOffset: number; phvCategory: \"early\" | \"late\" | \"on-time\"; trending: \"up\" | \"down\" | \"stable\"; ... 4 more ...; lastActive: string; }'.": 1,
