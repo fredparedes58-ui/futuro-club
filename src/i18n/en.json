@@ -444,7 +444,7 @@
     "allPositions": "All positions",
     "allLeagues": "All leagues",
     "noIndexedResults": "No results",
-    "noIndexedDesc": "Try another name or remove filters. The database has 365+ players from La Liga and more.",
+    "noIndexedDesc": "Try another name or remove filters. The database has 148 reference players from the top leagues.",
     "noInsights": "No insights available",
     "noInsightsDesc": "Generate AI insights from your player data. Press the button to start analysis.",
     "refresh": "Retry",
@@ -1910,7 +1910,7 @@
     "heroDescription": "VITAS is the first Football Intelligence platform with biological maturation correction (PHV). It spots hidden talent in youth academies that traditional systems misclassify based on current physique. Scouting, AI tactical analysis, and end-to-end management.",
     "watchDemo": "WATCH DEMO",
     "requestDemo": "Request a demo",
-    "statRefPlayers": "La Liga reference players",
+    "statRefPlayers": "Reference players",
     "statAnalysisTime": "From video to insights",
     "statFreeStart": "To get started (Free plan)",
     "uniqueDifferentiator": "Unique differentiator",
@@ -1944,7 +1944,7 @@
     "planFreeDesc": "To try the platform",
     "planFreeFeature1": "5 players",
     "planFreeFeature2": "3 AI analyses per month",
-    "planFreeFeature3": "Access to the database of 365+ La Liga players",
+    "planFreeFeature3": "Access to the database of 148 reference players (top leagues)",
     "planFreeFeature4": "PHV-corrected VSI",
     "planProDesc": "For independent coaches",
     "planProFeature1": "Up to 25 players",
@@ -3841,7 +3841,7 @@
     "asPosition": "As {{position}}",
     "resembles": "Resembles {{name}}",
     "similarity": "similarity",
-    "footnote": "Comparison based on Euclidean distance across the 6 base metrics. The database contains 365+ players from La Liga, Premier, Bundesliga, Ligue 1."
+    "footnote": "Comparison based on Euclidean distance across the 6 base metrics. The database contains 148 reference players (Premier, La Liga, Serie A, Bundesliga, Ligue 1), from normalized public ratings — not measured performance."
   },
   "cookieBanner": {
     "title": "Cookies at VITAS",
