@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { calculateFichaVsi } from "../../src/services/real/metricsService";
 
 export const config = { runtime: "edge" };
 
@@ -76,23 +77,7 @@ const DeletePlayerSchema = z.object({
   id: z.string(),
 });
 
-// ── VSI Weights (same as MetricsService) ─────────────────────────────────
-
-const VSI_WEIGHTS: Record<string, number> = {
-  speed: 0.18,
-  technique: 0.22,
-  vision: 0.20,
-  stamina: 0.15,
-  shooting: 0.13,
-  defending: 0.12,
-};
-
-function calculateVSI(metrics: z.infer<typeof MetricsSchema>): number {
-  const raw = Object.entries(VSI_WEIGHTS).reduce((acc, [key, weight]) => {
-    return acc + (metrics[key as keyof typeof metrics] ?? 0) * weight;
-  }, 0);
-  return Math.round(raw * 10) / 10;
-}
+// VSI de ficha: pesos + fórmula en fuente ÚNICA src/lib/scoring/fichaVsi.ts (invariante #7).
 
 // ── Handler ─────────────────────────────────────────────────────────────────
 
@@ -173,7 +158,7 @@ export default withHandler(
       }
 
       const input = parsed.data;
-      const vsi = calculateVSI(input.metrics);
+      const vsi = calculateFichaVsi(input.metrics);
       const now = new Date().toISOString();
       const playerId = input.id ?? `p${Date.now()}`;
 
@@ -286,7 +271,7 @@ export default withHandler(
       // Recalculate VSI if metrics changed
       if (updates.metrics) {
         updatedData.metrics = updates.metrics;
-        const newVSI = calculateVSI(updates.metrics);
+        const newVSI = calculateFichaVsi(updates.metrics);
         updatedData.vsi = newVSI;
         const history = Array.isArray(currentData.vsiHistory) ? [...(currentData.vsiHistory as number[])] : [];
         history.push(newVSI);

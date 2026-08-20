@@ -57,7 +57,7 @@
       "ui_paths": ["src/components/VsiGauge.tsx"],
       "allowed_literals": [0, 100],
       "gated": false,
-      "notes": "G4: entradas son SLIDERS subjetivos del coach, NO medida. Defaults 60/60/60/60/50/50 → VSI ~58 sin evaluar. Renombrar a 'evaluación del entrenador' y declarar entrada subjetiva. Sin badge de confianza hoy."
+      "notes": "G4: entradas son SLIDERS subjetivos del coach, NO medida. Fórmula+pesos consolidados en src/lib/scoring/fichaVsi.ts (fuente única, invariante #7; antes triplicada en metricsService/_crud/_list). PENDIENTE (G4 crit.3-4): quitar el ~58 por defecto y renombrar en UI a 'evaluación del entrenador' con entrada subjetiva."
     },
     {
       "id": "vsi_video",

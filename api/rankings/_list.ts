@@ -12,14 +12,11 @@
 
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { calculateFichaVsi } from "../../src/services/real/metricsService";
 
 export const config = { runtime: "edge" };
 
-// ── VSI Weights (same as MetricsService) ─────────────────────────────────
-const VSI_WEIGHTS: Record<string, number> = {
-  speed: 0.18, technique: 0.22, vision: 0.20,
-  stamina: 0.15, shooting: 0.13, defending: 0.12,
-};
+// VSI de ficha: pesos + fórmula en fuente ÚNICA src/lib/scoring/fichaVsi.ts (invariante #7).
 
 // ── Age Group definitions ────────────────────────────────────────────────
 const AGE_GROUPS: Record<string, [number, number]> = {
@@ -200,7 +197,7 @@ export default withHandler(
       allPlayers = allRows.map((row) => {
         const d = row.data as Record<string, unknown>;
         const metrics = (d.metrics ?? {}) as Record<string, number>;
-        const vsi = typeof d.vsi === "number" ? d.vsi : calculateVSI(metrics);
+        const vsi = typeof d.vsi === "number" ? d.vsi : calculateFichaVsi(metrics);
         const age = (d.age as number) ?? 15;
         const vsiHistory = Array.isArray(d.vsiHistory) ? (d.vsiHistory as number[]) : [vsi];
         const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
@@ -334,12 +331,7 @@ export default withHandler(
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-function calculateVSI(metrics: Record<string, number>): number {
-  const raw = Object.entries(VSI_WEIGHTS).reduce((acc, [key, weight]) => {
-    return acc + (metrics[key] ?? 0) * weight;
-  }, 0);
-  return Math.round(raw * 10) / 10;
-}
+// VSI de ficha: calculateFichaVsi en src/lib/scoring/fichaVsi.ts (fuente única · invariante #7).
 
 function mapPhv(raw: string): string {
   if (raw === "ontme") return "on-time";
