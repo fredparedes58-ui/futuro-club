@@ -184,6 +184,17 @@ El ROI en euros no se muestra bajo ninguna circunstancia mientras proceda de un 
 
 ### G6 — Estirón: medido sobre estimado, y sexo
 
+> **Estado (ago 2026):** Parte (2) SEXO ✅ hecha en PRs #136–138: form exige sexo
+> explícito (sin default "M"), `playerService`/schemas API optional, agente PHV
+> lanza `PHV_MISSING_SEX` (422) antes del if(gender), endpoint gatea, escritura
+> Supabase → null, `mirwald` gender REQUERIDO, `usePHVProduct` bloquea con
+> sexo desconocido, y migración 056 quita el `DEFAULT 'M'` de la BD. Golden 22/22
+> intactos; tests M/F/ausente en `maturity.test.ts`. Parte (1) MEDIDO-SOBRE-ESTIMADO
+> parcial: `computeMirwald` estima sitting/leg si faltan y marca `estimated` +
+> baja confidence, pero falta el test explícito de los dos casos y reflejar la
+> elección en `provenance`. Pendiente: la decisión de datos legacy (jugadores ya
+> guardados como "M" por el default viejo).
+
 ```
 /goal Corregir la seleccion de entrada y la formula por sexo en Escudo de Estiron.
 Completado cuando: (1) la longitud de pierna medida por el club se usa siempre que exista y la estimada solo como fallback, con la eleccion reflejada en provenance y confidence, demostrado con un test de los dos casos; (2) a una jugadora nunca se le aplica la formula masculina: si el sexo esta registrado se usa la formula correspondiente, y si falta el resultado queda bloqueado con gate_reason pidiendo el dato, demostrado con un test de los tres casos sexo femenino, masculino y ausente; (3) `npm test` sale 0 y ninguna prediccion de Estiron se emite con datos incompletos.
@@ -287,7 +298,7 @@ Por encima de los arreglos puntuales, esto es el valor real del plan:
 | G3 duelos | ☐ | |
 | G4 VSI | ☐ | |
 | G5 mocks | ☐ | |
-| G6 estirón | ☐ | |
+| G6 estirón | 🟡 parcial | sexo ✅ (#136–138, ago 2026); falta medido-sobre-estimado |
 | G7 Voronoi | ☐ | |
 | G9.0 ground truth | ☐ | |
 | G9 identidad | ☐ | |
