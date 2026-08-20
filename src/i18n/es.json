@@ -444,7 +444,7 @@
     "allPositions": "Todas las posiciones",
     "allLeagues": "Todas las ligas",
     "noIndexedResults": "Sin resultados",
-    "noIndexedDesc": "Prueba con otro nombre o quita los filtros. La base tiene 365+ jugadores de La Liga y más.",
+    "noIndexedDesc": "Prueba con otro nombre o quita los filtros. La base tiene 148 jugadores de referencia de las grandes ligas.",
     "noInsights": "Sin insights disponibles",
     "noInsightsDesc": "Genera insights con IA desde los datos de tus jugadores. Pulsa el botón para iniciar el análisis.",
     "refresh": "Reintentar",
@@ -1910,7 +1910,7 @@
     "heroDescription": "VITAS es la primera plataforma de Football Intelligence con corrección de maduración biológica (PHV). Detecta talento oculto en academias juveniles que sistemas tradicionales clasifican erróneamente por su físico actual. Scouting, análisis táctico con IA y gestión integral.",
     "watchDemo": "VER DEMO",
     "requestDemo": "Solicitar demo",
-    "statRefPlayers": "Jugadores de referencia La Liga",
+    "statRefPlayers": "Jugadores de referencia",
     "statAnalysisTime": "De vídeo a insights",
     "statFreeStart": "Para empezar (plan Free)",
     "uniqueDifferentiator": "Diferenciador único",
@@ -1944,7 +1944,7 @@
     "planFreeDesc": "Para probar la plataforma",
     "planFreeFeature1": "5 jugadores",
     "planFreeFeature2": "3 análisis IA al mes",
-    "planFreeFeature3": "Acceso a la base de +365 jugadores de La Liga",
+    "planFreeFeature3": "Acceso a la base de 148 jugadores de referencia (grandes ligas)",
     "planFreeFeature4": "VSI corregido por PHV",
     "planProDesc": "Para coaches independientes",
     "planProFeature1": "Hasta 25 jugadores",
@@ -3841,7 +3841,7 @@
     "asPosition": "Como {{position}}",
     "resembles": "Se parece a {{name}}",
     "similarity": "similarity",
-    "footnote": "Comparativa basada en distancia euclidiana entre las 6 métricas base. La base contiene 365+ jugadores de La Liga, Premier, Bundesliga, Ligue 1."
+    "footnote": "Comparativa basada en distancia euclidiana entre las 6 métricas base. La base contiene 148 jugadores de referencia (Premier, La Liga, Serie A, Bundesliga, Ligue 1), a partir de valoraciones públicas normalizadas — no rendimiento medido."
   },
   "cookieBanner": {
     "title": "Cookies en VITAS",
