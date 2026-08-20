@@ -19,6 +19,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsMatch } from "../_lib/ownership";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 
 export const config = { runtime: "edge" };
@@ -152,8 +153,17 @@ export default withHandler(
     allowServiceToken: true,
     maxRequests: 10,
   },
-  async ({ body }) => {
+  async ({ body, tenantId, isServiceCall }) => {
     const input = body as z.infer<typeof ComputeFromVideoSchema>;
+
+    // Autorización a nivel de objeto: dispara Modal ($) y sobrescribe heatmaps de
+    // este match. compute-heatmap (interno) recibe token de servicio y salta su
+    // propio ownsMatch, así que la puerta de tenant para el flujo iniciado por
+    // usuario tiene que estar AQUÍ. La cadena interna (modal-callback con token de
+    // servicio) omite el check vía isServiceCall.
+    if (!isServiceCall && !(await ownsMatch(input.matchId, tenantId))) {
+      return errorResponse("No autorizado para este partido", 403, "FORBIDDEN");
+    }
 
     if (!MODAL_TRACK_URL || !MODAL_API_KEY) {
       return errorResponse(

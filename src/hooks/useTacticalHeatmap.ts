@@ -18,6 +18,7 @@ import { PlayerService } from "@/services/real/playerService";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 import { aggregatePhvDistribution } from "@/lib/shared/phv";
+import { isDemoMatchId } from "@/lib/tactical/tacticalTypes";
 import type {
   TacticalInsights,
   TacticalMatchSummary,
@@ -118,6 +119,15 @@ export function useGenerateTacticalInsights() {
   const qc = useQueryClient();
   return useMutation<TacticalInsights, Error, GenerateInsightsInput>({
     mutationFn: async (input) => {
+      // Los match demo (seed local) no tienen fila en `analyses` → el endpoint
+      // devolvería 403 (ownsMatch por tenant). Sus insights ya vienen
+      // sintetizados por el seeder, así que los servimos desde cache sin llamar a
+      // la API (ni disparar gasto LLM). Mantiene vivo el botón "Regenerar" en demo.
+      if (isDemoMatchId(input.matchId)) {
+        const summary = await TacticalHeatmapService.getMatchSummary(input.matchId);
+        if (summary?.insights) return summary.insights;
+        throw new Error("Los insights de la demo ya están generados.");
+      }
       const res = await fetch(`${apiBase}/generate-insights`, {
         method: "POST",
         headers: await getAuthHeaders(),

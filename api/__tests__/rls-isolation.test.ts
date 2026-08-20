@@ -274,3 +274,137 @@ describe.skipIf(SKIP)("RLS · Edge cases", () => {
     expect(error).not.toBeNull();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// RLS · Aislamiento de las tablas tácticas (tactical_phases / phase_heatmaps /
+// tactical_insights) — cierra el IDOR de LECTURA DIRECTA entre tenants.
+//
+// Propiedad derivada del `analyses` dueño del match_id (migración 055):
+//   EXISTS analyses WHERE id = match_id AND tenant_id = public.tenant_id()
+//
+// DIAGNÓSTICO: si "Tenant A lee SUS propias fases" FALLA, casi seguro el JWT de
+// este entorno NO trae el claim tenant_id de nivel raíz que consume
+// public.tenant_id() (no hay custom access token hook configurado). Ese es el
+// aviso a accionar antes de confiar en la RLS por tenant.
+//
+// La autorización a nivel de código (endpoints api/tactical/ vía ownsMatch) se
+// cubre además, sin BD, en api/__tests__/tactical-ownership.test.ts.
+// ─────────────────────────────────────────────────────────────────────────
+describe.skipIf(SKIP)("RLS · Aislamiento tablas tácticas", () => {
+  let adminClient: ReturnType<typeof createClient>;
+  let userAToken = "";
+  let userBToken = "";
+  let userAId = "";
+  let userBId = "";
+  let matchAId = "";        // analyses.id del tenant A (== match_id táctico)
+  let setupOk = false;      // false → tests se marcan skip (fixture no disponible)
+
+  const runId = Date.now();
+  const playerAId = `rls-tac-player-A-${runId}`;
+
+  beforeAll(async () => {
+    adminClient = createClient(SUPABASE_URL!, SERVICE_KEY!, { auth: { persistSession: false } });
+    try {
+      const { data: uA, error: eA } = await adminClient.auth.admin.createUser({
+        email: `tacA-${runId}@vitas-test.com`, password: "pw-A-secret", email_confirm: true,
+        app_metadata: { tenant_id: TENANT_A },
+      });
+      if (eA) throw new Error(`createUser A: ${eA.message}`);
+      userAId = uA.user!.id;
+      const { data: uB, error: eB } = await adminClient.auth.admin.createUser({
+        email: `tacB-${runId}@vitas-test.com`, password: "pw-B-secret", email_confirm: true,
+        app_metadata: { tenant_id: TENANT_B },
+      });
+      if (eB) throw new Error(`createUser B: ${eB.message}`);
+      userBId = uB.user!.id;
+
+      const { data: sA } = await adminClient.auth.signInWithPassword({ email: uA.user!.email!, password: "pw-A-secret" });
+      const { data: sB } = await adminClient.auth.signInWithPassword({ email: uB.user!.email!, password: "pw-B-secret" });
+      userAToken = sA.session!.access_token;
+      userBToken = sB.session!.access_token;
+
+      // Player de A (user_id + data son NOT NULL; tenant_id lo añade migración 003)
+      const { error: pErr } = await adminClient.from("players").insert({
+        id: playerAId, user_id: userAId, tenant_id: TENANT_A,
+        data: { id: playerAId, name: "Tac A" },
+      });
+      if (pErr) throw new Error(`players insert: ${pErr.message}`);
+
+      // Analysis de A → su id ES el match_id táctico
+      const { data: an, error: aErr } = await adminClient.from("analyses").insert({
+        tenant_id: TENANT_A, player_id: playerAId, video_id: `vid-${runId}`, status: "completed",
+      }).select("id").single();
+      if (aErr) throw new Error(`analyses insert: ${aErr.message}`);
+      matchAId = an!.id as string;
+
+      // Filas tácticas del match de A (admin bypassa RLS en el seed)
+      const seeded = await Promise.all([
+        adminClient.from("tactical_phases").insert({ match_id: matchAId, phase_type: "attacking", start_ms: 0, end_ms: 1000 }),
+        adminClient.from("phase_heatmaps").insert({ match_id: matchAId, phase_type: "attacking" }),
+        adminClient.from("tactical_insights").insert({ match_id: matchAId, headline: "seed" }),
+      ]);
+      const seedErr = seeded.find((r) => r.error)?.error;
+      if (seedErr) throw new Error(`tactical seed: ${seedErr.message}`);
+
+      setupOk = true;
+    } catch (err) {
+      console.warn(`[TEST] Setup táctico no disponible — tests skip: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, 30_000);
+
+  afterAll(async () => {
+    if (!adminClient) return;
+    if (matchAId) {
+      await adminClient.from("tactical_phases").delete().eq("match_id", matchAId);
+      await adminClient.from("phase_heatmaps").delete().eq("match_id", matchAId);
+      await adminClient.from("tactical_insights").delete().eq("match_id", matchAId);
+      await adminClient.from("analyses").delete().eq("id", matchAId);
+    }
+    await adminClient.from("players").delete().eq("id", playerAId);
+    if (userAId) await adminClient.auth.admin.deleteUser(userAId).catch(() => null);
+    if (userBId) await adminClient.auth.admin.deleteUser(userBId).catch(() => null);
+  }, 30_000);
+
+  it("Tenant A lee SUS propias fases tácticas (owner + claim tenant_id OK)", async (c) => {
+    if (!setupOk) return c.skip();
+    const clientA = createClient(SUPABASE_URL!, SERVICE_KEY!, { global: { headers: { Authorization: `Bearer ${userAToken}` } } });
+    const { data, error } = await clientA.from("tactical_phases").select("*").eq("match_id", matchAId);
+    expect(error).toBeNull();
+    expect((data ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("Tenant B NO lee las fases del match de A (RLS filtra)", async (c) => {
+    if (!setupOk) return c.skip();
+    const clientB = createClient(SUPABASE_URL!, SERVICE_KEY!, { global: { headers: { Authorization: `Bearer ${userBToken}` } } });
+    const { data } = await clientB.from("tactical_phases").select("*").eq("match_id", matchAId);
+    expect(data ?? []).toHaveLength(0);
+  });
+
+  it("Tenant B NO lee heatmaps ni insights del match de A", async (c) => {
+    if (!setupOk) return c.skip();
+    const clientB = createClient(SUPABASE_URL!, SERVICE_KEY!, { global: { headers: { Authorization: `Bearer ${userBToken}` } } });
+    const [hm, ins] = await Promise.all([
+      clientB.from("phase_heatmaps").select("*").eq("match_id", matchAId),
+      clientB.from("tactical_insights").select("*").eq("match_id", matchAId),
+    ]);
+    expect(hm.data ?? []).toHaveLength(0);
+    expect(ins.data ?? []).toHaveLength(0);
+  });
+
+  it("Tenant B NO puede INSERTAR una fase en el match de A (WITH CHECK)", async (c) => {
+    if (!setupOk) return c.skip();
+    const clientB = createClient(SUPABASE_URL!, SERVICE_KEY!, { global: { headers: { Authorization: `Bearer ${userBToken}` } } });
+    await clientB.from("tactical_phases").insert({ match_id: matchAId, phase_type: "defending", start_ms: 0, end_ms: 500 });
+    const { data } = await adminClient.from("tactical_phases").select("phase_type").eq("match_id", matchAId);
+    const types = ((data ?? []) as Array<{ phase_type: string }>).map((r) => r.phase_type);
+    expect(types).not.toContain("defending");
+  });
+
+  it("Tenant B NO puede BORRAR las fases del match de A", async (c) => {
+    if (!setupOk) return c.skip();
+    const clientB = createClient(SUPABASE_URL!, SERVICE_KEY!, { global: { headers: { Authorization: `Bearer ${userBToken}` } } });
+    await clientB.from("tactical_phases").delete().eq("match_id", matchAId);
+    const { data } = await adminClient.from("tactical_phases").select("id").eq("match_id", matchAId);
+    expect((data ?? []).length).toBeGreaterThan(0);
+  });
+});

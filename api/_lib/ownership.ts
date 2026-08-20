@@ -9,6 +9,14 @@
  * api/reports/_pdf.ts y api/players/_crud.ts. (Si el producto necesita acceso
  * compartido por academia/tenant, evolucionar aquí en un único sitio.)
  *
+ * Para recursos scopeados por TENANT (p.ej. las tablas tácticas, cuya
+ * propiedad se deriva del `analyses` dueño del `match_id`) se usa `ownsMatch`,
+ * anclado en `analyses.tenant_id` — el mismo predicado que la RLS de tenant
+ * (migración 055 · `analyses_tenant_isolation`). Se ancla en tenant y NO en
+ * `analyses.user_id` porque el pipeline de partidos NO puebla user_id
+ * (api/webhooks/bunny-uploaded.ts inserta analyses con tenant_id/player_id/
+ * video_id, sin user_id); anclar en user_id daría 403 al dueño real.
+ *
  * Uso en un handler:
  *   if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
  *     return errorResponse("No autorizado para este jugador", 403, "FORBIDDEN");
@@ -62,6 +70,38 @@ export async function ownsSession(sessionId: string | null | undefined, userId: 
   try {
     const res = await fetch(
       `${env.url}/rest/v1/training_sessions?id=eq.${encodeURIComponent(sessionId)}&coach_id=eq.${encodeURIComponent(userId)}&select=id&limit=1`,
+      { headers: serviceHeaders(env.key) },
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as Array<{ id: string }>;
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ¿El partido `matchId` pertenece al tenant `tenantId`?
+ *
+ * En el flujo real no existe tabla `matches`: `match_id == analyses.id`. La
+ * propiedad se deriva de la analysis dueña, exactamente como la RLS de tenant
+ * (migración 055): `EXISTS analyses WHERE a.id = match_id AND a.tenant_id = tenant`.
+ *
+ * Fail-closed: sin tenantId (JWT sin claim), sin Supabase, query no-ok o error,
+ * o matchId que no es una analysis (p.ej. match demo `demo-*`, que ni siquiera
+ * es un UUID válido) → false. Un match sin analysis asociada no es de nadie.
+ *
+ * NO llamar en llamadas de servicio (isServiceCall): la cadena interna
+ * (compute-from-video / modal-callback) opera con token de servicio sobre
+ * cualquier tenant y debe omitir este check.
+ */
+export async function ownsMatch(matchId: string | null | undefined, tenantId: string | null): Promise<boolean> {
+  if (!matchId || !tenantId) return false;
+  const env = supabaseEnv();
+  if (!env) return false;
+  try {
+    const res = await fetch(
+      `${env.url}/rest/v1/analyses?id=eq.${encodeURIComponent(matchId)}&tenant_id=eq.${encodeURIComponent(tenantId)}&select=id&limit=1`,
       { headers: serviceHeaders(env.key) },
     );
     if (!res.ok) return false;

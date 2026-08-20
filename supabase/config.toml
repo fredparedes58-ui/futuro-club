@@ -27,6 +27,15 @@ enable_signup = true
 enable_confirmations = false
 double_confirm_changes = false
 
+# Custom Access Token Hook (migración 057): sube app_metadata.tenant_id al claim
+# raíz `tenant_id` que consume public.tenant_id() (RLS multi-tenant 003/004/055).
+# En el proyecto HOSTED hay que activarlo además en el panel:
+#   Authentication → Hooks → Customize Access Token (JWT) Claims → seleccionar
+#   public.custom_access_token_hook → Enable.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
+
 [storage]
 enabled = true
 file_size_limit = "50MiB"

@@ -19,6 +19,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsMatch } from "../_lib/ownership";
 import { detectPhases, resolvePossession } from "../../src/lib/tactical/phaseDetector";
 import { aggregateBins, combineHeatmaps } from "../../src/lib/tactical/heatmapAggregator";
 import { findHotZones } from "../../src/lib/tactical/clusterAnalyzer";
@@ -77,9 +78,17 @@ export default withHandler(
     allowServiceToken: true,
     maxRequests: 10,
   },
-  async ({ body }) => {
+  async ({ body, tenantId, isServiceCall }) => {
     const { matchId, videoId, samples, algoVersion = "v1.0.0" } =
       body as z.infer<typeof ComputeHeatmapSchema>;
+
+    // Autorización a nivel de objeto (escritura): borra+inserta datos posicionales
+    // de menores. El service_role SALTA la RLS de tenant (055), así que scopeamos
+    // aquí. La cadena interna (compute-from-video con token de servicio) omite el
+    // check vía isServiceCall.
+    if (!isServiceCall && !(await ownsMatch(matchId, tenantId))) {
+      return errorResponse("No autorizado para este partido", 403, "FORBIDDEN");
+    }
 
     // 1. Resolve possession + build phase samples
     const phaseSamples = samples.map((s) => ({
