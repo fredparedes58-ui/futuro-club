@@ -39,7 +39,10 @@ export const PlayerSchema = z.object({
   }),
   vsi: z.number().default(0),
   vsiHistory: z.array(z.number()).default([]),
-  gender: z.enum(["M", "F"]).default("M"),
+  // Sin default "M": un default silencioso aplicaría la fórmula PHV masculina a
+  // una jugadora sin sexo registrado. Ausente ⇒ queda sin definir y el motor de
+  // maduración (resolveMaturity) BLOQUEA pidiendo el dato, en vez de asumir.
+  gender: z.enum(["M", "F"]).optional(),
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
   // ── Inputs de maduración (para edad decimal exacta y %PAH Khamis-Roche) ──
