@@ -34,7 +34,11 @@ const formSchema = z.object({
   age: z.number({ invalid_type_error: "Ingresa la edad" }).min(8, "Mínimo 8 años").max(21, "Máximo 21 años"),
   position: z.string().min(1, "Selecciona una posición"),
   secondaryPositions: z.array(z.string()).optional(),
-  gender: z.enum(["M", "F"]).default("M"),
+  // Sexo REQUERIDO y sin default: el sexo determina la fórmula PHV (Mirwald/
+  // Khamis-Roche) y las medias de referencia (13.7 chicos vs 12.1 chicas). Un
+  // default "M" silencioso aplicaría la fórmula masculina a una jugadora. Se
+  // exige elección explícita, igual que el pie dominante.
+  gender: z.enum(["M", "F"], { required_error: "Selecciona el sexo (determina el cálculo PHV)" }),
   foot: z.enum(["right", "left", "both"], { required_error: "Selecciona pie dominante" }),
   height: z.number({ invalid_type_error: "Ingresa la altura" }).min(100, "Mínimo 100 cm").max(220, "Máximo 220 cm"),
   weight: z.number({ invalid_type_error: "Ingresa el peso" }).min(20, "Mínimo 20 kg").max(120, "Máximo 120 kg"),
@@ -246,7 +250,7 @@ const PlayerForm = () => {
       name: "",
       age: 14,
       position: "",
-      gender: "M",
+      // gender SIN default: se exige elección explícita (afecta a la fórmula PHV).
       foot: "right",
       height: 165,
       weight: 58,
@@ -275,7 +279,9 @@ const PlayerForm = () => {
       age: player.age,
       position: player.position,
       secondaryPositions: player.secondaryPositions ?? [],
-      gender: (player as typeof player & { gender?: "M" | "F" }).gender ?? "M",
+      // Sin fallback "M": si el jugador legacy no tiene sexo registrado, el campo
+      // queda vacío y se exige elegirlo (no se asume masculino).
+      gender: (player as typeof player & { gender?: "M" | "F" }).gender,
       foot: player.foot,
       height: player.height,
       weight: player.weight,
