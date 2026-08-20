@@ -22,6 +22,12 @@ dev-dist
 # Test coverage reports
 coverage/
 
+# Playwright output (reportes y artefactos de e2e — no versionar)
+test-results/
+playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # ONNX models (too large for Git — downloaded at runtime)
 *.onnx
 
