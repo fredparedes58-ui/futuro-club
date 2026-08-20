@@ -285,6 +285,17 @@
       "gated": true,
       "banner": true,
       "notes": "G5: mock determinista SIN banner en /family/:id (la vista de equipo sí lo tiene). El padre ve datos de ejemplo como reales. MOCK001 esperado si falta banner en el render."
+    },
+    {
+      "id": "cobertura_pose",
+      "name": "Cobertura de biomecánica (ruta detección-primero)",
+      "concept": "vision.cobertura_pose",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/yolo/poseEligibility.ts"],
+      "ui_paths": [],
+      "allowed_literals": [],
+      "gated": true,
+      "notes": "Ruta de recall (detección-primero): fracción de detecciones del frame con píxeles suficientes para pose. Posición del equipo completo; biomecánica solo en los cercanos. DERIVADA/orientativa (el umbral de cercanía está pendiente de validar con ground truth anotado → confidence reducida). BLOQUEADA si no hay detecciones (nunca un 0 que signifique 'no medido')."
     }
   ]
 }

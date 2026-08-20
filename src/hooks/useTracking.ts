@@ -13,6 +13,7 @@ import { FrameExtractor, buildBunnyCdnUrl } from "@/lib/yolo/frameExtractor";
 import { PoseAnalyzer }  from "@/lib/yolo/poseAnalyzer";
 import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { getTilingConfig } from "@/lib/yolo/tiling";
+import { getRecallConfig } from "@/lib/yolo/recallConfig";
 import { computeVoronoi } from "@/lib/yolo/voronoi";
 import { buildAnchors, computeHomography, invertMatrix3x3, identityHomography } from "@/lib/yolo/homography";
 import {
@@ -31,7 +32,7 @@ import { useBallTracking } from "./useBallTracking";
 import type { BallTrackingState, PossessionTeam } from "./useBallTracking";
 import { PlayerIdentityManager } from "@/lib/yolo/playerIdentityManager";
 import { isTrackIdentityReliable } from "@/lib/yolo/tracker";
-import { gated, derived, ORIENTATIVE_CONFIDENCE } from "@/lib/metrics/MetricResult";
+import { gated, derived, ORIENTATIVE_CONFIDENCE, type MetricResult } from "@/lib/metrics/MetricResult";
 import { autoCalibrate as runAutoCalibrate } from "@/lib/tracking/autoCalibrationBridge";
 import { autoCalibrationConfidence } from "@/lib/tracking/autoCalibrationConfidence";
 import type { CalibrationConfidence } from "@/lib/yolo/fieldRegistration";
@@ -70,6 +71,13 @@ export interface TrackingState {
    * calibrar"). Solo subirá con los validadores reales (T2) + modelo de campo (T3).
    */
   calibrationConfidence: CalibrationConfidence;
+  /**
+   * Cobertura de biomecánica del último frame (solo ruta detección-primero para
+   * recall). Fracción de detecciones con píxeles suficientes para pose: los
+   * lejanos aportan posición pero NO biomecánica. `null` fuera de esa ruta.
+   * DERIVADA/orientativa. Ver `poseEligibility.ts`.
+   */
+  poseCoverage: MetricResult<number> | null;
 }
 
 /** Callback for fatigue integration: receives field positions each frame */
@@ -159,6 +167,7 @@ export function useTracking(options: UseTrackingOptions) {
     identities:      new Map(),
     teamAssignments: new Map(),
     calibrationConfidence: "none",
+    poseCoverage:    null,
   });
 
   const workerRef       = useRef<Worker | null>(null);
@@ -304,6 +313,8 @@ export function useTracking(options: UseTrackingOptions) {
               identities: updatedIdentities,
               teamAssignments: teamAssignmentsRef.current,
             } : {}),
+            // Cobertura de biomecánica del frame (solo ruta de recall)
+            ...(event.poseCoverage ? { poseCoverage: event.poseCoverage } : {}),
           }));
           break;
         }
@@ -344,6 +355,7 @@ export function useTracking(options: UseTrackingOptions) {
       possession:    "none",
       identities:    new Map(),
       teamAssignments: new Map(),
+      poseCoverage:  null,
     }));
 
     // Reset identity manager (Sprint 4)
@@ -410,11 +422,16 @@ export function useTracking(options: UseTrackingOptions) {
     // de latencia). Solo se activa con override consciente en localStorage
     // `vitas_tiling` (pensado para análisis diferido; G² inferencias/frame).
     const tiling = getTilingConfig();
-    console.log(`[useTracking] Modelo activo: ${activeModel.id} (${modelUrl}, imgsz ${activeModel.inputSize})${tiling ? ` · tiling ${tiling.grid}×${tiling.grid}` : ""}`);
+    // Detección-primero para recall (opt-in análisis diferido): el worker corre el
+    // detector con tiling para la posición del equipo completo y la pose solo sobre
+    // las cajas cercanas. null → ruta normal (sin regresión). Se coordina con el
+    // tiling: si hay recall pero no tiling, el worker usa DEFAULT_RECALL_TILING.
+    const recall = getRecallConfig();
+    console.log(`[useTracking] Modelo activo: ${activeModel.id} (${modelUrl}, imgsz ${activeModel.inputSize})${tiling ? ` · tiling ${tiling.grid}×${tiling.grid}` : ""}${recall ? " · recall (detección-primero)" : ""}`);
 
     // inputSize del ModelSpec → el worker preprocessa/postprocessa a esa resolución
     // (los modelos @1280 de #26 necesitan esto; default 640 = comportamiento previo).
-    worker.postMessage({ type: "INIT", modelUrl, inputSize: activeModel.inputSize, tiling });
+    worker.postMessage({ type: "INIT", modelUrl, inputSize: activeModel.inputSize, tiling, recall });
 
     // Esperar a que el modelo esté listo (use refs to avoid stale closure)
     await new Promise<void>((resolve, reject) => {

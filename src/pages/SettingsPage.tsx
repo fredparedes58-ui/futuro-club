@@ -22,6 +22,7 @@ import {
   Loader2,
   Cpu,
   LayoutGrid,
+  Users,
 } from "lucide-react";
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
@@ -39,6 +40,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { useGdprExport } from "@/hooks/useGdprExport";
 import { MODELS, getActiveModelId, setActiveModelId } from "@/lib/yolo/modelConfig";
 import { getTilingConfig, setTilingConfig } from "@/lib/yolo/tiling";
+import { getRecallConfig, setRecallConfig } from "@/lib/yolo/recallConfig";
 
 const SETTINGS_KEY = "settings";
 
@@ -104,6 +106,7 @@ function VideoAnalysisSettings() {
   const { t } = useTranslation();
   const [modelId, setModelId] = useState(() => getActiveModelId());
   const [tiling, setTiling] = useState(() => getTilingConfig());
+  const [recall, setRecall] = useState(() => getRecallConfig());
 
   // Solo modelos de pose desplegados (custom/vitas-pose-v1 es Fase 3, no existe aún)
   const poseModels = Object.values(MODELS).filter(
@@ -128,6 +131,14 @@ function VideoAnalysisSettings() {
     setTilingConfig(next);
     setTiling(next);
     toast.success(t("videoAnalysisSettings.appliesNext"));
+  };
+  const toggleRecall = () => {
+    const next = recall ? null : { enabled: true };
+    setRecallConfig(next);
+    setRecall(getRecallConfig());
+    toast.success(
+      next ? t("videoAnalysisSettings.recallOnToast") : t("videoAnalysisSettings.recallOffToast"),
+    );
   };
 
   return (
@@ -209,6 +220,32 @@ function VideoAnalysisSettings() {
           </div>
           <p className="text-[9px] text-muted-foreground leading-relaxed">
             {t("videoAnalysisSettings.computeWarn")}
+          </p>
+        </div>
+      )}
+
+      {/* Detección-primero para recall (equipo completo) */}
+      <div
+        className="glass rounded-xl p-4 flex items-center gap-4 cursor-pointer hover:border-primary/30 border border-transparent transition-all"
+        onClick={toggleRecall}
+      >
+        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+          <Users size={18} className="text-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="font-display font-semibold text-sm text-foreground">{t("videoAnalysisSettings.recallTitle")}</p>
+          <p className="text-[10px] text-muted-foreground">{t("videoAnalysisSettings.recallDesc")}</p>
+        </div>
+        {recall
+          ? <ToggleRight size={28} className="text-primary" />
+          : <ToggleLeft size={28} className="text-muted-foreground" />
+        }
+      </div>
+
+      {recall && (
+        <div className="glass rounded-xl p-4 ml-4 border-l-2 border-primary/20">
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            {t("videoAnalysisSettings.recallHonestyNote")}
           </p>
         </div>
       )}

@@ -115,3 +115,22 @@ Cada sprint es un PR aislado y desplegable (misma disciplina que el resto del pr
 
 ## Nota estratégica
 El análisis **por jugador** (VSI, biomecánica, reportes) **ya funciona con 90 min** (vía Gemini async). Este roadmap es para el **tracking táctico de partido completo** (heatmaps, posiciones, set-pieces) — feature nueva y más cara. Si el diferenciador es PHV + desarrollo individual, priorizar V1–V2 (calidad de identidad, útil también para clips) sobre V4 (infra de 90 min) es defendible según demanda real de clientes.
+
+---
+
+## Ruta "detección-primero para recall" (cliente, análisis diferido) — implementada
+
+**Hallazgo (clip Veo real 4K, cámara fija, partido nocturno juvenil):** a plano completo el modelo de POSE detecta ~0 jugadores (demasiado pequeños); con tiling pose 3×3 recupera ~5-12; pero el modelo de **DETECCIÓN** (`yolo11s-detect`, COCO clase 0 = person, el mismo que ya usa el balón) con tiling fino recupera el equipo completo visible (~19 en el benchmark de 1 frame). Razón: la caja tiene un **suelo de tamaño más bajo** que la pose (no necesita colocar 17 keypoints).
+
+**Qué se construyó (opt-in `localStorage vitas_recall`, coordina con `vitas_tiling`):**
+- `src/lib/yolo/detectPostprocess.ts` — decodifica la salida del detector `[1,4+numClasses,A]` → personas (sin keypoints). Reutiliza el álgebra letterbox⁻¹; el NMS es el `globalNms` de `tiling.ts` (una sola implementación, invariante #7).
+- `src/lib/yolo/poseEligibility.ts` — frontera de honestidad: parte las detecciones en cercanas (pose) y lejanas (solo posición) por altura de caja, y expone la **cobertura de biomecánica** como `MetricResult` DERIVADA (métrica `cobertura_pose`).
+- `src/lib/yolo/recallPipeline.ts` — orquestador PURO (inyecta `detect`/`pose`): detección con tiling → posición del equipo completo → pose **solo** sobre las cajas grandes. Las lejanas conservan `keypoints: []` (nunca se inventan).
+- `src/lib/yolo/recallConfig.ts` — opt-in + umbrales (con procedencia declarada).
+- Worker (`trackingWorker.ts`): carga el detector junto a la pose; si el detector no baja, **degrada** a la ruta normal (no rompe). Ajuste en Settings → Análisis de vídeo.
+
+**Honestidad (CLAUDE.md):** la posición del detector es MEDIDA/DERIVADA con procedencia; la biomecánica solo en cercanos; la cobertura parcial se declara (`poseCoverage` en `TrackingState`, métrica `cobertura_pose`); nunca keypoints inventados de lejanos.
+
+**Límites conscientes (pendiente, NO cerrado en esta ruta):**
+1. **Precisión real (recall / falsos positivos) exige GROUND TRUTH ANOTADO A MANO** (varios frames) — va con la parte de anotación (`fixtures/`, `.claude/rules/identidad.md`) y el eval CV (**V6**). El benchmark de 1 frame ya mostró 1-2 posibles falsos positivos / una caja partida. **No dar números de recall al usuario hasta medir contra anotación.** El umbral de cercanía de `recallConfig` (`minPoseBoxHeightPx`) queda "pendiente de validar" por lo mismo.
+2. **Resolución de extracción:** el frame que ve el worker se extrae a 640×640 (igual que el vivo) para NO tocar el espacio de coordenadas de la homografía (que se construye en px nativos del vídeo → las métricas físicas ya son "orientativas" por eso). El tiling del detector sigue recuperando más que la pose a 640, pero el **techo** del benchmark (6×6 @4K) exige extracción de alta resolución **con consistencia de coordenadas** (escalar px de detección al espacio nativo antes de la homografía) — follow-up separado, toca calibración (invariante #4, con cuidado).
