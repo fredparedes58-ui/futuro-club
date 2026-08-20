@@ -18,11 +18,13 @@
 import { aggregateBins } from "./heatmapAggregator";
 import { findHotZones } from "./clusterAnalyzer";
 import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
-import type {
-  GamePhase,
-  PhaseHeatmap,
-  PhaseSegment,
-  TacticalInsights,
+import {
+  DEMO_MATCH_PREFIX,
+  isDemoMatchId,
+  type GamePhase,
+  type PhaseHeatmap,
+  type PhaseSegment,
+  type TacticalInsights,
 } from "./tacticalTypes";
 
 const uuid = (): string => crypto.randomUUID();
@@ -91,7 +93,7 @@ const PHASE_PLAN: Array<{ phase: GamePhase; durationFraction: number; ballPosses
  * @returns El matchId persistido.
  */
 export async function seedDemoMatch(matchId?: string): Promise<string> {
-  const id = matchId ?? `demo-${Date.now().toString(36)}`;
+  const id = matchId ?? `${DEMO_MATCH_PREFIX}${Date.now().toString(36)}`;
   const totalDurationMs = 90 * 60 * 1000; // 90 min
   const now = new Date().toISOString();
 
@@ -257,7 +259,7 @@ export async function seedDemoMatch(matchId?: string): Promise<string> {
 export async function clearMockMatches(): Promise<void> {
   const matches = await TacticalHeatmapService.listMatchesWithHeatmap();
   for (const m of matches) {
-    if (m.matchId.startsWith("demo-")) {
+    if (isDemoMatchId(m.matchId)) {
       await TacticalHeatmapService.deleteMatch(m.matchId);
     }
   }

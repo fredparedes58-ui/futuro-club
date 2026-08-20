@@ -7,6 +7,7 @@
 
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsMatch } from "../_lib/ownership";
 import type {
   GamePhase,
   PhaseHeatmap,
@@ -61,9 +62,16 @@ export default withHandler(
   // Cierra el acceso anónimo (IDOR de lectura). El front lee Supabase directo
   // (RLS), así que este endpoint no lo usa la UI — pero estaba expuesto sin auth.
   { method: "GET", requireAuth: true, maxRequests: 60 },
-  async ({ query }) => {
+  async ({ query, tenantId, isServiceCall }) => {
   const matchId = query.matchId;
   if (!matchId) return errorResponse("matchId required", 400);
+
+  // Autorización a nivel de objeto: el service_role SALTA la RLS de tenant
+  // (055), así que el scoping por tenant se hace aquí en código. Mismo predicado:
+  // el match debe pertenecer a una analysis del tenant del usuario.
+  if (!isServiceCall && !(await ownsMatch(matchId, tenantId))) {
+    return errorResponse("No autorizado para este partido", 403, "FORBIDDEN");
+  }
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return successResponse({ summary: null, source: "no_supabase" });

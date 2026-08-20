@@ -11,7 +11,37 @@ export interface AuthResult {
   userId: string | null;
   /** User email (from JWT `email` claim or Supabase user record). Used for admin allowlist. */
   email: string | null;
+  /**
+   * Tenant (academia) del usuario. Ancla de autorización a nivel de objeto para
+   * los recursos scopeados por tenant (mismo predicado que `public.tenant_id()`
+   * en las RLS: migraciones 003/004/055). Null si el JWT no trae el claim.
+   *
+   * Se lee del claim de nivel raíz `tenant_id` (canónico, lo que ve `public.tenant_id()`)
+   * y, como fallback, de `app_metadata.tenant_id` (solo lo escribe el service_role).
+   * NUNCA de `user_metadata` — el propio usuario puede modificarlo (escalada de tenant).
+   */
+  tenantId: string | null;
   error: string | null;
+}
+
+/**
+ * Extrae el tenant_id de un objeto de claims/usuario de forma segura.
+ * Prioridad: claim raíz `tenant_id` → `app_metadata.tenant_id`.
+ * `app_metadata` solo lo puede escribir el service_role (no el usuario), a
+ * diferencia de `user_metadata`, que el usuario edita libremente y por tanto
+ * NO es una fuente de autoridad.
+ */
+function extractTenantId(claims: unknown): string | null {
+  if (!claims || typeof claims !== "object") return null;
+  const rec = claims as Record<string, unknown>;
+  const top = rec["tenant_id"];
+  if (typeof top === "string" && top.length > 0) return top;
+  const app = rec["app_metadata"];
+  if (app && typeof app === "object") {
+    const t = (app as Record<string, unknown>)["tenant_id"];
+    if (typeof t === "string" && t.length > 0) return t;
+  }
+  return null;
 }
 
 /**
@@ -21,14 +51,14 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
   const authHeader = req.headers.get("Authorization") ?? "";
 
   if (!authHeader.startsWith("Bearer ")) {
-    return { userId: null, email: null, error: "No autenticado" };
+    return { userId: null, email: null, tenantId: null, error: "No autenticado" };
   }
 
   const token = authHeader.slice(7);
   const parts = token.split(".");
 
   if (parts.length !== 3) {
-    return { userId: null, email: null, error: "Token inválido" };
+    return { userId: null, email: null, tenantId: null, error: "Token inválido" };
   }
 
   // ── Strategy 1: Local HMAC-SHA256 verification ──────────────────────────
@@ -38,10 +68,11 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
       const payload = JSON.parse(atob(parts[1]));
       const userId = payload.sub ?? null;
       const email = (payload.email as string | undefined) ?? null;
-      if (!userId) return { userId: null, email: null, error: "Token sin subject" };
+      const tenantId = extractTenantId(payload);
+      if (!userId) return { userId: null, email: null, tenantId: null, error: "Token sin subject" };
 
       if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-        return { userId: null, email: null, error: "Token expirado" };
+        return { userId: null, email: null, tenantId: null, error: "Token expirado" };
       }
 
       const encoder = new TextEncoder();
@@ -62,9 +93,9 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
         console.warn("[auth] HMAC mismatch — trying Supabase API fallback");
       } else {
         if (payload.iss && !payload.iss.includes("supabase")) {
-          return { userId: null, email: null, error: "Emisor no reconocido" };
+          return { userId: null, email: null, tenantId: null, error: "Emisor no reconocido" };
         }
-        return { userId, email, error: null };
+        return { userId, email, tenantId, error: null };
       }
     } catch {
       // Decode/verify failed — fall through
@@ -86,9 +117,15 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
       });
 
       if (res.ok) {
-        const user = (await res.json()) as { id?: string; email?: string };
+        const user = (await res.json()) as {
+          id?: string;
+          email?: string;
+          app_metadata?: Record<string, unknown>;
+        };
         if (user.id) {
-          return { userId: user.id, email: user.email ?? null, error: null };
+          // El registro GoTrue no expone claims de nivel raíz — el tenant vive en
+          // app_metadata (solo lo escribe el service_role), así que lo leemos de ahí.
+          return { userId: user.id, email: user.email ?? null, tenantId: extractTenantId(user), error: null };
         }
       }
 
@@ -98,7 +135,7 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
         try { return (JSON.parse(errBody) as { msg?: string; message?: string }).msg ?? (JSON.parse(errBody) as { message?: string }).message ?? `HTTP ${res.status}`; }
         catch { return `HTTP ${res.status}`; }
       })();
-      return { userId: null, email: null, error: `Token rechazado: ${errMsg}` };
+      return { userId: null, email: null, tenantId: null, error: `Token rechazado: ${errMsg}` };
     } catch (fetchErr) {
       console.warn("[auth] Supabase API fallback failed:", fetchErr);
       // Network error — fall through to Strategy 3
@@ -109,5 +146,5 @@ export async function verifyAuth(req: Request): Promise<AuthResult> {
   // In production, SUPABASE_JWT_SECRET or SUPABASE_URL must be configured.
   // We never accept tokens without signature verification.
   console.error("[auth] CRITICAL: No JWT_SECRET and no Supabase API available — cannot verify tokens");
-  return { userId: null, email: null, error: "Servidor no puede verificar autenticación. Contacte al administrador." };
+  return { userId: null, email: null, tenantId: null, error: "Servidor no puede verificar autenticación. Contacte al administrador." };
 }

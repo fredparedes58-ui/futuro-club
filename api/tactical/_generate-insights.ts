@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsMatch } from "../_lib/ownership";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { MODELS } from "../_lib/models";
 import {
@@ -65,8 +66,15 @@ export default withHandler(
     requireAuth: true,
     maxRequests: 15,
   },
-  async ({ body }) => {
+  async ({ body, tenantId, isServiceCall }) => {
     const { matchId, team, matchInfo, locale, phvDistribution } = body as z.infer<typeof GenerateInsightsSchema>;
+
+    // Autorización a nivel de objeto (lectura de fases + escritura de insights +
+    // gasto LLM): el service_role SALTA la RLS de tenant (055) → scoping en código.
+    // El match debe pertenecer a una analysis del tenant del usuario.
+    if (!isServiceCall && !(await ownsMatch(matchId, tenantId))) {
+      return errorResponse("No autorizado para este partido", 403, "FORBIDDEN");
+    }
 
     if (!SUPABASE_URL || !SUPABASE_KEY) {
       return errorResponse("Supabase no configurado", 503);

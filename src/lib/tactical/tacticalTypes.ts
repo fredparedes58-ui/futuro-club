@@ -151,3 +151,16 @@ export interface TacticalPatternInput {
     label: string;
   }>;
 }
+
+// ── Demo helpers ──────────────────────────────────────────────────────
+/** Prefijo de los match demo (seed local vía mockSeeder). */
+export const DEMO_MATCH_PREFIX = "demo-";
+
+/**
+ * ¿Es un match de demostración (seed local)? Los match demo viven SOLO en
+ * localStorage: no tienen fila en `analyses` ni son UUID válido, así que NO se
+ * consultan contra los endpoints de api/tactical (darían 403 por ownsMatch).
+ */
+export function isDemoMatchId(matchId: string | null | undefined): boolean {
+  return typeof matchId === "string" && matchId.startsWith(DEMO_MATCH_PREFIX);
+}

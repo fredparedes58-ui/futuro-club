@@ -105,6 +105,14 @@ interface HandlerContext<T> {
   ip: string;
   userId: string | null;
   /**
+   * Tenant (academia) del usuario autenticado, extraído del JWT (claim raíz
+   * `tenant_id` → `app_metadata.tenant_id`). Ancla de autorización a nivel de
+   * objeto para recursos scopeados por tenant (mismo predicado que las RLS por
+   * tenant · migraciones 003/004/055). Null en llamadas de servicio o cuando el
+   * JWT no trae el claim.
+   */
+  tenantId: string | null;
+  /**
    * true si la request entró con token de servicio (CRON/ADMIN/INTERNAL/SERVICE_ROLE).
    * Úsalo para checks de ownership — NO infieras "servicio" de userId===null,
    * que es un contrato implícito frágil (optionalAuth también deja userId null).
@@ -158,6 +166,7 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
     // 4. Auth check
     let userId: string | null = null;
     let userEmail: string | null = null;
+    let userTenantId: string | null = null;
     let isServiceCall = false;
 
     if (options.serviceOnly) {
@@ -175,10 +184,12 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
       }
       userId = auth.userId;
       userEmail = auth.email;
+      userTenantId = auth.tenantId;
     } else if (options.optionalAuth) {
       const auth = await verifyAuth(req);
       userId = auth.userId; // puede ser null, y eso esta bien
       userEmail = auth.email;
+      userTenantId = auth.tenantId;
     }
 
     // 4a-bis. Fail-closed: si el endpoint exige plan/rol pero no hay ni llamada de
@@ -309,6 +320,7 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
         body,
         ip,
         userId,
+        tenantId: userTenantId,
         isServiceCall,
         method: req.method,
         query,
