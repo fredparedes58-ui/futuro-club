@@ -76,6 +76,7 @@ const OnboardingPage = () => {
   const [playerName, setPlayerName] = useState("");
   const [playerAge, setPlayerAge] = useState("14");
   const [playerPosition, setPlayerPosition] = useState("Extremo Izquierdo");
+  const [playerGender, setPlayerGender] = useState<"M" | "F" | "">(""); // requerido si se crea jugador (invariante #5)
   const [saving, setSaving] = useState(false);
 
   const showOrgStep = profileType === "academy" || profileType === "club";
@@ -85,6 +86,12 @@ const OnboardingPage = () => {
 
   const handleFinish = async (opts?: { skipPlayer?: boolean }) => {
     if (!user || !profileType) return;
+    // Si se va a crear un jugador manual, exigir el sexo: determina la fórmula PHV
+    // (Mirwald/Khamis-Roche). Nunca se asume "M" por defecto (invariante #5).
+    if (!opts?.skipPlayer && playerName.trim() && !playerGender) {
+      toast.error(t("common.chooseGender"));
+      return;
+    }
     setSaving(true);
     try {
       // Crear organización si aplica (academy / club)
@@ -108,7 +115,7 @@ const OnboardingPage = () => {
           name: playerName.trim(),
           age: parseInt(playerAge) || 14,
           position: playerPosition,
-          gender: "M",
+          gender: playerGender || undefined, // sexo real elegido en el paso 4; nunca "M" por defecto
           foot: "right",
           height: 165,
           weight: 58,
@@ -349,6 +356,31 @@ const OnboardingPage = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+                {/* Sexo · requerido si se crea jugador (fórmula PHV · invariante #5) */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-display text-muted-foreground uppercase tracking-wide">
+                    {t("common.gender")}
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { value: "M", label: t("common.male") },
+                      { value: "F", label: t("common.female") },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setPlayerGender(opt.value)}
+                        className={`h-9 rounded-md border text-sm font-display transition-all ${
+                          playerGender === opt.value
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-background text-muted-foreground border-input hover:border-primary/50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

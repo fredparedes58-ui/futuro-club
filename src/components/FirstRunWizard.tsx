@@ -55,6 +55,7 @@ const FOOT_OPTIONS: Array<{ value: "right" | "left" | "both"; labelKey: string; 
 interface FormState {
   name: string;
   age: string;
+  gender: "M" | "F" | "";   // requerido: determina la fórmula PHV (invariante #5)
   position: string;
   foot: "right" | "left" | "both" | "";
   height: string;
@@ -62,7 +63,7 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  name: "", age: "", position: "", foot: "", height: "", weight: "",
+  name: "", age: "", gender: "", position: "", foot: "", height: "", weight: "",
 };
 
 // Defaults razonables si el user salta paso 3
@@ -133,7 +134,7 @@ export default function FirstRunWizard() {
         foot: (form.foot || "right") as "right" | "left" | "both",
         height: heightCm,
         weight: weightKg,
-        gender: "M",
+        gender: form.gender || undefined, // sexo real elegido en el paso 1; nunca "M" por defecto
         competitiveLevel: "Regional",
         minutesPlayed: 0,
         // Defaults neutros para que el coach pueda ajustar después
@@ -161,6 +162,7 @@ export default function FirstRunWizard() {
       }
       const age = Number(form.age);
       if (age < 8 || age > 21) { toast.error(t("firstRun.ageRange")); return; }
+      if (!form.gender) { toast.error(t("common.chooseGender")); return; }
       setStep(2);
     } else if (step === 2) {
       if (!form.position) { toast.error(t("firstRun.choosePosition")); return; }
@@ -273,6 +275,31 @@ export default function FirstRunWizard() {
                       min={8} max={21}
                       className="w-full px-4 py-2.5 rounded-lg bg-background border border-border text-base text-foreground focus:border-primary focus:outline-none"
                     />
+                  </div>
+                  {/* Sexo · requerido (determina la fórmula PHV · invariante #5) */}
+                  <div>
+                    <label className="block text-[11px] font-display text-muted-foreground uppercase tracking-wider mb-1.5">
+                      {t("common.gender")}
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {([
+                        { value: "M", label: t("common.male") },
+                        { value: "F", label: t("common.female") },
+                      ] as const).map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, gender: opt.value }))}
+                          className={`px-2 py-2.5 rounded-lg text-xs font-display border transition-all ${
+                            form.gender === opt.value
+                              ? "border-primary bg-primary/15 text-foreground font-bold"
+                              : "border-border bg-secondary/30 text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </motion.div>
