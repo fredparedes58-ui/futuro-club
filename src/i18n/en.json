@@ -2343,6 +2343,15 @@
     "appliesNext": "Saved — applies to the next analysis",
     "appliesNextHint": "Changes apply to the next analysis you start (not the one in progress)."
   },
+  "precision": {
+    "title": "Precision analysis",
+    "subtitle": "3×3 tiling · detects the full team, slower",
+    "liveWarning": "Much slower · may drop to a few fps · recommended for deferred analysis, not live.",
+    "runningNote": "Changing this restarts the analysis from the beginning with the new setting.",
+    "reanalyze": "Re-analyze with precision",
+    "reanalyzeNote": "Re-processes the whole video. It does not add data to the previous analysis: a pass run without precision can't be completed afterwards.",
+    "alreadyPrecise": "This analysis already ran with precision (tiling)."
+  },
   "sprintSpeed": {
     "title": "Sprint Speed",
     "intro": "Measures sprint speed over a KNOWN distance by timing between marks. No camera calibration needed. The video is not uploaded anywhere.",

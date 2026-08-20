@@ -33,6 +33,8 @@ import { usePlayerAnalysisV2 } from "@/hooks/usePlayerAnalysisV2";
 import { useFatigue } from "@/hooks/useFatigue";
 import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
 import VitasLabOneClick from "@/components/VitasLabOneClick";
+import PrecisionToggle, { type PrecisionPhase } from "@/components/vision/PrecisionToggle";
+import { getTilingConfig } from "@/lib/yolo/tiling";
 import { XgAccumulator } from "@/lib/xg/xgAccumulator";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import { useTeamAnalysis } from "@/hooks/useTeamAnalysis";
@@ -106,6 +108,9 @@ const VitasLab = () => {
     },
     onStartTracking: (videoEl) => {
       setShowTracking(true);
+      // Registrar si esta pasada corre con precisión (tiling). Es la MISMA config
+      // que leerá el worker en su INIT (getTilingConfig), así que refleja la pasada real.
+      setPassUsedPrecision(getTilingConfig() !== null);
       mediaPipe.reset();
       eventEngineRef.current.reset();
       xgAccumulatorRef.current.reset();
@@ -149,6 +154,10 @@ const VitasLab = () => {
   const [teamColor, setTeamColor]               = useState<string>("");
   const [showTracking, setShowTracking]         = useState(false);
   const [showVoronoi, setShowVoronoi]           = useState(false);
+  // ¿La pasada de tracking activa/última usó "Análisis de precisión" (tiling)?
+  // Se fija al arrancar la pasada leyendo la config real que usará el worker; sirve
+  // para ofrecer "Re-analizar con precisión" cuando la pasada terminó sin tiling.
+  const [passUsedPrecision, setPassUsedPrecision] = useState(false);
   // Configuración por modo de análisis
   const [homeTeamColor, setHomeTeamColor]       = useState<string>("");
   const [awayTeamColor, setAwayTeamColor]       = useState<string>("");
@@ -821,6 +830,45 @@ const VitasLab = () => {
   const effectiveDuration = videoDuration || totalTime;
   const progressPercent = (currentTime / effectiveDuration) * 100;
 
+  // ── Análisis de precisión (tiling) — control visible en el flujo 1-click ──
+  const trackingRunning =
+    tracking.state.status === "tracking" || tracking.state.status === "loading-model";
+  const precisionPhase: PrecisionPhase = trackingRunning
+    ? "running"
+    : tracking.state.status === "complete" || v2.isCompleted
+      ? "complete"
+      : "before";
+
+  /** Lanza (o relanza) la pasada 1-click completa sobre el vídeo cargado. Reutilizado
+   *  por el botón ANALIZAR, por "Re-analizar con precisión" y por el reinicio en caliente. */
+  const launchAnalysisPass = () => {
+    if (!selectedVideoId || !selectedPlayerId || !labVideoRef.current) {
+      toast.error(t("vitasLab.selectPlayerAndVideoFirst"));
+      return;
+    }
+    if (!canRunAnalysis) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setActionLog([]);
+    oneClick.reset();
+    oneClick.startOneClick(labVideoRef.current);
+  };
+
+  /** Cambio del toggle de precisión. La persistencia ya la hace PrecisionToggle
+   *  (setTilingConfig). Si hay una pasada EN CURSO, se reinicia: el worker se re-INIT
+   *  con la nueva config (el tiling no se puede aplicar a mitad de pasada). */
+  const handlePrecisionToggle = () => {
+    if (!trackingRunning || !labVideoRef.current) return;
+    tracking.stopTracking();
+    if (mediaPipe.status === "processing") mediaPipe.stop();
+    oneClick.reset();
+    // Reiniciar tras un tick para que el worker anterior se termine limpiamente.
+    setTimeout(() => {
+      if (labVideoRef.current) launchAnalysisPass();
+    }, 300);
+  };
+
   // Dimension labels
   const dimLabels: Record<string, string> = {
     velocidadDecision:   t("lab.dimensions.velocidadDecision"),
@@ -969,18 +1017,15 @@ const VitasLab = () => {
               if (p?.position) setPlayerPosition(p.position);
             }}
             onSelectVideo={(id) => setSelectedVideoId(id)}
-            onStartAnalysis={() => {
-              if (!selectedVideoId || !selectedPlayerId || !labVideoRef.current) {
-                toast.error(t("vitasLab.selectPlayerAndVideoFirst"));
-                return;
-              }
-              if (!canRunAnalysis) {
-                setShowUpgradePrompt(true);
-                return;
-              }
-              setActionLog([]);
-              oneClick.startOneClick(labVideoRef.current);
-            }}
+            onStartAnalysis={launchAnalysisPass}
+            precisionControl={
+              <PrecisionToggle
+                phase={precisionPhase}
+                activePrecision={passUsedPrecision}
+                onToggle={handlePrecisionToggle}
+                onReanalyze={launchAnalysisPass}
+              />
+            }
             onStopTracking={() => {
               tracking.stopTracking();
               if (mediaPipe.status === "processing") mediaPipe.stop();

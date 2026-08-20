@@ -2343,6 +2343,15 @@
     "appliesNext": "Guardado — se aplica al próximo análisis",
     "appliesNextHint": "Los cambios se aplican al próximo análisis que inicies (no al que esté en curso)."
   },
+  "precision": {
+    "title": "Análisis de precisión",
+    "subtitle": "Tiling 3×3 · detecta al equipo completo, más lento",
+    "liveWarning": "Mucho más lento · puede caer a pocos fps · recomendado para análisis en diferido, no en directo.",
+    "runningNote": "Cambiar esto reinicia el análisis desde el principio con la nueva configuración.",
+    "reanalyze": "Re-analizar con precisión",
+    "reanalyzeNote": "Re-procesa el vídeo entero. No añade datos al análisis anterior: una pasada hecha sin precisión no se puede completar a posteriori.",
+    "alreadyPrecise": "Este análisis ya se hizo con precisión (tiling)."
+  },
   "sprintSpeed": {
     "title": "Velocidad de Sprint",
     "intro": "Mide la velocidad de un sprint sobre una distancia CONOCIDA cronometrando entre marcas. No necesita calibrar la cámara. El vídeo no se sube a ningún sitio.",
