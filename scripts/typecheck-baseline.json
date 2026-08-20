@@ -1,6 +1,6 @@
 {
   "_comment": "Baseline de errores tsc conocidos (tsconfig.app.json). NO editar a mano: regenerar con `node scripts/typecheck-baseline.mjs --update`. Objetivo: que solo baje. Ver scripts/typecheck-baseline.mjs.",
-  "total": 105,
+  "total": 103,
   "errors": {
     "api/_lib/budgetGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 4,
     "api/_lib/usageGuard.ts::TS2591::Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.": 3,
@@ -33,7 +33,6 @@
     "src/pages/LiveSummaryPage.tsx::TS2352::Conversion of type 'AnalysisResult' to type 'Record<string, unknown>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.": 1,
     "src/pages/PlayerComparison.tsx::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'VSIMetrics'.": 2,
     "src/pages/PlayerForm.tsx::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'PlayerMetrics'.": 1,
-    "src/pages/PlayerForm.tsx::TS2322::Type '`metrics.${string}`' is not assignable to type '\"position\" | \"height\" | \"name\" | \"weight\" | \"age\" | \"secondaryPositions\" | \"foot\" | \"sittingHeight\" | \"legLength\" | \"competitiveLevel\" | \"minutesPlayed\" | \"metrics\" | \"gender\" | ... 11 more ... | \"metrics.defending\"'.": 1,
     "src/pages/PlayerHubPage.tsx::TS2339::Property 'metricasCuantitativas' does not exist on type '{ playerId: string; videoId: string; generatedAt: string; estadoActual: { resumenEjecutivo: string; nivelActual: string; fortalezasPrimarias: string[]; areasDesarrollo: string[]; dimensiones: { ...; }; ajusteVSIVideoScore: number; }; ... 4 more ...; confianza: number; }'.": 6,
     "src/pages/PlayerHubPage.tsx::TS2339::Property 'vsi' does not exist on type '{ playerId: string; videoId: string; generatedAt: string; estadoActual: { resumenEjecutivo: string; nivelActual: string; fortalezasPrimarias: string[]; areasDesarrollo: string[]; dimensiones: { ...; }; ajusteVSIVideoScore: number; }; ... 4 more ...; confianza: number; }'.": 1,
     "src/pages/PlayerIntelligencePage.tsx::TS2345::Argument of type '{ velocidadDecision?: { score?: number; observacion?: string; }; tecnicaConBalon?: { score?: number; observacion?: string; }; inteligenciaTactica?: { score?: number; observacion?: string; }; capacidadFisica?: { ...; }; liderazgoPresencia?: { ...; }; eficaciaCompetitiva?: { ...; }; }' is not assignable to parameter of type 'Record<string, { score: number; observacion?: string; }>'.": 1,
@@ -53,7 +52,6 @@
     "src/services/real/adapters.ts::TS2550::Property 'at' does not exist on type 'number[]'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.": 1,
     "src/services/real/advancedMetricsService.ts::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'PlayerMetrics'.": 1,
     "src/services/real/agentService.ts::TS2358::The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.": 1,
-    "src/services/real/benchmarkService.ts::TS2339::Property 'stats' does not exist on type '{ position?: string; id?: string; height?: number; name?: string; createdAt?: string; weight?: number; age?: number; secondaryPositions?: string[]; foot?: \"both\" | \"right\" | \"left\"; sittingHeight?: number; ... 12 more ...; updatedAt?: string; }'.": 1,
     "src/services/real/observabilityAdapter.ts::TS2484::Export declaration conflicts with exported declaration of 'ObservabilityProvider'.": 1,
     "src/services/real/playerService.ts::TS2345::Argument of type '{ speed?: number; technique?: number; vision?: number; stamina?: number; shooting?: number; defending?: number; }' is not assignable to parameter of type 'PlayerMetrics'.": 2,
     "src/services/real/pushNotificationService.ts::TS2322::Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource'.": 1,

@@ -821,7 +821,7 @@ const PlayerForm = () => {
           {(Object.keys(METRIC_LABELS) as Array<keyof typeof METRIC_LABELS>).map((metricKey) => (
             <Controller
               key={metricKey}
-              name={`metrics.${metricKey}` as `metrics.${typeof metricKey}`}
+              name={`metrics.${metricKey}` as `metrics.${keyof FormValues["metrics"]}`}
               control={control}
               render={({ field }) => (
                 <MetricSlider

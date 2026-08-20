@@ -22,62 +22,45 @@ export interface VSIResult {
 }
 
 /**
- * Pesos por dimensión para el VSI (VITAS Scouting Index).
+ * VSI de FICHA — pesos + fórmula (fuente ÚNICA · invariante #7). Antes esta fórmula
+ * estaba triplicada idéntica en metricsService, api/players/_crud.ts y
+ * api/rankings/_list.ts; ahora esas dos importan calculateFichaVsi de aquí.
+ * Entradas = SLIDERS subjetivos del coach (no medida). Índice DISTINTO del VSI de VÍDEO
+ * (api/agents/_vsi-calculator.ts), a propósito.
  *
- * Justificación científica de cada peso:
- *
- * technique (0.22): Más predictivo de éxito profesional a largo plazo.
- *   Huijgen et al. 2009 demostró que la habilidad técnica en juveniles es el
- *   predictor más fuerte de alcanzar nivel profesional. La técnica no depende
- *   de la maduración biológica y se mantiene estable o mejora con la edad.
- *
- * vision (0.20): Inteligencia de juego, segundo predictor más fuerte.
- *   Estudios de Jordet (2005) y Savelsbergh (2006) muestran correlación directa
- *   entre frecuencia de escaneo visual y calidad de decisión. La visión/lectura
- *   de juego diferencia consistentemente a jugadores élite de promedio.
- *
- * speed (0.18): Importante pero menos predictivo en juveniles por maduración.
- *   La velocidad depende fuertemente del estado de maduración (PHV). Un jugador
- *   "lento" pre-PHV puede ser rápido post-PHV. Peso moderado para no sobrevaluar
- *   ventajas madurativas temporales (late maturers pierden en speed pero no en talento).
- *
- * stamina (0.15): Altamente entrenable, influenciado por PHV.
- *   La resistencia aeróbica tiene ventana sensible durante PHV y es la capacidad
- *   física más entrenable. Peso menor porque mejora con entrenamiento sistemático
- *   independiente del talento base.
- *
- * shooting (0.13): Se desarrolla tarde (peak 27-28 años).
- *   Las curvas de desarrollo muestran que el disparo tiene su pico más tarde que
- *   otras capacidades. Un jugador juvenil con shooting bajo no es limitante si
- *   tiene buena técnica base — la finalización mejora con madurez y experiencia.
- *
- * defending (0.12): Se desarrolla más tarde (peak 29-30 años).
- *   Las capacidades defensivas (anticipación, posicionamiento, duelo) son las que
- *   más tardan en madurar. Peso más bajo porque un jugador juvenil con defending
- *   bajo pero buena visión/técnica tiene alto potencial de mejora defensiva.
- *
- * ÍNDICES DISTINTOS: este es el VSI de FICHA (6 dims, desde métricas del coach,
- * para rankings/tarjetas). El VSI de ANÁLISIS DE VÍDEO es otro (5 dims):
- * api/agents/_vsi-calculator.ts. Son índices diferentes a propósito.
+ * Justificación de pesos: technique 0.22 (predictor más fuerte de éxito profesional,
+ * Huijgen et al. 2009, no depende de maduración); vision 0.20 (inteligencia de juego,
+ * Jordet 2005 / Savelsbergh 2006); speed 0.18 (dependiente de PHV → no sobrevalorar
+ * ventajas madurativas temporales); stamina 0.15 (altamente entrenable); shooting 0.13
+ * (pico tardío 27-28); defending 0.12 (capacidades defensivas maduran aún más tarde).
  */
-const VSI_WEIGHTS: Record<keyof PlayerMetrics, number> = {
-  speed:     0.18,
+export const FICHA_VSI_WEIGHTS: Record<keyof PlayerMetrics, number> = {
+  speed: 0.18,
   technique: 0.22,
-  vision:    0.20,
-  stamina:   0.15,
-  shooting:  0.13,
+  vision: 0.2,
+  stamina: 0.15,
+  shooting: 0.13,
   defending: 0.12,
 };
 
+/**
+ * Suma ponderada de las 6 dimensiones → VSI de ficha (0-100, un decimal). Acepta
+ * métricas parciales (dimensión ausente cuenta 0), igual que las 3 rutas previas.
+ */
+export function calculateFichaVsi(
+  metrics: Partial<Record<keyof PlayerMetrics, number>>,
+): number {
+  const raw = (Object.keys(FICHA_VSI_WEIGHTS) as (keyof PlayerMetrics)[]).reduce(
+    (acc, key) => acc + (metrics[key] ?? 0) * FICHA_VSI_WEIGHTS[key],
+    0,
+  );
+  return Math.round(raw * 10) / 10;
+}
+
 export const MetricsService = {
-  /**
-   * Calcula el VSI (VITAS Scouting Index) — índice compuesto 0-100
-   */
+  /** VSI de FICHA (evaluación del entrenador) — delega en calculateFichaVsi (arriba). */
   calculateVSI(metrics: PlayerMetrics): number {
-    const raw = Object.entries(VSI_WEIGHTS).reduce((acc, [key, weight]) => {
-      return acc + metrics[key as keyof PlayerMetrics] * weight;
-    }, 0);
-    return Math.round(raw * 10) / 10;
+    return calculateFichaVsi(metrics);
   },
 
   /**

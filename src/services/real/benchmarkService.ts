@@ -99,7 +99,7 @@ export function calculateReportBenchmark(
       // Convert player metric (0-100) to dimension scale (0-10) for comparison
       const groupScores = group
         .map((p) => {
-          const stats = p.stats as Record<string, number> | undefined;
+          const stats = (p as { stats?: Record<string, number> }).stats;
           const val = stats?.[metricKey];
           return typeof val === "number" ? val / 10 : null;
         })
