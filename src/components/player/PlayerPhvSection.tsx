@@ -97,7 +97,7 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
       <AnthropometricsForm
         playerId={player.id}
         chronologicalAge={player.age}
-        gender={player.gender ?? "M"}
+        gender={player.gender}
         fallback={{
           heightCm: player.height,
           weightKg: player.weight,

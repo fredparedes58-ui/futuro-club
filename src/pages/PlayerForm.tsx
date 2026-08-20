@@ -605,6 +605,7 @@ const PlayerForm = () => {
                 </div>
               )}
             />
+            {errors.gender && <p className="text-[10px] text-destructive">{errors.gender.message}</p>}
           </div>
 
           {/* Pie dominante */}
