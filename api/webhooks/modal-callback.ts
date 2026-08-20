@@ -99,12 +99,17 @@ async function triggerTacticalCompute(
   analysisId: string,
   videoUrl: string,
   videoId: string,
+  authToken: string,
 ): Promise<void> {
   try {
-    // No await — fire and forget
+    // No await — fire and forget. compute-from-video ahora exige auth → mandamos
+    // el token de servicio (withHandler lo acepta vía allowServiceToken).
     void fetch(`${PUBLIC_URL}/api/tactical/compute-from-video`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
       body: JSON.stringify({
         matchId: analysisId, // reusing analysisId as matchId
         videoUrl,
@@ -223,8 +228,11 @@ export default withHandler(
     }).videos;
     const videoRecord = Array.isArray(videoRec) ? videoRec[0] : videoRec;
     const videoUrl = videoRecord?.cdn_url ?? videoRecord?.bunny_hls_url;
+    // Token de servicio para las llamadas internas server-to-server (compute-from-video
+    // y orchestrator ahora exigen auth). withHandler acepta CRON_SECRET/INTERNAL_API_TOKEN.
+    const internalToken = process.env.INTERNAL_API_TOKEN ?? expectedToken;
     if (videoUrl && analysis.video_id) {
-      void triggerTacticalCompute(analysis.id, videoUrl, analysis.video_id);
+      void triggerTacticalCompute(analysis.id, videoUrl, analysis.video_id, internalToken);
     } else {
       console.warn(
         `[modal-callback] No video URL for ${analysis.id}, skipping tactical compute`,
@@ -232,7 +240,6 @@ export default withHandler(
     }
 
     // ── Disparar pipeline-orchestrator (6 reportes LLM en paralelo) ──
-    const internalToken = process.env.INTERNAL_API_TOKEN ?? expectedToken;
     const orchestrator = await triggerOrchestrator(analysis.id, internalToken);
 
     if (!orchestrator.success) {

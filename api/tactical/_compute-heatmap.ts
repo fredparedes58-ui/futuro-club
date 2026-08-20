@@ -70,7 +70,11 @@ export default withHandler(
   {
     method: "POST",
     schema: ComputeHeatmapSchema,
-    requireAuth: false,
+    // Cierra el acceso anónimo (IDOR): borra+inserta datos posicionales de
+    // menores vía service role. allowServiceToken deja pasar la llamada interna
+    // de compute-from-video (server-to-server con token de servicio).
+    requireAuth: true,
+    allowServiceToken: true,
     maxRequests: 10,
   },
   async ({ body }) => {

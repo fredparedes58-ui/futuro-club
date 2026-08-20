@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { MODELS } from "../_lib/models";
 import {
   TacticalPatternInputSchema,
@@ -59,7 +60,9 @@ export default withHandler(
   {
     method: "POST",
     schema: GenerateInsightsSchema,
-    requireAuth: false,
+    // Cierra el acceso anónimo (IDOR + abuso de coste LLM): sin auth, cualquiera
+    // podía escribir tactical_insights y quemar tokens de pago de Claude.
+    requireAuth: true,
     maxRequests: 15,
   },
   async ({ body }) => {
@@ -139,6 +142,10 @@ export default withHandler(
     let model = "fallback";
 
     if (ANTHROPIC_API_KEY) {
+      // Tripwire de presupuesto: corta si el mes superó el tope (fail-open si el
+      // ledger no responde). Cae al fallback determinista, no rompe.
+      if (await isOverBudget()) return budgetExceededResponse();
+      await recordSpendUsd("claude-opus"); // MODELS.reasoning = claude-opus-4-8
       try {
         const prompt = buildTacticalPatternPrompt(input);
         const resp = await fetch("https://api.anthropic.com/v1/messages", {

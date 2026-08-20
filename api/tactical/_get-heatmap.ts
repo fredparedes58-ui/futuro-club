@@ -5,6 +5,7 @@
  * + insights si existen.
  */
 
+import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import type {
   GamePhase,
@@ -56,9 +57,12 @@ interface DbInsight {
   model_version: string;
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  const url = new URL(req.url);
-  const matchId = url.searchParams.get("matchId");
+export default withHandler(
+  // Cierra el acceso anónimo (IDOR de lectura). El front lee Supabase directo
+  // (RLS), así que este endpoint no lo usa la UI — pero estaba expuesto sin auth.
+  { method: "GET", requireAuth: true, maxRequests: 60 },
+  async ({ query }) => {
+  const matchId = query.matchId;
   if (!matchId) return errorResponse("matchId required", 400);
 
   if (!SUPABASE_URL || !SUPABASE_KEY) {
@@ -162,4 +166,5 @@ export default async function handler(req: Request): Promise<Response> {
     console.error("[get-heatmap] error:", err);
     return errorResponse("Internal error fetching heatmap", 500);
   }
-}
+  },
+);
