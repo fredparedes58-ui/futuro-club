@@ -29,7 +29,9 @@ const postSchema = z.object({
   sittingHeightCm: z.number().min(40).max(130).optional(),
   legLengthCm: z.number().min(30).max(130).optional(),
   chronologicalAge: z.number().min(5).max(25),
-  gender: z.enum(["M", "F"]).default("M"),
+  // Sexo SIN default: el PHV es sexo-específico (invariante #5). Ausente ⇒ no se
+  // calcula PHV (queda null), NUNCA se asume masculino ni cae a femenino.
+  gender: z.enum(["M", "F"]).optional(),
   notes: z.string().max(500).optional(),
 });
 
@@ -241,16 +243,17 @@ export default withHandler(
         });
       }
 
-      // PHV solo con sitting+leg REALES (sin estimar). Si faltan → null (no fabricar).
+      // PHV solo con sitting+leg REALES (sin estimar) Y sexo registrado (sexo-
+      // específico). Si falta cualquiera → null (no fabricar, no asumir sexo).
       const phv =
-        input.sittingHeightCm != null && input.legLengthCm != null
+        input.sittingHeightCm != null && input.legLengthCm != null && input.gender
           ? computePhv({
               age: input.chronologicalAge,
               height: input.heightCm,
               weight: input.weightKg,
               sittingHeight: input.sittingHeightCm,
               legLength: input.legLengthCm,
-              gender: input.gender ?? "M",
+              gender: input.gender,
             })
           : null;
 
@@ -325,9 +328,10 @@ export default withHandler(
       return errorResponse({ code: "player_not_found", message: "Jugador no existe", status: 404 });
     }
 
-    // PHV solo con sitting+leg REALES (sin estimar). Si faltan → null (no fabricar).
+    // PHV solo con sitting+leg REALES (sin estimar) Y sexo registrado (sexo-
+    // específico). Si falta cualquiera → null (no fabricar, no asumir sexo).
     const phv =
-      input.sittingHeightCm != null && input.legLengthCm != null
+      input.sittingHeightCm != null && input.legLengthCm != null && input.gender
         ? computePhv({
             age: input.chronologicalAge,
             height: input.heightCm,

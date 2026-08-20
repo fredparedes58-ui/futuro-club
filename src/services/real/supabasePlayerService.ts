@@ -29,7 +29,7 @@ function playerToColumns(p: Player) {
     leg_length: p.legLength ?? null,
     competitive_level: p.competitiveLevel ?? "Regional",
     minutes_played: p.minutesPlayed ?? 0,
-    gender: p.gender ?? "M",
+    gender: p.gender ?? null, // sin sexo registrado ⇒ null (no asumir masculino; invariante #5)
     metric_speed: p.metrics?.speed ?? 0,
     metric_technique: p.metrics?.technique ?? 0,
     metric_vision: p.metrics?.vision ?? 0,

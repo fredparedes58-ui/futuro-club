@@ -26,7 +26,9 @@ const phvSchema = z.object({
   sittingHeight: z.number().positive().optional(),  // cm
   legLength: z.number().positive().optional(),      // cm
   currentVSI: z.number().min(0).max(100).optional(),
-  gender: z.enum(["M", "F"]).default("M"),
+  // Sexo SIN default: el PHV es sexo-específico (invariante #5). Ausente ⇒ se
+  // bloquea (throw PHV_MISSING_SEX), NUNCA se asume masculino ni femenino.
+  gender: z.enum(["M", "F"]).optional(),
 });
 
 type PhvInput = z.infer<typeof phvSchema>;
@@ -94,6 +96,16 @@ function calculateMaturityOffset(input: PhvInput): {
 
   // Confianza: siempre alta porque ahora exigimos datos reales
   const confidence = 0.92;
+
+  // Gate de sexo (invariante #5): sin sexo registrado NO se calcula — se bloquea,
+  // en vez de caer al else (femenino) o asumir masculino.
+  if (input.gender !== "M" && input.gender !== "F") {
+    throw new Error(
+      "PHV_MISSING_SEX: El sexo del jugador es obligatorio para el cálculo PHV " +
+      "(la fórmula de Mirwald y las medias de referencia son sexo-específicas). " +
+      "No se asume un sexo por defecto."
+    );
+  }
 
   let offset: number;
   let formula: "mirwald_male" | "mirwald_female";
@@ -205,10 +217,13 @@ export default withHandler(
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error in PHV calculation";
       const isIncomplete = message.includes("PHV_INCOMPLETE_DATA");
+      const isMissingSex = message.includes("PHV_MISSING_SEX");
+      // Ambos son datos requeridos faltantes (cliente) → 422, no 500.
+      const isDataGate = isIncomplete || isMissingSex;
       return errorResponse({
-        code: isIncomplete ? "phv_incomplete_data" : "phv_calc_failed",
+        code: isMissingSex ? "phv_missing_sex" : isIncomplete ? "phv_incomplete_data" : "phv_calc_failed",
         message,
-        status: isIncomplete ? 422 : 500,
+        status: isDataGate ? 422 : 500,
       });
     }
   }
