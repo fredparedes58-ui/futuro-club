@@ -24,7 +24,9 @@ export interface MirwaldInput {
   chronologicalAge: number;
   height: number;            // cm
   weight: number;            // kg
-  gender?: "M" | "F";
+  /** REQUERIDO: el PHV es sexo-específico (invariante #5). No se asume por defecto;
+   *  el caller debe gatear (sin sexo registrado ⇒ no calcular). */
+  gender: "M" | "F";
   sittingHeight?: number;    // cm — si falta se estima
   legLength?: number;        // cm — si falta se estima
 }
@@ -51,7 +53,7 @@ export function computeMirwald(input: MirwaldInput): MirwaldResult {
   const age = input.chronologicalAge;
   const height = input.height;
   const weight = input.weight;
-  const gender = input.gender ?? "M";
+  const gender = input.gender;
 
   const estimated = input.sittingHeight == null || input.legLength == null;
   const sittingHeight = input.sittingHeight ?? height * 0.52;

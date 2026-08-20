@@ -66,17 +66,21 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
     //  · Khamis-Roche: edad + altura + peso + altura de AMBOS padres.
     // Un jugador con solo altura/peso del alta (sin medición antropométrica registrada)
     // NO obtiene PHV → evita mostrar una maduración fabricada.
+    // El PHV es sexo-específico (invariante #5): sin sexo registrado NO se calcula
+    // (devolvemos null, mismo camino que "faltan datos" — los consumidores ya lo
+    // manejan). NO se asume masculino para el escudo/maduración legacy.
+    const sexKnown = p.gender === "M" || p.gender === "F";
     const baseOk = canComputeMirwald({ age, height, weight });
     const canMirwald =
       baseOk && typeof sittingHeight === "number" && typeof legLength === "number";
     const canKhamis = baseOk && hasParents;
-    if (!canMirwald && !canKhamis) return null;
+    if ((!canMirwald && !canKhamis) || !sexKnown) return null;
 
     const mirwald = computeMirwald({
       chronologicalAge: age!,
       height: height!,
       weight: weight!,
-      gender: (p.gender as "M" | "F") ?? "M",
+      gender: p.gender as "M" | "F",
       sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : undefined,
     });
 

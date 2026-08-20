@@ -67,7 +67,7 @@ const PHV_LABELS = {
 
 const EMPTY_FORM = { height: "", weight: "", sitting: "", leg: "" };
 
-export function AnthropometricsForm({ playerId, chronologicalAge, gender = "M", fallback, onSaved }: Props) {
+export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallback, onSaved }: Props) {
   const { t } = useTranslation();
   const [history, setHistory] = useState<AnthroRow[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
