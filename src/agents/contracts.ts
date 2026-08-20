@@ -17,7 +17,9 @@ export const PHVInputSchema = z.object({
   weight: z.number().min(20).max(120),         // kg
   sittingHeight: z.number().optional(),        // cm (si disponible)
   legLength: z.number().optional(),            // cm
-  gender: z.enum(["M", "F"]).default("M"),
+  // Sexo SIN default: sexo-específico (invariante #5). Ausente ⇒ el consumidor
+  // debe bloquear, no asumir masculino.
+  gender: z.enum(["M", "F"]).optional(),
 });
 
 export const PHVOutputSchema = z.object({
