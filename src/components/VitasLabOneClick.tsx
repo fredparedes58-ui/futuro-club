@@ -69,6 +69,12 @@ export interface VitasLabOneClickProps {
   onStopTracking: () => void;
   onOpenUploadPanel: () => void;
   onViewResults: () => void;
+  /**
+   * Control VISIBLE del "Análisis de precisión" (tiling). Se renderiza en el flujo
+   * principal (no dentro de "Ajustes avanzados") para que el usuario elija precisión
+   * ANTES de analizar y vea el estado durante/después. Ver `PrecisionToggle`.
+   */
+  precisionControl?: React.ReactNode;
   /** Children: manual override section content */
   children?: React.ReactNode;
 }
@@ -129,6 +135,7 @@ export default function VitasLabOneClick({
   onStopTracking,
   onOpenUploadPanel,
   onViewResults,
+  precisionControl,
   children,
 }: VitasLabOneClickProps) {
   const { t } = useTranslation();
@@ -287,6 +294,9 @@ export default function VitasLabOneClick({
           )}
         </div>
       </div>
+
+      {/* ── Precision toggle (visible, not hidden in advanced settings) ── */}
+      {precisionControl}
 
       {/* ── Progress Steps (visible when running) ── */}
       <AnimatePresence>
