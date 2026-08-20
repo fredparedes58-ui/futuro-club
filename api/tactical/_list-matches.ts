@@ -6,6 +6,7 @@
  * tactical cuando no hay matchId en la URL.
  */
 
+import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
@@ -19,7 +20,11 @@ interface HeatmapRow {
   phase_type: string;
 }
 
-export default async function handler(_req: Request): Promise<Response> {
+export default withHandler(
+  // Cierra el acceso anónimo: antes devolvía TODOS los match_id existentes a
+  // cualquiera, eliminando la barrera de adivinar UUIDs.
+  { method: "GET", requireAuth: true, maxRequests: 60 },
+  async () => {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return successResponse({ matches: [], source: "no_supabase" });
   }
@@ -54,4 +59,5 @@ export default async function handler(_req: Request): Promise<Response> {
     console.error("[list-matches] error:", err);
     return successResponse({ matches: [], error: String(err) });
   }
-}
+  },
+);

@@ -12,6 +12,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
 import { PlayerService } from "@/services/real/playerService";
 import i18n from "@/i18n";
@@ -77,7 +78,7 @@ export function useComputeTacticalHeatmap() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/compute-heatmap`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {
@@ -119,7 +120,7 @@ export function useGenerateTacticalInsights() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/generate-insights`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           ...input,
           locale: input.locale ?? normalizeLocale(i18n.language),
@@ -175,7 +176,7 @@ export function useComputeFromVideo() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/compute-from-video`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {

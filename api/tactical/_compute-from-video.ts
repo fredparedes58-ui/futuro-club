@@ -25,6 +25,9 @@ export const config = { runtime: "edge" };
 
 const MODAL_TRACK_URL = process.env.MODAL_TRACK_URL ?? "";
 const MODAL_API_KEY = process.env.MODAL_API_KEY ?? "";
+// Token para la llamada interna server-to-server a /api/tactical/compute-heatmap
+// (ahora requireAuth). Cualquiera de los secretos que withHandler acepta como servicio.
+const INTERNAL_TOKEN = process.env.INTERNAL_API_TOKEN ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const PUBLIC_URL =
   process.env.VITAS_PUBLIC_URL ??
   `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
@@ -143,7 +146,10 @@ export default withHandler(
   {
     method: "POST",
     schema: ComputeFromVideoSchema,
-    requireAuth: false,
+    // Cierra el acceso anónimo (dispara Modal $ + escribe heatmaps). allowServiceToken
+    // porque modal-callback también lo llama server-to-server al completar un análisis.
+    requireAuth: true,
+    allowServiceToken: true,
     maxRequests: 10,
   },
   async ({ body }) => {
@@ -156,8 +162,8 @@ export default withHandler(
       );
     }
 
-    // Tripwire de presupuesto (054): este endpoint es requireAuth:false → gatearlo
-    // es clave. Corta si el mes superó el tope; fail-open si el ledger no responde.
+    // Tripwire de presupuesto (054): dispara Modal ($). Corta si el mes superó el
+    // tope; fail-open si el ledger no responde.
     if (await isOverBudget()) return budgetExceededResponse();
     await recordSpendUsd("modal-compute");
 
@@ -209,7 +215,10 @@ export default withHandler(
     // 3. Call compute-heatmap internally
     const computeRes = await fetch(`${PUBLIC_URL}/api/tactical/compute-heatmap`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(INTERNAL_TOKEN ? { Authorization: `Bearer ${INTERNAL_TOKEN}` } : {}),
+      },
       body: JSON.stringify({
         matchId: input.matchId,
         videoId: input.videoId,
