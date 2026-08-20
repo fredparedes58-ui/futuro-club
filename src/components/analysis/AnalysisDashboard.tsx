@@ -17,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
-  Brain, Gauge, HeartPulse, BatteryLow, FlaskConical,
+  Brain, Gauge, HeartPulse, BatteryLow, FlaskConical, Lock,
 } from "lucide-react";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import PeerBenchmark from "@/components/PeerBenchmark";
@@ -48,7 +48,9 @@ interface AnalysisData {
     /** Procedencia honesta (pipeline): fracción de sub-scores realmente medidos. */
     measuredFraction?: number;
     partiallyEstimated?: boolean;
-    subscoreProvenance?: Record<string, "measured" | "placeholder">;
+    /** G4: compuesto BLOQUEADO (vsi:null) porque <4/5 dimensiones tienen procedencia real. */
+    blocked?: boolean;
+    gate_reason?: string | null;
     peer?: { percentile: number | null; peerCount: number; stratum: string } | null;
     trend?: {
       slope: number | null;
@@ -216,6 +218,17 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
           <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-500">
             <FlaskConical size={11} />
             {t("analysisDashboard.partiallyEstimated", {
+              measured: Math.round((analysis.vsi?.measuredFraction ?? 0) * 5),
+            })}
+          </div>
+        )}
+        {vsi === null && analysis.vsi?.blocked && (
+          <div
+            title={analysis.vsi?.gate_reason ?? undefined}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-muted-foreground/30 bg-muted/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground"
+          >
+            <Lock size={11} />
+            {t("analysisDashboard.vsiBlocked", {
               measured: Math.round((analysis.vsi?.measuredFraction ?? 0) * 5),
             })}
           </div>

@@ -22,7 +22,17 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
-import { computeVsiProvenance, fatigueIsReliable } from "../_lib/metricsProvenance";
+import {
+  buildVsiSubscores,
+  gateVsiComposite,
+  vsiMeasuredFraction,
+  fatigueIsReliable,
+} from "../_lib/metricsProvenance";
+import {
+  VSI_WEIGHTS as VIDEO_VSI_WEIGHTS,
+  VSI_TIERS as VIDEO_VSI_TIERS,
+  determineTier as videoVsiTier,
+} from "./_vsi-calculator";
 
 export const config = { runtime: "edge" };
 
@@ -139,7 +149,7 @@ async function sendCompletionEmail(
       <li>🦴 <strong>LAB Biomechanics</strong> · análisis técnico</li>
       <li>🧬 <strong>ADN Futbolístico</strong> · perfil de juego</li>
       <li>🎯 <strong>Best-Match</strong> · comparable profesional</li>
-      <li>📈 <strong>Proyección 3 años</strong> · curva PHV</li>
+      ${vsi != null ? "<li>📈 <strong>Proyección 3 años</strong> · curva PHV</li>" : ""}
       <li>📋 <strong>Plan de desarrollo</strong> · 12 semanas</li>
     </ul>
     <p style="text-align:center;margin:32px 0;">
@@ -233,41 +243,52 @@ export default withHandler(
     // TODO(F3b): sustituir por señales reales (p.ej. scan-rate → mental) cuando
     // haya un clip de validación. Cambiar estos valores mueve el VSI en toda la
     // app (rankings/reportes/valoración) → requiere validación antes de tocarlos.
-    const ESTIMATED_SUBSCORES_MVP = { technique: 65, mental: 60, tactical: 55 } as const;
-
     const bm = (analysis.biomechanics ?? {}) as Record<string, number>;
+    const bmPresent = bm.stride_frequency_hz != null || bm.asymmetry_pct != null;
     const sprintNorm = Math.min(100, (bm.stride_frequency_hz ?? 0) * 25);
     const asymmetryPen = 100 - Math.min(100, (bm.asymmetry_pct ?? 0) * 5);
+    const physicalValue = bmPresent ? Math.round((sprintNorm + asymmetryPen) / 2) : null;
+    const projectionValue = anthro?.adjusted_vsi ?? null;
 
-    const subscores = {
-      technique: ESTIMATED_SUBSCORES_MVP.technique,
-      physical: Math.round((sprintNorm + asymmetryPen) / 2),
-      mental: ESTIMATED_SUBSCORES_MVP.mental,
-      tactical: ESTIMATED_SUBSCORES_MVP.tactical,
-      projection: anthro?.adjusted_vsi ?? 70,
+    // Sub-scores como MetricResult (G4-1) + gate del compuesto (G4-2). Las 3 dims que
+    // el pipeline no mide son CONSTANTE (value:null); el compuesto queda BLOQUEADO si
+    // no hay ≥4/5 dimensiones reales. Ver api/_lib/metricsProvenance.ts.
+    const vsiSubscores = buildVsiSubscores({ physicalValue, projectionValue });
+    const vsiComposite = gateVsiComposite(vsiSubscores, VIDEO_VSI_WEIGHTS);
+    const measuredFraction = vsiMeasuredFraction(vsiSubscores);
+    const vsiValue = vsiComposite.value;
+
+    const vsiWithProvenance = {
+      vsi: vsiValue, // null cuando el compuesto está bloqueado (<4/5 dimensiones reales)
+      blocked: vsiValue === null,
+      gate_reason: vsiComposite.gate_reason,
+      confidence: vsiComposite.confidence,
+      tier: vsiValue != null ? videoVsiTier(vsiValue) : null,
+      tierLabel: vsiValue != null ? VIDEO_VSI_TIERS[videoVsiTier(vsiValue)].label : null,
+      measuredFraction,
+      partiallyEstimated: measuredFraction < 1,
+      subscores: vsiSubscores, // los 5 MetricResult (criterio G4-1)
     };
 
-    const vsiRes = await callInternal("/api/agents/vsi-calculator", {
-      playerId: analysis.player_id,
-      subscores,
-      context: { videoId: analysis.video_id, position: player?.position },
-    });
+    // G4: sin un VSI de vídeo compuesto (bloqueado por <4/5 dimensiones reales) NO se
+    // puede proyectar su curva → se OMITE el reporte de proyección, en vez de dejarlo
+    // fallar con 400 en cada análisis y marcar todo run como completed_partial. Mismo
+    // patrón de omisión honesta que valuation-report arriba.
+    if (vsiWithProvenance.blocked) {
+      activeAgents = activeAgents.filter((a) => a.name !== "projection");
+    }
 
-    const vsi = vsiRes.success ? (vsiRes.data?.data ?? vsiRes.data) : null;
-
-    // Procedencia honesta del VSI: 3/5 sub-scores son placeholder. Adjuntamos
-    // measuredFraction + origen por sub-score para que UI/email lo muestren como
-    // "parcialmente estimado (N/5 medidos)" y NO como una cifra plenamente medida.
-    const vsiProv = computeVsiProvenance(bm, anthro);
-    const vsiWithProvenance =
-      vsi && typeof vsi === "object"
-        ? {
-            ...(vsi as Record<string, unknown>),
-            measuredFraction: vsiProv.measuredFraction,
-            partiallyEstimated: vsiProv.partiallyEstimated,
-            subscoreProvenance: vsiProv.perSubscore,
-          }
-        : vsi;
+    // Similarity (comparable profesional) sigue alimentándose de los sub-scores en
+    // bruto —incluidas las 3 estimaciones placeholder— y YA se marca lowConfidence
+    // cuando <50% del VSI es real. Su honestidad se aborda fuera de este PR (G4 vídeo).
+    const ESTIMATED_SUBSCORES_MVP = { technique: 65, mental: 60, tactical: 55 } as const;
+    const simSubscores = {
+      technique: ESTIMATED_SUBSCORES_MVP.technique,
+      physical: physicalValue ?? 0,
+      mental: ESTIMATED_SUBSCORES_MVP.mental,
+      tactical: ESTIMATED_SUBSCORES_MVP.tactical,
+      projection: projectionValue ?? 70,
+    };
 
     // ── 3a. Scan rate detection (NUEVO Sprint 4) ────────────────────
     // Si Modal devolvió keypoints, calcular scan rate del jugador
@@ -290,12 +311,12 @@ export default withHandler(
     // ── 3b. Similarity (best-match) ──────────────────────────────────
     const similarityRes = await callInternal("/api/agents/player-similarity", {
       metrics: {
-        speed: subscores.physical,
-        shooting: subscores.technique,
-        vision: subscores.mental,
-        technique: subscores.technique,
-        defending: subscores.tactical,
-        stamina: subscores.physical,
+        speed: simSubscores.physical,
+        shooting: simSubscores.technique,
+        vision: simSubscores.mental,
+        technique: simSubscores.technique,
+        defending: simSubscores.tactical,
+        stamina: simSubscores.physical,
       },
       position: player?.position ?? "MID",
       youthAge: anthro?.chronological_age,
@@ -309,7 +330,7 @@ export default withHandler(
     const rawSimilarity = similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null;
     const similarity =
       rawSimilarity && typeof rawSimilarity === "object"
-        ? { ...(rawSimilarity as Record<string, unknown>), lowConfidence: vsiProv.measuredFraction < 0.5 }
+        ? { ...(rawSimilarity as Record<string, unknown>), lowConfidence: measuredFraction < 0.5 }
         : rawSimilarity;
 
     await supabase
@@ -439,7 +460,7 @@ export default withHandler(
         playerId: analysis.player_id,
         age: anthro?.chronological_age ?? null,
         position: player?.position ?? null,
-        currentVsi: (vsi as { vsi?: number })?.vsi ?? null,
+        currentVsi: vsiValue,
         vsiHistory,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
@@ -471,7 +492,7 @@ export default withHandler(
       biomechanics: analysis.biomechanics,
       scanning: scanResult, // NUEVO Sprint 4 · scan rate detection
       phv: anthro,
-      vsi: vsi,
+      vsi: vsiWithProvenance, // objeto honesto: vsi:null si bloqueado + subscores MetricResult
       similarity: similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null,
       playerContext: {
         chronologicalAge: anthro?.chronological_age ?? 12,
@@ -577,10 +598,10 @@ export default withHandler(
               biomechanics: analysis.biomechanics ?? null,
               scanning: scanResult ?? null,
               similarity: similarityRes.success ? (similarityRes.data?.data ?? similarityRes.data) : null,
-              subscores,
+              subscores: simSubscores,
             },
             labels: {
-              vsi: (vsi as { vsi?: number } | null)?.vsi ?? null,
+              vsi: vsiValue,
               injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? null,
               valuation: valuationResult ?? null,
               reportTypes: successfulReports.map((r) => r.name),
@@ -600,7 +621,7 @@ export default withHandler(
       await callInternal("/api/agents/progression-tracker", {
         playerId: analysis.player_id,
         analysisId: analysis.id,
-        vsi: (vsi as { vsi?: number })?.vsi ?? null,
+        vsi: vsiValue,
         phvOffset: anthro?.maturity_offset ?? null,
         phvCategory: anthro?.phv_category ?? null,
         injuryRisk: (injuryRiskResult as Record<string, unknown> | null)?.overallRisk ?? bm.injury_risk ?? null,
@@ -637,7 +658,7 @@ export default withHandler(
         .maybeSingle();
 
       if (parentEmail?.parent_email && player) {
-        const vsiScore = (vsi as { vsi?: number })?.vsi ?? null; // null → email muestra "N/D", nunca "VSI 0"
+        const vsiScore = vsiValue; // null (bloqueado) → email muestra "N/D", nunca "VSI 0"
         emailSent = await sendCompletionEmail(
           parentEmail.parent_email,
           player.name,
@@ -646,7 +667,7 @@ export default withHandler(
           {
             reportsGenerated: successfulReports.length,
             reportsTotal: activeAgents.length,
-            partiallyEstimated: vsiProv.partiallyEstimated,
+            partiallyEstimated: measuredFraction < 1,
           },
         );
       }
@@ -659,7 +680,7 @@ export default withHandler(
       status: successfulReports.length === activeAgents.length ? "completed" : "completed_partial",
       reportsGenerated: successfulReports.length,
       reportsFailed: activeAgents.length - successfulReports.length,
-      vsi: (vsi as { vsi?: number })?.vsi ?? null,
+      vsi: vsiValue,
       totalLatencyMs,
       emailSent,
     });

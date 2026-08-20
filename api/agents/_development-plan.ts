@@ -125,14 +125,15 @@ async function fetchRagDrills(weaknesses: string[], baseUrl: string, authToken: 
 
 function detectWeaknesses(subscores: Record<string, unknown>): string[] {
   const weaknesses: string[] = [];
-  const entries = Object.entries(subscores);
-  for (const [key, val] of entries) {
-    const v = typeof val === "object" && val !== null && "value" in val
-      ? (val as { value: number }).value
-      : typeof val === "number"
-        ? val
-        : 0;
-    if (v < 60) weaknesses.push(key);
+  for (const [key, val] of Object.entries(subscores)) {
+    const raw =
+      typeof val === "object" && val !== null && "value" in val
+        ? (val as { value: unknown }).value
+        : val;
+    // Sub-score sin valor real (null / CONSTANTE / bloqueado · G4) NO es una debilidad:
+    // se omite en vez de tratarlo como 0 (que lo marcaría siempre por debajo de 60).
+    if (typeof raw !== "number") continue;
+    if (raw < 60) weaknesses.push(key);
   }
   return weaknesses;
 }
