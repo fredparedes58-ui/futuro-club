@@ -38,6 +38,7 @@
     "gender": "Gender",
     "male": "Male",
     "female": "Female",
+    "chooseGender": "Select sex (determines the PHV calculation)",
     "foot": "Dominant foot",
     "footRight": "Right",
     "footLeft": "Left",

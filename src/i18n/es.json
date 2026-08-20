@@ -38,6 +38,7 @@
     "gender": "Género",
     "male": "Masculino",
     "female": "Femenino",
+    "chooseGender": "Selecciona el sexo (determina el cálculo PHV)",
     "foot": "Pie dominante",
     "footRight": "Derecho",
     "footLeft": "Izquierdo",

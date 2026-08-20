@@ -68,7 +68,8 @@ type PlayerRow = {
   weight: number;
   // Campos de maduración para que el cliente compute el timing canónico
   // (resolveMaturity) con la misma fuente en ambas rutas (RPC/fallback).
-  gender: "M" | "F";
+  // gender puede ser null: sexo no registrado ⇒ resolveMaturity abstiene (invariante #5).
+  gender: "M" | "F" | null;
   birthDate: string | null;
   sittingHeight: number | null;
   legLength: number | null;
@@ -224,7 +225,9 @@ export default withHandler(
           foot: (d.foot as string) ?? "right",
           height: (d.height as number) ?? 170,
           weight: (d.weight as number) ?? 60,
-          gender: (d.gender as "M" | "F") ?? "M",
+          // Sin fallback "M": sexo ausente ⇒ null → playerMaturity reenvía sex:undefined
+          // y resolveMaturity abstiene ("Sexo no registrado"), igual que la ruta RPC (invariante #5).
+          gender: d.gender === "M" || d.gender === "F" ? d.gender : null,
           birthDate: (d.birthDate as string) ?? null,
           sittingHeight: (d.sittingHeight as number) ?? null,
           legLength: (d.legLength as number) ?? null,

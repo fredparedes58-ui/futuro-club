@@ -19,6 +19,11 @@ interface PHVInput {
   currentVSI?: number;
 }
 
+// ⚠️ SIN CALLER EN PRODUCCIÓN (solo tests). Implementa ÚNICAMENTE la fórmula
+// Mirwald MASCULINA e ignora el sexo (PHVInput ni siquiera lo lleva). NO cablear
+// como fallback del agente PHV sin añadir antes un gate de sexo: produciría un PHV
+// mal-sexado sobre un menor (invariante #5). El path VIVO y correcto, con gate M/F,
+// es api/agents/_phv-calculator.ts.
 export function phvFallback(body: PHVInput, reason: FallbackReason) {
   const age = body.chronologicalAge;
   const height = body.height ?? 155;

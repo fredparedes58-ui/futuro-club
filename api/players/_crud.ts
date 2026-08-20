@@ -43,7 +43,7 @@ const CreatePlayerSchema = z.object({
   competitiveLevel: z.string().default("Regional"),
   minutesPlayed: z.number().default(0),
   metrics: MetricsSchema,
-  gender: z.enum(["M", "F"]).default("M"),
+  gender: z.enum(["M", "F"]).optional(), // sin default "M": sexo ausente ⇒ null (invariante #5)
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
 });
@@ -202,7 +202,7 @@ export default withHandler(
         leg_length: input.legLength ?? null,
         competitive_level: input.competitiveLevel,
         minutes_played: input.minutesPlayed,
-        gender: input.gender,
+        gender: input.gender ?? null, // no asumir masculino si falta el sexo (invariante #5)
         metric_speed: input.metrics.speed,
         metric_technique: input.metrics.technique,
         metric_vision: input.metrics.vision,
@@ -311,7 +311,7 @@ export default withHandler(
         leg_length: ud.legLength ?? null,
         competitive_level: ud.competitiveLevel,
         minutes_played: ud.minutesPlayed,
-        gender: ud.gender ?? "M",
+        gender: ud.gender ?? null, // preserva el sexo real del blob; si falta ⇒ null (invariante #5)
         metric_speed: m?.speed ?? 0,
         metric_technique: m?.technique ?? 0,
         metric_vision: m?.vision ?? 0,
