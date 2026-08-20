@@ -39,10 +39,18 @@ Viven en `src/services/real/`:
 Todos los servicios que usan IA tienen fallback automático a mock data.
 Si `AgentService` falla → datos mock. La app NUNCA se rompe por falta de API key.
 
-## Fases de desarrollo
-- **Fase 1 (actual):** Claude API + localStorage. Sin Supabase.
-- **Fase 2 (siguiente):** Video upload + Roboflow + pipeline automático
-- **Fase 3 (futuro):** Supabase + Auth + YOLOv11M propio + SaaS
+## Fases de desarrollo (estado real, ago 2026)
+Las fases originales se solaparon. Estado actual honesto:
+- **Datos/Auth:** Supabase + Auth + Stripe YA cableados (RLS multi-tenant,
+  ProtectedRoute, webhooks Modal/Stripe, tripwire de presupuesto). PERO la regla
+  de fallback sigue intacta: sin Supabase configurado la app degrada a
+  localStorage/mock y NO se rompe.
+- **Vídeo:** upload (Bunny) + pipeline (tracking cliente onnxruntime + eventos +
+  PHV, y Modal async) operativos; validación de precisión con clip real pendiente.
+- **Modelo propio:** producción usa pose de stock (YOLOv8n/v11m); `vitas-pose-v1`
+  afinado con footage juvenil sigue SIN desplegar (objetivo futuro).
+- **Identidad por dorsal:** diseñada pero NO construida ni validada (sin ground
+  truth humano) → el sistema abstiene (pistas anónimas), no atribuye por jugador.
 
 ## Agentes de desarrollo disponibles
 Ver `.claude/agents/` para los agentes especializados por fase y área.
