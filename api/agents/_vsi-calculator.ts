@@ -92,7 +92,7 @@ export interface VsiResult {
   context?: VsiInput["context"];
 }
 
-function determineTier(vsi: number): VsiTier {
+export function determineTier(vsi: number): VsiTier {
   if (vsi >= 85) return "elite";
   if (vsi >= 70) return "pro";
   if (vsi >= 50) return "talent";

@@ -9,54 +9,109 @@
  * rankings/informe/email. Y la fatiga (ACWR) se calculaba con 1 sola sesión, sin
  * los ~28 días de histórico que necesita → riesgo de lesión "sólido" con datos
  * insuficientes. Estas funciones exponen esa verdad para que la UI/email la muestren.
+ *
+ * G4 (VSI honesto): buildVsiSubscores/gateVsiComposite migran el VSI de VÍDEO al
+ * contrato MetricResult — las 3 dimensiones que el pipeline no mide son CONSTANTE
+ * (value:null) y el compuesto se BLOQUEA si no hay ≥4/5 dimensiones con procedencia
+ * real. vsiMeasuredFraction resume la cobertura para el badge "N/5 medidos" de la UI.
  */
 
-export type SubscoreProvenance = "measured" | "placeholder";
+import {
+  type MetricResult,
+  type Provenance,
+  constant,
+  derived,
+  gated,
+} from "../../src/lib/metrics/MetricResult";
 
 export type VsiSubscoreKey = "technique" | "physical" | "mental" | "tactical" | "projection";
 
-export interface VsiProvenance {
-  /** Origen de cada sub-score: medido de señales reales vs placeholder. */
-  perSubscore: Record<VsiSubscoreKey, SubscoreProvenance>;
-  /** Fracción de sub-scores realmente medidos (0..1). */
-  measuredFraction: number;
-  /** true si algún sub-score es placeholder (VSI parcialmente estimado). */
-  partiallyEstimated: boolean;
+// ── G4 · VSI de vídeo como MetricResult (contrato de procedencia) ────────────
+
+/** Motivo de bloqueo compartido para las 3 dimensiones no medidas por el pipeline. */
+const PENDING_SUBSCORE =
+  "El pipeline de visión aún no mide esta dimensión (pendiente · G4). No se estima.";
+
+/**
+ * Construye los 5 sub-scores del VSI de vídeo como MetricResult independientes
+ * (criterio G4-1). technique/mental/tactical son CONSTANTE (value:null) porque el
+ * pipeline NO las mide — dejan de emitirse como 65/60/55. physical y projection son
+ * DERIVADA solo si hay señal real; si falta, quedan BLOQUEADAS (nunca un default).
+ */
+export function buildVsiSubscores(input: {
+  /** Físico derivado de biomecánica (zancada/asimetría); null si no hay señal. */
+  physicalValue: number | null;
+  /** Proyección = VSI antropométrico ajustado (PHV); null si no hay antropometría. */
+  projectionValue: number | null;
+}): Record<VsiSubscoreKey, MetricResult> {
+  return {
+    technique: constant(PENDING_SUBSCORE),
+    mental: constant(PENDING_SUBSCORE),
+    tactical: constant(PENDING_SUBSCORE),
+    physical:
+      input.physicalValue != null
+        ? derived(input.physicalValue, {
+            confidence: 0.6,
+            source_ref: "biomechanics:stride_frequency+asymmetry",
+          })
+        : gated(
+            "Sin señales biomecánicas (frecuencia de zancada / asimetría) para derivar el físico.",
+          ),
+    projection:
+      input.projectionValue != null
+        ? derived(input.projectionValue, {
+            confidence: 0.6,
+            source_ref: "phv:adjusted_vsi",
+          })
+        : gated("Sin antropometría PHV (VSI ajustado) para derivar la proyección."),
+  };
 }
 
-interface BiomechanicsLike {
-  stride_frequency_hz?: number | null;
-  asymmetry_pct?: number | null;
+const REAL_PROVENANCE: Provenance[] = ["MEDIDA", "DERIVADA"];
+
+/** ¿El sub-score es presentable como cifra real (value no null y procedencia MEDIDA/DERIVADA)? */
+function isRealSubscore(r: MetricResult): boolean {
+  return r.value !== null && REAL_PROVENANCE.includes(r.provenance);
 }
-interface AnthroLike {
-  adjusted_vsi?: number | null;
+
+/** Fracción de sub-scores con procedencia real (0..1), derivada de los MetricResult. */
+export function vsiMeasuredFraction(subs: Record<VsiSubscoreKey, MetricResult>): number {
+  const keys = Object.keys(subs) as VsiSubscoreKey[];
+  return keys.filter((k) => isRealSubscore(subs[k])).length / keys.length;
 }
 
 /**
- * Determina qué sub-scores del VSI están MEDIDOS y cuáles son placeholder.
- * - technique/mental/tactical: aún NO los mide el pipeline de visión → placeholder.
- * - physical: medido solo si hay señales biomecánicas reales (zancada/asimetría).
- * - projection: medido solo si hay VSI antropométrico ajustado (PHV/anthro real).
+ * Compone el VSI de vídeo SOLO si ≥4/5 dimensiones tienen procedencia real
+ * (criterio G4-2). Si no, devuelve un MetricResult BLOQUEADO (value:null) cuyo
+ * gate_reason indica cuántas y cuáles faltan. Cuando compone, promedia SOLO las
+ * dimensiones reales con pesos renormalizados (no rellena las ausentes) y refleja la
+ * cobertura en confidence. Nunca compone un número con dimensiones no medidas.
  */
-export function computeVsiProvenance(
-  bm: BiomechanicsLike | null | undefined,
-  anthro: AnthroLike | null | undefined,
-): VsiProvenance {
-  const physicalMeasured =
-    !!bm && (bm.stride_frequency_hz != null || bm.asymmetry_pct != null);
-  const projectionMeasured = !!anthro && anthro.adjusted_vsi != null;
+export function gateVsiComposite(
+  subs: Record<VsiSubscoreKey, MetricResult>,
+  weights: Record<VsiSubscoreKey, number>,
+): MetricResult {
+  const keys = Object.keys(weights) as VsiSubscoreKey[];
+  const presentable = keys.filter((k) => isRealSubscore(subs[k]));
+  const missing = keys.filter((k) => !isRealSubscore(subs[k]));
 
-  const perSubscore: Record<VsiSubscoreKey, SubscoreProvenance> = {
-    technique: "placeholder",
-    physical: physicalMeasured ? "measured" : "placeholder",
-    mental: "placeholder",
-    tactical: "placeholder",
-    projection: projectionMeasured ? "measured" : "placeholder",
-  };
+  if (presentable.length < 4) {
+    return gated(
+      `VSI de vídeo no disponible: solo ${presentable.length}/${keys.length} dimensiones ` +
+        `con procedencia real (faltan: ${missing.join(", ")}). ` +
+        `No se compone un score con dimensiones no medidas.`,
+      { provenance: "DERIVADA" },
+    );
+  }
 
-  const measuredCount = Object.values(perSubscore).filter((p) => p === "measured").length;
-  const measuredFraction = measuredCount / 5;
-  return { perSubscore, measuredFraction, partiallyEstimated: measuredFraction < 1 };
+  const wsum = presentable.reduce((acc, k) => acc + weights[k], 0);
+  const raw =
+    presentable.reduce((acc, k) => acc + (subs[k].value as number) * weights[k], 0) / wsum;
+  const value = Math.max(0, Math.min(100, raw)); // clamp [0,100] (paridad con computeVsi)
+  return derived(Number(value.toFixed(1)), {
+    confidence: presentable.length / keys.length,
+    source_ref: "vsi-video-v1",
+  });
 }
 
 /**

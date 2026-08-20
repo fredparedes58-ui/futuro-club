@@ -2255,6 +2255,7 @@
     "estimatedTime": "~25 seconds · refresh the page",
     "tierLabel": "Tier ·",
     "partiallyEstimated": "Partially estimated · {{measured}}/5 dimensions measured",
+    "vsiBlocked": "VSI unavailable · only {{measured}}/5 dimensions measured",
     "vs": "vs",
     "technicalData": "Technical data (advanced)",
     "biomechanics": "Biomechanics",
