@@ -670,6 +670,14 @@ export function computeSessionMetrics(
   const focusScans = scans.filter(s => !focusId || s.trackId === focusId);
   const focusDuels = duels.filter(d => !focusId || d.trackIds.includes(focusId));
 
+  // ¿Se pudo medir biomecánica del jugador enfocado en ALGÚN frame? En la ruta
+  // detección-primero (recall, opt-in) un jugador siempre lejano es solo-posición:
+  // keypoints:[] en TODOS los frames → poseFrameCount === 0. Entonces focusScans está
+  // vacío no porque no escaneara, sino porque NUNCA se pudo mirar → un `scans` de 0
+  // sería "el 0 que significa no-medido", prohibido por el invariante #2. Fail-closed:
+  // solo se considera medible si algún focusTrack tuvo al menos un frame con keypoints.
+  const poseNeverMeasured = focusTracks.every(t => (t.poseFrameCount ?? 0) === 0);
+
   // Calcular zonas de intensidad desde posiciones
   const zones = { walk: 0, jog: 0, run: 0, sprint: 0 };
   for (const track of focusTracks) {
@@ -713,7 +721,13 @@ export function computeSessionMetrics(
     distance:         derived(distance, { units: "m",   calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
     // Espacio/Voronoi BLOQUEADO en el resumen: solo se computa en vivo → aquí sería 0.
     space:            gated("Voronoi de sesión no cableado (solo en vivo · G7)"),
-    scans:            derived(focusScans.length, { units: null, calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
+    // Escaneos BLOQUEADOS si el jugador enfocado nunca tuvo frames con keypoints (siempre
+    // lejano en la ruta recall): la biomecánica no fue medible, solo la posición. NO se
+    // emite derived(0) — sería el "0 que significa no-medido" (invariante #2). En la ruta
+    // pose normal poseFrameCount>0 siempre → se mantiene el valor derivado. (kill-58 recall)
+    scans:            poseNeverMeasured
+      ? gated("Jugador sin frames cercanos: biomecánica no medible, solo posición")
+      : derived(focusScans.length, { units: null, calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
     accel:            derived(Math.max(...focusTracks.map(t => t.accelMs2), 0), { units: "m/s²", calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
   };
 }

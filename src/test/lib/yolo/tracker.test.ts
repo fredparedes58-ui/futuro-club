@@ -172,6 +172,42 @@ describe("CentroidTracker — asociación ByteTrack 2-etapas (#14)", () => {
     expect(t.iouMatchCount).toBe(1);
     expect(t.weakMatchCount).toBe(1);
   });
+
+  // ── Contador de biomecánica (invariante #2 · ruta recall) ──────────────────
+  /** Detección SOLO-POSICIÓN (ruta detección-primero): caja pero keypoints:[]. */
+  function detNoPose(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    confidence: number,
+  ): Detection {
+    return { bbox: [x, y, w, h], confidence, keypoints: [] };
+  }
+
+  it("poseFrameCount cuenta solo frames CON keypoints reales (ruta pose normal)", () => {
+    const tr = new CentroidTracker();
+    const id = tr.update([det(100, 100, 20, 40, 0.9)], H, 0)[0].id; // new, con keypoints → 1
+    tr.update([det(102, 101, 20, 40, 0.9)], H, 125); // iou con keypoints → 2
+    const f = tr.update([det(104, 102, 20, 40, 0.9)], H, 250); // iou con keypoints → 3
+    expect(f.find((x) => x.id === id)!.poseFrameCount).toBe(3);
+  });
+
+  it("poseFrameCount se queda en 0 para un track SIEMPRE lejano (solo posición, keypoints:[])", () => {
+    const tr = new CentroidTracker();
+    const id = tr.update([detNoPose(100, 100, 20, 40, 0.9)], H, 0)[0].id; // new sin pose → 0
+    tr.update([detNoPose(102, 101, 20, 40, 0.9)], H, 125); // sigue sin pose → 0
+    const f = tr.update([detNoPose(104, 102, 20, 40, 0.9)], H, 250);
+    expect(f.find((x) => x.id === id)!.poseFrameCount).toBe(0);
+  });
+
+  it("poseFrameCount suma SOLO en los frames que traen keypoints (lejano→cercano)", () => {
+    const tr = new CentroidTracker();
+    const id = tr.update([detNoPose(100, 100, 20, 40, 0.9)], H, 0)[0].id; // sin pose → 0
+    tr.update([det(102, 101, 20, 40, 0.9)], H, 125); // ahora sí pose → 1
+    const f = tr.update([detNoPose(104, 102, 20, 40, 0.9)], H, 250); // vuelve a solo posición → 1
+    expect(f.find((x) => x.id === id)!.poseFrameCount).toBe(1);
+  });
 });
 
 describe("isTrackIdentityReliable (#24) — gate fail-closed de atribución", () => {

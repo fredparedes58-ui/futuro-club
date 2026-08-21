@@ -86,6 +86,15 @@ export interface Track {
   iouMatchCount?: number;
   /** Nº de frames sostenidos por asociación DÉBIL (recovered baja-conf / kalman). */
   weakMatchCount?: number;
+  /**
+   * Nº de frames en que el track recibió keypoints REALES (`det.keypoints.length > 0`).
+   * En la ruta pose normal el postprocess siempre rellena 17 keypoints → siempre > 0.
+   * En la ruta detección-primero (recall), un jugador SIEMPRE lejano nunca recibe pose
+   * (`keypoints: []` en todos los frames) → queda en 0. Señal para gatear la biomecánica
+   * del jugador enfocado (scans y demás derivadas de keypoints): con `poseFrameCount === 0`
+   * NO se pudo medir gait → se bloquea, no se emite un 0 (invariante #2, CLAUDE.md).
+   */
+  poseFrameCount?: number;
 }
 
 // ─── Métricas físicas finales ─────────────────────────────────────────────────

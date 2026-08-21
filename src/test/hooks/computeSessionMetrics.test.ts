@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { computeSessionMetrics } from "@/hooks/useTracking";
-import type { Track, FieldPosition } from "@/lib/yolo/types";
+import type { Track, FieldPosition, ScanEvent } from "@/lib/yolo/types";
 
 function mkTrack(id: number, iou: number, weak: number): Track {
   return {
@@ -108,5 +108,47 @@ describe("computeSessionMetrics — sprints = EVENTOS, no frames (G2)", () => {
     const speeds = [...Array(16).fill(8), ...Array(16).fill(0.5), ...Array(16).fill(8)];
     const m = computeSessionMetrics([trackWithSpeedProfile(1, speeds)], 1, [], []);
     expect(m.sprintCount).toBe(2);
+  });
+});
+
+/** ScanEvent mínimo para un trackId dado. */
+function mkScan(trackId: number, timestampMs: number): ScanEvent {
+  return { trackId, timestampMs, direction: "left", durationMs: 120 };
+}
+
+describe("computeSessionMetrics — scans BLOQUEADO si el enfocado nunca fue medible (invariante #2)", () => {
+  it("jugador SIEMPRE lejano (poseFrameCount=0): scans gated, NO derived(0)", () => {
+    // Ruta recall: el enfocado es solo-posición → su biomecánica nunca se midió.
+    // focusScans vacío no significa "0 escaneos medidos", significa "no medible".
+    const track: Track = { ...mkTrack(1, 8, 1), poseFrameCount: 0 };
+    const m = computeSessionMetrics([track], 1, [], []);
+    expect(m.scans?.value).toBeNull();
+    expect(m.scans?.provenance).not.toBe("MEDIDA"); // nunca presentado como medida
+    expect(m.scans?.gate_reason).toBeTruthy();       // gate_reason no vacío (contrato)
+    expect(m.scans?.gate_reason).toContain("no medible");
+  });
+
+  it("jugador con frames de pose (poseFrameCount>0) pero 0 escaneos: scans derived(0) honesto", () => {
+    // Aquí SÍ se pudo mirar la biomecánica y no se detectó ningún escaneo → 0 real.
+    const track: Track = { ...mkTrack(1, 8, 1), poseFrameCount: 5 };
+    const m = computeSessionMetrics([track], 1, [], []);
+    expect(m.scans?.value).toBe(0);
+    expect(m.scans?.provenance).toBe("DERIVADA");
+    expect(m.scans?.gate_reason).toBeNull();
+  });
+
+  it("jugador con frames de pose y escaneos detectados: scans derived con el conteo", () => {
+    const track: Track = { ...mkTrack(1, 8, 1), poseFrameCount: 10 };
+    const scans = [mkScan(1, 100), mkScan(1, 400), mkScan(1, 900)];
+    const m = computeSessionMetrics([track], 1, scans, []);
+    expect(m.scans?.value).toBe(3);
+    expect(m.scans?.provenance).toBe("DERIVADA");
+  });
+
+  it("agregado (sin enfoque): si algún track tuvo pose, scans NO se bloquea", () => {
+    const far: Track = { ...mkTrack(1, 8, 1), poseFrameCount: 0 };
+    const near: Track = { ...mkTrack(2, 8, 1), poseFrameCount: 4 };
+    const m = computeSessionMetrics([far, near], null, [mkScan(2, 100)], []);
+    expect(m.scans?.value).toBe(1);
   });
 });
