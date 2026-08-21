@@ -18,6 +18,8 @@
  * - Shape filter: aspect ratio near 1.0 (balls are round)
  */
 
+import { decodeYoloBox } from "./tiling";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface BallDetection {
@@ -105,11 +107,9 @@ export function detectBallFromModelOutput(
     const bw = outputData[2 * numAnchors + i];
     const bh = outputData[3 * numAnchors + i];
 
-    // Convert to image coordinates
-    const x = (cx - bw / 2 - padX) / scale;
-    const y = (cy - bh / 2 - padY) / scale;
-    const w = bw / scale;
-    const h = bh / scale;
+    // Convert to image coordinates — decode letterbox⁻¹ compartido (invariante
+    // #7): idéntico al de pose y detección.
+    const [x, y, w, h] = decodeYoloBox(cx, cy, bw, bh, scale, padX, padY);
 
     // Size filter
     if (w > cfg.maxBboxSize || h > cfg.maxBboxSize) continue;
