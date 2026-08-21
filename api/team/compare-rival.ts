@@ -28,6 +28,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { MODELS } from "../_lib/models";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -124,7 +125,7 @@ interface PlayerSummary {
   name: string | null;
   age: number | null;
   position: string | null;
-  vsi: number;
+  vsi: number | null;
   phv_category: string | null;
 }
 
@@ -181,7 +182,9 @@ function buildContext(
     late:    ours.filter((p) => p.phv_category === "late").length,
     unknown: ours.filter((p) => !p.phv_category).length,
   };
-  const avgVsi = ours.length > 0 ? (ours.reduce((a, p) => a + Number(p.vsi || 0), 0) / ours.length).toFixed(1) : "—";
+  // Media SOLO sobre evaluados (vsi != null); "sin evaluar" si ninguno (invariante #2).
+  const avgVsiNum = avgEvaluatedVsi(ours);
+  const avgVsi = avgVsiNum === null ? "sin evaluar" : avgVsiNum.toFixed(1);
   const ages = ours.map((p) => p.age ?? 0).filter((a) => a > 0);
   const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : "?";
 
@@ -191,11 +194,11 @@ Plantilla: ${ours.length} jugadores · Edad promedio ${avgAge}a
 VSI promedio: ${avgVsi}
 PHV: pre-estirón ${phvCounts.early} · ontime ${phvCounts.ontime} · post-estirón ${phvCounts.late}${phvCounts.unknown ? ` · sin medir ${phvCounts.unknown}` : ""}
 
-Top 8 por VSI:
-${ours
-  .sort((a, b) => Number(b.vsi || 0) - Number(a.vsi || 0))
+Top 8 por VSI ("—" = sin evaluar, al final):
+${[...ours]
+  .sort(byVsiDescNullsLast)
   .slice(0, 8)
-  .map((p, i) => `  ${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${Number(p.vsi || 0).toFixed(0)}, PHV ${p.phv_category ?? "?"})`)
+  .map((p, i) => `  ${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${formatVsi(p.vsi)}, PHV ${p.phv_category ?? "?"})`)
   .join("\n")}
 
 ─── RIVAL ───
@@ -259,7 +262,9 @@ export default withHandler(
     const { data: players, error } = await supabase
       .from("players")
       .select("name, age, position, secondary_positions, vsi, phv_category")
-      .order("vsi", { ascending: false })
+      // nulls last: los NO evaluados (vsi null) no deben truncar a los evaluados
+      // con el limit (invariante #2; Postgres ordena DESC con NULLS FIRST).
+      .order("vsi", { ascending: false, nullsFirst: false })
       .limit(40);
 
     if (error || !players || players.length === 0) {

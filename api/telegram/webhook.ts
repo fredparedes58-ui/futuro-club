@@ -24,6 +24,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
+import { avgEvaluatedVsi, countElite, formatVsi } from "../_lib/vsiStats";
 
 export const config = { runtime: "edge" };
 
@@ -208,7 +209,8 @@ async function execTool(
         .from("players")
         .select("id, name, age, position, vsi, phv_category")
         .eq("user_id", ctx.userId)
-        .order(sortBy === "vsi" ? "vsi" : sortBy === "age" ? "age" : "name", { ascending: sortBy !== "vsi" })
+        // nulls last: los no evaluados (vsi null) no truncan a los evaluados con el limit (invariante #2)
+        .order(sortBy === "vsi" ? "vsi" : sortBy === "age" ? "age" : "name", { ascending: sortBy !== "vsi", nullsFirst: false })
         .limit(limit);
 
       if (!data || data.length === 0) return "Sin jugadores registrados.";
@@ -294,17 +296,19 @@ async function execTool(
       if (!players || players.length === 0) return "Sin jugadores.";
 
       const n = players.length;
-      const avgVsi = players.reduce((a: number, p: { vsi?: number }) => a + Number(p.vsi || 0), 0) / n;
+      // Media y élite SOLO sobre evaluados (vsi != null); un no evaluado no es 0
+      // ni élite (invariante #2). avgVsi = null si nadie tiene VSI de ficha.
+      const avgVsi = avgEvaluatedVsi(players as Array<{ vsi: number | null }>);
       const phvDist = {
         early: players.filter((p: { phv_category?: string }) => p.phv_category === "early").length,
         ontime: players.filter((p: { phv_category?: string }) => p.phv_category === "ontime" || p.phv_category === "ontme").length,
         late: players.filter((p: { phv_category?: string }) => p.phv_category === "late").length,
         unknown: players.filter((p: { phv_category?: string }) => !p.phv_category).length,
       };
-      const elite = players.filter((p: { vsi?: number }) => Number(p.vsi || 0) >= 70).length;
+      const elite = countElite(players as Array<{ vsi: number | null }>);
       return JSON.stringify({
         teamSize: n,
-        avgVsi: Number(avgVsi.toFixed(1)),
+        avgVsi, // number | null (null = ningún jugador evaluado)
         phvDistribution: phvDist,
         eliteCount: elite,
       }, null, 2);
@@ -637,14 +641,15 @@ export default withHandler(
         .from("players")
         .select("name, age, position, vsi, phv_category")
         .eq("user_id", mapping.user_id)
-        .order("vsi", { ascending: false })
+        // nulls last: los no evaluados (vsi null) no truncan a los evaluados con el limit (invariante #2)
+        .order("vsi", { ascending: false, nullsFirst: false })
         .limit(15);
       if (!data || data.length === 0) {
         await sendMessage(chatId, "📋 Aún no tienes jugadores registrados.\n\nAñade el primero desde la app → Equipo → +");
       } else {
         const phvIcon = (cat?: string) => cat === "early" ? "🟢" : cat === "ontime" || cat === "ontme" ? "🟡" : cat === "late" ? "🔵" : "⚪";
         const rows = (data as Array<{ name: string; age: number | null; position: string | null; vsi: number | null; phv_category: string | null }>)
-          .map((p, i) => `${i + 1}. ${p.name} · ${p.age ?? "?"}a · ${p.position ?? "—"} · VSI ${Number(p.vsi || 0).toFixed(0)} ${phvIcon(p.phv_category ?? undefined)}`)
+          .map((p, i) => `${i + 1}. ${p.name} · ${p.age ?? "?"}a · ${p.position ?? "—"} · VSI ${formatVsi(p.vsi)} ${phvIcon(p.phv_category ?? undefined)}`)
           .join("\n");
         await sendMessage(chatId, `🏆 Tu plantilla (top ${data.length} por VSI)\n\n${rows}\n\n🟢 pre-PHV · 🟡 en PHV · 🔵 post-PHV · ⚪ sin datos`);
       }
@@ -661,8 +666,10 @@ export default withHandler(
       } else {
         const n = players.length;
         const ps = players as Array<{ vsi: number | null; phv_category: string | null; age: number | null }>;
-        const avgVsi = ps.reduce((a, p) => a + Number(p.vsi || 0), 0) / n;
-        const elite = ps.filter(p => Number(p.vsi || 0) >= 70).length;
+        // Media y élite SOLO sobre evaluados; el hueco no promedia ni cuenta como 0
+        // (invariante #2). "sin evaluar" si ninguno tiene VSI de ficha.
+        const avgVsi = avgEvaluatedVsi(ps);
+        const elite = countElite(ps);
         const early = ps.filter(p => p.phv_category === "early").length;
         const ontime = ps.filter(p => p.phv_category === "ontime" || p.phv_category === "ontme").length;
         const late = ps.filter(p => p.phv_category === "late").length;
@@ -671,7 +678,7 @@ export default withHandler(
         await sendMessage(chatId,
           `📊 Stats del equipo\n\n` +
           `👥 Plantilla: ${n} jugadores · edad media ${avgAge}\n` +
-          `⚡ VSI promedio: ${avgVsi.toFixed(1)}\n` +
+          `⚡ VSI promedio: ${avgVsi === null ? "sin evaluar" : avgVsi.toFixed(1)}\n` +
           `🌟 Élite (VSI ≥70): ${elite}\n\n` +
           `Distribución PHV:\n` +
           `🟢 Pre-PHV: ${early}\n` +
