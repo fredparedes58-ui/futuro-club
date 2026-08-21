@@ -361,8 +361,10 @@ export default function ParentDashboardPage() {
 }
 
 // ── Wellbeing for parents (Sprint 23) ───────────────────────────
-
-function ParentWellbeingSection({ playerId }: { playerId: string }) {
+// Exportado para el guard de honestidad (G5): un test verifica que, cuando el
+// bienestar es MOCK (`risk.isMock`), esta vista de cliente SIEMPRE muestra el
+// DemoDataBanner. Ver src/test/components/G5ProductHonesty.test.tsx.
+export function ParentWellbeingSection({ playerId }: { playerId: string }) {
   const { t } = useTranslation();
   const { data: risk } = useDropoutRisk(playerId || undefined);
   const { data: engagement } = useEngagementHistory(playerId || undefined);
