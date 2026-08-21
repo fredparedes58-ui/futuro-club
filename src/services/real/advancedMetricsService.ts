@@ -926,7 +926,8 @@ export interface AdvancedPlayerMetrics {
   rae:              RAEResult | null;
   ubi:              UBIResult | null;
   truthFilter:      TruthFilterResult | null;
-  dominantFeatures: DominantFeaturesResult;
+  /** null si el jugador no tiene métricas del entrenador (sin evaluar) */
+  dominantFeatures: DominantFeaturesResult | null;
   vaep:             VAEPResult;
   tracking:         TrackingMetricsResult;
   biomechanics:     BiomechanicsResult;
@@ -972,8 +973,12 @@ export function calculateAdvancedMetrics(
     adjustedVSI = truthFilter.adjustedVSI;
   }
 
-  // Dominant Features (funciona con datos existentes, independiente de PHV)
-  const dominantFeatures = DominantFeaturesService.calculate(player.metrics);
+  // Dominant Features (funciona con datos existentes, independiente de PHV).
+  // Sin métricas del entrenador (jugador no evaluado) ⇒ null: no se infieren
+  // características dominantes de la nada (invariante #2), y evita Object.keys(undefined).
+  const dominantFeatures = player.metrics
+    ? DominantFeaturesService.calculate(player.metrics)
+    : null;
 
   // VAEP stub
   const vaep = options?.vaepInput

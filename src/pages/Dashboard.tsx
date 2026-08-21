@@ -84,7 +84,14 @@ const Dashboard = () => {
   const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
   const statValues = stats
-    ? [String(stats.activePlayers), String(stats.drillsCompleted), String(stats.avgVsi), String(stats.hiddenTalents)]
+    ? [
+        String(stats.activePlayers),
+        String(stats.drillsCompleted),
+        // Sin jugadores evaluados avgVsi es null: se muestra "—", nunca el literal
+        // "null" ni un 0 fabricado (invariante #2).
+        stats.avgVsi === null ? "—" : String(stats.avgVsi),
+        String(stats.hiddenTalents),
+      ]
     : [];
 
   return (

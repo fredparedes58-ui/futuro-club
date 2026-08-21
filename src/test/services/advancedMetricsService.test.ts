@@ -10,9 +10,11 @@ import {
   VAEPService,
   DominantFeaturesService,
   TrackingService,
+  calculateAdvancedMetrics,
 } from "@/services/real/advancedMetricsService";
 import type { RAEResult, SPADLAction } from "@/services/real/advancedMetricsService";
 import type { MatchEvent } from "@/services/real/matchEventsService";
+import type { Player } from "@/services/real/playerService";
 
 // ─── RAE ────────────────────────────────────────────────────────────────────
 
@@ -424,6 +426,36 @@ describe("DominantFeaturesService", () => {
       const r2 = DominantFeaturesService.calculate(specialized);
       expect(r1.specializationIndex).toBeLessThan(r2.specializationIndex);
     });
+  });
+});
+
+// ─── calculateAdvancedMetrics · jugador SIN evaluar ──────────────────────────
+
+describe("calculateAdvancedMetrics · jugador sin métricas del entrenador", () => {
+  const unratedPlayer = {
+    id: "p_unrated",
+    name: "Sin Evaluar",
+    age: 14,
+    position: "RW",
+    foot: "right",
+    height: 165,
+    weight: 55,
+    competitiveLevel: "Regional",
+    minutesPlayed: 0,
+    vsi: null,
+    vsiHistory: [],
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    // sin `metrics`: jugador creado por onboarding/wizard sin evaluación real
+  } as unknown as Player;
+
+  it("no lanza (antes: Object.keys(undefined) en DominantFeaturesService)", () => {
+    expect(() => calculateAdvancedMetrics(unratedPlayer)).not.toThrow();
+  });
+
+  it("dominantFeatures es null: no se infieren características de la nada (invariante #2)", () => {
+    const result = calculateAdvancedMetrics(unratedPlayer);
+    expect(result.dominantFeatures).toBeNull();
   });
 });
 

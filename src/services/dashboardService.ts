@@ -7,7 +7,8 @@ import { adaptPlayerForUI, computeDashboardStats } from "@/services/real/adapter
 export interface DashboardStats {
   activePlayers: number;
   drillsCompleted: number;
-  avgVsi: number;
+  // null cuando no hay jugadores evaluados: no se fabrica una media (invariante #2).
+  avgVsi: number | null;
   hiddenTalents: number;
 }
 

@@ -245,7 +245,7 @@ const PlayerForm = () => {
     watch,
     setValue,
     trigger,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
     reset,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -342,8 +342,15 @@ const PlayerForm = () => {
 
     try {
       if (isEditMode && id) {
-        // Actualizar métricas + datos básicos en localStorage
-        await PlayerService.updateMetrics(id, data.metrics);
+        // El VSI de ficha solo se (re)escribe si el entrenador TOCÓ las barras.
+        // Editar otros campos (p.ej. fecha de nacimiento o alturas parentales para
+        // el PHV) de un jugador SIN evaluar NO debe fabricarle un VSI (invariante #2):
+        // sin cambio en métricas se preservan metrics/vsi (null si no evaluado).
+        const metricsTouched =
+          !!dirtyFields.metrics && Object.keys(dirtyFields.metrics).length > 0;
+        if (metricsTouched) {
+          await PlayerService.updateMetrics(id, data.metrics);
+        }
         const players = PlayerService.getAll();
         const idx = players.findIndex((p) => p.id === id);
         if (idx !== -1) {

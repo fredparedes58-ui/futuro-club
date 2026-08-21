@@ -218,7 +218,7 @@ const MasterDashboard = () => {
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
                   {t("master.avgVsi")}
                 </p>
-                <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi}</p>
+                <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi ?? "—"}</p>
               </div>
             </motion.div>
 
