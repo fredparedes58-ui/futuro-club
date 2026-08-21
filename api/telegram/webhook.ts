@@ -209,7 +209,8 @@ async function execTool(
         .from("players")
         .select("id, name, age, position, vsi, phv_category")
         .eq("user_id", ctx.userId)
-        .order(sortBy === "vsi" ? "vsi" : sortBy === "age" ? "age" : "name", { ascending: sortBy !== "vsi" })
+        // nulls last: los no evaluados (vsi null) no truncan a los evaluados con el limit (invariante #2)
+        .order(sortBy === "vsi" ? "vsi" : sortBy === "age" ? "age" : "name", { ascending: sortBy !== "vsi", nullsFirst: false })
         .limit(limit);
 
       if (!data || data.length === 0) return "Sin jugadores registrados.";
@@ -640,7 +641,8 @@ export default withHandler(
         .from("players")
         .select("name, age, position, vsi, phv_category")
         .eq("user_id", mapping.user_id)
-        .order("vsi", { ascending: false })
+        // nulls last: los no evaluados (vsi null) no truncan a los evaluados con el limit (invariante #2)
+        .order("vsi", { ascending: false, nullsFirst: false })
         .limit(15);
       if (!data || data.length === 0) {
         await sendMessage(chatId, "📋 Aún no tienes jugadores registrados.\n\nAñade el primero desde la app → Equipo → +");

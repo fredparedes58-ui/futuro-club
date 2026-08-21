@@ -262,7 +262,9 @@ export default withHandler(
     const { data: players, error } = await supabase
       .from("players")
       .select("name, age, position, secondary_positions, vsi, phv_category")
-      .order("vsi", { ascending: false })
+      // nulls last: los NO evaluados (vsi null) no deben truncar a los evaluados
+      // con el limit (invariante #2; Postgres ordena DESC con NULLS FIRST).
+      .order("vsi", { ascending: false, nullsFirst: false })
       .limit(40);
 
     if (error || !players || players.length === 0) {

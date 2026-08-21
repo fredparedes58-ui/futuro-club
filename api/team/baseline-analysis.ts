@@ -308,7 +308,11 @@ export default withHandler(
     let query = supabase
       .from("players")
       .select("id, name, age, position, vsi, phv_category, metric_speed, metric_technique, metric_vision, metric_stamina, metric_shooting, metric_defending, height_cm, weight_kg, tenant_id")
-      .order("vsi", { ascending: false })
+      // nulls last: los NO evaluados (vsi null) no deben colarse antes del top real
+      // y truncar a jugadores evaluados con el limit (invariante #2; igual que
+      // la RPC get_ranked_players de la migración 059). Postgres ordena DESC con
+      // NULLS FIRST por defecto.
+      .order("vsi", { ascending: false, nullsFirst: false })
       .limit(40);
 
     if (input.playerIds && input.playerIds.length > 0) {
