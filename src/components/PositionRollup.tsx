@@ -33,15 +33,24 @@ export default function PositionRollup({ player, rows }: Props) {
     return null;
   }
 
+  // avgVsi null (posición sin VSI medido en sus vídeos) ordena SIEMPRE al final,
+  // no como 0 (invariante #2): un hueco no compite con un promedio real.
+  const byAvgVsiDesc = (a: PositionRollupRow, b: PositionRollupRow) => {
+    if (a.avgVsi == null && b.avgVsi == null) return 0;
+    if (a.avgVsi == null) return 1;
+    if (b.avgVsi == null) return -1;
+    return b.avgVsi - a.avgVsi;
+  };
+
   // Ordenar: primaria primero, luego declaradas, luego descubiertas. Dentro de cada grupo, por avgVsi desc.
   const sorted = [...rows].sort((a, b) => {
     if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
     if (a.isDeclared !== b.isDeclared) return a.isDeclared ? -1 : 1;
-    return (b.avgVsi ?? 0) - (a.avgVsi ?? 0);
+    return byAvgVsiDesc(a, b);
   });
 
   const totalVideos = rows.reduce((s, r) => s + r.videoCount, 0);
-  const bestRow = [...rows].sort((a, b) => (b.avgVsi ?? 0) - (a.avgVsi ?? 0))[0];
+  const bestRow = [...rows].sort(byAvgVsiDesc)[0];
 
   return (
     <div className="glass rounded-xl p-4 space-y-3">

@@ -55,8 +55,10 @@ export default function TeamPage() {
   useEffect(() => {
     const loadPlayers = () => {
       const all = PlayerService.getAll();
-      // Ordenar por VSI desc
-      const sorted = [...all].sort((a, b) => Number(b.vsi || 0) - Number(a.vsi || 0));
+      // Ordenar por VSI desc reusando el sort canónico null-safe de PlayerService
+      // (invariante #2 + #7): los jugadores sin evaluar (vsi null) van al FINAL,
+      // no se ordenan como 0. Antes: Number(b.vsi || 0) coaccionaba el hueco a 0.
+      const sorted = PlayerService.sort(all, "vsi", "desc");
       setMyPlayers(sorted);
     };
     loadPlayers();
