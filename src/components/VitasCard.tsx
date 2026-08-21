@@ -139,7 +139,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
     }
   };
 
-  const shareText = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? t("vitasCard.playsLike", { name: cloneName, score: cloneScore?.toFixed(0) }) : ""}${t("vitasCard.discoverWithVitas")}`;
+  const shareText = `⚡ ${player.name} | VSI ${player.vsi ?? "—"} | PHV ${phvLabel}${cloneName ? t("vitasCard.playsLike", { name: cloneName, score: cloneScore?.toFixed(0) }) : ""}${t("vitasCard.discoverWithVitas")}`;
 
   const handleShare = async () => {
     const r = await shareNative({ title: t("vitasCard.shareTitle"), text: shareText, ref: "vitas-card" });
@@ -266,8 +266,9 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
 
           {/* Columna derecha */}
           <div className="flex flex-col items-center gap-4">
-            {/* Radar */}
-            <RadarHex metrics={player.metrics} />
+            {/* Radar — solo si el jugador está evaluado; si no, un hexágono a 0
+                presentaría al jugador como 0 en las 6 (invariante #2). */}
+            {player.metrics && <RadarHex metrics={player.metrics} />}
 
             {/* Clon */}
             {bestMatch && cloneName && (

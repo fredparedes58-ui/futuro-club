@@ -155,10 +155,12 @@ export default function ParentDashboardPage() {
         throw new Error(data?.error?.message ?? t("parentDashboardPage.linkGenerationError"));
       }
       const fullUrl = `${window.location.origin}${data.data.url}`;
-      const deltaLabel = vsiDelta >= 0 ? ` (↗ +${Math.abs(vsiDelta)} pts)` : ` (↘ ${Math.abs(vsiDelta)} pts)`;
+      // Sin evaluar (vsi null): no se comparte a la familia un "VSI: 0 (+0 pts)"
+      // fabricado (invariante #2) — se dice "sin evaluar" y sin delta.
+      const deltaLabel = !vsiRated ? "" : vsiDelta >= 0 ? ` (↗ +${Math.abs(vsiDelta)} pts)` : ` (↘ ${Math.abs(vsiDelta)} pts)`;
       const text = t("parentDashboardPage.shareText", {
         name: player.name,
-        vsi: vsiCurrent,
+        vsi: vsiRated ? vsiCurrent : t("common.notEvaluated"),
         delta: deltaLabel,
         unlockedCount,
         totalBadges: badges.length,

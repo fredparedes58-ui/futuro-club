@@ -130,7 +130,7 @@ export function CreateListingForm({ onCreated }: Props) {
                   {typeof (p as unknown as { vsi?: number }).vsi === "number" && (
                     <>
                       <span>·</span>
-                      <span>VSI {(p as unknown as { vsi: number }).vsi}</span>
+                      <span>VSI {(p as unknown as { vsi: number | null }).vsi ?? "—"}</span>
                     </>
                   )}
                 </div>
