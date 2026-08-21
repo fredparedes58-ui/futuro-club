@@ -19,6 +19,7 @@ import {
   offsetDetection,
   globalNms,
   iouXYWH,
+  decodeYoloBox,
   type ImageLike,
   type TilingConfig,
 } from "../lib/yolo/tiling";
@@ -380,10 +381,8 @@ function postprocess(
     const bw = data[2 * numAnch + i];
     const bh = data[3 * numAnch + i];
 
-    const x = (cx - bw / 2 - padX) / scale;
-    const y = (cy - bh / 2 - padY) / scale;
-    const w = bw / scale;
-    const h = bh / scale;
+    // Decode letterbox⁻¹ compartido (invariante #7): idéntico a detección y balón.
+    const [x, y, w, h] = decodeYoloBox(cx, cy, bw, bh, scale, padX, padY);
 
     // Keypoints (17 × 3): x, y, conf por keypoint
     const kps: Array<{x:number;y:number;confidence:number}> = [];

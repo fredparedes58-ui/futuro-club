@@ -166,6 +166,42 @@ export function offsetDetection(det: Detection, dx: number, dy: number): Detecti
   };
 }
 
+// ─── Decode letterbox⁻¹ de caja YOLO ─────────────────────────────────────────
+
+/**
+ * Decodifica UNA caja YOLO del espacio letterboxed del modelo a píxeles del
+ * frame original (inversa del letterbox: quita el padding centrado y divide por
+ * la escala).
+ *
+ * Entradas: `cx,cy` = centro de la caja y `bw,bh` = ancho/alto, ambos en el
+ * espacio del modelo (p.ej. 640×640); `scale`, `padX`, `padY` son los del
+ * letterbox aplicado al preprocesar, es decir
+ *   `scale = min(modelSize/imgW, modelSize/imgH)`,
+ *   `padX = (modelSize - imgW·scale)/2`, `padY = (modelSize - imgH·scale)/2`.
+ * Devuelve `[x, y, w, h]` con `x,y` = esquina superior-izquierda en px del frame.
+ *
+ * Implementación ÚNICA de este decode (invariante #7: un concepto, una
+ * implementación) — la comparten el postprocess de POSE del worker
+ * (`trackingWorker.postprocess`), el de DETECCIÓN (`decodeDetections`) y el del
+ * balón (`detectBallFromModelOutput`). Antes estaba triplicado idéntico ("3
+ * rutas, 3 números"). La aritmética es EXACTAMENTE la de esos tres sitios.
+ */
+export function decodeYoloBox(
+  cx: number,
+  cy: number,
+  bw: number,
+  bh: number,
+  scale: number,
+  padX: number,
+  padY: number,
+): [number, number, number, number] {
+  const x = (cx - bw / 2 - padX) / scale;
+  const y = (cy - bh / 2 - padY) / scale;
+  const w = bw / scale;
+  const h = bh / scale;
+  return [x, y, w, h];
+}
+
 // ─── IoU + NMS global ────────────────────────────────────────────────────────
 
 /**

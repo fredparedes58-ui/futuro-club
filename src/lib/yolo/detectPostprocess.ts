@@ -25,6 +25,7 @@
  */
 
 import type { Detection } from "./types";
+import { decodeYoloBox } from "./tiling";
 
 /**
  * Decodifica la salida cruda de un detector YOLO a las detecciones de una clase.
@@ -72,12 +73,10 @@ export function decodeDetections(
     const bh = data[3 * numAnchors + i];
     if (bw <= 0 || bh <= 0) continue;
 
-    const w = bw / scale;
-    const h = bh / scale;
-    const x = (cx - bw / 2 - padX) / scale;
-    const y = (cy - bh / 2 - padY) / scale;
+    // Decode letterbox⁻¹ compartido (invariante #7): idéntico a pose y balón.
+    const bbox = decodeYoloBox(cx, cy, bw, bh, scale, padX, padY);
 
-    out.push({ bbox: [x, y, w, h], confidence: conf, keypoints: [] });
+    out.push({ bbox, confidence: conf, keypoints: [] });
   }
 
   return out;
