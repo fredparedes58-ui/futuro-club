@@ -964,13 +964,18 @@ export function calculateAdvancedMetrics(
 
   if (phvValidation.isComplete) {
     ubi = UBIService.calculate(rae, player.phvOffset!, player.phvCategory!);
-    truthFilter = TruthFilterService.apply(
-      player.vsi,
-      player.phvOffset!,
-      player.phvCategory!,
-      rae
-    );
-    adjustedVSI = truthFilter.adjustedVSI;
+    // TruthFilter ajusta el VSI de ficha por maduración; sin VSI (jugador sin
+    // evaluar, vsi null) no hay base que ajustar: no se fabrica un adjustedVSI
+    // desde null (Math.round(null+delta)→delta sería un 0 coaccionado; invariante #2).
+    if (player.vsi !== null) {
+      truthFilter = TruthFilterService.apply(
+        player.vsi,
+        player.phvOffset!,
+        player.phvCategory!,
+        rae
+      );
+      adjustedVSI = truthFilter.adjustedVSI;
+    }
   }
 
   // Dominant Features (funciona con datos existentes, independiente de PHV).

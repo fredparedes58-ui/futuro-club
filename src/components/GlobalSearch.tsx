@@ -174,7 +174,7 @@ export default function GlobalSearch() {
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-display font-bold truncate">{p.name}</div>
                         <div className="text-[10px] text-muted-foreground">
-                          {p.position ?? "?"} · {p.age ?? "?"}a · VSI {Number(p.vsi ?? 0).toFixed(0)}
+                          {p.position ?? "?"} · {p.age ?? "?"}a · VSI {p.vsi == null ? "—" : Number(p.vsi).toFixed(0)}
                         </div>
                       </div>
                       <span className="text-[9px] text-muted-foreground shrink-0">{t("globalSearch.goToProfile")}</span>

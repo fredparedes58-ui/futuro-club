@@ -82,8 +82,10 @@ function detectMissing(player: Player, hasAnalysis: boolean, hasTracking: boolea
     });
   }
 
+  // metrics undefined (jugador sin evaluar) ⇒ tiro/defensa cuentan como ausentes,
+  // sin derefiere undefined (evita crash en el resumen del Hub, invariante #2).
   const m = player.metrics;
-  if ((!m.shooting || m.shooting === 0) && (!m.defending || m.defending === 0)) {
+  if ((!m?.shooting || m.shooting === 0) && (!m?.defending || m.defending === 0)) {
     missing.push({
       nameKey: "notEvaluatedSection.shootingDefenseName",
       reasonKey: "notEvaluatedSection.shootingDefenseReason",

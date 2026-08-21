@@ -325,7 +325,7 @@ export default function TeamPage() {
                       {p.name} <span className="text-muted-foreground font-normal">· {p.age}a · {p.position}{p.secondaryPositions && p.secondaryPositions.length > 0 ? ` / ${p.secondaryPositions.join(" / ")}` : ""}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      VSI {Number(p.vsi || 0).toFixed(0)} {phvIcon(p.phvCategory)}
+                      VSI {p.vsi == null ? "—" : Number(p.vsi).toFixed(0)} {phvIcon(p.phvCategory)}
                       {p.phvCategory && ` · ${p.phvCategory === "early" ? t("teamPage.prePhv") : p.phvCategory === "late" ? t("teamPage.postPhv") : t("teamPage.inPhv")}`}
                     </p>
                   </div>

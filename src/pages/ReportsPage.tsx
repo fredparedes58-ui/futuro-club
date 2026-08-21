@@ -199,7 +199,7 @@ const ReportsPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-display font-medium text-foreground truncate">{p.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{p.position} · VSI {p.vsi}</p>
+                          <p className="text-[10px] text-muted-foreground">{p.position} · VSI {p.vsi ?? "—"}</p>
                         </div>
                         <Zap size={10} className="text-primary shrink-0" />
                       </button>

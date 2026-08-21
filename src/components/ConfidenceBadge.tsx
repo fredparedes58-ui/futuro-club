@@ -48,13 +48,15 @@ function calculateConfidence(videosCount: number, hasTracking: boolean, player: 
   // Data completeness factor (0.5-1.0)
   let completeDimensions = 0;
   const totalDimensions = 8; // speed, technique, vision, stamina, shooting, defending, phv, tracking
+  // Jugador sin evaluar (metrics undefined): 0 dimensiones de ficha completas; no
+  // se derefiere undefined (evita crash en el resumen del Hub, invariante #2).
   const m = player.metrics;
-  if (m.speed && m.speed > 0) completeDimensions++;
-  if (m.technique && m.technique > 0) completeDimensions++;
-  if (m.vision && m.vision > 0) completeDimensions++;
-  if (m.stamina && m.stamina > 0) completeDimensions++;
-  if (m.shooting && m.shooting > 0) completeDimensions++;
-  if (m.defending && m.defending > 0) completeDimensions++;
+  if (m?.speed && m.speed > 0) completeDimensions++;
+  if (m?.technique && m.technique > 0) completeDimensions++;
+  if (m?.vision && m.vision > 0) completeDimensions++;
+  if (m?.stamina && m.stamina > 0) completeDimensions++;
+  if (m?.shooting && m.shooting > 0) completeDimensions++;
+  if (m?.defending && m.defending > 0) completeDimensions++;
   if (player.phvOffset != null) completeDimensions++;
   if (hasTracking) completeDimensions++;
 

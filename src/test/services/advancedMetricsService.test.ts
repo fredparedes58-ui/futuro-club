@@ -457,6 +457,15 @@ describe("calculateAdvancedMetrics · jugador sin métricas del entrenador", () 
     const result = calculateAdvancedMetrics(unratedPlayer);
     expect(result.dominantFeatures).toBeNull();
   });
+
+  it("adjustedVSI/truthFilter null aunque tenga PHV completo: no fabrica VSI desde null (invariante #2)", () => {
+    // Jugador sin evaluar (vsi null) PERO con PHV completo (offset+categoría): el
+    // TruthFilter NO debe coaccionar null→0 y fabricar un adjustedVSI.
+    const withPhv = { ...unratedPlayer, phvOffset: -1.5, phvCategory: "late" } as unknown as Player;
+    const result = calculateAdvancedMetrics(withPhv, { birthMonth: 3, birthYear: 2011 });
+    expect(result.adjustedVSI).toBeNull();
+    expect(result.truthFilter).toBeNull();
+  });
 });
 
 // ─── TrackingService ────────────────────────────────────────────────────────

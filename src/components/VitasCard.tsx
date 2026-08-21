@@ -222,10 +222,12 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             <div className="flex items-end gap-3">
               <div>
                 <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-0.5">VSI Score</p>
-                <div className="text-5xl font-black text-white leading-none">{player.vsi}</div>
-                <div className="mt-1.5 h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${player.vsi}%` }} />
-                </div>
+                <div className="text-5xl font-black text-white leading-none">{player.vsi ?? "—"}</div>
+                {player.vsi != null && (
+                  <div className="mt-1.5 h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${player.vsi}%` }} />
+                  </div>
+                )}
               </div>
               {player.phvOffset !== undefined && (
                 <div className="mb-1">

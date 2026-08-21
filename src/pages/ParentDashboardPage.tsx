@@ -77,6 +77,9 @@ export default function ParentDashboardPage() {
   }
 
   // ─── Cálculos ──────────────────────────────────────────────────
+  // vsi null ⇒ jugador sin evaluar: NUNCA se muestra un "0 / de 100" fabricado a la
+  // familia de un menor (invariante #2). El héroe se nombra "sin evaluar".
+  const vsiRated = rawPlayer?.vsi != null;
   const vsiCurrent = Number(rawPlayer?.vsi ?? 0);
   const vsiHistory = (rawPlayer?.vsiHistory ?? []) as number[];
   const vsiBefore = vsiHistory.length >= 2 ? vsiHistory[Math.max(0, vsiHistory.length - 4)] : vsiCurrent;
@@ -206,10 +209,18 @@ export default function ParentDashboardPage() {
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
             {t("parentDashboardPage.currentLevel")}
           </div>
-          <div className="font-display font-bold text-6xl text-foreground leading-none">
-            {Math.round(vsiCurrent)}
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-1">{t("parentDashboardPage.outOf100VsiScore")}</div>
+          {vsiRated ? (
+            <>
+              <div className="font-display font-bold text-6xl text-foreground leading-none">
+                {Math.round(vsiCurrent)}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">{t("parentDashboardPage.outOf100VsiScore")}</div>
+            </>
+          ) : (
+            <div className="font-display font-semibold text-2xl text-muted-foreground leading-none py-2">
+              {t("common.notEvaluated")}
+            </div>
+          )}
 
           {vsiHistory.length >= 2 && (
             <div className={`mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-display font-bold ${

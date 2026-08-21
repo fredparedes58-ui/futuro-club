@@ -283,9 +283,9 @@ const Rankings = () => {
             <p className="text-xs font-display font-semibold text-foreground">{ageGroupFilter}</p>
             <div className="flex gap-3 text-[10px] text-muted-foreground">
               <span><Users size={10} className="inline mr-0.5" />{ageGroupStats[ageGroupFilter].count}</span>
-              <span>Ø {ageGroupStats[ageGroupFilter].avgVsi}</span>
-              <span>{t("players.rankings.minVsi")}: {ageGroupStats[ageGroupFilter].minVsi}</span>
-              <span>{t("players.rankings.maxVsi")}: {ageGroupStats[ageGroupFilter].maxVsi}</span>
+              <span>Ø {ageGroupStats[ageGroupFilter].avgVsi ?? "—"}</span>
+              <span>{t("players.rankings.minVsi")}: {ageGroupStats[ageGroupFilter].minVsi ?? "—"}</span>
+              <span>{t("players.rankings.maxVsi")}: {ageGroupStats[ageGroupFilter].maxVsi ?? "—"}</span>
             </div>
           </div>
         </motion.div>
@@ -415,10 +415,12 @@ const Rankings = () => {
                       </span>
                     );
                   })()}
-                  {/* Percentile badge */}
-                  <span className="text-primary font-mono font-semibold">
-                    P{player.percentileInAgeGroup}
-                  </span>
+                  {/* Percentile badge — oculto si el jugador no está evaluado (percentil null) */}
+                  {player.percentileInAgeGroup != null && (
+                    <span className="text-primary font-mono font-semibold">
+                      P{player.percentileInAgeGroup}
+                    </span>
+                  )}
                   {/* Tendencia */}
                   {player.trending === "up" && <span className="text-primary">↑</span>}
                   {player.trending === "down" && <span className="text-destructive">↓</span>}

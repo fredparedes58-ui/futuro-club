@@ -340,14 +340,17 @@ const PlayerForm = () => {
       return;
     }
 
+    // El VSI de ficha solo existe si el entrenador TOCÓ las barras. Alta o edición
+    // SIN tocar métricas ⇒ jugador "sin evaluar" (vsi null): no se fabrica un VSI
+    // desde los defaults 60/50 (calculateFichaVsi(DEFAULT_METRICS)=57.5; invariante #2).
+    // Esto alinea el alta por formulario completo con onboarding/FirstRunWizard.
+    const metricsTouched =
+      !!dirtyFields.metrics && Object.keys(dirtyFields.metrics).length > 0;
     try {
       if (isEditMode && id) {
-        // El VSI de ficha solo se (re)escribe si el entrenador TOCÓ las barras.
         // Editar otros campos (p.ej. fecha de nacimiento o alturas parentales para
-        // el PHV) de un jugador SIN evaluar NO debe fabricarle un VSI (invariante #2):
-        // sin cambio en métricas se preservan metrics/vsi (null si no evaluado).
-        const metricsTouched =
-          !!dirtyFields.metrics && Object.keys(dirtyFields.metrics).length > 0;
+        // el PHV) de un jugador sin evaluar preserva metrics/vsi (null); solo se
+        // (re)escribe el VSI si tocó las barras.
         if (metricsTouched) {
           await PlayerService.updateMetrics(id, data.metrics);
         }
@@ -397,7 +400,8 @@ const PlayerForm = () => {
           fatherHeightCm: data.fatherHeightCm || undefined,
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
-          metrics: data.metrics,
+          // Sin tocar las barras ⇒ sin métricas ⇒ nace "sin evaluar" (vsi null).
+          metrics: metricsTouched ? data.metrics : undefined,
         };
         // Crear jugador: si Supabase está activo, guardar también en cloud
         if (user && SUPABASE_CONFIGURED) {
