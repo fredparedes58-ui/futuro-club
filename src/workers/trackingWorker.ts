@@ -27,7 +27,7 @@ import { decodeDetections } from "../lib/yolo/detectPostprocess";
 import { poseCoverageMetric } from "../lib/yolo/poseEligibility";
 import { DEFAULT_RECALL_TILING, type RecallConfig } from "../lib/yolo/recallConfig";
 import type { Detection, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
-import type { MetricResult } from "@/lib/metrics/MetricResult";
+import { gated, type MetricResult } from "@/lib/metrics/MetricResult";
 
 // ─── Configuración ─────────────────────────────────────────────────────────
 
@@ -216,8 +216,16 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
         },
       );
       detections = res.detections;
-      poseCoverage = poseCoverageMetric(res.poseEligibleCount, res.totalCount);
+      poseCoverage = poseCoverageMetric(res.poseMeasuredCount, res.totalCount);
     } else {
+      // Si se PIDIÓ recall pero el detector no bajó (offline/404/best-effort del
+      // prebuild), NO fingir normalidad: emitir cobertura BLOQUEADA para que la UI
+      // avise "recall no activo" en vez de un colapso silencioso (invariante #2/#3).
+      if (recallConfig && !detectSession) {
+        poseCoverage = gated(
+          "Detector de recall no disponible — ruta normal (pose): equipo parcial, no full-team",
+        );
+      }
       detections =
         tilingConfig && tilingConfig.grid > 1
           ? await inferTiled(cmd.imageData, tilingConfig)

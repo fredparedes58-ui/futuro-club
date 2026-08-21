@@ -51,8 +51,12 @@ export interface RecallOptions {
 export interface RecallFrameResult {
   /** Personas del frame: posición para todas; keypoints solo en las cercanas. */
   detections: Detection[];
-  /** Nº de detecciones elegibles para pose (cercanas). */
-  poseEligibleCount: number;
+  /**
+   * Nº de detecciones que RECIBIERON keypoints de verdad (biomecánica medida), NO
+   * las meramente elegibles por tamaño: una caja grande cuya pose falla (oclusión,
+   * ruido) NO cuenta. Así `cobertura_pose` = "en cuánto MEDÍ gait", no un techo.
+   */
+  poseMeasuredCount: number;
   /** Nº total de detecciones del frame. */
   totalCount: number;
 }
@@ -105,6 +109,7 @@ export async function runRecallFrame(
 
   // 3. Pose SOLO sobre las cercanas. Las lejanas conservan keypoints: [] (honesto).
   const detections: Detection[] = [];
+  let poseMeasuredCount = 0; // cuenta SOLO las que reciben keypoints reales
   for (const det of persons) {
     if (!eligible.has(det)) {
       detections.push(det); // lejano → posición sí, biomecánica no
@@ -121,6 +126,7 @@ export async function runRecallFrame(
       // Keypoints en coords del recorte → coords del frame completo.
       const offset = offsetDetection(poseDet, rect.sx, rect.sy);
       detections.push({ ...det, keypoints: offset.keypoints });
+      poseMeasuredCount++; // pose medida de verdad para esta caja
     } else {
       // La pose no halló nada fiable en la caja → no inventamos keypoints.
       detections.push(det);
@@ -129,7 +135,7 @@ export async function runRecallFrame(
 
   return {
     detections,
-    poseEligibleCount: poseEligible.length,
+    poseMeasuredCount, // elegible-por-tamaño ≠ medido: solo cuentan los que tienen keypoints
     totalCount: persons.length,
   };
 }

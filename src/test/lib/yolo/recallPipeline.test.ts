@@ -53,7 +53,7 @@ describe("runRecallFrame", () => {
     const res = await runRecallFrame(img, OPTS, inferers);
 
     expect(res.totalCount).toBe(2);
-    expect(res.poseEligibleCount).toBe(1);
+    expect(res.poseMeasuredCount).toBe(1); // la cercana recibió keypoints → medida
     expect(res.detections).toHaveLength(2);
 
     const nearOut = res.detections.find((d) => d.bbox[0] === 50)!;
@@ -73,7 +73,9 @@ describe("runRecallFrame", () => {
       pose: async () => null,
     };
     const res = await runRecallFrame(img, OPTS, inferers);
-    expect(res.poseEligibleCount).toBe(1);
+    // Elegible por TAMAÑO pero la pose no halló nada → NO medida (0), no 1:
+    // la cobertura refleja gait medido de verdad, no elegible-por-tamaño (fix should-fix #4).
+    expect(res.poseMeasuredCount).toBe(0);
     expect(res.detections[0].keypoints).toEqual([]);
   });
 
