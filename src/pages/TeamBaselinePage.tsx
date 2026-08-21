@@ -29,7 +29,7 @@ type AnalysisMode = "text" | "video";
 interface TeamBaselineResponse {
   teamName: string;
   teamSize: number;
-  vsiPromedio: number;
+  vsiPromedio: number | null;
   phvDistribution: { early: number; ontime: number; late: number; unknown: number };
   reports: Array<{ type: string; content: Record<string, unknown>; model: string }>;
   reportsGenerated: number;
@@ -224,7 +224,7 @@ export default function TeamBaselinePage() {
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-4">
               <div className="grid grid-cols-3 gap-3">
                 <Stat label={t("teamBaselinePage.statSquad")} value={`${data.teamSize}`} />
-                <Stat label={t("teamBaselinePage.statVsiAvg")} value={`${data.vsiPromedio}`} />
+                <Stat label={t("teamBaselinePage.statVsiAvg")} value={data.vsiPromedio === null ? "—" : `${data.vsiPromedio}`} />
                 <Stat label={t("teamBaselinePage.statReports")} value={`${data.reportsGenerated}/4`} />
               </div>
               <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap gap-3 text-[10px]">

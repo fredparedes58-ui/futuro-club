@@ -20,6 +20,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { MODELS } from "../_lib/models";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -41,7 +42,7 @@ interface PlayerSummary {
   name: string | null;
   age: number | null;
   position: string | null;
-  vsi: number;
+  vsi: number | null;
   phv_category: string | null;
   metric_speed: number;
   metric_technique: number;
@@ -145,7 +146,12 @@ function teamProfileBlock(players: PlayerSummary[], teamName: string, videoObser
     else phvCounts.unknown++;
   });
 
-  const avgVsi = n > 0 ? (players.reduce((acc, p) => acc + Number(p.vsi || 0), 0) / n).toFixed(1) : "—";
+  // Media SOLO sobre evaluados (vsi != null). Un jugador sin evaluar no baja la
+  // media como 0 (invariante #2). Sin ninguno evaluado ⇒ "sin evaluar".
+  const avgVsiNum = avgEvaluatedVsi(players);
+  const avgVsiLabel = avgVsiNum === null
+    ? "sin evaluar (ningún jugador con VSI de ficha)"
+    : `${avgVsiNum.toFixed(1)}/100`;
 
   const avgMetrics = {
     speed:     n > 0 ? (players.reduce((a, p) => a + Number(p.metric_speed || 0), 0) / n).toFixed(0) : "—",
@@ -164,7 +170,7 @@ function teamProfileBlock(players: PlayerSummary[], teamName: string, videoObser
 - Plantilla: ${n} jugadores
 - Edad promedio: ${avgAge} años
 - Posiciones: ${positionsList}
-- VSI promedio: ${avgVsi}/100
+- VSI promedio: ${avgVsiLabel}
 
 DISTRIBUCIÓN PHV (maduración biológica)
 - Pre-estirón (precoz): ${phvCounts.early}
@@ -177,11 +183,11 @@ VALORACIÓN COACH PROMEDIO (0-100)
 - Técnica: ${avgMetrics.technique} · Visión: ${avgMetrics.vision}
 - Tiro: ${avgMetrics.shooting} · Defensa: ${avgMetrics.defending}
 
-JUGADORES INDIVIDUALES (top 8 por VSI)
-${players
-  .sort((a, b) => Number(b.vsi || 0) - Number(a.vsi || 0))
+JUGADORES INDIVIDUALES (top 8 por VSI · "—" = sin evaluar, al final)
+${[...players]
+  .sort(byVsiDescNullsLast)
   .slice(0, 8)
-  .map((p, i) => `${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${Number(p.vsi || 0).toFixed(0)}, PHV ${p.phv_category ?? "?"})`)
+  .map((p, i) => `${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${formatVsi(p.vsi)}, PHV ${p.phv_category ?? "?"})`)
   .join("\n")}
 
 ${videoObservation
@@ -318,7 +324,9 @@ export default withHandler(
     }
 
     const teamSize = players.length;
-    const avgVsi = players.reduce((acc, p) => acc + Number(p.vsi || 0), 0) / teamSize;
+    // Media SOLO sobre evaluados; null si ninguno tiene VSI de ficha (invariante #2).
+    // El teamSize (conteo) sí incluye a todos.
+    const avgVsi = avgEvaluatedVsi(players as PlayerSummary[]);
     const phvCounts = {
       early:   players.filter((p) => p.phv_category === "early").length,
       ontime:  players.filter((p) => p.phv_category === "ontime" || p.phv_category === "ontme").length,
@@ -351,7 +359,7 @@ export default withHandler(
     return successResponse({
       teamName,
       teamSize,
-      vsiPromedio: Number(avgVsi.toFixed(1)),
+      vsiPromedio: avgVsi, // number | null ("—" si nadie evaluado); ya redondeado a 1 decimal
       phvDistribution: phvCounts,
       reports: successful.map((r) => ({
         type: r.type,
