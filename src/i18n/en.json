@@ -2340,6 +2340,11 @@
     "computeWarn": "Tiling multiplies compute per zone (4× or 9×). Meant for deferred analysis, not live video: live playback may stutter.",
     "tilingOnToast": "Tiling enabled (2×2)",
     "tilingOffToast": "Tiling disabled",
+    "recallTitle": "Full-team recall (detection first)",
+    "recallDesc": "Runs the detection model with tiling to locate the whole team; biomechanics (pose) only on close-up players.",
+    "recallOnToast": "Full-team recall enabled",
+    "recallOffToast": "Full-team recall disabled",
+    "recallHonestyNote": "Position is captured for every player; biomechanics (stride, scans) only where players are close enough for reliable pose — distant players show position only, never invented data. Deferred analysis: heavier compute per frame.",
     "appliesNext": "Saved — applies to the next analysis",
     "appliesNextHint": "Changes apply to the next analysis you start (not the one in progress)."
   },

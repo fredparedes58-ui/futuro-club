@@ -22,7 +22,12 @@ import {
   type ImageLike,
   type TilingConfig,
 } from "../lib/yolo/tiling";
+import { runRecallFrame } from "../lib/yolo/recallPipeline";
+import { decodeDetections } from "../lib/yolo/detectPostprocess";
+import { poseCoverageMetric } from "../lib/yolo/poseEligibility";
+import { DEFAULT_RECALL_TILING, type RecallConfig } from "../lib/yolo/recallConfig";
 import type { Detection, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
+import { gated, type MetricResult } from "@/lib/metrics/MetricResult";
 
 // ─── Configuración ─────────────────────────────────────────────────────────
 
@@ -46,6 +51,17 @@ const NUM_KEYPOINTS    = 17;
 // la ruta llamante (análisis diferido) lo pide vía localStorage `vitas_tiling`.
 let tilingConfig: TilingConfig | null = null;
 
+// Detección-primero para recall (análisis diferido) OPT-IN. null ⇒ ruta normal
+// (pose sobre el frame). Cuando está activo Y el modelo de detección carga, el
+// frame se procesa con `runRecallFrame`: detección con tiling → posición del
+// equipo completo, pose solo sobre las cajas grandes. Ver recallConfig.ts.
+let recallConfig: RecallConfig | null = null;
+// Sesión ONNX del DETECTOR (solo ruta de recall). null = no cargado → degrada a
+// la ruta normal sin romper.
+let detectSession: ort.InferenceSession | null = null;
+// Margen (fracción de w/h) al recortar una caja para correr pose sobre ella.
+const RECALL_POSE_PAD_FRAC = 0.15;
+
 let session: ort.InferenceSession | null = null;
 const tracker = new CentroidTracker();
 
@@ -58,6 +74,7 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
     case "INIT":
       modelInputSize = cmd.inputSize ?? DEFAULT_INPUT_SIZE;
       tilingConfig   = cmd.tiling ?? null;
+      recallConfig   = cmd.recall ?? null;
       await initModel(cmd.modelUrl);
       break;
     case "FRAME":
@@ -125,10 +142,38 @@ async function initModel(modelUrl: string): Promise<void> {
       graphOptimizationLevel: "all",
     });
 
+    // Detección-primero para recall: cargar el modelo de DETECCIÓN antes de dar
+    // READY (para que los primeros frames ya tomen la ruta de recall). Si falla
+    // (offline, 404…) se degrada a la ruta normal — nunca rompe.
+    if (recallConfig) {
+      send({ type: "PROGRESS", percent: 92, message: "Cargando detector (recall equipo completo)…" });
+      detectSession = await loadDetectSession(recallConfig.detectModelUrl);
+    }
+
     send({ type: "PROGRESS", percent: 100, message: "Modelo listo" });
     send({ type: "READY" });
   } catch (err) {
     send({ type: "ERROR", message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+/**
+ * Carga la sesión ONNX del DETECTOR para la ruta de recall (mismo patrón que el
+ * ball worker: fetch → arrayBuffer → InferenceSession). Devuelve null si no se
+ * puede (la ruta de recall degrada entonces a la pose normal, sin romper).
+ */
+async function loadDetectSession(modelUrl: string): Promise<ort.InferenceSession | null> {
+  try {
+    const res = await fetch(modelUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status} descargando el detector`);
+    const buf = await res.arrayBuffer();
+    return await ort.InferenceSession.create(buf, {
+      executionProviders:    ["wasm"],
+      graphOptimizationLevel: "all",
+    });
+  } catch (err) {
+    console.warn("[trackingWorker] Detector de recall no disponible, ruta normal (pose):", err);
+    return null;
   }
 }
 
@@ -142,15 +187,50 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
 
   try {
     // 1-3. Inferencia → detecciones en coords del frame completo.
-    //   · Sin tiling: un solo paso (preprocess → run → postprocess) — el
-    //     comportamiento por defecto del tracking en vivo.
-    //   · Con tiling (SAHI, opt-in): malla GxG solapada; cada tile se infiere a
-    //     resolución nativa, se mapea a coords globales y se fusiona con NMS global
-    //     antes de pasar al tracker. Recupera recall de jugadores pequeños/lejanos.
-    const detections =
-      tilingConfig && tilingConfig.grid > 1
-        ? await inferTiled(cmd.imageData, tilingConfig)
-        : await inferSingle(cmd.imageData);
+    //   · Recall (detección-primero, opt-in análisis diferido): el DETECTOR con
+    //     tiling recupera la POSICIÓN del equipo completo y la POSE se corre solo
+    //     sobre las cajas grandes (cercanas) → biomecánica solo donde hay píxeles.
+    //   · Con tiling (SAHI, opt-in) sobre la pose: malla GxG solapada.
+    //   · Sin nada: un solo paso — el comportamiento por defecto del vivo.
+    let detections: Detection[];
+    let poseCoverage: MetricResult<number> | undefined;
+
+    if (recallConfig && detectSession) {
+      const res = await runRecallFrame(
+        cmd.imageData,
+        {
+          tiling: tilingConfig ?? DEFAULT_RECALL_TILING,
+          minPoseBoxHeightPx: recallConfig.minPoseBoxHeightPx,
+          nmsIouThresh: IOU_THRESH,
+          posePadFrac: RECALL_POSE_PAD_FRAC,
+        },
+        {
+          detect: (img) => inferDetectSingle(img),
+          // Pose sobre el recorte: reutiliza el modelo de pose ya cargado y se
+          // queda con la detección de mayor confianza del recorte (o null).
+          pose: async (crop) => {
+            const dets = await inferSingle(crop);
+            if (dets.length === 0) return null;
+            return dets.reduce((best, d) => (d.confidence > best.confidence ? d : best));
+          },
+        },
+      );
+      detections = res.detections;
+      poseCoverage = poseCoverageMetric(res.poseMeasuredCount, res.totalCount);
+    } else {
+      // Si se PIDIÓ recall pero el detector no bajó (offline/404/best-effort del
+      // prebuild), NO fingir normalidad: emitir cobertura BLOQUEADA para que la UI
+      // avise "recall no activo" en vez de un colapso silencioso (invariante #2/#3).
+      if (recallConfig && !detectSession) {
+        poseCoverage = gated(
+          "Detector de recall no disponible — ruta normal (pose): equipo parcial, no full-team",
+        );
+      }
+      detections =
+        tilingConfig && tilingConfig.grid > 1
+          ? await inferTiled(cmd.imageData, tilingConfig)
+          : await inferSingle(cmd.imageData);
+    }
 
     // 4. Actualizar tracker (usa timestamps reales, no FPS hardcoded)
     const H = new Float64Array(cmd.homography);
@@ -168,6 +248,7 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
       timestampMs: cmd.timestampMs,
       tracks,
       personBboxes,
+      ...(poseCoverage ? { poseCoverage } : {}),
     } as WorkerEvent);
   } catch (err) {
     send({ type: "ERROR", message: err instanceof Error ? err.message : String(err) });
@@ -181,12 +262,36 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
  * de píxel de la imagen dada (`img.width × img.height`).
  */
 async function inferSingle(img: ImageLike): Promise<Detection[]> {
-  const inputTensor = preprocess(img);
+  const inputTensor = preprocess(img, modelInputSize);
   const feeds: Record<string, ort.Tensor> = {};
   feeds[session!.inputNames[0]] = inputTensor;
   const output = await session!.run(feeds);
   const outputData = output[session!.outputNames[0]].data as Float32Array;
   return postprocess(outputData, img.width, img.height);
+}
+
+/**
+ * Detección-primero: una pasada del DETECTOR sobre una imagen (tile o frame),
+ * decodificada a personas con `decodeDetections` (keypoints vacíos). Coords en
+ * píxel de la imagen dada. Usa el input size PROPIO del detector, no el de pose.
+ */
+async function inferDetectSingle(img: ImageLike): Promise<Detection[]> {
+  if (!detectSession || !recallConfig) return [];
+  const size = recallConfig.inputSize;
+  const inputTensor = preprocess(img, size);
+  const feeds: Record<string, ort.Tensor> = {};
+  feeds[detectSession.inputNames[0]] = inputTensor;
+  const output = await detectSession.run(feeds);
+  const data = output[detectSession.outputNames[0]].data as Float32Array;
+  return decodeDetections(
+    data,
+    recallConfig.numClasses,
+    recallConfig.personClassId,
+    img.width,
+    img.height,
+    size,
+    recallConfig.confThreshold,
+  );
 }
 
 /**
@@ -214,9 +319,8 @@ async function inferTiled(img: ImageLike, cfg: TilingConfig): Promise<Detection[
 // ─── Preprocesar imagen → Float32 tensor CHW normalizado ──────────────────────
 // Acepta cualquier ImageLike (ImageData del frame completo o un tile recortado).
 
-function preprocess(imageData: ImageLike): ort.Tensor {
+function preprocess(imageData: ImageLike, size: number): ort.Tensor {
   const { width, height, data } = imageData;
-  const size   = modelInputSize;
   const tensor = new Float32Array(3 * size * size);
 
   // Calcular escala de resize con letterboxing

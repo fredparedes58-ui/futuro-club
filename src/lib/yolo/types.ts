@@ -7,6 +7,7 @@ import type { KalmanLite2D } from "./kalmanLite";
 import type { BallDetection } from "./ballDetector";
 import type { BallTrack } from "./ballTracker";
 import type { TilingConfig } from "./tiling";
+import type { RecallConfig } from "./recallConfig";
 import type { MetricResult } from "@/lib/metrics/MetricResult";
 
 // Re-export ball types for convenience
@@ -184,14 +185,20 @@ export interface VoronoiRegion {
 // ─── Worker messages ──────────────────────────────────────────────────────────
 
 export type WorkerCommand =
-  | { type: "INIT";  modelUrl: string; inputSize?: number; tiling?: TilingConfig | null }
+  | { type: "INIT";  modelUrl: string; inputSize?: number; tiling?: TilingConfig | null; recall?: RecallConfig | null }
   | { type: "FRAME"; imageData: ImageData; frameIndex: number; timestampMs: number; homography: number[] }
   | { type: "RESET" }
 
 export type WorkerEvent =
   | { type: "READY" }
   | { type: "PROGRESS"; percent: number; message: string }
-  | { type: "RESULT"; frameIndex: number; timestampMs: number; tracks: Track[]; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }> }
+  | { type: "RESULT"; frameIndex: number; timestampMs: number; tracks: Track[]; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }>;
+      /**
+       * Cobertura de biomecánica del frame (ruta detección-primero): fracción de
+       * detecciones con píxeles suficientes para pose. DERIVADA/orientativa. Solo
+       * presente cuando el recall está activo. Ver `poseEligibility.ts`.
+       */
+      poseCoverage?: MetricResult<number> }
   | { type: "ERROR"; message: string }
 
 // ─── Calibración del campo ────────────────────────────────────────────────────

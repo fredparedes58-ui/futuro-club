@@ -2340,6 +2340,11 @@
     "computeWarn": "El tiling multiplica el cómputo por zona (4× o 9×). Pensado para análisis en diferido, no para vídeo en vivo: en directo puede ir a saltos.",
     "tilingOnToast": "Tiling activado (2×2)",
     "tilingOffToast": "Tiling desactivado",
+    "recallTitle": "Recall de equipo completo (detección primero)",
+    "recallDesc": "Corre el modelo de detección con tiling para localizar al equipo completo; biomecánica (pose) solo en jugadores cercanos.",
+    "recallOnToast": "Recall de equipo completo activado",
+    "recallOffToast": "Recall de equipo completo desactivado",
+    "recallHonestyNote": "Se capta la posición de todos los jugadores; la biomecánica (zancada, escaneos) solo donde el jugador está lo bastante cerca para una pose fiable — los lejanos muestran solo posición, nunca datos inventados. Análisis diferido: más cómputo por frame.",
     "appliesNext": "Guardado — se aplica al próximo análisis",
     "appliesNextHint": "Los cambios se aplican al próximo análisis que inicies (no al que esté en curso)."
   },
