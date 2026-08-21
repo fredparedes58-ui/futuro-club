@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { StorageService } from "./storageService";
-import { MetricsService } from "./metricsService";
+import { calculateFichaVsi, type PlayerMetrics } from "./metricsService";
 
 // ── Generador de IDs únicos (evita colisiones en llamadas rápidas) ──────────
 let _idCounter = 0;
@@ -29,15 +29,22 @@ export const PlayerSchema = z.object({
   legLength: z.number().min(30).max(130).optional(),
   competitiveLevel: z.string().default("Regional"),
   minutesPlayed: z.number().default(0),
-  metrics: z.object({
-    speed: z.number().min(0).max(100),
-    technique: z.number().min(0).max(100),
-    vision: z.number().min(0).max(100),
-    stamina: z.number().min(0).max(100),
-    shooting: z.number().min(0).max(100),
-    defending: z.number().min(0).max(100),
-  }),
-  vsi: z.number().default(0),
+  // Métricas del entrenador (las 6 barras). OPCIONAL: un alta rápida
+  // (onboarding/wizard) NO evalúa → el jugador nace sin métricas. Rellenar con
+  // defaults (60/50) sería inventar una evaluación que no ocurrió (invariante #2).
+  metrics: z
+    .object({
+      speed: z.number().min(0).max(100),
+      technique: z.number().min(0).max(100),
+      vision: z.number().min(0).max(100),
+      stamina: z.number().min(0).max(100),
+      shooting: z.number().min(0).max(100),
+      defending: z.number().min(0).max(100),
+    })
+    .optional(),
+  // VSI de FICHA = evaluación del entrenador. null ⇒ "sin evaluar" (no hay
+  // métricas). Nunca un 0/58 fabricado para un jugador sin evaluación real.
+  vsi: z.number().nullable(),
   vsiHistory: z.array(z.number()).default([]),
   // Sin default "M": un default silencioso aplicaría la fórmula PHV masculina a
   // una jugadora sin sexo registrado. Ausente ⇒ queda sin definir y el motor de
@@ -97,18 +104,20 @@ export const PlayerService = {
   },
 
   /**
-   * Crea un nuevo jugador y calcula su VSI inicial
+   * Crea un nuevo jugador. El VSI de ficha solo existe si el entrenador aportó
+   * las métricas (evaluó). Sin métricas ⇒ vsi = null ("sin evaluar"): no se
+   * fabrica un número para un jugador sin evaluación real (invariante #2).
    */
   create(input: CreatePlayerInput): Player {
     const players = PlayerService.getAll();
-    const vsi = MetricsService.calculateVSI(input.metrics);
+    const vsi = input.metrics ? calculateFichaVsi(input.metrics) : null;
     const now = new Date().toISOString();
 
     const newPlayer: Player = {
       ...input,
       id: uniquePlayerId(),
       vsi,
-      vsiHistory: [vsi],
+      vsiHistory: vsi !== null ? [vsi] : [],
       createdAt: now,
       updatedAt: now,
     };
@@ -122,7 +131,7 @@ export const PlayerService = {
    * Actualiza métricas de un jugador y recalcula VSI.
    * Usa write-lock para evitar race condition con updatePHV.
    */
-  async updateMetrics(id: string, metrics: Player["metrics"]): Promise<Player | null> {
+  async updateMetrics(id: string, metrics: PlayerMetrics): Promise<Player | null> {
     await acquireWriteLock();
     try {
       const players = PlayerService.getAll();
@@ -130,7 +139,8 @@ export const PlayerService = {
       if (idx === -1) return null;
 
       const previous = players[idx];
-      const newVSI = MetricsService.calculateVSI(metrics);
+      // El entrenador evaluó (aportó las 6 barras) ⇒ el VSI de ficha ya existe.
+      const newVSI = calculateFichaVsi(metrics);
 
       const updated: Player = {
         ...previous,
@@ -231,19 +241,29 @@ export const PlayerService = {
    */
   sort(players: Player[], by: "vsi" | "age" | "name", dir: "asc" | "desc"): Player[] {
     return [...players].sort((a, b) => {
+      // Jugadores sin evaluar (vsi null) SIEMPRE al final, sin importar la
+      // dirección: un hueco no compite con un número real (ni como 0).
+      if (by === "vsi") {
+        if (a.vsi === null && b.vsi === null) return 0;
+        if (a.vsi === null) return 1;
+        if (b.vsi === null) return -1;
+        return dir === "asc" ? a.vsi - b.vsi : -(a.vsi - b.vsi);
+      }
       let diff = 0;
-      if (by === "vsi") diff = a.vsi - b.vsi;
-      else if (by === "age") diff = a.age - b.age;
+      if (by === "age") diff = a.age - b.age;
       else diff = a.name.localeCompare(b.name);
       return dir === "asc" ? diff : -diff;
     });
   },
 
   /**
-   * Obtiene todos los VSIs para cálculo de percentiles
+   * Obtiene todos los VSIs para cálculo de percentiles.
+   * Excluye jugadores sin evaluar (vsi null): un hueco no es un 0.
    */
   getAllVSIs(): number[] {
-    return PlayerService.getAll().map((p) => p.vsi);
+    return PlayerService.getAll()
+      .map((p) => p.vsi)
+      .filter((v): v is number => v !== null);
   },
 
   /**

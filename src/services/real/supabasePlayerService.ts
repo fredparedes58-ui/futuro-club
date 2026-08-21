@@ -36,7 +36,7 @@ function playerToColumns(p: Player) {
     metric_stamina: p.metrics?.stamina ?? 0,
     metric_shooting: p.metrics?.shooting ?? 0,
     metric_defending: p.metrics?.defending ?? 0,
-    vsi: p.vsi ?? 0,
+    vsi: p.vsi ?? null, // sin evaluar ⇒ null en la columna (no un 0 fabricado)
     vsi_history: p.vsiHistory ?? [],
     phv_category: p.phvCategory ?? null,
     phv_offset: p.phvOffset ?? null,

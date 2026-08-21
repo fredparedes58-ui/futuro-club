@@ -43,7 +43,9 @@ const CreatePlayerSchema = z.object({
   legLength: z.number().min(30).max(130).optional(),
   competitiveLevel: z.string().default("Regional"),
   minutesPlayed: z.number().default(0),
-  metrics: MetricsSchema,
+  // OPCIONAL: el alta rápida no evalúa ⇒ sin métricas → VSI de ficha null.
+  // No se rellena con defaults (sería inventar una evaluación; invariante #2).
+  metrics: MetricsSchema.optional(),
   gender: z.enum(["M", "F"]).optional(), // sin default "M": sexo ausente ⇒ null (invariante #5)
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
@@ -158,7 +160,9 @@ export default withHandler(
       }
 
       const input = parsed.data;
-      const vsi = calculateFichaVsi(input.metrics);
+      // VSI de ficha solo si el entrenador evaluó (aportó métricas). Sin métricas
+      // ⇒ null ("sin evaluar"), nunca un número fabricado (invariante #2).
+      const vsi = input.metrics ? calculateFichaVsi(input.metrics) : null;
       const now = new Date().toISOString();
       const playerId = input.id ?? `p${Date.now()}`;
 
@@ -166,7 +170,7 @@ export default withHandler(
         ...input,
         id: playerId,
         vsi,
-        vsiHistory: [vsi],
+        vsiHistory: vsi !== null ? [vsi] : [],
         createdAt: now,
         updatedAt: now,
       };
@@ -188,14 +192,14 @@ export default withHandler(
         competitive_level: input.competitiveLevel,
         minutes_played: input.minutesPlayed,
         gender: input.gender ?? null, // no asumir masculino si falta el sexo (invariante #5)
-        metric_speed: input.metrics.speed,
-        metric_technique: input.metrics.technique,
-        metric_vision: input.metrics.vision,
-        metric_stamina: input.metrics.stamina,
-        metric_shooting: input.metrics.shooting,
-        metric_defending: input.metrics.defending,
-        vsi,
-        vsi_history: [vsi],
+        metric_speed: input.metrics?.speed ?? null,
+        metric_technique: input.metrics?.technique ?? null,
+        metric_vision: input.metrics?.vision ?? null,
+        metric_stamina: input.metrics?.stamina ?? null,
+        metric_shooting: input.metrics?.shooting ?? null,
+        metric_defending: input.metrics?.defending ?? null,
+        vsi, // null si no hay evaluación (columna nullable)
+        vsi_history: vsi !== null ? [vsi] : [],
         phv_category: input.phvCategory ?? null,
         phv_offset: input.phvOffset ?? null,
       };

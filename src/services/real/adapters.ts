@@ -22,9 +22,11 @@ const PLAYER_IMAGES = [
 // Adapta Player → forma esperada por Dashboard/Rankings
 // ─────────────────────────────────────────
 export function adaptPlayerForUI(player: Player) {
-  const vsiHistory = player.vsiHistory ?? [player.vsi];
+  // vsi puede ser null ("sin evaluar"): se propaga tal cual, nunca se convierte
+  // en 0. La tendencia solo tiene sentido con dos VSIs reales.
+  const vsiHistory = player.vsiHistory ?? (player.vsi !== null ? [player.vsi] : []);
   const prevVSI = vsiHistory.at(-2) ?? player.vsi;
-  const delta = player.vsi - prevVSI;
+  const delta = player.vsi !== null && prevVSI !== null ? player.vsi - prevVSI : 0;
   const trending: "up" | "down" | "stable" =
     delta > 2 ? "up" : delta < -2 ? "down" : "stable";
 
@@ -48,14 +50,17 @@ export function adaptPlayerForUI(player: Player) {
     trending,
     avatar: `${PLACEHOLDER_AVATARS[0]}${encodeURIComponent(player.name)}`,
     image: PLAYER_IMAGES[0],
-    stats: {
-      speed: player.metrics.speed,
-      technique: player.metrics.technique,
-      vision: player.metrics.vision,
-      stamina: player.metrics.stamina,
-      shooting: player.metrics.shooting,
-      defending: player.metrics.defending,
-    },
+    // Sin métricas (jugador no evaluado) ⇒ stats null: no se fabrican ceros.
+    stats: player.metrics
+      ? {
+          speed: player.metrics.speed,
+          technique: player.metrics.technique,
+          vision: player.metrics.vision,
+          stamina: player.metrics.stamina,
+          shooting: player.metrics.shooting,
+          defending: player.metrics.defending,
+        }
+      : null,
     recentDrills: Math.floor(player.minutesPlayed / 90),
     lastActive: player.updatedAt,
   };
@@ -103,13 +108,16 @@ export function adaptInsightForUI(
 // ─────────────────────────────────────────
 export function computeDashboardStats(players: Player[]) {
   if (players.length === 0) {
-    return { activePlayers: 0, drillsCompleted: 0, avgVsi: 0, hiddenTalents: 0 };
+    return { activePlayers: 0, drillsCompleted: 0, avgVsi: null as number | null, hiddenTalents: 0 };
   }
 
-  const avgVsi =
-    Math.round(
-      (players.reduce((sum, p) => sum + p.vsi, 0) / players.length) * 10
-    ) / 10;
+  // avgVsi solo sobre jugadores EVALUADOS (vsi no null). Sin ninguno evaluado ⇒
+  // null ("sin evaluar"): un hueco no promedia como 0 (invariante #2).
+  const evaluated = players.filter((p): p is Player & { vsi: number } => p.vsi !== null);
+  const avgVsi: number | null =
+    evaluated.length > 0
+      ? Math.round((evaluated.reduce((sum, p) => sum + p.vsi, 0) / evaluated.length) * 10) / 10
+      : null;
 
   const drillsCompleted = players.reduce(
     (sum, p) => sum + Math.floor(p.minutesPlayed / 90),
@@ -118,9 +126,10 @@ export function computeDashboardStats(players: Player[]) {
 
   // "Talentos ocultos" = madurador TARDÍO (con confianza) y VSI < 65 (potencial
   // subestimado por maduración). Gateado por el motor canónico para no contar
-  // a cualquier pre-púber como talento oculto (falso positivo).
+  // a cualquier pre-púber como talento oculto (falso positivo). Un jugador sin
+  // evaluar (vsi null) no puede ser talento oculto: se excluye.
   const hiddenTalents = players.filter((p) => {
-    if (p.vsi >= 65) return false;
+    if (p.vsi === null || p.vsi >= 65) return false;
     const m = playerMaturity(p);
     return m.timing === "late" && (m.confidence === "high" || m.confidence === "moderate");
   }).length;

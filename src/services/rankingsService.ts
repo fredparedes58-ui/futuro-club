@@ -22,7 +22,10 @@ export interface RankingsResponse {
   total: number;
   totalUnfiltered: number;
   ageGroups: string[];
-  ageGroupStats: Record<string, { count: number; avgVsi: number; minVsi: number; maxVsi: number }>;
+  ageGroupStats: Record<
+    string,
+    { count: number; avgVsi: number | null; minVsi: number | null; maxVsi: number | null }
+  >;
   competitiveLevels: string[];
   limit: number;
   offset: number;
@@ -35,14 +38,14 @@ export interface RankedPlayer {
   position: string;
   secondaryPositions?: string[];          // polivalencia
   positionShort: string;
-  vsi: number;
+  vsi: number | null;                     // null ⇒ sin evaluar
   phvCategory: string;
   phvOffset: number;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
-  percentile: number;
-  percentileInAgeGroup: number;
+  percentile: number | null;              // null si sin evaluar
+  percentileInAgeGroup: number | null;    // null si sin evaluar
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
@@ -107,8 +110,10 @@ function fetchLocalRankedPlayers(
   const sorted = PlayerService.sort(players, sortBy === "percentile" ? "vsi" : sortBy, dir);
   const uiPlayers = sorted.map(adaptPlayerForUI);
 
-  // Calculate VSIs for percentiles
-  const allVSIs = uiPlayers.map((p) => p.vsi);
+  // Calculate VSIs for percentiles — excluye jugadores sin evaluar (vsi null).
+  const allVSIs = uiPlayers
+    .map((p) => p.vsi)
+    .filter((v): v is number => v !== null);
 
   const AGE_GROUPS: Record<string, [number, number]> = {
     "Sub-10": [8, 10], "Sub-12": [11, 12], "Sub-14": [13, 14],
@@ -129,12 +134,17 @@ function fetchLocalRankedPlayers(
     return Math.round(((below + equal * 0.5) / allValues.length) * 100);
   }
 
-  // Group VSIs by age group
+  // Group VSIs by age group — solo evaluados para avg/percentiles; el conteo
+  // por grupo cuenta a todos.
   const vsiByAgeGroup: Record<string, number[]> = {};
+  const countByAgeGroup: Record<string, number> = {};
   const enriched: RankedPlayer[] = uiPlayers.map((p) => {
     const ageGroup = getAgeGroup(p.age);
-    if (!vsiByAgeGroup[ageGroup]) vsiByAgeGroup[ageGroup] = [];
-    vsiByAgeGroup[ageGroup].push(p.vsi);
+    countByAgeGroup[ageGroup] = (countByAgeGroup[ageGroup] ?? 0) + 1;
+    if (p.vsi !== null) {
+      if (!vsiByAgeGroup[ageGroup]) vsiByAgeGroup[ageGroup] = [];
+      vsiByAgeGroup[ageGroup].push(p.vsi);
+    }
     return {
       id: p.id,
       name: p.name,
@@ -148,8 +158,9 @@ function fetchLocalRankedPlayers(
       competitiveLevel: p.competitiveLevel ?? "Regional",
       ageGroup,
       trending: p.trending ?? "stable",
-      percentile: percentileRank(p.vsi, allVSIs),
-      percentileInAgeGroup: 0, // calculated below
+      // Sin evaluar ⇒ percentil null (no compite ni cuenta como 0).
+      percentile: p.vsi === null ? null : percentileRank(p.vsi, allVSIs),
+      percentileInAgeGroup: null, // calculated below
       updatedAt: p.lastActive ?? new Date().toISOString(),
       metrics: p.stats ?? {},
       foot: p.foot ?? "right",
@@ -158,9 +169,10 @@ function fetchLocalRankedPlayers(
     } as RankedPlayer;
   });
 
-  // Calculate age group percentiles
+  // Calculate age group percentiles (sin evaluar queda null)
   for (const p of enriched) {
-    p.percentileInAgeGroup = percentileRank(p.vsi, vsiByAgeGroup[p.ageGroup] ?? allVSIs);
+    p.percentileInAgeGroup =
+      p.vsi === null ? null : percentileRank(p.vsi, vsiByAgeGroup[p.ageGroup] ?? allVSIs);
   }
 
   // Apply filters
@@ -189,14 +201,15 @@ function fetchLocalRankedPlayers(
     );
   }
 
-  // Age group stats
-  const ageGroupStats: Record<string, { count: number; avgVsi: number; minVsi: number; maxVsi: number }> = {};
-  for (const [group, vsis] of Object.entries(vsiByAgeGroup)) {
+  // Age group stats — count = todos; avg/min/max solo evaluados (null si ninguno).
+  const ageGroupStats: RankingsResponse["ageGroupStats"] = {};
+  for (const [group, count] of Object.entries(countByAgeGroup)) {
+    const vsis = vsiByAgeGroup[group] ?? [];
     ageGroupStats[group] = {
-      count: vsis.length,
-      avgVsi: Math.round((vsis.reduce((a, b) => a + b, 0) / vsis.length) * 10) / 10,
-      minVsi: Math.min(...vsis),
-      maxVsi: Math.max(...vsis),
+      count,
+      avgVsi: vsis.length > 0 ? Math.round((vsis.reduce((a, b) => a + b, 0) / vsis.length) * 10) / 10 : null,
+      minVsi: vsis.length > 0 ? Math.min(...vsis) : null,
+      maxVsi: vsis.length > 0 ? Math.max(...vsis) : null,
     };
   }
 
@@ -204,7 +217,7 @@ function fetchLocalRankedPlayers(
     players: filtered,
     total: filtered.length,
     totalUnfiltered: enriched.length,
-    ageGroups: Object.keys(vsiByAgeGroup),
+    ageGroups: Object.keys(countByAgeGroup),
     ageGroupStats,
     competitiveLevels: [...new Set(enriched.map((p) => p.competitiveLevel))],
     limit: filtered.length,

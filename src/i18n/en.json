@@ -45,7 +45,8 @@
     "footBoth": "Both",
     "select": "Select…",
     "perMonth": "/month",
-    "free": "Free"
+    "free": "Free",
+    "notEvaluated": "Not evaluated"
   },
   "nav": {
     "pulse": "Pulse",

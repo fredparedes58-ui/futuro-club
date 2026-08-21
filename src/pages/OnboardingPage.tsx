@@ -121,10 +121,9 @@ const OnboardingPage = () => {
           weight: 58,
           competitiveLevel: "Regional",
           minutesPlayed: 0,
-          metrics: {
-            speed: 60, technique: 60, vision: 60,
-            stamina: 60, shooting: 50, defending: 50,
-          },
+          // Sin métricas: el alta rápida NO evalúa. El jugador nace "sin evaluar"
+          // (vsi null); el coach evaluará luego en su ficha. Sembrar 60/50 aquí
+          // fabricaría una evaluación que nadie hizo (invariante #2).
         });
         // Empujar a Supabase para que el jugador exista como sujeto de análisis
         // de vídeo / PHV de servidor (antes: localStorage-only → el pipeline no lo
