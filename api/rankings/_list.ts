@@ -16,7 +16,7 @@ import { calculateFichaVsi } from "../../src/services/real/metricsService";
 
 export const config = { runtime: "edge" };
 
-// VSI de ficha: pesos + fórmula en fuente ÚNICA src/lib/scoring/fichaVsi.ts (invariante #7).
+// VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
 
 // ── Age Group definitions ────────────────────────────────────────────────
 const AGE_GROUPS: Record<string, [number, number]> = {
@@ -372,7 +372,7 @@ export default withHandler(
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-// VSI de ficha: calculateFichaVsi en src/lib/scoring/fichaVsi.ts (fuente única · invariante #7).
+// VSI de ficha: calculateFichaVsi en src/services/real/metricsService.ts (fuente única · invariante #7).
 
 function mapPhv(raw: string): string {
   if (raw === "ontme") return "on-time";

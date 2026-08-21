@@ -79,7 +79,7 @@ const DeletePlayerSchema = z.object({
   id: z.string(),
 });
 
-// VSI de ficha: pesos + fórmula en fuente ÚNICA src/lib/scoring/fichaVsi.ts (invariante #7).
+// VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
 
 // ── Handler ─────────────────────────────────────────────────────────────────
 

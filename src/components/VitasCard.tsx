@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
+import type { PlayerMetrics } from "@/services/real/metricsService";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 
 interface VitasCardProps {
@@ -50,7 +51,7 @@ const METRIC_LABEL_KEYS: Record<string, string> = {
 
 function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
   const { t } = useTranslation();
-  const keys = ["speed", "shooting", "vision", "technique", "defending", "stamina"];
+  const keys: (keyof PlayerMetrics)[] = ["speed", "shooting", "vision", "technique", "defending", "stamina"];
   const cx = 80, cy = 80, r = 60;
   const angles = keys.map((_, i) => (i * Math.PI * 2) / keys.length - Math.PI / 2);
 
@@ -63,7 +64,7 @@ function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
     angles.map(a => `${cx + r * scale * Math.cos(a)},${cy + r * scale * Math.sin(a)}`).join(" ");
 
   const dataPoints = keys.map((k, i) =>
-    toPoint(angles[i], (metrics as Record<string, number>)[k] ?? 0)
+    toPoint(angles[i], metrics?.[k] ?? 0)
   );
   const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
 
@@ -108,10 +109,12 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
   const cloneClub = bestMatch?.player.club ?? null;
   const clonePos = bestMatch?.player.position ?? null;
 
-  const topMetrics = Object.entries(player.metrics)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([k, v]) => ({ label: METRIC_LABEL_KEYS[k] ? t(METRIC_LABEL_KEYS[k]) : k, value: v }));
+  const topMetrics = player.metrics
+    ? Object.entries(player.metrics)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([k, v]) => ({ label: METRIC_LABEL_KEYS[k] ? t(METRIC_LABEL_KEYS[k]) : k, value: v }))
+    : [];
 
   const handleExport = async () => {
     if (!cardRef.current) return;

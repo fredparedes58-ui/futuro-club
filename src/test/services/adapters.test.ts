@@ -179,11 +179,12 @@ describe("adaptInsightForUI", () => {
 
 // ── computeDashboardStats ───────────────────────────────────────────────────
 describe("computeDashboardStats", () => {
-  it("returns zeros for empty array", () => {
+  it("returns zeros for counts and null avgVsi for empty array", () => {
     const stats = computeDashboardStats([]);
     expect(stats.activePlayers).toBe(0);
     expect(stats.drillsCompleted).toBe(0);
-    expect(stats.avgVsi).toBe(0);
+    // Sin jugadores no hay media que calcular ⇒ null, no un 0 fabricado (invariante #2).
+    expect(stats.avgVsi).toBeNull();
     expect(stats.hiddenTalents).toBe(0);
   });
 
@@ -196,6 +197,23 @@ describe("computeDashboardStats", () => {
     const stats = computeDashboardStats([
       makePlayer({ vsi: 70 }),
       makePlayer({ id: "p2", vsi: 80 }),
+    ]);
+    expect(stats.avgVsi).toBe(75);
+  });
+
+  it("avgVsi es null si ningún jugador está evaluado (no fabrica media · invariante #2)", () => {
+    const stats = computeDashboardStats([
+      makePlayer({ vsi: null }),
+      makePlayer({ id: "p2", vsi: null }),
+    ]);
+    expect(stats.avgVsi).toBeNull();
+  });
+
+  it("avgVsi promedia solo los evaluados e ignora los vsi null", () => {
+    const stats = computeDashboardStats([
+      makePlayer({ vsi: 70 }),
+      makePlayer({ id: "p2", vsi: null }), // sin evaluar: no entra en la media
+      makePlayer({ id: "p3", vsi: 80 }),
     ]);
     expect(stats.avgVsi).toBe(75);
   });

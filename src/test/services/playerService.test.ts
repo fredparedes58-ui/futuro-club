@@ -94,7 +94,7 @@ describe("PlayerService", () => {
       const newMetrics = { speed: 90, technique: 85, vision: 80, stamina: 75, shooting: 70, defending: 65 };
       const updated = await PlayerService.updateMetrics(player.id, newMetrics);
       expect(updated).not.toBeNull();
-      expect(updated!.metrics.speed).toBe(90);
+      expect(updated!.metrics!.speed).toBe(90);
       expect(updated!.vsi).not.toBe(player.vsi);
     });
 
@@ -106,7 +106,7 @@ describe("PlayerService", () => {
     });
 
     it("retorna null para ID inexistente", async () => {
-      const result = await PlayerService.updateMetrics("no-existe", samplePlayer.metrics);
+      const result = await PlayerService.updateMetrics("no-existe", samplePlayer.metrics!);
       expect(result).toBeNull();
     });
   });
@@ -161,8 +161,8 @@ describe("PlayerService", () => {
 
   describe("sort", () => {
     it("ordena por VSI ascendente", () => {
-      const p1 = PlayerService.create({ ...samplePlayer, name: "Alfa", metrics: { ...samplePlayer.metrics, speed: 90 } });
-      const p2 = PlayerService.create({ ...samplePlayer, name: "Beta", metrics: { ...samplePlayer.metrics, speed: 40 } });
+      const p1 = PlayerService.create({ ...samplePlayer, name: "Alfa", metrics: { ...samplePlayer.metrics!, speed: 90 } });
+      const p2 = PlayerService.create({ ...samplePlayer, name: "Beta", metrics: { ...samplePlayer.metrics!, speed: 40 } });
       const all = PlayerService.getAll();
       const sorted = PlayerService.sort(all, "vsi", "asc");
       expect(sorted[0].vsi).toBeLessThanOrEqual(sorted[1].vsi);

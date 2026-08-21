@@ -370,7 +370,11 @@ export default function PlayerHubPage() {
                       {hasValidPhv ? t("players.profile.adjustedByPHV") : t("players.profile.noAdjustPHV")}
                     </span>
                   </div>
-                  <RadarChartComponent stats={player.metrics} />
+                  {player.metrics ? (
+                    <RadarChartComponent stats={player.metrics as unknown as Record<string, number>} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-6 text-center">{t("common.notEvaluated")}</p>
+                  )}
                 </div>
               )}
 
@@ -427,8 +431,10 @@ export default function PlayerHubPage() {
                   <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                     {t("playerHubPage.baseMetrics")}
                   </h3>
-                  {(["speed", "technique", "vision", "stamina", "shooting", "defending"] as const).map((k) => {
-                    const v = player.metrics[k] ?? 0;
+                  {!player.metrics ? (
+                    <p className="text-xs text-muted-foreground py-2">{t("common.notEvaluated")}</p>
+                  ) : (["speed", "technique", "vision", "stamina", "shooting", "defending"] as const).map((k) => {
+                    const v = player.metrics![k] ?? 0;
                     return (
                       <div key={k} className="flex items-center gap-2 text-xs">
                         <span className="w-20 text-muted-foreground capitalize">{k}</span>

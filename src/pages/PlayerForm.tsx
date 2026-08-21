@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PlayerService } from "@/services/real/playerService";
 import { StorageService } from "@/services/real/storageService";
-import { MetricsService } from "@/services/real/metricsService";
+import { MetricsService, type PlayerMetrics } from "@/services/real/metricsService";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
@@ -68,7 +68,10 @@ const formSchema = z.object({
   }),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// z.infer degrada el objeto anidado `metrics` a inner-opcional por el tamaño del
+// schema (límite de profundidad de TS); el runtime de zod SÍ exige las 6. Fijamos
+// `metrics: PlayerMetrics` para que "presente ⇒ completo" llegue a los consumidores.
+type FormValues = Omit<z.infer<typeof formSchema>, "metrics"> & { metrics: PlayerMetrics };
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const POSITIONS = [
@@ -292,7 +295,7 @@ const PlayerForm = () => {
       fatherHeightCm: player.fatherHeightCm ?? 0,
       competitiveLevel: player.competitiveLevel,
       minutesPlayed: player.minutesPlayed,
-      metrics: player.metrics,
+      metrics: player.metrics ?? DEFAULT_METRICS,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEditMode, navigate, reset]);

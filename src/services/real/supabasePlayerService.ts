@@ -204,7 +204,7 @@ export const SupabasePlayerService = {
   async updateMetrics(
     userId: string,
     id: string,
-    metrics: Player["metrics"]
+    metrics: NonNullable<Player["metrics"]>
   ): Promise<Player | null> {
     // Actualizar localStorage primero (optimistic — UI necesita respuesta inmediata)
     const updated = await PlayerService.updateMetrics(id, metrics);

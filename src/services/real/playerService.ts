@@ -61,7 +61,14 @@ export const PlayerSchema = z.object({
   updatedAt: z.string(),
 });
 
-export type Player = z.infer<typeof PlayerSchema>;
+// z.infer degrada el objeto anidado `metrics` a inner-opcional ({ speed?: number })
+// porque el schema es grande y TS toca su límite de profundidad de instanciación.
+// El runtime de zod SÍ exige las 6 barras cuando `metrics` está presente; solo el
+// tipo inferido queda degradado. Fijamos `metrics?: PlayerMetrics` para que el
+// invariante "presente ⇒ completo" se propague a todos los consumidores.
+export type Player = Omit<z.infer<typeof PlayerSchema>, "metrics"> & {
+  metrics?: PlayerMetrics;
+};
 export type CreatePlayerInput = Omit<Player, "id" | "vsi" | "vsiHistory" | "createdAt" | "updatedAt">;
 
 const STORAGE_KEY = "players";
