@@ -75,10 +75,12 @@ const MasterDashboard = () => {
         // cualquier pre-púber (evita falso positivo).
         const mat = playerMaturity(p);
         const matFirm = mat.confidence === "high" || mat.confidence === "moderate";
+        // pct es null para un jugador sin evaluar (no tiene percentil): en ese caso
+        // no se marca sesgo por percentil, queda "med" salvo señal de maduración.
         const biasAlert: "low" | "med" | "high" =
           matFirm && mat.timing === "late" ? "high"
           : matFirm && mat.timing === "early" ? "low"
-          : pct > 70 ? "low" : "med";
+          : pct != null && pct > 70 ? "low" : "med";
         const academy =
           (user?.user_metadata?.organization as string | undefined) ||
           (user?.user_metadata?.academyName as string | undefined) ||
@@ -89,11 +91,16 @@ const MasterDashboard = () => {
 
   // VSI tier distribution
   const vsiTiers = useMemo(() => {
-    const elite = players.filter((p) => p.vsi >= 80).length;
-    const high = players.filter((p) => p.vsi >= 65 && p.vsi < 80).length;
-    const medium = players.filter((p) => p.vsi >= 50 && p.vsi < 65).length;
-    const developing = players.filter((p) => p.vsi < 50).length;
-    return { elite, high, medium, developing };
+    // Los jugadores SIN evaluar (vsi null) NO entran en ningún tramo: un hueco no
+    // es "developing" (null < 50 daría true) — invariante #2. Se cuentan aparte,
+    // así elite+high+medium+developing+unrated reconcilia con el total de plantilla.
+    const ratedVsis = players.map((p) => p.vsi).filter((v): v is number => v != null);
+    const elite = ratedVsis.filter((v) => v >= 80).length;
+    const high = ratedVsis.filter((v) => v >= 65 && v < 80).length;
+    const medium = ratedVsis.filter((v) => v >= 50 && v < 65).length;
+    const developing = ratedVsis.filter((v) => v < 50).length;
+    const unrated = players.length - ratedVsis.length;
+    return { elite, high, medium, developing, unrated };
   }, [players]);
 
   // Position distribution
@@ -246,6 +253,12 @@ const MasterDashboard = () => {
                     <span className="text-xs font-display text-muted-foreground">Developing (&lt;50)</span>
                     <span className="font-display font-bold text-sm text-muted-foreground">{vsiTiers.developing}</span>
                   </div>
+                  {vsiTiers.unrated > 0 && (
+                    <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-1">
+                      <span className="text-xs font-display text-muted-foreground/70">{t("common.notEvaluated")}</span>
+                      <span className="font-display font-bold text-sm text-muted-foreground/70">{vsiTiers.unrated}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

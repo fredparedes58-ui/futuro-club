@@ -76,6 +76,20 @@ describe("MetricsService", () => {
       // 70 es mayor que [50, 60] = 2 de 4 = 50%
       expect(MetricsService.calculatePercentile(70, [50, 60, 80, 90])).toBe(50);
     });
+
+    it("retorna null para un jugador sin evaluar (vsi null), no un percentil fabricado", () => {
+      expect(MetricsService.calculatePercentile(null, [50, 60, 70])).toBeNull();
+    });
+
+    it("excluye los null de la poblacion (no los cuenta como 0)", () => {
+      // Sin filtrar, los null se leerian como 0 y ensuciarian el percentil.
+      // Poblacion efectiva = [50, 90]; 70 supera a 1 de 2 = 50%.
+      expect(MetricsService.calculatePercentile(70, [50, null, 90])).toBe(50);
+    });
+
+    it("retorna 50 si la poblacion queda vacia tras excluir null", () => {
+      expect(MetricsService.calculatePercentile(70, [null, null])).toBe(50);
+    });
   });
 
   describe("classifyVSI", () => {

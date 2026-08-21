@@ -76,10 +76,15 @@ export const MetricsService = {
   /**
    * Calcula el percentil de un jugador dentro de un grupo
    */
-  calculatePercentile(playerVSI: number, allVSIs: number[]): number {
-    if (allVSIs.length === 0) return 50;
-    const below = allVSIs.filter((v) => v < playerVSI).length;
-    return Math.round((below / allVSIs.length) * 100);
+  calculatePercentile(playerVSI: number | null, allVSIs: (number | null)[]): number | null {
+    // Un jugador sin evaluar (vsi null) no tiene percentil: no se le fabrica uno
+    // (invariante #2). Y los null del grupo se excluyen de la población para no
+    // ensuciar el percentil del resto (v < null daría v < 0 → false para todos).
+    if (playerVSI == null) return null;
+    const pop = allVSIs.filter((v): v is number => v != null);
+    if (pop.length === 0) return 50;
+    const below = pop.filter((v) => v < playerVSI).length;
+    return Math.round((below / pop.length) * 100);
   },
 
   /**
@@ -107,7 +112,9 @@ export const MetricsService = {
     return {
       raw,
       adjusted: raw,
-      percentile: MetricsService.calculatePercentile(raw, allVSIs),
+      // raw nunca es null aquí; el ?? 50 solo satisface el contrato null-safe
+      // (grupo vacío ya devuelve 50 dentro de calculatePercentile).
+      percentile: MetricsService.calculatePercentile(raw, allVSIs) ?? 50,
       trend,
       label: MetricsService.classifyVSI(raw),
     };
