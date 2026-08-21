@@ -190,6 +190,9 @@ export class CentroidTracker {
         lastMatchKind:   "new",
         iouMatchCount:   0,
         weakMatchCount:  0,
+        // Cuenta frames CON keypoints reales. Una detección de la ruta recall que es
+        // solo-posición (lejana) trae keypoints:[] → no suma. Ver Track.poseFrameCount.
+        poseFrameCount:  det.keypoints.length > 0 ? 1 : 0,
       };
       newTrackIds.add(newTrack.id);
       this.tracks.set(newTrack.id, newTrack);
@@ -321,6 +324,12 @@ export class CentroidTracker {
     track.bbox      = det.bbox;
     track.keypoints = det.keypoints;
     track.age       = 0;
+    // Frames CON keypoints reales: solo suma si esta detección trae pose (la ruta recall
+    // deja keypoints:[] en los lejanos). Un track siempre-lejano se queda en 0 → su
+    // biomecánica se bloqueará aguas abajo en vez de emitir un 0 (invariante #2).
+    if (det.keypoints.length > 0) {
+      track.poseFrameCount = (track.poseFrameCount ?? 0) + 1;
+    }
   }
 
   /**
