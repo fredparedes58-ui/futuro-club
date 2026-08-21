@@ -4,11 +4,17 @@
  *
  * Envía a cada director (plan pro/club) un email con:
  *   - Los jugadores en riesgo alto/crítico de abandono ESTE MES
- *   - El argumento de ROI en euros ("retén 2 y VITAS se paga solo")
  *
- * Determinista, sin IA. La lógica de scoring/ROI refleja
- * src/lib/retention/* (mismos pesos) para que el email coincida con el dashboard.
+ * Determinista, sin IA. La lógica de scoring refleja src/lib/retention/*
+ * (mismos pesos) para que el email coincida con el dashboard.
  * Fallback seguro: si no hay Supabase/Resend, no-op sin romper.
+ *
+ * G5 (honestidad de producto): el riesgo es HOY un mock determinista sobre el id
+ * del jugador (aún sin señales reales de asistencia/implicación/carga). Por eso:
+ *   - se retiró el argumento de ROI en euros (prohibido mostrar € a un club a
+ *     partir de datos sintéticos — CLAUDE.md invariantes #1/#2),
+ *   - el email declara explícitamente que las cifras son una previsualización.
+ * Igual que el dashboard, que muestra el DemoDataBanner.
  */
 
 import { withHandler } from "../_lib/withHandler";
@@ -46,21 +52,6 @@ function riskFor(playerId: string): { score: number; level: string } {
   return { score, level };
 }
 
-// ── ROI (mirror de src/lib/retention/roi.ts) ────────────────────────────────
-const ANNUAL_FEE = 600;
-const VITAS_COST = 948;
-function eur(n: number): string {
-  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Math.round(n));
-}
-function roiNarrative(atRisk: number): string {
-  const retained = atRisk > 0 ? Math.max(1, Math.round(atRisk * 0.4)) : 0;
-  const revenue = retained * ANNUAL_FEE;
-  const payback = Math.max(1, Math.ceil(VITAS_COST / ANNUAL_FEE));
-  return revenue >= VITAS_COST
-    ? `~70% de los niños abandonan antes de los 13. Reteniendo ${retained} este año recuperas ${eur(revenue)} — VITAS cuesta ${eur(VITAS_COST)}/año.`
-    : `~70% de los niños abandonan antes de los 13. Basta retener ${payback} jugador${payback === 1 ? "" : "es"}/año (${eur(payback * ANNUAL_FEE)}) para cubrir el coste de VITAS (${eur(VITAS_COST)}/año).`;
-}
-
 interface PlayerRow { id?: string; user_id: string; data?: { name?: string } }
 interface SubRow { user_id: string; plan: string; status?: string }
 
@@ -83,8 +74,8 @@ function digestHtml(players: Array<{ name: string; score: number; level: string 
       <div style="font-size:13px;opacity:.9;">jugador${atRisk === 1 ? "" : "es"} en riesgo este mes</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">${rows}</table>
-    <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;padding:16px;margin-top:20px;">
-      <p style="margin:0;color:#065f46;font-size:13px;line-height:1.5;">💶 ${roiNarrative(atRisk)}</p>
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px;margin-top:20px;">
+      <p style="margin:0;color:#92400e;font-size:13px;line-height:1.5;">🧪 <strong>Datos de ejemplo.</strong> El riesgo mostrado es una previsualización del modelo, aún sin señales reales por jugador (asistencia, implicación o carga). No representa datos medidos.</p>
     </div>
     <p style="text-align:center;margin:24px 0 0;">
       <a href="https://futuro-club.vercel.app/director" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">Ver Radar completo →</a>
