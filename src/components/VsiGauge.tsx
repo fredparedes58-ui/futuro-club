@@ -10,10 +10,12 @@
  */
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import TermTooltip from "@/components/shared/TermTooltip";
 
 interface VsiGaugeProps {
-  value: number;
+  /** VSI de ficha. null ⇒ "sin evaluar": ni número ni gauge a 0. */
+  value: number | null;
   size?: "sm" | "md" | "lg" | "xl";
   label?: string;
   showTier?: boolean;
@@ -31,27 +33,32 @@ function getTier(v: number) {
 }
 
 const VsiGauge = ({ value, size = "md", label = "VSI", showTier = false }: VsiGaugeProps) => {
+  const { t } = useTranslation();
+  // null ⇒ jugador sin evaluar: sin tier, sin progreso, sin número.
+  const isUnrated = value === null;
+  const v = value ?? 0;
   const sizes = {
-    sm: { w: 56,  stroke: 4, text: "text-base", labelText: "text-[8px]" },
-    md: { w: 88,  stroke: 6, text: "text-2xl",  labelText: "text-[9px]" },
-    lg: { w: 128, stroke: 8, text: "text-4xl",  labelText: "text-[10px]" },
-    xl: { w: 180, stroke: 10, text: "text-6xl", labelText: "text-xs" },
+    sm: { w: 56,  stroke: 4, text: "text-base", labelText: "text-[8px]", unrated: "text-[7px]" },
+    md: { w: 88,  stroke: 6, text: "text-2xl",  labelText: "text-[9px]", unrated: "text-[9px]" },
+    lg: { w: 128, stroke: 8, text: "text-4xl",  labelText: "text-[10px]", unrated: "text-xs" },
+    xl: { w: 180, stroke: 10, text: "text-6xl", labelText: "text-xs", unrated: "text-sm" },
   };
   const s = sizes[size];
   const r = (s.w - s.stroke) / 2;
   const circ = 2 * Math.PI * r;
-  const tier = getTier(value);
-  const gradientId = `vsi-gradient-${size}-${value}`;
+  const tier = getTier(v);
+  const gradientId = `vsi-gradient-${size}-${v}`;
 
   // Animación del valor numérico
   const count = useMotionValue(0);
-  const displayed = useTransform(count, (v) => Math.round(v));
+  const displayed = useTransform(count, (val) => Math.round(val));
   const [n, setN] = useState(0);
   useEffect(() => {
-    const ctrl = animate(count, value, { duration: 1.2, ease: [0.16, 1, 0.3, 1] });
+    if (isUnrated) return; // sin número que animar
+    const ctrl = animate(count, v, { duration: 1.2, ease: [0.16, 1, 0.3, 1] });
     const unsub = displayed.on("change", setN);
     return () => { ctrl.stop(); unsub(); };
-  }, [value, count, displayed]);
+  }, [v, isUnrated, count, displayed]);
 
   // Ticks cada 10 unidades · 11 ticks total (0..100)
   const ticks = Array.from({ length: 11 }, (_, i) => i * 10);
@@ -99,39 +106,50 @@ const VsiGauge = ({ value, size = "md", label = "VSI", showTier = false }: VsiGa
           );
         })}
 
-        {/* Progress arc · animado */}
-        <motion.circle
-          cx={s.w / 2}
-          cy={s.w / 2}
-          r={r}
-          fill="none"
-          stroke={`url(#${gradientId})`}
-          strokeWidth={s.stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          transform={`rotate(-90 ${s.w / 2} ${s.w / 2})`}
-          initial={{ strokeDashoffset: circ }}
-          animate={{ strokeDashoffset: circ - (value / 100) * circ }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
-          style={{ filter: `drop-shadow(0 0 8px ${tier.glow})` }}
-        />
+        {/* Progress arc · animado (vacío cuando no hay evaluación) */}
+        {!isUnrated && (
+          <motion.circle
+            cx={s.w / 2}
+            cy={s.w / 2}
+            r={r}
+            fill="none"
+            stroke={`url(#${gradientId})`}
+            strokeWidth={s.stroke}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            transform={`rotate(-90 ${s.w / 2} ${s.w / 2})`}
+            initial={{ strokeDashoffset: circ }}
+            animate={{ strokeDashoffset: circ - (v / 100) * circ }}
+            transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+            style={{ filter: `drop-shadow(0 0 8px ${tier.glow})` }}
+          />
+        )}
       </svg>
 
       {/* Texto centrado */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={`font-display font-black ${s.text} text-foreground tabular-nums leading-none tracking-tight`}>
-          {n}
-        </span>
-        {size !== "sm" && (
-          <span className={`${s.labelText} uppercase tracking-[0.18em] text-muted-foreground font-bold mt-0.5`}>
-            {/* Glosario inline: si el label es el término VSI, hover/focus explica qué es */}
-            {label === "VSI" ? <TermTooltip termKey="vsi">{label}</TermTooltip> : label}
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center">
+        {isUnrated ? (
+          // Sin evaluar: nunca un 0 ni un guion — el hueco se nombra.
+          <span className={`font-display font-semibold ${s.unrated} uppercase tracking-[0.12em] text-muted-foreground leading-tight`}>
+            {t("common.notEvaluated")}
           </span>
-        )}
-        {showTier && size === "xl" && (
-          <span className="mt-1 text-[10px] uppercase tracking-[0.18em] font-bold" style={{ color: tier.colorFrom }}>
-            {tier.label}
-          </span>
+        ) : (
+          <>
+            <span className={`font-display font-black ${s.text} text-foreground tabular-nums leading-none tracking-tight`}>
+              {n}
+            </span>
+            {size !== "sm" && (
+              <span className={`${s.labelText} uppercase tracking-[0.18em] text-muted-foreground font-bold mt-0.5`}>
+                {/* Glosario inline: si el label es el término VSI, hover/focus explica qué es */}
+                {label === "VSI" ? <TermTooltip termKey="vsi">{label}</TermTooltip> : label}
+              </span>
+            )}
+            {showTier && size === "xl" && (
+              <span className="mt-1 text-[10px] uppercase tracking-[0.18em] font-bold" style={{ color: tier.colorFrom }}>
+                {tier.label}
+              </span>
+            )}
+          </>
         )}
       </div>
     </div>

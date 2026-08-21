@@ -16,7 +16,7 @@ import { calculateFichaVsi } from "../../src/services/real/metricsService";
 
 export const config = { runtime: "edge" };
 
-// VSI de ficha: pesos + fórmula en fuente ÚNICA src/lib/scoring/fichaVsi.ts (invariante #7).
+// VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
 
 // ── Age Group definitions ────────────────────────────────────────────────
 const AGE_GROUPS: Record<string, [number, number]> = {
@@ -50,14 +50,14 @@ type PlayerRow = {
   age: number;
   position: string;
   positionShort: string;
-  vsi: number;
+  vsi: number | null; // null ⇒ "sin evaluar" (jugador sin evaluación del coach)
   phvCategory: string;
   phvOffset: number;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
-  percentile: number;
-  percentileInAgeGroup: number;
+  percentile: number | null;         // null si sin evaluar
+  percentileInAgeGroup: number | null; // null si sin evaluar
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
@@ -140,12 +140,13 @@ export default withHandler(
           name: p.name,
           age: p.age,
           position: p.position,
-          vsi: Number(p.vsi),
+          vsi: p.vsi == null ? null : Number(p.vsi), // no coaccionar null→0
           phvCategory: p.phv_category === "ontme" ? "on-time" : p.phv_category,
           competitiveLevel: p.competitive_level,
           ageGroup: p.age_group,
-          percentile: Math.round(Number(p.percentile)),
-          percentileInAgeGroup: Math.round(Number(p.percentile_in_age_group)),
+          percentile: p.percentile == null ? null : Math.round(Number(p.percentile)),
+          percentileInAgeGroup:
+            p.percentile_in_age_group == null ? null : Math.round(Number(p.percentile_in_age_group)),
           updatedAt: p.updated_at,
           ...((p.data || {}) as Record<string, unknown>),
         }));
@@ -196,12 +197,19 @@ export default withHandler(
       // First pass: extract all players
       allPlayers = allRows.map((row) => {
         const d = row.data as Record<string, unknown>;
+        const hasMetrics = d.metrics != null && typeof d.metrics === "object";
         const metrics = (d.metrics ?? {}) as Record<string, number>;
-        const vsi = typeof d.vsi === "number" ? d.vsi : calculateFichaVsi(metrics);
+        // VSI de ficha honesto: si el blob trae un número, úsalo; si no, solo se
+        // calcula cuando hay métricas (el coach evaluó). Sin métricas ⇒ null
+        // ("sin evaluar"), nunca un número fabricado (invariante #2).
+        const vsi: number | null =
+          typeof d.vsi === "number" ? d.vsi : hasMetrics ? calculateFichaVsi(metrics) : null;
         const age = (d.age as number) ?? 15;
-        const vsiHistory = Array.isArray(d.vsiHistory) ? (d.vsiHistory as number[]) : [vsi];
+        const vsiHistory = Array.isArray(d.vsiHistory)
+          ? (d.vsiHistory as number[])
+          : vsi !== null ? [vsi] : [];
         const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
-        const delta = vsi - prevVSI;
+        const delta = vsi !== null && prevVSI !== null ? vsi - prevVSI : 0;
 
         return {
           id: row.id,
@@ -233,14 +241,24 @@ export default withHandler(
         };
       });
 
-      // Second pass: calculate percentiles against full unfiltered dataset
-      const allVSIsForCache = allPlayers.map((p) => p.vsi);
+      // Second pass: calculate percentiles against full unfiltered dataset.
+      // Los jugadores SIN evaluar (vsi null) se excluyen del cálculo y quedan
+      // con percentil null: un hueco no compite ni cuenta como 0.
+      const allVSIsForCache = allPlayers
+        .map((p) => p.vsi)
+        .filter((v): v is number => v !== null);
       const vsiByAgeGroupForCache: Record<string, number[]> = {};
       for (const p of allPlayers) {
+        if (p.vsi === null) continue;
         if (!vsiByAgeGroupForCache[p.ageGroup]) vsiByAgeGroupForCache[p.ageGroup] = [];
         vsiByAgeGroupForCache[p.ageGroup].push(p.vsi);
       }
       for (const p of allPlayers) {
+        if (p.vsi === null) {
+          p.percentile = null;
+          p.percentileInAgeGroup = null;
+          continue;
+        }
         p.percentile = percentileRank(p.vsi, allVSIsForCache);
         p.percentileInAgeGroup = percentileRank(
           p.vsi,
@@ -251,9 +269,14 @@ export default withHandler(
       rankingsCache.set(cacheKey, { data: allPlayers, timestamp: Date.now() });
     }
 
-    // Build vsiByAgeGroup from current allPlayers (cached or fresh) for stats
+    // Build vsiByAgeGroup from current allPlayers (cached or fresh) for stats.
+    // avgVsi/min/max solo sobre evaluados (vsi null excluido); el conteo del
+    // grupo sí cuenta a todos (un jugador sin evaluar sigue siendo del grupo).
     const vsiByAgeGroup: Record<string, number[]> = {};
+    const countByAgeGroup: Record<string, number> = {};
     for (const p of allPlayers) {
+      countByAgeGroup[p.ageGroup] = (countByAgeGroup[p.ageGroup] ?? 0) + 1;
+      if (p.vsi === null) continue;
       if (!vsiByAgeGroup[p.ageGroup]) vsiByAgeGroup[p.ageGroup] = [];
       vsiByAgeGroup[p.ageGroup].push(p.vsi);
     }
@@ -279,40 +302,58 @@ export default withHandler(
       );
     }
 
-    // Sort
+    // Sort. Los valores null (sin evaluar) van SIEMPRE al final, sin importar
+    // la dirección — un hueco no se ordena como 0.
+    const nullLast = (
+      av: number | null,
+      bv: number | null,
+      cmp: (x: number, y: number) => number,
+    ): number | null => {
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return sortDir === "asc" ? cmp(av, bv) : -cmp(av, bv);
+    };
+
     filtered.sort((a, b) => {
-      let diff: number;
       switch (sortBy) {
-        case "vsi":
-          diff = a.vsi - b.vsi;
-          break;
+        case "vsi": {
+          const r = nullLast(a.vsi, b.vsi, (x, y) => x - y);
+          return r ?? 0;
+        }
+        case "percentile": {
+          const r = nullLast(a.percentileInAgeGroup, b.percentileInAgeGroup, (x, y) => x - y);
+          return r ?? 0;
+        }
         case "age":
-          diff = a.age - b.age;
-          break;
-        case "name":
-          diff = a.name.localeCompare(b.name);
-          break;
-        case "percentile":
-          diff = a.percentileInAgeGroup - b.percentileInAgeGroup;
-          break;
-        default:
-          diff = a.vsi - b.vsi;
+          return sortDir === "asc" ? a.age - b.age : -(a.age - b.age);
+        case "name": {
+          const diff = a.name.localeCompare(b.name);
+          return sortDir === "asc" ? diff : -diff;
+        }
+        default: {
+          const r = nullLast(a.vsi, b.vsi, (x, y) => x - y);
+          return r ?? 0;
+        }
       }
-      return sortDir === "asc" ? diff : -diff;
     });
 
     const total = filtered.length;
     const paginated = filtered.slice(offset, offset + limit);
 
-    // Age group summary stats
-    const ageGroupStats: Record<string, { count: number; avgVsi: number; minVsi: number; maxVsi: number }> = {};
-    for (const [group, vsis] of Object.entries(vsiByAgeGroup)) {
-      if (vsis.length === 0) continue;
+    // Age group summary stats. count = todos los jugadores del grupo; avg/min/max
+    // solo sobre evaluados (null si el grupo no tiene ninguno evaluado todavía).
+    const ageGroupStats: Record<
+      string,
+      { count: number; avgVsi: number | null; minVsi: number | null; maxVsi: number | null }
+    > = {};
+    for (const [group, count] of Object.entries(countByAgeGroup)) {
+      const vsis = vsiByAgeGroup[group] ?? [];
       ageGroupStats[group] = {
-        count: vsis.length,
-        avgVsi: Math.round((vsis.reduce((a, b) => a + b, 0) / vsis.length) * 10) / 10,
-        minVsi: vsis.length > 0 ? Math.min(...vsis) : 0,
-        maxVsi: vsis.length > 0 ? Math.max(...vsis) : 0,
+        count,
+        avgVsi: vsis.length > 0 ? Math.round((vsis.reduce((a, b) => a + b, 0) / vsis.length) * 10) / 10 : null,
+        minVsi: vsis.length > 0 ? Math.min(...vsis) : null,
+        maxVsi: vsis.length > 0 ? Math.max(...vsis) : null,
       };
     }
 
@@ -322,7 +363,7 @@ export default withHandler(
       limit,
       offset,
       totalUnfiltered: allPlayers.length,
-      ageGroups: Object.keys(vsiByAgeGroup),
+      ageGroups: Object.keys(countByAgeGroup),
       ageGroupStats,
       competitiveLevels: [...new Set(allPlayers.map((p) => p.competitiveLevel))],
     });
@@ -331,7 +372,7 @@ export default withHandler(
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
-// VSI de ficha: calculateFichaVsi en src/lib/scoring/fichaVsi.ts (fuente única · invariante #7).
+// VSI de ficha: calculateFichaVsi en src/services/real/metricsService.ts (fuente única · invariante #7).
 
 function mapPhv(raw: string): string {
   if (raw === "ontme") return "on-time";

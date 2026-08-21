@@ -52,6 +52,12 @@ export default function PlayerHubPrint() {
   if (!player) {
     return <div className="p-8 text-center">{t("playerHubPrint.playerNotFound")}</div>;
   }
+  // Jugador sin evaluar (sin las 6 barras del entrenador): no hay VSI de ficha,
+  // radar, tier ni características que imprimir. Se nombra el hueco en vez de
+  // fabricar un informe con ceros / un tier desde vsi null (invariante #2).
+  if (!player.metrics) {
+    return <div className="p-8 text-center text-muted-foreground">{t("common.notEvaluated")}</div>;
+  }
 
   // Maduración desde el motor canónico (fuente única · #22). Antes el PDF leía
   // player.phvAge (campo inexistente → siempre "No disponible") y player.phvCategory

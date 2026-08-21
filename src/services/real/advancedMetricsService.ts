@@ -926,7 +926,8 @@ export interface AdvancedPlayerMetrics {
   rae:              RAEResult | null;
   ubi:              UBIResult | null;
   truthFilter:      TruthFilterResult | null;
-  dominantFeatures: DominantFeaturesResult;
+  /** null si el jugador no tiene métricas del entrenador (sin evaluar) */
+  dominantFeatures: DominantFeaturesResult | null;
   vaep:             VAEPResult;
   tracking:         TrackingMetricsResult;
   biomechanics:     BiomechanicsResult;
@@ -963,17 +964,26 @@ export function calculateAdvancedMetrics(
 
   if (phvValidation.isComplete) {
     ubi = UBIService.calculate(rae, player.phvOffset!, player.phvCategory!);
-    truthFilter = TruthFilterService.apply(
-      player.vsi,
-      player.phvOffset!,
-      player.phvCategory!,
-      rae
-    );
-    adjustedVSI = truthFilter.adjustedVSI;
+    // TruthFilter ajusta el VSI de ficha por maduración; sin VSI (jugador sin
+    // evaluar, vsi null) no hay base que ajustar: no se fabrica un adjustedVSI
+    // desde null (Math.round(null+delta)→delta sería un 0 coaccionado; invariante #2).
+    if (player.vsi !== null) {
+      truthFilter = TruthFilterService.apply(
+        player.vsi,
+        player.phvOffset!,
+        player.phvCategory!,
+        rae
+      );
+      adjustedVSI = truthFilter.adjustedVSI;
+    }
   }
 
-  // Dominant Features (funciona con datos existentes, independiente de PHV)
-  const dominantFeatures = DominantFeaturesService.calculate(player.metrics);
+  // Dominant Features (funciona con datos existentes, independiente de PHV).
+  // Sin métricas del entrenador (jugador no evaluado) ⇒ null: no se infieren
+  // características dominantes de la nada (invariante #2), y evita Object.keys(undefined).
+  const dominantFeatures = player.metrics
+    ? DominantFeaturesService.calculate(player.metrics)
+    : null;
 
   // VAEP stub
   const vaep = options?.vaepInput

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
+import type { PlayerMetrics } from "@/services/real/metricsService";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 
 interface VitasCardProps {
@@ -50,7 +51,7 @@ const METRIC_LABEL_KEYS: Record<string, string> = {
 
 function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
   const { t } = useTranslation();
-  const keys = ["speed", "shooting", "vision", "technique", "defending", "stamina"];
+  const keys: (keyof PlayerMetrics)[] = ["speed", "shooting", "vision", "technique", "defending", "stamina"];
   const cx = 80, cy = 80, r = 60;
   const angles = keys.map((_, i) => (i * Math.PI * 2) / keys.length - Math.PI / 2);
 
@@ -63,7 +64,7 @@ function RadarHex({ metrics }: { metrics: Player["metrics"] }) {
     angles.map(a => `${cx + r * scale * Math.cos(a)},${cy + r * scale * Math.sin(a)}`).join(" ");
 
   const dataPoints = keys.map((k, i) =>
-    toPoint(angles[i], (metrics as Record<string, number>)[k] ?? 0)
+    toPoint(angles[i], metrics?.[k] ?? 0)
   );
   const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ") + " Z";
 
@@ -108,10 +109,12 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
   const cloneClub = bestMatch?.player.club ?? null;
   const clonePos = bestMatch?.player.position ?? null;
 
-  const topMetrics = Object.entries(player.metrics)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([k, v]) => ({ label: METRIC_LABEL_KEYS[k] ? t(METRIC_LABEL_KEYS[k]) : k, value: v }));
+  const topMetrics = player.metrics
+    ? Object.entries(player.metrics)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([k, v]) => ({ label: METRIC_LABEL_KEYS[k] ? t(METRIC_LABEL_KEYS[k]) : k, value: v }))
+    : [];
 
   const handleExport = async () => {
     if (!cardRef.current) return;
@@ -136,7 +139,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
     }
   };
 
-  const shareText = `⚡ ${player.name} | VSI ${player.vsi} | PHV ${phvLabel}${cloneName ? t("vitasCard.playsLike", { name: cloneName, score: cloneScore?.toFixed(0) }) : ""}${t("vitasCard.discoverWithVitas")}`;
+  const shareText = `⚡ ${player.name} | VSI ${player.vsi ?? "—"} | PHV ${phvLabel}${cloneName ? t("vitasCard.playsLike", { name: cloneName, score: cloneScore?.toFixed(0) }) : ""}${t("vitasCard.discoverWithVitas")}`;
 
   const handleShare = async () => {
     const r = await shareNative({ title: t("vitasCard.shareTitle"), text: shareText, ref: "vitas-card" });
@@ -219,10 +222,12 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             <div className="flex items-end gap-3">
               <div>
                 <p className="text-[9px] font-bold tracking-widest text-white/40 uppercase mb-0.5">VSI Score</p>
-                <div className="text-5xl font-black text-white leading-none">{player.vsi}</div>
-                <div className="mt-1.5 h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${player.vsi}%` }} />
-                </div>
+                <div className="text-5xl font-black text-white leading-none">{player.vsi ?? "—"}</div>
+                {player.vsi != null && (
+                  <div className="mt-1.5 h-1.5 w-24 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${player.vsi}%` }} />
+                  </div>
+                )}
               </div>
               {player.phvOffset !== undefined && (
                 <div className="mb-1">
@@ -261,8 +266,9 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
 
           {/* Columna derecha */}
           <div className="flex flex-col items-center gap-4">
-            {/* Radar */}
-            <RadarHex metrics={player.metrics} />
+            {/* Radar — solo si el jugador está evaluado; si no, un hexágono a 0
+                presentaría al jugador como 0 en las 6 (invariante #2). */}
+            {player.metrics && <RadarHex metrics={player.metrics} />}
 
             {/* Clon */}
             {bestMatch && cloneName && (

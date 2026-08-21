@@ -27,6 +27,9 @@ export default function TalentoOcultoAlert({ player }: Props) {
   // se mostraba; y sin gating habría marcado a cualquier pre-púber (falso positivo).
   const a = playerMaturity(player);
   if (a.timing !== "late" || (a.confidence !== "high" && a.confidence !== "moderate")) return null;
+  // Sin VSI de ficha (jugador sin evaluar) no hay base que proyectar: no se muestra
+  // un "talento oculto" con VSI actual 0 / proyección ~0 fabricados (invariante #2).
+  if (player.vsi == null) return null;
 
   const chronoAge = a.chronologicalAge != null ? Math.round(a.chronologicalAge) : player.age;
   const maturityDiff = a.maturityOffset != null ? Math.abs(a.maturityOffset).toFixed(1) : null;

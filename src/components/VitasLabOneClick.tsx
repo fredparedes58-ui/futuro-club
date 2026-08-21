@@ -215,7 +215,7 @@ export default function VitasLabOneClick({
                 >
                   <span>{p.name}</span>
                   <span className="text-[10px] text-muted-foreground">
-                    {p.position} · VSI {p.vsi}
+                    {p.position} · VSI {p.vsi ?? "—"}
                   </span>
                 </button>
               ))}

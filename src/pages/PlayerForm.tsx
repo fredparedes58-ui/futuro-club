@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { PlayerService } from "@/services/real/playerService";
 import { StorageService } from "@/services/real/storageService";
-import { MetricsService } from "@/services/real/metricsService";
+import { MetricsService, type PlayerMetrics } from "@/services/real/metricsService";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
@@ -68,7 +68,10 @@ const formSchema = z.object({
   }),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// z.infer degrada el objeto anidado `metrics` a inner-opcional por el tamaño del
+// schema (límite de profundidad de TS); el runtime de zod SÍ exige las 6. Fijamos
+// `metrics: PlayerMetrics` para que "presente ⇒ completo" llegue a los consumidores.
+type FormValues = Omit<z.infer<typeof formSchema>, "metrics"> & { metrics: PlayerMetrics };
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const POSITIONS = [
@@ -242,7 +245,7 @@ const PlayerForm = () => {
     watch,
     setValue,
     trigger,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, dirtyFields },
     reset,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -292,7 +295,7 @@ const PlayerForm = () => {
       fatherHeightCm: player.fatherHeightCm ?? 0,
       competitiveLevel: player.competitiveLevel,
       minutesPlayed: player.minutesPlayed,
-      metrics: player.metrics,
+      metrics: player.metrics ?? DEFAULT_METRICS,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEditMode, navigate, reset]);
@@ -337,10 +340,20 @@ const PlayerForm = () => {
       return;
     }
 
+    // El VSI de ficha solo existe si el entrenador TOCÓ las barras. Alta o edición
+    // SIN tocar métricas ⇒ jugador "sin evaluar" (vsi null): no se fabrica un VSI
+    // desde los defaults 60/50 (calculateFichaVsi(DEFAULT_METRICS)=57.5; invariante #2).
+    // Esto alinea el alta por formulario completo con onboarding/FirstRunWizard.
+    const metricsTouched =
+      !!dirtyFields.metrics && Object.keys(dirtyFields.metrics).length > 0;
     try {
       if (isEditMode && id) {
-        // Actualizar métricas + datos básicos en localStorage
-        await PlayerService.updateMetrics(id, data.metrics);
+        // Editar otros campos (p.ej. fecha de nacimiento o alturas parentales para
+        // el PHV) de un jugador sin evaluar preserva metrics/vsi (null); solo se
+        // (re)escribe el VSI si tocó las barras.
+        if (metricsTouched) {
+          await PlayerService.updateMetrics(id, data.metrics);
+        }
         const players = PlayerService.getAll();
         const idx = players.findIndex((p) => p.id === id);
         if (idx !== -1) {
@@ -387,7 +400,8 @@ const PlayerForm = () => {
           fatherHeightCm: data.fatherHeightCm || undefined,
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
-          metrics: data.metrics,
+          // Sin tocar las barras ⇒ sin métricas ⇒ nace "sin evaluar" (vsi null).
+          metrics: metricsTouched ? data.metrics : undefined,
         };
         // Crear jugador: si Supabase está activo, guardar también en cloud
         if (user && SUPABASE_CONFIGURED) {

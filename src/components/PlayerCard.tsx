@@ -38,7 +38,7 @@ const PlayerCard = ({ player }: { player: Player }) => {
           className={`w-10 h-10 rounded-xl bg-gradient-to-br ${vsiColor} flex items-center justify-center shadow-lg`}
         >
           <span className="font-display font-black text-sm text-background">
-            {player.vsi}
+            {player.vsi ?? "—"}
           </span>
         </div>
       </div>

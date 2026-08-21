@@ -164,7 +164,7 @@ export function useUpdateMetrics() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   return useMutation({
-    mutationFn: async ({ id, metrics }: { id: string; metrics: CreatePlayerInput["metrics"] }) => {
+    mutationFn: async ({ id, metrics }: { id: string; metrics: NonNullable<CreatePlayerInput["metrics"]> }) => {
       if (user && SUPABASE_CONFIGURED) {
         return apiRequest<Player>("PATCH", { id, metrics });
       }

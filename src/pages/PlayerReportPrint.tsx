@@ -97,6 +97,12 @@ export default function PlayerReportPrint() {
 
   if (isLoading) return <div className="p-8 text-center">{t("playerReportPrint.loading")}</div>;
   if (!rawPlayer) return <div className="p-8 text-center">{t("playerReportPrint.playerNotFound")}</div>;
+  // Jugador sin evaluar (sin las 6 barras del entrenador): no hay VSI de ficha ni
+  // radar que imprimir. Se nombra el hueco en vez de fabricar un informe con ceros
+  // (invariante #2). El resto del cuerpo asume métricas presentes tras este gate.
+  if (!rawPlayer.metrics) {
+    return <div className="p-8 text-center text-muted-foreground">{t("common.notEvaluated")}</div>;
+  }
 
   const player = adaptPlayerForUI(rawPlayer);
   const vsi = MetricsService.calculateVSI(rawPlayer.metrics);
@@ -310,7 +316,7 @@ export default function PlayerReportPrint() {
       )}
 
       {/* Benchmark vs Peers */}
-      <BenchmarkSection age={rawPlayer.age} position={rawPlayer.position} metrics={rawPlayer.metrics} />
+      <BenchmarkSection age={rawPlayer.age} position={rawPlayer.position} metrics={rawPlayer.metrics as unknown as Record<string, number>} />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">

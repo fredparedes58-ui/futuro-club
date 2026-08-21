@@ -88,12 +88,15 @@ export default function BestMatchProByPosition({ player }: Props) {
         setLoading(false);
       }
     }
-    if (declared.length > 0) run();
+    // Sin las 6 barras del entrenador (jugador sin evaluar) no hay vector que
+    // casar con un pro: no se ejecuta (evita crash player.metrics.speed).
+    if (declared.length > 0 && player.metrics) run();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player.id]);
 
   if (declared.length === 0) return null;
+  if (!player.metrics) return null; // jugador sin evaluar ⇒ sin comparación con pro
   if (loading) {
     return (
       <div className="glass rounded-xl p-4 text-center text-xs text-muted-foreground">

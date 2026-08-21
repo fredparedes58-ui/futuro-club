@@ -137,11 +137,9 @@ export default function FirstRunWizard() {
         gender: form.gender || undefined, // sexo real elegido en el paso 1; nunca "M" por defecto
         competitiveLevel: "Regional",
         minutesPlayed: 0,
-        // Defaults neutros para que el coach pueda ajustar después
-        metrics: {
-          speed: 50, technique: 50, vision: 50,
-          stamina: 50, shooting: 50, defending: 50,
-        },
+        // Sin métricas: este wizard NO evalúa. El jugador nace "sin evaluar"
+        // (vsi null); el coach evaluará luego con las 6 barras de la ficha.
+        // Sembrar 50/50 fabricaría una evaluación inexistente (invariante #2).
       });
 
       setCreatedPlayerId(player.id);

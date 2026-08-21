@@ -218,7 +218,7 @@ const MasterDashboard = () => {
                 <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground">
                   {t("master.avgVsi")}
                 </p>
-                <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi}</p>
+                <p className="font-display font-bold text-3xl text-foreground">{stats.avgVsi ?? "—"}</p>
               </div>
             </motion.div>
 
@@ -364,7 +364,7 @@ const MasterDashboard = () => {
                           </div>
                           <div className="text-right">
                             <p className="font-display font-bold text-xl text-foreground">
-                              {report.vsi.toFixed(1)}
+                              {report.vsi != null ? report.vsi.toFixed(1) : "—"}
                             </p>
                             <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">
                               VSI Score
@@ -475,7 +475,7 @@ const MasterDashboard = () => {
                           {event.name}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
-                          {event.action} · VSI {event.vsi.toFixed(1)}
+                          {event.action} · VSI {event.vsi != null ? event.vsi.toFixed(1) : "—"}
                         </p>
                         <p className="text-[9px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <Clock size={9} />

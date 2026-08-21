@@ -128,7 +128,10 @@ const PlayerComparison = () => {
   const [cardPlayer, setCardPlayer] = useState<"A" | "B" | null>(null);
 
   const { data: allPlayers, isLoading } = useAllPlayers();
-  const players = allPlayers ?? [];
+  // Comparar exige jugadores EVALUADOS: sin stats/VSI reales no se compara ni se
+  // fabrica una "probabilidad de élite" a partir de null (invariante #2). Los no
+  // evaluados se excluyen del comparador → si quedan <2, cae al EmptyState.
+  const players = (allPlayers ?? []).filter((p) => p.stats != null && p.vsi != null);
 
   const safeAIdx = Math.min(playerAIndex, Math.max(0, players.length - 1));
   const safeBIdx = Math.min(playerBIndex, Math.max(0, players.length - 1));
