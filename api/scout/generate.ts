@@ -10,7 +10,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
-import { resolveMaturity, type MaturityTiming } from "../../src/lib/phv/maturity";
+import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "../../src/lib/phv/maturity";
+import { resolveChronologicalAge } from "../../src/lib/shared/age";
 
 export const config = { runtime: "edge" };
 
@@ -30,36 +31,82 @@ interface PlayerRow {
   vsi_history: number[];
   minutes_played: number;
   updated_at: string;
-  // Antropometría para gatear la maduración por el motor canónico (columnas 024).
-  height_cm?: number | null;
-  weight_kg?: number | null;
-  sitting_height?: number | null;
-  leg_length?: number | null;
-  gender?: string | null;
-  // Alturas parentales para %PAH (Khamis-Roche): viven en el blob `data`.
-  data?: { motherHeightCm?: number | null; fatherHeightCm?: number | null } | null;
+  /**
+   * Blob `data` original: fuente ÚNICA de los inputs de maduración (igual que
+   * api/rankings/_list.ts). Se lee de aquí y NO de las columnas normalizadas de
+   * la migración 024 porque `gender` tiene DEFAULT 'M' a nivel de columna: leer
+   * el sexo de la columna trataría a una jugadora (o a un sexo no registrado)
+   * como varón y rompería la abstención del invariante #5. El blob solo trae el
+   * dato si una persona lo introdujo.
+   */
+  data?: {
+    gender?: string | null;
+    birthDate?: string | null;
+    age?: number | null;
+    height?: number | null;
+    weight?: number | null;
+    sittingHeight?: number | null;
+    legLength?: number | null;
+    motherHeightCm?: number | null;
+    fatherHeightCm?: number | null;
+  } | null;
 }
 
 /**
  * Maduración canónica del jugador vía el motor gateado `resolveMaturity` — la
- * MISMA fuente que las fichas y Rankings (invariante #7, una sola implementación).
- * Devuelve el timing vs pares; "unknown" cuando el motor se abstiene: sin
- * antropometría, sexo no registrado, o lejos del PHV (p.ej. un pre-púber de 9
- * años, donde Mirwald pierde fiabilidad). Se usa para NO afirmar categoría/offset
- * PHV de un jugador sin datos válidos (invariante #2: ante dato ausente, se
- * bloquea; nunca se rellena con el valor naive persistido).
+ * MISMA fuente, con los MISMOS inputs, que las fichas y Rankings (invariante #7,
+ * una sola implementación y una sola decisión por jugador). Los inputs salen del
+ * blob `data` (no de las columnas 024): sexo solo si es "M"/"F" explícito
+ * (invariante #5) y edad DECIMAL desde birthDate cuando existe (evita que el
+ * redondeo del entero cruce el umbral de timing y contradiga a la ficha).
+ *
+ * El motor se abstiene (timing "unknown") sin antropometría, sin sexo, o lejos
+ * del PHV (p.ej. un pre-púber de 9 años, donde Mirwald pierde fiabilidad). En ese
+ * caso NO se afirma nada de maduración al LLM (invariante #2: ante dato ausente,
+ * se bloquea; nunca se rellena con el valor naive persistido).
  */
-function canonicalTiming(player: PlayerRow): MaturityTiming {
+function canonicalMaturity(player: PlayerRow): MaturityAssessment {
+  const d = player.data ?? {};
   return resolveMaturity({
-    sex: player.gender === "M" || player.gender === "F" ? player.gender : undefined,
-    ageYears: typeof player.age === "number" ? player.age : undefined,
-    heightCm: player.height_cm ?? undefined,
-    weightKg: player.weight_kg ?? undefined,
-    sittingHeightCm: player.sitting_height ?? undefined,
-    legLengthCm: player.leg_length ?? undefined,
-    motherHeightCm: player.data?.motherHeightCm ?? undefined,
-    fatherHeightCm: player.data?.fatherHeightCm ?? undefined,
-  }).timing;
+    sex: d.gender === "M" || d.gender === "F" ? d.gender : undefined,
+    ageYears: resolveChronologicalAge({ birthDate: d.birthDate, age: d.age ?? player.age }) ?? undefined,
+    heightCm: d.height ?? undefined,
+    weightKg: d.weight ?? undefined,
+    sittingHeightCm: d.sittingHeight ?? undefined,
+    legLengthCm: d.legLength ?? undefined,
+    motherHeightCm: d.motherHeightCm ?? undefined,
+    fatherHeightCm: d.fatherHeightCm ?? undefined,
+  });
+}
+
+/**
+ * Descripción de maduración para el LLM derivada del MOTOR (no de las columnas
+ * persistidas): así lo que se AFIRMA es lo mismo que gatea (cierra el hueco
+ * gate-source ≠ emit-source, invariante #7). Términos vs pares ya resueltos
+ * —"tardío" ↔ engine timing "late" (PHV después de la media), "precoz" ↔ "early"—
+ * para que el LLM no reinvierta la etiqueta. `null` cuando el motor se abstiene.
+ */
+const TIMING_ES: Record<Exclude<MaturityTiming, "unknown">, string> = {
+  early: "madurador precoz",
+  on_time: "madurador en fase",
+  late: "madurador tardío",
+};
+const STATUS_ES: Record<string, string> = {
+  pre_phv: "pre-estirón",
+  circa_phv: "en pleno estirón (ventana crítica de desarrollo)",
+  post_phv: "post-estirón",
+};
+function phvForLLM(m: MaturityAssessment): {
+  phvTiming: string;
+  phvEstado: string | null;
+  phvOffsetAnios: number | null;
+} | null {
+  if (m.timing === "unknown") return null;
+  return {
+    phvTiming: TIMING_ES[m.timing],
+    phvEstado: m.status !== "unknown" ? (STATUS_ES[m.status] ?? null) : null,
+    phvOffsetAnios: typeof m.maturityOffset === "number" ? Math.round(m.maturityOffset * 10) / 10 : null,
+  };
 }
 
 interface AnalysisRow {
@@ -108,7 +155,7 @@ function detectContext(
   player: PlayerRow,
   latestAnalysis: AnalysisRow | null,
   previousAnalysis: AnalysisRow | null,
-  phvFirm: boolean,
+  maturity: MaturityAssessment,
 ): InsightContext {
   const vsiHistory = player.vsi_history ?? [player.vsi];
   const currentVSI = player.vsi;
@@ -135,12 +182,12 @@ function detectContext(
   // Breakout: VSI up >5 or metric up >1.5 (on 0-10 scale = >15 on 0-100)
   if (vsiDelta > 5 || maxMetricDelta > 1.5) return "breakout";
 
-  // PHV Alert: critical development window. SOLO si el motor canónico afirma la
-  // maduración (phvFirm). Sin datos válidos —un pre-púber sin antropometría— no
-  // existe "ventana crítica" que anunciar sobre un dato ausente (invariante #2),
-  // y el phv_category/phv_offset persistidos serían naive.
-  const offset = player.phv_offset ?? 0;
-  if (phvFirm && player.phv_category === "early" && offset >= -1.0 && offset <= 0.5) return "phv-alert";
+  // PHV Alert: ventana crítica de desarrollo = el jugador está EN pleno estirón,
+  // según el ESTADO que calcula el motor canónico (circa_phv), no la columna
+  // phv_category persistida (naive/estancada). Un estado circa_phv solo lo produce
+  // el motor con antropometría real cerca del PHV, así que un menor sin datos —o un
+  // pre-púber— nunca dispara esta alerta sobre un hueco (invariantes #2/#7).
+  if (maturity.status === "circa_phv") return "phv-alert";
 
   // Drill record: any metric above 85
   const metrics = player.metrics ?? {};
@@ -228,10 +275,11 @@ export default withHandler(
           continue;
         }
 
-        // Maduración canónica (una sola vez por jugador): decide si se puede
-        // afirmar PHV. "unknown" ⇒ el motor se abstiene ⇒ no se manda al LLM.
-        const phvFirm = canonicalTiming(player) !== "unknown";
-        const context = detectContext(player, latestAnalysis, previousAnalysis, phvFirm);
+        // Maduración canónica (una sola vez por jugador). El motor decide qué se
+        // afirma: si se abstiene (timing "unknown") no se manda nada de PHV al LLM.
+        const maturity = canonicalMaturity(player);
+        const phv = phvForLLM(maturity);
+        const context = detectContext(player, latestAnalysis, previousAnalysis, maturity);
 
         // Query RAG for enrichment
         let ragContext = "";
@@ -339,7 +387,7 @@ REGLAS:
 - recommendedDrills: array de máximo 3 objetos {name, reason} basados en el contexto RAG
 - actionItems: array de máximo 3 acciones concretas para el entrenador
 - benchmark: una frase comparativa con percentil o referencia (ej: "Percentil 85 en velocidad para Sub-15")
-- MADURACIÓN: si phvCategory viene null/vacío, NO menciones maduración, categoría PHV ni offset (no hay dato fiable; inventarlo es un error). Si existe, terminología peer-relativa correcta y NO invertible: phvCategory "early" = PRE-PHV = madurador TARDÍO vs pares (aún no ha dado el estirón; talento a menudo infravalorado); "late" = POST-PHV = madurador PRECOZ. NUNCA describas "early" como "precoz" ni "temprano".
+- MADURACIÓN: usa ÚNICAMENTE los campos phvTiming / phvEstado / phvOffsetAnios del jugador. Si NO vienen (null/ausentes), NO menciones maduración, PHV, estirón ni offset: no hay dato fiable e inventarlo es un error. Si vienen, ya están en términos vs pares CORRECTOS —no los reinterpretes ni inviertas—: "madurador tardío" = aún no ha dado el estirón (su nivel físico llegará; talento a menudo infravalorado); "madurador precoz" = ventaja física temporal que sus pares igualarán; "madurador en fase" = a la par. phvOffsetAnios = años respecto al pico de crecimiento (negativo = antes del estirón). NUNCA describas "tardío" como "precoz" ni al revés.
 
 RESPONDE ÚNICAMENTE JSON:
 {"type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"recommendedDrills":[{"name":"string","reason":"string"}],"actionItems":["string"],"benchmark":"string"}`;
@@ -351,11 +399,11 @@ RESPONDE ÚNICAMENTE JSON:
           position: player.position,
           vsi: player.vsi,
           vsiHistory: player.vsi_history,
-          // PHV solo si el motor canónico afirma la maduración. Si se abstiene se
-          // manda null (no el valor naive persistido) para que el LLM no fabrique
-          // "categoría PHV early y offset X" sobre un jugador sin datos (inv #2).
-          phvCategory: phvFirm ? player.phv_category : null,
-          phvOffset: phvFirm ? player.phv_offset : null,
+          // Maduración = lo que AFIRMA el motor canónico (mismos datos y misma
+          // decisión que la ficha), ya traducido a términos vs pares. Si el motor
+          // se abstiene, `phv` es null y el spread no añade campos: el LLM no ve
+          // categoría ni offset persistidos que pudiera citar como hecho (inv #2/#7).
+          ...(phv ?? {}),
           metrics: player.metrics,
           minutesPlayed: player.minutes_played,
         });
