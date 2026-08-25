@@ -50,7 +50,7 @@ export default withHandler(
     optionalAuth: true,
     maxRequests: 60,
   },
-  async ({ method, query, userId }) => {
+  async ({ method, query, userId, tenantId }) => {
     if (!SHARE_SECRET) {
       return errorResponse({ code: "share_disabled", message: "Share tokens disabled — no secret configured", status: 503 });
     }
@@ -72,12 +72,19 @@ export default withHandler(
 
       const { data: a } = await supabase
         .from("analyses")
-        .select("id, user_id, player_id")
+        .select("id, user_id, tenant_id, player_id")
         .eq("id", analysisId)
         .single();
 
       if (!a) return errorResponse({ code: "not_found", message: "Análisis no existe", status: 404 });
-      if (a.user_id && a.user_id !== userId) {
+      // Propiedad por usuario O por tenant. Los análisis del pipeline de vídeo nacen
+      // con user_id=null pero con tenant_id (bunny-uploaded); un análisis SIN dueño
+      // ya NO permite a cualquier autenticado mintear un token de compartir (IDOR de
+      // PII de un menor). Fail-closed: sin propiedad demostrable ⇒ 403.
+      const owns =
+        (!!a.user_id && a.user_id === userId) ||
+        (!!a.tenant_id && !!tenantId && a.tenant_id === tenantId);
+      if (!owns) {
         return errorResponse({ code: "forbidden", message: "No es tu análisis", status: 403 });
       }
 
