@@ -86,7 +86,10 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
 }
 
 export default withHandler(
-  { schema: geminiAnalyzeSchema, requireAuth: false, maxRequests: 20 },
+  // serviceOnly: paso INTERNO del pipeline (lee PII de menores, dispara Gemini de
+  // pago, escribe biomechanics). Solo cron/orchestrator server-to-server con
+  // INTERNAL_TOKEN; nunca un caller anónimo (era abuso de coste + overwrite ajeno).
+  { schema: geminiAnalyzeSchema, serviceOnly: true, maxRequests: 20 },
   async ({ body }) => {
     const { videoId, playerId, analysisId } = body as z.infer<typeof geminiAnalyzeSchema>;
 

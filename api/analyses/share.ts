@@ -50,7 +50,7 @@ export default withHandler(
     optionalAuth: true,
     maxRequests: 60,
   },
-  async ({ method, query, userId }) => {
+  async ({ method, query, userId, tenantId }) => {
     if (!SHARE_SECRET) {
       return errorResponse({ code: "share_disabled", message: "Share tokens disabled — no secret configured", status: 503 });
     }
@@ -77,7 +77,24 @@ export default withHandler(
         .single();
 
       if (!a) return errorResponse({ code: "not_found", message: "Análisis no existe", status: 404 });
-      if (a.user_id && a.user_id !== userId) {
+      // Propiedad del análisis = propiedad del JUGADOR del análisis. El pipeline de
+      // vídeo crea el análisis con user_id=null (bunny-uploaded) PERO con player_id de
+      // un jugador real, y players.user_id SÍ se puebla — así el dueño legítimo
+      // comparte y un tercero (que no gestiona al jugador) recibe 403. Antes, un
+      // análisis con user_id null dejaba mintear token a cualquier autenticado (IDOR
+      // de PII de un menor). Fail-closed: sin propiedad demostrable ⇒ 403.
+      let owns = !!a.user_id && a.user_id === userId;
+      if (!owns && a.player_id) {
+        const { data: p } = await supabase
+          .from("players")
+          .select("user_id, tenant_id")
+          .eq("id", a.player_id)
+          .single();
+        owns =
+          (!!p?.user_id && p.user_id === userId) ||
+          (!!p?.tenant_id && !!tenantId && p.tenant_id === tenantId);
+      }
+      if (!owns) {
         return errorResponse({ code: "forbidden", message: "No es tu análisis", status: 403 });
       }
 

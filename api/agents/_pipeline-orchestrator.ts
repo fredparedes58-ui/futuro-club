@@ -175,7 +175,10 @@ async function sendCompletionEmail(
 }
 
 export default withHandler(
-  { schema: orchestratorSchema, requireAuth: false, maxRequests: 50 },
+  // serviceOnly: orquesta ~14 agentes Claude/Gemini + email a la familia. Lo
+  // disparan cron/modal-callback/generate-reports con INTERNAL_TOKEN; nunca
+  // anónimo (era abuso de coste + procesar/sobrescribir análisis de otro tenant).
+  { schema: orchestratorSchema, serviceOnly: true, maxRequests: 50 },
   async ({ body }) => {
     const { analysisId, mode = "player", teamAnalysis, locale, category } = body as z.infer<typeof orchestratorSchema>;
     const reportLocale = normalizeLocale(locale);
