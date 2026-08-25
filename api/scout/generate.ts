@@ -97,15 +97,30 @@ const STATUS_ES: Record<string, string> = {
   post_phv: "post-estirón",
 };
 function phvForLLM(m: MaturityAssessment): {
-  phvTiming: string;
-  phvEstado: string | null;
-  phvOffsetAnios: number | null;
+  phvTiming?: string;
+  phvEstado?: string;
+  phvOffsetAnios?: number;
 } | null {
-  if (m.timing === "unknown") return null;
+  // El motor separa dos cosas y aquí se respeta esa separación:
+  //  · ESTADO (pre/circa/post-estirón): DÓNDE está en SU propia curva. Se conoce
+  //    en cuanto el motor computa (%PAH o Mirwald) y es una afirmación factual
+  //    segura → se emite siempre que status !== "unknown".
+  //  · TIMING (precoz/tardío vs pares): solo se AFIRMA con timing firme (blindaje
+  //    anti-falso-positivo del motor) → phvTiming solo si timing !== "unknown".
+  // Así el detonante de phv-alert (status === "circa_phv") NUNCA queda sin sustancia
+  // (el estado acompaña), y no se afirma precoz/tardío sin confianza (inv #2/#3).
+  const timingFirm = m.timing !== "unknown";
+  const estado = m.status !== "unknown" ? STATUS_ES[m.status] : undefined;
+  if (!timingFirm && !estado) return null;
   return {
-    phvTiming: TIMING_ES[m.timing],
-    phvEstado: m.status !== "unknown" ? (STATUS_ES[m.status] ?? null) : null,
-    phvOffsetAnios: typeof m.maturityOffset === "number" ? Math.round(m.maturityOffset * 10) / 10 : null,
+    ...(timingFirm ? { phvTiming: TIMING_ES[m.timing as Exclude<MaturityTiming, "unknown">] } : {}),
+    ...(estado ? { phvEstado: estado } : {}),
+    // El offset solo con timing firme: ahí Mirwald está dentro de su ventana de
+    // validez y el número es coherente con el estado; si no, se omite (no dar un
+    // offset que el propio motor considera poco fiable).
+    ...(timingFirm && typeof m.maturityOffset === "number"
+      ? { phvOffsetAnios: Math.round(m.maturityOffset * 10) / 10 }
+      : {}),
   };
 }
 
@@ -387,7 +402,7 @@ REGLAS:
 - recommendedDrills: array de máximo 3 objetos {name, reason} basados en el contexto RAG
 - actionItems: array de máximo 3 acciones concretas para el entrenador
 - benchmark: una frase comparativa con percentil o referencia (ej: "Percentil 85 en velocidad para Sub-15")
-- MADURACIÓN: usa ÚNICAMENTE los campos phvTiming / phvEstado / phvOffsetAnios del jugador. Si NO vienen (null/ausentes), NO menciones maduración, PHV, estirón ni offset: no hay dato fiable e inventarlo es un error. Si vienen, ya están en términos vs pares CORRECTOS —no los reinterpretes ni inviertas—: "madurador tardío" = aún no ha dado el estirón (su nivel físico llegará; talento a menudo infravalorado); "madurador precoz" = ventaja física temporal que sus pares igualarán; "madurador en fase" = a la par. phvOffsetAnios = años respecto al pico de crecimiento (negativo = antes del estirón). NUNCA describas "tardío" como "precoz" ni al revés.
+- MADURACIÓN: usa ÚNICAMENTE los campos phvTiming / phvEstado / phvOffsetAnios del jugador si vienen. Si NINGUNO viene, NO menciones maduración, PHV, estirón ni offset: no hay dato fiable e inventarlo es un error. phvEstado (p.ej. "en pleno estirón (ventana crítica de desarrollo)") describe DÓNDE está en SU propia curva y puedes mencionarlo cuando venga. phvTiming es la comparación vs pares y solo existe cuando es fiable: úsalo TAL CUAL, sin invertirlo — "madurador tardío" = su estirón llega más tarde que la media (nivel físico aún por llegar; talento a menudo infravalorado), "madurador precoz" = estirón antes que la media (ventaja física temporal que sus pares igualarán), "madurador en fase" = a la par. Si viene phvEstado pero NO phvTiming, describe el estado SIN afirmar precoz/tardío. phvOffsetAnios = años respecto al pico de crecimiento (negativo = antes del estirón).
 
 RESPONDE ÚNICAMENTE JSON:
 {"type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"recommendedDrills":[{"name":"string","reason":"string"}],"actionItems":["string"],"benchmark":"string"}`;
