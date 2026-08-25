@@ -30,8 +30,13 @@ const CreateInquirySchema = z.object({
 const uuid = (): string => crypto.randomUUID();
 
 export default withHandler(
-  { method: "POST", schema: CreateInquirySchema, requireAuth: true, maxRequests: 60 },
+  { method: "POST", schema: CreateInquirySchema, optionalAuth: true, maxRequests: 60 },
   async ({ body, userId, tenantId }) => {
+    // En PRODUCCIÓN (Supabase configurado) exige auth; en modo demo/offline sin
+    // Supabase degrada al fallback client_only sin romper (invariante CLAUDE.md).
+    if (SUPABASE_URL && SUPABASE_KEY && !userId) {
+      return errorResponse("Unauthorized", 401);
+    }
     const input = body as z.infer<typeof CreateInquirySchema>;
 
     const row = {

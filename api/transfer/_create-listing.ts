@@ -39,8 +39,14 @@ const CreateListingSchema = z.object({
 const uuid = (): string => crypto.randomUUID();
 
 export default withHandler(
-  { method: "POST", schema: CreateListingSchema, requireAuth: true, maxRequests: 30 },
+  { method: "POST", schema: CreateListingSchema, optionalAuth: true, maxRequests: 30 },
   async ({ body, userId, tenantId }) => {
+    // En PRODUCCIÓN (Supabase configurado) exige auth; en modo demo/offline sin
+    // Supabase degrada al fallback client_only sin romper (invariante de fallback,
+    // CLAUDE.md). Nunca se persiste anónimo en la BD real.
+    if (SUPABASE_URL && SUPABASE_KEY && !userId) {
+      return errorResponse("Unauthorized", 401);
+    }
     const input = body as z.infer<typeof CreateListingSchema>;
     const expiresInDays = input.expiresInDays ?? DEFAULTS.listingTtlDays;
     const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
