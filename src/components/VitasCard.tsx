@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
 import type { PlayerMetrics } from "@/services/real/metricsService";
+import { playerMaturity, maturityTimingKey, maturityTone, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 
 interface VitasCardProps {
@@ -22,22 +23,15 @@ interface VitasCardProps {
   onClose?:  () => void;
 }
 
-// OJO: el enum phvCategory está INVERTIDO respecto al lenguaje de pares:
-// "early" = pre-PHV = madurador TARDÍO; "late" = post-PHV = PRECOZ
-// (ver src/lib/phv/maturation.ts y PlayerComparison.tsx). Por eso "early"
-// mapea a la etiqueta phvLate (TARDÍO) y "late" a phvEarly (PRECOZ).
-const PHV_LABEL_KEYS: Record<string, string> = {
-  early:  "vitasCard.phvLate",   // pre-PHV → madurador TARDÍO
-  late:   "vitasCard.phvEarly",  // post-PHV → madurador PRECOZ
-  ontme:  "vitasCard.phvNormal",
-  ontime: "vitasCard.phvNormal",
-};
-
-const PHV_COLORS: Record<string, string> = {
-  early:  "#3B82F6",  // TARDÍO
-  late:   "#F59E0B",  // PRECOZ
-  ontme:  "#22C55E",
-  ontime: "#22C55E",
+// La maduración se toma SIEMPRE del motor gateado (playerMaturity, fuente única):
+// sin datos suficientes ⇒ timing "unknown" y NO se afirma "precoz/tardío". Antes se
+// leía el phvCategory crudo, con mapeos CONTRADICTORIOS entre tarjetas (esta decía
+// early=tardío; ShareablePlayerCard decía early=precoz) y un "A tiempo" por defecto
+// para quien no tenía datos — invariantes #2 (no fabricar) y #7 (una fuente).
+const MATURITY_TONE_COLOR: Record<string, string> = {
+  boost:    "#3B82F6", // madurador tardío = talento (posible) infravalorado
+  discount: "#F59E0B", // madurador precoz
+  neutral:  "#22C55E",
 };
 
 const METRIC_LABEL_KEYS: Record<string, string> = {
@@ -102,8 +96,11 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
   const cardRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
-  const phvColor = PHV_COLORS[player.phvCategory ?? "ontme"] ?? "#22C55E";
-  const phvLabel = t(PHV_LABEL_KEYS[player.phvCategory ?? "ontme"] ?? "vitasCard.phvNormal");
+  // Maduración honesta: timing gateado (unknown si faltan datos → "Timing por
+  // determinar", no un "precoz/tardío" inventado ni un "A tiempo" por defecto).
+  const maturity = playerMaturity(player as PlayerMaturityInput);
+  const phvLabel = t(maturityTimingKey(maturity.timing));
+  const phvColor = maturity.timing === "unknown" ? "#94A3B8" : MATURITY_TONE_COLOR[maturityTone(maturity)];
   const cloneScore = bestMatch?.score ?? null;
   const cloneName = bestMatch?.player.short_name ?? null;
   const cloneClub = bestMatch?.player.club ?? null;
