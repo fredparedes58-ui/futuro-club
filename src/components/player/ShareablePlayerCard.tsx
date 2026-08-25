@@ -17,6 +17,7 @@ import { Share2, X, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { Player } from "@/services/real/playerService";
+import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 import { SprintTestService } from "@/services/real/sprintTestService";
 import { shareNative, shareToWhatsApp } from "@/lib/share";
 
@@ -26,7 +27,8 @@ const TIERS = [
   { min: 50, label: "TALENTO", color: "#f59e0b" },
   { min: 0, label: "DESARROLLO", color: "#ef4444" },
 ];
-const PHV_LABEL: Record<string, string> = { early: "Madurador precoz", ontme: "A tiempo", ontime: "A tiempo", late: "Madurador tardío" };
+// (La etiqueta de maduración se toma del motor gateado playerMaturity, no de un
+//  mapa local — antes este decía early="precoz" y VitasCard early="tardío", inv #7.)
 
 export default function ShareablePlayerCard({ player }: { player: Player }) {
   const { t } = useTranslation();
@@ -39,7 +41,10 @@ export default function ShareablePlayerCard({ player }: { player: Player }) {
     ? SprintTestService.getByPlayer(player.id).reduce((a, b) => (b.velocidad_ms > a.velocidad_ms ? b : a))
     : null;
   const hasVsi = player.vsi > 0;
-  const phv = player.phvCategory ? PHV_LABEL[player.phvCategory] : null;
+  // Maduración por el motor gateado: solo se muestra con timing FIRME (datos
+  // reales). Sin datos ⇒ null → no se afirma "precoz/tardío" (invariantes #2/#7).
+  const maturity = playerMaturity(player as PlayerMaturityInput);
+  const phv = maturity.timing !== "unknown" ? t(maturityTimingKey(maturity.timing)) : null;
   const shareText = t("shareCard.text", { name: player.name });
 
   async function doShare() {
