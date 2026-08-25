@@ -19,9 +19,9 @@ const PUBLIC_URL =
 
 const CreateInquirySchema = z.object({
   listingId: z.string().uuid(),
-  buyerUserId: z.string().optional(),
+  // buyerUserId / buyerTenantId ya NO se aceptan del caller: la identidad del
+  // comprador se toma del JWT (no spoofable). buyerName es solo display.
   buyerName: z.string().min(2).max(100),
-  buyerTenantId: z.string().optional(),
   message: z.string().min(10).max(2000),
   proposedPriceEur: z.number().nullable().optional(),
   proposedType: z.enum(["sale", "loan", "trial"]).nullable().optional(),
@@ -30,16 +30,22 @@ const CreateInquirySchema = z.object({
 const uuid = (): string => crypto.randomUUID();
 
 export default withHandler(
-  { method: "POST", schema: CreateInquirySchema, requireAuth: false, maxRequests: 60 },
-  async ({ body, userId }) => {
+  { method: "POST", schema: CreateInquirySchema, optionalAuth: true, maxRequests: 60 },
+  async ({ body, userId, tenantId }) => {
+    // En PRODUCCIÓN (Supabase configurado) exige auth; en modo demo/offline sin
+    // Supabase degrada al fallback client_only sin romper (invariante CLAUDE.md).
+    if (SUPABASE_URL && SUPABASE_KEY && !userId) {
+      return errorResponse("Unauthorized", 401);
+    }
     const input = body as z.infer<typeof CreateInquirySchema>;
 
     const row = {
       id: uuid(),
       listing_id: input.listingId,
-      buyer_user_id: input.buyerUserId ?? userId ?? null,
+      // Identidad del comprador SIEMPRE desde el JWT (no spoofable por el caller).
+      buyer_user_id: userId,
       buyer_name: input.buyerName,
-      buyer_tenant_id: input.buyerTenantId ?? null,
+      buyer_tenant_id: tenantId,
       message: input.message,
       status: "new",
       proposed_price_eur: input.proposedPriceEur ?? null,
