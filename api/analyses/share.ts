@@ -72,18 +72,28 @@ export default withHandler(
 
       const { data: a } = await supabase
         .from("analyses")
-        .select("id, user_id, tenant_id, player_id")
+        .select("id, user_id, player_id")
         .eq("id", analysisId)
         .single();
 
       if (!a) return errorResponse({ code: "not_found", message: "Análisis no existe", status: 404 });
-      // Propiedad por usuario O por tenant. Los análisis del pipeline de vídeo nacen
-      // con user_id=null pero con tenant_id (bunny-uploaded); un análisis SIN dueño
-      // ya NO permite a cualquier autenticado mintear un token de compartir (IDOR de
-      // PII de un menor). Fail-closed: sin propiedad demostrable ⇒ 403.
-      const owns =
-        (!!a.user_id && a.user_id === userId) ||
-        (!!a.tenant_id && !!tenantId && a.tenant_id === tenantId);
+      // Propiedad del análisis = propiedad del JUGADOR del análisis. El pipeline de
+      // vídeo crea el análisis con user_id=null (bunny-uploaded) PERO con player_id de
+      // un jugador real, y players.user_id SÍ se puebla — así el dueño legítimo
+      // comparte y un tercero (que no gestiona al jugador) recibe 403. Antes, un
+      // análisis con user_id null dejaba mintear token a cualquier autenticado (IDOR
+      // de PII de un menor). Fail-closed: sin propiedad demostrable ⇒ 403.
+      let owns = !!a.user_id && a.user_id === userId;
+      if (!owns && a.player_id) {
+        const { data: p } = await supabase
+          .from("players")
+          .select("user_id, tenant_id")
+          .eq("id", a.player_id)
+          .single();
+        owns =
+          (!!p?.user_id && p.user_id === userId) ||
+          (!!p?.tenant_id && !!tenantId && p.tenant_id === tenantId);
+      }
       if (!owns) {
         return errorResponse({ code: "forbidden", message: "No es tu análisis", status: 403 });
       }

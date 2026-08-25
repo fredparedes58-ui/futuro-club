@@ -59,11 +59,15 @@ export default withHandler(
       );
       const rows = (await pr.json().catch(() => [])) as Array<{ user_id: string | null; tenant_id: string | null }>;
       const player = Array.isArray(rows) ? rows[0] : undefined;
-      if (!player) return errorResponse("Player not found", 404);
-      const ownsPlayer =
-        (!!player.user_id && player.user_id === userId) ||
-        (!!player.tenant_id && !!tenantId && player.tenant_id === tenantId);
-      if (!ownsPlayer) return errorResponse("Forbidden: no gestionas este jugador", 403);
+      // Solo bloquea si el jugador EXISTE en Supabase y es de OTRO. Jugadores
+      // local-only (onboarding/demo, aún no persistidos en BD) → el snapshot lo
+      // aporta el caller, no hay fila que validar → se permite (no rompe el alta).
+      if (player) {
+        const ownsPlayer =
+          (!!player.user_id && player.user_id === userId) ||
+          (!!player.tenant_id && !!tenantId && player.tenant_id === tenantId);
+        if (!ownsPlayer) return errorResponse("Forbidden: no gestionas este jugador", 403);
+      }
     }
 
     const expiresInDays = input.expiresInDays ?? DEFAULTS.listingTtlDays;

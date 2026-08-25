@@ -43,7 +43,7 @@ const schema = z.object({
 
 export default withHandler(
   { schema, requireAuth: true, maxRequests: 10 },
-  async ({ body, userId }) => {
+  async ({ body, userId, tenantId }) => {
     // ── Quota check before expensive pipeline ─────────────────────
     if (userId) {
       const usage = await checkUsageQuota(userId);
@@ -81,6 +81,28 @@ export default withHandler(
         .maybeSingle();
 
       analysisId = existing?.id;
+    }
+
+    // Ownership sobre el análisis que se va a tocar (el player_id de ESE análisis,
+    // no el playerId del body, que podría no coincidir con un providedId ajeno).
+    // Cierra el IDOR indirecto: sin esto un autenticado sobrescribía el análisis de
+    // OTRO tenant y disparaba el orchestrator (coste + email a la familia) sobre un
+    // menor ajeno. players.user_id se puebla; tenant como respaldo.
+    const ownerTargetPlayerId = analysisId
+      ? (await supabase.from("analyses").select("player_id").eq("id", analysisId).single()).data?.player_id
+      : playerId;
+    if (ownerTargetPlayerId) {
+      const { data: op } = await supabase
+        .from("players")
+        .select("user_id, tenant_id")
+        .eq("id", ownerTargetPlayerId)
+        .single();
+      const owns =
+        (!!op?.user_id && op.user_id === userId) ||
+        (!!op?.tenant_id && !!tenantId && op.tenant_id === tenantId);
+      if (!owns) {
+        return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
+      }
     }
 
     if (analysisId) {
