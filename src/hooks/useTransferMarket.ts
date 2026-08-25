@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TransferMarketService } from "@/services/real/transferMarketService";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import type {
   CreateListingInput,
   MatchScore,
@@ -61,7 +62,7 @@ export function useCreateListing() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/create-listing`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {
@@ -147,7 +148,7 @@ export function useCreateInquiry() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/create-inquiry`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {
@@ -212,7 +213,7 @@ export function useSmartMatch() {
     mutationFn: async (input) => {
       const res = await fetch(`${apiBase}/smart-match`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify(input),
       });
       if (!res.ok) {

@@ -18,9 +18,9 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
 const CreateListingSchema = z.object({
   playerId: z.string(),
-  sellerUserId: z.string().optional(),
+  // sellerUserId / tenantId ya NO se aceptan del caller: la identidad del vendedor
+  // se toma del JWT (no spoofable). sellerName es solo display.
   sellerName: z.string().optional(),
-  tenantId: z.string().optional(),
   publisherRole: z.enum(["club", "agent", "player"]).default("club"),
   listingType: z.enum(["sale", "loan", "trial"]),
   askingPriceEur: z.number().nullable().optional(),
@@ -39,8 +39,8 @@ const CreateListingSchema = z.object({
 const uuid = (): string => crypto.randomUUID();
 
 export default withHandler(
-  { method: "POST", schema: CreateListingSchema, requireAuth: false, maxRequests: 30 },
-  async ({ body, userId }) => {
+  { method: "POST", schema: CreateListingSchema, requireAuth: true, maxRequests: 30 },
+  async ({ body, userId, tenantId }) => {
     const input = body as z.infer<typeof CreateListingSchema>;
     const expiresInDays = input.expiresInDays ?? DEFAULTS.listingTtlDays;
     const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
@@ -48,9 +48,10 @@ export default withHandler(
     const row = {
       id: uuid(),
       player_id: input.playerId,
-      seller_user_id: input.sellerUserId ?? userId ?? null,
+      // Identidad del vendedor SIEMPRE desde el JWT (no spoofable por el caller).
+      seller_user_id: userId,
       seller_name: input.sellerName ?? null,
-      tenant_id: input.tenantId ?? null,
+      tenant_id: tenantId,
       publisher_role: input.publisherRole,
       listing_type: input.listingType,
       status: input.status,

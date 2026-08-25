@@ -51,7 +51,8 @@ interface DbListing {
 }
 
 export default withHandler(
-  { method: "POST", schema: SmartMatchInputSchema, requireAuth: false, maxRequests: 15 },
+  // requireAuth: corre Claude + consulta la BD; anónimo era abuso de coste/datos.
+  { method: "POST", schema: SmartMatchInputSchema, requireAuth: true, maxRequests: 15 },
   async ({ body }) => {
     const input = body as z.infer<typeof SmartMatchInputSchema>;
 
