@@ -191,18 +191,27 @@ export const WellbeingService = {
       ...snapshot,
       id: snapshot.id || genId("eng"),
     };
+    // Dedup por (playerId, date), no solo por id: una valoración es una
+    // observación de UN jugador en UNA fecha, así que re-valorar la misma fecha
+    // SOBRESCRIBE (misma unicidad que la restricción de BD engagement_player_date
+    // _unique, migración 060). Sin esto la caché offline acumularía dos filas y el
+    // heatmap promediaría la corrección con el valor viejo.
     const all = readCache<EngagementSnapshot>(STORAGE_KEY_ENGAGEMENT).filter(
-      (e) => e.id !== final.id,
+      (e) =>
+        e.id !== final.id &&
+        !(e.playerId === final.playerId && e.date === final.date),
     );
     all.unshift(final);
     writeCache(STORAGE_KEY_ENGAGEMENT, all);
 
     if (SUPABASE_CONFIGURED) {
       try {
-        // Contrato de columnas vía mapper único (engagementRow).
+        // Contrato de columnas vía mapper único (engagementRow). onConflict por
+        // (player_id, date) — el id de cliente (`eng_…`) no es UUID y el mapper lo
+        // omite, así que conflictar por id nunca casaba y cada guardado insertaba.
         await supabase
           .from("engagement_snapshots")
-          .upsert(toEngagementRow(final), { onConflict: "id" });
+          .upsert(toEngagementRow(final), { onConflict: "player_id,date" });
       } catch (err) {
         console.warn("[wellbeingService] engagement save failed:", err);
       }

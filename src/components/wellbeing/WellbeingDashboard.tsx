@@ -172,10 +172,10 @@ function PlayerDetail({
               reflejan datos reales por jugador. */}
           <EngagementLogForm playerId={playerId} />
 
-          {engagement && engagement.some((e) => !e.isMock) && (
+          {engagement && engagement.some(hasRealSignal) && (
             <EngagementTimeline
               data={engagement
-                .filter((e) => !e.isMock)
+                .filter(hasRealSignal)
                 .map(e => ({
                   date: e.date,
                   engagementScore: e.engagementScore,

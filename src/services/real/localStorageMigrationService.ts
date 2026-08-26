@@ -223,10 +223,24 @@ export const LocalStorageMigrationService = {
       }>("vitas_wellbeing_engagement");
       if (snapshots.length > 0) {
         // Contrato de columnas vía mapper único (engagementRow).
-        const rows = snapshots.map(toEngagementRow);
+        // Dedup por (player_id, date) ANTES del upsert por dos motivos:
+        //   1) onConflict "player_id,date" (unicidad de la 060): un batch con dos
+        //      filas del mismo (player_id, date) rompería el upsert ("ON CONFLICT
+        //      DO UPDATE command cannot affect row a second time").
+        //   2) una caché legacy (previa a la 060) pudo acumular duplicados.
+        // La caché guarda newest-first, así que la primera aparición es la vigente.
+        const seen = new Set<string>();
+        const rows = snapshots
+          .map(toEngagementRow)
+          .filter((r) => {
+            const key = `${r.player_id}|${r.date}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
         const { error } = await supabase
           .from("engagement_snapshots")
-          .upsert(rows, { onConflict: "id" });
+          .upsert(rows, { onConflict: "player_id,date" });
         if (error) result.errors.push(`engagement: ${error.message}`);
         else result.uploaded.engagement = rows.length;
       }
