@@ -1,4 +1,16 @@
 {
+  "analysisFocusSelector": {
+    "title": "Enfoque del análisis",
+    "optional": "(opcional)",
+    "offensive": "Ofensivas",
+    "defensive": "Defensivas",
+    "recovery": "Recuperación",
+    "duels": "Duelos",
+    "speed": "Velocidad",
+    "passing": "Pases",
+    "hintSingular": "El análisis dará prioridad a este tipo de acciones.",
+    "hintPlural": "El análisis dará prioridad a estos tipos de acciones."
+  },
   "common": {
     "back": "Volver",
     "save": "Guardar",
