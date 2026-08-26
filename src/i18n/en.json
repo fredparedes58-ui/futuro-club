@@ -22,6 +22,24 @@
     "saved": "Saved",
     "error": "Couldn't save. Try again."
   },
+  "engagementLog": {
+    "title": "Rate engagement",
+    "hint": "Coach's assessment (not a measurement). Rate what you observed in the session; it feeds the team heatmap and timeline.",
+    "dateLabel": "Date",
+    "axisPhysical": "Physical (effort, intensity)",
+    "axisSocial": "Social (interaction with the group)",
+    "axisEmotional": "Emotional (mood, involvement)",
+    "levelVeryLow": "Very low",
+    "levelLow": "Low",
+    "levelNormal": "Normal",
+    "levelHigh": "High",
+    "levelVeryHigh": "Very high",
+    "compositePreview": "Estimated engagement: {{score}}/100",
+    "rateAllHint": "Rate all three axes to save.",
+    "save": "Save",
+    "saved": "Saved",
+    "error": "Couldn't save. Try again."
+  },
   "common": {
     "back": "Back",
     "save": "Save",

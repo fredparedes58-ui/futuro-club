@@ -22,6 +22,24 @@
     "saved": "Guardado",
     "error": "No se pudo guardar. Inténtalo de nuevo."
   },
+  "engagementLog": {
+    "title": "Valorar engagement",
+    "hint": "Valoración del entrenador (no medición). Puntúa lo observado en la sesión; alimenta el heatmap y el timeline del equipo.",
+    "dateLabel": "Fecha",
+    "axisPhysical": "Físico (esfuerzo, intensidad)",
+    "axisSocial": "Social (interacción con el grupo)",
+    "axisEmotional": "Emocional (ánimo, implicación)",
+    "levelVeryLow": "Muy bajo",
+    "levelLow": "Bajo",
+    "levelNormal": "Normal",
+    "levelHigh": "Alto",
+    "levelVeryHigh": "Muy alto",
+    "compositePreview": "Engagement estimado: {{score}}/100",
+    "rateAllHint": "Valora los tres ejes para guardar.",
+    "save": "Guardar",
+    "saved": "Guardado",
+    "error": "No se pudo guardar. Inténtalo de nuevo."
+  },
   "common": {
     "back": "Volver",
     "save": "Guardar",

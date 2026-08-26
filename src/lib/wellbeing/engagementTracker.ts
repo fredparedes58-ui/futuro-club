@@ -9,6 +9,7 @@
  */
 
 import type { EngagementSnapshot, PlayerDrillMetrics } from "@/lib/shared/sessionTypes";
+import { compositeEngagement } from "@/lib/coaching/engagementCalculator";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,7 @@ export function trackEngagement(input: EngagementTrackerInput): LongitudinalEnga
     avg(intensities) * 0.6 + (100 - Math.min(100, touchVariance * 3)) * 0.4,
   ));
 
-  const engagementScore = Math.round(physical * 0.4 + social * 0.3 + emotional * 0.3);
+  const engagementScore = compositeEngagement(physical, social, emotional);
 
   // Historical comparison
   const historicalAvg = avg(historicalSnapshots.map(s => s.engagementScore));

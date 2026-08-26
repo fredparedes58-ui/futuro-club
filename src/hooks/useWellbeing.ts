@@ -70,6 +70,9 @@ export interface EngagementSnapshot {
   emotionalEngagement: number;
   engagementScore: number;
   trend?: string;
+  /** true si es dato de ejemplo (fallback), no una valoración real. El heatmap
+   *  de equipo lo excluye para no mezclar ejemplo con datos reales. */
+  isMock?: boolean;
 }
 
 export interface AttendanceRecord {
@@ -103,6 +106,18 @@ interface AttendanceInput {
   date: string;
   status: "present" | "absent" | "late" | "excused";
   source?: "video" | "manual" | "auto";
+  sessionId?: string;
+}
+
+interface EngagementInput {
+  playerId: string;
+  date: string;
+  /** 0-100, valoración por eje del entrenador. */
+  physical: number;
+  social: number;
+  emotional: number;
+  /** composite 0-100 (media ponderada de los tres ejes). */
+  composite: number;
   sessionId?: string;
 }
 
@@ -234,6 +249,32 @@ async function saveAttendanceApi(input: AttendanceInput): Promise<{ status?: str
     }
   }
   return payload;
+}
+
+/**
+ * Persiste una valoración de engagement (entrada MANUAL del entrenador).
+ *
+ * A diferencia del resto de flujos de bienestar, engagement NO tiene endpoint
+ * de servidor: se escribe directo con `WellbeingService.saveEngagement`, que usa
+ * el cliente Supabase autenticado. La propiedad del jugador la garantiza la RLS
+ * `engagement_owner_all` (owner-only) a nivel de BD; sin Supabase, cae a la caché
+ * local. NO existe pipeline de tracking que atribuya engagement a un jugador con
+ * nombre (identidad por dorsal sin construir → pistas anónimas), así que la
+ * valoración del entrenador es hoy la única fuente honesta por jugador.
+ */
+async function saveEngagementService(input: EngagementInput): Promise<{ id: string }> {
+  const { WellbeingService } = await import("@/services/real/wellbeingService");
+  const saved = await WellbeingService.saveEngagement({
+    id: "",
+    playerId: input.playerId,
+    sessionId: input.sessionId,
+    date: input.date,
+    physicalEngagement: input.physical,
+    socialEngagement: input.social,
+    emotionalEngagement: input.emotional,
+    engagementScore: input.composite,
+  });
+  return { id: saved.id };
 }
 
 // ─── AI Burnout Report (agente burnout-report) ──────────────────────────────
@@ -416,6 +457,26 @@ export function useSaveAttendance() {
 }
 
 /**
+ * Save a manual engagement rating (coach input).
+ * Invalidates engagement-history (heatmap + timeline) and dropout-risk.
+ */
+export function useSaveEngagement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: saveEngagementService,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["engagement-history", variables.playerId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["dropout-risk", variables.playerId],
+      });
+    },
+  });
+}
+
+/**
  * Generate an AI burnout/dropout report for a player (mutation).
  * Llama al agente burnout-report vía /api/wellbeing/burnout-report.
  * El agente cae a mock marcado si falta API key o falla → la UI nunca rompe.
@@ -508,6 +569,7 @@ function generateMockEngagementHistory(playerId: string): EngagementSnapshot[] {
       emotionalEngagement: Math.round(base + Math.random() * 18 - 3),
       engagementScore: Math.round(base + Math.random() * 10),
       trend: i < 3 ? "declining" : "stable",
+      isMock: true,
     });
   }
 

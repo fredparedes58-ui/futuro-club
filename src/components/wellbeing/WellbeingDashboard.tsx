@@ -33,6 +33,7 @@ import EngagementMiniCard from "@/components/coaching/EngagementMiniCard";
 import BurnoutReportView from "@/components/analysis/reports/BurnoutReportView";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import AttendanceLogForm from "./AttendanceLogForm";
+import EngagementLogForm from "./EngagementLogForm";
 
 // Edad por defecto cuando el jugador no tiene edad registrada; el agente
 // refleja la falta de datos en su confidence_score.
@@ -56,6 +57,17 @@ type HeatmapRow = {
 };
 
 /**
+ * Un snapshot cuenta como señal real solo si NO es de ejemplo y su composite > 0.
+ * Un composite 0 significa "sin medir" (misma guarda que el scorer de dropout),
+ * no "engagement cero": debe pintar celda vacía, nunca un dato real. Sin este
+ * filtro, un snapshot 0 flipaba `hasEngagementData=true` y el ejemplo se mezclaba
+ * con lo real.
+ */
+function hasRealSignal(s: EngagementSnapshot): boolean {
+  return !s.isMock && s.engagementScore > 0;
+}
+
+/**
  * Construye el heatmap engagement (jugadores × últimas 6 semanas) a partir de
  * los snapshots reales por jugador. Semanas alineadas entre jugadores (mismas
  * columnas); celdas sin datos = null (el heatmap las pinta vacías).
@@ -64,18 +76,18 @@ function buildEngagementHeatmap(
   players: Array<{ id: string; name: string }>,
   snapshotsByPlayer: Array<EngagementSnapshot[] | undefined>,
 ): HeatmapRow[] {
-  // Conjunto compartido de semanas (las 6 más recientes con algún dato).
+  // Conjunto compartido de semanas (las 6 más recientes con señal REAL).
   const allWeeks = new Set<string>();
   snapshotsByPlayer.forEach((snaps) => {
-    (snaps ?? []).forEach((s) => allWeeks.add(mondayOf(s.date)));
+    (snaps ?? []).filter(hasRealSignal).forEach((s) => allWeeks.add(mondayOf(s.date)));
   });
   const weekKeys = [...allWeeks].sort().slice(-6);
 
   return players.map((p, i) => {
     const snaps = snapshotsByPlayer[i] ?? [];
-    // Media de engagementScore por semana.
+    // Media de engagementScore por semana, solo sobre snapshots con señal real.
     const byWeek = new Map<string, { sum: number; n: number }>();
-    snaps.forEach((s) => {
+    snaps.filter(hasRealSignal).forEach((s) => {
       const wk = mondayOf(s.date);
       const acc = byWeek.get(wk) ?? { sum: 0, n: 0 };
       acc.sum += s.engagementScore;
@@ -154,15 +166,23 @@ function PlayerDetail({
             </div>
           </div>
 
-          {engagement && engagement.length > 0 && (
+          {/* Input MANUAL del entrenador: valorar el engagement observado. Al
+              guardar, la mutación invalida engagement-history → el heatmap del
+              equipo y el timeline dejan de estar vacíos (o de mostrar ejemplo) y
+              reflejan datos reales por jugador. */}
+          <EngagementLogForm playerId={playerId} />
+
+          {engagement && engagement.some((e) => !e.isMock) && (
             <EngagementTimeline
-              data={engagement.map(e => ({
-                date: e.date,
-                engagementScore: e.engagementScore,
-                physicalEngagement: e.physicalEngagement,
-                socialEngagement: e.socialEngagement,
-                emotionalEngagement: e.emotionalEngagement,
-              }))}
+              data={engagement
+                .filter((e) => !e.isMock)
+                .map(e => ({
+                  date: e.date,
+                  engagementScore: e.engagementScore,
+                  physicalEngagement: e.physicalEngagement,
+                  socialEngagement: e.socialEngagement,
+                  emotionalEngagement: e.emotionalEngagement,
+                }))}
             />
           )}
 
