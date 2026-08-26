@@ -61,7 +61,10 @@ async function fetchBehavioralProfile(playerId: string): Promise<BehavioralProfi
       "@/services/real/behavioralProfileService"
     );
     const profile = await BehavioralProfileService.getLatest(playerId);
-    if (profile) {
+    // Solo es un perfil usable si trae el objeto `scores`. Sin él, se deja caer al
+    // fallback en vez de propagar un perfil "a medias" que crashee a los
+    // consumidores (que leen `.scores.x`).
+    if (profile && profile.scores) {
       return {
         playerId: profile.playerId,
         playerName: profile.playerName ?? "Jugador",
@@ -87,7 +90,11 @@ async function fetchBehavioralProfile(playerId: string): Promise<BehavioralProfi
     if (!res.ok) return generateMockProfile(playerId);
     const data = await res.json();
     if (data.data?.status === "not_implemented") return generateMockProfile(playerId);
-    return data.data ?? data ?? null;
+    const resolved = data.data ?? data ?? null;
+    // Un perfil sin objeto `scores` no es usable: se devuelve null ("sin datos")
+    // en vez de un objeto malformado que rompería a los consumidores. Invariante:
+    // ante dato ausente se bloquea/abstiene, no se propaga algo que crashee.
+    return resolved && typeof resolved === "object" && resolved.scores ? resolved : null;
   } catch {
     return generateMockProfile(playerId);
   }
