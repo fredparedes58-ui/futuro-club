@@ -3,8 +3,10 @@
  * GET /api/wellbeing/dropout-risk?playerId=xxx
  *
  * Computa el riesgo de abandono a partir de SEÑALES REALES en Supabase
- * (attendance_records, engagement_snapshots, fatigue_sessions, behavioral_profiles)
- * → construye las entradas del scorer → scoreDropoutRisk() + generateIntervention().
+ * (attendance_records, engagement_snapshots, fatigue_sessions) → construye las
+ * entradas del scorer → scoreDropoutRisk() + generateIntervention().
+ * (behavioralScores/resilience aún no se lee → se pasa null; el scorer redistribuye
+ *  su peso. vsiStagnation/injuryRecurrence/growthSpurtStress: neutros hasta cablear.)
  *
  * HONESTIDAD (invariante #2): si el jugador NO tiene ninguna señal real, NO se
  * inventa un riesgo (un 0 vestido de "riesgo bajo" también es mentira). Se devuelve
@@ -190,7 +192,15 @@ export default withHandler(
     ]);
 
     const hasAtt = attRows.length > 0;
-    const hasEng = engRows.length > 0;
+    // Guarda de VALOR, no solo de fila: un composite 0 puede significar "no medido"
+    // (columna DEFAULT 0), NO engagement nulo. Solo cuenta como señal real el
+    // snapshot con composite > 0 → evita que un 0 por defecto se clasifique como
+    // amotivación (inherentDropoutRisk 90) y se presente como real (invariante #2).
+    // NOTA: el contrato de columnas de engagement_snapshots está por reconciliar
+    // (los writers escriben engagement_score; la migración/lectura usan composite);
+    // hasta entonces esta guarda mantiene la señal honesta (neutra si no es real).
+    const realEngRows = engRows.filter((r) => typeof r.composite === "number" && (r.composite as number) > 0);
+    const hasEng = realEngRows.length > 0;
     const hasFat = fatRows.length > 0;
 
     // Invariante #2: sin NINGUNA señal real → no se computa ni se persiste nada.
@@ -212,12 +222,12 @@ export default withHandler(
       sessionId: r.session_id ? String(r.session_id) : undefined,
     })) as AttendanceRecord[]) : []);
 
-    const eng = hasEng ? buildEngagement(engRows) : { decline: 0, summary: { current: 0, historical: 0, trend: "stable" as const, consecutiveDeclines: 0 } };
+    const eng = hasEng ? buildEngagement(realEngRows) : { decline: 0, summary: { current: 0, historical: 0, trend: "stable" as const, consecutiveDeclines: 0 } };
 
-    // classifyMotivation necesita ≥3 snapshots reales; si no, neutro (no inventa 45).
+    // classifyMotivation necesita ≥3 snapshots REALES; si no, neutro (no inventa 45/90).
     const motivation: MotivationProfile =
-      hasEng && engRows.length >= 3
-        ? classifyMotivation(playerId, engRows.map((r) => toEngagementSnapshot(playerId, r)), [])
+      hasEng && realEngRows.length >= 3
+        ? classifyMotivation(playerId, realEngRows.map((r) => toEngagementSnapshot(playerId, r)), [])
         : neutralMotivation(playerId);
 
     // Overtraining desde fatigue_index real; si no hay sesiones, neutro (no inventa 12).
