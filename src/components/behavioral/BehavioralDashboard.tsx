@@ -20,6 +20,7 @@ import ClutchHeatmap from "./ClutchHeatmap";
 import MentalFatigueCurveChart from "./MentalFatigueCurveChart";
 import BehavioralTrendChart from "./BehavioralTrendChart";
 import ScanningIntelligenceReport from "./ScanningIntelligenceReport";
+import DemoDataBanner from "@/components/DemoDataBanner";
 
 interface Props {
   playerId: string;
@@ -90,6 +91,12 @@ export default function BehavioralDashboard({ playerId }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {/* Aviso honesto (invariante #4): la línea de decisiones, la curva de fatiga
+          y la tendencia son datos de EJEMPLO (mock) hasta que exista seguimiento
+          conductual real por jugador. El mismo banner que ya usa la página
+          /behavioral autónoma; la instancia embebida en el Hub no lo tenía. */}
+      <DemoDataBanner messageKey="demoData.behavioral" />
+
       {/* Top row: Archetype + Gauge */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ArchetypeCard
