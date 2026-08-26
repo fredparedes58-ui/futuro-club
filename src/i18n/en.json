@@ -11,6 +11,17 @@
     "hintSingular": "The analysis will prioritize this type of action.",
     "hintPlural": "The analysis will prioritize these types of actions."
   },
+  "attendanceLog": {
+    "title": "Log attendance",
+    "hint": "Mark attendance for each session. Dropout risk and engagement recalculate from this real data, not example data.",
+    "dateLabel": "Date",
+    "present": "Present",
+    "late": "Late",
+    "excused": "Excused",
+    "absent": "Absent",
+    "saved": "Saved",
+    "error": "Couldn't save. Try again."
+  },
   "common": {
     "back": "Back",
     "save": "Save",
