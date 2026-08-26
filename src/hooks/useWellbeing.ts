@@ -117,7 +117,14 @@ async function fetchDropoutRisk(playerId: string): Promise<DropoutRiskAssessment
     });
     if (!res.ok) return generateMockRiskAssessment(playerId);
     const data = await res.json();
-    return data.data?.assessment ?? generateMockRiskAssessment(playerId);
+    const assessment = data.data?.assessment;
+    if (!assessment) return generateMockRiskAssessment(playerId);
+    // El endpoint /dropout-risk todavía devuelve una evaluación de EJEMPLO
+    // (source "mock": derivada del id del jugador, no de asistencia/engagement
+    // reales). Se marca isMock para que la UI muestre el DemoDataBanner — un valor
+    // por hash del id es MOCK disfrazado (rules/metricas.md). Cuando el endpoint
+    // compute desde datos reales devolverá source "computed" y el banner se irá.
+    return { ...assessment, isMock: data.data?.source !== "computed" };
   } catch {
     return generateMockRiskAssessment(playerId);
   }
@@ -199,7 +206,7 @@ async function saveQuestionnaireApi(input: QuestionnaireInput): Promise<{ status
   return data.data ?? data;
 }
 
-async function saveAttendanceApi(input: AttendanceInput): Promise<{ status: string }> {
+async function saveAttendanceApi(input: AttendanceInput): Promise<{ status?: string; source?: string }> {
   const res = await fetch(`${API_BASE}/attendance`, {
     method: "POST",
     headers: await getAuthHeaders(),
@@ -207,7 +214,26 @@ async function saveAttendanceApi(input: AttendanceInput): Promise<{ status: stri
   });
   if (!res.ok) throw new Error("Failed to save attendance");
   const data = await res.json();
-  return data.data ?? data;
+  const payload = data.data ?? data;
+  // Contrato del endpoint: sin Supabase en el servidor responde source "client_only"
+  // y NO persiste. Entonces el cliente debe guardar el registro en su caché local
+  // (y en Supabase-cliente si la hay) para no perderlo silenciosamente — así el
+  // calendario, que lee de WellbeingService, sí lo refleja.
+  if (payload?.source === "client_only") {
+    try {
+      const { WellbeingService } = await import("@/services/real/wellbeingService");
+      await WellbeingService.saveAttendance({
+        id: "",
+        playerId: input.playerId,
+        date: input.date,
+        status: input.status,
+        source: input.source === "manual" ? "manual" : "auto_detected",
+      });
+    } catch {
+      // best-effort: si tampoco hay localStorage, el error se refleja arriba.
+    }
+  }
+  return payload;
 }
 
 // ─── AI Burnout Report (agente burnout-report) ──────────────────────────────

@@ -11,6 +11,17 @@
     "hintSingular": "El análisis dará prioridad a este tipo de acciones.",
     "hintPlural": "El análisis dará prioridad a estos tipos de acciones."
   },
+  "attendanceLog": {
+    "title": "Registrar asistencia",
+    "hint": "Marca la asistencia de cada sesión. Se guarda por jugador y se refleja en el calendario de abajo.",
+    "dateLabel": "Fecha",
+    "present": "Presente",
+    "late": "Tarde",
+    "excused": "Justificada",
+    "absent": "Ausente",
+    "saved": "Guardado",
+    "error": "No se pudo guardar. Inténtalo de nuevo."
+  },
   "common": {
     "back": "Volver",
     "save": "Guardar",

@@ -32,6 +32,7 @@ import InterventionPlanView from "./InterventionPlanView";
 import EngagementMiniCard from "@/components/coaching/EngagementMiniCard";
 import BurnoutReportView from "@/components/analysis/reports/BurnoutReportView";
 import DemoDataBanner from "@/components/DemoDataBanner";
+import AttendanceLogForm from "./AttendanceLogForm";
 
 // Edad por defecto cuando el jugador no tiene edad registrada; el agente
 // refleja la falta de datos en su confidence_score.
@@ -164,6 +165,11 @@ function PlayerDetail({
               }))}
             />
           )}
+
+          {/* Input MANUAL del entrenador (docx #11): registrar asistencia real.
+              Al guardar, la mutación invalida attendance + dropout-risk → el
+              calendario y el riesgo se recalculan con datos reales, no de ejemplo. */}
+          <AttendanceLogForm playerId={playerId} />
 
           {attendance && (
             <AttendanceCalendar
