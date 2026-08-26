@@ -13,7 +13,7 @@
   },
   "attendanceLog": {
     "title": "Log attendance",
-    "hint": "Mark attendance for each session. Dropout risk and engagement recalculate from this real data, not example data.",
+    "hint": "Mark attendance for each session. It's saved per player and shown in the calendar below.",
     "dateLabel": "Date",
     "present": "Present",
     "late": "Late",

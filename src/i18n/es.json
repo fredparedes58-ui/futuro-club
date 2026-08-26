@@ -13,7 +13,7 @@
   },
   "attendanceLog": {
     "title": "Registrar asistencia",
-    "hint": "Marca la asistencia de cada sesión. El riesgo de abandono y el engagement se recalculan con estos datos reales, no de ejemplo.",
+    "hint": "Marca la asistencia de cada sesión. Se guarda por jugador y se refleja en el calendario de abajo.",
     "dateLabel": "Fecha",
     "present": "Presente",
     "late": "Tarde",
