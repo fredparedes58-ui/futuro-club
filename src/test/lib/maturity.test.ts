@@ -153,4 +153,35 @@ describe("resolveMaturity · motor canónico + anti-falso-positivo", () => {
     expect(m.status).toBe("unknown");
     expect(m.timing).toBe("unknown");
   });
+
+  it("antropometría IMPOSIBLE para la edad (9a a 160cm/60kg) → timing NO se afirma (blindaje)", () => {
+    // Sin el blindaje, el offset de Mirwald (~-2.39) se colaría en la ventana de
+    // ±2.5 y afirmaría "early"/precoz. 160cm/60kg a los 9 años es imposible
+    // (error de tecleo): se degrada el timing a unknown, factor neutro y nota.
+    const m = resolveMaturity({ sex: "M", ageYears: 9, heightCm: 160, weightKg: 60 });
+    expect(m.timing).toBe("unknown"); // nada de "precoz" sobre un dato imposible
+    expect(m.adjustmentFactor).toBe(1);
+    expect(m.confidence).toBe("low");
+    expect(m.validityNote).toBeTruthy();
+  });
+
+  it("antropometría plausible cerca de límites (14a a 150cm/40kg) → el blindaje NO sobre-abstiene", () => {
+    // Datos reales de un jugador bajo pero plausibles: el blindaje no debe
+    // interferir; el timing lo decide el motor (sea firme o unknown, coherente).
+    const m = resolveMaturity({ sex: "M", ageYears: 14, heightCm: 150, weightKg: 40 });
+    expect(m.validityNote ?? "").not.toMatch(/fuera del rango plausible/);
+    if (m.timing === "late") expect(m.adjustmentFactor).toBeGreaterThan(1);
+    else if (m.timing === "early") expect(m.adjustmentFactor).toBeLessThan(1);
+    else expect(m.adjustmentFactor).toBe(1);
+  });
+
+  it("jugador REAL muy alto (15a a 195cm/85kg, portero) NO se marca como erróneo", () => {
+    // ~99,9º percentil real, no un typo: el blindaje debe DEJARLO PASAR. Marcar
+    // el dato real de un prospecto alto sería peor que dejar pasar un typo.
+    const m = resolveMaturity({ sex: "M", ageYears: 15, heightCm: 195, weightKg: 85 });
+    expect(m.validityNote ?? "").not.toMatch(/fuera del rango plausible/);
+    // También un 14a a 189cm (caso confirmado de sobre-abstención): no se marca.
+    const m2 = resolveMaturity({ sex: "M", ageYears: 14, heightCm: 189, weightKg: 80 });
+    expect(m2.validityNote ?? "").not.toMatch(/fuera del rango plausible/);
+  });
 });
