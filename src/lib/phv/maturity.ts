@@ -90,6 +90,58 @@ export interface MaturityAssessment {
  *  |offset| ≤ 2.5 años del PHV (Mirwald pierde validez lejos del PHV). */
 const MIRWALD_VALID_WINDOW_YEARS = 2.5;
 
+/**
+ * Bandas de plausibilidad antropométrica por edad — BLINDAJE anti-garbage-in.
+ *
+ * NO son percentiles de crecimiento ni entran en ninguna fórmula: son cotas
+ * GENEROSAS (mucho más anchas que el rango real 1º–99º percentil) cuyo único fin
+ * es detectar un dato IMPOSIBLE para la edad (típicamente un error de tecleo,
+ * p.ej. un niño de 9 años registrado a 160 cm). Un valor fuera de banda hace que
+ * el offset de Mirwald sea espurio y pueda colarse en la ventana de validez
+ * afirmando un timing falso; ante eso, NO se afirma precoz/tardío.
+ *
+ * Procedencia: pendiente de validar (cotas heurísticas, sexo-agnósticas por
+ * simplicidad; se toma la envolvente ancha chicos∪chicas). Por eso, cuando este
+ * blindaje se activa, la confianza del resultado se reduce. No sustituye a una
+ * validación con tablas OMS/CDC (follow-up en docs/pendientes-metricas.md).
+ *
+ * [minCm, maxCm] y [minKg, maxKg] por edad entera 8–18 (se clampa la edad).
+ */
+const PLAUSIBLE_HEIGHT_CM_BY_AGE: Record<number, readonly [number, number]> = {
+  8: [110, 150], 9: [113, 155], 10: [118, 160], 11: [122, 166], 12: [127, 173],
+  13: [131, 180], 14: [136, 188], 15: [140, 193], 16: [144, 197], 17: [146, 199],
+  18: [147, 201],
+};
+const PLAUSIBLE_WEIGHT_KG_BY_AGE: Record<number, readonly [number, number]> = {
+  8: [16, 50], 9: [18, 58], 10: [20, 68], 11: [22, 78], 12: [25, 90],
+  13: [28, 100], 14: [32, 110], 15: [36, 118], 16: [40, 122], 17: [42, 125],
+  18: [44, 128],
+};
+
+/**
+ * ¿La altura/peso son plausibles para la edad cronológica? `true` también cuando
+ * no hay edad o no hay medida que juzgar (la ausencia se gestiona en otro sitio;
+ * aquí solo se veta la IMPLAUSIBILIDAD confirmada). Sexo-agnóstico a propósito
+ * (cotas anchas). No juzga la razonabilidad del offset — solo del dato de entrada.
+ */
+function plausibleAnthropometryForAge(
+  ageYears: number | undefined,
+  heightCm: number | null | undefined,
+  weightKg: number | null | undefined,
+): boolean {
+  if (typeof ageYears !== "number" || !Number.isFinite(ageYears)) return true;
+  const a = Math.max(8, Math.min(18, Math.round(ageYears)));
+  const h = PLAUSIBLE_HEIGHT_CM_BY_AGE[a];
+  const w = PLAUSIBLE_WEIGHT_KG_BY_AGE[a];
+  if (typeof heightCm === "number" && Number.isFinite(heightCm) && (heightCm < h[0] || heightCm > h[1])) {
+    return false;
+  }
+  if (typeof weightKg === "number" && Number.isFinite(weightKg) && (weightKg < w[0] || weightKg > w[1])) {
+    return false;
+  }
+  return true;
+}
+
 function timingFromAphv(ageAtPHV: number, sex: Sex): MaturityTiming {
   const mean = sex === "M" ? APHV_REFERENCE.M : APHV_REFERENCE.F;
   const d = ageAtPHV - mean;
@@ -218,6 +270,24 @@ export function resolveMaturity(input: MaturityInput): MaturityAssessment {
       validityNote =
         "Estimación preliminar: la edad está lejos del PHV, donde la predicción de Mirwald pierde fiabilidad. Añade altura de ambos padres para un cálculo por %talla adulta (Khamis-Roche).";
     }
+  }
+
+  // ── BLINDAJE anti-falso-positivo adicional (aditivo, misma familia que la
+  //    ventana de validez de Mirwald) ──────────────────────────────────────
+  // Una antropometría IMPOSIBLE para la edad (típico error de tecleo, p.ej. un
+  // niño de 9 años a 160 cm) produce un offset de Mirwald espurio que puede
+  // colarse en la ventana de ±2.5 y afirmar un timing falso ("precoz/tardío").
+  // Ante datos no plausibles NO se afirma el timing: se degrada a "unknown" con
+  // nota de validez y confianza baja. No altera fórmula, %PAH, offset ni estado
+  // (un dato basura sigue reflejándose en `maturityOffset`, sin presentarse como
+  // timing); solo evita la etiqueta categórica dudosa. El factor de ajuste queda
+  // neutro automáticamente (adjustmentFor("unknown") === 1).
+  if (timing !== "unknown" && !plausibleAnthropometryForAge(age, input.heightCm, input.weightKg)) {
+    timing = "unknown";
+    confidence = "low";
+    validityNote =
+      (validityNote ? validityNote + " " : "") +
+      "Antropometría fuera del rango plausible para la edad: no se afirma el timing de maduración (posible dato erróneo; revisa altura/peso).";
   }
 
   return {
