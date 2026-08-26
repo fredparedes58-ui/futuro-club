@@ -4729,7 +4729,9 @@
     "dimensionClutch": "Clutch",
     "dimensionLeadership": "Liderazgo",
     "dimensionMentalResilience": "Res. Mental",
-    "dimensionCreativity": "Creatividad"
+    "dimensionCreativity": "Creatividad",
+    "description": "Perfil mental en siete dimensiones (0–100): cuanto más lejos del centro, mayor la puntuación en esa dimensión.",
+    "scoreLabel": "Puntuación"
   },
   "behavioralTrendChart": {
     "needMoreEvaluations": "Se necesitan más evaluaciones para mostrar tendencia",
