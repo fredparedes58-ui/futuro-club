@@ -41,6 +41,37 @@ const DEFAULT_CONFIG: EngagementConfig = {
   trendWindowSize: 4,
 };
 
+// ─── Composite (definición ÚNICA) ─────────────────────────────────────────
+
+/**
+ * Pesos canónicos del composite de engagement. Una sola definición
+ * (invariante #7: un concepto se implementa una vez). La usan
+ * `calculateEngagement`, el tracker longitudinal (`engagementTracker`) y la
+ * entrada manual del entrenador (`EngagementLogForm`).
+ */
+export const ENGAGEMENT_WEIGHTS = {
+  physical: 0.40,
+  social: 0.30,
+  emotional: 0.30,
+} as const;
+
+/**
+ * Composite 0-100 a partir de las tres dimensiones (0-100). Sin defaults ni
+ * relleno: es una media ponderada pura de lo que se le pase.
+ */
+export function compositeEngagement(
+  physical: number,
+  social: number,
+  emotional: number,
+  weights: { physical: number; social: number; emotional: number } = ENGAGEMENT_WEIGHTS,
+): number {
+  return Math.round(
+    physical * weights.physical +
+    social * weights.social +
+    emotional * weights.emotional,
+  );
+}
+
 // ─── Physical Engagement ──────────────────────────────────────────────────
 
 /**
@@ -219,11 +250,11 @@ export function calculateEngagement(
   const social = calculateSocialEngagement(playerMetrics, config);
   const emotional = calculateEmotionalEngagement(playerMetrics);
 
-  const composite = Math.round(
-    physical * config.physicalWeight +
-    social * config.socialWeight +
-    emotional * config.emotionalWeight,
-  );
+  const composite = compositeEngagement(physical, social, emotional, {
+    physical: config.physicalWeight,
+    social: config.socialWeight,
+    emotional: config.emotionalWeight,
+  });
 
   // Calculate trend from previous snapshots
   const previousScores = (previousSnapshots ?? []).map((s) => s.engagementScore);

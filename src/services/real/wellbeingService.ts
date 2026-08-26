@@ -18,6 +18,7 @@
  */
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { toEngagementRow, fromEngagementRow } from "./engagementRow";
 
 const STORAGE_KEY_ATTENDANCE = "vitas_wellbeing_attendance";
 const STORAGE_KEY_ENGAGEMENT = "vitas_wellbeing_engagement";
@@ -173,16 +174,8 @@ export const WellbeingService = {
           .limit(limit);
         if (error) throw error;
         if (data) {
-          return (data as Array<Record<string, unknown>>).map((r) => ({
-            id: String(r.id),
-            playerId: String(r.player_id),
-            sessionId: r.session_id ? String(r.session_id) : undefined,
-            date: String(r.date),
-            physicalEngagement: Number(r.physical_engagement ?? 0),
-            socialEngagement: Number(r.social_engagement ?? 0),
-            emotionalEngagement: Number(r.emotional_engagement ?? 0),
-            engagementScore: Number(r.engagement_score ?? 0),
-          }));
+          // Contrato de columnas vía mapper único (engagementRow).
+          return (data as Array<Record<string, unknown>>).map(fromEngagementRow);
         }
       } catch (err) {
         console.warn("[wellbeingService] engagement read failed:", err);
@@ -206,19 +199,10 @@ export const WellbeingService = {
 
     if (SUPABASE_CONFIGURED) {
       try {
-        await supabase.from("engagement_snapshots").upsert(
-          {
-            id: final.id.length === 36 ? final.id : undefined,
-            player_id: final.playerId,
-            session_id: final.sessionId,
-            date: final.date,
-            physical_engagement: final.physicalEngagement,
-            social_engagement: final.socialEngagement,
-            emotional_engagement: final.emotionalEngagement,
-            engagement_score: final.engagementScore,
-          },
-          { onConflict: "id" },
-        );
+        // Contrato de columnas vía mapper único (engagementRow).
+        await supabase
+          .from("engagement_snapshots")
+          .upsert(toEngagementRow(final), { onConflict: "id" });
       } catch (err) {
         console.warn("[wellbeingService] engagement save failed:", err);
       }

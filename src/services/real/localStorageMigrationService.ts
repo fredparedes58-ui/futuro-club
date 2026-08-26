@@ -17,6 +17,7 @@
  */
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { toEngagementRow } from "./engagementRow";
 
 const MIGRATION_FLAG_KEY = "vitas_supabase_migration_v1";
 
@@ -221,16 +222,8 @@ export const LocalStorageMigrationService = {
         engagementScore: number;
       }>("vitas_wellbeing_engagement");
       if (snapshots.length > 0) {
-        const rows = snapshots.map((s) => ({
-          id: s.id.length === 36 ? s.id : undefined,
-          player_id: s.playerId,
-          session_id: s.sessionId,
-          date: s.date,
-          physical_engagement: s.physicalEngagement,
-          social_engagement: s.socialEngagement,
-          emotional_engagement: s.emotionalEngagement,
-          engagement_score: s.engagementScore,
-        }));
+        // Contrato de columnas vía mapper único (engagementRow).
+        const rows = snapshots.map(toEngagementRow);
         const { error } = await supabase
           .from("engagement_snapshots")
           .upsert(rows, { onConflict: "id" });
