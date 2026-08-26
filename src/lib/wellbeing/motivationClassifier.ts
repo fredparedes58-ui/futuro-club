@@ -8,7 +8,7 @@
  * Dropout risk by type: amotivation=90, extrinsic_pressure=70, etc.
  */
 
-import type { EngagementSnapshot, PlayerDrillMetrics } from "@/lib/shared/sessionTypes";
+import type { EngagementSnapshot, PlayerDrillMetrics } from "../shared/sessionTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
