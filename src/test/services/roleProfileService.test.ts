@@ -103,6 +103,9 @@ describe("roleProfileService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Object.keys(mockStorage).forEach((k) => delete mockStorage[k]);
+    // El perfil ahora se cachea en localStorage (perf: evita re-llamar al LLM).
+    // Limpiarlo entre tests para que cada uno ejercite su rama (agente/fallback).
+    localStorage.clear();
   });
 
   describe("fetchRoleProfile", () => {
@@ -169,6 +172,38 @@ describe("roleProfileService", () => {
           }),
         })
       );
+    });
+
+    it("cachea el perfil del agente: con la MISMA entrada no re-llama al LLM (perf, docx #6)", async () => {
+      setupSupabaseMock([makeVideoAnalysis()]);
+      mockBuildRoleProfile.mockResolvedValue({
+        success: true,
+        data: {
+          overallConfidence: 0.82,
+          capabilities: {
+            tactical: { current: 78, p6m: 80, p18m: 83 },
+            technical: { current: 80, p6m: 82, p18m: 85 },
+            physical: { current: 60, p6m: 63, p18m: 67 },
+          },
+          dominantIdentity: "tecnico",
+          identityDistribution: { tecnico: 0.4, ofensivo: 0.25, defensivo: 0.2, fisico: 0.1, mixto: 0.05 },
+          topPositions: [{ code: "RCM", fit: 85, confidence: 0.8 }],
+          topArchetypes: [{ code: "filtrador", fit: 88, stability: "estable" }],
+          strengths: ["Pase entre líneas"],
+          risks: ["Resistencia limitada"],
+          gaps: ["Volumen de carry"],
+        },
+      });
+
+      const first = await fetchRoleProfile("p1");
+      const second = await fetchRoleProfile("p1");
+
+      expect(first).not.toBeNull();
+      expect(second).not.toBeNull();
+      // El agente (LLM, caro) se llamó UNA sola vez; la 2ª lectura vino de la caché.
+      expect(mockBuildRoleProfile).toHaveBeenCalledTimes(1);
+      expect(second!.player_id).toBe("p1");
+      expect(second!.overall_confidence).toBe(0.82);
     });
 
     it("builds basic profile from video data when agent fails", async () => {

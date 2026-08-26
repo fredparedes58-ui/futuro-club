@@ -97,6 +97,56 @@ const RoleProfileSchema = z.object({
   })).optional(),
 });
 
+// ─── Caché persistente del perfil (localStorage) ─────────────────────────
+//
+// El perfil se genera con un agente LLM (AgentService.buildRoleProfile), que
+// tarda varios segundos. Sin persistencia se regeneraba en CADA apertura de la
+// pestaña "Rol" (react-query solo cachea 5 min en memoria; un reload o una
+// sesión nueva volvían a llamar al LLM) → "Generando perfil de rol..." SIEMPRE.
+//
+// Ahora se cachea el resultado en localStorage con una clave = hash de la ENTRADA
+// del agente (jugador + resumen de vídeos). Mientras la entrada no cambie, se
+// devuelve al instante; si cambia (nuevo vídeo analizado, métricas editadas), la
+// clave cambia y se regenera una sola vez. Solo se cachea el resultado del agente
+// (el caro), no el fallback determinista.
+const ROLE_PROFILE_CACHE_PREFIX = "vitas_roleprofile_";
+// Súbelo si cambia la forma del perfil o la lógica del agente, para invalidar
+// las cachés viejas (la clave incluye la versión → un bump provoca cache-miss).
+const ROLE_PROFILE_CACHE_VERSION = "v1";
+
+function hashStr(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+function readRoleProfileCache(key: string): RoleProfileData | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = RoleProfileSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? (parsed.data as RoleProfileData) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRoleProfileCache(playerId: string, key: string, data: RoleProfileData): void {
+  try {
+    // Poda: mantener una sola entrada por jugador (la de la última entrada válida).
+    const stale: string[] = [];
+    const playerPrefix = ROLE_PROFILE_CACHE_PREFIX + playerId + "_";
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(playerPrefix) && k !== key) stale.push(k);
+    }
+    stale.forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // localStorage lleno o deshabilitado — el perfil sigue funcionando sin caché.
+  }
+}
+
 // ─── Service functions ───────────────────────────────────────────────────
 
 /**
@@ -142,41 +192,51 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   const jugadorReferencia = latestReport.jugadorReferencia as Record<string, unknown> | undefined;
   const proyeccionCarrera = latestReport.proyeccionCarrera as Record<string, unknown> | undefined;
 
-  // 3. Intentar generar Role Profile con el agente AI + datos de video
+  // 3. Entrada del agente (y firma para la caché: si no cambia, no se re-llama al LLM).
+  const agentInput = {
+    player: {
+      id: player.id,
+      name: player.name,
+      age: player.age,
+      foot: player.foot,
+      position: player.position,
+      secondaryPositions: player.secondaryPositions ?? [],   // multi-posición
+      minutesPlayed: player.minutesPlayed,
+      competitiveLevel: player.competitiveLevel,
+      metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
+      phvCategory: player.phvCategory ?? "ontme",
+      phvOffset: player.phvOffset ?? 0,
+      phvDataAvailable: !!(player.phvCategory && player.phvOffset !== undefined && player.phvOffset !== null),
+      // Inyectar resumen de análisis de video para que el agente lo use
+      videoAnalysisSummary: {
+        totalAnalyses: videoAnalyses.length,
+        latestDimensions: dimensiones,
+        strengths: (estadoActual?.fortalezasPrimarias as string[]) ?? [],
+        areasDesarrollo: (estadoActual?.areasDesarrollo as string[]) ?? [],
+        nivelActual: (estadoActual?.nivelActual as string) ?? "desarrollo",
+        arquetipoTactico: (adnFutbolistico?.arquetipoTactico as string) ?? "",
+        estiloJuego: (adnFutbolistico?.estiloJuego as string) ?? "",
+      },
+    },
+    videoContext: {
+      playedPosition: videoAnalyses[0]?.played_position ?? player.position,
+      videoId:        videoAnalyses[0]?.video_id ?? null,
+      analyzedAt:     videoAnalyses[0]?.created_at ?? null,
+    },
+  };
+
+  // Caché persistente: mientras la entrada no cambie, se devuelve el perfil ya
+  // generado al instante (sin volver a llamar al LLM). Es lo que elimina el
+  // "Generando perfil de rol..." en cada apertura de la pestaña.
+  const cacheKey = ROLE_PROFILE_CACHE_PREFIX + playerId + "_" + ROLE_PROFILE_CACHE_VERSION + "_" + hashStr(JSON.stringify(agentInput));
+  const cached = readRoleProfileCache(cacheKey);
+  if (cached) return cached;
+
+  // 4. Intentar generar Role Profile con el agente AI + datos de video
   try {
     const { AgentService } = await import("@/services/real/agentService");
 
-    const res = await AgentService.buildRoleProfile({
-      player: {
-        id: player.id,
-        name: player.name,
-        age: player.age,
-        foot: player.foot,
-        position: player.position,
-        secondaryPositions: player.secondaryPositions ?? [],   // multi-posición
-        minutesPlayed: player.minutesPlayed,
-        competitiveLevel: player.competitiveLevel,
-        metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
-        phvCategory: player.phvCategory ?? "ontme",
-        phvOffset: player.phvOffset ?? 0,
-        phvDataAvailable: !!(player.phvCategory && player.phvOffset !== undefined && player.phvOffset !== null),
-        // Inyectar resumen de análisis de video para que el agente lo use
-        videoAnalysisSummary: {
-          totalAnalyses: videoAnalyses.length,
-          latestDimensions: dimensiones,
-          strengths: (estadoActual?.fortalezasPrimarias as string[]) ?? [],
-          areasDesarrollo: (estadoActual?.areasDesarrollo as string[]) ?? [],
-          nivelActual: (estadoActual?.nivelActual as string) ?? "desarrollo",
-          arquetipoTactico: (adnFutbolistico?.arquetipoTactico as string) ?? "",
-          estiloJuego: (adnFutbolistico?.estiloJuego as string) ?? "",
-        },
-      },
-      videoContext: {
-        playedPosition: videoAnalyses[0]?.played_position ?? player.position,
-        videoId:        videoAnalyses[0]?.video_id ?? null,
-        analyzedAt:     videoAnalyses[0]?.created_at ?? null,
-      },
-    });
+    const res = await AgentService.buildRoleProfile(agentInput);
 
     if (res.success && res.data) {
       const d = res.data;
@@ -282,7 +342,13 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
       };
 
       const parsed = RoleProfileSchema.safeParse(agentProfile);
-      if (parsed.success) return parsed.data as RoleProfileData;
+      if (parsed.success) {
+        const profile = parsed.data as RoleProfileData;
+        // Persistir el resultado del agente (el caro) para no re-llamar al LLM
+        // mientras la entrada no cambie.
+        writeRoleProfileCache(playerId, cacheKey, profile);
+        return profile;
+      }
     }
   } catch (err) {
     console.error("[roleProfileService] Agent error:", err);
