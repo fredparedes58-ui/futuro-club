@@ -40,6 +40,7 @@ export default function CapabilityCards({ data, filters }: Props) {
   const activeHorizon = filters?.horizon ?? "current";
 
   return (
+    <div className="space-y-2">
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {activeDims.map(({ key, icon: Icon }) => {
         const { label, description } = dimMeta[key];
@@ -54,7 +55,7 @@ export default function CapabilityCards({ data, filters }: Props) {
                   <Icon className="w-4 h-4 text-muted-foreground" />
                   {label}
                 </CardTitle>
-                <span className={`text-xs font-mono ${confColor}`}>
+                <span className={`text-xs font-mono ${confColor}`} title={t("capabilityCards.confidenceTooltip")}>
                   {getConfidenceLabel(conf)}
                 </span>
               </div>
@@ -76,8 +77,13 @@ export default function CapabilityCards({ data, filters }: Props) {
                 </div>
               </div>
 
-              {/* Projections */}
+              {/* Projections — nivel proyectado por horizonte temporal (meses) */}
               <div className="space-y-1.5 border-t border-border pt-2">
+                <div className="flex items-center text-[9px] uppercase tracking-wider text-muted-foreground/60">
+                  <span className="flex-1">{t("capabilityCards.projectionTitle")}</span>
+                  <span className="w-12 text-right">{t("capabilityCards.projectedShort")}</span>
+                  <span className="w-12 text-right">{t("capabilityCards.deltaShort")}</span>
+                </div>
                 {([
                   ["0_6m", "0–6m"],
                   ["6_18m", "6–18m"],
@@ -103,6 +109,10 @@ export default function CapabilityCards({ data, filters }: Props) {
           </Card>
         );
       })}
+    </div>
+      <p className="text-[10px] text-muted-foreground/70 leading-snug px-1">
+        {t("capabilityCards.legend")}
+      </p>
     </div>
   );
 }

@@ -4743,7 +4743,12 @@
     "technicalDescription": "Control, pase, tiro, regate",
     "physicalLabel": "Física",
     "physicalDescription": "Velocidad, resistencia, fuerza, agilidad",
-    "current": "Actual"
+    "current": "Actual",
+    "projectionTitle": "Proyección estimada",
+    "projectedShort": "estim.",
+    "deltaShort": "mejora",
+    "confidenceTooltip": "Confianza de esta estimación",
+    "legend": "Actual = nivel estimado hoy (± margen de confianza). Las filas 0–6m / 6–18m / 18–36m son el nivel proyectado dentro de ese plazo, en meses; el número en color es la mejora prevista respecto a hoy."
   },
   "clutchHeatmap": {
     "noData": "Sin datos de clutch disponibles",

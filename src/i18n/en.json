@@ -4743,7 +4743,12 @@
     "technicalDescription": "Control, passing, shooting, dribbling",
     "physicalLabel": "Physical",
     "physicalDescription": "Speed, endurance, strength, agility",
-    "current": "Current"
+    "current": "Current",
+    "projectionTitle": "Projected level",
+    "projectedShort": "est.",
+    "deltaShort": "gain",
+    "confidenceTooltip": "Confidence of this estimate",
+    "legend": "Current = estimated level today (± confidence margin). Rows 0–6m / 6–18m / 18–36m are the projected level within that horizon, in months; the colored number is the expected gain vs today."
   },
   "clutchHeatmap": {
     "noData": "No clutch data available",
