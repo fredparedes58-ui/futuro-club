@@ -16,11 +16,9 @@ import { useRawPlayerById } from "@/hooks/usePlayers";
 import {
   computeMirwald,
   canComputeMirwald,
-  assessMaturation,
   projectToMaturity,
   assessGrowthSpurtShield,
   type MirwaldResult,
-  type MaturationAssessment,
   type MaturityProjection,
   type GrowthSpurtShield,
 } from "@/lib/phv";
@@ -31,8 +29,6 @@ export interface PHVProduct {
   /** Evaluación canónica (fuente ÚNICA para la UI: estado/timing/%PAH/APHV). */
   assessment: MaturityAssessment;
   mirwald: MirwaldResult;
-  /** @deprecated status-as-timing; solo para projection/shield legacy. */
-  maturation: MaturationAssessment;
   projection: MaturityProjection;
   shield: GrowthSpurtShield;
   /** VSI crudo del jugador (si existe). */
@@ -84,8 +80,6 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
       sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : undefined,
     });
 
-    const maturation = assessMaturation(mirwald);
-
     // Evaluación canónica (científica, con edad decimal + %PAH si hay padres +
     // gating anti-falso-positivo). Es la que consume la UI.
     const assessment = playerMaturity({
@@ -115,7 +109,6 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
     return {
       assessment,
       mirwald,
-      maturation,
       projection,
       shield,
       rawVSI,

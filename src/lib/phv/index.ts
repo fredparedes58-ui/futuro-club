@@ -4,16 +4,6 @@
 export { computeMirwald, canComputeMirwald } from "./mirwald";
 export type { MirwaldInput, MirwaldResult } from "./mirwald";
 
-export { assessMaturation } from "./maturation";
-export type { MaturationStatus, MaturationAssessment } from "./maturation";
-
-export {
-  normalizeMetric,
-  normalizeMetrics,
-  METRIC_MATURATION_SENSITIVITY,
-} from "./normalizer";
-export type { NormalizedMetric } from "./normalizer";
-
 export { projectToMaturity } from "./projection";
 export type { MaturityProjection, ProjectionPoint } from "./projection";
 
