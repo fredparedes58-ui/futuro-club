@@ -18,6 +18,7 @@ import VsiGauge from "@/components/VsiGauge";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { splitMetricValue } from "@/lib/scout/insightValue";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -309,10 +310,26 @@ function InsightCard({
           {insight.context_data?.vsi && (
             <VsiGauge value={insight.context_data.vsi as number} size="sm" />
           )}
-          <div>
-            <div className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{insight.metric}</div>
-            <div className="font-display font-bold text-xl text-primary">{insight.metric_value}</div>
-          </div>
+          {(() => {
+            const mv = splitMetricValue(insight.metric_value);
+            return (
+              <div>
+                <div className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{insight.metric}</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-display font-bold text-xl text-primary">{mv.base}</span>
+                  {mv.delta && (
+                    <span
+                      title={t("scout.metricTrend")}
+                      className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-semibold ${mv.up ? "bg-green-400/15 text-green-500" : "bg-red-400/15 text-red-500"}`}
+                    >
+                      {mv.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                      {mv.delta}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <Clock size={10} />
