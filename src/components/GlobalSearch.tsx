@@ -106,10 +106,13 @@ export default function GlobalSearch() {
 
   return (
     <>
-      {/* Floating search trigger · fixed top-right, evita BottomNav · accesible siempre */}
+      {/* Floating search trigger · bottom-left, en espejo del FAB "+" (bottom-right).
+          Antes era top-right y se solapaba con las acciones de cabecera de cada
+          página (p.ej. "Generar insights", Compartir/PDF/Editar). Bottom-left es una
+          ranura flotante libre, por encima de la BottomNav (docx #4/#5). */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed top-3 right-3 z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-background/85 backdrop-blur-md border border-border shadow-lg hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors print:hidden"
+        className="fixed bottom-20 left-4 z-50 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-background/85 backdrop-blur-md border border-border shadow-lg hover:border-primary/40 text-muted-foreground hover:text-foreground transition-colors print:hidden"
         aria-label={t("globalSearch.triggerAriaLabel")}
         title={t("globalSearch.triggerTitle")}
       >
