@@ -467,6 +467,7 @@
     "archive": "Archive",
     "viewPlayer": "View player",
     "benchmark": "Benchmark",
+    "metricTrend": "Change vs. previous evaluations",
     "recommendedDrills": "Recommended drills",
     "actionItems": "Coach action items",
     "loadMore": "Load more",
