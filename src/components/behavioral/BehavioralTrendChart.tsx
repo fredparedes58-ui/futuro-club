@@ -36,7 +36,12 @@ export default function BehavioralTrendChart({ data, height = 180 }: Props) {
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
         {t("behavioralTrendChart.mentalEvolution")}
       </span>
+      {/* "Indica de qué se trata": cómo leer la evolución. */}
+      <p className="text-[11px] text-muted-foreground/80 leading-snug">
+        {t("behavioralTrendChart.description")}
+      </p>
       <ResponsiveContainer width="100%" height={height}>
+        {/* Colores theme-aware (antes blanco con opacidad → invisibles en claro). */}
         <LineChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
           <defs>
             <linearGradient id="mentalGrad" x1="0" y1="0" x2="0" y2="1">
@@ -44,32 +49,33 @@ export default function BehavioralTrendChart({ data, height = 180 }: Props) {
               <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="date"
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
           />
           <YAxis
             domain={[0, 100]}
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
           />
           <Tooltip
             contentStyle={{
-              background: "rgba(0,0,0,0.85)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
               borderRadius: 8,
               fontSize: 10,
+              color: "hsl(var(--popover-foreground))",
             }}
             formatter={(value: number) => [`${value}/100`, t("behavioralTrendChart.mentalComposite")]}
           />
-          <ReferenceLine y={50} stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
+          <ReferenceLine y={50} stroke="hsl(var(--border))" strokeDasharray="3 3" />
           <Line
             type="monotone"
             dataKey="mentalComposite"
             stroke="#8b5cf6"
             strokeWidth={2}
             dot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }}
-            activeDot={{ r: 6, fill: "#8b5cf6", stroke: "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: "#8b5cf6", stroke: "hsl(var(--background))", strokeWidth: 2 }}
           />
         </LineChart>
       </ResponsiveContainer>

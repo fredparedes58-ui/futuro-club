@@ -3928,7 +3928,9 @@
     "success": "Success",
     "error": "Error",
     "neutral": "Neutral",
-    "sizePressure": "Size = pressure"
+    "sizePressure": "Size = pressure",
+    "timeAxisLabel": "Time (ms)",
+    "description": "Each dot is a player decision. Horizontal: decision order; vertical: time to decide (ms, lower = faster). Color = outcome; size = pressure."
   },
   "eventNotesPanel": {
     "tagIdea": "Idea",
@@ -4736,7 +4738,8 @@
   "behavioralTrendChart": {
     "needMoreEvaluations": "More evaluations are needed to show a trend",
     "mentalEvolution": "Mental Evolution",
-    "mentalComposite": "Mental Composite"
+    "mentalComposite": "Mental Composite",
+    "description": "Evolution of the mental composite (0–100) across evaluations. The line at 50 marks the average reference."
   },
   "capabilityCards": {
     "tacticalLabel": "Tactical",
@@ -4867,7 +4870,8 @@
     "title": "Mental Fatigue Curve",
     "yAxisLabel": "% of start",
     "physical": "Physical",
-    "cognitive": "Cognitive"
+    "cognitive": "Cognitive",
+    "description": "How physical and cognitive capacity drop over the match (% of the starting level). If the cognitive line stays above the physical one, there's mental strength."
   },
   "nextSessionRecommender": {
     "title": "Next Session Recommendations",
