@@ -174,4 +174,14 @@ describe("resolveMaturity · motor canónico + anti-falso-positivo", () => {
     else if (m.timing === "early") expect(m.adjustmentFactor).toBeLessThan(1);
     else expect(m.adjustmentFactor).toBe(1);
   });
+
+  it("jugador REAL muy alto (15a a 195cm/85kg, portero) NO se marca como erróneo", () => {
+    // ~99,9º percentil real, no un typo: el blindaje debe DEJARLO PASAR. Marcar
+    // el dato real de un prospecto alto sería peor que dejar pasar un typo.
+    const m = resolveMaturity({ sex: "M", ageYears: 15, heightCm: 195, weightKg: 85 });
+    expect(m.validityNote ?? "").not.toMatch(/fuera del rango plausible/);
+    // También un 14a a 189cm (caso confirmado de sobre-abstención): no se marca.
+    const m2 = resolveMaturity({ sex: "M", ageYears: 14, heightCm: 189, weightKg: 80 });
+    expect(m2.validityNote ?? "").not.toMatch(/fuera del rango plausible/);
+  });
 });

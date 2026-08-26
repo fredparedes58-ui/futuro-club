@@ -93,29 +93,36 @@ const MIRWALD_VALID_WINDOW_YEARS = 2.5;
 /**
  * Bandas de plausibilidad antropométrica por edad — BLINDAJE anti-garbage-in.
  *
- * NO son percentiles de crecimiento ni entran en ninguna fórmula: son cotas
- * GENEROSAS (mucho más anchas que el rango real 1º–99º percentil) cuyo único fin
- * es detectar un dato IMPOSIBLE para la edad (típicamente un error de tecleo,
- * p.ej. un niño de 9 años registrado a 160 cm). Un valor fuera de banda hace que
- * el offset de Mirwald sea espurio y pueda colarse en la ventana de validez
- * afirmando un timing falso; ante eso, NO se afirma precoz/tardío.
+ * NO son percentiles de crecimiento ni entran en ninguna fórmula: son cotas MUY
+ * GENEROSAS, deliberadamente calibradas por ENCIMA de cualquier percentil real
+ * (>~99,9º + margen) para que NINGÚN jugador real —por muy alto/bajo o pesado que
+ * sea— quede marcado como erróneo. Su único fin es cazar lo IMPOSIBLE (un error de
+ * tecleo, p.ej. un niño de 9 años registrado a 160 cm). Un valor fuera de banda
+ * hace que el offset de Mirwald sea espurio y pueda colarse en la ventana de
+ * validez afirmando un timing falso; ante eso, NO se afirma precoz/tardío.
+ *
+ * Consecuencia consciente (invariante #3, la abstención es válida): a edades
+ * mayores el techo real es alto (existen jugadores muy altos), así que solo se
+ * cazan typos GRUESOS; el blindaje es más efectivo a edades bajas, donde el techo
+ * es bajo y una altura de adulto es inequívocamente imposible. Se prefiere DEJAR
+ * PASAR un typo antes que marcar el dato real de un jugador de verdad.
  *
  * Procedencia: pendiente de validar (cotas heurísticas, sexo-agnósticas por
- * simplicidad; se toma la envolvente ancha chicos∪chicas). Por eso, cuando este
- * blindaje se activa, la confianza del resultado se reduce. No sustituye a una
- * validación con tablas OMS/CDC (follow-up en docs/pendientes-metricas.md).
+ * simplicidad; envolvente ancha chicos∪chicas). Cuando el blindaje se activa, la
+ * confianza baja. Un discriminador más fino (IMC-por-edad + percentiles OMS/CDC,
+ * que separaría un typo de una sola cifra de un extremo real) queda como follow-up.
  *
  * [minCm, maxCm] y [minKg, maxKg] por edad entera 8–18 (se clampa la edad).
  */
 const PLAUSIBLE_HEIGHT_CM_BY_AGE: Record<number, readonly [number, number]> = {
-  8: [110, 150], 9: [113, 155], 10: [118, 160], 11: [122, 166], 12: [127, 173],
-  13: [131, 180], 14: [136, 188], 15: [140, 193], 16: [144, 197], 17: [146, 199],
-  18: [147, 201],
+  8: [104, 152], 9: [108, 158], 10: [112, 166], 11: [116, 174], 12: [120, 182],
+  13: [125, 190], 14: [130, 197], 15: [134, 202], 16: [138, 205], 17: [140, 207],
+  18: [140, 208],
 };
 const PLAUSIBLE_WEIGHT_KG_BY_AGE: Record<number, readonly [number, number]> = {
-  8: [16, 50], 9: [18, 58], 10: [20, 68], 11: [22, 78], 12: [25, 90],
-  13: [28, 100], 14: [32, 110], 15: [36, 118], 16: [40, 122], 17: [42, 125],
-  18: [44, 128],
+  8: [14, 62], 9: [16, 70], 10: [18, 80], 11: [20, 92], 12: [22, 106],
+  13: [25, 118], 14: [28, 128], 15: [32, 136], 16: [36, 142], 17: [38, 146],
+  18: [40, 150],
 };
 
 /**
