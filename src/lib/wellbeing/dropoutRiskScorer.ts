@@ -8,7 +8,7 @@
  * 4 levels: low (<25), moderate (25-50), high (50-75), critical (>75).
  */
 
-import type { BehavioralScores } from "@/lib/shared/sessionTypes";
+import type { BehavioralScores } from "../shared/sessionTypes";
 import type { MotivationProfile } from "./motivationClassifier";
 import type { OvertrainingAssessment } from "./overtrainingDetector";
 import type { AttendanceProfile } from "./attendanceTracker";
