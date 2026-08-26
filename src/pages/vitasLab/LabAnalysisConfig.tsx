@@ -2,7 +2,6 @@ import { type Dispatch, type SetStateAction } from "react";
 import { useTranslation } from "react-i18next";
 import { Users, ScanSearch, Swords, UserRound } from "lucide-react";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
-import type { useTracking } from "@/hooks/useTracking";
 
 const analysisModes = [
   { id: "all",    labelKey: "vitasLab.modeAllPlayers",      descKey: "vitasLab.modeAllPlayersDesc",      icon: Users },
@@ -12,7 +11,6 @@ const analysisModes = [
 ];
 
 interface LabAnalysisConfigProps {
-  tracking: ReturnType<typeof useTracking>;
   selectedMode: string;
   setSelectedMode: Dispatch<SetStateAction<string>>;
   jerseyNumber: string;
@@ -45,7 +43,6 @@ interface LabAnalysisConfigProps {
  *  identidad del jugador, coordenadas de campo, selector de modo + config por modo, posición
  *  jugada y enfoque. Presentacional; todo el estado del formulario vive en el padre. */
 const LabAnalysisConfig = ({
-  tracking,
   selectedMode,
   setSelectedMode,
   jerseyNumber,
@@ -77,71 +74,10 @@ const LabAnalysisConfig = ({
 
   return (
     <>
-          {/* Auto-detected player identity (Sprint 4 — Re-ID replaces manual dorsal input) */}
-          {(selectedMode === "all" || selectedMode === "team") && (
-          <div>
-            <span className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">
-              {t("lab.identifyPlayer")}
-            </span>
-            {tracking.state.identities.size > 0 ? (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-[10px] font-display text-green-400 font-semibold">
-                    {t("vitasLab.reIdActive", { count: tracking.state.identities.size })}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {[...tracking.state.identities.entries()].slice(0, 8).map(([trackId, identity]) => (
-                    <span
-                      key={trackId}
-                      className={`text-[9px] px-1.5 py-0.5 rounded font-display font-semibold ${
-                        identity.team === "home" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" :
-                        identity.team === "away" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                        "bg-muted text-muted-foreground border border-border"
-                      }`}
-                    >
-                      {identity.dorsalNumber ? `#${identity.dorsalNumber}` : identity.stableId.replace("pid_", "P")}
-                      {identity.team !== "unknown" ? ` (${identity.team})` : ""}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-[9px] text-muted-foreground leading-tight">
-                  {t("vitasLab.dorsalsAutoDetected")}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                <div>
-                  <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.jerseyNumber")}</label>
-                  <input
-                    type="text"
-                    maxLength={3}
-                    value={jerseyNumber}
-                    onChange={(e) => setJerseyNumber(e.target.value)}
-                    placeholder={t("lab.jerseyPlaceholder")}
-                    className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                  />
-                </div>
-                <div>
-                  <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("lab.uniformColor")}</label>
-                  <input
-                    type="text"
-                    value={teamColor}
-                    onChange={(e) => setTeamColor(e.target.value)}
-                    placeholder={t("lab.uniformPlaceholder")}
-                    className="w-full mt-1 px-2 py-2 rounded-lg border border-border bg-secondary/50 text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                  />
-                </div>
-              </div>
-            )}
-            {tracking.state.identities.size === 0 && (
-              <p className="mt-1.5 text-[9px] text-muted-foreground leading-tight">
-                {t("lab.jerseyHint")} · {t("vitasLab.autoDetectOnTracking")}
-              </p>
-            )}
-          </div>
-          )}
+          {/* Identificar jugador por dorsal se muestra SOLO en los modos por-jugador
+              (Seguimiento Manual / Jugador Específico), cada uno con su propio panel.
+              En "Todos los Jugadores" / "Equipo Completo" no hay un jugador objetivo,
+              así que no se pide identificar/seleccionar uno (coherencia, docx #3). */}
 
           {/* Coordinate Realtime */}
           <div>
