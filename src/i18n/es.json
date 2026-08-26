@@ -3928,7 +3928,9 @@
     "success": "Éxito",
     "error": "Error",
     "neutral": "Neutral",
-    "sizePressure": "Tamaño = presión"
+    "sizePressure": "Tamaño = presión",
+    "timeAxisLabel": "Tiempo (ms)",
+    "description": "Cada punto es una decisión del jugador. Horizontal: orden de la decisión; vertical: tiempo en decidir (ms, más abajo = más rápido). Color = resultado; tamaño = presión."
   },
   "eventNotesPanel": {
     "tagIdea": "Idea",
@@ -4736,7 +4738,8 @@
   "behavioralTrendChart": {
     "needMoreEvaluations": "Se necesitan más evaluaciones para mostrar tendencia",
     "mentalEvolution": "Evolución Mental",
-    "mentalComposite": "Compuesto Mental"
+    "mentalComposite": "Compuesto Mental",
+    "description": "Evolución del compuesto mental (0–100) a lo largo de las evaluaciones. La línea de 50 marca la referencia media."
   },
   "capabilityCards": {
     "tacticalLabel": "Táctica",
@@ -4867,7 +4870,8 @@
     "title": "Curva de Fatiga Mental",
     "yAxisLabel": "% del inicio",
     "physical": "Físico",
-    "cognitive": "Cognitivo"
+    "cognitive": "Cognitivo",
+    "description": "Cómo caen la capacidad física y la cognitiva a lo largo del partido (% respecto al inicio). Si la línea cognitiva se mantiene por encima de la física, hay fortaleza mental."
   },
   "nextSessionRecommender": {
     "title": "Recomendaciones Próxima Sesión",

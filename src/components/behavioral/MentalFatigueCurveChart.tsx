@@ -59,7 +59,13 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
         </span>
       </div>
 
+      {/* "Indica de qué se trata": cómo leer la curva. */}
+      <p className="text-[11px] text-muted-foreground/80 leading-snug">
+        {t("mentalFatigueCurveChart.description")}
+      </p>
+
       <ResponsiveContainer width="100%" height={height}>
+        {/* Colores theme-aware (antes blanco con opacidad → invisibles en claro). */}
         <ComposedChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
           <defs>
             <linearGradient id="gapArea" x1="0" y1="0" x2="0" y2="1">
@@ -67,22 +73,23 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
               <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="segment"
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
           />
           <YAxis
             domain={[0, 120]}
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-            label={{ value: t("mentalFatigueCurveChart.yAxisLabel"), angle: -90, position: "insideLeft", fontSize: 8, fill: "rgba(255,255,255,0.3)" }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+            label={{ value: t("mentalFatigueCurveChart.yAxisLabel"), angle: -90, position: "insideLeft", fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
           />
           <Tooltip
             contentStyle={{
-              background: "rgba(0,0,0,0.85)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
               borderRadius: 8,
               fontSize: 10,
+              color: "hsl(var(--popover-foreground))",
             }}
             formatter={(value: number, name: string) => [
               `${value}%`,
@@ -92,7 +99,7 @@ export default function MentalFatigueCurveChart({ segments, mentalResistanceRati
           <Legend
             iconType="line"
             iconSize={10}
-            wrapperStyle={{ fontSize: 9, color: "rgba(255,255,255,0.5)" }}
+            wrapperStyle={{ fontSize: 9, color: "hsl(var(--muted-foreground))" }}
             formatter={(name: string) => name === "physical" ? t("mentalFatigueCurveChart.physical") : t("mentalFatigueCurveChart.cognitive")}
           />
           <Area

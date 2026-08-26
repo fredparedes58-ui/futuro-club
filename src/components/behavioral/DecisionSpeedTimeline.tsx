@@ -52,30 +52,37 @@ export default function DecisionSpeedTimeline({ decisions, height = 220 }: Props
       <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">
         {t("decisionSpeedTimeline.title")}
       </span>
+      {/* "Indica de qué se trata": cómo leer la dispersión. */}
+      <p className="text-[11px] text-muted-foreground/80 leading-snug">
+        {t("decisionSpeedTimeline.description")}
+      </p>
       <ResponsiveContainer width="100%" height={height}>
-        <ScatterChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+        {/* Colores theme-aware: antes eran blanco con opacidad → rejilla y ejes
+            invisibles en modo claro ("la dispersión no dice nada"). */}
+        <ScatterChart margin={{ top: 10, right: 10, bottom: 18, left: 12 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             type="number"
             dataKey="index"
             name={t("decisionSpeedTimeline.decision")}
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-            label={{ value: t("decisionSpeedTimeline.decisionAxisLabel"), position: "insideBottom", offset: -5, fontSize: 9, fill: "rgba(255,255,255,0.3)" }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+            label={{ value: t("decisionSpeedTimeline.decisionAxisLabel"), position: "insideBottom", offset: -8, fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
           />
           <YAxis
             type="number"
             dataKey="time"
             name="ms"
-            tick={{ fill: "rgba(255,255,255,0.4)", fontSize: 9 }}
-            label={{ value: "ms", angle: -90, position: "insideLeft", fontSize: 9, fill: "rgba(255,255,255,0.3)" }}
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 9 }}
+            label={{ value: t("decisionSpeedTimeline.timeAxisLabel"), angle: -90, position: "insideLeft", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
           />
           <ZAxis type="number" dataKey="pressure" range={[30, 200]} name={t("decisionSpeedTimeline.pressure")} />
           <Tooltip
             contentStyle={{
-              background: "rgba(0,0,0,0.85)",
-              border: "1px solid rgba(255,255,255,0.1)",
+              background: "hsl(var(--popover))",
+              border: "1px solid hsl(var(--border))",
               borderRadius: 8,
               fontSize: 10,
+              color: "hsl(var(--popover-foreground))",
             }}
             formatter={(value: number, name: string) => {
               if (name === "ms") return [`${value}ms`, t("decisionSpeedTimeline.time")];
