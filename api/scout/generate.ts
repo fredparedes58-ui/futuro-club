@@ -10,6 +10,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
+import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "../../src/lib/phv/maturity";
+import { resolveChronologicalAge } from "../../src/lib/shared/age";
 
 export const config = { runtime: "edge" };
 
@@ -29,6 +31,97 @@ interface PlayerRow {
   vsi_history: number[];
   minutes_played: number;
   updated_at: string;
+  /**
+   * Blob `data` original: fuente ÚNICA de los inputs de maduración (igual que
+   * api/rankings/_list.ts). Se lee de aquí y NO de las columnas normalizadas de
+   * la migración 024 porque `gender` tiene DEFAULT 'M' a nivel de columna: leer
+   * el sexo de la columna trataría a una jugadora (o a un sexo no registrado)
+   * como varón y rompería la abstención del invariante #5. El blob solo trae el
+   * dato si una persona lo introdujo.
+   */
+  data?: {
+    gender?: string | null;
+    birthDate?: string | null;
+    age?: number | null;
+    height?: number | null;
+    weight?: number | null;
+    sittingHeight?: number | null;
+    legLength?: number | null;
+    motherHeightCm?: number | null;
+    fatherHeightCm?: number | null;
+  } | null;
+}
+
+/**
+ * Maduración canónica del jugador vía el motor gateado `resolveMaturity` — la
+ * MISMA fuente, con los MISMOS inputs, que las fichas y Rankings (invariante #7,
+ * una sola implementación y una sola decisión por jugador). Los inputs salen del
+ * blob `data` (no de las columnas 024): sexo solo si es "M"/"F" explícito
+ * (invariante #5) y edad DECIMAL desde birthDate cuando existe (evita que el
+ * redondeo del entero cruce el umbral de timing y contradiga a la ficha).
+ *
+ * El motor se abstiene (timing "unknown") sin antropometría, sin sexo, o lejos
+ * del PHV (p.ej. un pre-púber de 9 años, donde Mirwald pierde fiabilidad). En ese
+ * caso NO se afirma nada de maduración al LLM (invariante #2: ante dato ausente,
+ * se bloquea; nunca se rellena con el valor naive persistido).
+ */
+function canonicalMaturity(player: PlayerRow): MaturityAssessment {
+  const d = player.data ?? {};
+  return resolveMaturity({
+    sex: d.gender === "M" || d.gender === "F" ? d.gender : undefined,
+    ageYears: resolveChronologicalAge({ birthDate: d.birthDate, age: d.age ?? player.age }) ?? undefined,
+    heightCm: d.height ?? undefined,
+    weightKg: d.weight ?? undefined,
+    sittingHeightCm: d.sittingHeight ?? undefined,
+    legLengthCm: d.legLength ?? undefined,
+    motherHeightCm: d.motherHeightCm ?? undefined,
+    fatherHeightCm: d.fatherHeightCm ?? undefined,
+  });
+}
+
+/**
+ * Descripción de maduración para el LLM derivada del MOTOR (no de las columnas
+ * persistidas): así lo que se AFIRMA es lo mismo que gatea (cierra el hueco
+ * gate-source ≠ emit-source, invariante #7). Términos vs pares ya resueltos
+ * —"tardío" ↔ engine timing "late" (PHV después de la media), "precoz" ↔ "early"—
+ * para que el LLM no reinvierta la etiqueta. `null` cuando el motor se abstiene.
+ */
+const TIMING_ES: Record<Exclude<MaturityTiming, "unknown">, string> = {
+  early: "madurador precoz",
+  on_time: "madurador en fase",
+  late: "madurador tardío",
+};
+const STATUS_ES: Record<string, string> = {
+  pre_phv: "pre-estirón",
+  circa_phv: "en pleno estirón (ventana crítica de desarrollo)",
+  post_phv: "post-estirón",
+};
+function phvForLLM(m: MaturityAssessment): {
+  phvTiming?: string;
+  phvEstado?: string;
+  phvOffsetAnios?: number;
+} | null {
+  // El motor separa dos cosas y aquí se respeta esa separación:
+  //  · ESTADO (pre/circa/post-estirón): DÓNDE está en SU propia curva. Se conoce
+  //    en cuanto el motor computa (%PAH o Mirwald) y es una afirmación factual
+  //    segura → se emite siempre que status !== "unknown".
+  //  · TIMING (precoz/tardío vs pares): solo se AFIRMA con timing firme (blindaje
+  //    anti-falso-positivo del motor) → phvTiming solo si timing !== "unknown".
+  // Así el detonante de phv-alert (status === "circa_phv") NUNCA queda sin sustancia
+  // (el estado acompaña), y no se afirma precoz/tardío sin confianza (inv #2/#3).
+  const timingFirm = m.timing !== "unknown";
+  const estado = m.status !== "unknown" ? STATUS_ES[m.status] : undefined;
+  if (!timingFirm && !estado) return null;
+  return {
+    ...(timingFirm ? { phvTiming: TIMING_ES[m.timing as Exclude<MaturityTiming, "unknown">] } : {}),
+    ...(estado ? { phvEstado: estado } : {}),
+    // El offset solo con timing firme: ahí Mirwald está dentro de su ventana de
+    // validez y el número es coherente con el estado; si no, se omite (no dar un
+    // offset que el propio motor considera poco fiable).
+    ...(timingFirm && typeof m.maturityOffset === "number"
+      ? { phvOffsetAnios: Math.round(m.maturityOffset * 10) / 10 }
+      : {}),
+  };
 }
 
 interface AnalysisRow {
@@ -77,6 +170,7 @@ function detectContext(
   player: PlayerRow,
   latestAnalysis: AnalysisRow | null,
   previousAnalysis: AnalysisRow | null,
+  maturity: MaturityAssessment,
 ): InsightContext {
   const vsiHistory = player.vsi_history ?? [player.vsi];
   const currentVSI = player.vsi;
@@ -103,9 +197,12 @@ function detectContext(
   // Breakout: VSI up >5 or metric up >1.5 (on 0-10 scale = >15 on 0-100)
   if (vsiDelta > 5 || maxMetricDelta > 1.5) return "breakout";
 
-  // PHV Alert: critical development window
-  const offset = player.phv_offset ?? 0;
-  if (player.phv_category === "early" && offset >= -1.0 && offset <= 0.5) return "phv-alert";
+  // PHV Alert: ventana crítica de desarrollo = el jugador está EN pleno estirón,
+  // según el ESTADO que calcula el motor canónico (circa_phv), no la columna
+  // phv_category persistida (naive/estancada). Un estado circa_phv solo lo produce
+  // el motor con antropometría real cerca del PHV, así que un menor sin datos —o un
+  // pre-púber— nunca dispara esta alerta sobre un hueco (invariantes #2/#7).
+  if (maturity.status === "circa_phv") return "phv-alert";
 
   // Drill record: any metric above 85
   const metrics = player.metrics ?? {};
@@ -193,7 +290,11 @@ export default withHandler(
           continue;
         }
 
-        const context = detectContext(player, latestAnalysis, previousAnalysis);
+        // Maduración canónica (una sola vez por jugador). El motor decide qué se
+        // afirma: si se abstiene (timing "unknown") no se manda nada de PHV al LLM.
+        const maturity = canonicalMaturity(player);
+        const phv = phvForLLM(maturity);
+        const context = detectContext(player, latestAnalysis, previousAnalysis, maturity);
 
         // Query RAG for enrichment
         let ragContext = "";
@@ -301,6 +402,7 @@ REGLAS:
 - recommendedDrills: array de máximo 3 objetos {name, reason} basados en el contexto RAG
 - actionItems: array de máximo 3 acciones concretas para el entrenador
 - benchmark: una frase comparativa con percentil o referencia (ej: "Percentil 85 en velocidad para Sub-15")
+- MADURACIÓN: usa ÚNICAMENTE los campos phvTiming / phvEstado / phvOffsetAnios del jugador si vienen. Si NINGUNO viene, NO menciones maduración, PHV, estirón ni offset: no hay dato fiable e inventarlo es un error. phvEstado (p.ej. "en pleno estirón (ventana crítica de desarrollo)") describe DÓNDE está en SU propia curva y puedes mencionarlo cuando venga. phvTiming es la comparación vs pares y solo existe cuando es fiable: úsalo TAL CUAL, sin invertirlo — "madurador tardío" = su estirón llega más tarde que la media (nivel físico aún por llegar; talento a menudo infravalorado), "madurador precoz" = estirón antes que la media (ventaja física temporal que sus pares igualarán), "madurador en fase" = a la par. Si viene phvEstado pero NO phvTiming, describe el estado SIN afirmar precoz/tardío. phvOffsetAnios = años respecto al pico de crecimiento (negativo = antes del estirón).
 
 RESPONDE ÚNICAMENTE JSON:
 {"type":"string","headline":"string","body":"string","metric":"string","metricValue":"string","urgency":"high|medium|low","tags":["string"],"recommendedDrills":[{"name":"string","reason":"string"}],"actionItems":["string"],"benchmark":"string"}`;
@@ -312,8 +414,11 @@ RESPONDE ÚNICAMENTE JSON:
           position: player.position,
           vsi: player.vsi,
           vsiHistory: player.vsi_history,
-          phvCategory: player.phv_category,
-          phvOffset: player.phv_offset,
+          // Maduración = lo que AFIRMA el motor canónico (mismos datos y misma
+          // decisión que la ficha), ya traducido a términos vs pares. Si el motor
+          // se abstiene, `phv` es null y el spread no añade campos: el LLM no ve
+          // categoría ni offset persistidos que pudiera citar como hecho (inv #2/#7).
+          ...(phv ?? {}),
           metrics: player.metrics,
           minutesPlayed: player.minutes_played,
         });
