@@ -1045,7 +1045,6 @@ const VitasLab = () => {
 
           {/* Auto-detected player identity · Config de análisis */}
           <LabAnalysisConfig
-            tracking={tracking}
             selectedMode={selectedMode}
             setSelectedMode={setSelectedMode}
             jerseyNumber={jerseyNumber}
