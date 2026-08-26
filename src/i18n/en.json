@@ -1,4 +1,16 @@
 {
+  "analysisFocusSelector": {
+    "title": "Analysis focus",
+    "optional": "(optional)",
+    "offensive": "Offensive",
+    "defensive": "Defensive",
+    "recovery": "Recovery",
+    "duels": "Duels",
+    "speed": "Speed",
+    "passing": "Passing",
+    "hintSingular": "The analysis will prioritize this type of action.",
+    "hintPlural": "The analysis will prioritize these types of actions."
+  },
   "common": {
     "back": "Back",
     "save": "Save",
