@@ -45,7 +45,7 @@ const playerReportSchema = z.object({
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "player-report-v2.2.0"; // v2.2 = observación directa del vídeo atada a evidencia + gate del desglose (docx #14)
+const PROMPT_VERSION = "player-report-v2.2.1"; // v2.2.1 = procedencia (gemini=IA), gate de identidad en eventSummary, trampa passCompletionPct 0 (revisión #177)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor del Player Report de VITAS Football Intelligence.
@@ -102,7 +102,10 @@ REGLAS ABSOLUTAS DE DATOS:
 8. CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
 EVIDENCIA DEL VÍDEO (obligatorio · esto es lo que hace el informe ÚTIL en vez de genérico):
-- La sección "OBSERVACIÓN DIRECTA DEL VÍDEO" trae lo REALMENTE contado/medido en ESTE vídeo:
+- PROCEDENCIA (obligatorio distinguir): gemini.* son observaciones ESTIMADAS POR IA (un modelo de visión mirando el clip) → cítalas como "observado por IA", NO como "medido". eventSummary/physicalMetrics vienen del tracking → son medidas SOLO con los gates de abajo.
+- IDENTIDAD (identidad.md): eventSummary y sus eventos son de la pista del jugador enfocado. Solo se envían si la identidad es fiable; aun así, si physicalMetrics.identityReliable === false, NO atribuyas esos eventos al jugador por nombre (pudieron acumularse tras un cambio de identidad de la pista).
+- passCompletionPct 0 con passesAttempted 0 significa "no se detectaron pases" (posible fallo de cobertura), NO "falla todos los pases" → no lo cites como debilidad; escribe "sin datos de pase en este vídeo".
+- La sección "OBSERVACIÓN DIRECTA DEL VÍDEO" trae lo contado/observado en ESTE vídeo:
   · gemini.eventosContados (pases completados/fallados/progresivos, regates con/sin ventaja, duelos ganados/perdidos, recuperaciones, robos, anticipaciones, pérdidas, escaneos, disparos al arco/fuera, centros…), gemini.dimensiones (score_estimado + observaciones por dimensión), gemini.momentosDestacados (timestamp+descripción), gemini.resumenGeneral;
   · o bien eventSummary (passCompletionPct, passesAttempted/Completed, duelsWon/Lost, recoveries, sprintBursts, shots, xgContributions, vaepApprox) y physicalMetrics.
 - CADA fortaleza y CADA área de mejora DEBE citar un dato observado CONCRETO de esa sección (p. ej. "12/18 pases progresivos", "ganó 7 de 10 duelos", "3 recuperaciones en presión alta", "escaneos: 24"). Prohibido rellenar con rasgos genéricos de la posición.
