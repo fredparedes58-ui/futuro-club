@@ -17,6 +17,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayerOrTenant } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
 
@@ -81,7 +82,7 @@ async function generateTusSignature(videoId: string, expirationSec: number): Pro
 
 export default withHandler(
   { schema: createUploadSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId }) => {
+  async ({ body, userId, tenantId, isServiceCall }) => {
     const input = body as z.infer<typeof createUploadSchema>;
 
     if (!BUNNY_LIBRARY_ID || !BUNNY_API_KEY) {
@@ -105,6 +106,14 @@ export default withHandler(
 
     if (!player) {
       return errorResponse({ code: "player_not_found", message: "Jugador no existe", status: 404 });
+    }
+
+    // Autorización a nivel de objeto: sin esto, cualquier autenticado adjuntaba una
+    // subida a CUALQUIER jugador (coste Bunny + siembra un análisis vía el webhook
+    // bunny-uploaded sobre un menor ajeno). Mismo predicado que reports/share/generate
+    // (user_id del jugador OR tenant), fail-closed. Se omite en llamadas de servicio.
+    if (!isServiceCall && !(await ownsPlayerOrTenant(input.playerId, userId, tenantId))) {
+      return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
     }
 
     // Crear vídeo en Bunny
