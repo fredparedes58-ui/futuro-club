@@ -97,7 +97,8 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
     const p = player as unknown as Record<string, unknown> | undefined;
     const videoAnalysisCount = Array.isArray(savedAnalyses) ? savedAnalyses.length : 0;
     const hasVideoAnalysis = videoAnalysisCount > 0;
-    const hasBehavioralProfile = Boolean(behavioralProfile);
+    // Un perfil sin objeto `scores` NO es un perfil usable (no cuenta como señal).
+    const hasBehavioralProfile = Boolean(behavioralProfile?.scores);
     const hasPHV =
       typeof p?.phvOffset === "number" && typeof p?.phvCategory === "string";
     const hasFatigueData = Boolean(injuryRisk) || hasInjuries;
@@ -131,7 +132,10 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
     // VSI breakdown: priorizamos lo más reciente del análisis de video
     // (escala 0-10 → 0-100). Si no hay video, fallback al overall plano.
     const videoVSI = extractVSIFromAnalyses(savedAnalyses);
-    const bpeMental = behavioralProfile?.scores.mentalComposite;
+    // `?.scores?.` — el perfil puede llegar truthy pero sin `scores` (respuesta
+    // parcial de la API); leer `.mentalComposite` sobre undefined crasheaba el
+    // módulo IDP entero (error boundary "Algo salió mal").
+    const bpeMental = behavioralProfile?.scores?.mentalComposite;
 
     const vsi = overallVsi > 0 || videoVSI
       ? {
@@ -168,7 +172,7 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
         phvOffset !== null && phvCategory
           ? { offset: phvOffset, category: phvCategory }
           : null,
-      behavioralProfile: behavioralProfile
+      behavioralProfile: behavioralProfile?.scores
         ? {
             decisionSpeed: behavioralProfile.scores.decisionSpeed,
             scanning: behavioralProfile.scores.scanningIntelligence,
@@ -209,7 +213,7 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
     }
 
     // Behavioral profile metrics (highest signal for mental dimension)
-    if (behavioralProfile) {
+    if (behavioralProfile?.scores) {
       out.mental_composite = behavioralProfile.scores.mentalComposite;
       out.scanning = behavioralProfile.scores.scanningIntelligence;
       out.decision_speed = behavioralProfile.scores.decisionSpeed;
