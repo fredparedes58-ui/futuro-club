@@ -19,6 +19,8 @@ import {
   Loader2, AlertCircle, BarChart3, Activity, Dna, Target, TrendingUp, ClipboardList,
   Brain, Gauge, HeartPulse, BatteryLow, FlaskConical, Lock,
 } from "lucide-react";
+import { getAuthHeaders } from "@/lib/apiAuth";
+import { asItemArray, itemTitle } from "@/lib/reports/reportItems";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import PeerBenchmark from "@/components/PeerBenchmark";
 // FASE 3c: renderers dedicados por report_type (antes todo caía al genérico → JSON crudo)
@@ -115,10 +117,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
   // MUST be before any early returns to keep hooks order consistent.
   const areasDesarrollo = useMemo(() => {
     const pr = reports.find((r) => r.report_type === "player-report")?.content as
-      | { areas_to_improve?: Array<{ title?: string } | string> } | undefined;
-    const areas = pr?.areas_to_improve ?? [];
-    return areas
-      .map((a) => (typeof a === "string" ? a : a.title ?? ""))
+      | { areas_to_improve?: unknown } | undefined;
+    // asItemArray/itemTitle: el LLM puede emitir areas_to_improve como string o con
+    // elementos null → `.map`/`.title` crudos tumbaban el dashboard entero.
+    return asItemArray(pr?.areas_to_improve)
+      .map(itemTitle)
       .filter((s) => s.trim().length > 0);
   }, [reports]);
 
@@ -129,11 +132,17 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         const url = shareToken
           ? `/api/analyses/share?analysisId=${analysisId}&t=${encodeURIComponent(shareToken)}`
           : `/api/analyses/reports?analysisId=${analysisId}`;
-        const res = await fetch(url, shareToken ? {} : { credentials: "include" });
+        // El JWT de Supabase vive en localStorage, no en cookie → hay que mandar el
+        // header Authorization (getAuthHeaders). `credentials:"include"` no bastaba:
+        // verifyAuth lee SOLO el Bearer header → devolvía 401 y "Ver Completo" fallaba.
+        const res = await fetch(url, shareToken ? {} : { headers: await getAuthHeaders() });
         const data = await res.json();
         if (!mounted) return;
         if (!res.ok || !data.success) {
-          setError(data?.error?.message ?? t("analysisDashboard.errorLoadingReports"));
+          // errorResponse emite { error: string, errorDetail: { message } }: leer
+          // errorDetail.message (o el string `error`) surfacea la causa real (401/405)
+          // en vez de tragarla con el mensaje genérico.
+          setError(data?.errorDetail?.message ?? (typeof data?.error === "string" ? data.error : null) ?? t("analysisDashboard.errorLoadingReports"));
           setLoading(false);
           return;
         }
@@ -454,13 +463,16 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
 
   const title = report.title as string | undefined;
   const summary = (report.summary as string | undefined) ?? (report.executive_summary as string | undefined);
-  const strengths = report.strengths as Array<{ title: string; description?: string } | string> | undefined;
-  const concerns = (report.concerns as Array<{ title: string; description?: string } | string> | undefined)
-    ?? (report.areas_to_improve as Array<{ title: string; description?: string } | string> | undefined);
-  const recommendations = report.recommendations as Array<{ title?: string; description?: string } | string> | undefined;
+  // asItemArray: el LLM puede emitir estos campos como string o con elementos null;
+  // sin coerción, `.length > 0` deja pasar un string y `.map` lanza (crash de render).
+  const strengths = asItemArray<{ title?: string; description?: string } | string>(report.strengths);
+  const concerns = asItemArray<{ title?: string; description?: string } | string>(
+    report.concerns ?? report.areas_to_improve,
+  );
+  const recommendations = asItemArray<{ title?: string; description?: string } | string>(report.recommendations);
   const nextFocus = (report.next_focus as string | undefined) ?? (report.proximo_foco as string | undefined);
   const blocks = report.blocks as Record<string, unknown>[] | undefined;
-  const metricsTable = report.metrics_table as Record<string, unknown>[] | undefined;
+  const metricsTable = asItemArray<Record<string, unknown>>(report.metrics_table);
   const pillars = report.pillars as Array<{ pilar?: string; acciones?: string[]; prioridad?: string }> | undefined;
 
   return (
@@ -497,30 +509,30 @@ function ReportRenderer({ report }: { report: Record<string, unknown> }) {
         </div>
       )}
 
-      {strengths && strengths.length > 0 && (
+      {strengths.length > 0 && (
         <Section heading={t("analysisDashboard.strengths")} color="text-green-400">
-          {strengths.map((s, i) => (
-            <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
-          ))}
+          {strengths.map((s, i) => {
+            const desc = s && typeof s === "object" ? (s as { description?: string }).description : undefined;
+            return <li key={i}>{itemTitle(s) || "—"}{desc ? <span className="text-muted-foreground"> · {desc}</span> : null}</li>;
+          })}
         </Section>
       )}
 
-      {concerns && concerns.length > 0 && (
+      {concerns.length > 0 && (
         <Section heading={t("analysisDashboard.areasToImprove")} color="text-amber-400">
-          {concerns.map((s, i) => (
-            <li key={i}>{typeof s === "string" ? s : s.title}{typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}</li>
-          ))}
+          {concerns.map((s, i) => {
+            const desc = s && typeof s === "object" ? (s as { description?: string }).description : undefined;
+            return <li key={i}>{itemTitle(s) || "—"}{desc ? <span className="text-muted-foreground"> · {desc}</span> : null}</li>;
+          })}
         </Section>
       )}
 
-      {recommendations && recommendations.length > 0 && (
+      {recommendations.length > 0 && (
         <Section heading={t("analysisDashboard.recommendations")} color="text-electric">
-          {recommendations.map((s, i) => (
-            <li key={i}>
-              {typeof s === "string" ? s : (s.title ?? "")}
-              {typeof s !== "string" && s.description ? <span className="text-muted-foreground"> · {s.description}</span> : null}
-            </li>
-          ))}
+          {recommendations.map((s, i) => {
+            const desc = s && typeof s === "object" ? (s as { description?: string }).description : undefined;
+            return <li key={i}>{itemTitle(s) || "—"}{desc ? <span className="text-muted-foreground"> · {desc}</span> : null}</li>;
+          })}
         </Section>
       )}
 

@@ -284,7 +284,9 @@ export function usePlayerAnalysisV2() {
       const headers = await getAuthHeaders();
       const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, { headers });
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data?.error?.message ?? "Not found");
+      if (!res.ok || !data.success) {
+        throw new Error(data?.errorDetail?.message ?? (typeof data?.error === "string" ? data.error : null) ?? "Not found");
+      }
 
       const a = data.data.analysis;
       setResult({
