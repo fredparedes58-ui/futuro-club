@@ -20,6 +20,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { deriveSimMetrics } from "../_lib/simMetrics";
 import { normalizeLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
 import {
@@ -281,17 +282,35 @@ export default withHandler(
       activeAgents = activeAgents.filter((a) => a.name !== "projection");
     }
 
-    // Similarity (comparable profesional) sigue alimentándose de los sub-scores en
-    // bruto —incluidas las 3 estimaciones placeholder— y YA se marca lowConfidence
-    // cuando <50% del VSI es real. Su honestidad se aborda fuera de este PR (G4 vídeo).
-    const ESTIMATED_SUBSCORES_MVP = { technique: 65, mental: 60, tactical: 55 } as const;
-    const simSubscores = {
-      technique: ESTIMATED_SUBSCORES_MVP.technique,
-      physical: physicalValue ?? 0,
-      mental: ESTIMATED_SUBSCORES_MVP.mental,
-      tactical: ESTIMATED_SUBSCORES_MVP.tactical,
-      projection: projectionValue ?? 70,
-    };
+    // docx #14 · Observaciones DIRECTAS del vídeo (extraídas UNA vez: las usan la
+    // derivación del comparable Y el sharedContext de los agentes). Gated en ORIGEN
+    // (P1). Gemini: biomechanics.gemini_observation; cliente: analysis.client_metrics.
+    const geminiObs =
+      (analysis.biomechanics as { gemini_observation?: Record<string, unknown> } | null)
+        ?.gemini_observation ?? null;
+    const clientMetrics =
+      (analysis as { client_metrics?: { eventSummary?: unknown; physicalMetrics?: unknown } | null })
+        .client_metrics ?? null;
+    const videoObservations =
+      geminiObs || clientMetrics?.eventSummary || clientMetrics?.physicalMetrics
+        ? {
+            source: geminiObs ? "gemini" : "client",
+            gemini: geminiObs,
+            eventSummary: clientMetrics?.eventSummary ?? null,
+            physicalMetrics: clientMetrics?.physicalMetrics ?? null,
+          }
+        : null;
+
+    // docx #14 · P3 · Comparable profesional DERIVADO de eventos observados (antes
+    // eran constantes 65/60/55 → violaba invariante #1). Si no hay eventos → null →
+    // abstención (no se fabrica un match). Solo alimenta similarity, NO el VSI compuesto.
+    const simDerived = deriveSimMetrics(videoObservations, physicalValue);
+
+    // Sin comparable derivable → se omite también el narrador best-match (no tiene
+    // nada que narrar honestamente), igual que projection cuando el VSI está bloqueado.
+    if (!simDerived) {
+      activeAgents = activeAgents.filter((a) => a.name !== "best-match");
+    }
 
     // ── 3a. Scan rate detection (NUEVO Sprint 4) ────────────────────
     // Si Modal devolvió keypoints, calcular scan rate del jugador
@@ -311,30 +330,44 @@ export default withHandler(
       }
     }
 
-    // ── 3b. Similarity (best-match) ──────────────────────────────────
-    const similarityRes = await callInternal("/api/agents/player-similarity", {
-      metrics: {
-        speed: simSubscores.physical,
-        shooting: simSubscores.technique,
-        vision: simSubscores.mental,
-        technique: simSubscores.technique,
-        defending: simSubscores.tactical,
-        stamina: simSubscores.physical,
-      },
-      position: player?.position ?? "MID",
-      youthAge: anthro?.chronological_age,
-      phvOffset: anthro?.maturity_offset,
-    });
+    // ── 3b. Comparable profesional (best-match) ──────────────────────
+    // P3: si simDerived es null (sin eventos observados) → NO se llama a similarity y
+    // se ABSTIENE (no se fabrica un match de 6 dims con constantes). Si hay eventos, se
+    // llama con las métricas DERIVADAS y el comparable se marca derivado + baja confianza.
+    let similarityRes: Awaited<ReturnType<typeof callInternal>> = {
+      success: false,
+      error: "abstained_no_observations",
+      latencyMs: 0,
+    };
+    let similarity: unknown;
+    if (simDerived) {
+      similarityRes = await callInternal("/api/agents/player-similarity", {
+        metrics: simDerived.metrics,
+        position: player?.position ?? "MID",
+        youthAge: anthro?.chronological_age,
+        phvOffset: anthro?.maturity_offset,
+      });
+      const rawSimilarity = similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null;
+      similarity =
+        rawSimilarity && typeof rawSimilarity === "object"
+          ? {
+              ...(rawSimilarity as Record<string, unknown>),
+              // Comparable DERIVADO de eventos observados, NO medición validada de
+              // técnica/mental/táctica → baja confianza (más baja si <3 dims salen de
+              // un ratio real observado).
+              provenance: "derived_from_observed_events",
+              lowConfidence: measuredFraction < 0.5 || simDerived.ratioDerivedDims < 3,
+            }
+          : rawSimilarity;
+    } else {
+      similarity = {
+        abstained: true,
+        gate_reason:
+          "sin eventos observados en el vídeo → no se genera comparable (el pipeline no mide técnica/mental/táctica de forma validada; inv #1/#3)",
+      };
+    }
 
     // ── 4. Persistir resultados deterministas en analysis ───────────
-    // La similarity se alimenta de sub-scores mayormente placeholder → si <50% del
-    // VSI está medido, se marca lowConfidence (el "comparable profesional" no debe
-    // presentarse como sólido cuando sale de estimaciones).
-    const rawSimilarity = similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null;
-    const similarity =
-      rawSimilarity && typeof rawSimilarity === "object"
-        ? { ...(rawSimilarity as Record<string, unknown>), lowConfidence: measuredFraction < 0.5 }
-        : rawSimilarity;
 
     await supabase
       .from("analyses")
@@ -488,29 +521,8 @@ export default withHandler(
       ?? player?.position
       ?? null;
 
-    // docx #14 · Observaciones DIRECTAS del vídeo para los agentes narradores.
-    // Ya existen y están gated en ORIGEN (physicalMetrics solo trae velocidad/
-    // distancia si calibración+identidad son fiables), pero el sharedContext no las
-    // cableaba → los informes no podían citar lo visto y sonaban genéricos. Se
-    // normalizan las dos rutas de producción en un bloque único, SIN inventar nada:
-    //   - Gemini: embebido en biomechanics.gemini_observation (eventosContados,
-    //     dimensiones{observaciones,score_estimado}, momentosDestacados, resumenGeneral)
-    //   - Cliente (onnxruntime): analysis.client_metrics {eventSummary, physicalMetrics}
-    const geminiObs =
-      (analysis.biomechanics as { gemini_observation?: Record<string, unknown> } | null)
-        ?.gemini_observation ?? null;
-    const clientMetrics =
-      (analysis as { client_metrics?: { eventSummary?: unknown; physicalMetrics?: unknown } | null })
-        .client_metrics ?? null;
-    const videoObservations =
-      geminiObs || clientMetrics?.eventSummary || clientMetrics?.physicalMetrics
-        ? {
-            source: geminiObs ? "gemini" : "client",
-            gemini: geminiObs,
-            eventSummary: clientMetrics?.eventSummary ?? null,
-            physicalMetrics: clientMetrics?.physicalMetrics ?? null,
-          }
-        : null;
+    // docx #14 · videoObservations + simDerived ya se calcularon arriba (junto a la
+    // derivación del comparable) para no duplicar la extracción (invariante #7).
 
     const sharedContext = {
       playerId: analysis.player_id,
@@ -627,7 +639,7 @@ export default withHandler(
               biomechanics: analysis.biomechanics ?? null,
               scanning: scanResult ?? null,
               similarity: similarityRes.success ? (similarityRes.data?.data ?? similarityRes.data) : null,
-              subscores: simSubscores,
+              subscores: simDerived?.metrics ?? null, // derivadas de eventos (o null si abstención)
             },
             labels: {
               vsi: vsiValue,
