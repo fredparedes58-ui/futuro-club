@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -24,7 +25,7 @@ export default withHandler(
   // GET explícito: sin `method`, withHandler default a POST-only → un GET devolvía
   // 405 (antes del auth), rompiendo "Ver Completo" y loadAnalysis del hook.
   { schema: querySchema, method: ["GET"], requireAuth: true, maxRequests: 200 },
-  async ({ query }) => {
+  async ({ query, userId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
       return errorResponse({ code: "invalid_params", message: "analysisId requerido", status: 400 });
@@ -54,6 +55,19 @@ export default withHandler(
         code: "analysis_not_found",
         message: analysisRes.error?.message ?? "Not found",
         status: 404,
+      });
+    }
+
+    // Autorización a nivel de objeto: requireAuth solo garantiza que hay un usuario,
+    // NO que sea dueño del análisis. Como el cliente usa SERVICE_KEY (salta RLS), el
+    // check de propiedad es obligatorio aquí. Sin él, cualquier usuario autenticado
+    // podía leer los informes (VSI/PHV/biomecánica) de un menor ajeno con solo su id.
+    const playerId = (analysisRes.data as { player_id?: string | null }).player_id ?? null;
+    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
+      return errorResponse({
+        code: "forbidden",
+        message: "No autorizado para este análisis",
+        status: 403,
       });
     }
 
