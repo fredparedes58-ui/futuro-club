@@ -77,10 +77,16 @@ export default withHandler(
       if (!matchId) {
         return errorResponse({ code: "missing_matchId", message: "matchId requerido", status: 400 });
       }
+      // Ownership: sin .eq(user_id) cualquier autenticado leía los eventos
+      // (player_id de menores, notas, metadata) de un partido ajeno con solo su
+      // matchId. POST/DELETE ya gatean por user_id; el GET no lo hacía. Los
+      // live_events se insertan con user_id del creador (:140/:192), así que
+      // filtrar por user_id acota al dueño (igual que el DELETE).
       const { data: events, error } = await supabase
         .from("live_events")
         .select("*")
         .eq("match_id", matchId)
+        .eq("user_id", userId)
         .order("timestamp_seconds", { ascending: true });
 
       if (error) {

@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ownsPlayer, ownsPlayerOrTenant } from "../_lib/ownership";
+import { ownsPlayer, ownsPlayerOrTenant, ownedPlayersOrFilter } from "../_lib/ownership";
 
 const USER_A = "aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa";
 const USER_B = "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb";
@@ -159,5 +159,28 @@ describe("ownsPlayerOrTenant · usuario CON respaldo por tenant (fail-closed)", 
     expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network"); }));
     expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
+  });
+});
+
+describe("ownedPlayersOrFilter · scoping multi-fila (query .or)", () => {
+  it("con tenant: incluye ambas cláusulas user_id + tenant_id", () => {
+    expect(ownedPlayersOrFilter(USER_A, TENANT_A)).toBe(
+      `user_id.eq.${USER_A},tenant_id.eq.${TENANT_A}`,
+    );
+  });
+
+  it("sin tenant (null): solo user_id (no abre a otros tenants)", () => {
+    expect(ownedPlayersOrFilter(USER_A, null)).toBe(`user_id.eq.${USER_A}`);
+    expect(ownedPlayersOrFilter(USER_A, "")).toBe(`user_id.eq.${USER_A}`);
+  });
+
+  it("valida UUID: un valor no-UUID no se interpola (no inyección en .or)", () => {
+    // userId no-UUID (p. ej. intento de inyección) → cláusula descartada →
+    // fail-closed a UUID nil que no casa ningún jugador.
+    expect(ownedPlayersOrFilter("evil,tenant_id.eq.x", null)).toBe(
+      "user_id.eq.00000000-0000-0000-0000-000000000000",
+    );
+    // tenant no-UUID se ignora, user_id válido se mantiene.
+    expect(ownedPlayersOrFilter(USER_A, "x,or,injection")).toBe(`user_id.eq.${USER_A}`);
   });
 });

@@ -306,7 +306,10 @@ export default withHandler(
     if (mErr || !match) {
       return errorResponse({ code: "not_found", message: "Partido no existe", status: 404 });
     }
-    if (match.user_id && match.user_id !== userId) {
+    // Fail-closed: sin el `&&` previo, un partido con user_id null (huérfano por
+    // ON DELETE SET NULL del dueño, migración 032) dejaba de gatear y cualquier
+    // autenticado agregaba/leía sus stats por jugador. null !== userId → 403.
+    if (match.user_id !== userId) {
       return errorResponse({ code: "forbidden", message: "No es tu partido", status: 403 });
     }
 

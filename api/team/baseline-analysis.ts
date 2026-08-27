@@ -20,6 +20,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { MODELS } from "../_lib/models";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
 import { createClient } from "@supabase/supabase-js";
 
@@ -293,9 +294,12 @@ type ReportType = keyof typeof TEAM_PROMPTS;
 
 export default withHandler(
   { schema: bodySchema, requireAuth: true, maxRequests: 5 },
-  async ({ body, userId }) => {
+  async ({ body, userId, tenantId }) => {
     if (!ANTHROPIC_API_KEY) {
       return errorResponse({ code: "no_api_key", message: "ANTHROPIC_API_KEY missing", status: 500 });
+    }
+    if (!userId) {
+      return errorResponse({ code: "unauthorized", message: "Login requerido", status: 401 });
     }
     const input = body as z.infer<typeof bodySchema>;
     const startedAt = Date.now();
@@ -313,6 +317,10 @@ export default withHandler(
       // la RPC get_ranked_players de la migración 059). Postgres ordena DESC con
       // NULLS FIRST por defecto.
       .order("vsi", { ascending: false, nullsFirst: false })
+      // Ownership a nivel de fila: restringe a los jugadores del usuario/su academia.
+      // Sin esto, cualquier autenticado leía nombre/edad/VSI/PHV de menores de otro
+      // tenant (pasando sus playerIds, o el top-40 global por defecto).
+      .or(ownedPlayersOrFilter(userId, tenantId))
       .limit(40);
 
     if (input.playerIds && input.playerIds.length > 0) {
