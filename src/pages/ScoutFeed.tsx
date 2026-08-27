@@ -13,6 +13,7 @@ import {
   useScoutInsights, useGenerateInsights, useUpdateInsight,
   type ScoutInsightRow, type InsightsFilters,
 } from "@/hooks/useScoutFeed";
+import { useAllPlayers } from "@/hooks/usePlayers";
 import { ScoutFeedSkeleton } from "@/components/shared/Skeletons";
 import VsiGauge from "@/components/VsiGauge";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -406,6 +407,7 @@ const ScoutFeed = () => {
   const { data, isLoading, isError, isFetching } = useScoutInsights(filters);
   const generateMutation = useGenerateInsights();
   const updateMutation = useUpdateInsight();
+  const { data: allPlayers } = useAllPlayers();
 
   // "Cargar más" acumula páginas (antes reemplazaba: al subir offset la query
   // nueva sustituía la lista y se perdían los insights anteriores).
@@ -564,12 +566,25 @@ const ScoutFeed = () => {
                     <option value="low">{t("scout.urgencyLow")}</option>
                   </select>
                 </div>
+                {/* Filtro por jugador (docx #13): con muchos jugadores, ver solo
+                    los informes del que interesa. El backend ya soporta playerId. */}
+                <select
+                  value={filters.playerId ?? ""}
+                  onChange={e => handleFilterChange("playerId", e.target.value)}
+                  className="w-full py-1.5 px-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground focus:outline-none"
+                >
+                  <option value="">{t("scout.allPlayers")}</option>
+                  {[...(allPlayers ?? [])]
+                    .filter(p => p?.id)
+                    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
+                    .map(p => <option key={p.id} value={p.id}>{p.name ?? p.id}</option>)}
+                </select>
                 <select
                   value={(filters as Record<string, string>).position ?? ""}
                   onChange={e => handleFilterChange("position" as keyof InsightsFilters, e.target.value)}
                   className="w-full py-1.5 px-2 bg-secondary border border-border rounded-lg text-xs font-display text-foreground focus:outline-none"
                 >
-                  <option value="">Todas las posiciones</option>
+                  <option value="">{t("scout.allPositions")}</option>
                   {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
                 {hasActiveFilters && (

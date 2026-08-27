@@ -498,6 +498,8 @@
     "filters": "Filters",
     "allTypes": "All types",
     "allUrgencies": "All urgencies",
+    "allPlayers": "All players",
+    "allPositions": "All positions",
     "urgencyHigh": "High",
     "urgencyMedium": "Medium",
     "urgencyLow": "Low",
