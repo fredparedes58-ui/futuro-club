@@ -160,7 +160,10 @@ function detectObservedWeaknesses(videoObservations: unknown): string[] {
     const duelTot = n(ec.duelosGanados) + n(ec.duelosPerdidos);
     if (duelTot >= 3 && n(ec.duelosGanados) / duelTot < 0.5) out.push("duelos (observados en vídeo)");
     if (passTot >= 5 && n(ec.escaneos) <= 2) out.push("escaneo/lectura de juego (observado en vídeo)");
-    if (n(ec.perdidas) > n(ec.recuperaciones)) out.push("control bajo presión (observado en vídeo)");
+    // Muestra mínima ≥3 (como los demás): un n=1 (1 pérdida, 0 recuperaciones) NO es
+    // un déficit — evita fabricar "control bajo presión" desde casi nada (revisión #179).
+    const lossVol = n(ec.perdidas) + n(ec.recuperaciones);
+    if (lossVol >= 3 && n(ec.perdidas) > n(ec.recuperaciones)) out.push("control bajo presión (observado en vídeo)");
   } else if (es) {
     if (typeof es.passCompletionPct === "number" && es.passCompletionPct < 60) out.push("precisión de pase (observada en vídeo)");
     const dW = n(es.duelsWon), dL = n(es.duelsLost);

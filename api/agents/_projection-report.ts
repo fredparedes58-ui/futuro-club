@@ -187,6 +187,13 @@ export default withHandler(
         category: (inputPhv.category ?? "ontime") as "early" | "ontime" | "late",
       });
 
+      // El sharedContext trae vsiHistory MÁS-RECIENTE-PRIMERO; se ordena ascendente
+      // (antiguo→reciente) para que el modelo narre la tendencia en el sentido correcto
+      // (evita "bajó de X a Y" cuando en realidad subió · revisión #179).
+      const vsiHistAsc = [
+        ...((input.vsiHistory ?? input.historicalVsi ?? []) as Array<Record<string, unknown>>),
+      ].sort((a, b) => String(a?.date ?? "").localeCompare(String(b?.date ?? "")));
+
       const userMessage = `JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
@@ -201,8 +208,8 @@ CURVA PROYECTADA (calculada deterministicamente):
 - Año 2: ${curve.year2}
 - Año 3: ${curve.year3}
 
-HISTÓRICO VSI PREVIO (≥2 puntos = hay tendencia REAL para narrar; vacío = primer análisis):
-${JSON.stringify(input.vsiHistory ?? input.historicalVsi ?? [], null, 2)}
+HISTÓRICO VSI PREVIO (orden cronológico antiguo→reciente; ≥2 puntos = tendencia REAL; vacío = primer análisis):
+${JSON.stringify(vsiHistAsc, null, 2)}
 
 OBSERVACIÓN DIRECTA DEL VÍDEO (eventos — base de key_drivers/factores de la proyección):
 ${JSON.stringify(input.videoObservations ?? "no_data", null, 2)}
