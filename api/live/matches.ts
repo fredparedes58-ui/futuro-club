@@ -69,10 +69,16 @@ export default withHandler(
     if (method === "GET") {
       const id = query.id;
       if (id) {
+        // Ownership: sin el filtro user_id, cualquier autenticado leía el partido
+        // (analysis_result + eventos con player_id de menores) de otro usuario con
+        // solo su id. list/PATCH/DELETE ya filtran por user_id; el GET-by-id no lo
+        // hacía. Al acotar el match, los eventos (que se leen después) quedan
+        // cubiertos porque solo se alcanzan tras confirmar la propiedad del match.
         const { data: match, error: mErr } = await supabase
           .from("live_matches")
           .select("*")
           .eq("id", id)
+          .eq("user_id", userId)
           .single();
 
         if (mErr || !match) {

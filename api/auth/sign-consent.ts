@@ -17,6 +17,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsPlayerOrTenant } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
 
@@ -88,8 +89,16 @@ async function sendConsentEmail(to: string, link: string, parentName: string, ch
 
 export default withHandler(
   { schema: consentSchema, requireAuth: true, maxRequests: 10 },
-  async ({ body, userId, ip }) => {
+  async ({ body, userId, tenantId, isServiceCall, ip }) => {
     const input = body as z.infer<typeof consentSchema>;
+
+    // Autorización a nivel de objeto: sin esto, cualquier autenticado podía FORJAR
+    // el consentimiento parental de un menor ajeno (parental_consents +
+    // legal_acceptances) y filtrar su nombre por email a un parentEmail que él
+    // controla. requireAuth solo prueba que hay un usuario, no que gestione al niño.
+    if (!isServiceCall && !(await ownsPlayerOrTenant(input.playerId, userId, tenantId))) {
+      return errorResponse({ code: "forbidden", message: "No autorizado para este jugador", status: 403 });
+    }
 
     const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
     if (!supabaseUrl || !process.env.SUPABASE_SERVICE_ROLE_KEY) {

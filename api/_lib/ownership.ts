@@ -99,6 +99,21 @@ export async function ownsPlayerOrTenant(
 }
 
 /**
+ * Cláusula PostgREST `.or(...)` para restringir una consulta de MÚLTIPLES jugadores
+ * a los que gestiona el usuario (players.user_id) o su academia (players.tenant_id).
+ * Es el análogo multi-fila de ownsPlayerOrTenant (que es por objeto único): mismos
+ * campos, misma semántica. Se pasa a `query.or(ownedPlayersOrFilter(...))`.
+ *
+ * requireAuth garantiza userId, así que la cláusula nunca queda vacía. Si no hay
+ * tenant (JWT sin claim) cae a solo user_id — no abre a otros tenants.
+ */
+export function ownedPlayersOrFilter(userId: string, tenantId: string | null): string {
+  const clauses = [`user_id.eq.${userId}`];
+  if (tenantId) clauses.push(`tenant_id.eq.${tenantId}`);
+  return clauses.join(",");
+}
+
+/**
  * ¿La sesión de entrenamiento `sessionId` pertenece al coach `userId`?
  * (training_sessions.coach_id — se persiste en api/coaching/_analyze-session.ts)
  * Fail-closed.
