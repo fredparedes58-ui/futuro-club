@@ -21,7 +21,9 @@ const querySchema = z.object({
 });
 
 export default withHandler(
-  { schema: querySchema, requireAuth: true, maxRequests: 200 },
+  // GET explícito: sin `method`, withHandler default a POST-only → un GET devolvía
+  // 405 (antes del auth), rompiendo "Ver Completo" y loadAnalysis del hook.
+  { schema: querySchema, method: ["GET"], requireAuth: true, maxRequests: 200 },
   async ({ query }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {

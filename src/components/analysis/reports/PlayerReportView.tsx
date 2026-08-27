@@ -22,6 +22,7 @@ import { useTranslation } from "react-i18next";
 import {
   Sprout, Trophy, Target, Lightbulb, ShieldCheck, Users, Gauge,
 } from "lucide-react";
+import { asItemArray } from "@/lib/reports/reportItems";
 
 // ── mini <Section> local · replica el patrón de AnalysisDashboard sin crear
 //    ciclo de import ────────────────────────────────────────────────────────
@@ -80,8 +81,10 @@ export default function PlayerReportView({ report }: { report: Record<string, un
   const tierLabel = (report.tier_label as string | undefined) ?? undefined;
   const executiveSummary = (report.executive_summary as string | undefined) ?? undefined;
   const phvSummary = (report.phv_summary as string | undefined) ?? undefined;
-  const strengths = (report.strengths as Array<Strength | string> | undefined) ?? [];
-  const areas = (report.areas_to_improve as Array<Area | string> | undefined) ?? [];
+  // asItemArray: el LLM puede emitir strengths/areas como string o con elementos
+  // null; `?? []` no coerce un string → `.length>0` pasa y `.map` crashea la vista.
+  const strengths = asItemArray<Strength | string>(report.strengths);
+  const areas = asItemArray<Area | string>(report.areas_to_improve);
   const comparablePro = (report.comparable_pro as string | undefined) ?? undefined;
   const nextFocus = (report.next_4_weeks_focus as string | undefined) ?? undefined;
   const honestyNote = (report.honesty_note as string | undefined) ?? undefined;
@@ -166,7 +169,7 @@ export default function PlayerReportView({ report }: { report: Record<string, un
           </div>
           <div className="space-y-1.5">
             {strengths.map((s, i) => {
-              const item = typeof s === "string" ? { title: s } : s;
+              const item = s && typeof s === "object" ? s : { title: typeof s === "string" ? s : "" };
               return (
                 <div key={i} className="rounded-xl bg-secondary/30 border border-border p-3">
                   <span className="font-semibold text-xs text-foreground">{item.title ?? "—"}</span>
@@ -189,7 +192,7 @@ export default function PlayerReportView({ report }: { report: Record<string, un
           </div>
           <div className="space-y-1.5">
             {areas.map((a, i) => {
-              const item = typeof a === "string" ? { title: a } : a;
+              const item = a && typeof a === "object" ? a : { title: typeof a === "string" ? a : "" };
               const prioChip = (item.priority && PRIORITY_META[item.priority]) || PRIORITY_META.low;
               const prioLabel = item.priority
                 ? t(`playerReport.priority.${item.priority}`, { defaultValue: item.priority })
