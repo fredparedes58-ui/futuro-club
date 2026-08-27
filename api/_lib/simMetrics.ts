@@ -49,6 +49,9 @@ const SCAN_FULL = 25;   // escaneos por vídeo para saturar "visión"
 const PROG_FULL = 12;   // pases progresivos para saturar
 const DEFVOL_FULL = 12; // recuperaciones+robos+anticipaciones para saturar "volumen defensivo"
 const REC_FULL = 12;    // recoveries (path cliente)
+// Muestra mínima para que un ratio (%) se use y cuente como fiable: evita que un
+// n=1 (1 disparo → 100%) se trate como un ratio real (revisión #178).
+const MIN_SAMPLE = 3;
 
 /**
  * Deriva las 6 métricas de similarity. `physicalValue` es la señal física real
@@ -62,9 +65,18 @@ export function deriveSimMetrics(
   const obs = videoObservations as
     | { gemini?: { eventosContados?: Record<string, unknown> } | null; eventSummary?: Record<string, unknown> | null }
     | null;
-  const ec = obs?.gemini?.eventosContados ?? null;
+  const ecRaw = obs?.gemini?.eventosContados ?? null;
   const es = obs?.eventSummary ?? null;
-  if (!ec && !es) return null; // sin eventos → el caller se abstiene (no constantes)
+  // Abstención por CONTENIDO, no solo por presencia: un {} o un todo-ceros NO es señal
+  // (evita fabricar un comparable "neutro" de 50s desde un objeto vacío — revisión #178).
+  const ecHasEvents = ecRaw ? Object.values(ecRaw).some((v) => num(v) > 0) : false;
+  const esHasEvents = es
+    ? ["totalEvents", "passesAttempted", "passesCompleted", "duelsWon", "duelsLost", "recoveries", "shots"].some(
+        (k) => num((es as Record<string, unknown>)[k]) > 0,
+      )
+    : false;
+  if (!ecHasEvents && !esHasEvents) return null;
+  const ec = ecHasEvents ? ecRaw : null;
 
   const physBase = physicalValue != null ? clamp(physicalValue) : 50;
   let ratioDerivedDims = physicalValue != null ? 1 : 0; // la física cuenta si es real
@@ -77,21 +89,21 @@ export function deriveSimMetrics(
     // technique ← precisión de pase (ratio real) + éxito en regate (ratio real)
     const passTot = num(ec.pasesCompletados) + num(ec.pasesFallados);
     const dribTot = num(ec.regatesConVentaja) + num(ec.regatesSinVentaja);
-    const passAcc = passTot > 0 ? (num(ec.pasesCompletados) / passTot) * 100 : null;
-    const dribAcc = dribTot > 0 ? (num(ec.regatesConVentaja) / dribTot) * 100 : null;
+    const passAcc = passTot >= MIN_SAMPLE ? (num(ec.pasesCompletados) / passTot) * 100 : null;
+    const dribAcc = dribTot >= MIN_SAMPLE ? (num(ec.regatesConVentaja) / dribTot) * 100 : null;
     const techParts = [passAcc, dribAcc].filter((v): v is number => v != null);
     technique = techParts.length > 0 ? clamp(techParts.reduce((a, b) => a + b, 0) / techParts.length) : 50;
     if (techParts.length > 0) ratioDerivedDims++;
     // defending ← % duelos ganados (ratio real) + volumen de acciones defensivas
     const duelTot = num(ec.duelosGanados) + num(ec.duelosPerdidos);
-    const duelWin = duelTot > 0 ? (num(ec.duelosGanados) / duelTot) * 100 : null;
+    const duelWin = duelTot >= MIN_SAMPLE ? (num(ec.duelosGanados) / duelTot) * 100 : null;
     const defVol = Math.min(100, ((num(ec.recuperaciones) + num(ec.robos) + num(ec.anticipaciones)) / DEFVOL_FULL) * 100);
     defending = duelWin != null ? clamp(duelWin * 0.6 + defVol * 0.4) : clamp(defVol);
-    if (duelTot > 0) ratioDerivedDims++;
+    if (duelTot >= MIN_SAMPLE) ratioDerivedDims++;
     // shooting ← % disparos a puerta (ratio real)
     const shotTot = num(ec.disparosAlArco) + num(ec.disparosFuera);
-    shooting = shotTot > 0 ? clamp((num(ec.disparosAlArco) / shotTot) * 100) : clamp(technique * 0.7);
-    if (shotTot > 0) ratioDerivedDims++;
+    shooting = shotTot >= MIN_SAMPLE ? clamp((num(ec.disparosAlArco) / shotTot) * 100) : clamp(technique * 0.7);
+    if (shotTot >= MIN_SAMPLE) ratioDerivedDims++;
     // vision ← volumen de escaneo + pases progresivos (proxies, sin ratio → pendiente de validar)
     const scanScore = Math.min(100, (num(ec.escaneos) / SCAN_FULL) * 100);
     const progScore = Math.min(100, (num(ec.pasesProgresivos) / PROG_FULL) * 100);
@@ -104,10 +116,10 @@ export function deriveSimMetrics(
     if (typeof passPct === "number") ratioDerivedDims++;
     // defending ← % duelos ganados (ratio) + recoveries (volumen)
     const dW = num(es!.duelsWon), dL = num(es!.duelsLost);
-    const duelWin = dW + dL > 0 ? (dW / (dW + dL)) * 100 : null;
+    const duelWin = dW + dL >= MIN_SAMPLE ? (dW / (dW + dL)) * 100 : null;
     const recVol = Math.min(100, (num(es!.recoveries) / REC_FULL) * 100);
     defending = duelWin != null ? clamp(duelWin * 0.6 + recVol * 0.4) : clamp(recVol);
-    if (dW + dL > 0) ratioDerivedDims++;
+    if (dW + dL >= MIN_SAMPLE) ratioDerivedDims++;
     // shooting ← xG por disparo (proxy) — pendiente de validar
     const shots = num(es!.shots);
     shooting = shots > 0 ? clamp(Math.min(100, 40 + num(es!.xgContributions) * 60)) : clamp(technique * 0.7);

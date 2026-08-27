@@ -534,7 +534,10 @@ export default withHandler(
       scanning: scanResult, // NUEVO Sprint 4 · scan rate detection
       phv: anthro,
       vsi: vsiWithProvenance, // objeto honesto: vsi:null si bloqueado + subscores MetricResult
-      similarity: similarityRes.success ? similarityRes.data?.data ?? similarityRes.data : null,
+      // Similarity ETIQUETADA (provenance:"derived_from_observed_events" + lowConfidence,
+      // o {abstained,gate_reason}) para que el narrador/UI puedan matizar que el
+      // comparable no es una medición validada (revisión #178). No la cruda.
+      similarity,
       playerContext: {
         chronologicalAge: anthro?.chronological_age ?? 12,
         position: player?.position,

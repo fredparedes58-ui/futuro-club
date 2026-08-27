@@ -19,6 +19,13 @@ describe("deriveSimMetrics · abstención sin eventos", () => {
     // physicalMetrics presente pero SIN eventos de juego → sigue abstención
     expect(deriveSimMetrics({ physicalMetrics: { tracksDetected: 5 } }, 70)).toBeNull();
   });
+
+  it("objeto de eventos vacío o todo-ceros → null (abstención por CONTENIDO, no presencia)", () => {
+    expect(deriveSimMetrics({ gemini: { eventosContados: {} } }, 70)).toBeNull();
+    expect(
+      deriveSimMetrics({ eventSummary: { totalEvents: 0, passesAttempted: 0, duelsWon: 0, duelsLost: 0 } }, 70),
+    ).toBeNull();
+  });
 });
 
 describe("deriveSimMetrics · path Gemini (eventosContados)", () => {
@@ -61,6 +68,15 @@ describe("deriveSimMetrics · path Gemini (eventosContados)", () => {
     expect(r.ratioDerivedDims).toBe(3); // sin la física
   });
 
+  it("n=1 NO cuenta como ratio (1 disparo no da shooting=100 fiable)", () => {
+    const r = deriveSimMetrics(
+      { gemini: { eventosContados: { pasesCompletados: 20, pasesFallados: 5, disparosAlArco: 1, disparosFuera: 0 } } },
+      60,
+    )!;
+    expect(r.metrics.shooting).toBeLessThan(100); // cae al proxy, no al ratio n=1
+    expect(r.ratioDerivedDims).toBe(2); // física(1) + pases(1); disparo n=1 no cuenta, sin duelos
+  });
+
   it("todas las métricas quedan en [0,100]", () => {
     const r = deriveSimMetrics(obs, 60)!;
     for (const v of Object.values(r.metrics)) {
@@ -82,9 +98,10 @@ describe("deriveSimMetrics · path cliente (eventSummary)", () => {
     expect(r.ratioDerivedDims).toBeGreaterThanOrEqual(3); // física + pase + duelo
   });
 
-  it("sin passCompletionPct → technique neutro 50, no cuenta como ratio", () => {
-    const r = deriveSimMetrics({ eventSummary: { duelsWon: 0, duelsLost: 0 } }, null)!;
-    expect(r.metrics.technique).toBe(50);
-    expect(r.ratioDerivedDims).toBe(0); // ni física ni ratios
+  it("duelos reales pero sin passCompletionPct: deriva defending, technique neutro", () => {
+    const r = deriveSimMetrics({ eventSummary: { duelsWon: 6, duelsLost: 4 } }, null)!;
+    expect(r).not.toBeNull();
+    expect(r.metrics.technique).toBe(50); // sin passPct → neutro
+    expect(r.ratioDerivedDims).toBe(1); // solo el ratio de duelos (10 >= MIN_SAMPLE)
   });
 });
