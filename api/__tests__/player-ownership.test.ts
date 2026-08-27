@@ -173,4 +173,14 @@ describe("ownedPlayersOrFilter · scoping multi-fila (query .or)", () => {
     expect(ownedPlayersOrFilter(USER_A, null)).toBe(`user_id.eq.${USER_A}`);
     expect(ownedPlayersOrFilter(USER_A, "")).toBe(`user_id.eq.${USER_A}`);
   });
+
+  it("valida UUID: un valor no-UUID no se interpola (no inyección en .or)", () => {
+    // userId no-UUID (p. ej. intento de inyección) → cláusula descartada →
+    // fail-closed a UUID nil que no casa ningún jugador.
+    expect(ownedPlayersOrFilter("evil,tenant_id.eq.x", null)).toBe(
+      "user_id.eq.00000000-0000-0000-0000-000000000000",
+    );
+    // tenant no-UUID se ignora, user_id válido se mantiene.
+    expect(ownedPlayersOrFilter(USER_A, "x,or,injection")).toBe(`user_id.eq.${USER_A}`);
+  });
 });

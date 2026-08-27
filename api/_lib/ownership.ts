@@ -107,10 +107,18 @@ export async function ownsPlayerOrTenant(
  * requireAuth garantiza userId, así que la cláusula nunca queda vacía. Si no hay
  * tenant (JWT sin claim) cae a solo user_id — no abre a otros tenants.
  */
+const OWN_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function ownedPlayersOrFilter(userId: string, tenantId: string | null): string {
-  const clauses = [`user_id.eq.${userId}`];
-  if (tenantId) clauses.push(`tenant_id.eq.${tenantId}`);
-  return clauses.join(",");
+  // Solo se interpola en la cláusula PostgREST `.or()` un valor con forma de UUID.
+  // userId/tenantId vienen del JWT verificado (son UUIDs), pero validar la forma
+  // evita cualquier inyección en el filtro si algún día no lo fueran (defensa en
+  // profundidad). Sin cláusula válida → UUID nil, que no casa ningún jugador
+  // (fail-closed, devuelve vacío en vez de abrir).
+  const clauses: string[] = [];
+  if (OWN_UUID_RE.test(userId)) clauses.push(`user_id.eq.${userId}`);
+  if (tenantId && OWN_UUID_RE.test(tenantId)) clauses.push(`tenant_id.eq.${tenantId}`);
+  return clauses.length > 0 ? clauses.join(",") : "user_id.eq.00000000-0000-0000-0000-000000000000";
 }
 
 /**
