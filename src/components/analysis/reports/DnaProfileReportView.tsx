@@ -20,6 +20,7 @@
 import { useTranslation } from "react-i18next";
 import { Dna, Compass, Sparkles, ShieldHalf, Eye, Cpu } from "lucide-react";
 import ReportConfidenceChip from "@/components/analysis/reports/ReportConfidenceChip";
+import { unwrapDnaContent } from "@/lib/reports/reportItems";
 
 const ALIGNMENT_META: Record<string, { color: string; key: string }> = {
   aligned: { color: "border-green-500/30 bg-green-500/10 text-green-400", key: "aligned" },
@@ -33,16 +34,9 @@ const asText = (v: unknown): string =>
 export default function DnaProfileReportView({ report }: { report: Record<string, unknown> }) {
   const { t } = useTranslation();
 
-  // Unwrap tolerante: content puede venir como {success,data:{...,dna}}, como {dna},
-  // o como el propio objeto dna. Buscamos el que tenga los campos del ADN.
-  const root =
-    report.data && typeof report.data === "object" && !Array.isArray(report.data)
-      ? (report.data as Record<string, unknown>)
-      : report;
-  const dna =
-    root.dna && typeof root.dna === "object" && !Array.isArray(root.dna)
-      ? (root.dna as Record<string, unknown>)
-      : root;
+  // Unwrap tolerante compartido: content llega envuelto ({success,data:{…,dna}})
+  // porque el agente usa la clave `dna`. Misma función que los mappers legacy.
+  const dna = unwrapDnaContent(report);
 
   const title = (dna.title as string | undefined) ?? undefined;
   const primaryStyle = (dna.primary_style as string | undefined) ?? undefined;

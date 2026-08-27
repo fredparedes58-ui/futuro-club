@@ -27,3 +27,29 @@ export function itemTitle(v: unknown): string {
   }
   return "";
 }
+
+/**
+ * Desenvuelve el content del reporte `dna-profile`.
+ *
+ * A diferencia del resto de agentes (clave `report` → content PLANO), el agente
+ * `_dna-profile.ts` emite bajo la clave `dna`, así que el pipeline persiste el
+ * content DOBLEMENTE ENVUELTO: `{ ok, success, data: { playerId, …, dna: {…} } }`.
+ * Leer `content.primary_style` directamente da siempre `undefined` (por eso el
+ * panel legacy mostraba defaults). Esta función tolera las 3 formas —envuelto,
+ * `{ dna }`, u objeto ADN directo— y devuelve el objeto con los campos REALES del
+ * agente (primary_style, natural_role, pressure_behavior…). No inventa datos: si
+ * no hay envoltorio reconocible devuelve el propio objeto (o `{}` si no es objeto).
+ */
+export function unwrapDnaContent(content: unknown): Record<string, unknown> {
+  if (!content || typeof content !== "object" || Array.isArray(content)) return {};
+  const root = content as Record<string, unknown>;
+  const dataLevel =
+    root.data && typeof root.data === "object" && !Array.isArray(root.data)
+      ? (root.data as Record<string, unknown>)
+      : root;
+  const dna =
+    dataLevel.dna && typeof dataLevel.dna === "object" && !Array.isArray(dataLevel.dna)
+      ? (dataLevel.dna as Record<string, unknown>)
+      : dataLevel;
+  return dna;
+}

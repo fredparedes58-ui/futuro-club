@@ -30,6 +30,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as tus from "tus-js-client";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { unwrapDnaContent } from "@/lib/reports/reportItems";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 
@@ -575,7 +576,7 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
   }
 
   const pr  = get("player-report");
-  const dna = get("dna-profile");
+  const dna = unwrapDnaContent(get("dna-profile")); // content dna-profile viene envuelto {data:{…,dna}}
   const bm  = get("best-match");
   const pj  = get("projection");
   const dp  = get("development-plan");
