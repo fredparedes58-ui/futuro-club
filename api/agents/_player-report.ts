@@ -35,6 +35,9 @@ const playerReportSchema = z.object({
   biomechanics: z.record(z.unknown()).nullable().optional(),
   similarity: z.record(z.unknown()).nullable().optional(),
   scanning: z.record(z.unknown()).nullable().optional(),
+  videoObservations: z.record(z.unknown()).nullable().optional(),
+  videoContext: z.record(z.unknown()).nullable().optional(),
+  vsiHistory: z.array(z.record(z.unknown())).nullable().optional(),
   playerContext: z.object({
     chronologicalAge: z.number().optional(),
     position: z.string().optional(),
@@ -42,7 +45,7 @@ const playerReportSchema = z.object({
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "player-report-v2.1.0"; // v2.1 = schema tolerante + scanning
+const PROMPT_VERSION = "player-report-v2.2.1"; // v2.2.1 = procedencia (gemini=IA), gate de identidad en eventSummary, trampa passCompletionPct 0 (revisión #177)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor del Player Report de VITAS Football Intelligence.
@@ -69,7 +72,7 @@ POLIVALENCIA · si videoContext.playedPosition existe:
 ESTRUCTURA OBLIGATORIA (JSON):
 {
   "title": "string · ej. 'Análisis VITAS · [Nombre Jugador]'",
-  "vsi_score": number,
+  "vsi_score": number|null (null si VSI bloqueado — ver GATE DEL DESGLOSE),
   "tier": "elite|pro|talent|develop",
   "tier_label": "string",
   "executive_summary": "string max 280 chars · resumen 1 párrafo para padres",
@@ -98,14 +101,26 @@ REGLAS ABSOLUTAS DE DATOS:
 7. Banderas rojas (lesiones recurrentes, edad fuera de target, datos contradictorios) → mencionarlas SIEMPRE.
 8. CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
+EVIDENCIA DEL VÍDEO (obligatorio · esto es lo que hace el informe ÚTIL en vez de genérico):
+- PROCEDENCIA (obligatorio distinguir): gemini.* son observaciones ESTIMADAS POR IA (un modelo de visión mirando el clip) → cítalas como "observado por IA", NO como "medido". eventSummary/physicalMetrics vienen del tracking → son medidas SOLO con los gates de abajo.
+- IDENTIDAD (identidad.md): eventSummary y sus eventos son de la pista del jugador enfocado. Solo se envían si la identidad es fiable; aun así, si physicalMetrics.identityReliable === false, NO atribuyas esos eventos al jugador por nombre (pudieron acumularse tras un cambio de identidad de la pista).
+- passCompletionPct 0 con passesAttempted 0 significa "no se detectaron pases" (posible fallo de cobertura), NO "falla todos los pases" → no lo cites como debilidad; escribe "sin datos de pase en este vídeo".
+- La sección "OBSERVACIÓN DIRECTA DEL VÍDEO" trae lo contado/observado en ESTE vídeo:
+  · gemini.eventosContados (pases completados/fallados/progresivos, regates con/sin ventaja, duelos ganados/perdidos, recuperaciones, robos, anticipaciones, pérdidas, escaneos, disparos al arco/fuera, centros…), gemini.dimensiones (score_estimado + observaciones por dimensión), gemini.momentosDestacados (timestamp+descripción), gemini.resumenGeneral;
+  · o bien eventSummary (passCompletionPct, passesAttempted/Completed, duelsWon/Lost, recoveries, sprintBursts, shots, xgContributions, vaepApprox) y physicalMetrics.
+- CADA fortaleza y CADA área de mejora DEBE citar un dato observado CONCRETO de esa sección (p. ej. "12/18 pases progresivos", "ganó 7 de 10 duelos", "3 recuperaciones en presión alta", "escaneos: 24"). Prohibido rellenar con rasgos genéricos de la posición.
+- Si "OBSERVACIÓN DIRECTA DEL VÍDEO" es "no_data" o el dato concreto no está, escribe literalmente "No observado en este vídeo" — NUNCA un rasgo plausible inventado.
+- physicalMetrics: usa maxSpeedMs/distanceCoveredM/sprintCount SOLO si están presentes (vienen gated: si calibrationReliable o identityReliable es false esos números NO están y NO se midieron con fiabilidad → no los infieras). scanCount solo si identityReliable.
+- HISTORIAL VSI: si tiene ≥2 puntos, cita la tendencia REAL (subió/bajó de X a Y); si está vacío, di "primer análisis — sin tendencia". No inventes evolución.
+
 SCORING RUBRIC (desglose obligatorio):
 - Técnica (35%): pases, control, regate, tiro — basado en video features observados
 - Físico (20%): velocidad, resistencia, duelos — basado en tracking data
 - ${category === "senior" ? "Proyección (25%): proyección de rendimiento y estado de forma, tendencia de evolución" : "Proyección + PHV (25%): margen de mejora por edad madurativa (PHV Mirwald), tendencia de evolución"}
 - Fit contextual (20%): encaje con posición, estilo de juego, necesidades del equipo
 
-El score final DEBE ser la suma ponderada de estos 4 componentes.
-Incluir desglose visible: "Técnica: 72 | Físico: 65 | Proyección${category === "senior" ? "" : "+PHV"}: 85 | Fit: 70 → VSI: 74"
+GATE DEL DESGLOSE (honestidad · obligatorio): si VSI llega bloqueado (vsi.blocked=true) o vsi_score es null, NO fabriques el número: pon vsi_score=null, explica el gate en el executive_summary ("VSI no calculable en este vídeo: [gate_reason]") y lístalo en not_evaluated. Para cada componente del desglose, usa un sub-score SOLO si hay dato observado que lo sustente; si no, márcalo "No disponible" — NUNCA copies los números del ejemplo. El desglose refleja SOLO las dimensiones con datos reales.
+Cuando SÍ haya VSI y sub-scores reales, inclúyelo como suma ponderada con desglose visible: "Técnica: 72 | Físico: 65 | Proyección${category === "senior" ? "" : "+PHV"}: 85 | Fit: 70 → VSI: 74" (ejemplo de FORMATO, no de valores).
 
 NO incluyas markdown ni texto fuera del JSON.
 
@@ -154,13 +169,22 @@ export default withHandler(
       const userMessage = `DATOS DEL JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
+CONTEXTO DEL VÍDEO (fecha del análisis + posición jugada en este vídeo):
+${JSON.stringify(input.videoContext ?? "no_data", null, 2)}
+
+OBSERVACIÓN DIRECTA DEL VÍDEO (lo que se contó/midió en ESTE vídeo — evidencia para citar):
+${JSON.stringify(input.videoObservations ?? "no_data", null, 2)}
+
 VSI:
 ${JSON.stringify(input.vsi, null, 2)}
+
+HISTORIAL VSI (análisis anteriores · para tendencia; vacío = primer análisis):
+${JSON.stringify(input.vsiHistory ?? [], null, 2)}
 
 PHV (maduración biológica):
 ${JSON.stringify(input.phv ?? "no_data", null, 2)}
 
-BIOMECÁNICA:
+BIOMECÁNICA (agregados de pose; NO confundir con las observaciones de arriba):
 ${JSON.stringify(input.biomechanics ?? "no_data", null, 2)}
 
 COMPARABLES PRO (top-1 si existe):

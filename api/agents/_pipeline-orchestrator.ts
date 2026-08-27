@@ -488,11 +488,37 @@ export default withHandler(
       ?? player?.position
       ?? null;
 
+    // docx #14 · Observaciones DIRECTAS del vídeo para los agentes narradores.
+    // Ya existen y están gated en ORIGEN (physicalMetrics solo trae velocidad/
+    // distancia si calibración+identidad son fiables), pero el sharedContext no las
+    // cableaba → los informes no podían citar lo visto y sonaban genéricos. Se
+    // normalizan las dos rutas de producción en un bloque único, SIN inventar nada:
+    //   - Gemini: embebido en biomechanics.gemini_observation (eventosContados,
+    //     dimensiones{observaciones,score_estimado}, momentosDestacados, resumenGeneral)
+    //   - Cliente (onnxruntime): analysis.client_metrics {eventSummary, physicalMetrics}
+    const geminiObs =
+      (analysis.biomechanics as { gemini_observation?: Record<string, unknown> } | null)
+        ?.gemini_observation ?? null;
+    const clientMetrics =
+      (analysis as { client_metrics?: { eventSummary?: unknown; physicalMetrics?: unknown } | null })
+        .client_metrics ?? null;
+    const videoObservations =
+      geminiObs || clientMetrics?.eventSummary || clientMetrics?.physicalMetrics
+        ? {
+            source: geminiObs ? "gemini" : "client",
+            gemini: geminiObs,
+            eventSummary: clientMetrics?.eventSummary ?? null,
+            physicalMetrics: clientMetrics?.physicalMetrics ?? null,
+          }
+        : null;
+
     const sharedContext = {
       playerId: analysis.player_id,
       videoId: analysis.video_id,
       analysisId: analysis.id,
       biomechanics: analysis.biomechanics,
+      videoObservations, // docx #14 · observaciones directas del vídeo (gated en origen)
+      vsiHistory, // tendencia VSI histórica → los narradores pueden citar evolución
       scanning: scanResult, // NUEVO Sprint 4 · scan rate detection
       phv: anthro,
       vsi: vsiWithProvenance, // objeto honesto: vsi:null si bloqueado + subscores MetricResult

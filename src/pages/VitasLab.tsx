@@ -657,10 +657,13 @@ const VitasLab = () => {
         //    por-jugador pudieron acumularse tras un ID-switch → atribuidas al jugador
         //    equivocado. Solo se envían al LLM si AMBOS gates pasan.
         const physicalMetrics: Record<string, unknown> = {};
+        // identidad.md: los eventos POR-JUGADOR (physicalMetrics Y eventSummary) solo se
+        // atribuyen al jugador si su pista tiene identidad fiable; sin ella pudieron
+        // acumularse tras un cambio de ID → se abstienen (no se envían al informe).
+        const identityReliable = tracking.state.sessionMetrics?.identityReliable ?? false;
         if (tracking.state.sessionMetrics) {
           const sm = tracking.state.sessionMetrics;
           const calibReliable = metricsTrustworthy(tracking.state.calibrationConfidence);
-          const identityReliable = sm.identityReliable ?? false;
           physicalMetrics.calibrationReliable = calibReliable;
           physicalMetrics.calibrationConfidence = tracking.state.calibrationConfidence;
           physicalMetrics.identityReliable = identityReliable;
@@ -692,7 +695,9 @@ const VitasLab = () => {
             source: "client_mediapipe",
           } : null,
           physicalMetrics: Object.keys(physicalMetrics).length > 0 ? physicalMetrics : null,
-          eventSummary: eventSummary ? {
+          // Gated por identidad (identidad.md): sin identidad fiable de la pista, los
+          // eventos por-jugador NO se atribuyen al menor por nombre → se omiten.
+          eventSummary: (eventSummary && identityReliable) ? {
             totalEvents: eventSummary.totalEvents,
             passCompletionPct: eventSummary.passCompletionPct,
             passesAttempted: eventSummary.passesAttempted,
