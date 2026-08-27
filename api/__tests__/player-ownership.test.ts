@@ -17,10 +17,12 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ownsPlayer } from "../_lib/ownership";
+import { ownsPlayer, ownsPlayerOrTenant } from "../_lib/ownership";
 
 const USER_A = "aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa";
 const USER_B = "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb";
+const TENANT_A = "cccccccc-3333-3333-3333-cccccccccccc";
+const TENANT_B = "dddddddd-4444-4444-4444-dddddddddddd";
 const PLAYER = "demo-a";
 
 function mockFetchOnce(impl: (url: string) => { ok: boolean; json?: () => Promise<unknown> }) {
@@ -94,5 +96,68 @@ describe("ownsPlayer · autorización por usuario (fail-closed)", () => {
     const spy = mockFetchOnce(() => ({ ok: true, json: async () => [{ id: PLAYER }] }));
     expect(await ownsPlayer(PLAYER, USER_A)).toBe(false);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe("ownsPlayerOrTenant · usuario CON respaldo por tenant (fail-closed)", () => {
+  beforeEach(() => {
+    process.env.SUPABASE_URL = "https://test.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("selecciona user_id,tenant_id y da true si el user_id del jugador coincide", async () => {
+    const spy = mockFetchOnce((url) => {
+      expect(url).toContain(`id=eq.${PLAYER}`);
+      expect(url).toContain("select=user_id,tenant_id");
+      return { ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] };
+    });
+    expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(true);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("true por RESPALDO de tenant aunque el user_id no coincida (caso multi-seat)", async () => {
+    // El jugador lo creó otro usuario (USER_A) pero mismo tenant → un miembro
+    // (USER_B, tenant A) que generó/compartió el informe puede verlo.
+    mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    expect(await ownsPlayerOrTenant(PLAYER, USER_B, TENANT_A)).toBe(true);
+  });
+
+  it("false cuando ni user_id ni tenant coinciden (jugador de otra academia)", async () => {
+    mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    expect(await ownsPlayerOrTenant(PLAYER, USER_B, TENANT_B)).toBe(false);
+  });
+
+  it("no cuenta un tenant nulo del jugador como coincidencia (evita abrir por null==null)", async () => {
+    mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: null }] }));
+    // USER_B con tenant null NO debe pasar por el respaldo (p.tenant_id es null).
+    expect(await ownsPlayerOrTenant(PLAYER, USER_B, null)).toBe(false);
+  });
+
+  it("false sin llamar a la red cuando no hay ni userId ni tenantId", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    expect(await ownsPlayerOrTenant(PLAYER, null, null)).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("false sin red cuando no hay playerId", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    expect(await ownsPlayerOrTenant(null, USER_A, TENANT_A)).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("false cuando el jugador no existe (query devuelve [])", async () => {
+    mockFetchOnce(() => ({ ok: true, json: async () => [] }));
+    expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
+  });
+
+  it("false fail-closed: query no-ok / fetch lanza", async () => {
+    mockFetchOnce(() => ({ ok: false }));
+    expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network"); }));
+    expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
   });
 });

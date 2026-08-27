@@ -59,6 +59,46 @@ export async function ownsPlayer(playerId: string | null | undefined, userId: st
 }
 
 /**
+ * ¿El usuario `userId` (o su tenant `tenantId`) gestiona al jugador `playerId`?
+ *
+ * Propiedad por usuario CON respaldo por tenant. Es el MISMO predicado que ya usan
+ * inline api/analyses/share.ts y api/analyses/generate-reports.ts para el jugador de
+ * un análisis: el pipeline de vídeo (bunny-uploaded) crea el análisis con
+ * user_id=null pero player_id real, y players.user_id SÍ se puebla; el respaldo por
+ * tenant deja acceder a otros miembros de la misma academia (que pueden generar y
+ * compartir ese informe). Extraído aquí para que el READ (reports.ts) no sea más
+ * estricto que el WRITE/SHARE (invariante #7: una sola implementación).
+ * Fail-closed: sin playerId, sin userId ni tenantId, sin Supabase, query no-ok o
+ * error → false.
+ */
+export async function ownsPlayerOrTenant(
+  playerId: string | null | undefined,
+  userId: string | null,
+  tenantId: string | null,
+): Promise<boolean> {
+  if (!playerId) return false;
+  if (!userId && !tenantId) return false;
+  const env = supabaseEnv();
+  if (!env) return false;
+  try {
+    const res = await fetch(
+      `${env.url}/rest/v1/players?id=eq.${encodeURIComponent(playerId)}&select=user_id,tenant_id&limit=1`,
+      { headers: serviceHeaders(env.key) },
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as Array<{ user_id: string | null; tenant_id: string | null }>;
+    const p = rows[0];
+    if (!p) return false;
+    return (
+      (!!p.user_id && p.user_id === userId) ||
+      (!!p.tenant_id && !!tenantId && p.tenant_id === tenantId)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * ¿La sesión de entrenamiento `sessionId` pertenece al coach `userId`?
  * (training_sessions.coach_id — se persiste en api/coaching/_analyze-session.ts)
  * Fail-closed.

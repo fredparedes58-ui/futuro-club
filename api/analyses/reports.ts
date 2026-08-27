@@ -9,7 +9,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { ownsPlayer } from "../_lib/ownership";
+import { ownsPlayerOrTenant } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -25,7 +25,7 @@ export default withHandler(
   // GET explícito: sin `method`, withHandler default a POST-only → un GET devolvía
   // 405 (antes del auth), rompiendo "Ver Completo" y loadAnalysis del hook.
   { schema: querySchema, method: ["GET"], requireAuth: true, maxRequests: 200 },
-  async ({ query, userId, isServiceCall }) => {
+  async ({ query, userId, tenantId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
       return errorResponse({ code: "invalid_params", message: "analysisId requerido", status: 400 });
@@ -39,7 +39,7 @@ export default withHandler(
     const [analysisRes, reportsRes] = await Promise.all([
       supabase
         .from("analyses")
-        .select("id, status, vsi, phv, similarity, biomechanics, completed_at, total_latency_ms, player_id, video_id")
+        .select("id, status, vsi, phv, similarity, biomechanics, completed_at, total_latency_ms, player_id, video_id, user_id")
         .eq("id", params.data.analysisId)
         .single(),
       supabase
@@ -59,16 +59,24 @@ export default withHandler(
     }
 
     // Autorización a nivel de objeto: requireAuth solo garantiza que hay un usuario,
-    // NO que sea dueño del análisis. Como el cliente usa SERVICE_KEY (salta RLS), el
-    // check de propiedad es obligatorio aquí. Sin él, cualquier usuario autenticado
-    // podía leer los informes (VSI/PHV/biomecánica) de un menor ajeno con solo su id.
-    const playerId = (analysisRes.data as { player_id?: string | null }).player_id ?? null;
-    if (!isServiceCall && !(await ownsPlayer(playerId, userId))) {
-      return errorResponse({
-        code: "forbidden",
-        message: "No autorizado para este análisis",
-        status: 403,
-      });
+    // NO que sea dueño. Como el cliente usa SERVICE_KEY (salta RLS), el check es
+    // obligatorio. Sin él, cualquier autenticado leía los informes (VSI/PHV/
+    // biomecánica) de un menor ajeno con solo su id. Se replica EXACTAMENTE el
+    // predicado de share.ts (el hermano que da acceso a este mismo análisis): así el
+    // READ no es más estricto que el SHARE/GENERATE y no da 403 a miembros legítimos
+    // de la academia sobre informes que sí pueden generar y compartir.
+    const a = analysisRes.data as { user_id?: string | null; player_id?: string | null };
+    if (!isServiceCall) {
+      const owns =
+        (!!a.user_id && a.user_id === userId) ||
+        (await ownsPlayerOrTenant(a.player_id ?? null, userId, tenantId));
+      if (!owns) {
+        return errorResponse({
+          code: "forbidden",
+          message: "No autorizado para este análisis",
+          status: 403,
+        });
+      }
     }
 
     return successResponse({
