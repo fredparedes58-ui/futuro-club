@@ -35,7 +35,7 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
       ajusteVSIVideoScore: Math.round(vsiScore - 50),
     },
     adnFutbolistico: {
-      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
+      estiloJuego:      (dna.primary_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
       arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
       patrones:         [],
       mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",

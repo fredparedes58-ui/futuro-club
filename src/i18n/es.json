@@ -5248,6 +5248,22 @@
     "keyDrivers": "Factores clave",
     "positionProjections": "Proyección por posición"
   },
+  "dnaProfileReport": {
+    "noContent": "Sin ADN futbolístico",
+    "aiEstimated": "ADN estimado por IA",
+    "style": "Estilo de juego",
+    "role": "Rol",
+    "naturalRole": "Rol natural",
+    "currentRole": "Rol actual",
+    "tacticalLabels": "Etiquetas tácticas",
+    "pressureBehavior": "Bajo presión",
+    "gameReading": "Lectura de juego",
+    "alignment": {
+      "aligned": "Alineado",
+      "adjacent": "Adyacente",
+      "misaligned": "Desalineado"
+    }
+  },
   "developmentPlanReport": {
     "noContent": "Sin plan de desarrollo",
     "planTitle": "Plan de desarrollo",
