@@ -286,6 +286,11 @@
       "title": "No registered players",
       "description": "Add your first player to see the VITAS analysis",
       "cta": "Add player"
+    },
+    "noTrending": {
+      "title": "No trending players yet",
+      "description": "Your players are loaded. See them all in Rankings.",
+      "cta": "View Rankings"
     }
   },
   "players": {

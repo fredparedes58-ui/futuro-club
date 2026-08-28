@@ -160,10 +160,21 @@ describe("Dashboard", () => {
   });
 
   it("muestra empty state cuando no hay jugadores", () => {
+    // "sin jugadores" de verdad ⇒ activePlayers 0 (antes ponía 42, incoherente con el nombre)
+    mockUseDashboardStats.mockReturnValue({ data: { ...mockStats, activePlayers: 0 }, isLoading: false, isError: false });
     mockUseTrendingPlayers.mockReturnValue({ data: [], isLoading: false, isError: false });
     renderDashboard();
     expect(screen.getByText("dashboard.noPlayers.title")).toBeDefined();
     expect(screen.getByText("dashboard.noPlayers.description")).toBeDefined();
+  });
+
+  it("muestra estado 'sin tendencia' (no 'sin jugadores') cuando hay jugadores pero ninguno trending", () => {
+    // activePlayers > 0 (del beforeEach: 42) + trending vacío: NO debe decir "Sin jugadores
+    // registrados" (sería falso) — es el caso tras "Cargar demo" (delta VSI 0 → estable).
+    mockUseTrendingPlayers.mockReturnValue({ data: [], isLoading: false, isError: false });
+    renderDashboard();
+    expect(screen.getByText("dashboard.noTrending.title")).toBeDefined();
+    expect(screen.queryByText("dashboard.noPlayers.title")).toBeNull();
   });
 
   it("navega al hacer click en quick access", () => {

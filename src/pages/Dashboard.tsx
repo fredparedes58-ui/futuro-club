@@ -287,6 +287,19 @@ const Dashboard = () => {
           <div className="space-y-2">
             {players.map((player) => <PlayerCard key={player.id} player={player} />)}
           </div>
+        ) : (stats?.activePlayers ?? 0) > 0 ? (
+          // Hay jugadores pero ninguno con tendencia "up" (p.ej. recién cargados, sin
+          // histórico VSI → delta 0 → "estable"). NO decir "Sin jugadores registrados"
+          // (sería FALSO ya con jugadores) ni ofrecer "Cargar demo" (ya hay datos).
+          // Se apunta a Rankings, donde estos jugadores SÍ aparecen.
+          <div className="glass rounded-xl p-8 text-center space-y-3">
+            <TrendingUp size={32} className="text-muted-foreground mx-auto" />
+            <p className="font-display font-bold text-base text-foreground">{t("dashboard.noTrending.title")}</p>
+            <p className="text-xs text-muted-foreground">{t("dashboard.noTrending.description")}</p>
+            <Button size="sm" className="gap-1.5" onClick={() => navigate("/rankings")}>
+              <BarChart3 size={14} /> {t("dashboard.noTrending.cta")}
+            </Button>
+          </div>
         ) : (
           <div className="glass rounded-xl p-8 text-center space-y-3">
             <Users size={32} className="text-muted-foreground mx-auto" />

@@ -286,6 +286,11 @@
       "title": "Sin jugadores registrados",
       "description": "Agrega tu primer jugador para ver el análisis VITAS",
       "cta": "Agregar jugador"
+    },
+    "noTrending": {
+      "title": "Aún sin jugadores en tendencia",
+      "description": "Tus jugadores ya están cargados. Míralos todos en Rankings.",
+      "cta": "Ver Rankings"
     }
   },
   "players": {
