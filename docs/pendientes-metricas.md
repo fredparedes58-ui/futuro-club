@@ -123,7 +123,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - [ ] **C1 · Activar `custom_access_token_hook` en Supabase** — **⚠ LO MÁS CRÍTICO.** Sin esto `public.tenant_id()` = `NULL` y **toda la RLS multi-tenant de datos de menores queda inerte** (las lecturas directas del front no se filtran por tenant). Pasos (verificados contra `supabase/migrations/057_custom_access_token_hook.sql`):
   1. **Paso 0 — ¿existe la función?** SQL Editor → `select proname from pg_proc where proname = 'custom_access_token_hook';`. Vacío → aplica antes la 057 (pega el fichero entero en el SQL Editor).
   2. **Paso 1 — activar:** Authentication → Hooks → *"Customize Access Token (JWT) Claims"* → función `public.custom_access_token_hook` → **Enable**.
-  3. **Paso 2 — verificar** (el script `scripts/diag-jwt-tenant.mjs` que citaba la migración **ya no existe** → verificación manual): re-loguear en la app y en consola `JSON.parse(atob((await window.supabase.auth.getSession()).data.session.access_token.split('.')[1])).tenant_id` → debe devolver tu tenant_id (no `undefined`).
+  3. **Paso 2 — verificar** con el script recreado: `node --env-file=.env.production.local scripts/diag-jwt-tenant.mjs` (solo lectura; comprueba la precondición 8/8 usuarios). Para la confirmación DEFINITIVA del claim raíz añade `DIAG_TEST_EMAIL=… DIAG_TEST_PASSWORD=…` de una cuenta tuya → debe salir `[OK]`. Alternativa manual: re-loguear en la app y en consola `JSON.parse(atob((await window.supabase.auth.getSession()).data.session.access_token.split('.')[1])).tenant_id`.
   4. **Rollback:** desactivar el hook → RLS vuelve a fallar-cerrada (estado actual), sin romper la app.
   - ⚠ Al activarlo, un usuario real SIN `app_metadata.tenant_id` dejaría de ver sus datos por lectura directa (la migración dice 9/9 usuarios lo tienen, verificado 20 ago) → hazlo mirando la app justo después.
 - [ ] **C2 · Verificar/aplicar migraciones 052–059** en prod (`tloadypygzqyfefanrza`): 054 (ledger budget), 055 (RLS táctica owner), 056/058 (género sin default), 057 (hook JWT, prerequisito de C1), 059 (VSI nullable). *(Cómo hoy: Supabase → Database → Migrations, o pegar los .sql en el SQL Editor.)*
@@ -132,8 +132,9 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - [ ] **C5 · `MODAL_TRACK_URL` + `MODAL_API_KEY`** (+ `MODAL_TRACK_ASYNC_URL` + `MODAL_CALLBACK_SECRET`) en env Vercel; sin ellas el tracking de vídeo degrada a mock/cliente y `allowAsync` (§B) queda inerte.
 - [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Resend** (emails RGPD), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
 
-> **Tarea de código adjunta (opcional):** recrear `scripts/diag-jwt-tenant.mjs` — la verificación
-> automática que la migración 057 promete pero **falta en el repo**. Necesita `SUPABASE_SERVICE_ROLE_KEY`.
+> **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
+> (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
+> Solo lectura, nunca imprime la key ni PII. Probado en prod: **8/8 usuarios con tenant_id**.
 
 ---
 
