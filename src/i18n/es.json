@@ -3706,6 +3706,7 @@
     "closeAndViewReport": "Cerrar y ver informe"
   },
   "scanningIntelligencePage": {
+    "demoNotice": "El Scan IQ y el ranking de abajo son valores de EJEMPLO (derivados del jugador, no medidos). El Scan IQ real aparece al analizar un vídeo del jugador.",
     "headerSubtitle": "Escaneo previo a la recepción del balón",
     "playerAnalyzedSingular": "jugador analizado",
     "playerAnalyzedPlural": "jugadores analizados",

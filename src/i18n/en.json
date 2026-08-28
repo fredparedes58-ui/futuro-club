@@ -3706,6 +3706,7 @@
     "closeAndViewReport": "Close and view report"
   },
   "scanningIntelligencePage": {
+    "demoNotice": "The Scan IQ and ranking below are EXAMPLE values (derived from the player, not measured). Real Scan IQ appears after analyzing a player video.",
     "headerSubtitle": "Scanning before receiving the ball",
     "playerAnalyzedSingular": "player analyzed",
     "playerAnalyzedPlural": "players analyzed",
