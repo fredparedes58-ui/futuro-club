@@ -57,6 +57,10 @@ export const PlayerSchema = z.object({
   birthDate: z.string().optional(),                        // ISO YYYY-MM-DD → edad decimal
   motherHeightCm: z.number().min(120).max(210).optional(), // para %PAH (Khamis-Roche)
   fatherHeightCm: z.number().min(120).max(230).optional(),
+  // true ⇒ jugador de DEMO (cargado con "Cargar datos de ejemplo"), no real. La UI lo
+  // rotula con un badge "Ejemplo" para no confundirlo con un jugador real. Persiste en
+  // el jsonb `data` de players, así que sobrevive el round-trip a Supabase.
+  isDemo: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

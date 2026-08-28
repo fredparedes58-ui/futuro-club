@@ -14,6 +14,8 @@ import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsSer
 import FeatureHint from "@/components/FeatureHint";
 import { RequirePermission } from "@/components/RequirePermission";
 import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import DemoDataBanner from "@/components/DemoDataBanner";
+import { PlayerService } from "@/services/real/playerService";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const rankIcons = [
@@ -77,6 +79,10 @@ const Rankings = () => {
   const { data: response, isLoading, isError } = useRankedPlayers(sortBy, sortDir, filters);
 
   const players = response?.players ?? [];
+  // ¿El roster local contiene jugadores de ejemplo? (localStorage, fiable aunque el
+  // ranking venga del servidor). Si sí, rotulamos toda la vista como datos de ejemplo.
+  // Cómputo inline: lectura barata de localStorage, recalcula en cada render.
+  const hasDemoPlayers = PlayerService.getAll().some((p) => p.isDemo);
   const totalUnfiltered = response?.totalUnfiltered ?? 0;
   const ageGroupStats = response?.ageGroupStats ?? {};
   const competitiveLevels = response?.competitiveLevels ?? [];
@@ -101,6 +107,13 @@ const Rankings = () => {
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-4 max-w-lg mx-auto">
+
+      {/* Datos de ejemplo cargados → rotular la vista (honestidad: no vender demo como real) */}
+      {hasDemoPlayers && (
+        <motion.div variants={item}>
+          <DemoDataBanner messageKey="rankingsPage.demoNotice" />
+        </motion.div>
+      )}
 
       {/* Header + Nuevo jugador */}
       <motion.div variants={item} className="flex items-start justify-between relative">

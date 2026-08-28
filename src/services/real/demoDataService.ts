@@ -15,6 +15,7 @@ import { PlayerService, type CreatePlayerInput } from "./playerService";
 
 const DEMO_PLAYERS: CreatePlayerInput[] = [
   {
+    isDemo: true,
     name: "Lucas Herrera",
     age: 15,
     position: "Mediapunta",
@@ -30,6 +31,7 @@ const DEMO_PLAYERS: CreatePlayerInput[] = [
     },
   },
   {
+    isDemo: true,
     name: "Valentina Rojas",
     age: 13,
     position: "Pivote",
@@ -45,6 +47,7 @@ const DEMO_PLAYERS: CreatePlayerInput[] = [
     },
   },
   {
+    isDemo: true,
     name: "Diego Morales",
     age: 16,
     position: "Extremo Derecho",
