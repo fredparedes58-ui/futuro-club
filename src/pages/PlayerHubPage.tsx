@@ -39,6 +39,7 @@ import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/pl
 
 import VsiGauge from "@/components/VsiGauge";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
@@ -929,6 +930,10 @@ function WellbeingTab({ playerId }: { playerId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* MOCK sin banner = inválido (CLAUDE.md inv #4): cuando el riesgo es de ejemplo
+          (fetchDropoutRisk → generateMockRiskAssessment, isMock:true) hay que rotularlo,
+          igual que el dashboard de Bienestar autónomo (WellbeingDashboard.tsx). */}
+      {risk.isMock && <DemoDataBanner messageKey="demoData.wellbeing" />}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <DropoutRiskGauge
           score={risk.riskScore}

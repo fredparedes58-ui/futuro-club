@@ -50,6 +50,24 @@ export function successResponse(data: unknown, status = 200, extraHeaders?: Reco
 }
 
 /**
+ * Respuesta 200 de DEGRADACIÓN ELEGANTE.
+ *
+ * HTTP 200 (para que el cliente no lance) con `success:false` + los campos indicados
+ * a NIVEL RAÍZ, de modo que el cliente pueda ramificar a un camino alternativo
+ * (p.ej. `phase2Pending:true` ⇒ procesar el vídeo localmente cuando el CDN no está
+ * configurado). No se expone jerga técnica ni nombres de variables de entorno.
+ */
+export function degradedResponse(extra: Record<string, unknown>, extraHeaders?: Record<string, string>): Response {
+  return new Response(
+    JSON.stringify({ ok: true, success: false, ...extra }),
+    {
+      status: 200,
+      headers: { ...CORS_HEADERS, ...extraHeaders },
+    }
+  );
+}
+
+/**
  * Respuesta de error estandarizada.
  * Acepta dos formas:
  *   errorResponse("mensaje", 400, "code")

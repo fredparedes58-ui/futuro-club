@@ -12,7 +12,7 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
-import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { successResponse, errorResponse, degradedResponse } from "../_lib/apiResponse";
 
 const BodySchema = z.object({
   title: z.string().min(1).max(200),
@@ -28,13 +28,13 @@ export default withHandler(
     const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
     const apiKey = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;
 
-    // Graceful degradation — env vars not configured yet
+    // Degradación elegante: sin almacenamiento en la nube configurado, el cliente
+    // procesa el vídeo LOCALMENTE (el análisis de visión corre en el navegador).
+    // Devolvemos 200 + { success:false, phase2Pending:true } a nivel raíz — el contrato
+    // que useVideoUpload ya consume — en vez de un 503 con jerga: NUNCA exponemos
+    // nombres de variables de entorno al usuario final.
     if (!libraryId || !apiKey) {
-      return errorResponse(
-        `Bunny CDN no configurado. LIBRARY_ID=${!!libraryId}, API_KEY=${!!apiKey}. Configura BUNNY_STREAM_LIBRARY_ID y BUNNY_STREAM_API_KEY en Vercel.`,
-        503,
-        "CONFIG_MISSING",
-      );
+      return degradedResponse({ phase2Pending: true });
     }
 
     const { title, playerId, collection } = body;
@@ -54,8 +54,9 @@ export default withHandler(
 
     if (!createRes.ok) {
       const errText = await createRes.text().catch(() => "");
+      console.warn(`[video-init] Bunny Stream API ${createRes.status}: ${errText || "sin cuerpo"}`);
       return errorResponse(
-        `Bunny Stream API error (${createRes.status}): ${errText || "Unknown error"}. Verifica BUNNY_STREAM_API_KEY y BUNNY_STREAM_LIBRARY_ID.`,
+        `Almacenamiento de vídeo no disponible temporalmente (${createRes.status}). Inténtalo de nuevo en unos minutos.`,
         502,
         "BUNNY_ERROR",
       );
