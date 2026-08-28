@@ -28,6 +28,7 @@ import { useTranslation } from "react-i18next";
 
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
+import { useRawPlayerById } from "@/hooks/usePlayers";
 import { useScoutInsights } from "@/hooks/useScoutFeed";
 import { useVideos } from "@/hooks/useVideos";
 import type { VideoRecord } from "@/services/real/videoService";
@@ -152,10 +153,16 @@ export default function PlayerHubPage() {
   // Player. phvRefresh fuerza re-lectura de localStorage tras guardar datos
   // parentales en PlayerPhvSection (getById no es reactivo por sí solo).
   const [phvRefresh, setPhvRefresh] = useState(0);
+  // Fuente del jugador para el API (react-query, reactivo). Con la fuente síncrona
+  // (localStorage) sola, un deep-link o un refresh a /players/:id ANTES de que el pull
+  // de sync caliente localStorage dejaba la página en "Jugador no encontrado" sin
+  // recuperarse. Al caer al jugador del API, la página se re-renderiza cuando resuelve.
+  const { data: apiRawPlayer } = useRawPlayerById(id);
   const player: Player | null = useMemo(() => {
     void phvRefresh; // recomputa la lectura de localStorage tras guardar datos parentales
-    return id ? PlayerService.getById(id) : null;
-  }, [id, phvRefresh]);
+    if (!id) return null;
+    return PlayerService.getById(id) ?? apiRawPlayer ?? null;
+  }, [id, phvRefresh, apiRawPlayer]);
 
   // PHV canónico GATEADO: null si no hay datos reales completos (Mirwald con
   // altura sentado + longitud de pierna medidos, o Khamis-Roche con padres).
@@ -187,11 +194,13 @@ export default function PlayerHubPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, [id]);
 
-  // Sprint 11: Injury risk data
+  // Sprint 11: Injury risk data. GATEADO por pestaña (como useRoleProfile): solo se
+  // dispara la llamada IA (injury-risk-calculator) al abrir "salud", no al montar cada
+  // ficha → menos latencia y no se gasta presupuesto IA por abrir el Resumen.
   const { canUseValuation } = usePlan();
-  const { injuries, riskData, saveInjuries: persistInjuries, injuriesLoading } = useInjuryRisk(id);
-  // Sprint 13: Valuation data
-  const { valuationData, valuationLoading } = useValuation(id);
+  const { injuries, riskData, saveInjuries: persistInjuries, injuriesLoading } = useInjuryRisk(tab === "salud" ? id : undefined);
+  // Sprint 13: Valuation data. Gateada a la pestaña "valoracion" por la misma razón.
+  const { valuationData, valuationLoading } = useValuation(tab === "valoracion" ? id : undefined);
   const [localInjuries, setLocalInjuries] = useState(injuries);
   useEffect(() => { setLocalInjuries(injuries); }, [injuries]);
   const { canUseInjuryPrediction } = usePlan();
