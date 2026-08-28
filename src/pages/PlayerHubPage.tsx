@@ -39,6 +39,7 @@ import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/pl
 
 import VsiGauge from "@/components/VsiGauge";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import { AdvancedMetricsPanel } from "@/components/AdvancedMetricsPanel";
 import TrackingSnapshotPanel from "@/components/TrackingSnapshotPanel";
 import PlayerHeatmap from "@/components/PlayerHeatmap";
@@ -929,6 +930,14 @@ function WellbeingTab({ playerId }: { playerId: string }) {
 
   return (
     <div className="space-y-4">
+      {/* MOCK sin banner = inválido (CLAUDE.md inv #4). El riesgo, el engagement y la
+          asistencia pueden ser de ejemplo de forma INDEPENDIENTE (p.ej. jugador con
+          fatiga real de vídeo pero sin cuestionario/asistencia → risk.isMock=false pero
+          engagement/asistencia salen de fallback). Rotulamos si CUALQUIERA es mock,
+          igual que el dashboard de Bienestar autónomo (WellbeingDashboard.tsx). */}
+      {(risk.isMock || engagement?.some((e) => e.isMock) || attendance?.isMock) && (
+        <DemoDataBanner messageKey="demoData.wellbeing" />
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <DropoutRiskGauge
           score={risk.riskScore}
