@@ -4658,6 +4658,7 @@
     "verifyingSession": "Verifying session…"
   },
   "rankingsPage": {
+    "demoNotice": "You're viewing example data (loaded with \"Load sample data\"). These are not real players.",
     "vsiHint": "The VSI (VITAS Scouting Index) summarizes a player's potential in a single number from 0 to 100."
   },
   "requirePermission": {
