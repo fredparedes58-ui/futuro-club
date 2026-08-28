@@ -330,7 +330,11 @@ export default function PlayerHubPage() {
             {TABS.map((tabItem) => {
               const Icon = tabItem.icon;
               const isActive = tab === tabItem.key;
-              const isLocked = tabItem.needsAnalysis && !hasAnalysis;
+              // El Histórico deja de necesitar análisis de vídeo si el jugador ya
+              // tiene scout insights (el backend los genera con minutos jugados sin
+              // vídeo): si no, esos insights quedarían inalcanzables tras el candado.
+              const unlockedByInsights = tabItem.key === "historico" && scoutInsights.length > 0;
+              const isLocked = tabItem.needsAnalysis && !hasAnalysis && !unlockedByInsights;
               return (
                 <button
                   key={tabItem.key}
