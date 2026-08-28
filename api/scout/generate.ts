@@ -128,6 +128,9 @@ interface AnalysisRow {
   id: string;
   player_id: string;
   created_at: string;
+  // player_analyses.video_id es NULLABLE (000_full_schema.sql:100): el análisis
+  // puede no tener vídeo asociado. select=* ya lo baja; lo declaramos para leerlo.
+  video_id?: string | null;
   report_data: {
     estadoActual?: {
       dimensiones?: Record<string, { score: number }>;
@@ -486,6 +489,11 @@ RESPONDE ÚNICAMENTE JSON:
             position: player.position,
             age: player.age,
             detectedContext: context,
+            // Origen del insight (docx-13b): permite enlazar al vídeo/análisis desde
+            // el Histórico del PlayerHub. NULL explícito cuando el insight nace de
+            // minutos jugados sin análisis (latestAnalysis === null) → nunca inventado.
+            source_video_id: latestAnalysis?.video_id ?? null,
+            source_analysis_id: latestAnalysis?.id ?? null,
           },
           rag_drills: parsed.recommendedDrills ?? [],
           action_items: parsed.actionItems ?? [],

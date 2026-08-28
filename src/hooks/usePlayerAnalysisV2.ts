@@ -648,7 +648,9 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
     confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
   };
 
-  return { id: row.id, player_id: row.player_id, video_id: row.video_id, created_at: row.created_at, report };
+  // vsi top-level: el Histórico lo mostraba como "—" porque leía report.vsi (que no
+  // existe; el ajuste está anidado en estadoActual). Exponemos el valor real aquí.
+  return { id: row.id, player_id: row.player_id, video_id: row.video_id, created_at: row.created_at, vsi: (row.vsi?.vsi as number) ?? null, report };
 }
 
 export function useSavedAnalysesV2(playerId: string) {
