@@ -32,13 +32,15 @@ const planSchema = z.object({
   biomechanics: z.record(z.unknown()).nullable().optional(),
   scanning: z.record(z.unknown()).nullable().optional(),
   similarity: z.record(z.unknown()).nullable().optional(),
+  videoObservations: z.record(z.unknown()).nullable().optional(),
+  videoContext: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
     chronologicalAge: z.number().optional(),
     position: z.string().optional(),
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "dev-plan-v1.1.0"; // v1.1 = schema tolerante + scanning
+const PROMPT_VERSION = "dev-plan-v1.2.0"; // v1.2 = deficits observados del vídeo + scanning serializado (docx #14 P2)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor de generación de Planes de Desarrollo de VITAS.
@@ -56,6 +58,7 @@ ${category === "senior" ? `- Si VSI subscore "physical" <60: fuerza progresiva.`
 - Si scanning.bilateralityPct < 30: AÑADIR drill de pase ciego al lado débil.
 - Estructura el plan en 4 bloques de 3 semanas cada uno.
 - Usa los drills sugeridos del RAG context si encajan; no inventes drills nuevos.
+- EVIDENCIA (docx #14): las DEBILIDADES incluyen deficits OBSERVADOS en el vídeo (p. ej. "precisión de pase (observada)", "duelos (observados)"). El objetivo de cada bloque DEBE atacar un gap concreto de esa lista y, cuando venga de OBSERVACIÓN DIRECTA DEL VÍDEO, citarlo (p. ej. "mejorar precisión de pase — 55% observado"). Si la lista es "ninguna con datos suficientes", NO inventes debilidades: haz un plan de mantenimiento/desarrollo general y dilo explícitamente.
 
 POLIVALENCIA · si player.secondaryPositions[] tiene elementos:
 - El plan debe afianzar la polivalencia: incluir drills específicos de cada posición declarada
@@ -138,6 +141,37 @@ function detectWeaknesses(subscores: Record<string, unknown>): string[] {
   return weaknesses;
 }
 
+/**
+ * docx #14 · P2 · Deficits OBSERVADOS en el vídeo (eventos reales), para que el plan
+ * apunte a gaps vistos y no solo a subscores (que suelen venir null en vídeo). Solo
+ * marca un déficit con muestra suficiente (≥3) y señal real — nunca desde un 0/ausencia.
+ */
+function detectObservedWeaknesses(videoObservations: unknown): string[] {
+  const obs = videoObservations as
+    | { gemini?: { eventosContados?: Record<string, unknown> } | null; eventSummary?: Record<string, unknown> | null }
+    | null;
+  const out: string[] = [];
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  const ec = obs?.gemini?.eventosContados ?? null;
+  const es = obs?.eventSummary ?? null;
+  if (ec) {
+    const passTot = n(ec.pasesCompletados) + n(ec.pasesFallados);
+    if (passTot >= 3 && n(ec.pasesCompletados) / passTot < 0.6) out.push("precisión de pase (observada en vídeo)");
+    const duelTot = n(ec.duelosGanados) + n(ec.duelosPerdidos);
+    if (duelTot >= 3 && n(ec.duelosGanados) / duelTot < 0.5) out.push("duelos (observados en vídeo)");
+    if (passTot >= 5 && n(ec.escaneos) <= 2) out.push("escaneo/lectura de juego (observado en vídeo)");
+    // Muestra mínima ≥3 (como los demás): un n=1 (1 pérdida, 0 recuperaciones) NO es
+    // un déficit — evita fabricar "control bajo presión" desde casi nada (revisión #179).
+    const lossVol = n(ec.perdidas) + n(ec.recuperaciones);
+    if (lossVol >= 3 && n(ec.perdidas) > n(ec.recuperaciones)) out.push("control bajo presión (observado en vídeo)");
+  } else if (es) {
+    if (typeof es.passCompletionPct === "number" && es.passCompletionPct < 60) out.push("precisión de pase (observada en vídeo)");
+    const dW = n(es.duelsWon), dL = n(es.duelsLost);
+    if (dW + dL >= 3 && dW / (dW + dL) < 0.5) out.push("duelos (observados en vídeo)");
+  }
+  return out;
+}
+
 async function callClaudeHaiku(systemPrompt: string, userMessage: string, apiKey: string) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -195,7 +229,12 @@ export default withHandler(
       type VsiShape = { vsi?: number; subscores?: Record<string, unknown> };
       const inputVsi = input.vsi as VsiShape | null | undefined;
       const subscores = (inputVsi?.subscores ?? {}) as Record<string, unknown>;
-      const weaknesses = detectWeaknesses(subscores);
+      // P2: debilidades de subscores (suelen venir vacías en vídeo) + deficits OBSERVADOS
+      // en los eventos del vídeo → el plan apunta a gaps vistos, no a un template genérico.
+      const weaknesses = [
+        ...detectWeaknesses(subscores),
+        ...detectObservedWeaknesses(input.videoObservations),
+      ];
 
       // ── 2. RAG: buscar drills relacionados ─────────────────────
       const ragDrills =
@@ -207,14 +246,20 @@ export default withHandler(
       const userMessage = `JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
+OBSERVACIÓN DIRECTA DEL VÍDEO (eventos contados — base de los objetivos del plan):
+${JSON.stringify(input.videoObservations ?? "no_data", null, 2)}
+
+ESCANEO (scan-rate; dispara los drills de shoulder-check/bilateralidad si aplica):
+${JSON.stringify(input.scanning ?? "no_data", null, 2)}
+
 VSI:
 ${JSON.stringify(input.vsi, null, 2)}
 
 PHV:
 ${JSON.stringify(input.phv ?? "no_data", null, 2)}
 
-DEBILIDADES DETECTADAS (subscores <60):
-${weaknesses.join(", ") || "ninguna"}
+DEBILIDADES DETECTADAS (subscores <60 + deficits observados en el vídeo):
+${weaknesses.join(", ") || "ninguna con datos suficientes"}
 
 DRILLS DISPONIBLES (de la knowledge base de VITAS):
 ${ragDrills.map((d: { content?: string }, i: number) => `${i + 1}. ${d.content?.slice(0, 200)}`).join("\n") || "ningún drill encontrado"}

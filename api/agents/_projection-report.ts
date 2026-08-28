@@ -35,13 +35,16 @@ const projectionSchema = z.object({
   scanning: z.record(z.unknown()).nullable().optional(),
   similarity: z.record(z.unknown()).nullable().optional(),
   historicalVsi: z.array(z.unknown()).optional(),
+  vsiHistory: z.array(z.unknown()).nullable().optional(), // nombre real del sharedContext (P1)
+  videoObservations: z.record(z.unknown()).nullable().optional(),
+  videoContext: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
     chronologicalAge: z.number().optional(),
     position: z.string().optional(),
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "projection-v1.1.0"; // v1.1 = schema tolerante (PHV null OK)
+const PROMPT_VERSION = "projection-v1.2.0"; // v1.2 = tendencia real (vsiHistory) + key_drivers desde observaciones (docx #14 P2)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor de Proyección 3 años de VITAS.
@@ -184,6 +187,13 @@ export default withHandler(
         category: (inputPhv.category ?? "ontime") as "early" | "ontime" | "late",
       });
 
+      // El sharedContext trae vsiHistory MÁS-RECIENTE-PRIMERO; se ordena ascendente
+      // (antiguo→reciente) para que el modelo narre la tendencia en el sentido correcto
+      // (evita "bajó de X a Y" cuando en realidad subió · revisión #179).
+      const vsiHistAsc = [
+        ...((input.vsiHistory ?? input.historicalVsi ?? []) as Array<Record<string, unknown>>),
+      ].sort((a, b) => String(a?.date ?? "").localeCompare(String(b?.date ?? "")));
+
       const userMessage = `JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
@@ -198,10 +208,14 @@ CURVA PROYECTADA (calculada deterministicamente):
 - Año 2: ${curve.year2}
 - Año 3: ${curve.year3}
 
-HISTÓRICO PREVIO (si hay):
-${JSON.stringify(input.historicalVsi ?? "primer análisis", null, 2)}
+HISTÓRICO VSI PREVIO (orden cronológico antiguo→reciente; ≥2 puntos = tendencia REAL; vacío = primer análisis):
+${JSON.stringify(vsiHistAsc, null, 2)}
 
-Genera el reporte Proyección 3 años en JSON estricto, usando los valores de la curva proyectada.`;
+OBSERVACIÓN DIRECTA DEL VÍDEO (eventos — base de key_drivers/factores de la proyección):
+${JSON.stringify(input.videoObservations ?? "no_data", null, 2)}
+
+Genera el reporte Proyección 3 años en JSON estricto, usando los valores de la curva proyectada.
+REGLAS docx #14: la curva ya es determinista — NO la infles. Si el HISTÓRICO tiene ≥2 puntos, narra la tendencia REAL (subió/bajó de X a Y); si está vacío, di "primer análisis — sin tendencia". Los key_drivers/factores deben citar un evento observado concreto de la OBSERVACIÓN DIRECTA (p. ej. duelos, pases progresivos); si no hay observaciones, márcalos como "sin observación de vídeo" en vez de genéricos.`;
 
       const locale = normalizeLocale(input.locale);
       // C1 multi-categoría: override explícito > edad cronológica > default youth

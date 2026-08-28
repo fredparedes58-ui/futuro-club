@@ -37,13 +37,15 @@ const dnaSchema = z.object({
   biomechanics: z.record(z.unknown()).nullable().optional(),
   scanning: z.record(z.unknown()).nullable().optional(),
   similarity: z.record(z.unknown()).nullable().optional(),
+  videoObservations: z.record(z.unknown()).nullable().optional(),
+  videoContext: z.record(z.unknown()).nullable().optional(),
   playerContext: z.object({
     chronologicalAge: z.number().optional(),
     position: z.string().optional(),
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "dna-profile-v1.1.0"; // v1.1 = schema tolerante
+const PROMPT_VERSION = "dna-profile-v1.2.0"; // v1.2 = estilo/rol desde observaciones + gate pressure/game_reading (docx #14 P2)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   const catDirective = categoryDirective(category, locale);
@@ -97,6 +99,13 @@ REGLAS ABSOLUTAS DE DATOS:
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
+EVIDENCIA DEL VÍDEO (obligatorio · el ESTILO y el ROL deben salir de lo OBSERVADO, no de subscores null):
+- Usa "OBSERVACIÓN DIRECTA DEL VÍDEO": gemini.eventosContados (pases progresivos, regates con/sin ventaja, duelos ganados/perdidos, recuperaciones, robos, anticipaciones, escaneos, disparos…), gemini.dimensiones{observaciones}, o eventSummary; y ESCANEO. PROCEDENCIA: gemini.* son observaciones ESTIMADAS POR IA (no medidas); eventSummary/scanning vienen del tracking.
+- primary_style: derívalo de los EVENTOS observados (muchos pases progresivos + escaneos → técnico/creativo; alto % duelos + recuperaciones → defensivo/físico). El balance de subscores VSI es solo respaldo y SOLO si son reales (no null). Si no hay eventos ni subscores reales → primary_style: "no determinable con este vídeo" + añádelo a not_evaluated.
+- tactical_labels y natural_role: cada etiqueta/rol debe apoyarse en un evento observado concreto; sin base, no la incluyas.
+- pressure_behavior y game_reading: SOLO si hay una observación que lo respalde (pérdidas bajo presión, escaneos previos a recibir, decisiones en último tercio…). Sin señal → "No observado en este vídeo" + not_evaluated. PROHIBIDO describir comportamiento bajo presión o lectura de juego sin evidencia (era el hueco de fabricación).
+- IDENTIDAD (identidad.md): si physicalMetrics.identityReliable===false, no atribuyas los eventos al jugador por nombre. Un passCompletionPct 0 con 0 pases = "sin datos de pase", no debilidad.
+
 NO incluyas markdown ni texto fuera del JSON.
 
 ${languageDirective(locale)}${catDirective ? `\n\n${catDirective}` : ""}`;
@@ -139,10 +148,19 @@ export default withHandler(
       const userMessage = `JUGADOR:
 ${JSON.stringify(input.playerContext, null, 2)}
 
-VSI Y SUBSCORES:
+CONTEXTO DEL VÍDEO (fecha + posición jugada):
+${JSON.stringify(input.videoContext ?? "no_data", null, 2)}
+
+OBSERVACIÓN DIRECTA DEL VÍDEO (eventos contados/observados — base del ESTILO y del ROL):
+${JSON.stringify(input.videoObservations ?? "no_data", null, 2)}
+
+ESCANEO (scan-rate del jugador enfocado, si hay identidad fiable):
+${JSON.stringify(input.scanning ?? "no_data", null, 2)}
+
+VSI Y SUBSCORES (ojo: técnica/mental/táctica suelen venir null/estimados en vídeo — no bases el estilo solo en esto):
 ${JSON.stringify(input.vsi, null, 2)}
 
-BIOMECÁNICA RELEVANTE:
+BIOMECÁNICA (agregados de pose; NO son las observaciones de arriba):
 ${JSON.stringify(input.biomechanics ?? "no_data", null, 2)}
 
 Genera el ADN Futbolístico en JSON estricto.`;
