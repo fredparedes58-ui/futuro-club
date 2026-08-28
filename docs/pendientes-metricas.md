@@ -6,8 +6,9 @@
 >
 > **Última actualización:** 2026-08-28 · **Rama de creación:** `docs/pendientes-metricas`
 >
-> Estado del arnés a fecha de hoy: `python scripts/audit_metrics.py` → **exit 1**
-> (559 errores + 69 avisos). Es el estado **G0 esperado por diseño** — el registro
+> Estado del arnés a fecha de hoy: el **GATE real** (pre-commit → `audit_metrics.py
+> --baseline`) sale **exit 0** (deuda baselined). El audit CRUDO `audit_metrics.py` →
+> **exit 1** (559 errores + 58 avisos), que es el estado **G0 esperado por diseño** — el registro
 > `config/metrics.json` documenta que el audit DEBE salir 1 hasta ejecutar la
 > remediación G1–G10 (marca las mentiras existentes). `config/metrics.json` tiene
 > **26 métricas** declaradas y **0 con `provenance: MEDIDA`** (nada en la plataforma
@@ -34,7 +35,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 | Métrica | Dónde | Por qué está bloqueada | Desbloqueo |
 |---|---|---|---|
 | **Duelos G/P (ruta tracking)** | `src/hooks/useTracking.ts:714`, `src/lib/yolo/types.ts:129` | `winnerId` nunca se resuelve (`poseAnalyzer` deja `null`); G3 sin hacer. | CÓDIGO (unificar rutas + criterio de ganador) + VALIDACIÓN (`duelos_gt.csv`) |
-| **Espacio / Voronoi de sesión** | `src/hooks/useTracking.ts:723` | El cálculo Voronoi solo corre **en vivo**; no se traslada al resumen (G7). | CÓDIGO (cablear resumen o dejar gated) |
+| ~~**Espacio / Voronoi de sesión**~~ 🟢 | `src/hooks/useTracking.ts` | **RESUELTA (G7 · #187):** media de muestras Voronoi en instantes vivos del jugador enfocado; DERIVADA orientativa o gated (nunca 0). | — |
 | **VSI-vídeo compuesto** | `api/agents/_pipeline-orchestrator.ts:261` (`gateVsiComposite`) | Bloqueado si <4/5 dims reales. Técnica/mental/táctica son `CONSTANTE(null)` → siempre 2/5 reales (physical+projection) → compuesto SIEMPRE bloqueado. Proyección y best-match se **omiten** en consecuencia. | Depende de que la VISIÓN mida técnica/mental/táctica (hueco permanente hoy) |
 | **VSI-vídeo sub-scores técnica/mental/táctica** | `_pipeline-orchestrator.ts:244-260` (`buildVsiSubscores`) | `CONSTANTE value:null` por diseño: el pipeline de visión no los mide. Bloqueo honesto. | VALIDACIÓN + modelo que los mida (largo plazo) |
 
@@ -73,14 +74,24 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 ### B) CÓDIGO PENDIENTE (lo ejecuta el equipo dev)
 
-- [ ] **Llevar `audit_metrics.py` a verde** (fin de G1): migrar rutas de cálculo restantes a `MetricResult` y mover literales a `config/` con procedencia. Hoy exit 1 · 559 err. De los 557 `LIT001`, **~310 son coeficientes de fórmula PHV/bio-banding** (`khamisRoche.ts` 266 + `mirwald.ts` 44) → invariante #4: **relocalizar a config con cita, NO editar**; ~247 son deuda real (tracking/duelos/vsi).
-- [ ] **Bug del audit (Windows)**: el check `ORPH001` compara rutas con `/` (registro) vs `\` (escáner) → **17 falsos positivos** (khamisRoche, mirwald, tracker, useTracking, poseAnalyzer…). *(tarea #2 en curso)*
-- [ ] **Unificar duelos** (`DUP001`: 3-4 rutas — tracking/eventengine/gemini, invariante #7) + **desconectar de la UI** `duelos_tracking` (`CONSTANTE`, `winnerId` siempre null → pinta "0G/0P" que significa "no medido", `TrackingMetricsPanel.tsx`). *(tarea #2 en curso)*
-- [ ] **Voronoi de sesión (G7)**: cablear reutilizando el cálculo en vivo, o dejar gated si el resumen no tiene posiciones.
-- [ ] **Encender `allowAsync` en la UI** (partidos largos): ruta async lista y testeada, sin caller.
-- [ ] **`npm audit fix`**: 10 vulns runtime, **1 CRÍTICA** (protobufjs, RCE). *(tarea #3)*
-- [ ] **52 ficheros fuera del contrato** (`ORPH001` reales, tras descontar los 17 falsos positivos): transfer/`matchScorer.ts`, wellbeing/`dropoutRiskScorer`, etc. → emiten cifras sobre menores sin `MetricResult`.
-- [ ] **`vitas-pose-v1`** (modelo propio): depende de V6 (eval CV con ground truth) + dataset etiquetado versionado con frames/bboxes.
+> **Aclaración importante (verificada 28 ago):** el "audit a verde" **ya está hecho como GATE**.
+> El pre-commit corre `python scripts/audit_metrics.py --baseline` → **exit 0**. El baseline
+> (`config/metrics.baseline.json`, 88 keys) suprime la deuda conocida; la key es
+> `code::metric::FICHERO` **sin nº de línea**, así que colapsa los 557 `LIT001` en ~20 keys. El
+> "559 err / exit 1" es el audit **CRUDO** (estado G0 por diseño). Las 3 keys PHV
+> (biobanding_pah, phv_aphv, phv_offset) están baselined → **las fórmulas NUNCA se tocan**
+> (inv #4). Enumerar 290+ coeficientes en `allowed_literals` para vaciar el crudo sería
+> busywork sin valor. **`ORPH001` es WARN, nunca ERROR → no bloquea nada.**
+
+- [x] **Bug del audit (Windows)** — `ORPH001` comparaba `/` (registro) vs `\` (escáner) → 11 falsos positivos. Fix `.as_posix()`. **HECHO · #185.**
+- [x] **Desconectar de la UI el `duelos_tracking` "0G/0P"** (`CONSTANTE`, winnerId siempre null) → ahora muestra el `gate_reason`, no un 0. **HECHO · #185.**
+- [x] **Voronoi de sesión (G7)** — muestreo en instantes vivos + media del jugador enfocado; DERIVADA orientativa o gated (nunca 0). **HECHO · #187.**
+- [x] **`npm audit fix`** — protobufjs 7.6.4→7.6.6, cierra el RCE crítico; runtime 10→2 vulns. **HECHO · #186.**
+- [ ] **Unificar duelos** (`DUP001`: 3-4 rutas — tracking/eventengine/gemini, inv #7). La plomería (una sola ruta) es código, pero el **criterio de ganador (G3) está BLOQUEADO por datos** (prohibido inventarlo sin `duelos_gt.csv` anotado, ver §A).
+- [ ] **`allowAsync` en la UI** (partidos largos): ruta async lista+testeada pero **sin caller**; cablearla = UI inerte **hasta que el usuario ponga `MODAL_TRACK_ASYNC_URL`** (§C). No hecho: prematuro.
+- [ ] **~52 ficheros fuera del contrato** (`ORPH001`, WARN no-bloqueante): meterlos bajo el registro es **pura cobertura opcional** (no desbloquea nada). Baja prioridad.
+- [ ] **`vitas-pose-v1`** (modelo propio): **BLOQUEADO por datos/validación** — depende de la eval V6 (ground truth) + dataset etiquetado con frames/bboxes.
+- [ ] **Vaciar el audit CRUDO** (opcional, cosmético): declarar coeficientes en `allowed_literals` para los ~247 literales NO-PHV; los PHV se quedan baselined (inv #4). Sin impacto en el gate (ya verde).
 
 ### C) OPERATIVO / DEPLOY — acción del USUARIO (dashboards/claves, sin código)
 
@@ -96,7 +107,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 ## Notas de estado (correcciones a documentación previa)
 
 - **Modal ya NO está huérfano** (la nota de `CLAUDE.md` es obsoleta): desplegado (roadmap V1/V2 ✅) y cableado a UI (`useTacticalHeatmap.ts:187`, `videoTrackingService.ts:184`).
-- **npm vulns bajaron** de ~35 a 10 en runtime.
+- **npm vulns bajaron** de ~35 → 10 → **2 moderate** en runtime (#186 cerró el RCE crítico de protobufjs). Restan `sharp`/`@vite-pwa/assets-generator` (build-time, CVEs libvips upstream sin fix).
 - **Modelo de balón dedicado ya existe** (`ball-football.onnx`, `ballModelConfig.ts:107`) — cierra el hueco de FASE 2; falta hacerlo default (desktop usa aún `yolo11s-detect` COCO genérico).
 
 > **Mantenimiento:** actualizar este fichero cuando una métrica cambie de estado
