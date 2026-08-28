@@ -105,7 +105,7 @@ ${category === "senior" ? `### 4. Ajustes de Umbrales Individuales
 
 Formato: JSON con estructura:
 {
-  "estadoActual": { "indice": number, "severidad": string, "indicadores": string[], "señalesPosturales": string[] },
+  "estadoActual": { "indice": number|null, "severidad": string, "indicadores": string[], "señalesPosturales": string[] },
   "cargaACWR": { "valor": number|null, "zona": string, "tendencia": string, "recomendacionProximaSesion": string },
   "riesgoLesion": { "nivel": string, "factores": string[], "zonasExpuestas": string[] },
   "ajustesPHV": { "banda": string, "umbralesModificados": string[], "recomendaciones": string[] },
@@ -115,6 +115,8 @@ Formato: JSON con estructura:
   "data_completeness": number,
   "not_evaluated": ["string · aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto"]
 }
+
+REGLA DURA DE HONESTIDAD (inv #2): "indice" es un número SOLO si los datos de la sesión traen un fatigue_index REAL; si no, "indice": null. "cargaACWR.valor" es un número SOLO si hay acwr_value real o historial de carga; si no, null. Nunca aproximes ni rellenes con un valor "típico". Cuando una métrica sea null, su cualitativo asociado (severidad / zona / nivel) = "sin datos".
 
 ${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
@@ -211,11 +213,25 @@ export default withHandler(
   },
 );
 
-/** ¿Hay datos REALES de fatiga? Sesión con contenido, o historial de carga no vacío. */
+/**
+ * ¿Hay datos REALES de fatiga con los que evaluar? No basta con que la fila exista:
+ * `fatigue_sessions` tiene columnas NOT NULL DEFAULT 0 (duration/distance/load), así que
+ * un objeto "con claves" puede ser una sesión vacía (sin fatigue_index/acwr). Exigimos una
+ * señal concreta: índice o ACWR no-nulos, o carga/distancia/duración > 0. Sin eso →
+ * informe bloqueado (inv #2: ante dato ausente se bloquea, nunca se estima).
+ */
 export function hasRealFatigueData(data: z.infer<typeof fatigueReportSchema>): boolean {
-  const fr = data.fatigueReport;
-  const hasSession = fr != null && typeof fr === "object" && Object.keys(fr).length > 0;
-  const hasHistory = Array.isArray(data.fatigueHistory) && data.fatigueHistory.length > 0;
+  const notNull = (v: unknown) => v !== null && v !== undefined;
+  const pos = (v: unknown) => typeof v === "number" && v > 0;
+  const sessionHasSignal = (fr: Record<string, unknown> | null | undefined): boolean =>
+    fr != null && typeof fr === "object" && (
+      notNull(fr.fatigue_index) || notNull(fr.fatigueIndex) ||
+      notNull(fr.acwr_value)    || notNull(fr.acwr) ||
+      pos(fr.total_load) || pos(fr.total_distance_m) || pos(fr.duration_min)
+    );
+  const hasSession = sessionHasSignal(data.fatigueReport as Record<string, unknown> | null | undefined);
+  const hasHistory = Array.isArray(data.fatigueHistory) &&
+    data.fatigueHistory.some((h) => sessionHasSignal(h as Record<string, unknown>));
   return hasSession || hasHistory;
 }
 
@@ -255,9 +271,11 @@ export function blockedFatigueReport(data: z.infer<typeof fatigueReportSchema>):
 // hasRealFatigueData ya cortó el caso sin datos). No se fabrican cifras: el índice
 // sale del dato real si existe, si no null; el ACWR exige historial → null (no se
 // estima), y no se inventan decays concretos.
-function generateMockReport(data: z.infer<typeof fatigueReportSchema>): Record<string, unknown> {
+export function generateMockReport(data: z.infer<typeof fatigueReportSchema>): Record<string, unknown> {
   const fatigue = data.fatigueReport as Record<string, unknown> | null;
-  const idx = typeof fatigue?.fatigueIndex === "number" ? (fatigue.fatigueIndex as number) : null;
+  // La fila real de fatigue_sessions usa snake_case (fatigue_index); aceptamos ambos.
+  const rawIdx = fatigue?.fatigue_index ?? fatigue?.fatigueIndex;
+  const idx = typeof rawIdx === "number" ? rawIdx : null;
   const severidad = idx === null ? "sin datos" : idx >= 66 ? "alto" : idx >= 33 ? "moderado" : "bajo";
   return {
     estadoActual: {

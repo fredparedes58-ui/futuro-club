@@ -324,7 +324,9 @@ export default function FatigueReportView({ report }: { report: Record<string, u
             <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
               {t("fatigueReport.maturityBand")}
             </div>
-            <Chip label={phv.banda} tone={TONE_GREEN} />
+            {/* La banda de maduración NO es un nivel de riesgo: tono neutro. Antes estaba
+                fijo en verde → "unknown"/"sin datos" (informe bloqueado) se leía como "OK". */}
+            <Chip label={phv.banda} tone={toneForLevel(phv.banda)} />
           </div>
         )}
         <div className="space-y-3">
