@@ -109,7 +109,9 @@ export default function TrackingSnapshotPanel({ playerId, snapshot, compact = fa
       <div className="grid grid-cols-3 gap-2">
         <StatCard icon={<Eye size={12} className="text-cyan-400" />} label={t("trackingSnapshotPanel.labelScans")} value={`${snapshot.scanCount}`} unit={t("trackingSnapshotPanel.unitHeadTurns")} />
         <StatCard icon={<Swords size={12} className="text-orange-400" />} label={t("trackingSnapshotPanel.labelDuels")} value={`${m.duelsWon}/${m.duelsWon + m.duelsLost}`} unit={t("trackingSnapshotPanel.unitWon")} />
-        <StatCard icon={<Hexagon size={12} className="text-fuchsia-400" />} label="VORONOI" value={m.avgVoronoiAreaM2.toFixed(0)} unit={t("trackingSnapshotPanel.unitControl")} />
+        {/* Voronoi gateado: avgVoronoiAreaM2 puede ser 0 por "sin muestras" (o snapshot
+            pre-G7) → NO pintar ese 0 como área real (inv #2). Fuente honesta = space. */}
+        <StatCard icon={<Hexagon size={12} className="text-fuchsia-400" />} label="VORONOI" value={m.space?.value != null ? (m.space.value as number).toFixed(0) : t("trackingSnapshotPanel.spaceNoData")} unit={m.space?.value != null ? t("trackingSnapshotPanel.unitControl") : ""} />
       </div>
 
       {/* Distribución de intensidad */}

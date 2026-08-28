@@ -177,6 +177,9 @@ export function useTracking(options: UseTrackingOptions) {
   const homographyRef   = useRef<Float64Array>(identityHomography());
   const homographyInvRef = useRef<Float64Array>(identityHomography());
   const voronoiTimerRef = useRef<number>(0);
+  // G7: muestras de área Voronoi por track, tomadas en instantes VIVOS (roster real
+  // simultáneo). Se promedian al cerrar la sesión → space por jugador, sin sesgo.
+  const voronoiSamplesRef = useRef<Map<number, number[]>>(new Map());
   const scanEventsRef   = useRef<ScanEvent[]>([]);
   const duelEventsRef   = useRef<DuelEvent[]>([]);
   const allTracksRef    = useRef<Track[]>([]);
@@ -250,6 +253,14 @@ export function useTracking(options: UseTrackingOptions) {
           if (event.timestampMs - voronoiTimerRef.current > VORONOI_INTERVAL_MS) {
             voronoiTimerRef.current = event.timestampMs;
             voronoiRegions = computeVoronoi(tracks, homographyInvRef.current);
+            // G7: muestrea el área de cada celda en ESTE instante vivo (todos los
+            // jugadores presentes) → base honesta para el promedio de sesión. NO se
+            // reconstruye desde tracks muertos (sesgaría el área al alza).
+            for (const r of voronoiRegions) {
+              const arr = voronoiSamplesRef.current.get(r.trackId);
+              if (arr) arr.push(r.areaM2);
+              else voronoiSamplesRef.current.set(r.trackId, [r.areaM2]);
+            }
           }
 
           // Emit focused player's field position to fatigue hook (every frame)
@@ -339,6 +350,9 @@ export function useTracking(options: UseTrackingOptions) {
     allTracksRef.current   = [];
     sessionStartRef.current = Date.now();
     analyzerRef.current.reset();
+    // G7: reinicia el muestreo de Voronoi (no arrastrar muestras de la sesión previa)
+    voronoiTimerRef.current = 0;
+    voronoiSamplesRef.current = new Map();
 
     setState(s => ({
       ...s,
@@ -500,7 +514,8 @@ export function useTracking(options: UseTrackingOptions) {
       allTracksRef.current,
       focusTrackIdRef.current,
       scanEventsRef.current,
-      duelEventsRef.current
+      duelEventsRef.current,
+      voronoiSamplesRef.current
     );
 
     // Stop ball tracking worker (Sprint 1)
@@ -630,7 +645,8 @@ export function computeSessionMetrics(
   tracks:       Track[],
   focusId:      number | null,
   scans:        ScanEvent[],
-  duels:        DuelEvent[]
+  duels:        DuelEvent[],
+  voronoiSamples: Map<number, number[]> = new Map()
 ): PhysicalMetrics {
   // Si hay un track enfocado, usar sus métricas; si no, promediar todos
   const focusTracks = focusId
@@ -678,6 +694,14 @@ export function computeSessionMetrics(
   // solo se considera medible si algún focusTrack tuvo al menos un frame con keypoints.
   const poseNeverMeasured = focusTracks.every(t => (t.poseFrameCount ?? 0) === 0);
 
+  // G7: espacio = área media de la celda Voronoi del jugador enfocado, muestreada en
+  // instantes VIVOS (roster real simultáneo, en useTracking.onFrame). Sin muestras
+  // para ese jugador → null (se gatea; nunca un 0 que signifique "no medido").
+  const focusVoronoi = focusId ? (voronoiSamples.get(focusId) ?? []) : [];
+  const avgVoronoi = focusVoronoi.length
+    ? focusVoronoi.reduce((s, v) => s + v, 0) / focusVoronoi.length
+    : null;
+
   // Calcular zonas de intensidad desde posiciones
   const zones = { walk: 0, jog: 0, run: 0, sprint: 0 };
   for (const track of focusTracks) {
@@ -707,7 +731,7 @@ export function computeSessionMetrics(
     scanCount:        focusScans.length,
     duelsWon:         focusDuels.filter(d => d.winnerId === focusId).length,
     duelsLost:        focusDuels.filter(d => d.winnerId !== null && d.winnerId !== focusId).length,
-    avgVoronoiAreaM2: 0, // se calcula en el componente desde voronoiRegions
+    avgVoronoiAreaM2: avgVoronoi ?? 0, // vivo: componente; sesión: media muestreada (G7)
     identityReliable,
     // Duelos G/P BLOQUEADOS: winnerId nunca se resuelve en la ruta tracking (poseAnalyzer
     // deja winnerId=null) → won/lost serían siempre 0. Honesto: gated, no "0G/0P". (G3)
@@ -719,8 +743,12 @@ export function computeSessionMetrics(
     sprints:          derived(sprints,  { units: null,  calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
     avgSpeed:         derived(avgSpeed, { units: "m/s", calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
     distance:         derived(distance, { units: "m",   calibrated: false, confidence: ORIENTATIVE_CONFIDENCE }),
-    // Espacio/Voronoi BLOQUEADO en el resumen: solo se computa en vivo → aquí sería 0.
-    space:            gated("Voronoi de sesión no cableado (solo en vivo · G7)"),
+    // Espacio/Voronoi de sesión (G7): media de las muestras vivas del jugador enfocado.
+    // DERIVADA orientativa (depende de homografía, calibrated:false). Sin muestras (ej.
+    // jugador nunca presente en un instante Voronoi, o sin enfocado) → gated, nunca 0.
+    space:            avgVoronoi !== null
+      ? derived(avgVoronoi, { units: "m²", calibrated: false, confidence: ORIENTATIVE_CONFIDENCE })
+      : gated("Voronoi de sesión sin muestras para este jugador"),
     // Escaneos BLOQUEADOS si el jugador enfocado nunca tuvo frames con keypoints (siempre
     // lejano en la ruta recall): la biomecánica no fue medible, solo la posición. NO se
     // emite derived(0) — sería el "0 que significa no-medido" (invariante #2). En la ruta
