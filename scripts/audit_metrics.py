@@ -280,7 +280,9 @@ def check_orphans(metrics: list[dict], registry: dict, audit: Audit) -> None:
         for path in base.rglob("*"):
             if path.suffix not in CODE_SUFFIXES or not path.is_file():
                 continue
-            rel = str(path.relative_to(REPO))
+            # as_posix() normaliza a '/' — en Windows str(PurePath) da '\', que nunca
+            # casa con las rutas del registro (siempre '/') → 17 falsos ORPH001.
+            rel = path.relative_to(REPO).as_posix()
             if rel in declared:
                 continue
             if hint.search(path.name):
