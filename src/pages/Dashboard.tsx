@@ -6,6 +6,8 @@ import PulseInboxHero from "@/components/pulse/PulseInboxHero";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { DemoDataService } from "@/services/real/demoDataService";
+import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
+import { useAuth } from "@/context/AuthContext";
 import { useDashboardStats, useTrendingPlayers, useLiveMatches } from "@/hooks/useDashboard";
 import { DashboardStatsSkeleton, MatchesSkeleton, PlayerListSkeleton } from "@/components/shared/Skeletons";
 import LiveMatchCard from "@/components/LiveMatchCard";
@@ -47,12 +49,21 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { isDirector } = useUserProfile();
+  const { user } = useAuth();
 
-  function handleLoadDemo() {
+  async function handleLoadDemo() {
     const created = DemoDataService.reseed();
     if (created > 0) {
+      // Los datos demo se siembran en localStorage (Panel), pero Rankings y el
+      // selector del Lab leen del servidor → hay que empujarlos a Supabase para que
+      // los VEAN (si no, "cargar demo" llena el Panel pero deja Rankings/Lab vacíos).
+      if (user) {
+        await SupabasePlayerService.pushAll(user.id).catch(() => {});
+      }
       queryClient.invalidateQueries({ queryKey: ["trending-players"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["ranked-players"] }); // Rankings
+      queryClient.invalidateQueries({ queryKey: ["players-all"] });     // selector del Lab / Scout
       toast.success(t("dashboardPage.demoLoaded", { count: created }));
     } else {
       toast.info(t("dashboardPage.demoAlreadyHasPlayers"));

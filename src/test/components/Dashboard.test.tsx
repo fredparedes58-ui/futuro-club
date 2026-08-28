@@ -70,6 +70,11 @@ vi.mock("@/hooks/useUserProfile", () => ({
   useUserProfile: () => ({ isDirector: false }),
 }));
 
+// Dashboard usa useAuth() (para empujar los datos demo a Supabase al "cargar demo").
+vi.mock("@/context/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "test-user" } }),
+}));
+
 vi.mock("@/components/shared/PageHeader", () => ({
   default: ({ title, subtitle }: any) => (
     <div data-testid="page-header">

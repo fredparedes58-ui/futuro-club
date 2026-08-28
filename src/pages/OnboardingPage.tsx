@@ -399,6 +399,9 @@ const OnboardingPage = () => {
               <button
                 onClick={() => {
                   DemoDataService.seed();
+                  // Empujar a Supabase para que Rankings/Lab (leen del servidor) vean
+                  // los jugadores demo, no solo el Panel (localStorage). Best-effort.
+                  if (user) SupabasePlayerService.pushAll(user.id).catch(() => {});
                   handleFinish({ skipPlayer: true }); // demo → no crear jugador manual
                 }}
                 disabled={saving}
