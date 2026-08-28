@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Edit, Video, Activity, FlaskConical, Compass, Clock,
   Sparkles, ChevronRight, AlertCircle, Brain, Zap, Printer, Heart, Shield, TrendingUp, Target, Briefcase,
-  GitCompare, ClipboardList,
+  GitCompare, ClipboardList, Play, X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -28,6 +28,11 @@ import { useTranslation } from "react-i18next";
 
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
+import { useScoutInsights } from "@/hooks/useScoutFeed";
+import { useVideos } from "@/hooks/useVideos";
+import type { VideoRecord } from "@/services/real/videoService";
+import VideoPlayer from "@/components/VideoPlayer";
+import InsightCard from "@/components/scout/InsightCard";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
 
@@ -163,6 +168,14 @@ export default function PlayerHubPage() {
   const latestAnalysis = analyses?.[0];
   const latestReport = latestAnalysis?.report;
   const hasAnalysis = !!latestReport;
+
+  // Histórico (docx-13b): scout insights del jugador + vídeos para enlazar.
+  // Fallback intacto: si falla el fetch, ambos quedan vacíos y la pestaña degrada.
+  const { data: scoutData } = useScoutInsights(id ? { playerId: id } : {});
+  const scoutInsights = (id ? scoutData?.insights : []) ?? [];
+  const { data: videos } = useVideos(id ?? undefined);
+  const videoById = useMemo(() => new Map((videos ?? []).map((v) => [v.id, v])), [videos]);
+  const [videoModal, setVideoModal] = useState<VideoRecord | null>(null);
 
   // Tracking snapshot del Lab
   const [snapshot, setSnapshot] = useState<TrackingSnapshot | null>(null);
@@ -781,33 +794,88 @@ export default function PlayerHubPage() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
+              {/* Scout insights del jugador (docx-13b). Enlace "Ver vídeo" solo si el
+                  origen persistido (source_video_id) resuelve a un vídeo real; si no,
+                  el card se abstiene del enlace (nunca adivina un vídeo). */}
+              {scoutInsights.length > 0 && (
+                <section className="mb-6 space-y-3">
+                  <h3 className="text-sm font-display font-bold text-foreground flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-primary" /> {t("playerHubPage.insightsTitle")}
+                  </h3>
+                  {scoutInsights.map((insight) => {
+                    const srcId = insight.context_data?.source_video_id as string | undefined;
+                    const vid = srcId ? videoById.get(srcId) : undefined;
+                    return (
+                      <InsightCard
+                        key={insight.id}
+                        insight={insight}
+                        showViewPlayer={false}
+                        onViewVideo={vid ? () => setVideoModal(vid) : undefined}
+                      />
+                    );
+                  })}
+                </section>
+              )}
+
               {analyses && analyses.length > 0 ? (
-                <div className="glass rounded-xl divide-y divide-border">
-                  {analyses.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => {
-                        toast.info(t("playerHubPage.analysisToast", { id: a.id.slice(0, 6), date: new Date(a.created_at).toLocaleString("es-ES") }));
-                      }}
-                      className="w-full flex items-center gap-3 p-4 hover:bg-secondary/30 transition-colors text-left"
-                    >
-                      <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-                        <Video size={14} className="text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-display font-semibold text-foreground">
-                          {t("playerHubPage.analysisDate", { date: new Date(a.created_at).toLocaleDateString("es-ES") })}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          VSI {a.report?.vsi ?? "—"} · {a.report?.metricasCuantitativas ? t("playerHubPage.withStats") : t("playerHubPage.withoutStats")}
-                        </p>
-                      </div>
-                      <ChevronRight size={14} className="text-muted-foreground" />
-                    </button>
-                  ))}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-display font-bold text-foreground flex items-center gap-1.5">
+                    <Video size={14} className="text-primary" /> {t("playerHubPage.analysesTitle")}
+                  </h3>
+                  <div className="glass rounded-xl divide-y divide-border">
+                    {analyses.map((a) => {
+                      const vid = a.video_id ? videoById.get(a.video_id) : undefined;
+                      return (
+                        <button
+                          key={a.id}
+                          onClick={() => {
+                            if (vid) setVideoModal(vid);
+                            else toast.info(t("playerHubPage.noVideoForAnalysis"));
+                          }}
+                          className="w-full flex items-center gap-3 p-4 hover:bg-secondary/30 transition-colors text-left"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                            <Video size={14} className="text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-display font-semibold text-foreground">
+                              {t("playerHubPage.analysisDate", { date: new Date(a.created_at).toLocaleDateString("es-ES") })}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              VSI {a.vsi ?? "—"}{vid ? ` · ${t("playerHubPage.withVideo")}` : ""}
+                            </p>
+                          </div>
+                          {vid
+                            ? <Play size={14} className="text-primary" />
+                            : <ChevronRight size={14} className="text-muted-foreground" />}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              ) : (
+              ) : scoutInsights.length === 0 ? (
                 <EmptyAnalysisState playerId={id ?? ""} playerName={player.name} />
+              ) : null}
+
+              {/* Modal de reproducción del vídeo referenciado */}
+              {videoModal && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                  onClick={() => setVideoModal(null)}
+                >
+                  <div className="w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end mb-2">
+                      <button
+                        onClick={() => setVideoModal(null)}
+                        className="p-2 rounded-lg bg-secondary hover:bg-secondary/70 transition-colors"
+                        title={t("common.close")}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    <VideoPlayer video={videoModal} autoplay />
+                  </div>
+                </div>
               )}
             </motion.div>
           )}
