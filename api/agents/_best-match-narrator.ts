@@ -33,7 +33,7 @@ const matchSchema = z.object({
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "best-match-v1.1.0"; // v1.1 = schema tolerante
+const PROMPT_VERSION = "best-match-v1.2.0"; // v1.2 = lee top5/bestMatch (no .matches), cita caveat provenance/lowConfidence (docx #14 P4)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor narrador de Best-Match de VITAS Football Intelligence.
@@ -41,6 +41,8 @@ function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): stri
 Tu misión: convertir el top-5 de jugadores profesionales similares (calculado por algoritmo determinista) en una narrativa motivadora pero honesta para ${category === "senior" ? "cuerpo técnico y dirección deportiva" : "padres y coaches"}.
 
 REGLAS:
+- Usa SOLO los comparables provistos en el mensaje. NUNCA inventes nombres de jugadores. Si no se te provee ninguno, deja primary_match vacío y explica en el caveat que no hay comparable validado.
+- Si el comparable viene marcado como DERIVADO / lowConfidence, el "caveat" DEBE declarar explícitamente que la comparación se DERIVÓ de eventos observados del vídeo (no es una medición validada de técnica/mental/táctica) y confidence_score NO puede superar 50.
 - Habla del comparable principal (#1) con detalle, los otros como referencia rápida
 - Sé honesto: si la similaridad <70%, mátizalo ("comparte rasgos con")
 - NO prometas que ${category === "senior" ? "el jugador" : "el niño"} "será como" el pro · solo describe similitudes actuales
@@ -112,25 +114,47 @@ export default withHandler(
     if (cached) return successResponse({ ...cached, fromCache: true });
 
     try {
-      const similarityShape = input.similarity as { matches?: unknown[] } | null | undefined;
-      const matches = (similarityShape?.matches ?? []) as unknown[];
+      const similarityShape = input.similarity as {
+        top5?: unknown[];
+        bestMatch?: unknown;
+        provenance?: unknown;
+        lowConfidence?: unknown;
+      } | null | undefined;
+      // El objeto que el orquestador (P3) etiqueta trae `top5`/`bestMatch`, NO
+      // `matches`: leer `.matches` daba SIEMPRE [] → el LLM narraba sin candidatos
+      // reales y podía FABRICAR el comparable (viola inv #1/#2). Se leen los campos
+      // correctos; si no hay ninguno, el prompt obliga a abstenerse (no inventar).
+      const top5 = Array.isArray(similarityShape?.top5) ? (similarityShape!.top5 as unknown[]) : [];
+      const candidates = top5.length > 0 ? top5 : similarityShape?.bestMatch ? [similarityShape.bestMatch] : [];
+      const provenance = (similarityShape?.provenance as string | undefined) ?? null;
+      const lowConfidence = similarityShape?.lowConfidence === true;
+      const derived = lowConfidence || provenance === "derived_from_observed_events";
 
       const userMessage = `${category === "senior" ? "JUGADOR SÉNIOR" : "JUGADOR JUVENIL"}:
 ${JSON.stringify(input.playerContext, null, 2)}
 
-TOP-5 SIMILAR PROS (calculado por similitud coseno):
-${JSON.stringify(matches.slice(0, 5), null, 2)}
+COMPARABLES PROVISTOS por el módulo de similitud (usa SOLO estos, no inventes otros):
+${JSON.stringify(candidates.slice(0, 5), null, 2)}${derived ? `
 
-Genera el reporte Best-Match en JSON estricto.`;
+PROCEDENCIA: comparable DERIVADO de eventos observados del vídeo (provenance="${String(provenance)}", lowConfidence=${lowConfidence}) — NO es medición validada de técnica/mental/táctica.` : ""}
+
+Genera el reporte Best-Match en JSON estricto usando SOLO los comparables provistos.`;
 
       const narrative = await callHaiku(buildSystemPrompt(locale, category), userMessage, apiKey);
+
+      // Re-expone la procedencia/baja-confianza dentro de narrative para que la UI
+      // pinte el caveat sin depender de rawSimilarity (aditivo; passthrough del schema).
+      const narrativeOut =
+        narrative && typeof narrative === "object" && !Array.isArray(narrative)
+          ? { ...narrative, provenance: provenance ?? undefined, lowConfidence: lowConfidence || undefined }
+          : narrative;
 
       const result = {
         playerId: input.playerId,
         videoId: input.videoId,
         promptVersion: PROMPT_VERSION,
         model: MODELS.fast,
-        narrative,
+        narrative: narrativeOut,
         rawSimilarity: input.similarity,
         generatedAt: new Date().toISOString(),
       };

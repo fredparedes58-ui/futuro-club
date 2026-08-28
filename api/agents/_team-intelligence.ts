@@ -226,6 +226,11 @@ ${analysisFocus ? `
 ENFOQUE DEL ANÁLISIS: Concentra especialmente el análisis en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
 Dedica más detalle a estas acciones en el resumen ejecutivo, fases de juego, métricas colectivas y per-jugador. Si el enfoque es defensivo, profundiza en pressing, línea defensiva, recuperaciones. Si es ofensivo, profundiza en circulación, transiciones ofensivas, centros, disparos.` : ""}
 
+REGLAS DE HONESTIDAD (docx #14):
+- Distingue SIEMPRE la procedencia: lo del bloque "OBSERVACIONES TÁCTICAS" es OBSERVADO POR IA (análisis del vídeo), lo del bloque "MÉTRICAS FÍSICAS" es MEDIDO por tracking, y si solo hay fotogramas es INFERIDO de imágenes. Marca lo inferido como tal; no presentes inferencia como observación.
+- Si un dato no aparece en los bloques de entrada (formación, posesión, pressing, un contador de eventos, un jugador), escribe "no observado" y NO lo inventes. Un contador en 0 sin evidencia no significa "0 eventos": es "no observado" — no infieras acciones que no estén en las observaciones.
+- Con datos escasos, BAJA la confianza; deja listas vacías ([]) en vez de rellenar con patrones tácticos genéricos.
+
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
 {

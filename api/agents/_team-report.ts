@@ -30,7 +30,7 @@ const inputSchema = z.object({
   locale: z.enum(["es", "en"]).optional(),
 }).passthrough();
 
-const PROMPT_VERSION = "v1.0.0";
+const PROMPT_VERSION = "v1.1.0"; // v1.1 = gate de hueco + observado/inferido + fallback honesto (docx #14 P4)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres un analista táctico de fútbol profesional de VITAS Football Intelligence.
@@ -55,6 +55,11 @@ Estructura tu respuesta como JSON con este formato:
   "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
+EVIDENCIA Y PROCEDENCIA (docx #14):
+- Todo (style, strengths, weaknesses, key_battles, momentum_shifts, recommendations, overall_rating) deriva ÚNICAMENTE de los datos aportados (formaciones, métricas de equipo, posesión, pressing, red de pases). Si un dato de entrada es null/vacío, escribe "No disponible" en ese punto y BAJA confidence_score; deja key_battles y momentum_shifts como [] si no hay evidencia. NUNCA inventes un valor táctico plausible.
+- overall_rating: NO emitas notas si no hay métricas suficientes — deja {} en vez de inventar un número.
+- Separa observación directa (visto en vídeo/tracking) de inferencia (estimado por modelo); marca explícitamente lo inferido.
+
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
 ${languageDirective(locale)}${categoryDirective(category, locale)}`;
@@ -66,22 +71,24 @@ export default withHandler(
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
     if (!ANTHROPIC_API_KEY) {
-      // Fallback: return mock report
+      // Fallback honesto: sin modelo NO se fabrican estilos/batallas/ratings (docx #14
+      // P4, inv #2). Se abstiene con campos vacíos y confianza 0; la UI lo señala por
+      // `source`. Antes inventaba estilos y overall_rating 7.0/6.5.
       return successResponse({
         data: {
           report: {
-            executive_summary: "Análisis táctico generado con datos de tracking. Sin API key, se retorna estructura base.",
+            executive_summary: "Informe de equipo no disponible: falta el motor de análisis (sin datos suficientes).",
             tactical_overview: {
-              home: { style: "Posesión progresiva", strengths: ["Control del balón"], weaknesses: ["Falta de profundidad"] },
-              away: { style: "Transiciones rápidas", strengths: ["Velocidad en contra"], weaknesses: ["Desorden defensivo"] },
+              home: { style: "No disponible", strengths: [], weaknesses: [] },
+              away: { style: "No disponible", strengths: [], weaknesses: [] },
             },
-            key_battles: ["Mediocampo central", "Bandas"],
+            key_battles: [],
             momentum_shifts: [],
-            recommendations: {
-              home: ["Ampliar juego por bandas"],
-              away: ["Compactar líneas defensivas"],
-            },
-            overall_rating: { home: 7.0, away: 6.5 },
+            recommendations: { home: [], away: [] },
+            overall_rating: {},
+            confidence_score: 0,
+            data_completeness: 0,
+            not_evaluated: ["Análisis táctico: no disponible sin el motor"],
           },
           promptVersion: PROMPT_VERSION,
           source: "mock_fallback",

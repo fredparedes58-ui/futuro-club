@@ -70,7 +70,9 @@ export const valuationOutputSchema = z
   .object({
     evaluacionGeneral: z.string().min(1),
     tierAnalisis: z.string().optional(),
-    comparablesProfesionales: z.array(z.unknown()).optional(),
+    // docx #14 P4: cada comparable exige `nombre` (los provee el módulo de similitud);
+    // un array vacío es válido (abstención). Bloquea comparables sin identidad.
+    comparablesProfesionales: z.array(z.object({ nombre: z.string().min(1) }).passthrough()).optional(),
     factoresClave: z.array(z.unknown()).optional(),
     proyeccion: z.record(z.unknown()).optional(),
     recomendacionesDesarrollo: z.array(z.unknown()).optional(),

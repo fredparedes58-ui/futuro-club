@@ -46,7 +46,7 @@ const inputSchema = z.object({
   locale: z.enum(["es", "en"]).optional(),
 }).passthrough();
 
-const PROMPT_VERSION = "v1.0.0";
+const PROMPT_VERSION = "v1.1.0"; // v1.1 = gate de hueco + observado/inferido + fallback honesto (docx #14 P4)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres un analista de scouting de fútbol de VITAS Football Intelligence.
@@ -85,6 +85,11 @@ Responde como JSON:
   "not_evaluated": ["string · aspectos que no se pudieron evaluar por falta de datos"]
 }
 
+EVIDENCIA Y PROCEDENCIA (docx #14):
+- strengths, weaknesses, key_threats, attack_plan y defensive_plan derivan ÚNICAMENTE de los datos aportados (formación, métricas, vulnerabilidades, jugadores clave, build-up, zonas descubiertas, pressing). Si una dimensión llega vacía ([] o {}), su campo de salida correspondiente va vacío ([] o "sin datos suficientes") y el aspecto entra en not_evaluated. NUNCA rellenes con tácticas genéricas ni jugadores/zonas inventados.
+- En cada ítem distingue lo OBSERVADO en el tracking de la INFERENCIA táctica; marca los inferidos con el sufijo "(inferencia)". No presentes inferencia como observación.
+- threat_level = "low" y confidence_score bajo cuando la mayor parte del análisis es inferido por falta de datos.
+
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
 ${languageDirective(locale)}${category === "senior" ? `\n\n${categoryDirective(category, locale)}` : ""}`;
@@ -96,29 +101,23 @@ export default withHandler(
     const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
     if (!ANTHROPIC_API_KEY) {
+      // Fallback honesto: sin modelo NO se fabrican tácticas/amenazas (docx #14 P4,
+      // inv #2/#3). Se abstiene con campos vacíos y confianza 0; la UI lo señala por
+      // `source`. Antes hardcodeaba un plan de ataque/defensa inventado.
       return successResponse({
         data: {
           report: {
-            rival_profile: "Análisis de scouting basado en datos de tracking.",
-            threat_level: "medium",
-            strengths: ["Organización defensiva"],
-            weaknesses: ["Espacios entre líneas"],
+            rival_profile: "Informe de rival no disponible: falta el motor de análisis (sin datos suficientes).",
+            threat_level: "low",
+            strengths: [],
+            weaknesses: [],
             key_threats: [],
-            attack_plan: {
-              primary: "Explotar espacios entre líneas",
-              secondary: "Ataques por bandas",
-              set_pieces: "Centros al segundo palo",
-            },
-            defensive_plan: {
-              marking: "Marcaje zonal",
-              pressing_trigger: "Tras pase lateral del rival",
-              transition_defense: "Repliegue rápido",
-            },
-            game_management: {
-              first_half: "Control del juego",
-              second_half: "Aprovechar fatiga rival",
-              substitution_triggers: "Minuto 60-65",
-            },
+            attack_plan: {},
+            defensive_plan: {},
+            game_management: {},
+            confidence_score: 0,
+            data_completeness: 0,
+            not_evaluated: ["Análisis completo: no disponible sin el motor de scouting"],
           },
           promptVersion: PROMPT_VERSION,
           source: "mock_fallback",
@@ -142,7 +141,7 @@ Patrones de build-up: ${JSON.stringify(body.buildUpPatterns ?? [], null, 2)}
 Zonas descubiertas: ${JSON.stringify(body.gaps ?? [], null, 2)}
 Pressing: ${JSON.stringify(body.pressing ?? {}, null, 2)}
 ${phvLine && phvApplies(category) ? `\n${phvLine}\n${phvNote}\n` : ""}
-Genera el informe de scouting completo.`;
+Genera el informe SOLO con lo que estos datos soporten; deja vacío ([] / "sin datos suficientes") lo que no puedas evaluar y no inventes.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

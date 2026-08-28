@@ -97,6 +97,7 @@ const REPORT_RENDERERS: Record<string, React.ComponentType<{ report: Record<stri
   projection:           ProjectionReportView,
   "development-plan":   DevelopmentPlanReportView,
   "dna-profile":        DnaProfileReportView,
+  "best-match":         BestMatchReportView,
 };
 
 interface Props {
@@ -720,6 +721,30 @@ const LENS_META: Record<string, { label: string; color: string; emoji: string }>
   lider:   { label: "Liderazgo", color: "#FFD700", emoji: "👑" },
 };
 
+/**
+ * Renderer dedicado de best-match. El content llega ENVUELTO
+ * ({ok,success,data:{…,narrative}}) porque el agente narrador usa la clave
+ * `narrative` (no `report`), así que el orquestador persiste el envelope HTTP sin
+ * desenvolver — igual que pasaba con dna-profile (#180) y projection. Sin este
+ * renderer, `report.primary_match` era undefined → caía al volcado JSON crudo y el
+ * chip de procedencia (docx #14 P4) no se pintaba. Se desenvuelve como los demás.
+ */
+function BestMatchReportView({ report }: { report: Record<string, unknown> }) {
+  const data = report?.data as Record<string, unknown> | undefined;
+  const narrative =
+    data?.narrative && typeof data.narrative === "object" && !Array.isArray(data.narrative)
+      ? (data.narrative as Record<string, unknown>)
+      : report?.narrative && typeof report.narrative === "object" && !Array.isArray(report.narrative)
+        ? (report.narrative as Record<string, unknown>)
+        : report;
+  return (
+    <div className="space-y-3">
+      <ReportConfidenceChip report={narrative} />
+      <BestMatchSection report={narrative} />
+    </div>
+  );
+}
+
 function BestMatchSection({ report }: { report: Record<string, unknown> }) {
   const { t } = useTranslation();
   const top3 = report.top3 as BestMatchItem[] | undefined;
@@ -734,8 +759,16 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
     const caveat = report.caveat as string | undefined;
     const pct = Math.round(pm.similarity_pct ?? 0);
     const pctColor = pct >= 80 ? "text-green-400" : pct >= 60 ? "text-electric" : "text-amber-400";
+    // docx #14 P4: el comparable puede venir DERIVADO de eventos observados (P3) →
+    // se avisa con un chip; no se vende como similitud de una BD validada.
+    const derived = report.provenance === "derived_from_observed_events" || report.lowConfidence === true;
     return (
       <div className="space-y-3">
+        {derived && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+            {t("bestMatchReport.derivedCaveat")}
+          </span>
+        )}
         {headline && <p className="text-sm font-display font-semibold text-foreground">{headline}</p>}
         <div className="rounded-xl p-3 bg-primary/10 border border-primary/30">
           <div className="flex items-start justify-between gap-2">

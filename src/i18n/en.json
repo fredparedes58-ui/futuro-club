@@ -5269,6 +5269,9 @@
       "misaligned": "Misaligned"
     }
   },
+  "bestMatchReport": {
+    "derivedCaveat": "Estimated comparable · low confidence"
+  },
   "developmentPlanReport": {
     "noContent": "No development plan",
     "planTitle": "Development plan",
