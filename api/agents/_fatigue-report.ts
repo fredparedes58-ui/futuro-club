@@ -45,7 +45,7 @@ const fatigueReportSchema = z.object({
   category: z.enum(["youth", "senior"]).optional(),
 });
 
-const PROMPT_VERSION = "v1.0.0";
+const PROMPT_VERSION = "v1.1.0";
 
 function buildPrompt(data: z.infer<typeof fatigueReportSchema>): string {
   const age = data.playerContext?.chronologicalAge ?? 12;
@@ -71,7 +71,7 @@ ${JSON.stringify(fatigue, null, 2)}
 ${data.fatigueHistory ? JSON.stringify(data.fatigueHistory.slice(-10), null, 2) : "Sin historial disponible"}
 
 ## INSTRUCCIONES
-Genera un reporte de fatiga en español con las siguientes secciones. Usa datos concretos cuando estén disponibles, estimaciones razonables cuando no.
+Genera un reporte de fatiga en español con las siguientes secciones. Usa SOLO datos concretos. Si falta un dato (índice de fatiga, ACWR, historial de carga), NO lo estimes: pon ese campo en null y decláralo en not_evaluated. NUNCA inventes una cifra de fatiga, carga o riesgo. Un hueco honesto vale más que un número inventado sobre un menor.
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 
@@ -123,6 +123,19 @@ export default withHandler(
   { schema: fatigueReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof fatigueReportSchema>;
+
+    // Inv #2 (CLAUDE.md): ante dato ausente se BLOQUEA, nunca se estima. Sin sesiones
+    // de fatiga ni historial de carga no hay nada que medir → informe bloqueado con
+    // índice/ACWR/riesgo en null y motivo. Se corta ANTES del LLM y del mock, así que
+    // ninguna rama (con o sin API key, éxito o error) puede fabricar cifras.
+    if (!hasRealFatigueData(data)) {
+      return successResponse({
+        report: blockedFatigueReport(data),
+        promptVersion: PROMPT_VERSION,
+        model: "gated",
+        source: "no_fatigue_data",
+      });
+    }
 
     if (!ANTHROPIC_API_KEY) {
       // Fallback: generate mock report
@@ -198,36 +211,81 @@ export default withHandler(
   },
 );
 
+/** ¿Hay datos REALES de fatiga? Sesión con contenido, o historial de carga no vacío. */
+export function hasRealFatigueData(data: z.infer<typeof fatigueReportSchema>): boolean {
+  const fr = data.fatigueReport;
+  const hasSession = fr != null && typeof fr === "object" && Object.keys(fr).length > 0;
+  const hasHistory = Array.isArray(data.fatigueHistory) && data.fatigueHistory.length > 0;
+  return hasSession || hasHistory;
+}
+
+/**
+ * Informe de fatiga BLOQUEADO (inv #2). Sin sesiones registradas no se puede evaluar
+ * índice/ACWR/riesgo: se devuelven en null con motivo, NUNCA cifras fabricadas. La
+ * vista (FatigueReportView) ya degrada null → sin cifra y muestra el resumen honesto.
+ */
+export function blockedFatigueReport(data: z.infer<typeof fatigueReportSchema>): Record<string, unknown> {
+  const phv = data.phv as Record<string, unknown> | null | undefined;
+  const banda = phv?.category ?? phv?.phv_category ?? "unknown";
+  return {
+    estadoActual: { indice: null, severidad: "sin datos", indicadores: [], señalesPosturales: [] },
+    cargaACWR: {
+      valor: null,
+      zona: "sin datos",
+      tendencia: "sin datos",
+      recomendacionProximaSesion: "Registra sesiones de entrenamiento (carga/RPE) o analiza un vídeo con tracking para activar el análisis de carga.",
+    },
+    riesgoLesion: { nivel: "sin datos", factores: [], zonasExpuestas: [] },
+    ajustesPHV: { banda, umbralesModificados: [], recomendaciones: [] },
+    protocoloRecuperacion: { plan48h: [], indicadoresRetorno: [], ejerciciosComplementarios: [] },
+    resumenEjecutivo: "Sin datos de sesión de fatiga registrados. No es posible evaluar el estado de fatiga, la carga (ACWR) ni el riesgo de lesión sin sesiones de entrenamiento o tracking de vídeo. Registra sesiones para activar este informe.",
+    confidence_score: 0,
+    data_completeness: 0,
+    not_evaluated: [
+      "Índice de fatiga: sin datos de sesión",
+      "ACWR (carga aguda:crónica): sin historial de carga",
+      "Riesgo de lesión por fatiga: sin datos",
+    ],
+    _gated: true,
+    _gate_reason: "no_fatigue_data",
+  };
+}
+
+// Fallback cuando el LLM no está disponible pero SÍ hay datos reales (el guard
+// hasRealFatigueData ya cortó el caso sin datos). No se fabrican cifras: el índice
+// sale del dato real si existe, si no null; el ACWR exige historial → null (no se
+// estima), y no se inventan decays concretos.
 function generateMockReport(data: z.infer<typeof fatigueReportSchema>): Record<string, unknown> {
   const fatigue = data.fatigueReport as Record<string, unknown> | null;
+  const idx = typeof fatigue?.fatigueIndex === "number" ? (fatigue.fatigueIndex as number) : null;
+  const severidad = idx === null ? "sin datos" : idx >= 66 ? "alto" : idx >= 33 ? "moderado" : "bajo";
   return {
     estadoActual: {
-      indice: (fatigue as Record<string, unknown>)?.fatigueIndex ?? 35,
-      severidad: "moderado",
-      indicadores: ["Sprint decay: -12%", "Speed decay: -8%", "Metabolic power estable"],
-      señalesPosturales: ["Inclinación trunk aumentó 3° en últimos 15 min"],
+      indice: idx,
+      severidad,
+      indicadores: [],
+      señalesPosturales: [],
     },
     cargaACWR: {
-      valor: 1.1,
-      zona: "óptimo",
-      tendencia: "estable",
-      recomendacionProximaSesion: "Mantener carga actual. Sesión de intensidad media recomendada.",
+      valor: null,
+      zona: "sin datos",
+      tendencia: "sin datos",
+      recomendacionProximaSesion: "El ACWR exige historial de carga; registra sesiones para calcularlo.",
     },
-    riesgoLesion: {
-      nivel: "bajo",
-      factores: ["Carga dentro de rango óptimo", "Sin señales posturales críticas"],
-      zonasExpuestas: ["Isquiotibiales (sprint repetido)"],
-    },
+    riesgoLesion: { nivel: "sin datos", factores: [], zonasExpuestas: [] },
     ajustesPHV: {
       banda: (data.phv as Record<string, unknown>)?.category ?? "unknown",
-      umbralesModificados: ["Sprint threshold ajustado por maduración"],
-      recomendaciones: ["Monitorear carga durante pico de crecimiento"],
+      umbralesModificados: [],
+      recomendaciones: [],
     },
     protocoloRecuperacion: {
-      plan48h: ["Hidratación elevada", "Sueño mínimo 9h", "Movilidad activa día siguiente"],
-      indicadoresRetorno: ["Sprint speed recupera >90% del baseline", "Sin dolor muscular residual"],
+      plan48h: ["Hidratación adecuada", "Sueño de calidad", "Movilidad activa"],
+      indicadoresRetorno: ["Ausencia de dolor muscular residual"],
       ejerciciosComplementarios: ["Core stability", "Movilidad de cadera", "Propiocepción"],
     },
-    resumenEjecutivo: "Jugador en estado de fatiga moderado. La carga de trabajo es adecuada (ACWR 1.1). No se detectan señales de riesgo elevado. Se recomienda mantener el plan de entrenamiento actual con monitoreo estándar.",
+    resumenEjecutivo: idx === null
+      ? "Análisis de fatiga no disponible temporalmente (servicio de IA caído). No se muestran cifras estimadas."
+      : `Índice de fatiga registrado: ${idx}/100 (${severidad}). El ACWR y el riesgo de lesión requieren historial de carga, no disponible en esta sesión.`,
+    _fallback: true,
   };
 }
