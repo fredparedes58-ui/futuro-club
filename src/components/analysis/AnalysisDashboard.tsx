@@ -31,6 +31,7 @@ import ReportConfidenceChip from "@/components/analysis/reports/ReportConfidence
 import PlayerReportView from "@/components/analysis/reports/PlayerReportView";
 import ProjectionReportView from "@/components/analysis/reports/ProjectionReportView";
 import DevelopmentPlanReportView from "@/components/analysis/reports/DevelopmentPlanReportView";
+import DnaProfileReportView from "@/components/analysis/reports/DnaProfileReportView";
 
 interface ReportData {
   report_type: string;
@@ -95,6 +96,7 @@ const REPORT_RENDERERS: Record<string, React.ComponentType<{ report: Record<stri
   "player-report":      PlayerReportView,
   projection:           ProjectionReportView,
   "development-plan":   DevelopmentPlanReportView,
+  "dna-profile":        DnaProfileReportView,
 };
 
 interface Props {

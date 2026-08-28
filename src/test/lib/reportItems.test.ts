@@ -5,7 +5,7 @@
  * funciones son la guarda; el test fija su contrato.
  */
 import { describe, it, expect } from "vitest";
-import { asItemArray, itemTitle } from "@/lib/reports/reportItems";
+import { asItemArray, itemTitle, unwrapDnaContent } from "@/lib/reports/reportItems";
 
 describe("asItemArray", () => {
   it("devuelve el array tal cual", () => {
@@ -44,5 +44,38 @@ describe("itemTitle", () => {
     const mixed = ["a", null, { title: "b" }, 5, undefined];
     expect(() => mixed.map(itemTitle)).not.toThrow();
     expect(mixed.map(itemTitle)).toEqual(["a", "", "b", "", ""]);
+  });
+});
+
+describe("unwrapDnaContent", () => {
+  it("content doblemente envuelto {…,data:{…,dna}} → objeto ADN", () => {
+    const content = {
+      ok: true,
+      success: true,
+      data: { playerId: "p1", generatedAt: "x", dna: { primary_style: "Interior creativo", natural_role: "CAM" } },
+    };
+    expect(unwrapDnaContent(content)).toEqual({ primary_style: "Interior creativo", natural_role: "CAM" });
+  });
+  it("forma {dna:{…}} sin nivel data → objeto ADN", () => {
+    const content = { dna: { primary_style: "Lateral ofensivo" } };
+    expect(unwrapDnaContent(content)).toEqual({ primary_style: "Lateral ofensivo" });
+  });
+  it("objeto ADN directo (sin envoltorio) → se devuelve tal cual", () => {
+    const dna = { primary_style: "Pivote", pressure_behavior: "Sólido" };
+    expect(unwrapDnaContent(dna)).toBe(dna);
+  });
+  it("primary_style se resuelve tras desenvolver (regresión: antes daba undefined)", () => {
+    const content = { data: { dna: { primary_style: "Extremo directo" } } };
+    expect((unwrapDnaContent(content) as { primary_style?: string }).primary_style).toBe("Extremo directo");
+  });
+  it("no-objeto / null / array → {} (no crashea al leer campos)", () => {
+    expect(unwrapDnaContent(null)).toEqual({});
+    expect(unwrapDnaContent(undefined)).toEqual({});
+    expect(unwrapDnaContent("texto")).toEqual({});
+    expect(unwrapDnaContent([1, 2])).toEqual({});
+  });
+  it("data presente pero sin dna → nivel data (tolerante)", () => {
+    const content = { data: { primary_style: "Media punta", extra: 1 } };
+    expect(unwrapDnaContent(content)).toEqual({ primary_style: "Media punta", extra: 1 });
   });
 });

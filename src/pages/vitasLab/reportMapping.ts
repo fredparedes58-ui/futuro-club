@@ -1,4 +1,5 @@
 import { type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
+import { unwrapDnaContent } from "@/lib/reports/reportItems";
 import type { AnalysisReport } from "./types";
 
 // ── Bridge: mapea V2 reports al shape legacy que usa el panel de resultados ──
@@ -8,7 +9,7 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
     (result.reports!.find((r) => r.report_type === type)?.content ?? {}) as Record<string, unknown>;
 
   const pr  = get("player-report");
-  const dna = get("dna-profile");
+  const dna = unwrapDnaContent(get("dna-profile")); // content dna-profile viene envuelto {data:{…,dna}}
   const bm  = get("best-match");
   const pj  = get("projection");
   const dp  = get("development-plan");
@@ -35,10 +36,13 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
       ajusteVSIVideoScore: Math.round(vsiScore - 50),
     },
     adnFutbolistico: {
-      estiloJuego:      (dna.playing_style as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
-      arquetipoTactico: (dna.archetype as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
+      // Campos REALES del agente (_dna-profile.ts): primary_style/style_summary,
+      // natural_role, pressure_behavior. Nombres antiguos (playing_style, archetype,
+      // mentality) nunca existieron en el schema → daban siempre defaults.
+      estiloJuego:      (dna.primary_style as string) ?? (dna.style_summary as string) ?? (dna.estiloJuego as string) ?? "Perfil táctico calculado por IA",
+      arquetipoTactico: (dna.natural_role as string) ?? (dna.arquetipoTactico as string) ?? "DNA Análisis",
       patrones:         [],
-      mentalidad:       (dna.mentality as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
+      mentalidad:       (dna.pressure_behavior as string) ?? (dna.mentalidad as string) ?? "Determinado y competitivo",
     },
     jugadorReferencia: {
       bestMatch: (bm.nombre as string) ? {

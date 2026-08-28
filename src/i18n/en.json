@@ -5248,6 +5248,22 @@
     "keyDrivers": "Key drivers",
     "positionProjections": "Projection by position"
   },
+  "dnaProfileReport": {
+    "noContent": "No football DNA",
+    "aiEstimated": "DNA estimated by AI",
+    "style": "Playing style",
+    "role": "Role",
+    "naturalRole": "Natural role",
+    "currentRole": "Current role",
+    "tacticalLabels": "Tactical labels",
+    "pressureBehavior": "Under pressure",
+    "gameReading": "Game reading",
+    "alignment": {
+      "aligned": "Aligned",
+      "adjacent": "Adjacent",
+      "misaligned": "Misaligned"
+    }
+  },
   "developmentPlanReport": {
     "noContent": "No development plan",
     "planTitle": "Development plan",
