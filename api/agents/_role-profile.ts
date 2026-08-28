@@ -76,6 +76,29 @@ CAMPOS OBLIGATORIOS ADICIONALES:
 - data_completeness (0-100): porcentaje de dimensiones de evaluación que tienen datos reales.
 - not_evaluated: array de strings listando las dimensiones que NO pudiste evaluar y por qué (ej. "velocidad máxima: sin tracking data disponible").
 
+ESTRUCTURA JSON EXACTA — usa EXACTAMENTE estos nombres de campo (el cliente los valida; cualquier otra forma se rechaza):
+{
+  "dominantIdentity": "ofensivo|defensivo|tecnico|fisico|mixto",
+  "identityDistribution": { "ofensivo": 0.20, "defensivo": 0.20, "tecnico": 0.20, "fisico": 0.20, "mixto": 0.20 },
+  "topPositions": [ { "code": "RW", "fit": 0-100, "confidence": 0-1 } ],
+  "positionAlternatives": [ { "code": "ST", "fit": 0-100, "alreadyDeclared": false, "reason": "…", "confidence": 0-1 } ],
+  "topArchetypes": [ { "code": "regateador", "fit": 0-100, "stability": "emergente|en_desarrollo|estable|consolidado" } ],
+  "capabilities": {
+    "tactical":  { "current": 0-100, "p6m": 0-100, "p18m": 0-100 },
+    "technical": { "current": 0-100, "p6m": 0-100, "p18m": 0-100 },
+    "physical":  { "current": 0-100, "p6m": 0-100, "p18m": 0-100 }
+  },
+  "strengths": ["…"],
+  "risks": ["…"],
+  "gaps": ["…"],
+  "overallConfidence": 0-1,
+  "confidence_score": 0-100,
+  "data_completeness": 0-100,
+  "not_evaluated": ["…"],
+  "summary": "≤400 caracteres, en español"
+}
+RESTRICCIONES: identityDistribution suma exactamente 1.0 · topPositions y topArchetypes ≤5 · strengths ≤4 · risks ≤3 · gaps ≤3 · code de posición ∈ {GK,RB,RCB,LCB,LB,DM,RCM,LCM,RW,LW,ST} · stability y dominantIdentity solo los enums de arriba · fit 0-100, confidence/overallConfidence 0-1.
+
 RESPONDE ÚNICAMENTE con JSON válido.
 No incluyas texto, explicaciones ni markdown fuera del JSON.
 Todos los números con 2 decimales máximo. El summary en español, máximo 400 caracteres.
