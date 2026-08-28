@@ -18,6 +18,7 @@ import { ScanIQCard } from "@/components/dmscore/ScanIQCard";
 import { computeScanIQ } from "@/lib/dmscore";
 import VideoUploadDialog from "@/components/setPiece/VideoUploadDialog";
 import ScanningAnalyzerDialog from "@/components/behavioral/ScanningAnalyzerDialog";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import {
   ScanningVideoAnalyses,
   type ScanningAnalysisResult,
@@ -37,6 +38,10 @@ function seededRng(seed: string): () => number {
   };
 }
 
+// MOCK deliberado: Scan IQ de EJEMPLO derivado del id (para poblar el ranking en
+// demos SIN vídeo analizado). NO es una medida — se declara con DemoDataBanner en la
+// página (metricas.md: MOCK exige banner visible). El Scan IQ real sale del análisis
+// de vídeo (ScanningVideoAnalyses), no de aquí.
 function generateScanIQ(playerId: string): number {
   const rng = seededRng(playerId);
   rng(); // skip first — keeps parity with BehavioralOverviewPage seed sequence
@@ -191,6 +196,10 @@ export default function ScanningIntelligencePage() {
           <EmptyState onCreate={() => navigate("/players/new")} />
         ) : (
           <>
+            {/* Aviso honesto: el ranking/Scan IQ de abajo es de EJEMPLO (derivado del
+                id, no medido). El Scan IQ real llega al analizar un vídeo del jugador. */}
+            <DemoDataBanner messageKey="scanningIntelligencePage.demoNotice" />
+
             {/* Team stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
               <TeamStat
