@@ -57,6 +57,30 @@ describe("computeSessionMetrics — gate identityReliable (#24)", () => {
   });
 });
 
+describe("computeSessionMetrics — Voronoi de sesión (G7)", () => {
+  it("space = DERIVADA orientativa con la media de las muestras del jugador enfocado", () => {
+    const samples = new Map<number, number[]>([[1, [50, 70, 60]]]); // media = 60
+    const m = computeSessionMetrics([mkTrack(1, 8, 1)], 1, [], [], samples);
+    expect(m.space.value).toBeCloseTo(60, 5);
+    expect(m.space.provenance).toBe("DERIVADA");
+    expect(m.space.calibrated).toBe(false); // depende de homografía → orientativo, nunca MEDIDA
+    expect(m.avgVoronoiAreaM2).toBeCloseTo(60, 5);
+  });
+
+  it("space = gated (value null, no 0) cuando el jugador enfocado no tiene muestras", () => {
+    const m = computeSessionMetrics([mkTrack(1, 8, 1)], 1, [], [], new Map());
+    expect(m.space.value).toBeNull();
+    expect(m.space.gate_reason).toBeTruthy();
+    expect(m.avgVoronoiAreaM2).toBe(0);
+  });
+
+  it("solo promedia las muestras del jugador enfocado, no las de otros tracks", () => {
+    const samples = new Map<number, number[]>([[1, [40]], [2, [999]]]);
+    const m = computeSessionMetrics([mkTrack(1, 8, 1)], 1, [], [], samples);
+    expect(m.space.value).toBeCloseTo(40, 5);
+  });
+});
+
 /** Track con un perfil de velocidad dado (m/s por paso a 8 fps): construye las
  *  posiciones de campo cuya distancia por paso produce esas velocidades. */
 function trackWithSpeedProfile(id: number, speedsMs: number[]): Track {
