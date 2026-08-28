@@ -16,6 +16,27 @@
 
 ---
 
+## Plan de cierre — qué se puede dejar al 100% HOY (y qué no)
+
+"100% funcional" tiene **dos mitades** que no se cierran igual:
+
+- **🟢 SEGURO + DESPLEGADO (cerrable HOY):** todo el **§C** son toggles/claves en dashboards
+  (Supabase, Vercel, Modal, Anthropic) — acción del usuario, sin código, ejecutable desde el
+  móvil. Cerrar §C entero deja la plataforma **segura y operativa al 100%**. Empezar por **C1**
+  (el hook JWT — sin él la seguridad multi-tenant de menores está inerte).
+- **🔴 CIFRAS VALIDADAS (NO cerrable "hoy" ejecutando pasos):** el **§A** exige **datos humanos**:
+  clips anotados a mano (identidad), calibración medida y golden (físicas/duelos), datos reales
+  introducidos (bienestar). Es trabajo humano/físico, no un toggle. **Hasta que existan esos
+  datos, las cifras siguen orientativas o bloqueadas** — por honestidad NO se marca "100%
+  validado". Máximo apalancamiento: **un solo clip anotado** desbloquea identidad+físicas+duelos.
+- **✅ CÓDIGO (§B): cerrado.** Lo finalizable está hecho (#184–#188); el resto es §A/§C o ya-verde.
+
+**Conclusión honesta:** hoy puedes dejar la herramienta **segura, desplegada y operativa al 100%
+(§C)**. El "100% de talento detectado con cifras validadas" depende de §A (datos), que no se
+fabrica en un día. Este doc es el recopilatorio único de todo lo pendiente.
+
+---
+
 ## Leyenda de estado
 
 | Estado | Significado |
@@ -95,12 +116,24 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 ### C) OPERATIVO / DEPLOY — acción del USUARIO (dashboards/claves, sin código)
 
-- [ ] **Activar `custom_access_token_hook`** en el panel Supabase (Authentication → Hooks → Enable) tras la migración 057. **⚠ Lo más crítico**: sin esto `tenant_id` raíz = `NULL` y **toda la RLS multi-tenant de datos de menores queda inerte**. Verificar con `node scripts/diag-jwt-tenant.mjs`.
-- [ ] **Verificar/aplicar migraciones 052–059** en prod (`tloadypygzqyfefanrza`): 054 (ledger budget), 055 (RLS táctica owner), 056/058 (género sin default), 057 (hook JWT), 059 (VSI nullable).
-- [ ] **Rotar 8 credenciales** (Anthropic, Voyage, Bunny, Supabase service_role, Modal AUTH, Bunny webhook secret, `CRON_SECRET`, `INTERNAL_API_TOKEN`) → actualizar env Vercel + secrets Modal + borrar `.env` locales. Bloquea antes de: firma academia / demo inversor con datos reales.
-- [ ] **Hard-caps de gasto**: `GLOBAL_MONTHLY_BUDGET_USD` en Vercel + topes duros en dashboards de **Modal** y **Anthropic** (el tripwire en código es *fail-open* — el hard-cap del proveedor es el backstop real).
-- [ ] **`MODAL_TRACK_URL` + `MODAL_API_KEY`** (+ `MODAL_TRACK_ASYNC_URL` + `MODAL_CALLBACK_SECRET`) en Vercel; sin ellas el tracking degrada a mock/cliente.
-- [ ] **Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Resend** (emails RGPD), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes.
+> **Todo esto se puede cerrar HOY desde el móvil/navegador** (paneles Supabase / Vercel /
+> Modal / Anthropic). Cerrar C completo deja la herramienta **segura y desplegada al 100%**.
+> Orden por prioridad:
+
+- [ ] **C1 · Activar `custom_access_token_hook` en Supabase** — **⚠ LO MÁS CRÍTICO.** Sin esto `public.tenant_id()` = `NULL` y **toda la RLS multi-tenant de datos de menores queda inerte** (las lecturas directas del front no se filtran por tenant). Pasos (verificados contra `supabase/migrations/057_custom_access_token_hook.sql`):
+  1. **Paso 0 — ¿existe la función?** SQL Editor → `select proname from pg_proc where proname = 'custom_access_token_hook';`. Vacío → aplica antes la 057 (pega el fichero entero en el SQL Editor).
+  2. **Paso 1 — activar:** Authentication → Hooks → *"Customize Access Token (JWT) Claims"* → función `public.custom_access_token_hook` → **Enable**.
+  3. **Paso 2 — verificar** (el script `scripts/diag-jwt-tenant.mjs` que citaba la migración **ya no existe** → verificación manual): re-loguear en la app y en consola `JSON.parse(atob((await window.supabase.auth.getSession()).data.session.access_token.split('.')[1])).tenant_id` → debe devolver tu tenant_id (no `undefined`).
+  4. **Rollback:** desactivar el hook → RLS vuelve a fallar-cerrada (estado actual), sin romper la app.
+  - ⚠ Al activarlo, un usuario real SIN `app_metadata.tenant_id` dejaría de ver sus datos por lectura directa (la migración dice 9/9 usuarios lo tienen, verificado 20 ago) → hazlo mirando la app justo después.
+- [ ] **C2 · Verificar/aplicar migraciones 052–059** en prod (`tloadypygzqyfefanrza`): 054 (ledger budget), 055 (RLS táctica owner), 056/058 (género sin default), 057 (hook JWT, prerequisito de C1), 059 (VSI nullable). *(Cómo hoy: Supabase → Database → Migrations, o pegar los .sql en el SQL Editor.)*
+- [ ] **C3 · Rotar 8 credenciales** (Anthropic, Voyage, Bunny, Supabase service_role, Modal AUTH, Bunny webhook secret, `CRON_SECRET`, `INTERNAL_API_TOKEN`) → regenerar en cada dashboard, actualizar env Vercel + secrets Modal, borrar `.env` locales. **Bloquea antes de:** firma de academia / demo con datos reales.
+- [ ] **C4 · Hard-caps de gasto**: `GLOBAL_MONTHLY_BUDGET_USD` en env Vercel + topes duros en dashboards de **Modal** y **Anthropic** (el tripwire en código es *fail-open* — el hard-cap del proveedor es el backstop real).
+- [ ] **C5 · `MODAL_TRACK_URL` + `MODAL_API_KEY`** (+ `MODAL_TRACK_ASYNC_URL` + `MODAL_CALLBACK_SECRET`) en env Vercel; sin ellas el tracking de vídeo degrada a mock/cliente y `allowAsync` (§B) queda inerte.
+- [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Resend** (emails RGPD), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
+
+> **Tarea de código adjunta (opcional):** recrear `scripts/diag-jwt-tenant.mjs` — la verificación
+> automática que la migración 057 promete pero **falta en el repo**. Necesita `SUPABASE_SERVICE_ROLE_KEY`.
 
 ---
 
