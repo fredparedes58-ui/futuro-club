@@ -161,15 +161,21 @@ export default function TrackingMetricsPanel({
           sub={t("trackingMetricsPanel.scansSub")}
         />
 
-        {/* Duelos */}
+        {/* Duelos — si el ganador no está resuelto (winnerId null → CONSTANTE), NO
+            mostramos "0": se leería como "0 duelos" cuando en realidad no hay dato.
+            Se pinta el gate_reason como valor, igual que el card de Espacio. */}
         <MetricCard
           icon={<Swords size={12} className="text-red-400" />}
           label={t("trackingMetricsPanel.metricDuels")}
-          value={String(duelCount)}
+          value={
+            metrics?.duels && metrics.duels.value === null
+              ? t("trackingMetricsPanel.duelsUnresolved")
+              : String(duelCount)
+          }
           unit=""
           sub={
             metrics?.duels && metrics.duels.value === null
-              ? t("trackingMetricsPanel.duelsUnresolved")
+              ? ""
               : metrics
                 ? t("trackingMetricsPanel.duelsSub", { won: metrics.duelsWon, lost: metrics.duelsLost })
                 : ""
