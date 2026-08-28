@@ -930,10 +930,14 @@ function WellbeingTab({ playerId }: { playerId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* MOCK sin banner = inválido (CLAUDE.md inv #4): cuando el riesgo es de ejemplo
-          (fetchDropoutRisk → generateMockRiskAssessment, isMock:true) hay que rotularlo,
+      {/* MOCK sin banner = inválido (CLAUDE.md inv #4). El riesgo, el engagement y la
+          asistencia pueden ser de ejemplo de forma INDEPENDIENTE (p.ej. jugador con
+          fatiga real de vídeo pero sin cuestionario/asistencia → risk.isMock=false pero
+          engagement/asistencia salen de fallback). Rotulamos si CUALQUIERA es mock,
           igual que el dashboard de Bienestar autónomo (WellbeingDashboard.tsx). */}
-      {risk.isMock && <DemoDataBanner messageKey="demoData.wellbeing" />}
+      {(risk.isMock || engagement?.some((e) => e.isMock) || attendance?.isMock) && (
+        <DemoDataBanner messageKey="demoData.wellbeing" />
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <DropoutRiskGauge
           score={risk.riskScore}

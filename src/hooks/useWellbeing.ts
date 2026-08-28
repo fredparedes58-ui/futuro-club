@@ -92,6 +92,9 @@ export interface AttendanceProfile {
   excused: number;
   consecutiveAbsences: number;
   records: AttendanceRecord[];
+  /** true si es un perfil de ejemplo (fallback), no asistencia real registrada.
+   *  La UI debe mostrar el DemoDataBanner cuando esto sea true. */
+  isMock?: boolean;
 }
 
 interface QuestionnaireInput {
@@ -618,5 +621,6 @@ function generateMockAttendance(playerId: string): AttendanceProfile {
     excused,
     consecutiveAbsences: 0,
     records,
+    isMock: true,
   };
 }
