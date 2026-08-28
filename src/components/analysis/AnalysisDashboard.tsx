@@ -734,8 +734,16 @@ function BestMatchSection({ report }: { report: Record<string, unknown> }) {
     const caveat = report.caveat as string | undefined;
     const pct = Math.round(pm.similarity_pct ?? 0);
     const pctColor = pct >= 80 ? "text-green-400" : pct >= 60 ? "text-electric" : "text-amber-400";
+    // docx #14 P4: el comparable puede venir DERIVADO de eventos observados (P3) →
+    // se avisa con un chip; no se vende como similitud de una BD validada.
+    const derived = report.provenance === "derived_from_observed_events" || report.lowConfidence === true;
     return (
       <div className="space-y-3">
+        {derived && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+            {t("bestMatchReport.derivedCaveat")}
+          </span>
+        )}
         {headline && <p className="text-sm font-display font-semibold text-foreground">{headline}</p>}
         <div className="rounded-xl p-3 bg-primary/10 border border-primary/30">
           <div className="flex items-start justify-between gap-2">

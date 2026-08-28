@@ -52,7 +52,7 @@ const valuationReportSchema = z.object({
   category: z.enum(["youth", "senior"]).optional(),
 });
 
-const PROMPT_VERSION = "v1.0.0";
+const PROMPT_VERSION = "v1.1.0"; // v1.1 = comparables SOLO de similarity + abstención + anti-euros (docx #14 P4)
 
 function buildPrompt(data: z.infer<typeof valuationReportSchema>): string {
   const age = data.playerContext?.chronologicalAge ?? 12;
@@ -65,6 +65,26 @@ function buildPrompt(data: z.infer<typeof valuationReportSchema>): string {
   // C1 multi-categoría: override explícito > edad cronológica > default "youth"
   const category = resolveCategory({ age: data.playerContext?.chronologicalAge, category: data.category });
   const catDirective = categoryDirective(category, locale);
+
+  // P4 (docx #14): los comparables salen SOLO del módulo de similitud (una sola
+  // implementación, inv #7). Si P3 se abstuvo (sin eventos observados) o marcó baja
+  // confianza, el reporte NO inventa comparables — replica la abstención de best-match.
+  const similarity = data.similarity as Record<string, unknown> | null | undefined;
+  const simAbstained = !similarity || similarity.abstained === true;
+  const simTop5 = Array.isArray(similarity?.top5) ? (similarity!.top5 as unknown[]) : [];
+  const simBest = (similarity?.bestMatch as unknown) ?? null;
+  const simGate = (similarity?.gate_reason as string | undefined) ?? null;
+  const simLowConf =
+    similarity?.lowConfidence === true || similarity?.provenance === "derived_from_observed_events";
+  const hasComparables = !simAbstained && (simTop5.length > 0 || !!simBest);
+  const comparablesBlock = hasComparables
+    ? `## COMPARABLES (única fuente permitida — módulo de similitud)
+${JSON.stringify({ top5: simTop5, bestMatch: simBest }, null, 2)}
+Usa EXCLUSIVAMENTE estos comparables provistos, con su score. NO inventes ni añadas ningún otro nombre de jugador; si alguno no aplica, exclúyelo.${simLowConf ? `
+IMPORTANTE: estos comparables son DERIVADOS de eventos observados del vídeo (no medición validada de técnica/mental/táctica). Decláralo en cada "razon" y BAJA confidence_score.` : ""}`
+    : `## COMPARABLES
+El módulo de similitud NO aporta comparables validados para este jugador${simGate ? ` (motivo: ${simGate})` : ""}.
+Por tanto "comparablesProfesionales" DEBE ser un array vacío []. Añade a "not_evaluated": "Comparables profesionales: sin comparable validado".`;
 
   return `Eres un director deportivo de ${category === "senior" ? "futbol profesional" : "academia de futbol juvenil"} con 20 anos de experiencia en deteccion de talento.
 Tu audiencia son ${category === "senior" ? "cuerpo tecnico, scouts y direccion deportiva de clubes" : "directores tecnicos, scouts y directivos de academias"}.
@@ -80,6 +100,8 @@ ${JSON.stringify(valuation, null, 2)}
 
 ## RIESGO DE LESION
 ${JSON.stringify(injuryRisk, null, 2)}
+
+${comparablesBlock}
 
 ## INSTRUCCIONES
 Genera un reporte de valoracion predictiva en formato JSON con esta estructura exacta:
@@ -124,9 +146,10 @@ REGLAS:
 - Se honesto y realista. No inflar expectativas. ${category === "senior" ? "Evalua el nivel real de rendimiento actual, sin inflar el techo del jugador" : "La mayoria de juveniles NO llegan a profesional"}
 - Si el VSI es <60, ser cauteloso con las proyecciones
 - ${category === "senior" ? "Considera la fase de carrera (edad vs pico de rendimiento de la posicion) al proyectar la valoracion" : "Si el jugador esta en ventana PHV, mencionar que la valoracion puede cambiar post-crecimiento"}
-- Maximo 3 comparables profesionales (de la misma posicion)
+- comparablesProfesionales: usa SOLO los nombres del bloque COMPARABLES de arriba (máximo los que ahí aparezcan). Si ese bloque indica array vacío, comparablesProfesionales = [].
+- PROHIBIDO inventar nombres de jugadores: los comparables salen ÚNICAMENTE del bloque COMPARABLES, nunca de tu conocimiento propio.
+- PROHIBIDO emitir cifras en euros, valores de mercado o cantidades de traspaso en cualquier campo, bajo ninguna circunstancia.
 - Si hay riesgo de lesion alto, reflejarlo como riesgo de valoracion
-- Los comparables deben ser realistas para el nivel del jugador
 - CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el analisis segun los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad
 - Responde SOLO con JSON valido, sin texto adicional
 
