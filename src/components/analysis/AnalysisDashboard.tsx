@@ -97,6 +97,7 @@ const REPORT_RENDERERS: Record<string, React.ComponentType<{ report: Record<stri
   projection:           ProjectionReportView,
   "development-plan":   DevelopmentPlanReportView,
   "dna-profile":        DnaProfileReportView,
+  "best-match":         BestMatchReportView,
 };
 
 interface Props {
@@ -719,6 +720,30 @@ const LENS_META: Record<string, { label: string; color: string; emoji: string }>
   fisico:  { label: "Físico",   color: "#22e88c", emoji: "⚡" },
   lider:   { label: "Liderazgo", color: "#FFD700", emoji: "👑" },
 };
+
+/**
+ * Renderer dedicado de best-match. El content llega ENVUELTO
+ * ({ok,success,data:{…,narrative}}) porque el agente narrador usa la clave
+ * `narrative` (no `report`), así que el orquestador persiste el envelope HTTP sin
+ * desenvolver — igual que pasaba con dna-profile (#180) y projection. Sin este
+ * renderer, `report.primary_match` era undefined → caía al volcado JSON crudo y el
+ * chip de procedencia (docx #14 P4) no se pintaba. Se desenvuelve como los demás.
+ */
+function BestMatchReportView({ report }: { report: Record<string, unknown> }) {
+  const data = report?.data as Record<string, unknown> | undefined;
+  const narrative =
+    data?.narrative && typeof data.narrative === "object" && !Array.isArray(data.narrative)
+      ? (data.narrative as Record<string, unknown>)
+      : report?.narrative && typeof report.narrative === "object" && !Array.isArray(report.narrative)
+        ? (report.narrative as Record<string, unknown>)
+        : report;
+  return (
+    <div className="space-y-3">
+      <ReportConfidenceChip report={narrative} />
+      <BestMatchSection report={narrative} />
+    </div>
+  );
+}
 
 function BestMatchSection({ report }: { report: Record<string, unknown> }) {
   const { t } = useTranslation();
