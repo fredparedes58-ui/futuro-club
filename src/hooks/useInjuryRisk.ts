@@ -19,6 +19,13 @@ import type { InjuryRiskData } from "@/components/injury/InjuryRiskCard";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
+// Referencia ESTABLE para el caso "sin datos". Devolver `?? []` (literal nuevo en
+// cada render) hacía que un consumidor con `useEffect(..., [injuries])` (p.ej.
+// PlayerHubPage) hiciera setState en cada render → "Maximum update depth exceeded"
+// mientras la query estaba pending/retry (API caído). Un array vacío compartido
+// mantiene la identidad estable entre renders y corta el bucle.
+const EMPTY_INJURIES: InjuryEntry[] = [];
+
 // ── Fetch injury history ────────────────────────────────────────────────────
 
 async function fetchInjuries(playerId: string): Promise<InjuryEntry[]> {
@@ -140,7 +147,7 @@ export function useInjuryRisk(playerId: string | null | undefined) {
   });
 
   return {
-    injuries: injuriesQuery.data ?? [],
+    injuries: injuriesQuery.data ?? EMPTY_INJURIES,
     injuriesLoading: injuriesQuery.isLoading,
     riskData: riskQuery.data ?? null,
     riskLoading: riskQuery.isLoading,
