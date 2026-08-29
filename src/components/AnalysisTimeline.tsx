@@ -46,7 +46,7 @@ function TimelineEntry({
   const estado   = report?.estadoActual;
   const clon     = report?.jugadorReferencia?.bestMatch;
   const plan     = report?.planDesarrollo;
-  const confianza = report?.confianza ?? 0;
+  const confianza = report?.confianza ?? null; // null ⇒ VSI-vídeo sin confianza medible → no se pinta (inv #2)
 
   const date     = new Date(analysis.created_at);
   const dateStr  = date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
@@ -106,12 +106,14 @@ function TimelineEntry({
 
         {/* Métricas rápidas */}
         <div className="grid grid-cols-3 gap-2 mb-3">
-          {/* Confianza */}
-          <div className="rounded-lg bg-secondary p-2 text-center">
-            <Brain size={10} className="mx-auto mb-0.5 text-primary" />
-            <p className="text-xs font-bold text-foreground">{Math.round(confianza * 100)}%</p>
-            <p className="text-[8px] text-muted-foreground">{t("analysisTimeline.confidence")}</p>
-          </div>
+          {/* Confianza — solo si hay confianza medible (null ⇒ no pintar "0%") */}
+          {confianza != null && (
+            <div className="rounded-lg bg-secondary p-2 text-center">
+              <Brain size={10} className="mx-auto mb-0.5 text-primary" />
+              <p className="text-xs font-bold text-foreground">{Math.round(confianza * 100)}%</p>
+              <p className="text-[8px] text-muted-foreground">{t("analysisTimeline.confidence")}</p>
+            </div>
+          )}
 
           {/* VSI delta */}
           {estado?.ajusteVSIVideoScore != null && (

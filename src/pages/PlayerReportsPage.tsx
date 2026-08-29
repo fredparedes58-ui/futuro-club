@@ -84,7 +84,7 @@ function ReportCard({
   const estado = report.estadoActual;
   const dims = estado?.dimensiones;
   const clon = report.jugadorReferencia?.bestMatch;
-  const confianza = report.confianza ?? 0;
+  const confianza = report.confianza ?? null; // null ⇒ sin confianza medible → no pintar "0%" (inv #2)
   const nivel = estado?.nivelActual ?? "medio";
 
   const date = new Date(analysis.created_at);
@@ -132,9 +132,11 @@ function ReportCard({
           >
             {LEVEL_LABELS[nivel]}
           </Badge>
-          <span className="text-[9px] text-muted-foreground">
-            {Math.round(confianza * 100)}%
-          </span>
+          {confianza != null && (
+            <span className="text-[9px] text-muted-foreground">
+              {Math.round(confianza * 100)}%
+            </span>
+          )}
         </div>
       </div>
 

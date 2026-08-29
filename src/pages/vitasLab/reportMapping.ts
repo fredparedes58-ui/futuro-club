@@ -79,10 +79,11 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
       objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
       pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? (dp.pilaresTrabajo as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
     },
-    // confianza = el confidence REAL del VSI compuesto (vsiComposite.confidence, honesto
-    // incluso cuando el compuesto está bloqueado: refleja la fracción medida). Antes era
-    // `Math.max(0.3, (vsi ?? 50)/100)` → 0.5 fabricado en cada informe (#40 clase). null
-    // solo si no hay objeto vsi (análisis muy antiguo) → la UI oculta el badge.
-    confianza: result.vsi?.confidence ?? null,
+    // confianza = confidence REAL del VSI compuesto, PERO solo si es > 0. Cuando el
+    // compuesto está bloqueado, gateVsiComposite → gated() → confidence:0 (sentinela de
+    // "sin base medida"). Un 0 renderizado como "0%" es justo lo que prohíbe el inv #2
+    // (un 0 que significa «no se pudo medir»). >0 ⇒ número real; 0 o ausente ⇒ null → la
+    // UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
+    confianza: (result.vsi?.confidence as number) > 0 ? (result.vsi!.confidence as number) : null,
   };
 }

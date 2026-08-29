@@ -654,9 +654,10 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
       objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
       pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
     },
-    // confianza = confidence REAL del VSI compuesto (honesto aun bloqueado). Antes `?? 50`
-    // → 0.5 fabricado en cada informe (#40 clase). null solo si no hay objeto vsi.
-    confianza: (row.vsi?.confidence as number) ?? null,
+    // confianza = confidence REAL del VSI compuesto, solo si > 0. Bloqueado ⇒ gated() ⇒
+    // confidence:0 (sentinela). 0 renderizado como "0%" viola inv #2 → se mapea a null y
+    // la UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
+    confianza: (row.vsi?.confidence as number) > 0 ? (row.vsi.confidence as number) : null,
   };
 
   // vsi top-level: el Histórico lo mostraba como "—" porque leía report.vsi (que no

@@ -490,8 +490,8 @@ const LabResultsPanel = ({
                 />
               </div>
 
-              {/* Riesgos */}
-              {report.proyeccionCarrera.riesgos?.length > 0 && (
+              {/* Riesgos — guarda proyeccionCarrera null (bloque separado del de proyección) */}
+              {report.proyeccionCarrera && report.proyeccionCarrera.riesgos?.length > 0 && (
                 <div className="glass rounded-xl p-4 border border-yellow-500/20">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={14} className="text-yellow-500" />
