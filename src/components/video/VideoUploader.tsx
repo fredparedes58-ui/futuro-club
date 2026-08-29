@@ -211,13 +211,16 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
           const a = status?.data?.analysis;
           if (a) {
             setAnalysisId(a.id);
-            if (a.status === "processing") {
+            if (a.status === "processing" || a.status === "processing_reports") {
               setState("analyzing");
               setStatusMessage(t("videoUploader.statusAnalyzing"));
             } else if (a.status === "completed") {
               analysisCompleted = true;
               setState("completed");
-              setStatusMessage(t("videoUploader.statusCompleted"));
+              // status_message SOLO viene poblado en runs PARCIALES ("Parcial: N de M
+              // informes"): declararlo, no presentar un parcial como completo (invariante
+              // de honestidad). En un run completo es null → mensaje genérico.
+              setStatusMessage(a.status_message ?? t("videoUploader.statusCompleted"));
               onComplete?.(a.id);
               break;
             } else if (a.status === "failed") {
