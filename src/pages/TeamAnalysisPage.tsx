@@ -117,7 +117,10 @@ function ResumenFormacion({ report }: { report: TeamIntelligenceOutput }) {
 
 function FasesJuego({ data }: { data: TeamIntelligenceOutput["fasesJuego"] }) {
   const { t } = useTranslation();
-  if (!data) return null;
+  // Guard ESTRUCTURAL: la salida del LLM (team-intelligence) no se valida en runtime;
+  // si `fasesJuego` llega sin pressing/transiciones, los accesos anidados de abajo
+  // (data.pressing.alturaLinea, data.transiciones.ofensiva.velocidad) crasheaban la vista.
+  if (!data?.pressing || !data?.transiciones?.ofensiva || !data?.transiciones?.defensiva) return null;
 
   return (
     <div className="glass rounded-2xl p-4">
@@ -259,7 +262,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
             <CheckCircle size={11} className="text-green-400" />
             <span className="text-[10px] font-display uppercase tracking-wider text-green-400">{t("teamAnalysis.teamStrengths")}</span>
           </div>
-          {data.fortalezasEquipo.map((f, i) => (
+          {(Array.isArray(data.fortalezasEquipo) ? data.fortalezasEquipo : []).map((f, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {f}</p>
           ))}
         </div>
@@ -268,7 +271,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
             <Target size={11} className="text-amber-400" />
             <span className="text-[10px] font-display uppercase tracking-wider text-amber-400">{t("teamAnalysis.toWork")}</span>
           </div>
-          {data.areasTrabajar.map((a, i) => (
+          {(Array.isArray(data.areasTrabajar) ? data.areasTrabajar : []).map((a, i) => (
             <p key={i} className="text-[11px] text-foreground leading-relaxed">• {a}</p>
           ))}
         </div>
@@ -278,7 +281,7 @@ function EvaluacionGeneral({ data }: { data: TeamIntelligenceOutput["evaluacionG
         <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-2">
           {t("teamAnalysis.coachRecommendations")}
         </p>
-        {data.recomendaciones.map((r, i) => (
+        {(Array.isArray(data.recomendaciones) ? data.recomendaciones : []).map((r, i) => (
           <p key={i} className="text-[11px] text-foreground leading-relaxed mb-1">→ {r}</p>
         ))}
       </div>

@@ -101,10 +101,14 @@ export default withHandler(
       if (!id) {
         return errorResponse({ code: "missing_id", message: "id requerido", status: 400 });
       }
+      // El cliente (undoLast) envía su clientEventId (UUID local), que se persiste en la
+      // columna `client_event_id`, NO en `id` (uuid generado por la BD). Matchear por `id`
+      // no borraba NADA → el "deshacer" fallaba en silencio. Se matchea client_event_id
+      // (siempre presente: el POST lo fija) + user_id (ownership).
       const { error } = await supabase
         .from("live_events")
         .delete()
-        .eq("id", id)
+        .eq("client_event_id", id)
         .eq("user_id", userId);
 
       if (error) {
