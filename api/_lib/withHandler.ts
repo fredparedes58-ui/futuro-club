@@ -17,12 +17,15 @@ import { verifyAuth } from "./auth";
 
 // ── Admin allowlist (mirrors frontend usePlan ADMIN_EMAILS) ────────────────
 // Los admins/owners omiten los checks de plan server-side, igual que en el cliente.
+// Configurable vía ADMIN_EMAILS (server) o VITE_ADMIN_EMAILS. Si NINGUNA está puesta,
+// el owner es el default (evita quedarse sin admin). Antes se hacía `.concat(owner)`
+// SIEMPRE → el owner era admin aunque quisieras retirarlo por env (backdoor no
+// desactivable). Ahora la env, si existe, MANDA (puedes controlar la allowlist entera).
 const ADMIN_EMAILS = new Set(
-  `${process.env.ADMIN_EMAILS ?? process.env.VITE_ADMIN_EMAILS ?? ""}`
+  `${process.env.ADMIN_EMAILS ?? process.env.VITE_ADMIN_EMAILS ?? "fredparedes58@gmail.com"}`
     .split(",")
     .map((e) => e.trim().toLowerCase())
-    .filter(Boolean)
-    .concat("fredparedes58@gmail.com"),
+    .filter(Boolean),
 );
 
 /**

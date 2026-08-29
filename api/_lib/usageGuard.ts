@@ -36,9 +36,14 @@ const DEFAULT_LIMIT: PlanLimit = { analyses: 3, players: 5, teamMembers: 2, inju
 
 // ── Admin bypass list ───────────────────────────────────────────────────────
 
-const ADMIN_EMAILS = new Set([
-  "fredparedes58@gmail.com",
-]);
+// Env-driven (ADMIN_EMAILS / VITE_ADMIN_EMAILS); owner como default si no hay env.
+// Mismo criterio que withHandler.ts para no divergir la allowlist server-side.
+const ADMIN_EMAILS = new Set(
+  `${process.env.ADMIN_EMAILS ?? process.env.VITE_ADMIN_EMAILS ?? "fredparedes58@gmail.com"}`
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
 
 // ── Supabase helpers (reusable across guards) ──────────────────────────────
 
