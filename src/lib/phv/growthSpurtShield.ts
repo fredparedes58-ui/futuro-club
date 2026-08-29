@@ -20,6 +20,9 @@ export type ShieldLevel = "peak" | "high" | "moderate" | "low" | "minimal";
 
 export interface GrowthSpurtShield {
   active: boolean;             // true si conviene proteger (nivel ≥ moderate)
+  /** true ⇒ NO hay offset PHV fiable (datos estimados/ausentes): estado DESCONOCIDO,
+   *  no "bajo riesgo confirmado". La UI debe pintarlo como abstención, no en verde. */
+  abstained: boolean;
   level: ShieldLevel;
   riskScore: number;          // 0-100 (mismo que injury phvWindowRisk)
   /** Reducción de carga recomendada (%). */
@@ -69,6 +72,7 @@ export function assessGrowthSpurtShield(
   if (offset == null) {
     return {
       active: false,
+      abstained: true, // estado DESCONOCIDO (no "bajo riesgo"): la UI lo pinta neutro, no verde
       level: "minimal",
       riskScore: 0,
       loadReductionPct: 0,
@@ -118,6 +122,7 @@ export function assessGrowthSpurtShield(
 
   return {
     active,
+    abstained: false, // offset real → resultado computado (no abstención)
     level,
     riskScore: risk,
     loadReductionPct,
