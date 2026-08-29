@@ -354,6 +354,7 @@ export function usePlayerAnalysisV2() {
             body: JSON.stringify({
               videoId: params.videoId,
               bunnyVideoId: params.bunnyVideoId,
+              playerId: params.playerId,                // jugador elegido → finalize siembra player_id/tenant_id + encola
               playedPosition: params.playedPosition,    // posición jugada en este video
             }),
             signal: ac.signal,
