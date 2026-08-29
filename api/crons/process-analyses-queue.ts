@@ -22,7 +22,7 @@
  */
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // Node.js runtime para soportar Gemini (hasta 120s de video analysis)
 export const config = { runtime: "nodejs", maxDuration: 120 };
@@ -226,10 +226,34 @@ async function triggerOrchestrator(analysisId: string): Promise<{ success: boole
 
 // ─── Main queue processor ───────────────────────────────────────────────
 
+/**
+ * Reaper de análisis colgados: marca 'failed' los que llevan en 'processing' /
+ * 'processing_reports' más de `staleHours` (el worker murió a mitad — edge timeout,
+ * crash, Gemini colgado). Filtra por started_at para no pisar uno que se complete en
+ * la carrera. Antes solo se rescataban tracking_jobs, NO los `analyses` (#56).
+ */
+export async function reapStuckAnalyses(supabase: SupabaseClient, staleHours: number): Promise<number> {
+  const staleBefore = new Date(Date.now() - staleHours * 3600_000).toISOString();
+  const { data: reaped } = await supabase
+    .from("analyses")
+    .update({ status: "failed", status_message: `Rescatado: colgado en procesamiento más de ${staleHours}h` })
+    .in("status", ["processing", "processing_reports"])
+    .lt("started_at", staleBefore)
+    .select("id");
+  return reaped?.length ?? 0;
+}
+
 async function processQueue() {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false },
   });
+
+  // ── 0. Reaper de análisis colgados en 'processing' (ver reapStuckAnalyses) ──
+  const reapedCount = await reapStuckAnalyses(supabase, Number(process.env.STALE_ANALYSIS_HOURS ?? 1));
+  if (reapedCount > 0) {
+    console.warn(`[queue] reaper: ${reapedCount} análisis colgados → failed`);
+    await notifySlack(`♻️ VITAS reaper: ${reapedCount} análisis colgados en 'processing' → failed`);
+  }
 
   // ── 1. Claim queued analyses ──
   let queuedAnalyses: QueuedAnalysis[] = [];
@@ -255,7 +279,7 @@ async function processQueue() {
   }
 
   if (queuedAnalyses.length === 0) {
-    return { processed: 0, message: "no queued analyses" };
+    return { processed: 0, reaped: reapedCount, message: "no queued analyses" };
   }
 
   const usedRpc = !rpcError;
@@ -341,6 +365,7 @@ async function processQueue() {
 
   return {
     processed: results.length,
+    reaped: reapedCount,
     completed: results.filter((r) => r.status === "completed").length,
     failed: results.filter((r) => r.status !== "completed").length,
     details: results,
