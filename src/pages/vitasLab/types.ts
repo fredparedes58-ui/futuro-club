@@ -29,7 +29,7 @@ export interface AnalysisReport {
       liderazgoPresencia:  Dimension;
       eficaciaCompetitiva: Dimension;
     };
-    ajusteVSIVideoScore: number;
+    ajusteVSIVideoScore: number | null; // null ⇒ VSI-vídeo bloqueado (no se pinta badge, #40)
   };
   adnFutbolistico: {
     estiloJuego:     string;

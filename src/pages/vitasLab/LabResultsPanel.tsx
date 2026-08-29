@@ -171,9 +171,11 @@ const LabResultsPanel = ({
                   <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     {report.estadoActual.nivelActual.replace("_", " ").toUpperCase()}
                   </span>
-                  <span className={`text-[10px] font-display px-2 py-0.5 rounded-full ${report.estadoActual.ajusteVSIVideoScore >= 0 ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
-                    VSI {report.estadoActual.ajusteVSIVideoScore >= 0 ? "+" : ""}{report.estadoActual.ajusteVSIVideoScore} pts
-                  </span>
+                  {report.estadoActual.ajusteVSIVideoScore != null && (
+                    <span className={`text-[10px] font-display px-2 py-0.5 rounded-full ${report.estadoActual.ajusteVSIVideoScore >= 0 ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
+                      VSI {report.estadoActual.ajusteVSIVideoScore >= 0 ? "+" : ""}{report.estadoActual.ajusteVSIVideoScore} pts
+                    </span>
+                  )}
                 </div>
               </div>
 

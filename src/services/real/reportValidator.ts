@@ -161,9 +161,10 @@ export function validatePlayerReport(
   }
 
   // ── Regla 4: VSI adjustment coherente con dimensiones ───────────────
+  // Si el VSI-vídeo está bloqueado (delta null, #40) no hay ajuste que validar.
   const vsiDelta = report.estadoActual.ajusteVSIVideoScore;
 
-  if (avgScore >= 7 && vsiDelta < -5) {
+  if (vsiDelta != null && avgScore >= 7 && vsiDelta < -5) {
     issues.push({
       rule: "vsi_dimension_coherence",
       severity: "error",
@@ -173,7 +174,7 @@ export function validatePlayerReport(
     });
   }
 
-  if (avgScore < 3.5 && vsiDelta > 5) {
+  if (vsiDelta != null && avgScore < 3.5 && vsiDelta > 5) {
     issues.push({
       rule: "vsi_dimension_coherence",
       severity: "error",
