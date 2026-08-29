@@ -245,8 +245,12 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
     if (res.success && res.data) {
       const d = res.data;
 
-      // Construir evidencia desde dimensiones del video (no métricas manuales)
+      // Construir evidencia desde dimensiones del video (no métricas manuales).
+      // Solo con dimensiones REALES: sin ellas, cada indicador saldría de `dim?.score ?? 5`
+      // (constante fabricada) con raw_value:5/reliability:0.8 → evidencia falsa presentada
+      // como fiable, y además se cachea/renderiza (IndicatorsAuditTable). Se abstiene (inv #2).
       const buildVideoEvidence = (): EvidenceIndicator[] => {
+        if (!dimensionesMedidas) return [];
         const dimMap: Array<{ key: string; label: string; phase: EvidenceIndicator["phase_of_play"] }> = [
           { key: "inteligenciaTactica", label: "Inteligencia táctica",  phase: "in_possession" },
           { key: "tecnicaConBalon",     label: "Técnica con balón",     phase: "in_possession" },
