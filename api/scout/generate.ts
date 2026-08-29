@@ -10,6 +10,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "../../src/lib/phv/maturity";
 import { resolveChronologicalAge } from "../../src/lib/shared/age";
 
@@ -277,6 +278,11 @@ export default withHandler(
     const errors: string[] = [];
     const skipped: string[] = [];
 
+    // Tripwire de presupuesto (054): este endpoint llama a Claude una vez por jugador
+    // (hasta 50) sin contabilizar → agujero en el tope de gasto. Pre-chequeo antes del
+    // lote; dentro del bucle se corta si se cruza el tope, y se registra cada llamada OK.
+    if (await isOverBudget()) return budgetExceededResponse();
+
     for (const player of players) {
       try {
         const playerAnalyses = analysesByPlayer.get(player.id) ?? [];
@@ -426,6 +432,9 @@ RESPONDE ÚNICAMENTE JSON:
           minutesPlayed: player.minutes_played,
         });
 
+        // Corta el lote si cruzamos el tope a mitad (protege las llamadas restantes).
+        if (await isOverBudget()) break;
+
         const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -446,6 +455,7 @@ RESPONDE ÚNICAMENTE JSON:
           errors.push(`Claude error for ${player.name}: ${claudeRes.status}`);
           continue;
         }
+        await recordSpendUsd("claude-haiku"); // llamada Claude (MODELS.fast) OK → contabilizada
 
         const claudeData = await claudeRes.json() as {
           content: Array<{ type: string; text?: string }>;

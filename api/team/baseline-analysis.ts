@@ -19,6 +19,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { MODELS } from "../_lib/models";
+import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
@@ -301,6 +302,10 @@ export default withHandler(
     if (!userId) {
       return errorResponse({ code: "unauthorized", message: "Login requerido", status: 401 });
     }
+    // Tripwire de presupuesto (054): este handler dispara 5 informes Claude en paralelo
+    // (1 Opus + 4 Haiku) sin contabilizar → agujero en el tope. Pre-chequeo + registro
+    // por informe (abajo, en el .map).
+    if (await isOverBudget()) return budgetExceededResponse();
     const input = body as z.infer<typeof bodySchema>;
     const startedAt = Date.now();
 
@@ -359,6 +364,8 @@ export default withHandler(
           user: userMessage,
           maxTokens: type === "team-overview" ? 2000 : 1200,
         });
+        // Contabiliza según el modelo REAL del informe (team-overview=Opus, resto=Haiku).
+        await recordSpendUsd(cfg.model === MODELS.reasoning ? "claude-opus" : "claude-haiku");
         return { type, content, model: cfg.model, ok: true as const };
       } catch (err) {
         return { type, content: null, model: cfg.model, ok: false as const, error: err instanceof Error ? err.message : "unknown" };
