@@ -6,9 +6,9 @@ import { describe, it, expect } from "vitest";
 import { reapStuckAnalyses } from "../process-analyses-queue";
 
 // Mock del cliente supabase que soporta la cadena:
-//   from("analyses").update(u).in(col, statuses).lt(col, before).select("id")
+//   from("analyses").update(u).in(col, statuses).or(filter).select("id")
 function mockSupabase(reapedRows: Array<{ id: string }> | null) {
-  const captured: { update?: Record<string, unknown>; statuses?: string[]; before?: string } = {};
+  const captured: { update?: Record<string, unknown>; statuses?: string[]; orFilter?: string } = {};
   const client = {
     from: () => ({
       update: (u: Record<string, unknown>) => {
@@ -17,8 +17,8 @@ function mockSupabase(reapedRows: Array<{ id: string }> | null) {
           in: (_col: string, statuses: string[]) => {
             captured.statuses = statuses;
             return {
-              lt: (_col2: string, before: string) => {
-                captured.before = before;
+              or: (filter: string) => {
+                captured.orFilter = filter;
                 return {
                   select: async (_c: string) => ({ data: reapedRows }),
                 };
@@ -41,8 +41,13 @@ describe("reapStuckAnalyses (#56)", () => {
     expect(captured.update?.status_message).toContain("colgado");
     // SOLO estados en proceso (no toca queued/completed/failed)
     expect(captured.statuses).toEqual(["processing", "processing_reports"]);
+    // El filtro .or cubre started_at<corte Y las filas con started_at NULL (fallback created_at)
+    expect(captured.orFilter).toContain("started_at.lt.");
+    expect(captured.orFilter).toContain("started_at.is.null");
+    expect(captured.orFilter).toContain("created_at.lt.");
     // El corte de antigüedad es coherente con staleHours (1h atrás, aprox)
-    const cutoff = new Date(captured.before!).getTime();
+    const before = captured.orFilter!.match(/started_at\.lt\.([^,]+)/)![1];
+    const cutoff = new Date(before).getTime();
     expect(Date.now() - cutoff).toBeGreaterThanOrEqual(3600_000 - 5000);
   });
 

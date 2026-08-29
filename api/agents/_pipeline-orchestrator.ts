@@ -680,14 +680,33 @@ export default withHandler(
 
     // ── 7. Marcar analysis completed ───────────────────────────────
     const totalLatencyMs = Date.now() - startedAt;
-    await supabase
+    // CRÍTICO: el status DEBE estar en el CHECK constraint (mig 041): queued/processing/
+    // processing_reports/completed/failed/cancelled. 'completed_partial' NO está →
+    // el UPDATE lanzaba check_violation (23514), el error se TRAGABA (no se capturaba) y
+    // la fila QUEDABA en 'processing_reports' con candidates sin limpiar y completed_at
+    // NULL → el reaper (staleHours) la marcaba 'failed' aunque los N informes buenos ya
+    // estaban en la tabla reports. El análisis SÍ completó su run: se marca 'completed' y
+    // la parcialidad se registra en status_message (honesto y visible vía analyses/by-video).
+    // Mismo motivo documentado en api/players/baseline-analysis.ts:489.
+    const reportsOk = successfulReports.length;
+    const reportsTotal = activeAgents.length;
+    const isPartial = reportsOk !== reportsTotal;
+    const { error: finalizeErr } = await supabase
       .from("analyses")
       .update({
-        status: successfulReports.length === activeAgents.length ? "completed" : "completed_partial",
+        status: "completed",
         completed_at: new Date().toISOString(),
         candidates: null, // limpiamos los crops · ya no se necesitan
+        ...(isPartial
+          ? { status_message: `Parcial: ${reportsOk} de ${reportsTotal} informes generados` }
+          : {}),
       })
       .eq("id", analysis.id);
+    if (finalizeErr) {
+      // No silenciar: si el marcado final falla, la fila se colgaría y el reaper la
+      // pasaría a 'failed'. Al menos deja traza.
+      console.error("[orchestrator] fallo al marcar 'completed':", finalizeErr.message);
+    }
 
     // ── 8. Email Resend ────────────────────────────────────────────
     let emailSent = false;
@@ -721,9 +740,12 @@ export default withHandler(
 
     return successResponse({
       analysisId: analysis.id,
-      status: successfulReports.length === activeAgents.length ? "completed" : "completed_partial",
-      reportsGenerated: successfulReports.length,
-      reportsFailed: activeAgents.length - successfulReports.length,
+      // Refleja lo que se PERSISTIÓ de verdad: siempre 'completed' (el status DB válido);
+      // la parcialidad va en `partial` + reportsGenerated/Failed, no en un status inválido.
+      status: "completed",
+      partial: isPartial,
+      reportsGenerated: reportsOk,
+      reportsFailed: reportsTotal - reportsOk,
       vsi: vsiValue,
       totalLatencyMs,
       emailSent,
