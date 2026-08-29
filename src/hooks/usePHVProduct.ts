@@ -78,6 +78,10 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
       weight: weight!,
       gender: p.gender as "M" | "F",
       sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : undefined,
+      // legLength FALTABA aquí (sí se pasa al assessment canónico, línea 91): sin ella
+      // computeMirwald la estimaba desde la altura y marcaba estimated=true incluso con
+      // la pierna medida. Se pasa la MEDIDA real (G6: medida sobre estimada).
+      legLength: typeof p.legLength === "number" ? p.legLength : undefined,
     });
 
     // Evaluación canónica (científica, con edad decimal + %PAH si hay padres +
@@ -97,7 +101,15 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
     const rawVSI = typeof p.vsi === "number" ? p.vsi : null;
     const currentPercentile = rawVSI != null ? vsiToPercentile(rawVSI) : 50;
     const projection = projectToMaturity(currentPercentile, assessment, age!);
-    const shield = assessGrowthSpurtShield(mirwald.offset, String(p.name ?? "el jugador"));
+    // G6 · gate del Escudo de Estirón: si altura-sentado o longitud-de-pierna NO están
+    // MEDIDAS, computeMirwald las estima desde la altura (estimated=true). NO se le da al
+    // padre una recomendación de reducir carga + riesgo de lesión (Osgood-Schlatter/Sever)
+    // construida sobre proporciones ESTIMADAS (inv #2). Con offset estimado → se pasa null
+    // y el escudo abstiene pidiendo las medidas. Solo se activa con antropometría real.
+    const shield = assessGrowthSpurtShield(
+      mirwald.estimated ? null : mirwald.offset,
+      String(p.name ?? "el jugador"),
+    );
 
     // VSI ajustado con el factor CANÓNICO (1 cuando el timing no es firme →
     // no infla/penaliza sin base; blindaje anti-falso-positivo).

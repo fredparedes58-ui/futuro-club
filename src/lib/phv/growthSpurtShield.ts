@@ -20,6 +20,9 @@ export type ShieldLevel = "peak" | "high" | "moderate" | "low" | "minimal";
 
 export interface GrowthSpurtShield {
   active: boolean;             // true si conviene proteger (nivel ≥ moderate)
+  /** true ⇒ NO hay offset PHV fiable (datos estimados/ausentes): estado DESCONOCIDO,
+   *  no "bajo riesgo confirmado". La UI debe pintarlo como abstención, no en verde. */
+  abstained: boolean;
   level: ShieldLevel;
   riskScore: number;          // 0-100 (mismo que injury phvWindowRisk)
   /** Reducción de carga recomendada (%). */
@@ -63,16 +66,20 @@ export function assessGrowthSpurtShield(
   offset: number | null | undefined,
   playerName = "el jugador",
 ): GrowthSpurtShield {
+  // offset == null ⇒ NO hay un offset PHV fiable (típicamente porque altura-sentado y/o
+  // longitud-de-pierna NO están medidas y tuvieron que estimarse). NO se emite una
+  // recomendación de carga/riesgo sobre datos estimados: se abstiene pidiendo las medidas.
   if (offset == null) {
     return {
       active: false,
+      abstained: true, // estado DESCONOCIDO (no "bajo riesgo"): la UI lo pinta neutro, no verde
       level: "minimal",
       riskScore: 0,
       loadReductionPct: 0,
       windowWeeks: 0,
       watchInjuries: [],
-      coachMessage: "Sin datos PHV suficientes para evaluar la ventana de estirón.",
-      parentMessage: "Completa las medidas del jugador (altura, peso) para activar el Escudo de Estirón.",
+      coachMessage: "Sin antropometría medida suficiente (altura sentado + longitud de pierna) para evaluar la ventana de estirón con fiabilidad.",
+      parentMessage: "Faltan medidas antropométricas del jugador (altura sentado y longitud de pierna) para activar el Escudo de Estirón. Sin ellas no damos una recomendación de carga ni de riesgo.",
     };
   }
 
@@ -115,6 +122,7 @@ export function assessGrowthSpurtShield(
 
   return {
     active,
+    abstained: false, // offset real → resultado computado (no abstención)
     level,
     riskScore: risk,
     loadReductionPct,
