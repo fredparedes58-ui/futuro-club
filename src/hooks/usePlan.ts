@@ -44,12 +44,13 @@ export interface PlanState {
 
 // Emails de administradores con acceso ilimitado (sin restriccion de plan).
 // Tambien se puede definir via VITE_ADMIN_EMAILS="a@b.com,c@d.com"
-const ENV_ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "").split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean);
-const ADMIN_EMAILS = new Set([
-  ...ENV_ADMIN_EMAILS,
-  // Hardcoded fallback — owner siempre tiene acceso total
-  "fredparedes58@gmail.com",
-]);
+// Env manda (VITE_ADMIN_EMAILS); owner como default si no hay env — sin force-append
+// (antes el owner se añadía SIEMPRE, no se podía retirar por env). Alineado con el
+// gate real del servidor (api/_lib/withHandler.ts + usageGuard.ts).
+const ADMIN_EMAILS = new Set(
+  (import.meta.env.VITE_ADMIN_EMAILS ?? "fredparedes58@gmail.com")
+    .split(",").map((e: string) => e.trim().toLowerCase()).filter(Boolean),
+);
 
 /** Read team member count from localStorage (cached by TeamService) */
 function getTeamMemberCount(): number {
