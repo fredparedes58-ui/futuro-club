@@ -32,6 +32,10 @@ interface Props {
   mentalComposite: number;
   dimensions: ArchetypeShareDimensions;
   confidence?: number; // 0-1
+  /** true ⇒ las puntuaciones son datos de EJEMPLO (no una valoración real). El sello
+   *  viaja DENTRO de la card (lo captura el PNG) y en el texto compartido — el banner de
+   *  la página no acompaña al export (inv #1/#3: no distribuir mock sin marca). */
+  isSample?: boolean;
 }
 
 const DIM_LABEL_KEYS: Record<keyof ArchetypeShareDimensions, string> = {
@@ -52,6 +56,7 @@ export function ArchetypeShareCard({
   mentalComposite,
   dimensions,
   confidence,
+  isSample = false,
 }: Props) {
   const { t } = useTranslation();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -86,13 +91,15 @@ export function ArchetypeShareCard({
     }
   };
 
-  const shareText = t("archetypeShareCard.shareText", {
-    emoji: m.emoji,
-    playerName,
-    label: m.label,
-    tagline: m.tagline,
-    mentalComposite,
-  });
+  const shareText =
+    (isSample ? "⚠️ Datos de ejemplo (no es una valoración real) · " : "") +
+    t("archetypeShareCard.shareText", {
+      emoji: m.emoji,
+      playerName,
+      label: m.label,
+      tagline: m.tagline,
+      mentalComposite,
+    });
 
   const handleShare = async () => {
     const r = await shareNative({ title: t("archetypeShareCard.shareTitle"), text: shareText, ref: "archetype-card" });
@@ -145,6 +152,16 @@ export function ArchetypeShareCard({
             {new Date().toLocaleDateString("es-ES")}
           </span>
         </div>
+
+        {/* Sello de EJEMPLO — DENTRO del cardRef → lo captura el PNG y no se puede
+            distribuir la card como si fueran datos reales (inv #1/#3). */}
+        {isSample && (
+          <div className="px-5 py-1.5 bg-amber-500/15 border-b border-amber-500/25">
+            <span className="text-[9px] font-bold tracking-widest uppercase text-amber-300">
+              ⚠️ {t("archetypeShareCard.sampleBadge", "Datos de ejemplo · no es una valoración real")}
+            </span>
+          </div>
+        )}
 
         <div className="p-5 space-y-4">
           {/* Identidad */}

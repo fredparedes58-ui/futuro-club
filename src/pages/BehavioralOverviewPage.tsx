@@ -460,6 +460,10 @@ export default function BehavioralOverviewPage() {
                 mentalFatigue: shareEntry.scores.mentalFatigue,
                 unpredictability: shareEntry.scores.unpredictability,
               }}
+              // Las puntuaciones vienen de generateScores (seededRng(player.id), hash del
+              // id) — datos de EJEMPLO, no una valoración real. El sello debe viajar con el
+              // PNG/WhatsApp (el DemoDataBanner de la página no acompaña al export).
+              isSample
             />
           </div>
         </div>

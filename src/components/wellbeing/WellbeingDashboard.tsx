@@ -149,13 +149,27 @@ function PlayerDetail({
               factors={risk.factors}
             />
             <div className="space-y-4">
-              <EngagementMiniCard
-                physical={risk.engagement.current}
-                social={Math.round(risk.engagement.current * 0.9)}
-                emotional={Math.round(risk.engagement.current * 0.85)}
-                composite={risk.engagement.current}
-                trend={risk.engagement.trend === "declining" ? "declining" : risk.engagement.trend === "improving" ? "rising" : "stable"}
-              />
+              {(() => {
+                // Ejes REALES del snapshot de engagement más reciente (physical/social/
+                // emotional MEDIDOS por el entrenador vía EngagementLogForm). Antes se
+                // FABRICABAN social=composite*0.9 y emotional=composite*0.85 y se pintaban
+                // como valoraciones medidas (inv #1/#2). Sin snapshot real con ejes, NO se
+                // pinta la tarjeta (no se inventan barras).
+                const realSnaps = (engagement ?? []).filter(hasRealSignal);
+                const latest = realSnaps.length
+                  ? realSnaps.reduce((a, b) => (a.date >= b.date ? a : b))
+                  : null;
+                if (!latest) return null;
+                return (
+                  <EngagementMiniCard
+                    physical={latest.physicalEngagement}
+                    social={latest.socialEngagement}
+                    emotional={latest.emotionalEngagement}
+                    composite={latest.engagementScore}
+                    trend={risk.engagement.trend === "declining" ? "declining" : risk.engagement.trend === "improving" ? "rising" : "stable"}
+                  />
+                );
+              })()}
               <OvertrainingAlert
                 risk={risk.overtraining.risk}
                 riskLevel={risk.overtraining.riskLevel}
