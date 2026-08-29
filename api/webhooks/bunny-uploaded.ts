@@ -30,6 +30,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { hmacSha256Hex, timingSafeEqual } from "../_lib/edgeCrypto";
+import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
 
 export const config = { runtime: "edge" };
 
@@ -129,65 +130,34 @@ export default withHandler(
       });
     }
 
-    // ── Idempotencia: ¿ya existe un analysis para este vídeo? ──
-    const { data: existing } = await supabase
-      .from("analyses")
-      .select("id, status")
-      .eq("video_id", video.id)
-      .in("status", ["queued", "processing", "completed"])
-      .maybeSingle();
+    // ── Encolar (idempotente) · impl compartida con finalize (inv #7) ──────
+    const result = await enqueueAnalysis({
+      supabase,
+      videoId: video.id,
+      tenantId: video.tenant_id,
+      playerId: video.player_id,
+      playedPosition: (video as { played_position?: string | null }).played_position ?? null,
+      publicUrl: PUBLIC_URL,
+      cronSecret: CRON_SECRET,
+    });
 
-    if (existing) {
-      return successResponse({
-        skipped: true,
-        reason: "analysis_already_exists",
-        analysisId: existing.id,
-        status: existing.status,
-      });
+    if (result.status === "error") {
+      return errorResponse({ code: "create_analysis_failed", message: result.error, status: 500 });
+    }
+    if (result.status === "skipped") {
+      // Vídeo sin jugador/tenant atado → no se encola (no es un fallo del webhook).
+      return successResponse({ skipped: true, reason: result.reason });
+    }
+    if (result.status === "exists") {
+      return successResponse({ skipped: true, reason: "analysis_already_exists", analysisId: result.analysisId });
     }
 
-    // ── Crear analysis row · status=queued ─────────────────
-    // Hereda played_position del video si fue declarada al subir (multi-posición)
-    const { data: analysis, error: createError } = await supabase
-      .from("analyses")
-      .insert({
-        tenant_id: video.tenant_id,
-        player_id: video.player_id,
-        video_id: video.id,
-        status: "queued",
-        pipeline_version: "v1.0",
-        played_position: (video as { played_position?: string | null }).played_position ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (createError) {
-      return errorResponse({
-        code: "create_analysis_failed",
-        message: createError.message,
-        status: 500,
-      });
-    }
-
-    console.log(`[VITAS] Analysis ${analysis.id} encolado para video ${video.id}`);
-
-    // Dispara el procesamiento INMEDIATO (fire-and-forget) en vez de esperar al
-    // cron diario (vercel.json: "0 6 * * *"). El cron queda como backstop para lo
-    // que se escape. Mismo patrón que modal-callback (void fetch). Downside
-    // acotado: si el trigger no sale, el comportamiento es el de antes (cron).
-    // Sin esto, la UI (usePlayerAnalysisV2) hace timeout a los 5 min esperando.
-    if (CRON_SECRET) {
-      void fetch(`${PUBLIC_URL}/api/crons/process-analyses-queue`, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${CRON_SECRET}` },
-      }).catch((err) => console.error("[bunny-uploaded] trigger de cola falló:", err));
-    }
-
+    console.log(`[VITAS] Analysis ${result.analysisId} encolado para video ${video.id}`);
     return successResponse({
-      analysisId: analysis.id,
+      analysisId: result.analysisId,
       videoId: video.id,
       status: "queued",
-      estimatedStartIn: CRON_SECRET
+      estimatedStartIn: result.triggered
         ? "inmediato (procesamiento disparado)"
         : "<24h (cron diario · CRON_SECRET no configurado)",
     });
