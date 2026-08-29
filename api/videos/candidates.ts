@@ -23,7 +23,10 @@ const querySchema = z.object({
 });
 
 export default withHandler(
-  { schema: querySchema, requireAuth: true, maxRequests: 200 },
+  // method: "GET" — withHandler default es POST; sin esto el endpoint (documentado GET,
+  // llamado GET por PlayerIdentifier) daba 405 y el handler (con el guard IDOR) NUNCA
+  // corría. Arreglar el método SIN el guard re-expondría el IDOR, así que van juntos.
+  { schema: querySchema, method: "GET", requireAuth: true, maxRequests: 200 },
   async ({ query, userId, tenantId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
