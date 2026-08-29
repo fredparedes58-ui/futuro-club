@@ -21,7 +21,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import { ownsPlayerOrTenant } from "../_lib/ownership";
+import { ownsVideo, ownsPlayerOrTenant } from "../_lib/ownership";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
 
 export const config = { runtime: "edge" };
@@ -98,21 +98,9 @@ export default withHandler(
     // finalize MUTA una fila `videos` EXISTENTE (siembra bunny_video_id/player_id/
     // tenant_id y encola un análisis). Sin esto, un autenticado A podía finalizar el
     // vídeo de otro tenant B (por id), atribuirlo a un jugador PROPIO y procesar el
-    // contenido de Bunny de un menor ajeno. El llamador DEBE ser dueño de la fila:
-    // uploader (user_id) o mismo tenant. Fail-closed.
-    let ownsVideo =
-      isServiceCall ||
-      (!!vrow.user_id && vrow.user_id === userId) ||
-      (!!vrow.tenant_id && !!tenantId && vrow.tenant_id === tenantId);
-    // Fallback: si la fila YA tiene un jugador atado, basta con gestionar ESE jugador
-    // (el de la fila, no input.playerId). Cubre las filas creadas por create-upload
-    // (fija player_id pero no user_id). NO es el IDOR: se autoriza por el jugador
-    // EXISTENTE del vídeo, cuyo dueño valida ownsPlayerOrTenant (players.user_id/tenant),
-    // no por el jugador que elige el cliente.
-    if (!ownsVideo && vrow.player_id) {
-      ownsVideo = await ownsPlayerOrTenant(vrow.player_id, userId, tenantId);
-    }
-    if (!ownsVideo) {
+    // contenido de Bunny de un menor ajeno. Fail-closed vía ownsVideo (inv #7: el mismo
+    // helper que identify-player/candidates; autoriza por uploader/tenant/jugador del vídeo).
+    if (!(await ownsVideo(vrow, userId, tenantId, isServiceCall))) {
       return errorResponse({ code: "forbidden", message: "No gestionas este vídeo", status: 403 });
     }
 

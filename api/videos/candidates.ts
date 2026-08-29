@@ -10,6 +10,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsVideo } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -23,7 +24,7 @@ const querySchema = z.object({
 
 export default withHandler(
   { schema: querySchema, requireAuth: true, maxRequests: 200 },
-  async ({ query }) => {
+  async ({ query, userId, tenantId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
       return errorResponse({ code: "invalid_params", message: "videoId requerido", status: 400 });
@@ -32,6 +33,23 @@ export default withHandler(
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
     });
+
+    // Anti-IDOR (datos de menores): esta lectura devuelve los candidatos (personas
+    // detectadas) y el bbox del vídeo. Con service_role (salta RLS) hay que verificar
+    // propiedad ANTES de exponer nada, o un autenticado A leería el vídeo del menor del
+    // tenant B por videoId. Se comprueba primero la fila `videos`. Ver ownsVideo.
+    const { data: ownRow, error: ownErr } = await supabase
+      .from("videos")
+      .select("id, user_id, tenant_id, player_id, target_player_bbox")
+      .eq("id", params.data.videoId)
+      .single();
+    if (ownErr || !ownRow) {
+      return errorResponse({ code: "video_not_found", message: "Video no existe", status: 404 });
+    }
+    const vrow = ownRow as { user_id?: string | null; tenant_id?: string | null; player_id?: string | null; target_player_bbox?: unknown };
+    if (!(await ownsVideo(vrow, userId, tenantId, isServiceCall))) {
+      return errorResponse({ code: "forbidden", message: "No gestionas este vídeo", status: 403 });
+    }
 
     // Obtener el último análisis del vídeo (que contiene los candidates)
     const { data: analysis } = await supabase
@@ -49,18 +67,12 @@ export default withHandler(
       });
     }
 
-    // Verificar si ya hay un jugador identificado
-    const { data: video } = await supabase
-      .from("videos")
-      .select("target_player_bbox")
-      .eq("id", params.data.videoId)
-      .single();
-
-    if (video?.target_player_bbox) {
+    // ¿Ya hay un jugador identificado? (target_player_bbox ya lo trajimos en el guard)
+    if (vrow.target_player_bbox) {
       return successResponse({
         ready: true,
         alreadyIdentified: true,
-        targetBbox: video.target_player_bbox,
+        targetBbox: vrow.target_player_bbox,
       });
     }
 

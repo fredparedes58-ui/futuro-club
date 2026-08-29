@@ -99,6 +99,27 @@ export async function ownsPlayerOrTenant(
 }
 
 /**
+ * ¿El usuario/tenant es dueño de este VÍDEO? Fail-closed. Una sola implementación
+ * (invariante #7) que comparten finalize/identify-player/candidates — todos mutan/leen
+ * la MISMA fila `videos` con service_role (saltando RLS) y deben verificar propiedad.
+ * Autoriza por: service-call (server-to-server), uploader (videos.user_id), mismo tenant
+ * (videos.tenant_id), o el jugador EXISTENTE del vídeo (players.user_id/tenant vía
+ * ownsPlayerOrTenant — create-upload fija player_id pero no user_id). Sin ninguno → false.
+ */
+export async function ownsVideo(
+  video: { user_id?: string | null; tenant_id?: string | null; player_id?: string | null },
+  userId: string | null,
+  tenantId: string | null,
+  isServiceCall = false,
+): Promise<boolean> {
+  if (isServiceCall) return true;
+  if (video.user_id && video.user_id === userId) return true;
+  if (video.tenant_id && tenantId && video.tenant_id === tenantId) return true;
+  if (video.player_id) return await ownsPlayerOrTenant(video.player_id, userId, tenantId);
+  return false;
+}
+
+/**
  * Cláusula PostgREST `.or(...)` para restringir una consulta de MÚLTIPLES jugadores
  * a los que gestiona el usuario (players.user_id) o su academia (players.tenant_id).
  * Es el análogo multi-fila de ownsPlayerOrTenant (que es por objeto único): mismos
