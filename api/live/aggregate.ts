@@ -13,7 +13,6 @@
  * que la summary page lo muestre sin volver a pagar Claude.
  */
 
-import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
