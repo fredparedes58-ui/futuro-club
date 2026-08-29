@@ -79,7 +79,12 @@ export default withHandler(
 
     // 3b. Build analysis sections
     const estadoActual = (analysis as Record<string, Record<string, unknown>> | null)?.estadoActual;
-    const dimensiones = estadoActual?.dimensiones as Record<string, { score: number; observacion: string }> | undefined;
+    // Solo si son dimensiones REALES: el `score` por dimensión es una constante fabricada
+    // si el pipeline no las mide (dimensionesMedidas=false). No pintar barras falsas (inv #2).
+    const dimensionesMedidas = estadoActual?.dimensionesMedidas === true;
+    const dimensiones = dimensionesMedidas
+      ? (estadoActual?.dimensiones as Record<string, { score: number; observacion: string }> | undefined)
+      : undefined;
     const fortalezas = (estadoActual?.fortalezasPrimarias ?? []) as string[];
     const areasDesarrollo = (estadoActual?.areasDesarrollo ?? []) as string[];
     const proyeccion = (analysis as Record<string, Record<string, unknown>> | null)?.proyeccionCarrera as Record<string, Record<string, string>> | undefined;

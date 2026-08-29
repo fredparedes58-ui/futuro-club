@@ -254,23 +254,26 @@ export default function AnalysisReportPrint() {
       }))
     : [];
 
-  // Quality validation (safe — read-only, no side effects)
+  // Quality validation + Benchmark: AMBOS derivan de los `dim.score` (fabricados si el
+  // pipeline no mide dimensiones) → solo se calculan si dimensionesMedidas===true; si no,
+  // quedan null y sus secciones (guardadas por `validation &&` / `benchmark &&`) se ocultan.
+  // No presentar un percentil/quality score derivado de una constante (inv #2).
   let validation: ValidationResult | null = null;
-  try {
-    validation = validatePlayerReport(
-      r as unknown as VideoIntelligenceOutput,
-      { age: 14, position: playerPosition || "MC" },
-    );
-  } catch {
-    // validator may fail if report structure is partial
-  }
-
-  // Benchmark (safe — read-only)
   let benchmark: ReportBenchmark | null = null;
-  try {
-    benchmark = calculateReportBenchmark(14, playerPosition || "MC", dims);
-  } catch {
-    // may fail if no players in storage
+  if (dimensionesMedidas) {
+    try {
+      validation = validatePlayerReport(
+        r as unknown as VideoIntelligenceOutput,
+        { age: 14, position: playerPosition || "MC" },
+      );
+    } catch {
+      // validator may fail if report structure is partial
+    }
+    try {
+      benchmark = calculateReportBenchmark(14, playerPosition || "MC", dims);
+    } catch {
+      // may fail if no players in storage
+    }
   }
 
   return (

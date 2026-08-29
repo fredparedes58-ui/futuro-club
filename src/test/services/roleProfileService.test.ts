@@ -70,6 +70,9 @@ const makeVideoAnalysis = (overrides = {}) => ({
         liderazgoPresencia: { score: 6.5, observacion: "Comunicación intermedia" },
         eficaciaCompetitiva: { score: 7.0, observacion: "Contribuye al juego colectivo" },
       },
+      // Fixture con dimensiones REALES (scores medidos) → el fallback deriva de ellas.
+      // Sin este flag, el servicio se abstiene (no fabrica perfil de dims constantes).
+      dimensionesMedidas: true,
     },
     adnFutbolistico: {
       estiloJuego: "Organizador de juego posicional",
@@ -220,6 +223,18 @@ describe("roleProfileService", () => {
       expect(result!.current.physical).toBe(60);  // capacidadFisica score 6.0 × 10
       expect(result!.risks.some(r => r.code === "AGENT_UNAVAILABLE")).toBe(true);
       expect(result!.strengths.length).toBeGreaterThan(0);
+    });
+
+    it("se ABSTIENE (null) si el agente falla y las dimensiones NO son reales (dimensionesMedidas!==true)", async () => {
+      const fabricado = makeVideoAnalysis();
+      // Caso REAL de hoy: dimensiones = constante fabricada (el pipeline no mide por
+      // dimensión). El fallback NO debe fabricar un perfil de rol con esos scores.
+      (fabricado.report.estadoActual as Record<string, unknown>).dimensionesMedidas = false;
+      setupSupabaseMock([fabricado]);
+      mockBuildRoleProfile.mockRejectedValue(new Error("Agent timeout"));
+
+      const result = await fetchRoleProfile("p1");
+      expect(result).toBeNull(); // abstención, no fabricación (inv #2/#3)
     });
 
     it("sample_tier based on number of video analyses", async () => {

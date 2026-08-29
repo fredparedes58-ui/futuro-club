@@ -373,12 +373,17 @@ export default function PlayerEvolutionPage() {
   // ninguno lo declara (el caso de hoy), se ocultan todos los charts derivados de
   // dimensión (resumen de medias, promedio longitudinal, radar comparativo y
   // mini-charts por dimensión) para no pintar puntuaciones fabricadas ni un 0 falso.
-  const anyRealDimensions = sorted.some(
+  // Solo los informes con dimensiones REALES entran en los charts/medias de dimensión:
+  // filtrado POR INFORME (no un .some page-wide) para que NUNCA se mezcle un score real
+  // con la constante fabricada de otro informe en la misma línea/radar/media. Hoy, con
+  // ningún informe real, la lista queda vacía → charts ocultos.
+  const realDimReports = sorted.filter(
     (a) => hasRealDimensions(a.report as VideoIntelligenceOutput),
   );
+  const anyRealDimensions = realDimReports.length >= 2;
 
-  // Build chart data (oldest → newest)
-  const chartData: ChartPoint[] = sorted.map((a) => {
+  // Build chart data (oldest → newest) — SOLO informes con dimensiones reales
+  const chartData: ChartPoint[] = realDimReports.map((a) => {
     const r = a.report as VideoIntelligenceOutput;
     const scores = getScores(r);
     const date = new Date(a.created_at);
@@ -397,9 +402,10 @@ export default function PlayerEvolutionPage() {
     return point;
   });
 
-  // Radar data: first vs last
-  const firstReport = sorted[0]?.report as VideoIntelligenceOutput | undefined;
-  const lastReport = sorted[total - 1]?.report as VideoIntelligenceOutput | undefined;
+  // Radar data: first vs last — SOLO entre informes con dimensiones reales (no mezclar
+  // con la constante fabricada). Con <2 reales, anyRealDimensions es false y no se pinta.
+  const firstReport = realDimReports[0]?.report as VideoIntelligenceOutput | undefined;
+  const lastReport = realDimReports[realDimReports.length - 1]?.report as VideoIntelligenceOutput | undefined;
   const firstScores = firstReport ? getScores(firstReport) : null;
   const lastScores = lastReport ? getScores(lastReport) : null;
 
