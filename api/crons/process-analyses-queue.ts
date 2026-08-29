@@ -24,8 +24,13 @@
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Node.js runtime para soportar Gemini (hasta 120s de video analysis)
-export const config = { runtime: "nodejs", maxDuration: 120 };
+// Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
+// por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
+// Opus, ~60s). En 120s el segundo paso se guillotinaba a mitad → el análisis quedaba
+// colgado en 'processing_reports' hasta que el reaper lo mataba a la hora (una espera
+// de ~4 min se volvía fallo + reintento). 300s da holgura para ambos. Vercel clampa al
+// tope del plan si es menor, así que nunca es peor que hoy.
+export const config = { runtime: "nodejs", maxDuration: 300 };
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
