@@ -233,7 +233,7 @@ export function usePlayerAnalysisV2() {
 
         // Ir actualizando estado durante polling para UX
         if (analysisStatus.status === "processing") {
-          setState({ step: "modal_processing", progress: 70, message: "Modal procesando con MediaPipe (GPU)...", error: null });
+          setState({ step: "modal_processing", progress: 70, message: "Analizando el vídeo con IA...", error: null });
         } else if (analysisStatus.status === "processing_reports") {
           setState({ step: "generating_reports", progress: 85, message: "Claude generando 6 reportes...", error: null });
         }
@@ -343,7 +343,7 @@ export function usePlayerAnalysisV2() {
         }
 
         // 2. Disparar pipeline via finalize (trigger webhook → Modal → orchestrator)
-        setState({ step: "bunny_processing", progress: 30, message: "Iniciando pipeline GPU (MediaPipe)...", error: null });
+        setState({ step: "bunny_processing", progress: 30, message: "Preparando el análisis del vídeo...", error: null });
         let finalizeAttempts = 0;
         let finalized = false;
         while (finalizeAttempts < 12 && !finalized && !ac.signal.aborted) {
@@ -366,7 +366,7 @@ export function usePlayerAnalysisV2() {
         }
 
         // 3. Polling hasta completado
-        setState({ step: "queued", progress: 55, message: "Análisis encolado · Modal procesará con GPU", error: null });
+        setState({ step: "queued", progress: 55, message: "Análisis encolado · procesando el vídeo con IA...", error: null });
         const analysisStatus = await pollUntil(
           async () => {
             const res = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, { headers, signal: ac.signal });
@@ -586,14 +586,14 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
   const tierLabel  = normalizeTier((row.vsi?.tierLabel as string) ?? (pr.tier_label as string));
   const strengths  = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
   const areasRaw   = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
-  const defaultDim = { score: 5, observacion: "Calculado por pipeline GPU" };
+  const defaultDim = { score: 5, observacion: "Estimado por IA" };
 
   const report = {
     playerId:    row.player_id,
     videoId:     row.video_id ?? "",
     generatedAt: row.created_at,
     estadoActual: {
-      resumenEjecutivo:    (pr.executive_summary as string) ?? "Análisis completado · pipeline GPU + MediaPipe.",
+      resumenEjecutivo:    (pr.executive_summary as string) ?? "Análisis completado.",
       nivelActual:         tierLabel,
       fortalezasPrimarias: strengths.map((s) => s.title),
       areasDesarrollo:     areasRaw.map((a) => a.title),
