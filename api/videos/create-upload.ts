@@ -132,6 +132,7 @@ export default withHandler(
       .from("videos")
       .insert({
         id: videoId,
+        user_id: userId,                    // dueño del vídeo (finalize.ownsVideo lo usa)
         tenant_id: player.tenant_id,
         player_id: input.playerId,
         bunny_video_id: bunnyVideo.guid,

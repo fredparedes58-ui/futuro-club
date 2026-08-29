@@ -100,10 +100,18 @@ export default withHandler(
     // vídeo de otro tenant B (por id), atribuirlo a un jugador PROPIO y procesar el
     // contenido de Bunny de un menor ajeno. El llamador DEBE ser dueño de la fila:
     // uploader (user_id) o mismo tenant. Fail-closed.
-    const ownsVideo =
+    let ownsVideo =
       isServiceCall ||
       (!!vrow.user_id && vrow.user_id === userId) ||
       (!!vrow.tenant_id && !!tenantId && vrow.tenant_id === tenantId);
+    // Fallback: si la fila YA tiene un jugador atado, basta con gestionar ESE jugador
+    // (el de la fila, no input.playerId). Cubre las filas creadas por create-upload
+    // (fija player_id pero no user_id). NO es el IDOR: se autoriza por el jugador
+    // EXISTENTE del vídeo, cuyo dueño valida ownsPlayerOrTenant (players.user_id/tenant),
+    // no por el jugador que elige el cliente.
+    if (!ownsVideo && vrow.player_id) {
+      ownsVideo = await ownsPlayerOrTenant(vrow.player_id, userId, tenantId);
+    }
     if (!ownsVideo) {
       return errorResponse({ code: "forbidden", message: "No gestionas este vídeo", status: 403 });
     }
