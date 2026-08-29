@@ -134,7 +134,8 @@ export function validatePlayerReport(
   // ── Regla 3: Edad realista para proyección ──────────────────────────
   const age = playerContext.age;
 
-  if (age <= 10) {
+  // Si la proyección está gateada (null, sin datos reales, #40 clase) no hay nivel que validar.
+  if (age <= 10 && report.proyeccionCarrera) {
     const optLevel = report.proyeccionCarrera.escenarioOptimista.nivelProyecto.toLowerCase();
     if (optLevel.includes("primera") || optLevel.includes("champions") || optLevel.includes("top")) {
       issues.push({

@@ -58,7 +58,7 @@ export interface AnalysisV2State {
 export interface AnalysisV2Result {
   analysisId: string | null;
   videoId: string | null;
-  vsi: { vsi: number; tier: string; tierLabel: string } | null;
+  vsi: { vsi: number; tier: string; tierLabel: string; confidence?: number } | null;
   phv: Record<string, unknown> | null;
   similarity: Record<string, unknown> | null;
   scanning: Record<string, unknown> | null;
@@ -582,7 +582,11 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
   const pj  = get("projection");
   const dp  = get("development-plan");
 
-  const vsiScore   = (row.vsi?.vsi as number) ?? 50;
+  // ¿Datos REALES de proyección? Sin ellos se gatea (null), no se fabrica "Semi-pro" (#40 clase).
+  const hasProjection = !!(
+    (pj.optimistic as unknown) ?? (pj.escenarioOptimista as unknown) ??
+    (pj.realistic as unknown)  ?? (pj.escenarioRealista as unknown)
+  );
   const tierLabel  = normalizeTier((row.vsi?.tierLabel as string) ?? (pr.tier_label as string));
   const strengths  = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
   const areasRaw   = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
@@ -631,7 +635,7 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
         narrativa:(bm.narrativa as string) ?? "",
       },
     },
-    proyeccionCarrera: {
+    proyeccionCarrera: hasProjection ? {
       escenarioOptimista: {
         descripcion:   ((pj.optimistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.descripcion as string ?? "Progresión favorable",
         nivelProyecto: ((pj.optimistic as Record<string,unknown>)?.level as string) ?? "Semi-pro",
@@ -644,13 +648,16 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
       },
       factoresClave: (pj.key_factors as string[]) ?? [],
       riesgos:       (pj.risks as string[]) ?? [],
-    },
+    } : null,
     planDesarrollo: {
       objetivo6meses:  (dp.goal_6months as string) ?? (dp.objetivo6meses as string) ?? "Consolidar fundamentos técnicos",
       objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
       pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
     },
-    confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
+    // confianza = confidence REAL del VSI compuesto, solo si > 0. Bloqueado ⇒ gated() ⇒
+    // confidence:0 (sentinela). 0 renderizado como "0%" viola inv #2 → se mapea a null y
+    // la UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
+    confianza: (row.vsi?.confidence as number) > 0 ? (row.vsi.confidence as number) : null,
   };
 
   // vsi top-level: el Histórico lo mostraba como "—" porque leía report.vsi (que no

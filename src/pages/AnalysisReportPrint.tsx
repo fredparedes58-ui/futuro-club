@@ -65,7 +65,7 @@ interface AnalysisReport {
     escenarioRealista: { descripcion: string; nivelProyecto: string };
     factoresClave: string[];
     riesgos: string[];
-  };
+  } | null;
   planDesarrollo: {
     objetivo6meses: string;
     objetivo18meses: string;
@@ -92,7 +92,7 @@ interface AnalysisReport {
     fuente: string;
     confianza: number;
   };
-  confianza: number;
+  confianza: number | null;
 }
 
 interface StoredReport {
@@ -283,7 +283,7 @@ export default function AnalysisReportPrint() {
             </div>
           </div>
           <div className="text-right shrink-0 ml-4">
-            {confianzaBadge(r.confianza, t("analysisReportPrint.confidence"))}
+            {r.confianza != null && confianzaBadge(r.confianza, t("analysisReportPrint.confidence"))}
             {r.estadoActual.ajusteVSIVideoScore != null && (
               <div className="mt-2 text-[10px] text-gray-400">
                 {t("analysisReportPrint.vsiAdjust")}: <span className="font-bold text-gray-700">{r.estadoActual.ajusteVSIVideoScore}</span>
@@ -663,7 +663,8 @@ export default function AnalysisReportPrint() {
           </div>
         </section>
 
-        {/* ── 8. Proyección de Carrera ───────────────────────────────── */}
+        {/* ── 8. Proyección de Carrera — solo si hay datos reales (null ⇒ no fabricar "Semi-pro") ── */}
+        {r.proyeccionCarrera && (
         <section className="mb-6 no-break">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.careerProjection")}</h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
@@ -697,6 +698,7 @@ export default function AnalysisReportPrint() {
             </div>
           )}
         </section>
+        )}
 
         {/* ── 9. Plan de Desarrollo ──────────────────────────────────── */}
         <section className="mb-6 no-break">
@@ -741,7 +743,7 @@ export default function AnalysisReportPrint() {
         </section>
 
         {/* ── 10. Riesgos ────────────────────────────────────────────── */}
-        {r.proyeccionCarrera.riesgos.length > 0 && (
+        {r.proyeccionCarrera && r.proyeccionCarrera.riesgos.length > 0 && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.identifiedRisks")}</h2>
             <ul className="list-disc list-inside text-[10px] text-gray-600 space-y-1">

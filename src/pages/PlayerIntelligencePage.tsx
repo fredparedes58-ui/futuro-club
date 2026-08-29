@@ -700,11 +700,13 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
         </div>
       )}
 
-      {/* Confianza comparada */}
-      <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-1">
-        <span>{t("playerIntelligencePage.previousConfidence", { pct: Math.round((previous.confianza ?? 0) * 100) })}</span>
-        <span>{t("playerIntelligencePage.currentConfidence", { pct: Math.round((current.confianza ?? 0) * 100) })}</span>
-      </div>
+      {/* Confianza comparada — solo la que tenga confianza medible (null ⇒ no pintar "0%") */}
+      {(previous.confianza != null || current.confianza != null) && (
+        <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-1">
+          <span>{previous.confianza != null ? t("playerIntelligencePage.previousConfidence", { pct: Math.round(previous.confianza * 100) }) : ""}</span>
+          <span>{current.confianza != null ? t("playerIntelligencePage.currentConfidence", { pct: Math.round(current.confianza * 100) }) : ""}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -893,7 +895,7 @@ export default function PlayerIntelligencePage() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-medium text-foreground truncate">{videoTitle}</p>
-                              <p className="text-[9px] text-muted-foreground">{date} · {t("playerIntelligencePage.confidenceInline", { pct: Math.round(((report?.confianza ?? 0)) * 100) })}</p>
+                              <p className="text-[9px] text-muted-foreground">{date}{report?.confianza != null ? ` · ${t("playerIntelligencePage.confidenceInline", { pct: Math.round(report.confianza * 100) })}` : ""}</p>
                             </div>
                             {isSelected && <Badge variant="secondary" className="text-[8px]">{t("playerIntelligencePage.current")}</Badge>}
                             {isCompare && <Badge className="text-[8px] bg-amber-500">{t("playerIntelligencePage.compare")}</Badge>}
@@ -1032,9 +1034,11 @@ export default function PlayerIntelligencePage() {
                     <p className="text-[10px] font-display font-bold uppercase tracking-widest text-muted-foreground">
                       {t("playerIntelligencePage.saveAndExport")}
                     </p>
-                    <span className="text-[10px] text-muted-foreground">
-                      {t("playerIntelligencePage.confidenceLabel", { pct: Math.round((latestReport.confianza ?? 0) * 100) })}
-                    </span>
+                    {latestReport.confianza != null && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {t("playerIntelligencePage.confidenceLabel", { pct: Math.round(latestReport.confianza * 100) })}
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Button

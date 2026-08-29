@@ -51,7 +51,7 @@ export interface AnalysisReport {
     escenarioRealista:  { descripcion: string; nivelProyecto: string };
     factoresClave:      string[];
     riesgos:            string[];
-  };
+  } | null; // null ⇒ sin datos reales de proyección (no se fabrica "Semi-pro", #40 clase)
   planDesarrollo: {
     objetivo6meses:  string;
     objetivo18meses: string;
@@ -79,5 +79,5 @@ export interface AnalysisReport {
     confianza:  number;
     heatmapPositions?: Array<{ fx: number; fy: number }>;
   };
-  confianza: number;
+  confianza: number | null; // null ⇒ VSI-vídeo bloqueado (no se pinta badge de confianza, #40 clase)
 }

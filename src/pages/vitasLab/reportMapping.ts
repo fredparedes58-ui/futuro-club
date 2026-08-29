@@ -14,10 +14,17 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
   const pj  = get("projection");
   const dp  = get("development-plan");
 
-  const vsiScore = (result.vsi?.vsi as number) ?? 50;
   const strengths   = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
   const areasRaw    = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
   const defaultDim  = { score: 0.5, observacion: "Estimado por IA" };
+  // ¿Hay datos REALES de proyección? El mapeo lee pj.optimistic/realistic (o el legacy
+  // escenarioOptimista/Realista); el agente los emite bajo otra forma y el informe se
+  // OMITE cuando el VSI-vídeo está bloqueado (hoy siempre) → pj={}. Sin estos campos NO
+  // hay proyección que mostrar: se gatea a null en vez de fabricar "Semi-pro" (#40 clase).
+  const hasProjection = !!(
+    (pj.optimistic as unknown) ?? (pj.escenarioOptimista as unknown) ??
+    (pj.realistic as unknown)  ?? (pj.escenarioRealista as unknown)
+  );
 
   return {
     estadoActual: {
@@ -55,7 +62,7 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
         narrativa:(bm.narrativa as string) ?? "",
       } : null as never,
     },
-    proyeccionCarrera: {
+    proyeccionCarrera: hasProjection ? {
       escenarioOptimista: {
         descripcion:   ((pj.optimistic as Record<string,unknown>)?.description as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.descripcion as string ?? "Progresión favorable según análisis biomecánico",
         nivelProyecto: ((pj.optimistic as Record<string,unknown>)?.level as string) ?? (pj.escenarioOptimista as Record<string,unknown>)?.nivelProyecto as string ?? "Semi-pro",
@@ -66,12 +73,17 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
       },
       factoresClave: (pj.key_factors as string[]) ?? (pj.factoresClave as string[]) ?? [],
       riesgos:       (pj.risks as string[]) ?? (pj.riesgos as string[]) ?? [],
-    },
+    } : null,
     planDesarrollo: {
       objetivo6meses:  (dp.goal_6months as string) ?? (dp.objetivo6meses as string) ?? "Consolidar fundamentos técnicos",
       objetivo18meses: (dp.goal_18months as string) ?? (dp.objetivo18meses as string) ?? "Transición a nivel competitivo superior",
       pilaresTrabajo:  (dp.pillars as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? (dp.pilaresTrabajo as Array<{ pilar: string; acciones: string[]; prioridad: string }>) ?? [],
     },
-    confianza: Math.min(1, Math.max(0.3, vsiScore / 100)),
+    // confianza = confidence REAL del VSI compuesto, PERO solo si es > 0. Cuando el
+    // compuesto está bloqueado, gateVsiComposite → gated() → confidence:0 (sentinela de
+    // "sin base medida"). Un 0 renderizado como "0%" es justo lo que prohíbe el inv #2
+    // (un 0 que significa «no se pudo medir»). >0 ⇒ número real; 0 o ausente ⇒ null → la
+    // UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
+    confianza: (result.vsi?.confidence as number) > 0 ? (result.vsi!.confidence as number) : null,
   };
 }

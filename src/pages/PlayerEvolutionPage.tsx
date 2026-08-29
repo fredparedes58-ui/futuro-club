@@ -88,7 +88,7 @@ interface ChartPoint {
   date: string;
   dateLabel: string;
   promedio: number;
-  confianza: number;
+  confianza: number | null;
   videoTitle: string;
   [dim: string]: string | number;
 }
@@ -105,7 +105,9 @@ function EvolutionLineChart({ data }: { data: ChartPoint[] }) {
         <p className="font-bold text-foreground">{d.dateLabel}</p>
         <p className="text-muted-foreground">{d.videoTitle}</p>
         <p className="text-primary font-bold">{t("playerEvolutionPage.average")}: {d.promedio.toFixed(1)}</p>
-        <p className="text-muted-foreground">{t("playerEvolutionPage.confidence")}: {Math.round(d.confianza * 100)}%</p>
+        {d.confianza != null && (
+          <p className="text-muted-foreground">{t("playerEvolutionPage.confidence")}: {Math.round(d.confianza * 100)}%</p>
+        )}
       </div>
     );
   };
@@ -367,7 +369,7 @@ export default function PlayerEvolutionPage() {
       date: a.created_at,
       dateLabel: date.toLocaleDateString("es-ES", { day: "2-digit", month: "short" }),
       promedio: getAvg(scores),
-      confianza: r.confianza ?? 0,
+      confianza: r.confianza ?? null,
       videoTitle: r.videoId ? VideoService.getById(r.videoId)?.title ?? "Video" : "Sin video",
     };
     if (scores) {
