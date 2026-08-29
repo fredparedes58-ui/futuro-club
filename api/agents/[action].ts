@@ -82,19 +82,23 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
 
 // Agentes LLM de pago → estimación de coste para el ledger (tripwire 054).
 // Los deterministas (vsi/scan/injury-calc/valuation-model/progression) se omiten.
+// La clave DEBE reflejar el modelo REAL que corre el agente (MODELS.reasoning=Opus /
+// MODELS.fast=Haiku), o el tripwire de presupuesto subestima el gasto y salta tarde.
+// Los 6 que usan MODELS.reasoning van a "claude-opus" (antes 4 iban a "claude-sonnet"
+// —que VITAS ni usa— y 2 a "claude-haiku"; ambos abarataban el coste real, #52).
 const BILLABLE_ACTIONS: Record<string, SpendEstimateKey> = {
-  "player-report":          "claude-sonnet",
-  "lab-biomechanics-report":"claude-sonnet",
-  "valuation-report":       "claude-sonnet",
-  "team-intelligence":      "claude-sonnet",
+  "player-report":          "claude-opus",   // MODELS.reasoning
+  "lab-biomechanics-report":"claude-opus",   // MODELS.reasoning
+  "valuation-report":       "claude-opus",   // MODELS.reasoning
+  "team-intelligence":      "claude-opus",   // MODELS.reasoning
+  "team-report":            "claude-opus",   // MODELS.reasoning
+  "rival-scout-report":     "claude-opus",   // MODELS.reasoning
   "dna-profile":            "claude-haiku",
   "best-match-narrator":    "claude-haiku",
   "projection-report":      "claude-haiku",
   "development-plan":       "claude-haiku",
   "fatigue-report":         "claude-haiku",
   "injury-risk-report":     "claude-haiku",
-  "team-report":            "claude-haiku",
-  "rival-scout-report":     "claude-haiku",
   "role-profile":           "claude-haiku",
   "tactical-label":         "claude-haiku",
   "phv-calculator":         "claude-haiku",
