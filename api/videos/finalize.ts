@@ -81,10 +81,10 @@ export default withHandler(
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-    // Verificar que el video existe (+ leer lo que ya tenga)
+    // Verificar que el video existe (+ leer dueño y lo que ya tenga)
     const { data: video } = await supabase
       .from("videos")
-      .select("id, bunny_video_id, player_id, tenant_id")
+      .select("id, bunny_video_id, player_id, tenant_id, user_id")
       .eq("id", input.videoId)
       .single();
 
@@ -92,12 +92,35 @@ export default withHandler(
       return errorResponse({ code: "video_not_found", message: "Video no existe", status: 404 });
     }
 
+    const vrow = video as { id: string; bunny_video_id?: string | null; player_id?: string | null; tenant_id?: string | null; user_id?: string | null };
+
+    // ── AUTORIZACIÓN A NIVEL DE OBJETO (anti-IDOR de menores) ────────────────
+    // finalize MUTA una fila `videos` EXISTENTE (siembra bunny_video_id/player_id/
+    // tenant_id y encola un análisis). Sin esto, un autenticado A podía finalizar el
+    // vídeo de otro tenant B (por id), atribuirlo a un jugador PROPIO y procesar el
+    // contenido de Bunny de un menor ajeno. El llamador DEBE ser dueño de la fila:
+    // uploader (user_id) o mismo tenant. Fail-closed.
+    const ownsVideo =
+      isServiceCall ||
+      (!!vrow.user_id && vrow.user_id === userId) ||
+      (!!vrow.tenant_id && !!tenantId && vrow.tenant_id === tenantId);
+    if (!ownsVideo) {
+      return errorResponse({ code: "forbidden", message: "No gestionas este vídeo", status: 403 });
+    }
+
+    // El bunnyVideoId del cliente NO es de fiar: si la fila ya tiene uno grabado, debe
+    // coincidir — nunca se sobreescribe con lo que mande el cliente (evita apuntar la
+    // fila a un GUID de Bunny ajeno).
+    if (vrow.bunny_video_id && vrow.bunny_video_id !== input.bunnyVideoId) {
+      return errorResponse({ code: "bunny_id_mismatch", message: "bunnyVideoId no coincide con el vídeo", status: 403 });
+    }
+
     // Jugador: el que llega al analizar, o el que ya tuviera la fila.
-    const playerId: string | null = input.playerId ?? (video as { player_id?: string | null }).player_id ?? null;
+    const playerId: string | null = input.playerId ?? vrow.player_id ?? null;
 
     // Ownership + tenant SIEMPRE server-side (el cliente no conoce el tenant_id del
     // jugador). Fail-closed: no gestionas al jugador → 403, sin sembrar ni encolar.
-    let resolvedTenantId: string | null = (video as { tenant_id?: string | null }).tenant_id ?? tenantId ?? null;
+    let resolvedTenantId: string | null = vrow.tenant_id ?? tenantId ?? null;
     if (playerId) {
       if (!isServiceCall && !(await ownsPlayerOrTenant(playerId, userId, tenantId))) {
         return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
@@ -165,7 +188,7 @@ export default withHandler(
       });
     }
 
-    const analysisId = result.status === "exists" ? result.analysisId : result.analysisId;
+    const analysisId = result.analysisId;
     return successResponse({
       ready: true,
       queued: true,
