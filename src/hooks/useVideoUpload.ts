@@ -100,7 +100,7 @@ const INITIAL: UploadState = {
 };
 
 const POLL_INTERVAL_MS = 4000;
-const POLL_MAX_ATTEMPTS = 60; // 4 min max wait
+const POLL_MAX_ATTEMPTS = 150; // ~10 min; al agotarse NO falla (el encode sigue async)
 
 // Auth headers from shared utility
 const authHeaders = getAuthHeaders;
@@ -395,7 +395,11 @@ export function useVideoUpload(playerId?: string) {
 
           const poll = async () => {
             if (attempts++ >= POLL_MAX_ATTEMPTS) {
-              reject(new Error("Timeout: video encoding took too long"));
+              // El encode de un partido LARGO puede tardar más que el poll. La subida a
+              // Bunny YA está completa; el encode sigue en segundo plano y finalize espera
+              // el encode-complete al analizar. NO es un error → resolvemos como "subido"
+              // (antes hacía reject → marcaba la subida como fallida EN FALSO, #21).
+              resolve();
               return;
             }
 
