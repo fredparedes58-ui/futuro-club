@@ -40,6 +40,9 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
         liderazgoPresencia:  defaultDim,
         eficaciaCompetitiva: defaultDim,
       },
+      // Las 6 dimensiones de arriba son la CONSTANTE defaultDim (el pipeline no las mide
+      // por dimensión). No son datos reales → los consumidores no las pintan/derivan.
+      dimensionesMedidas: false,
       // null cuando el VSI-vídeo está BLOQUEADO (backend vsi:null, <4/5 dims reales).
       // Antes `?? 50` → 0 → badge "VSI +0 pts" fabricado en cada informe (#40).
       ajusteVSIVideoScore: result.vsi?.vsi == null ? null : Math.round((result.vsi.vsi as number) - 50),

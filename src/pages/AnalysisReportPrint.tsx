@@ -226,6 +226,14 @@ export default function AnalysisReportPrint() {
   const fisicas = r.metricasCuantitativas?.fisicas;
   const eventos = r.metricasCuantitativas?.eventos;
 
+  // #dimensiones fabricadas: el pipeline de vídeo NO puntúa por dimensión; el `score`
+  // de cada DimensionScore es una CONSTANTE fabricada rotulada "Estimado por IA".
+  // Solo mostramos radar/barras cuando el informe declara explícitamente que las
+  // dimensiones fueron medidas (hoy siempre false ⇒ se ocultan; nunca un 0, inv #2).
+  // Acceso cast-safe/null-safe al flag a nivel informe (no toca tipos declarados).
+  const dimensionesMedidas =
+    ((r.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
+
   // Translated dimension label with Spanish module-scope fallback
   const dimLabel = (key: string): string =>
     t(`analysisReportPrint.dim.${key}`, { defaultValue: dimensionLabels[key] ?? key });
@@ -236,11 +244,15 @@ export default function AnalysisReportPrint() {
   );
 
   // RadarChart data from dimensions
-  const radarData = (Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => ({
-    subject: dimLabel(key).split(" ").slice(0, 2).join(" "),
-    value: dim.score,
-    fullMark: 10,
-  }));
+  // #dimensiones fabricadas: no derivamos datos de radar a partir de scores fabricados;
+  // si el informe no declara dimensionesMedidas===true, saltamos el cálculo (array vacío).
+  const radarData = dimensionesMedidas
+    ? (Object.entries(dims) as [string, DimensionScore][]).map(([key, dim]) => ({
+        subject: dimLabel(key).split(" ").slice(0, 2).join(" "),
+        value: dim.score,
+        fullMark: 10,
+      }))
+    : [];
 
   // Quality validation (safe — read-only, no side effects)
   let validation: ValidationResult | null = null;
@@ -317,6 +329,10 @@ export default function AnalysisReportPrint() {
         </section>
 
         {/* ── 3. Dimensiones + RadarChart ─────────────────────────── */}
+        {/* #dimensiones fabricadas: radar y barras consumen dim.score (constante fabricada).
+            Se ocultan por completo salvo que el informe declare dimensionesMedidas===true
+            (hoy siempre false). No se pinta nada en su lugar — hueco visible, no 0 (inv #2). */}
+        {dimensionesMedidas && (
         <section className="mb-6 no-break">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.performanceDimensions")}</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -362,6 +378,7 @@ export default function AnalysisReportPrint() {
             </div>
           </div>
         </section>
+        )}
 
         {/* ── 3b. Benchmark vs Pares ────────────────────────────────── */}
         {benchmark && benchmark.sampleSize > 0 && (

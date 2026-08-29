@@ -116,6 +116,11 @@ function EstadoActual({ data, benchmark }: {
   const { t } = useTranslation();
   if (!data) return null;
   const levelColor = LEVEL_COLORS[data.nivelActual] ?? "#3B82F6";
+  // #dimensiones fabricadas: el pipeline de vídeo aún NO puntúa por dimensión.
+  // Solo mostramos los anillos de score (y su benchmark) cuando el informe
+  // declara medición real. Acceso cast-safe y null-safe al flag del informe.
+  const dimensionesMedidas =
+    ((data as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
 
   return (
     <div className="space-y-4">
@@ -146,30 +151,37 @@ function EstadoActual({ data, benchmark }: {
         <p className="text-[10px] font-display uppercase tracking-widest text-muted-foreground mb-4">
           {t("intelligence.sixDimensions")}
         </p>
-        <div className="grid grid-cols-3 gap-3 justify-items-center">
-          {Object.entries({
-            [t("intelligence.dimensions.decision")]:    { dim: data.dimensiones?.velocidadDecision, key: "velocidadDecision" },
-            [t("intelligence.dimensions.technique")]:   { dim: data.dimensiones?.tecnicaConBalon, key: "tecnicaConBalon" },
-            [t("intelligence.dimensions.tactics")]:     { dim: data.dimensiones?.inteligenciaTactica, key: "inteligenciaTactica" },
-            [t("intelligence.dimensions.physical")]:    { dim: data.dimensiones?.capacidadFisica, key: "capacidadFisica" },
-            [t("intelligence.dimensions.leadership")]:  { dim: data.dimensiones?.liderazgoPresencia, key: "liderazgoPresencia" },
-            [t("intelligence.dimensions.efficiency")]:  { dim: data.dimensiones?.eficaciaCompetitiva, key: "eficaciaCompetitiva" },
-          }).filter(([, v]) => v.dim).map(([label, { dim, key }]) => {
-            const bench = benchmark?.dimensions.find(d => d.dimensionKey === key);
-            return (
-              <div key={label} className="flex flex-col items-center gap-0.5">
-                <ScoreRing score={dim!.score ?? 0} label={label} />
-                {bench && bench.sampleSize > 0 && (
-                  <BenchmarkBadge percentile={bench.percentile} isSmallSample={bench.isSmallSample} />
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {benchmark && benchmark.sampleSize > 0 && (
-          <p className="text-[9px] text-muted-foreground text-center mt-2">
-            {t("playerIntelligencePage.benchmarkLabel", { group: benchmark.groupDescription })}
-          </p>
+        {/* #dimensiones fabricadas: anillos de score + benchmark solo si el
+           informe declara medición real; si no, se ocultan (nunca pintar un 0
+           fabricado). Las observaciones cualitativas siguen abajo. */}
+        {dimensionesMedidas && (
+          <>
+            <div className="grid grid-cols-3 gap-3 justify-items-center">
+              {Object.entries({
+                [t("intelligence.dimensions.decision")]:    { dim: data.dimensiones?.velocidadDecision, key: "velocidadDecision" },
+                [t("intelligence.dimensions.technique")]:   { dim: data.dimensiones?.tecnicaConBalon, key: "tecnicaConBalon" },
+                [t("intelligence.dimensions.tactics")]:     { dim: data.dimensiones?.inteligenciaTactica, key: "inteligenciaTactica" },
+                [t("intelligence.dimensions.physical")]:    { dim: data.dimensiones?.capacidadFisica, key: "capacidadFisica" },
+                [t("intelligence.dimensions.leadership")]:  { dim: data.dimensiones?.liderazgoPresencia, key: "liderazgoPresencia" },
+                [t("intelligence.dimensions.efficiency")]:  { dim: data.dimensiones?.eficaciaCompetitiva, key: "eficaciaCompetitiva" },
+              }).filter(([, v]) => v.dim).map(([label, { dim, key }]) => {
+                const bench = benchmark?.dimensions.find(d => d.dimensionKey === key);
+                return (
+                  <div key={label} className="flex flex-col items-center gap-0.5">
+                    <ScoreRing score={dim!.score ?? 0} label={label} />
+                    {bench && bench.sampleSize > 0 && (
+                      <BenchmarkBadge percentile={bench.percentile} isSmallSample={bench.isSmallSample} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {benchmark && benchmark.sampleSize > 0 && (
+              <p className="text-[9px] text-muted-foreground text-center mt-2">
+                {t("playerIntelligencePage.benchmarkLabel", { group: benchmark.groupDescription })}
+              </p>
+            )}
+          </>
         )}
         {/* Observaciones expandibles */}
         <div className="mt-4 space-y-2">
@@ -635,6 +647,13 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
   const prevDims = previous.estadoActual?.dimensiones;
   if (!dims || !prevDims) return null;
 
+  // #dimensiones fabricadas: la media/delta y el detalle por dimensión solo
+  // tienen sentido si AMBOS informes declaran medición real por dimensión.
+  // Si no, se ocultan (nunca comparar scores fabricados). Acceso cast-safe.
+  const dimensionesComparables =
+    ((current.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true) &&
+    ((previous.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
+
   const dimensionLabels: Record<string, string> = {
     velocidadDecision: t("playerIntelligencePage.dimVelocidadDecision"),
     tecnicaConBalon: t("playerIntelligencePage.dimTecnicaConBalon"),
@@ -658,30 +677,36 @@ function AnalysisComparison({ current, previous, currentDate, previousDate }: {
         </span>
       </div>
 
-      {/* Resumen evolución */}
-      <div className={`rounded-xl p-3 border ${avgDelta >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
-        <div className="flex items-center gap-2 mb-1">
-          {avgDelta >= 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
-          <span className="text-xs font-bold text-foreground">
-            {avgDelta > 0 ? t("playerIntelligencePage.progressDetected") : avgDelta < 0 ? t("playerIntelligencePage.regressionDetected") : t("playerIntelligencePage.noChanges")}
-          </span>
+      {/* Resumen evolución — #dimensiones fabricadas: media/delta solo si ambos
+         informes declaran medición real por dimensión (si no, se oculta). */}
+      {dimensionesComparables && (
+        <div className={`rounded-xl p-3 border ${avgDelta >= 0 ? "border-green-500/30 bg-green-500/5" : "border-red-500/30 bg-red-500/5"}`}>
+          <div className="flex items-center gap-2 mb-1">
+            {avgDelta >= 0 ? <ArrowUpRight size={14} className="text-green-400" /> : <ArrowDownRight size={14} className="text-red-400" />}
+            <span className="text-xs font-bold text-foreground">
+              {avgDelta > 0 ? t("playerIntelligencePage.progressDetected") : avgDelta < 0 ? t("playerIntelligencePage.regressionDetected") : t("playerIntelligencePage.noChanges")}
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            {t("playerIntelligencePage.averageChange", { prev: prevAvg.toFixed(1), current: currentAvg.toFixed(1), delta: `${avgDelta >= 0 ? "+" : ""}${avgDelta.toFixed(1)}` })}
+          </p>
+          <p className="text-[9px] text-muted-foreground mt-1">
+            {new Date(previousDate).toLocaleDateString("es")} vs {new Date(currentDate).toLocaleDateString("es")}
+          </p>
         </div>
-        <p className="text-[10px] text-muted-foreground">
-          {t("playerIntelligencePage.averageChange", { prev: prevAvg.toFixed(1), current: currentAvg.toFixed(1), delta: `${avgDelta >= 0 ? "+" : ""}${avgDelta.toFixed(1)}` })}
-        </p>
-        <p className="text-[9px] text-muted-foreground mt-1">
-          {new Date(previousDate).toLocaleDateString("es")} vs {new Date(currentDate).toLocaleDateString("es")}
-        </p>
-      </div>
+      )}
 
-      {/* Detalle por dimensión */}
-      <div className="space-y-0.5">
-        {Object.entries(dimensionLabels).map(([key, label]) => {
-          const cur = (dims as Record<string, { score: number }>)[key]?.score ?? 0;
-          const prev = (prevDims as Record<string, { score: number }>)[key]?.score ?? 0;
-          return <ScoreDelta key={key} label={label} current={cur} previous={prev} />;
-        })}
-      </div>
+      {/* Detalle por dimensión — #dimensiones fabricadas: se oculta salvo
+         medición real por dimensión en ambos informes. */}
+      {dimensionesComparables && (
+        <div className="space-y-0.5">
+          {Object.entries(dimensionLabels).map(([key, label]) => {
+            const cur = (dims as Record<string, { score: number }>)[key]?.score ?? 0;
+            const prev = (prevDims as Record<string, { score: number }>)[key]?.score ?? 0;
+            return <ScoreDelta key={key} label={label} current={cur} previous={prev} />;
+          })}
+        </div>
+      )}
 
       {/* Proyección comparada */}
       {current.proyeccionCarrera?.escenarioRealista && previous.proyeccionCarrera?.escenarioRealista && (

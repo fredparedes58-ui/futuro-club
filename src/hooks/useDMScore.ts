@@ -81,10 +81,14 @@ export function useDMScore(playerId: string | undefined) {
       let tacticalAwareness: number | null = null;
       if (Array.isArray(savedAnalyses) && savedAnalyses.length > 0) {
         const latest = savedAnalyses[0] as {
-          report?: { estadoActual?: { dimensiones?: { inteligenciaTactica?: { score?: number } } } };
+          report?: { estadoActual?: { dimensiones?: { inteligenciaTactica?: { score?: number } }; dimensionesMedidas?: boolean } };
         };
-        const s = latest?.report?.estadoActual?.dimensiones?.inteligenciaTactica?.score;
-        if (typeof s === "number") tacticalAwareness = Math.round(s * 10);
+        // Solo si las dimensiones son REALES: el score por dimensión es una constante
+        // fabricada (el pipeline no lo mide) → no alimentar el DM score con ella (inv #2).
+        if (latest?.report?.estadoActual?.dimensionesMedidas === true) {
+          const s = latest?.report?.estadoActual?.dimensiones?.inteligenciaTactica?.score;
+          if (typeof s === "number") tacticalAwareness = Math.round(s * 10);
+        }
       }
 
       const input: DMScoreInput = {

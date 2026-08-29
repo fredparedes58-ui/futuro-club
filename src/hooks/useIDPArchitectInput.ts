@@ -70,9 +70,13 @@ function extractVSIFromAnalyses(analyses: unknown[] | undefined): {
   mental?: number;
 } | null {
   if (!analyses || analyses.length === 0) return null;
-  const latest = analyses[0] as { report?: { estadoActual?: { dimensiones?: Record<string, { score?: number }> } } };
+  const latest = analyses[0] as { report?: { estadoActual?: { dimensiones?: Record<string, { score?: number }>; dimensionesMedidas?: boolean } } };
   const dim = latest?.report?.estadoActual?.dimensiones;
   if (!dim) return null;
+  // Los scores por dimensión son una CONSTANTE fabricada (el pipeline no los mide). NO
+  // alimentar el breakdown técnico/táctico/físico/mental del IDP con números inventados
+  // (inv #2): sin medición real, este signal se omite y el IDP usa el resto de entradas.
+  if (latest?.report?.estadoActual?.dimensionesMedidas !== true) return null;
 
   return {
     technical: scale10to100(dim.tecnicaConBalon?.score),

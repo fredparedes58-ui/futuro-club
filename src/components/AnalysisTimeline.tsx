@@ -126,8 +126,11 @@ function TimelineEntry({
             </div>
           )}
 
-          {/* Dimensión top */}
-          {estado?.dimensiones && (() => {
+          {/* Dimensión top — solo si las dimensiones están MEDIDAS de verdad.
+              Hoy el score por dimensión es una CONSTANTE fabricada (el pipeline
+              de vídeo no puntúa por dimensión), así que se oculta salvo que el
+              informe declare dimensionesMedidas === true (inv #1/#2). */}
+          {((report.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true) && estado?.dimensiones && (() => {
             const dims = Object.entries(estado.dimensiones);
             const top = dims.sort(([, a], [, b]) => b.score - a.score)[0];
             const labels: Record<string, string> = {

@@ -29,6 +29,11 @@ export interface AnalysisReport {
       liderazgoPresencia:  Dimension;
       eficaciaCompetitiva: Dimension;
     };
+    // false ⇒ los `score` de arriba NO son medidos ni estimados reales (el pipeline de
+    // vídeo no puntúa técnica/táctica/mental por dimensión; el mapeo usaba una CONSTANTE
+    // rotulada "Estimado por IA"). Los consumidores NO deben mostrar ni derivar de esos
+    // números cuando es false. Ver .claude/rules/metricas.md (inv #1/#2).
+    dimensionesMedidas: boolean;
     ajusteVSIVideoScore: number | null; // null ⇒ VSI-vídeo bloqueado (no se pinta badge, #40)
   };
   adnFutbolistico: {
