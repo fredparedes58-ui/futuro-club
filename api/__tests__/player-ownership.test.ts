@@ -17,7 +17,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ownsPlayer, ownsPlayerOrTenant, ownedPlayersOrFilter } from "../_lib/ownership";
+import { ownsPlayer, ownsPlayerOrTenant, ownedPlayersOrFilter, ownsVideo } from "../_lib/ownership";
 
 const USER_A = "aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa";
 const USER_B = "bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb";
@@ -159,6 +159,52 @@ describe("ownsPlayerOrTenant · usuario CON respaldo por tenant (fail-closed)", 
     expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network"); }));
     expect(await ownsPlayerOrTenant(PLAYER, USER_A, TENANT_A)).toBe(false);
+  });
+});
+
+describe("ownsVideo · autorización de VÍDEO (finalize/identify-player/candidates, fail-closed)", () => {
+  beforeEach(() => {
+    process.env.SUPABASE_URL = "https://test.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("true para service-call, sin tocar la red", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [] }));
+    expect(await ownsVideo({ player_id: PLAYER }, null, null, true)).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("true si el uploader (videos.user_id) coincide, sin red", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [] }));
+    expect(await ownsVideo({ user_id: USER_A, player_id: PLAYER }, USER_A, null)).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("true si el tenant del vídeo coincide, sin red", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [] }));
+    expect(await ownsVideo({ tenant_id: TENANT_A, player_id: PLAYER }, USER_B, TENANT_A)).toBe(true);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("cae al jugador del vídeo (ownsPlayerOrTenant) si no casan user/tenant del vídeo", async () => {
+    mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    // El vídeo no tiene user_id/tenant propios, pero su player_id pertenece a USER_A.
+    expect(await ownsVideo({ player_id: PLAYER }, USER_A, null)).toBe(true);
+  });
+
+  it("false (IDOR) si el vídeo es de otro tenant y su jugador es de otra academia", async () => {
+    mockFetchOnce(() => ({ ok: true, json: async () => [{ user_id: USER_A, tenant_id: TENANT_A }] }));
+    expect(await ownsVideo({ tenant_id: TENANT_A, player_id: PLAYER }, USER_B, TENANT_B)).toBe(false);
+  });
+
+  it("false sin player_id y sin coincidencia de user/tenant (fail-closed, sin red)", async () => {
+    const spy = mockFetchOnce(() => ({ ok: true, json: async () => [] }));
+    expect(await ownsVideo({ tenant_id: TENANT_A }, USER_B, TENANT_B)).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 });
 

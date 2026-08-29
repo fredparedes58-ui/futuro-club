@@ -16,6 +16,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { ownsVideo } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -38,7 +39,7 @@ const identifySchema = z.object({
 
 export default withHandler(
   { schema: identifySchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId }) => {
+  async ({ body, userId, tenantId, isServiceCall }) => {
     const input = body as z.infer<typeof identifySchema>;
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -47,12 +48,21 @@ export default withHandler(
 
     const { data: video, error: videoError } = await supabase
       .from("videos")
-      .select("id, tenant_id, player_id")
+      .select("id, tenant_id, player_id, user_id")
       .eq("id", input.videoId)
       .single();
 
     if (videoError || !video) {
       return errorResponse({ code: "video_not_found", message: "Video no existe", status: 404 });
+    }
+
+    // Anti-IDOR (datos de menores): este handler MUTA una fila `videos` con service_role
+    // (salta RLS). Sin este guard, un autenticado A podía reescribir el target_player_bbox
+    // del vídeo de un menor del tenant B (redirigir a quién analiza). Mismo patrón fail-
+    // closed que finalize.ts. Ver ownsVideo (ownership.ts).
+    const vrow = video as { user_id?: string | null; tenant_id?: string | null; player_id?: string | null };
+    if (!(await ownsVideo(vrow, userId, tenantId, isServiceCall))) {
+      return errorResponse({ code: "forbidden", message: "No gestionas este vídeo", status: 403 });
     }
 
     // Persistir bbox del jugador objetivo
