@@ -43,14 +43,6 @@ const LiveMatchCard = ({ match }: { match: LiveMatch }) => {
         <span className="font-display font-semibold text-sm text-foreground">{match.awayTeam}</span>
       </div>
 
-      {isLive && (
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border pt-2">
-          <span>{t("liveMatchCard.playersTracked", { count: match.playersTracked })}</span>
-          <span className="text-primary font-medium">
-            ⭐ {match.topPerformer} ({match.topVsi})
-          </span>
-        </div>
-      )}
     </motion.div>
   );
 };
