@@ -18,7 +18,9 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const schema = z.object({});
 
 export default withHandler(
-  { schema, requireAuth: true, maxRequests: 100 },
+  // method: "GET" — withHandler default es POST; sin esto este endpoint (documentado GET,
+  // llamado GET por useSubscription) daba 405 y nunca devolvía el estado de suscripción.
+  { schema, method: "GET", requireAuth: true, maxRequests: 100 },
   async ({ userId }) => {
     if (!userId) return successResponse({ subscription: null });
 

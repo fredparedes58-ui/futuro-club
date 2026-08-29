@@ -22,7 +22,11 @@ const querySchema = z.object({
 });
 
 export default withHandler(
-  { schema: querySchema, requireAuth: true, allowServiceToken: true, maxRequests: 200 },
+  // method: "GET" — withHandler default es POST; sin esto este endpoint (documentado GET,
+  // llamado GET por el polling de progreso: usePlayerAnalysisV2 + VideoUploader) daba 405 y
+  // el handler NUNCA corría (el progreso en vivo del análisis quedaba roto, enmascarado por
+  // la query directa a Supabase de useSavedAnalysesV2).
+  { schema: querySchema, method: "GET", requireAuth: true, allowServiceToken: true, maxRequests: 200 },
   async ({ query, userId, isServiceCall }) => {
     const params = querySchema.safeParse(query);
     if (!params.success) {
