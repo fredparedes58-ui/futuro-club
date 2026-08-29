@@ -97,9 +97,11 @@ const LabResultsPanel = ({
               <div className="flex items-center gap-2">
                 <Brain size={16} className="text-primary" />
                 <span className="font-display font-bold text-foreground text-sm">VITAS Report</span>
-                <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
-                  {Math.round(report.confianza * 100)}%
-                </span>
+                {report.confianza != null && (
+                  <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 border border-green-500/20">
+                    {Math.round(report.confianza * 100)}%
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1.5">
                 {/* Historial */}
@@ -413,25 +415,27 @@ const LabResultsPanel = ({
                 </div>
               )}
 
-              {/* Proyección */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp size={14} className="text-primary" />
-                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.careerProjection")}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="glass rounded-xl p-3 border border-green-500/20">
-                    <p className="text-[9px] font-display uppercase tracking-wider text-green-600 mb-1">{t("vitasLab.optimistic")}</p>
-                    <p className="text-xs font-display font-bold text-foreground">{report.proyeccionCarrera.escenarioOptimista.nivelProyecto}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{report.proyeccionCarrera.escenarioOptimista.descripcion}</p>
+              {/* Proyección — solo si hay datos reales (null ⇒ no se fabrica "Semi-pro") */}
+              {report.proyeccionCarrera && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp size={14} className="text-primary" />
+                    <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground">{t("vitasLab.careerProjection")}</p>
                   </div>
-                  <div className="glass rounded-xl p-3 border border-border">
-                    <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("vitasLab.realistic")}</p>
-                    <p className="text-xs font-display font-bold text-foreground">{report.proyeccionCarrera.escenarioRealista.nivelProyecto}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{report.proyeccionCarrera.escenarioRealista.descripcion}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="glass rounded-xl p-3 border border-green-500/20">
+                      <p className="text-[9px] font-display uppercase tracking-wider text-green-600 mb-1">{t("vitasLab.optimistic")}</p>
+                      <p className="text-xs font-display font-bold text-foreground">{report.proyeccionCarrera.escenarioOptimista.nivelProyecto}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{report.proyeccionCarrera.escenarioOptimista.descripcion}</p>
+                    </div>
+                    <div className="glass rounded-xl p-3 border border-border">
+                      <p className="text-[9px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("vitasLab.realistic")}</p>
+                      <p className="text-xs font-display font-bold text-foreground">{report.proyeccionCarrera.escenarioRealista.nivelProyecto}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{report.proyeccionCarrera.escenarioRealista.descripcion}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Plan de Desarrollo */}
               <div>
