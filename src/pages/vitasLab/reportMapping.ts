@@ -17,7 +17,7 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
   const vsiScore = (result.vsi?.vsi as number) ?? 50;
   const strengths   = (pr.strengths as Array<{ title: string }> | undefined) ?? [];
   const areasRaw    = (pr.areas_to_improve as Array<{ title: string }> | undefined) ?? [];
-  const defaultDim  = { score: 0.5, observacion: "Calculado por pipeline GPU" };
+  const defaultDim  = { score: 0.5, observacion: "Estimado por IA" };
 
   return {
     estadoActual: {
