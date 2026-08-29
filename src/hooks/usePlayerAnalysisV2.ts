@@ -609,6 +609,8 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
         liderazgoPresencia:  defaultDim,
         eficaciaCompetitiva: defaultDim,
       },
+      // defaultDim es CONSTANTE (el pipeline no mide dimensiones) → no son reales.
+      dimensionesMedidas: false,
       // null cuando el VSI-vídeo compuesto está BLOQUEADO (el backend devuelve
       // vsi:null si <4/5 dimensiones reales — hoy siempre, técnica/mental/táctica no
       // se miden). Antes `?? 50` lo volvía 0 → cada informe pintaba "VSI +0 pts", un

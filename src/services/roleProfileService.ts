@@ -186,7 +186,11 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   // 2. Extraer datos consolidados de los análisis de video
   const latestReport = videoAnalyses[0].report as Record<string, unknown>;
   const estadoActual = latestReport.estadoActual as Record<string, unknown> | undefined;
-  const dimensiones = (estadoActual?.dimensiones ?? {}) as Record<string, { score: number; observacion: string }>;
+  // Los `dim.score` son una CONSTANTE fabricada si el pipeline no mide dimensiones
+  // (dimensionesMedidas=false, el caso de hoy). No se meten en el prompt del agente ni en
+  // el fallback (inv #2): {} cuando no son reales; el resto del perfil usa señales reales.
+  const dimensionesMedidas = estadoActual?.dimensionesMedidas === true;
+  const dimensiones = (dimensionesMedidas ? (estadoActual?.dimensiones ?? {}) : {}) as Record<string, { score: number; observacion: string }>;
   const adnFutbolistico = latestReport.adnFutbolistico as Record<string, unknown> | undefined;
   const planDesarrollo = latestReport.planDesarrollo as Record<string, unknown> | undefined;
   const jugadorReferencia = latestReport.jugadorReferencia as Record<string, unknown> | undefined;
@@ -241,8 +245,12 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
     if (res.success && res.data) {
       const d = res.data;
 
-      // Construir evidencia desde dimensiones del video (no métricas manuales)
+      // Construir evidencia desde dimensiones del video (no métricas manuales).
+      // Solo con dimensiones REALES: sin ellas, cada indicador saldría de `dim?.score ?? 5`
+      // (constante fabricada) con raw_value:5/reliability:0.8 → evidencia falsa presentada
+      // como fiable, y además se cachea/renderiza (IndicatorsAuditTable). Se abstiene (inv #2).
       const buildVideoEvidence = (): EvidenceIndicator[] => {
+        if (!dimensionesMedidas) return [];
         const dimMap: Array<{ key: string; label: string; phase: EvidenceIndicator["phase_of_play"] }> = [
           { key: "inteligenciaTactica", label: "Inteligencia táctica",  phase: "in_possession" },
           { key: "tecnicaConBalon",     label: "Técnica con balón",     phase: "in_possession" },
@@ -353,6 +361,13 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
   } catch (err) {
     console.error("[roleProfileService] Agent error:", err);
   }
+
+  // Agente falló. El fallback "desde vídeo" derivaba tactical/technical/physical + evidence
+  // + overall_confidence 0.65 de los `dim.score`, que son la CONSTANTE fabricada si el
+  // pipeline no mide dimensiones. Sin dimensiones REALES no hay base honesta para un perfil
+  // de rol con esos números → se abstiene (null, el caller ya lo maneja), no se fabrica
+  // (inv #2/#3). Cuando dimensionesMedidas sea true, este fallback sí es legítimo.
+  if (!dimensionesMedidas) return null;
 
   // Agente falló pero hay datos de video → construir perfil básico desde video
   const dim = dimensiones;

@@ -583,7 +583,9 @@ const SoloDrill = () => {
                       </div>
                     </div>
 
-                    {/* Dimensiones */}
+                    {/* Dimensiones — solo si son REALES (score por dimensión es constante
+                        fabricada si el pipeline no las mide; no pintar barras falsas, inv #2) */}
+                    {((sessionReport.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true) && (
                     <div className="space-y-2">
                       {Object.entries(sessionReport.estadoActual.dimensiones).map(([key, dim]) => (
                         <div key={key} className="glass rounded-lg px-4 py-3">
@@ -604,6 +606,7 @@ const SoloDrill = () => {
                         </div>
                       ))}
                     </div>
+                    )}
 
                     {/* ADN */}
                     <div className="glass rounded-xl p-4">

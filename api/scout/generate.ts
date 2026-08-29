@@ -135,6 +135,9 @@ interface AnalysisRow {
   report_data: {
     estadoActual?: {
       dimensiones?: Record<string, { score: number }>;
+      // false/ausente ⇒ los `score` de dimensiones son la CONSTANTE fabricada (el pipeline
+      // no las mide) → NO se inyectan en el prompt del agente de scout (inv #2).
+      dimensionesMedidas?: boolean;
       nivelActual?: string;
       fortalezasPrimarias?: string[];
       areasDesarrollo?: string[];
@@ -181,9 +184,12 @@ function detectContext(
   const prevVSI = vsiHistory.at(-2) ?? currentVSI;
   const vsiDelta = currentVSI - prevVSI;
 
-  // Check metric deltas if analyses exist
+  // Check metric deltas if analyses exist — SOLO con dimensiones reales (si no, el delta
+  // sale de la constante fabricada; hoy es 0, pero no se computa desde datos falsos, inv #2).
   let maxMetricDelta = 0;
-  if (latestAnalysis?.report_data?.estadoActual?.dimensiones && previousAnalysis?.report_data?.estadoActual?.dimensiones) {
+  if (latestAnalysis?.report_data?.estadoActual?.dimensionesMedidas === true &&
+      previousAnalysis?.report_data?.estadoActual?.dimensionesMedidas === true &&
+      latestAnalysis?.report_data?.estadoActual?.dimensiones && previousAnalysis?.report_data?.estadoActual?.dimensiones) {
     const latest = latestAnalysis.report_data.estadoActual.dimensiones;
     const prev = previousAnalysis.report_data.estadoActual.dimensiones;
     for (const key of Object.keys(latest)) {
@@ -332,7 +338,8 @@ export default withHandler(
           analysisContext += `\n- Nivel: ${ea.nivelActual ?? "N/A"}`;
           if (ea.fortalezasPrimarias) analysisContext += `\n- Fortalezas: ${ea.fortalezasPrimarias.join(", ")}`;
           if (ea.areasDesarrollo) analysisContext += `\n- Áreas desarrollo: ${ea.areasDesarrollo.join(", ")}`;
-          if (ea.dimensiones) {
+          // Solo dimensiones REALES: no inyectar "k: 5/10" fabricado en el prompt (inv #2).
+          if (ea.dimensiones && ea.dimensionesMedidas === true) {
             analysisContext += `\n- Dimensiones: ${Object.entries(ea.dimensiones).map(([k, v]) => `${k}: ${v.score}/10`).join(", ")}`;
           }
         }
@@ -340,7 +347,7 @@ export default withHandler(
           const ea = previousAnalysis.report_data.estadoActual;
           analysisContext += `\nAnálisis anterior (${previousAnalysis.created_at}):`;
           analysisContext += `\n- Nivel: ${ea.nivelActual ?? "N/A"}`;
-          if (ea.dimensiones) {
+          if (ea.dimensiones && ea.dimensionesMedidas === true) {
             analysisContext += `\n- Dimensiones: ${Object.entries(ea.dimensiones).map(([k, v]) => `${k}: ${v.score}/10`).join(", ")}`;
           }
         }
@@ -354,39 +361,46 @@ export default withHandler(
               estadoActual?: {
                 vsi?: number;
                 dimensiones?: Record<string, { score?: number }>;
+                dimensionesMedidas?: boolean;
               };
             };
             const latest = (history[0].report ?? {}) as ReportShape;
             const previous = (history[1].report ?? {}) as ReportShape;
+            // Dims reales solo si AMBOS informes las declaran medidas; si no, sus deltas y
+            // la "DETECCIÓN: Breakout" saldrían de la constante fabricada (inv #2). El
+            // contexto de VSI (real) SÍ se emite siempre — no depende de dimensiones.
+            const dimsReales = latest?.estadoActual?.dimensionesMedidas === true
+              && previous?.estadoActual?.dimensionesMedidas === true;
             const latestDims = latest?.estadoActual?.dimensiones;
             const prevDims = previous?.estadoActual?.dimensiones;
             const latestVSI: number = (latest?.estadoActual?.vsi ?? player.vsi ?? 0) as number;
             const prevVSI: number = (previous?.estadoActual?.vsi ?? player.vsi_history?.at(-2) ?? player.vsi ?? 0) as number;
-            if (latestDims && prevDims) {
-              const dimNames = Object.keys(latestDims);
-              const deltas = dimNames.map((d: string) => {
+            const vsiDelta = latestVSI - prevVSI;
+
+            historicalContext = `\n\nHISTORIAL DE EVOLUCIÓN (comparación últimos 2 análisis):`;
+            // Deltas por dimensión: SOLO con dimensiones reales.
+            if (dimsReales && latestDims && prevDims) {
+              const deltas = Object.keys(latestDims).map((d: string) => {
                 const curr = Number(latestDims[d]?.score ?? 0);
                 const prev = Number(prevDims[d]?.score ?? 0);
                 const delta = curr - prev;
                 return `${d}: ${prev}→${curr} (${delta > 0 ? "+" : ""}${delta})`;
               });
-              historicalContext = `\n\nHISTORIAL DE EVOLUCIÓN (comparación últimos 2 análisis):\n${deltas.join("\n")}`;
-              const vsiDeltaSimple = latestVSI - prevVSI;
-              historicalContext += `\nVSI previo: ${prevVSI} → VSI actual: ${latestVSI} (${vsiDeltaSimple > 0 ? "+" : ""}${vsiDeltaSimple})`;
+              historicalContext += `\n${deltas.join("\n")}`;
+            }
+            historicalContext += `\nVSI previo: ${prevVSI} → VSI actual: ${latestVSI} (${vsiDelta > 0 ? "+" : ""}${vsiDelta})`;
 
-              // Override context detection based on real analysis deltas
-              const maxDelta = Math.max(...dimNames.map((d: string) => {
-                return Number(latestDims[d]?.score ?? 0) - Number(prevDims[d]?.score ?? 0);
-              }));
-              const vsiDelta = latestVSI - prevVSI;
-              if (maxDelta > 1.5) {
-                // 15+ points on 0-100 scale → breakout
-                historicalContext += `\n→ DETECCIÓN: Breakout (dimensión subió ${(maxDelta * 10).toFixed(0)}+ puntos)`;
-              } else if (vsiDelta < -5) {
-                historicalContext += `\n→ DETECCIÓN: Regresión (VSI cayó ${Math.abs(vsiDelta)} puntos)`;
-              } else if ((latestVSI >= 80 && prevVSI < 80) || (latestVSI >= 90 && prevVSI < 90)) {
-                historicalContext += `\n→ DETECCIÓN: Milestone (VSI cruzó umbral ${latestVSI >= 90 ? 90 : 80})`;
-              }
+            // Detección: Breakout SOLO con dims reales; Regresión/Milestone por VSI (real).
+            const maxDelta = (dimsReales && latestDims && prevDims)
+              ? Math.max(...Object.keys(latestDims).map((d: string) =>
+                  Number(latestDims[d]?.score ?? 0) - Number(prevDims[d]?.score ?? 0)))
+              : -Infinity;
+            if (maxDelta > 1.5) {
+              historicalContext += `\n→ DETECCIÓN: Breakout (dimensión subió ${(maxDelta * 10).toFixed(0)}+ puntos)`;
+            } else if (vsiDelta < -5) {
+              historicalContext += `\n→ DETECCIÓN: Regresión (VSI cayó ${Math.abs(vsiDelta)} puntos)`;
+            } else if ((latestVSI >= 80 && prevVSI < 80) || (latestVSI >= 90 && prevVSI < 90)) {
+              historicalContext += `\n→ DETECCIÓN: Milestone (VSI cruzó umbral ${latestVSI >= 90 ? 90 : 80})`;
             }
           }
         } catch {

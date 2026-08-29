@@ -83,6 +83,12 @@ function ReportCard({
 
   const estado = report.estadoActual;
   const dims = estado?.dimensiones;
+  // #dimensiones fabricadas: el score por dimensión es una CONSTANTE rotulada
+  // "Estimado por IA" (el pipeline de vídeo NO puntúa por dimensión). No se pinta
+  // hasta que estadoActual.dimensionesMedidas === true (inv #1/#2: cero números
+  // fabricados). Acceso cast-safe y null-safe sin tocar el tipo del informe.
+  const dimensionesMedidas =
+    ((report.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
   const clon = report.jugadorReferencia?.bestMatch;
   const confianza = report.confianza ?? null; // null ⇒ sin confianza medible → no pintar "0%" (inv #2)
   const nivel = estado?.nivelActual ?? "medio";
@@ -147,8 +153,10 @@ function ReportCard({
         </p>
       )}
 
-      {/* 6 dimension mini scores */}
-      {dims && (
+      {/* 6 dimension mini scores — #dimensiones fabricadas: solo se pintan los
+          anillos cuando el informe declara dimensionesMedidas === true. Sin el flag
+          los score son constantes ⇒ ocultar (no anillos), nunca un 0 fabricado. */}
+      {dims && dimensionesMedidas && (
         <div className="flex items-center justify-between px-1">
           {Object.entries(DIM_LABELS).map(([key, label]) => {
             const score = (dims as Record<string, { score: number }>)[key]?.score ?? 0;
@@ -251,18 +259,28 @@ export default function PlayerReportsPage() {
     ? new Date(rows[0].created_at).toLocaleDateString("es-ES", { month: "short", year: "numeric" })
     : "";
 
-  // Trend calculation
-  let trendDelta = 0;
+  // Trend calculation — #dimensiones fabricadas: la media por dimensión solo tiene
+  // sentido sobre score REALES. Se gatea POR-INFORME: sin dimensionesMedidas === true
+  // los score son constantes ⇒ getAvg abstiene (null) y NO entran en el delta.
+  // trendDelta es null cuando falta la media real de cualquiera de los dos informes
+  // ⇒ no se pinta un "+0.0" fabricado (inv #2).
+  let trendDelta: number | null = null;
   if (total >= 2) {
-    const getAvg = (report: VideoIntelligenceOutput | null | undefined) => {
+    const getAvg = (report: VideoIntelligenceOutput | null | undefined): number | null => {
+      const medidas =
+        ((report?.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
       const dims = report?.estadoActual?.dimensiones;
-      if (!dims) return 0;
+      if (!medidas || !dims) return null; // score fabricado o ausente → no promediar
       const scores = Object.values(dims).map((d: { score: number }) => d?.score ?? 0);
       return scores.reduce((a, b) => a + b, 0) / scores.length;
     };
     const latest = rows[0].report as VideoIntelligenceOutput;
     const oldest = rows[rows.length - 1].report as VideoIntelligenceOutput;
-    trendDelta = getAvg(latest) - getAvg(oldest);
+    const avgLatest = getAvg(latest);
+    const avgOldest = getAvg(oldest);
+    if (avgLatest != null && avgOldest != null) {
+      trendDelta = avgLatest - avgOldest;
+    }
   }
 
   return (
@@ -298,7 +316,9 @@ export default function PlayerReportsPage() {
                 </div>
               )}
             </div>
-            {total >= 2 && (
+            {/* Delta de tendencia solo si hay media real de ambos informes
+                (#dimensiones fabricadas): trendDelta === null ⇒ ocultar, no "+0.0". */}
+            {total >= 2 && trendDelta != null && (
               <div className={`flex items-center gap-1 text-xs font-bold ${trendDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
                 <TrendingUp size={12} className={trendDelta < 0 ? "rotate-180" : ""} />
                 {trendDelta >= 0 ? "+" : ""}{trendDelta.toFixed(1)}

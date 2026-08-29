@@ -181,29 +181,34 @@ const LabResultsPanel = ({
                 </div>
               </div>
 
-              {/* Dimensiones */}
-              <div>
-                <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">{t("vitasLab.analysisDimensions")}</p>
-                <div className="space-y-2">
-                  {Object.entries(report.estadoActual.dimensiones).map(([key, dim]) => (
-                    <div key={key} className="glass rounded-lg px-4 py-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-display font-semibold text-foreground">{dimLabels[key] ?? key}</span>
-                        <span className="text-xs font-display font-bold text-primary">{dim.score.toFixed(1)}</span>
+              {/* Dimensiones — el score por dimensión es una CONSTANTE FABRICADA (el
+                  pipeline de vídeo no puntúa por dimensión). Se oculta toda la sección
+                  salvo que el informe declare dimensionesMedidas === true (hoy: nunca).
+                  No pintamos barras/scores fabricados; inv #1/#2 metricas.md. */}
+              {((report.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true) && (
+                <div>
+                  <p className="text-[10px] font-display font-semibold uppercase tracking-widest text-muted-foreground mb-3">{t("vitasLab.analysisDimensions")}</p>
+                  <div className="space-y-2">
+                    {Object.entries(report.estadoActual.dimensiones).map(([key, dim]) => (
+                      <div key={key} className="glass rounded-lg px-4 py-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-display font-semibold text-foreground">{dimLabels[key] ?? key}</span>
+                          <span className="text-xs font-display font-bold text-primary">{dim.score.toFixed(1)}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(dim.score / 10) * 100}%` }}
+                            transition={{ duration: 0.8, delay: 0.1 }}
+                            className={`h-full rounded-full ${dim.score >= 8 ? "bg-green-500" : dim.score >= 6 ? "bg-primary" : "bg-yellow-500"}`}
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{dim.observacion}</p>
                       </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(dim.score / 10) * 100}%` }}
-                          transition={{ duration: 0.8, delay: 0.1 }}
-                          className={`h-full rounded-full ${dim.score >= 8 ? "bg-green-500" : dim.score >= 6 ? "bg-primary" : "bg-yellow-500"}`}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{dim.observacion}</p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Métricas Cuantitativas (YOLO tracking) */}
               {report.metricasCuantitativas?.fisicas && (

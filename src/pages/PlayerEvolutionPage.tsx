@@ -82,6 +82,15 @@ function getAvg(scores: Record<string, number> | null) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
+// #dimensiones fabricadas: el pipeline de vídeo NO puntúa por dimensión — los
+// `score` de estadoActual.dimensiones son constantes fabricadas (rotuladas
+// "Estimado por IA"). Solo son reales si el informe lo declara con
+// estadoActual.dimensionesMedidas === true (hoy siempre false). Acceso cast-safe
+// y null-safe, sin tocar el tipo del informe.
+function hasRealDimensions(report: VideoIntelligenceOutput | null | undefined): boolean {
+  return ((report?.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
+}
+
 // ─── Evolution Line Chart ────────────────────────────────────────────────────
 
 interface ChartPoint {
@@ -360,8 +369,21 @@ export default function PlayerEvolutionPage() {
   ).reverse() as AnalysisRow[];
   const total = sorted.length;
 
-  // Build chart data (oldest → newest)
-  const chartData: ChartPoint[] = sorted.map((a) => {
+  // #dimensiones fabricadas: ¿algún informe trae dimensiones REALES medidas? Si
+  // ninguno lo declara (el caso de hoy), se ocultan todos los charts derivados de
+  // dimensión (resumen de medias, promedio longitudinal, radar comparativo y
+  // mini-charts por dimensión) para no pintar puntuaciones fabricadas ni un 0 falso.
+  // Solo los informes con dimensiones REALES entran en los charts/medias de dimensión:
+  // filtrado POR INFORME (no un .some page-wide) para que NUNCA se mezcle un score real
+  // con la constante fabricada de otro informe en la misma línea/radar/media. Hoy, con
+  // ningún informe real, la lista queda vacía → charts ocultos.
+  const realDimReports = sorted.filter(
+    (a) => hasRealDimensions(a.report as VideoIntelligenceOutput),
+  );
+  const anyRealDimensions = realDimReports.length >= 2;
+
+  // Build chart data (oldest → newest) — SOLO informes con dimensiones reales
+  const chartData: ChartPoint[] = realDimReports.map((a) => {
     const r = a.report as VideoIntelligenceOutput;
     const scores = getScores(r);
     const date = new Date(a.created_at);
@@ -380,9 +402,10 @@ export default function PlayerEvolutionPage() {
     return point;
   });
 
-  // Radar data: first vs last
-  const firstReport = sorted[0]?.report as VideoIntelligenceOutput | undefined;
-  const lastReport = sorted[total - 1]?.report as VideoIntelligenceOutput | undefined;
+  // Radar data: first vs last — SOLO entre informes con dimensiones reales (no mezclar
+  // con la constante fabricada). Con <2 reales, anyRealDimensions es false y no se pinta.
+  const firstReport = realDimReports[0]?.report as VideoIntelligenceOutput | undefined;
+  const lastReport = realDimReports[realDimReports.length - 1]?.report as VideoIntelligenceOutput | undefined;
   const firstScores = firstReport ? getScores(firstReport) : null;
   const lastScores = lastReport ? getScores(lastReport) : null;
 
@@ -518,7 +541,10 @@ export default function PlayerEvolutionPage() {
 
         {total >= 2 && (
           <>
-            {/* Summary */}
+            {/* Summary · #dimensiones fabricadas: sus medias (firstAvg/lastAvg/
+                trendDelta) derivan de los `score` por dimensión fabricados →
+                gateado hasta que haya dimensiones reales medidas */}
+            {anyRealDimensions && (
             <div className="glass rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -553,12 +579,15 @@ export default function PlayerEvolutionPage() {
                 </div>
               </div>
             </div>
+            )}
 
-            {/* Main chart */}
-            <EvolutionLineChart data={chartData} />
+            {/* Main chart · #dimensiones fabricadas: `promedio` = media de los
+                `score` por dimensión fabricados → gateado */}
+            {anyRealDimensions && <EvolutionLineChart data={chartData} />}
 
-            {/* Radar overlay: first vs last */}
-            {radarLast && radarFirst && (
+            {/* Radar overlay: first vs last · #dimensiones fabricadas: radarLast/
+                radarFirst derivan de los `score` por dimensión → gateado */}
+            {anyRealDimensions && radarLast && radarFirst && (
               <div className="glass rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Target size={14} className="text-primary" />
@@ -575,7 +604,10 @@ export default function PlayerEvolutionPage() {
               </div>
             )}
 
-            {/* Per-dimension mini charts */}
+            {/* Per-dimension mini charts · #dimensiones fabricadas: cada
+                DimensionMiniChart lee el `score` fabricado por dimensión → todo
+                el bloque se oculta hasta que haya dimensiones reales medidas */}
+            {anyRealDimensions && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-1">
                 <Activity size={14} className="text-primary" />
@@ -589,6 +621,7 @@ export default function PlayerEvolutionPage() {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Textual evolution */}
             <div className="space-y-2">

@@ -51,6 +51,10 @@ const DIM_KEYS = [
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function extractMetrics(report: VideoIntelligenceOutput): Record<MetricKey, number> | null {
+  // #dimensiones fabricadas: el pipeline de vídeo NO puntúa por dimensión. Sólo se
+  // leen los scores si el informe declara estadoActual.dimensionesMedidas === true.
+  const dimensionesMedidas = ((report.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
+  if (!dimensionesMedidas) return null;
   const dims = report.estadoActual?.dimensiones;
   if (!dims) return null;
   const d = dims as Record<string, { score: number }>;
@@ -66,6 +70,10 @@ function extractMetrics(report: VideoIntelligenceOutput): Record<MetricKey, numb
 }
 
 function getDimScores(report: VideoIntelligenceOutput) {
+  // #dimensiones fabricadas: mismo gate que extractMetrics — sin dimensionesMedidas
+  // === true, las dimensiones no existen como dato y no se derivan series de ellas.
+  const dimensionesMedidas = ((report.estadoActual as Record<string, unknown> | undefined)?.dimensionesMedidas === true);
+  if (!dimensionesMedidas) return null;
   const dims = report.estadoActual?.dimensiones;
   if (!dims) return null;
   const scores: Record<string, number> = {};
@@ -273,31 +281,39 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
   const total = sorted.length;
 
   // Extract chart data for VSI evolution (dimension-based avg * 10)
+  // #dimensiones fabricadas: getDimScores ya devuelve null si el informe no declara
+  // dimensionesMedidas === true. Sólo entran en la serie los informes con dims reales;
+  // los demás se descartan (nunca se sintetiza un VSI a partir de un 0 inventado).
   const chartData = useMemo(() => {
-    return sorted.map((a) => {
-      const r = a.report as VideoIntelligenceOutput;
-      const scores = getDimScores(r);
-      const avg = scores
-        ? Object.values(scores).reduce((s, v) => s + v, 0) / Object.values(scores).length
-        : 0;
-      return {
-        date: a.created_at,
-        dateLabel: formatDate(a.created_at),
-        vsi: Math.round(avg * 10),
-      };
-    });
+    return sorted
+      .map((a) => {
+        const r = a.report as VideoIntelligenceOutput;
+        const scores = getDimScores(r);
+        if (!scores) return null;
+        const avg = Object.values(scores).reduce((s, v) => s + v, 0) / Object.values(scores).length;
+        return {
+          date: a.created_at,
+          dateLabel: formatDate(a.created_at),
+          vsi: Math.round(avg * 10),
+        };
+      })
+      .filter((d): d is { date: string; dateLabel: string; vsi: number } => d !== null);
   }, [sorted]);
 
   // Per-dimension sparkline data
+  // #dimensiones fabricadas: sólo los informes con dims reales (getDimScores !== null)
+  // alimentan las sparklines; los demás no aportan un value:0 inventado a la serie.
   const dimSparkData = useMemo(() => {
+    const withDims = sorted.filter(
+      (a) => getDimScores(a.report as VideoIntelligenceOutput) !== null
+    );
     const result: Record<string, Array<{ date: string; value: number }>> = {};
     for (const key of DIM_KEYS) {
-      result[key] = sorted.map((a) => {
-        const r = a.report as VideoIntelligenceOutput;
-        const scores = getDimScores(r);
+      result[key] = withDims.map((a) => {
+        const scores = getDimScores(a.report as VideoIntelligenceOutput)!;
         return {
           date: formatDate(a.created_at),
-          value: scores?.[key] ?? 0,
+          value: scores[key] ?? 0,
         };
       });
     }
@@ -342,6 +358,11 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
   const lastAvg = chartData[chartData.length - 1]?.vsi ?? 0;
   const trendDelta = lastAvg - firstAvg;
 
+  // #dimensiones fabricadas: la serie VSI, el delta de tendencia y las sparklines
+  // derivan del score por dimensión; sólo se muestran si al menos dos informes traen
+  // dims reales (chartData ya está filtrado a esos informes).
+  const hasDimEvolution = chartData.length >= 2;
+
   // Custom tooltip for VSI chart
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { dateLabel: string; vsi: number } }> }) => {
     if (!active || !payload?.length) return null;
@@ -371,13 +392,18 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
             {t("playerEvolutionPanel.analysesCount", { count: total })}
           </span>
         </div>
-        <div className={`flex items-center gap-1 text-[10px] font-bold ${trendDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
-          {trendDelta >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-          {trendDelta >= 0 ? "+" : ""}{trendDelta} pts
-        </div>
+        {/* #dimensiones fabricadas: el delta de tendencia sale del VSI sintético por dims */}
+        {hasDimEvolution && (
+          <div className={`flex items-center gap-1 text-[10px] font-bold ${trendDelta >= 0 ? "text-green-400" : "text-red-400"}`}>
+            {trendDelta >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+            {trendDelta >= 0 ? "+" : ""}{trendDelta} pts
+          </div>
+        )}
       </div>
 
-      {/* VSI Evolution Chart */}
+      {/* VSI Evolution Chart — #dimensiones fabricadas: la serie es el promedio de scores
+          por dimensión; se oculta si ningún informe (o menos de dos) trae dims reales */}
+      {hasDimEvolution && (
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <Activity size={11} className="text-primary" />
@@ -408,6 +434,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+      )}
 
       {/* Metrics Comparison Table */}
       {prevMetrics && currMetrics && (
@@ -422,7 +449,9 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
         </div>
       )}
 
-      {/* Per-Dimension Sparklines */}
+      {/* Per-Dimension Sparklines — #dimensiones fabricadas: cada sparkline es la serie
+          del score por dimensión; se oculta la sección entera sin dims reales suficientes */}
+      {hasDimEvolution && (
       <div>
         <div className="flex items-center gap-1.5 mb-2">
           <Activity size={11} className="text-primary" />
@@ -436,6 +465,7 @@ export default function PlayerEvolutionPanel({ playerId, analyses }: Props) {
           ))}
         </div>
       </div>
+      )}
 
       {/* AI Summary Text */}
       <EvolutionSummaryText analyses={analyses} />
