@@ -24,7 +24,11 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 
-export const config = { runtime: "nodejs", maxDuration: 120 };
+// maxDuration 300 (no 120): para un vídeo largo (~4 min) la observación Gemini puede
+// acercarse a su propio tope de 120s; con solo 120s aquí, este endpoint moría antes de
+// persistir → el análisis se reintentaba entero. 300s deja margen. Vercel lo clampa al
+// tope del plan si es menor (nunca peor que hoy).
+export const config = { runtime: "nodejs", maxDuration: 300 };
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
