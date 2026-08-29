@@ -41,12 +41,18 @@ export async function enqueueAnalysis(input: EnqueueAnalysisInput): Promise<Enqu
   if (!playerId) return { status: "skipped", reason: "no_player" };
   if (!tenantId) return { status: "skipped", reason: "no_tenant" };
 
-  // Idempotencia: ¿ya hay un análisis activo para este vídeo?
+  // Idempotencia por (vídeo, JUGADOR): un mismo vídeo analizado para OTRO jugador es su
+  // propio análisis. Sin el filtro player_id, el análisis del jugador A bloqueaba el
+  // encolado del jugador B (mismo vídeo) — y con varios análisis del mismo vídeo,
+  // `.maybeSingle()` recibía >1 fila y erroraba. Incluye 'processing_reports' (Gemini
+  // hecho, informes en curso): también es activo → no re-encolar (evita el duplicado en
+  // la carrera webhook-Bunny vs finalize durante la fase de informes).
   const { data: existing } = await supabase
     .from("analyses")
     .select("id, status")
     .eq("video_id", videoId)
-    .in("status", ["queued", "processing", "completed"])
+    .eq("player_id", playerId)
+    .in("status", ["queued", "processing", "processing_reports", "completed"])
     .maybeSingle();
 
   if (existing) return { status: "exists", analysisId: existing.id };

@@ -243,7 +243,10 @@ export async function reapStuckAnalyses(supabase: SupabaseClient, staleHours: nu
     .from("analyses")
     .update({ status: "failed", status_message: `Rescatado: colgado en procesamiento más de ${staleHours}h` })
     .in("status", ["processing", "processing_reports"])
-    .lt("started_at", staleBefore)
+    // started_at < staleBefore, PERO también las filas con started_at NULL (algún claim
+    // no lo setea): `.lt` excluye NULLs en Postgres → sin el fallback a created_at, una
+    // fila colgada sin started_at NO se rescataba nunca. Se usa created_at como respaldo.
+    .or(`started_at.lt.${staleBefore},and(started_at.is.null,created_at.lt.${staleBefore})`)
     .select("id");
   return reaped?.length ?? 0;
 }

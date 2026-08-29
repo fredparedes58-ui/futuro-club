@@ -6,19 +6,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { enqueueAnalysis } from "../enqueueAnalysis";
 
 // Mock supabase que soporta las cadenas del helper:
-//   from("analyses").select(...).eq(...).in(...).maybeSingle()
+//   from("analyses").select(...).eq(video).eq(player).in(...).maybeSingle()
 //   from("analyses").insert(...).select(...).single()
 function mockSupabase(opts: { existing?: { id: string; status: string } | null; insertId?: string; insertError?: string }) {
   const insertSpy = vi.fn();
   const client = {
     from: () => ({
-      select: () => ({
-        eq: () => ({
+      select: () => {
+        // .eq encadenable (video_id + player_id) → .in → .maybeSingle
+        const chain: Record<string, unknown> = {
+          eq: () => chain,
           in: () => ({
             maybeSingle: async () => ({ data: opts.existing ?? null }),
           }),
-        }),
-      }),
+        };
+        return chain;
+      },
       insert: (row: unknown) => {
         insertSpy(row);
         return {
