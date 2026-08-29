@@ -114,7 +114,7 @@ function TimelineEntry({
           </div>
 
           {/* VSI delta */}
-          {estado?.ajusteVSIVideoScore !== undefined && (
+          {estado?.ajusteVSIVideoScore != null && (
             <div className="rounded-lg bg-secondary p-2 text-center">
               <TrendingUp size={10} className="mx-auto mb-0.5 text-green-400" />
               <p className="text-xs font-bold text-foreground">

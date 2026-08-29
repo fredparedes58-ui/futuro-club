@@ -128,7 +128,7 @@ function EstadoActual({ data, benchmark }: {
             style={{ color: levelColor }}>
             ● {LEVEL_LABELS[data.nivelActual] ?? data.nivelActual}
           </span>
-          {data.ajusteVSIVideoScore !== 0 && (
+          {data.ajusteVSIVideoScore != null && data.ajusteVSIVideoScore !== 0 && (
             <Badge
               variant={data.ajusteVSIVideoScore > 0 ? "default" : "destructive"}
               className="text-[9px]"

@@ -37,7 +37,7 @@ interface DrillReport {
     fortalezasPrimarias: string[];
     areasDesarrollo: string[];
     dimensiones: Record<string, Dimension>;
-    ajusteVSIVideoScore: number;
+    ajusteVSIVideoScore: number | null; // null ⇒ VSI-vídeo bloqueado (#40)
   };
   adnFutbolistico: {
     estiloJuego: string;
@@ -575,9 +575,11 @@ const SoloDrill = () => {
                         <span className="text-[10px] font-display px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                           {sessionReport.estadoActual.nivelActual.replace("_", " ").toUpperCase()}
                         </span>
-                        <span className={`text-[10px] font-display px-2 py-0.5 rounded-full ${sessionReport.estadoActual.ajusteVSIVideoScore >= 0 ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
-                          VSI {sessionReport.estadoActual.ajusteVSIVideoScore >= 0 ? "+" : ""}{sessionReport.estadoActual.ajusteVSIVideoScore}
-                        </span>
+                        {sessionReport.estadoActual.ajusteVSIVideoScore != null && (
+                          <span className={`text-[10px] font-display px-2 py-0.5 rounded-full ${sessionReport.estadoActual.ajusteVSIVideoScore >= 0 ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"}`}>
+                            VSI {sessionReport.estadoActual.ajusteVSIVideoScore >= 0 ? "+" : ""}{sessionReport.estadoActual.ajusteVSIVideoScore}
+                          </span>
+                        )}
                       </div>
                     </div>
 

@@ -43,7 +43,7 @@ interface AnalysisReport {
       liderazgoPresencia: DimensionScore;
       eficaciaCompetitiva: DimensionScore;
     };
-    ajusteVSIVideoScore: number;
+    ajusteVSIVideoScore: number | null; // null ⇒ VSI-vídeo bloqueado (#40)
   };
   adnFutbolistico: {
     estiloJuego: string;
@@ -284,9 +284,11 @@ export default function AnalysisReportPrint() {
           </div>
           <div className="text-right shrink-0 ml-4">
             {confianzaBadge(r.confianza, t("analysisReportPrint.confidence"))}
-            <div className="mt-2 text-[10px] text-gray-400">
-              {t("analysisReportPrint.vsiAdjust")}: <span className="font-bold text-gray-700">{r.estadoActual.ajusteVSIVideoScore}</span>
-            </div>
+            {r.estadoActual.ajusteVSIVideoScore != null && (
+              <div className="mt-2 text-[10px] text-gray-400">
+                {t("analysisReportPrint.vsiAdjust")}: <span className="font-bold text-gray-700">{r.estadoActual.ajusteVSIVideoScore}</span>
+              </div>
+            )}
           </div>
         </div>
 

@@ -605,7 +605,11 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
         liderazgoPresencia:  defaultDim,
         eficaciaCompetitiva: defaultDim,
       },
-      ajusteVSIVideoScore: Math.round(vsiScore - 50),
+      // null cuando el VSI-vídeo compuesto está BLOQUEADO (el backend devuelve
+      // vsi:null si <4/5 dimensiones reales — hoy siempre, técnica/mental/táctica no
+      // se miden). Antes `?? 50` lo volvía 0 → cada informe pintaba "VSI +0 pts", un
+      // ajuste fabricado (viola inv #2). Con null, el render oculta el badge (#40).
+      ajusteVSIVideoScore: row.vsi?.vsi == null ? null : Math.round((row.vsi.vsi as number) - 50),
     },
     adnFutbolistico: {
       // Campos REALES del agente (_dna-profile.ts): primary_style/style_summary,

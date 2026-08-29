@@ -33,7 +33,9 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
         liderazgoPresencia:  defaultDim,
         eficaciaCompetitiva: defaultDim,
       },
-      ajusteVSIVideoScore: Math.round(vsiScore - 50),
+      // null cuando el VSI-vídeo está BLOQUEADO (backend vsi:null, <4/5 dims reales).
+      // Antes `?? 50` → 0 → badge "VSI +0 pts" fabricado en cada informe (#40).
+      ajusteVSIVideoScore: result.vsi?.vsi == null ? null : Math.round((result.vsi.vsi as number) - 50),
     },
     adnFutbolistico: {
       // Campos REALES del agente (_dna-profile.ts): primary_style/style_summary,
