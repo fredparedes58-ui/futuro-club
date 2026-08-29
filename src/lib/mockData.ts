@@ -36,9 +36,6 @@ export interface LiveMatch {
   score: [number, number];
   minute: number;
   status: "live" | "upcoming" | "finished";
-  playersTracked: number;
-  topPerformer: string;
-  topVsi: number;
 }
 
 export interface DrillCategory {

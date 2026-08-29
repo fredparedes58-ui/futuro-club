@@ -13,9 +13,6 @@ interface Fixture {
   score: [number, number];
   minute: number | null;
   status: "IN_PLAY" | "PAUSED" | "TIMED" | "SCHEDULED" | "FINISHED";
-  playersTracked: number;
-  topPerformer: string | null;
-  topVsi: number | null;
 }
 
 interface FixturesResponse {
@@ -222,17 +219,6 @@ function FixtureCard({
         </span>
       </div>
 
-      {/* Footer — tracked players & top performer */}
-      {(fixture.playersTracked > 0 || fixture.topPerformer) && (
-        <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/30 pt-2 mt-2">
-          <span>{t("liveFixtures.trackedPlayers", { count: fixture.playersTracked })}</span>
-          {fixture.topPerformer && fixture.topVsi !== null && (
-            <span className="text-primary font-medium">
-              ⭐ {fixture.topPerformer} ({fixture.topVsi})
-            </span>
-          )}
-        </div>
-      )}
     </motion.div>
   );
 }

@@ -8,9 +8,19 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
-import { successResponse } from "../_lib/apiResponse";
 
 export const config = { runtime: "edge" };
+
+/** El cliente (fetchLiveMatches) espera un ARRAY PELADO, no el envoltorio { data }.
+ *  Antes la ruta con datos usaba successResponse() (envuelto) y la ruta vacía un array
+ *  pelado → incoherencia: con datos reales, Array.isArray fallaba y el widget NUNCA
+ *  pintaba. Unificamos a array pelado en ambas ramas. */
+function bareArray(data: unknown[]): Response {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" },
+  });
+}
 
 interface FDMatch {
   id: number;
@@ -71,6 +81,10 @@ export default withHandler(
         return order.indexOf(a.status) - order.indexOf(b.status);
       });
 
+      // NO se emiten playersTracked/topPerformer/topVsi: VITAS no hace tracking ni
+      // calcula VSI de partidos profesionales (LaLiga/Premier). Eran 0/"" fijos que
+      // solo sugerían una capacidad inexistente. Es un widget honesto de "partidos de
+      // hoy", nada más.
       const mapped = relevant.slice(0, 8).map((m) => ({
         id: String(m.id),
         homeTeam: m.homeTeam.name,
@@ -82,15 +96,12 @@ export default withHandler(
         minute: m.minute ?? 0,
         status: m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" :
                 m.status === "FINISHED" ? "finished" : "upcoming",
-        playersTracked: 0,
-        topPerformer: "",
-        topVsi: 0,
       }));
 
-      return successResponse(mapped);
+      return bareArray(mapped);
     } catch (err) {
       console.error("[Fixtures] Error:", err);
-      return successResponse([]);
+      return bareArray([]);
     }
   },
 );

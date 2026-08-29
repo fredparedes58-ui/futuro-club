@@ -13,7 +13,6 @@
  * que la summary page lo muestre sin volver a pagar Claude.
  */
 
-import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
@@ -378,35 +377,13 @@ export default withHandler(
     const results = await Promise.all(reportPromises);
     const successful = results.filter((r) => r.ok);
 
-    // ── 5. Bidireccional · alimentar VSI history individual ────
-    const vsiDeltas: Record<string, { before: number; after: number; delta: number }> = {};
-    for (const s of stats) {
-      if (!s.playerId || s.totalEvents === 0) continue;
-      // Delta proporcional al netImpact, clamp [-3, +3]
-      const delta = Math.max(-3, Math.min(3, s.netImpact * 0.4));
-      if (Math.abs(delta) < 0.1) continue; // ignorar deltas insignificantes
-
-      const { data: pRow } = await supabase
-        .from("players")
-        .select("vsi, vsi_history")
-        .eq("id", s.playerId)
-        .single();
-
-      const before = Number(pRow?.vsi ?? 50);
-      const after = Math.max(0, Math.min(100, before + delta));
-      const history = Array.isArray(pRow?.vsi_history) ? (pRow.vsi_history as number[]) : [];
-      const newHistory = [...history, Number(after.toFixed(1))].slice(-20); // cap 20
-
-      await supabase
-        .from("players")
-        .update({
-          vsi: Number(after.toFixed(1)),
-          vsi_history: newHistory,
-        })
-        .eq("id", s.playerId);
-
-      vsiDeltas[s.playerId] = { before, after, delta: Number(delta.toFixed(2)) };
-    }
+    // ── 5. (RETIRADO) NO se muta el VSI del jugador desde el partido en vivo ──
+    // Antes: se derivaba un delta de VSI de los taps manuales (netImpact) y se
+    // ESCRIBÍA en players.vsi / vsi_history, además usando `?? 50` (fabricaba un VSI
+    // para un jugador sin evaluar). Eso viola los invariantes de VSI (una sola
+    // procedencia real; nunca un 50 por defecto; el compuesto no se altera por un
+    // canal lateral). Los eventos del partido son datos observados legítimos y viven
+    // en `stats_by_player` (contadores por jugador); NO se convierten en VSI.
 
     const analysisResult = {
       pipeline: PIPELINE_VERSION,
@@ -415,7 +392,6 @@ export default withHandler(
       total_events: (events ?? []).length,
       reports: successful.map((r) => ({ type: r.type, content: r.content, model: r.model })),
       reports_failed: results.length - successful.length,
-      vsi_deltas: vsiDeltas,
       has_video: !!videoObs,
       video_observation: videoObs ?? undefined,
     };

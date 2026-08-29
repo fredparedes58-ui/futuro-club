@@ -40,7 +40,6 @@ interface AnalysisResult {
   stats_by_player: PlayerStat[];
   total_events: number;
   reports: Array<{ type: string; content: Record<string, unknown>; model: string }>;
-  vsi_deltas?: Record<string, { before: number; after: number; delta: number }>;
 }
 
 interface AggregateResponse {
@@ -226,24 +225,11 @@ export default function LiveSummaryPage() {
           <div className="space-y-2">
             {analysis.stats_by_player.filter((s) => s.totalEvents > 0).map((s) => {
               const insight = playerInsights?.players?.find((p) => p.player_name === s.playerName);
-              const vsiD = s.playerId ? analysis.vsi_deltas?.[s.playerId] : undefined;
               return (
                 <div key={s.playerId ?? "team"} className="rounded-lg bg-secondary/30 border border-border p-3">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="font-display font-bold text-sm text-foreground truncate">{s.playerName}</div>
-                      {vsiD && (
-                        <span
-                          className={`text-[9px] font-display font-bold px-1.5 py-0.5 rounded ${
-                            vsiD.delta > 0 ? "bg-green-400/15 text-green-400"
-                            : vsiD.delta < 0 ? "bg-red-400/15 text-red-400"
-                            : "bg-muted text-muted-foreground"
-                          }`}
-                          title={`VSI ${vsiD.before.toFixed(1)} → ${vsiD.after.toFixed(1)}`}
-                        >
-                          VSI {vsiD.delta > 0 ? "+" : ""}{vsiD.delta.toFixed(1)}
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {insight && (
