@@ -28,6 +28,9 @@ export default function VerifyConsentPage() {
     started.current = true;
 
     const token = new URLSearchParams(window.location.search).get("token");
+    // Quita el token de la URL/historial tras leerlo (hardening): es de un solo uso y se
+    // invalida en el servidor, pero no conviene dejarlo en la barra ni en el historial.
+    try { window.history.replaceState(null, "", "/auth/verify-consent"); } catch { /* noop */ }
     if (!token) {
       setStatus("error");
       setMessage("Enlace no válido: falta el token de verificación. Revisa el enlace del email.");
@@ -42,8 +45,11 @@ export default function VerifyConsentPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
+        // errorResponse emite { error: string, errorDetail: { message } } (no error.message):
+        // se lee errorDetail.message o el string `error` para surfacear la causa real
+        // (caducado / inválido), no un genérico. Mismo patrón que AnalysisDashboard.
         const json = (await res.json().catch(() => null)) as
-          | { ok?: boolean; data?: { message?: string }; error?: { message?: string } }
+          | { ok?: boolean; data?: { message?: string }; error?: string; errorDetail?: { message?: string } }
           | null;
         if (cancelled) return;
         if (res.ok && json?.ok) {
@@ -52,7 +58,8 @@ export default function VerifyConsentPage() {
         } else {
           setStatus("error");
           setMessage(
-            json?.error?.message ??
+            json?.errorDetail?.message ??
+              (typeof json?.error === "string" ? json.error : null) ??
               "No se pudo verificar el consentimiento. El enlace puede haber caducado (24h) o ya haberse usado.",
           );
         }
