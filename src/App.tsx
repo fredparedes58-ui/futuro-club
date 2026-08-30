@@ -20,6 +20,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import VerifyConsentPage from "./pages/VerifyConsentPage";
 
 // Pages — Core (static — hit on every session)
 import Index from "./pages/Index";
@@ -181,6 +182,8 @@ const App = () => {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                {/* Enlace del email de consentimiento (sign-consent.ts) → verifica el token vía POST al API */}
+                <Route path="/auth/verify-consent" element={<VerifyConsentPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/pricing" element={<PricingPage />} />
