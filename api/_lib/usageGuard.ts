@@ -279,36 +279,61 @@ export async function checkPlayerQuota(userId: string): Promise<PlayerQuotaResul
 
 // ── Increment usage ─────────────────────────────────────────────────────────
 
+/**
+ * Fallback legado (read-modify-write) para cuando el RPC atómico aún no está
+ * desplegado. NO atómico (puede perder un incremento bajo concurrencia), pero
+ * mejor contar de forma aproximada que no contar en absoluto durante el intervalo
+ * previo a aplicar la migración 061.
+ */
+async function incrementAnalysesUsedLegacy(
+  sb: NonNullable<ReturnType<typeof getSupabaseConfig>>,
+  userId: string,
+  month: string,
+): Promise<void> {
+  const getRes = await fetch(
+    `${sb.url}/rest/v1/analyses_used?user_id=eq.${userId}&month=eq.${month}&select=count`,
+    { headers: { apikey: sb.headers.apikey, Authorization: sb.headers.Authorization } },
+  );
+  let currentCount = 0;
+  if (getRes.ok) {
+    const rows = (await getRes.json()) as Array<{ count: number }>;
+    if (rows.length > 0) currentCount = rows[0].count;
+  }
+  await fetch(`${sb.url}/rest/v1/analyses_used`, {
+    method: "POST",
+    headers: { ...sb.headers, Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({
+      user_id: userId,
+      month,
+      count: currentCount + 1,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
 export async function incrementUsage(userId: string, endpoint: string): Promise<void> {
   const sb = getSupabaseConfig();
   if (!sb) return;
 
   const month = new Date().toISOString().slice(0, 7);
 
-  // Upsert analyses_used (increment count)
+  // Incremento ATÓMICO vía RPC (INSERT ... ON CONFLICT DO UPDATE count = count+1,
+  // migración 061). Evita el lost-update del read-modify-write bajo concurrencia.
+  // Fallback: si el RPC aún no está desplegado (404/PGRST202) usamos el método
+  // legado para NO dejar de contar hasta que la migración esté aplicada. El flag
+  // asegura que el legado corre como mucho una vez (nunca doble incremento).
+  let counted = false;
   try {
-    // First get current count
-    const getRes = await fetch(
-      `${sb.url}/rest/v1/analyses_used?user_id=eq.${userId}&month=eq.${month}&select=count`,
-      { headers: { apikey: sb.headers.apikey, Authorization: sb.headers.Authorization } }
-    );
-    let currentCount = 0;
-    if (getRes.ok) {
-      const rows = await getRes.json() as Array<{ count: number }>;
-      if (rows.length > 0) currentCount = rows[0].count;
-    }
-
-    await fetch(`${sb.url}/rest/v1/analyses_used`, {
+    const rpcRes = await fetch(`${sb.url}/rest/v1/rpc/increment_analyses_used`, {
       method: "POST",
-      headers: { ...sb.headers, Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({
-        user_id: userId,
-        month,
-        count: currentCount + 1,
-        updated_at: new Date().toISOString(),
-      }),
+      headers: sb.headers,
+      body: JSON.stringify({ p_user_id: userId, p_month: month }),
     });
-  } catch { /* non-blocking */ }
+    counted = rpcRes.ok;
+  } catch { /* RPC inalcanzable → legado */ }
+  if (!counted) {
+    try { await incrementAnalysesUsedLegacy(sb, userId, month); } catch { /* non-blocking */ }
+  }
 
   // Log to usage_log (if table exists)
   try {

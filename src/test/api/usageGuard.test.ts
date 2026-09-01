@@ -137,15 +137,32 @@ describe("usageGuard", () => {
   });
 
   describe("incrementUsage", () => {
-    it("calls Supabase to increment usage and log", async () => {
+    it("increments atomically via the RPC, then logs usage (2 calls)", async () => {
       mockFetchResponses([
-        { ok: true, data: [{ count: 2 }] },  // get current count
-        { ok: true, data: null },              // upsert analyses_used
-        { ok: true, data: null },              // insert usage_log
+        { ok: true, data: 3 },     // rpc increment_analyses_used → nuevo count
+        { ok: true, data: null },  // insert usage_log
       ]);
 
       await incrementUsage("user-1", "scout-insight");
-      expect(mockFetch).toHaveBeenCalledTimes(3);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch.mock.calls[0][0]).toContain("/rpc/increment_analyses_used");
+      expect(mockFetch.mock.calls[1][0]).toContain("/usage_log");
+    });
+
+    it("falls back to read-modify-write when the RPC is not deployed", async () => {
+      mockFetchResponses([
+        { ok: false, data: null },           // rpc ausente (404/PGRST202)
+        { ok: true, data: [{ count: 2 }] },  // legado: get current count
+        { ok: true, data: null },            // legado: upsert analyses_used
+        { ok: true, data: null },            // insert usage_log
+      ]);
+
+      await incrementUsage("user-1", "scout-insight");
+
+      expect(mockFetch).toHaveBeenCalledTimes(4);
+      expect(mockFetch.mock.calls[0][0]).toContain("/rpc/increment_analyses_used");
+      expect(mockFetch.mock.calls[1][0]).toContain("/analyses_used");
     });
 
     it("does not throw on fetch failure", async () => {

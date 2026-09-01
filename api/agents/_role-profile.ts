@@ -189,8 +189,10 @@ export default withHandler(
       ).catch(() => {});
     }
 
-    // ── Usage log (non-blocking) ────────────────────────────────
-    if (userId) incrementUsage(userId, "role-profile").catch(() => {});
+    // ── Usage log ───────────────────────────────────────────────
+    // AWAIT: en edge una promesa sin await se descarta al devolver la respuesta →
+    // la cuota no se contaría. incrementUsage captura sus errores (Promise<void>).
+    if (userId) await incrementUsage(userId, "role-profile");
 
     return successResponse(result);
   },

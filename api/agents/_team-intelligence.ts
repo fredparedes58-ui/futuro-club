@@ -426,8 +426,10 @@ RECOMENDACIONES PARA EL ENTRENADOR:
           send("progress", { step: "Finalizando informe táctico...", percent: 95 });
           send("complete", { report, videoId, timestamp: new Date().toISOString() });
 
-          // ── Usage log (non-blocking) ─────────────────────────
-          if (userId) incrementUsage(userId, "team-intelligence").catch(() => {});
+          // ── Usage log ────────────────────────────────────────
+          // AWAIT antes de cerrar el stream: en edge una promesa sin await se
+          // descarta al terminar el callback → la cuota no se contaría.
+          if (userId) await incrementUsage(userId, "team-intelligence");
         } catch (error: unknown) {
           send("error", { message: error instanceof Error ? error.message : "Error interno" });
         } finally {
