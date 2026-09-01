@@ -177,9 +177,12 @@ export default withHandler(
       // Don't fail — analysis is still saved with biomechanics
     }
 
-    // Increment usage after successful dispatch
+    // Increment usage after successful dispatch. AWAIT: en runtime edge una promesa
+    // sin await ni waitUntil se descarta al devolver la respuesta → la cuota no se
+    // aplicaría. incrementUsage captura sus errores internamente (Promise<void>),
+    // así que awaitarla no puede romper la request.
     if (userId) {
-      incrementUsage(userId, "generate-reports").catch(() => {});
+      await incrementUsage(userId, "generate-reports");
     }
 
     return successResponse({
