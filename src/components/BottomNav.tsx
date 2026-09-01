@@ -4,7 +4,7 @@ import { Activity, Compass, FlaskConical, BarChart3, FileVideo, LogOut, Users, T
 import { useState, useEffect, useRef } from "react";
 import { useAuth, getUserInitials } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { useSupabaseSync } from "@/hooks/useSupabaseSync";
+import { useSyncState } from "@/context/SyncContext";
 import { usePlan } from "@/hooks/usePlan";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -141,8 +141,10 @@ const BottomNav = () => {
   const { isClub } = usePlan();
   const { t } = useTranslation();
 
-  // Sincroniza jugadores desde Supabase al hacer login
-  const syncState = useSupabaseSync();
+  // Consume el estado de sync compartido (SyncProvider). Antes llamaba a
+  // useSupabaseSync() directamente → montaba un SEGUNDO motor de sync en paralelo
+  // al del provider (doble sync/procesado de cola). Aquí solo leemos el estado.
+  const syncState = useSyncState();
   const prevOnline = useRef(syncState.online);
 
   // Toast al reconectar
