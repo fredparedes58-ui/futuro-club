@@ -49,20 +49,29 @@ export default withHandler(
     //    ON DELETE CASCADE al borrar el auth user— pierde la referencia al fichero
     //    en Bunny → el vídeo del menor quedaría huérfano en el CDN para siempre).
     //    RGPD Art. 17: el borrado debe alcanzar el dato biométrico, no solo la fila.
+    //    FAIL-SAFE: si NO podemos leer qué vídeos hay, ABORTAMOS antes de tocar nada.
+    //    Proceder destruiría la referencia (fila + cascade) sin haberla mandado a
+    //    Bunny → huérfano irrecuperable. Mejor no borrar aún y que el cliente
+    //    reintente que borrar dejando el vídeo del menor en el CDN.
     const bunnyVideoIds: Array<string | null> = [];
     try {
       const vres = await fetch(
         `${supabaseUrl}/rest/v1/videos?user_id=eq.${userId}&select=bunny_video_id`,
         { headers },
       );
-      if (vres.ok) {
-        const rows = (await vres.json()) as Array<{ bunny_video_id: string | null }>;
-        for (const r of rows) bunnyVideoIds.push(r.bunny_video_id);
-      } else if (vres.status !== 404) {
-        errors.push(`videos_select: ${vres.status}`);
+      if (!vres.ok) {
+        return errorResponse(
+          "No se pudo verificar los vídeos a eliminar. Reintenta en unos segundos.",
+          503, "VIDEOS_READ_FAILED",
+        );
       }
-    } catch (err) {
-      errors.push(`videos_select: ${err instanceof Error ? err.message : "fetch error"}`);
+      const rows = (await vres.json()) as Array<{ bunny_video_id: string | null }>;
+      for (const r of rows) bunnyVideoIds.push(r.bunny_video_id);
+    } catch {
+      return errorResponse(
+        "No se pudo verificar los vídeos a eliminar. Reintenta en unos segundos.",
+        503, "VIDEOS_READ_FAILED",
+      );
     }
 
     // 1. Delete all user data from each table
@@ -124,11 +133,13 @@ export default withHandler(
     );
 
     if (errors.length > 0) {
-      // Partial failure — data may be partially deleted. Still return success
-      // so the client signs out; the remaining data will be orphaned.
+      // Fallo parcial — algún dato pudo no borrarse (p.ej. Bunny caído). Aún así
+      // devolvemos deleted:true para que el cliente cierre sesión, pero marcamos
+      // partial:true en vez de afirmar un borrado completo que no ocurrió.
       console.warn(`[account/delete] Partial errors for ${userId}:`, errors);
+      return successResponse({ deleted: true, partial: true });
     }
 
-    return successResponse({ deleted: true });
+    return successResponse({ deleted: true, partial: false });
   },
 );
