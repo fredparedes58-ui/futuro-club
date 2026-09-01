@@ -3,7 +3,7 @@
  * Manually assign a plan to a user (admin-only, no Stripe).
  *
  * Body: { userId, plan, reason? }
- * Auth: serviceOnly (ADMIN_SECRET / CRON_SECRET)
+ * Auth: adminOnly — JWT de un admin de plataforma (email en ADMIN_EMAILS).
  */
 
 import { z } from "zod";
@@ -22,7 +22,7 @@ const managePlanSchema = z.object({
 });
 
 export default withHandler(
-  { schema: managePlanSchema, serviceOnly: true, maxRequests: 30 },
+  { schema: managePlanSchema, requireAuth: true, adminOnly: true, maxRequests: 30 },
   async ({ body }) => {
     const { userId, plan, reason } = body as z.infer<typeof managePlanSchema>;
 

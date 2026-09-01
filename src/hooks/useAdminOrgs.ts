@@ -4,19 +4,14 @@
  * Queries: list-orgs, list-users
  * Mutations: manage-plan, reset-quota
  *
- * Fase 3: all admin actions use ADMIN_SECRET for serviceOnly auth.
+ * Auth: JWT de sesión del admin (getAuthHeaders). El servidor valida que el email
+ * esté en ADMIN_EMAILS (withHandler adminOnly). NUNCA un secreto compartido: el
+ * antiguo VITE_ADMIN_SECRET se inlineaba en el bundle → cualquiera lo extraía y
+ * tenía acceso admin total (volcado de PII + bypass de plan). Retirado.
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-
-const ADMIN_SECRET = import.meta.env.VITE_ADMIN_SECRET ?? "";
-
-function adminHeaders(): Record<string, string> {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${ADMIN_SECRET}`,
-  };
-}
+import { getAuthHeaders } from "@/lib/apiAuth";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +47,7 @@ export function useAdminOrgs() {
     queryKey: ["admin", "orgs"],
     queryFn: async (): Promise<{ orgs: OrgEntry[]; month: string; total: number }> => {
       const res = await fetch("/api/admin/list-orgs", {
-        headers: adminHeaders(),
+        headers: await getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
@@ -67,7 +62,7 @@ export function useAdminUsers(limit = 50, offset = 0) {
     queryKey: ["admin", "users", limit, offset],
     queryFn: async (): Promise<{ users: UserEntry[]; total: number }> => {
       const res = await fetch(`/api/admin/list-users?limit=${limit}&offset=${offset}`, {
-        headers: adminHeaders(),
+        headers: await getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
@@ -86,7 +81,7 @@ export function useManagePlan() {
     mutationFn: async (args: { userId: string; plan: string; reason?: string }) => {
       const res = await fetch("/api/admin/manage-plan", {
         method: "POST",
-        headers: adminHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(args),
       });
       if (!res.ok) {
@@ -109,7 +104,7 @@ export function useResetQuota() {
     mutationFn: async (args: { userId: string; month?: string }) => {
       const res = await fetch("/api/admin/reset-quota", {
         method: "POST",
-        headers: adminHeaders(),
+        headers: await getAuthHeaders(),
         body: JSON.stringify(args),
       });
       if (!res.ok) {

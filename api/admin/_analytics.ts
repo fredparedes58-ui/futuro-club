@@ -14,7 +14,7 @@ interface TableCount {
 }
 
 export default withHandler(
-  { method: ["GET", "POST"], requireAuth: true, maxRequests: 30 },
+  { method: ["GET", "POST"], requireAuth: true, adminOnly: true, maxRequests: 30 },
   async ({ userId }) => {
     const sbUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

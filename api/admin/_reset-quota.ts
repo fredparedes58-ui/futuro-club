@@ -1,7 +1,7 @@
 /**
  * POST /api/admin/reset-quota
  * Resets a user's monthly analysis quota to 0.
- * Auth: serviceOnly (ADMIN_SECRET / CRON_SECRET)
+ * Auth: adminOnly — JWT de un admin de plataforma (email en ADMIN_EMAILS).
  *
  * Body: { userId, month? }
  */
@@ -21,7 +21,7 @@ const resetQuotaSchema = z.object({
 });
 
 export default withHandler(
-  { schema: resetQuotaSchema, serviceOnly: true, maxRequests: 30 },
+  { schema: resetQuotaSchema, requireAuth: true, adminOnly: true, maxRequests: 30 },
   async ({ body }) => {
     const { userId, month: requestedMonth } = body as z.infer<typeof resetQuotaSchema>;
     const month = requestedMonth ?? new Date().toISOString().slice(0, 7);

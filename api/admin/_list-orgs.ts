@@ -1,7 +1,7 @@
 /**
  * GET /api/admin/list-orgs
  * Lists all organizations with owner email, plan, member count, and usage.
- * Auth: serviceOnly (ADMIN_SECRET / CRON_SECRET)
+ * Auth: adminOnly — JWT de un admin de plataforma (email en ADMIN_EMAILS).
  */
 
 import { withHandler } from "../_lib/withHandler";
@@ -13,7 +13,7 @@ const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 export default withHandler(
-  { method: "GET", serviceOnly: true, maxRequests: 30 },
+  { method: "GET", requireAuth: true, adminOnly: true, maxRequests: 30 },
   async () => {
     if (!SUPABASE_URL || !SERVICE_KEY) {
       return errorResponse("Supabase not configured", 500);

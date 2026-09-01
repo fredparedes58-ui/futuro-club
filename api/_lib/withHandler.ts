@@ -85,6 +85,14 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
   optionalAuth?: boolean;
   /** Solo permite service role (CRON_SECRET o ADMIN_SECRET en Authorization header). */
   serviceOnly?: boolean;
+  /**
+   * Gate de administrador de PLATAFORMA: exige un usuario autenticado cuyo email
+   * esté en ADMIN_EMAILS. NO acepta token de servicio (el antiguo ADMIN_SECRET
+   * viajaba inlined en el bundle del cliente → cualquiera lo extraía). La única
+   * llave válida es el JWT de un admin real. Debe emparejarse con `requireAuth`;
+   * si no, no hay email y el gate falla-cerrado (403).
+   */
+  adminOnly?: boolean;
   /** Si true, no parsea body como JSON (para webhooks que leen raw text). */
   rawBody?: boolean;
   /** Required subscription plan. Returns 403 if user doesn't have it. */
@@ -193,6 +201,20 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
       userId = auth.userId; // puede ser null, y eso esta bien
       userEmail = auth.email;
       userTenantId = auth.tenantId;
+    }
+
+    // 4a. Gate admin de plataforma: el email autenticado debe estar en ADMIN_EMAILS.
+    // Fail-closed: sin email (no autenticado, JWT sin email, o llamada de servicio)
+    // → 403. Este gate es la ÚNICA puerta a los endpoints /api/admin/* de gestión;
+    // ya no basta un token de servicio (el ADMIN_SECRET se filtraba en el bundle).
+    if (options.adminOnly) {
+      const isPlatformAdmin = userEmail ? ADMIN_EMAILS.has(userEmail.toLowerCase()) : false;
+      if (!isPlatformAdmin) {
+        return errorResponse(
+          "Acceso denegado: se requiere administrador de plataforma",
+          403, "FORBIDDEN", rateLimitHeaders(rl),
+        );
+      }
     }
 
     // 4a-bis. Fail-closed: si el endpoint exige plan/rol pero no hay ni llamada de
