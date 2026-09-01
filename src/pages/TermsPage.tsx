@@ -134,7 +134,7 @@ const TermsPage = () => {
           <p>
             Los reembolsos se gestionan caso por caso. Para solicitar un reembolso, contacta a
             nuestro equipo de soporte en{" "}
-            <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>.
+            <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>.
           </p>
 
           <h2>5. Propiedad Intelectual</h2>
@@ -260,7 +260,7 @@ const TermsPage = () => {
           <h3>11.1 Terminación por el Usuario</h3>
           <p>
             Puedes solicitar la eliminación de tu cuenta en cualquier momento desde la configuración
-            o contactando a <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>. Una vez
+            o contactando a <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>. Una vez
             procesada, tus datos personales serán eliminados conforme a nuestra Política de
             Privacidad.
           </p>
@@ -315,7 +315,7 @@ const TermsPage = () => {
           <ul>
             <li>
               <strong>Email:</strong>{" "}
-              <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>
+              <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}
