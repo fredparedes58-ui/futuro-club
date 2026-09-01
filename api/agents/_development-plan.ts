@@ -196,8 +196,13 @@ async function callClaudeHaiku(systemPrompt: string, userMessage: string, apiKey
 
   if (!res.ok) throw new Error(`Claude error ${res.status}`);
   const data = await res.json();
-  const text = data.content?.[0]?.text ?? "{}";
-  return JSON.parse(text);
+  const text: string = data.content?.[0]?.text ?? "";
+  // Extracción robusta: el modelo puede envolver el JSON en prosa o ```json.
+  // Un JSON.parse crudo sobre esa salida lanzaría y tumbaría todo el plan; el
+  // resto de agentes Haiku ya extraen el objeto con este mismo patrón.
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("No JSON object in Claude response");
+  return JSON.parse(jsonMatch[0]);
 }
 
 export default withHandler(
