@@ -14,7 +14,7 @@
 import { z } from "zod";
 import { MODELS } from "../_lib/models";
 import { withHandler } from "../_lib/withHandler";
-import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { successResponse } from "../_lib/apiResponse";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
@@ -124,25 +124,40 @@ ${category === "senior" ? "- Jugador senior: NO menciones PHV ni maduracion biol
 ${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}`;
 }
 
+/**
+ * Fallback honesto: cuando la IA no está disponible o falla, NO inventamos un
+ * nivel de riesgo. Devolvemos un reporte BLOQUEADO (nivelRiesgo "desconocido",
+ * sin factores) marcado `fallback:true` + `fallbackReason`. Igual que la regla de
+ * fallback del proyecto: la app no se rompe, pero tampoco fabrica una evaluación
+ * de riesgo sobre un menor (invariante #2: ante dato ausente se bloquea).
+ */
+function fallbackReport(reason: string, seguimiento: string) {
+  return successResponse({
+    report: {
+      evaluacionGeneral: "Reporte no disponible — no se pudo generar el análisis de riesgo",
+      nivelRiesgo: "desconocido",
+      factoresRiesgo: [],
+      recomendacionesCarga: [],
+      alertaPHV: null,
+      protocoloPrevencion: [],
+      seguimiento,
+    },
+    promptVersion: PROMPT_VERSION,
+    fallback: true,
+    fallbackReason: reason,
+  });
+}
+
 export default withHandler(
-  { schema: injuryReportSchema, requireAuth: true, allowServiceToken: true, maxRequests: 50 },
+  { schema: injuryReportSchema, requireAuth: true, allowServiceToken: true, requiredPlan: "pro,club", maxRequests: 50 },
   async ({ body }) => {
     const data = body as z.infer<typeof injuryReportSchema>;
 
     if (!ANTHROPIC_API_KEY) {
-      return successResponse({
-        report: {
-          evaluacionGeneral: "Reporte no disponible — API key no configurada",
-          nivelRiesgo: "desconocido",
-          factoresRiesgo: [],
-          recomendacionesCarga: [],
-          alertaPHV: null,
-          protocoloPrevencion: [],
-          seguimiento: "Configurar ANTHROPIC_API_KEY para generar reportes",
-        },
-        promptVersion: PROMPT_VERSION,
-        fallback: true,
-      });
+      return fallbackReport(
+        "no_api_key",
+        "Configurar ANTHROPIC_API_KEY para generar reportes",
+      );
     }
 
     const prompt = buildPrompt(data);
@@ -166,7 +181,10 @@ export default withHandler(
       if (!res.ok) {
         const errText = await res.text();
         console.error(`[injury-risk-report] Anthropic ${res.status}:`, errText);
-        return errorResponse({ code: "llm_error", message: `Anthropic ${res.status}`, status: 502 });
+        return fallbackReport(
+          "fallback_api_error",
+          "El servicio de IA no respondió. Reintenta más tarde.",
+        );
       }
 
       const json = await res.json();
@@ -175,7 +193,10 @@ export default withHandler(
       // Parse JSON from response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        return errorResponse({ code: "parse_error", message: "No JSON in response", status: 500 });
+        return fallbackReport(
+          "fallback_parse_error",
+          "La respuesta de IA no tuvo formato válido. Reintenta.",
+        );
       }
 
       const report = JSON.parse(jsonMatch[0]);
@@ -189,11 +210,10 @@ export default withHandler(
       });
     } catch (err) {
       console.error("[injury-risk-report] Error:", err);
-      return errorResponse({
-        code: "agent_error",
-        message: err instanceof Error ? err.message : "Unknown error",
-        status: 500,
-      });
+      return fallbackReport(
+        "fallback_exception",
+        "Error al generar el reporte de riesgo. Reintenta.",
+      );
     }
   },
 );

@@ -207,10 +207,14 @@ export default withHandler(
       return errorResponse({ code: "analysis_not_found", message: "Analysis not in DB", status: 404 });
     }
 
-    // FASE 3: valoración = feature Club (usa Sonnet, la más cara). El orchestrator
-    // corre con service token → no lo gatea withHandler; lo gateamos aquí para NO
-    // pagar Sonnet en cada análisis de usuarios <Club. Dueño = analyses.user_id (mig 004).
-    if (activeAgents.some((a) => a.name === "valuation-report")) {
+    // FASE 3: reportes premium gateados por plan. El orchestrator corre con service
+    // token → withHandler NO lo gatea (allowServiceToken), así que lo gateamos aquí
+    // para NO generar (ni pagar) features de pago a usuarios que no las tienen.
+    // Dueño = analyses.user_id (mig 004).
+    //   - valuation-report  → solo Club (Sonnet, la más cara)
+    //   - injury-risk-report → Pro o Club (feature Pro · usageGuard injuryPrediction)
+    const planGatedNames = new Set(["valuation-report", "injury-risk-report"]);
+    if (activeAgents.some((a) => planGatedNames.has(a.name))) {
       let plan = "free";
       if (analysis.user_id) {
         const { data: sub } = await supabase
@@ -223,6 +227,10 @@ export default withHandler(
       if (plan !== "club") {
         activeAgents = activeAgents.filter((a) => a.name !== "valuation-report");
         console.log(`[orchestrator] valuation-report omitido (plan=${plan}, requiere club)`);
+      }
+      if (plan !== "pro" && plan !== "club") {
+        activeAgents = activeAgents.filter((a) => a.name !== "injury-risk-report");
+        console.log(`[orchestrator] injury-risk-report omitido (plan=${plan}, requiere pro/club)`);
       }
     }
 
