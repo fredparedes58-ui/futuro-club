@@ -53,8 +53,8 @@ vi.mock("@/hooks/usePlan", () => ({
   usePlan: () => mockUsePlan(),
 }));
 
-vi.mock("@/hooks/useSupabaseSync", () => ({
-  useSupabaseSync: () => ({ online: true, syncing: false, pending: 0 }),
+vi.mock("@/context/SyncContext", () => ({
+  useSyncState: () => ({ online: true, syncing: false, pending: 0 }),
 }));
 
 import BottomNav from "@/components/BottomNav";
