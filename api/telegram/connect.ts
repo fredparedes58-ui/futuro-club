@@ -42,10 +42,15 @@ export default withHandler(
       auth: { persistSession: false },
     });
 
-    // Resolver tenant_id (cualquier player suyo · fallback userId)
+    // Resolver tenant_id desde un player DEL PROPIO coach · fallback userId.
+    // El cliente usa service_role (salta RLS), así que SIN .eq("user_id") esta
+    // query cogería un player de CUALQUIER tenant → el tenant_id ajeno acabaría
+    // en telegram_link_tokens y el bot quedaría scopeado al tenant equivocado
+    // (fuga cross-tenant). El filtro por user_id ancla la resolución al coach.
     const { data: anyPlayer } = await supabase
       .from("players")
       .select("tenant_id")
+      .eq("user_id", userId)
       .limit(1)
       .maybeSingle();
     const tenantId = anyPlayer?.tenant_id ?? userId;
