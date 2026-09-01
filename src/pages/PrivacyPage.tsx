@@ -71,7 +71,7 @@ const PrivacyPage = () => {
           <ul>
             <li>
               <strong>Email:</strong>{" "}
-              <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>
+              <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}
@@ -280,7 +280,7 @@ const PrivacyPage = () => {
           </ul>
           <p>
             Para ejercer cualquiera de estos derechos, contacta a{" "}
-            <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>. Responderemos a tu
+            <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>. Responderemos a tu
             solicitud en un plazo máximo de 30 días.
           </p>
 
@@ -415,7 +415,7 @@ const PrivacyPage = () => {
           <ul>
             <li>
               <strong>Email de privacidad:</strong>{" "}
-              <a href="mailto:soporte@vitas.app">soporte@vitas.app</a>
+              <a href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}

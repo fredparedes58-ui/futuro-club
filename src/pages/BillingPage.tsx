@@ -201,7 +201,7 @@ const BillingPage = () => {
             {t("billing.upgrade.contactAdmin")}
           </p>
           <a
-            href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request&body=Hola%2C%20me%20gustaria%20upgrade%20mi%20plan%20VITAS."
+            href="mailto:Contact@krujens.eu?subject=VITAS%20Upgrade%20Request&body=Hola%2C%20me%20gustaria%20upgrade%20mi%20plan%20VITAS."
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-xs hover:bg-primary/90 transition-colors"
           >
             <Mail size={12} />

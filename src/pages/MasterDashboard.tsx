@@ -510,7 +510,7 @@ const MasterDashboard = () => {
                 {t("master.expertDeskDesc")}
               </p>
               <a
-                href="mailto:soporte@vitas.app?subject=VITAS%20Expert%20Desk"
+                href="mailto:Contact@krujens.eu?subject=VITAS%20Expert%20Desk"
                 className="block w-full px-4 py-3 rounded-lg bg-primary text-primary-foreground font-display font-bold text-sm text-center hover:bg-primary/90 transition-colors"
               >
                 {t("master.contactExpert")}

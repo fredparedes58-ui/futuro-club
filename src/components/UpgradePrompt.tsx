@@ -58,7 +58,7 @@ export default function UpgradePrompt({
             Disponible en plan <span className="font-bold text-primary">{planLabel}</span>
           </p>
           <a
-            href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request"
+            href="mailto:Contact@krujens.eu?subject=VITAS%20Upgrade%20Request"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-xs hover:bg-primary/90 transition-colors"
           >
             <Mail size={11} />
@@ -119,7 +119,7 @@ export default function UpgradePrompt({
               </div>
 
               <a
-                href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request"
+                href="mailto:Contact@krujens.eu?subject=VITAS%20Upgrade%20Request"
                 className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-gradient-to-r from-primary to-blue-500 text-white font-display font-semibold text-sm hover:opacity-90 transition-opacity"
               >
                 <Mail size={14} />
@@ -158,7 +158,7 @@ export default function UpgradePrompt({
           </p>
         </div>
         <a
-          href="mailto:fredparedes58@gmail.com?subject=VITAS%20Upgrade%20Request"
+          href="mailto:Contact@krujens.eu?subject=VITAS%20Upgrade%20Request"
           className="shrink-0 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-display font-semibold text-[10px] hover:bg-primary/90 transition-colors"
         >
           Upgrade
