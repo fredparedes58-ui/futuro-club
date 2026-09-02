@@ -228,6 +228,15 @@
       "sentTitle": "Email sent",
       "sentDescription": "Check {email} and follow the link to reset your password."
     },
+    "confirmEmail": {
+      "verifying": "Verifying your email…",
+      "successTitle": "Email verified!",
+      "successDescription": "Your account is ready. Signing you in…",
+      "errorTitle": "We couldn't verify the link",
+      "linkInvalid": "The verification link is invalid or has expired. Request a new one by signing in.",
+      "supabaseNotConfigured": "Supabase not configured",
+      "goToLogin": "Go to login"
+    },
     "resetPassword": {
       "title": "New password",
       "newPasswordLabel": "New password",

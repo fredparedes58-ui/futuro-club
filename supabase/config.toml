@@ -20,7 +20,10 @@ max_rows = 1000
 [auth]
 enabled = true
 site_url = "http://localhost:5200"
-additional_redirect_urls = ["https://futuro-club.vercel.app"]
+# Redirect allow-list. Incluye /auth/confirm (confirmación de email, Rama A).
+# OJO: esto es SOLO para `supabase start` (dev local); en PROD manda la lista de
+# "Redirect URLs" del dashboard de Supabase → añadir allí https://futuro-club.vercel.app/auth/confirm.
+additional_redirect_urls = ["http://localhost:5200/**", "https://futuro-club.vercel.app/**"]
 
 [auth.email]
 enable_signup = true
