@@ -55,3 +55,52 @@ export function useCancelInvitation(orgOwnerId: string) {
     },
   });
 }
+
+// ── Acceso a club (Rama B) ─────────────────────────────────────────────────
+
+/** Código de invitación del club del director (se genera si falta). */
+export function useJoinCode(enabled: boolean) {
+  return useQuery({
+    queryKey: ["club-join-code"],
+    queryFn: () => TeamService.getJoinCode(),
+    enabled,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useRegenJoinCode() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => TeamService.regenJoinCode(),
+    onSuccess: (code) => qc.setQueryData(["club-join-code"], code),
+  });
+}
+
+/** Solicitudes de acceso pendientes al club del director. */
+export function useAccessRequests(enabled: boolean) {
+  return useQuery({
+    queryKey: ["club-access-requests"],
+    queryFn: () => TeamService.listRequests(),
+    enabled,
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useDecideRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ requestId, decision }: { requestId: string; decision: "approve" | "reject" }) =>
+      TeamService.decideRequest(requestId, decision),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["club-access-requests"] });
+    },
+  });
+}
+
+/** Un usuario solicita unirse a un club por su código. */
+export function useRequestAccess() {
+  return useMutation({
+    mutationFn: ({ code, message }: { code: string; message?: string }) =>
+      TeamService.requestAccess(code, message),
+  });
+}

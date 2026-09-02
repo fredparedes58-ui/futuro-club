@@ -30,6 +30,16 @@ export interface TeamInvitation {
   createdAt: string;
 }
 
+/** Solicitud de acceso a un club (Rama B). */
+export interface AccessRequest {
+  id: string;
+  requesterId: string;
+  requesterEmail: string | null;
+  requestedRole: string;
+  message: string | null;
+  createdAt: string;
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export const TeamService = {
@@ -81,6 +91,51 @@ export const TeamService = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error ?? "Error al enviar invitación");
+    }
+  },
+
+  // ── Acceso a club (Rama B): código, solicitud y aprobación ──────────
+  async getJoinCode(): Promise<string> {
+    const res = await fetch("/api/team/join-code", { headers: await getAuthHeaders() });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error ?? "No se pudo obtener el código");
+    return (json.data ?? json).code as string;
+  },
+
+  async regenJoinCode(): Promise<string> {
+    const res = await fetch("/api/team/join-code", { method: "POST", headers: await getAuthHeaders() });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error ?? "No se pudo regenerar el código");
+    return (json.data ?? json).code as string;
+  },
+
+  async requestAccess(code: string, message?: string): Promise<{ orgName: string }> {
+    const res = await fetch("/api/team/request-access", {
+      method: "POST",
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ code, message }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error ?? "No se pudo enviar la solicitud");
+    return { orgName: (json.data ?? json).orgName ?? "el club" };
+  },
+
+  async listRequests(): Promise<AccessRequest[]> {
+    const res = await fetch("/api/team/list-requests", { headers: await getAuthHeaders() });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.error ?? "No se pudieron cargar las solicitudes");
+    return ((json.data ?? json).requests ?? []) as AccessRequest[];
+  },
+
+  async decideRequest(requestId: string, decision: "approve" | "reject"): Promise<void> {
+    const res = await fetch("/api/team/decide-request", {
+      method: "POST",
+      headers: await getAuthHeaders(),
+      body: JSON.stringify({ requestId, decision }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error ?? "No se pudo procesar la solicitud");
     }
   },
 
