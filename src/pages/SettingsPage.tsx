@@ -27,6 +27,7 @@ import {
 import { usePlan, type PlanState } from "@/hooks/usePlan";
 import { PLAN_LABELS } from "@/services/real/subscriptionService";
 import TelegramConnect from "@/components/TelegramConnect";
+import ClubAccessPanel from "@/components/team/ClubAccessPanel";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
@@ -514,6 +515,13 @@ const SettingsPage = () => {
             {t("settingsPage.integrations")}
           </h2>
           <TelegramConnect />
+        </motion.div>
+      )}
+
+      {/* Acceso a club (Rama B) — director comparte código + aprueba; miembro solicita */}
+      {user && (
+        <motion.div variants={item}>
+          <ClubAccessPanel />
         </motion.div>
       )}
 
