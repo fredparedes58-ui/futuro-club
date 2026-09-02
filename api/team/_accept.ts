@@ -51,6 +51,15 @@ export default withHandler(
       return errorResponse("La invitación ha expirado", 410);
     }
 
+    // org_id del club (organizations.owner_id === org_owner_id) para que la RLS
+    // de datos (mig 038) scopee al miembro. Histórico: no se rellenaba → miembros
+    // con org_id NULL y scoping roto. Si el club no tiene org, queda null.
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("owner_id", invitation.org_owner_id)
+      .maybeSingle();
+
     // Crear miembro del equipo (ignorar conflicto si ya existe)
     const { error: memberError } = await supabase
       .from("team_members")
@@ -58,6 +67,7 @@ export default withHandler(
         org_owner_id: invitation.org_owner_id,
         member_id: userId,
         role: invitation.role,
+        org_id: org?.id ?? null,
       }, { onConflict: "org_owner_id,member_id" });
 
     if (memberError) {
