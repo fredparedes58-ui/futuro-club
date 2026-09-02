@@ -228,6 +228,15 @@
       "sentTitle": "Email enviado",
       "sentDescription": "Revisa {email} y sigue el enlace para resetear tu contraseña."
     },
+    "confirmEmail": {
+      "verifying": "Verificando tu correo…",
+      "successTitle": "¡Correo verificado!",
+      "successDescription": "Tu cuenta está lista. Entrando…",
+      "errorTitle": "No pudimos verificar el enlace",
+      "linkInvalid": "El enlace de verificación no es válido o ha expirado. Solicita uno nuevo iniciando sesión.",
+      "supabaseNotConfigured": "Supabase no configurado",
+      "goToLogin": "Ir a inicio de sesión"
+    },
     "resetPassword": {
       "title": "Nueva contraseña",
       "newPasswordLabel": "Nueva contraseña",

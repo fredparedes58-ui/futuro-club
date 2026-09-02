@@ -126,6 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
+        // Al confirmar el email, Supabase redirige aquí. origin dinámico → sirve
+        // en dev (localhost:5200) y prod (futuro-club.vercel.app). La URL debe
+        // estar en la allow-list de Redirect URLs del proyecto Supabase.
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
         data: {
           display_name: displayName ?? email.split("@")[0],
           user_type: userType ?? "scout",
