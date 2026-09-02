@@ -87,6 +87,13 @@ vi.mock("@/services/real/backupService", () => ({
   },
 }));
 
+// ClubAccessPanel usa react-query (useUserProfile/useTeam); este test renderiza
+// SettingsPage sin QueryClientProvider y solo verifica sus secciones propias, así
+// que lo mockeamos a nulo para no arrastrar react-query aquí.
+vi.mock("@/components/team/ClubAccessPanel", () => ({
+  default: () => null,
+}));
+
 import SettingsPage from "@/pages/SettingsPage";
 
 // ── Tests ────────────────────────────────────────────────────────────────────
