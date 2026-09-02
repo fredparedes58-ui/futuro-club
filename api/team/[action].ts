@@ -8,6 +8,7 @@ import updateRole from "./_update-role";
 import requestAccess from "./_request";
 import decide from "./_decide";
 import joinCode from "./_join-code";
+import listRequests from "./_list-requests";
 
 const routes: Record<string, (req: Request) => Promise<Response>> = {
   "invite": invite,
@@ -16,6 +17,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "request-access": requestAccess,
   "decide-request": decide,
   "join-code": joinCode,
+  "list-requests": listRequests,
 };
 
 export default async function handler(req: Request): Promise<Response> {

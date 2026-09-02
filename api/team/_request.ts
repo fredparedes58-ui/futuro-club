@@ -39,9 +39,11 @@ export default withHandler(
     const { code, message } = body;
 
     // ── Resolver el club por join_code (director) ─────────────────────
+    // user_profiles NO tiene email/display_name (solo role/organization_name);
+    // el email va en auth.users → se obtiene con el admin API más abajo.
     const { data: club } = await supabase
       .from("user_profiles")
-      .select("user_id, role, organization_name, email")
+      .select("user_id, role, organization_name")
       .eq("join_code", code)
       .eq("role", "director")
       .maybeSingle();
@@ -68,14 +70,14 @@ export default withHandler(
       return errorResponse("Ya perteneces a este club", 409, "ALREADY_MEMBER");
     }
 
-    // Email del solicitante (para que el director sepa quién pide).
-    const { data: reqProfile } = await supabase
-      .from("user_profiles")
-      .select("email, display_name")
-      .eq("user_id", requesterId)
-      .maybeSingle();
-    const requesterEmail = reqProfile?.email ?? null;
-    const requesterName = reqProfile?.display_name ?? requesterEmail ?? "Un usuario";
+    // Datos del solicitante (email + nombre) desde auth.users (admin API):
+    // el email vive ahí, y el nombre en user_metadata.display_name (lo fija signUp).
+    const { data: reqUser } = await supabase.auth.admin.getUserById(requesterId);
+    const requesterEmail: string | null = reqUser?.user?.email ?? null;
+    const requesterName: string =
+      (reqUser?.user?.user_metadata?.display_name as string | undefined) ??
+      requesterEmail ??
+      "Un usuario";
 
     // ── Upsert de la solicitud (re-solicitar reabre a pending) ────────
     const { error: upsertErr } = await supabase
@@ -100,13 +102,15 @@ export default withHandler(
     const orgName = (club.organization_name as string) ?? "el club";
 
     // ── Notificar al director dueño por email (best effort) ───────────
-    if (resendKey && !resendKey.startsWith("placeholder") && club.email) {
+    const { data: dirUser } = await supabase.auth.admin.getUserById(orgOwnerId);
+    const directorEmail: string | null = dirUser?.user?.email ?? null;
+    if (resendKey && !resendKey.startsWith("placeholder") && directorEmail) {
       const origin = new URL(req.url).origin;
       const reviewUrl = `${origin}/director`;
       const resend = new Resend(resendKey);
       await resend.emails.send({
         from: "VITAS <no-reply@prophet-horizon.tech>",
-        to: [club.email as string],
+        to: [directorEmail],
         subject: `Solicitud de acceso a ${orgName}`,
         html: `
           <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">

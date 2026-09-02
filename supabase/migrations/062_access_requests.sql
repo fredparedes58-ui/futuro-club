@@ -47,20 +47,25 @@ create index if not exists access_requests_status_idx    on public.access_reques
 
 alter table public.access_requests enable row level security;
 
--- El solicitante ve y crea sus propias solicitudes.
-drop policy if exists "Requester manages own requests" on public.access_requests;
-create policy "Requester manages own requests"
-  on public.access_requests for all to authenticated
-  using  (auth.uid() = requester_id)
-  with check (auth.uid() = requester_id);
+-- IMPORTANTE: solo LECTURA para authenticated; TODAS las escrituras van por la
+-- API (service_role), que valida join_code y gate de director. Si se permitiera
+-- INSERT directo por PostgREST, un usuario podría crear solicitudes a cualquier
+-- org_owner_id (spam) saltándose el código; y UPDATE directo saltaría el gate.
 
--- El dueño del club ve/gestiona las solicitudes dirigidas a su org. (Los demás
--- directores del club se autorizan a nivel de API; el service_role salta RLS.)
+-- El solicitante LEE sus propias solicitudes (estado pendiente/aprobada/rechazada).
+drop policy if exists "Requester manages own requests" on public.access_requests;
+drop policy if exists "Requester reads own requests" on public.access_requests;
+create policy "Requester reads own requests"
+  on public.access_requests for select to authenticated
+  using (auth.uid() = requester_id);
+
+-- El dueño del club LEE las solicitudes dirigidas a su org. (Los demás directores
+-- las leen vía la API con service_role; las decisiones se toman por la API.)
 drop policy if exists "Org owner manages incoming requests" on public.access_requests;
-create policy "Org owner manages incoming requests"
-  on public.access_requests for all to authenticated
-  using  (auth.uid() = org_owner_id)
-  with check (auth.uid() = org_owner_id);
+drop policy if exists "Org owner reads incoming requests" on public.access_requests;
+create policy "Org owner reads incoming requests"
+  on public.access_requests for select to authenticated
+  using (auth.uid() = org_owner_id);
 
 drop policy if exists "Service role full access access_requests" on public.access_requests;
 create policy "Service role full access access_requests"
