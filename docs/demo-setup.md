@@ -1,4 +1,4 @@
-# Demo VITAS — montaje (`demo.krujens.eu`)
+# Demo VITAS — montaje (`vitas-demo.krujens.eu`)
 
 Objetivo: un demo **igual que desarrollo** (mismo código, todas las funciones), en un
 **entorno separado con su propia base de datos**, para que quien entre vea la
@@ -12,7 +12,8 @@ genuinos**: jugadores con antropometría real → PHV/maduración/rankings se ca
 de verdad. Nunca datos de menores reales (RGPD): todo es sintético.
 
 ## Arquitectura
-- **Mismo código** (`main`), desplegado en el proyecto Vercel del demo (`ficha-captacion`) → `demo.krujens.eu`.
+- **Mismo código** (`main`), desplegado en un **proyecto Vercel del demo** (renómbralo a
+  `vitas-demo` para que no confunda) → dominio `vitas-demo.krujens.eu`. Es VITAS, no otra app.
 - **Supabase del demo = proyecto NUEVO y separado** (nunca el de producción).
 - (Opcional) Bunny del demo separado, para vídeo.
 - Datos = seed sintético (`scripts/seed-demo.mjs`).
@@ -25,13 +26,14 @@ de verdad. Nunca datos de menores reales (RGPD): todo es sintético.
 1. Crea un **proyecto Supabase nuevo** (será el del demo).
 2. Aplica **todas las migraciones** (`supabase/migrations/000…062`) en su SQL Editor,
    en orden. (Es el mismo esquema que producción.)
-3. Auth → **activa "Confirm email"** y añade `https://demo.krujens.eu/auth/confirm`
+3. Auth → **activa "Confirm email"** y añade `https://vitas-demo.krujens.eu/auth/confirm`
    a **Redirect URLs** (igual que en prod, pero en este proyecto).
 4. Crea un **usuario demo** (Auth → Add user), confírmalo, y anota email/contraseña.
 
-### 2. Vercel del demo (`ficha-captacion` — TÚ)
-En **Settings → Environment Variables** del proyecto del demo, pon las del **demo**
-(NO las de producción):
+### 2. Vercel del demo (proyecto `vitas-demo` — TÚ)
+En el proyecto Vercel del demo, asocia el dominio **`vitas-demo.krujens.eu`** (CNAME
+desde el DNS de krujens.eu; Vercel emite el SSL). Luego, en **Settings → Environment
+Variables**, pon las del **demo** (NO las de producción):
 - `VITE_SUPABASE_URL` = URL del Supabase del demo
 - `VITE_SUPABASE_ANON_KEY` = anon key del demo
 - `SUPABASE_SERVICE_ROLE_KEY` = service role del demo
@@ -39,13 +41,13 @@ En **Settings → Environment Variables** del proyecto del demo, pon las del **d
 - IA/vídeo/pagos: ver **Guardarraíles** abajo (topes bajos, o dejar sin clave).
 Redespliega el proyecto tras poner las variables.
 
-> ⚠️ Si `ficha-captacion` está usando ahora las variables de **producción**, cámbialas
+> ⚠️ Si el proyecto del demo está usando ahora las variables de **producción**, cámbialas
 > YA: mientras las comparta, el demo está leyendo/escribiendo datos reales de menores.
 
 ### 3. Sembrar datos (YO ya dejé el script — lo corres TÚ)
 Con las credenciales del **demo**:
 ```bash
-DEMO_API_BASE="https://demo.krujens.eu" \
+DEMO_API_BASE="https://vitas-demo.krujens.eu" \
 DEMO_SUPABASE_URL="https://<demo-ref>.supabase.co" \
 DEMO_SUPABASE_ANON_KEY="<anon del demo>" \
 DEMO_EMAIL="<usuario demo>" DEMO_PASSWORD="<pass>" \

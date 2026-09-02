@@ -11,7 +11,7 @@
  * que reutiliza la validación, el dual-write y el gate de VSI del servidor.
  *
  * Uso (con las credenciales del DEMO — nunca las de producción):
- *   DEMO_API_BASE="https://demo.krujens.eu" \
+ *   DEMO_API_BASE="https://vitas-demo.krujens.eu" \
  *   DEMO_SUPABASE_URL="https://<demo-ref>.supabase.co" \
  *   DEMO_SUPABASE_ANON_KEY="<anon key del demo>" \
  *   DEMO_EMAIL="demo@krujens.eu" DEMO_PASSWORD="<pass del usuario demo>" \
