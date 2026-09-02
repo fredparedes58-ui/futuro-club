@@ -108,7 +108,26 @@ export default withHandler(
       const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 200);
       const offset = parseInt(url.searchParams.get("offset") ?? "0");
 
-      let queryUrl = `${supabaseUrl}/rest/v1/players?user_id=eq.${userId}`;
+      // Roster visible = los jugadores propios + los del/los club(es) de los que
+      // el caller es MIEMBRO. Los owner-ids se derivan ESTRICTAMENTE de
+      // team_members(member_id = caller) → un miembro NUNCA ve otro club.
+      // Fail-closed: si la resolución falla, solo se ven los propios (menos, nunca
+      // más). RGPD: un fallo aquí no puede filtrar datos de menores entre clubes.
+      const visibleOwnerIds = new Set<string>([userId!]);
+      try {
+        const tmRes = await fetch(
+          `${supabaseUrl}/rest/v1/team_members?member_id=eq.${userId}&select=org_owner_id`,
+          { headers },
+        );
+        if (tmRes.ok) {
+          const tms = (await tmRes.json()) as Array<{ org_owner_id: string | null }>;
+          for (const tm of tms) if (tm.org_owner_id) visibleOwnerIds.add(tm.org_owner_id);
+        }
+        // tmRes no-ok → no ampliamos (fail-closed): solo los propios.
+      } catch { /* fail-closed: solo los propios */ }
+
+      const ownerList = Array.from(visibleOwnerIds).join(",");
+      let queryUrl = `${supabaseUrl}/rest/v1/players?user_id=in.(${ownerList})`;
       if (id) queryUrl += `&id=eq.${id}`;
 
       // Sort: usar columnas relacionales (024_normalize_players) — más rápido que jsonb paths

@@ -77,11 +77,15 @@ describe("/api/players/crud", () => {
         { id: "p2", data: { name: "Pablo", age: 14, vsi: 65 }, updated_at: "2026-01-02" },
       ];
 
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify(mockRows), {
+      // El GET ahora consulta team_members (roster del club) antes que players.
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        if (String(url).includes("team_members")) {
+          return new Response(JSON.stringify([]), {});
+        }
+        return new Response(JSON.stringify(mockRows), {
           headers: { "content-range": "0-1/2" },
-        }),
-      );
+        });
+      });
 
       const res = await crudHandler(makeRequest("GET"));
       expect(res.status).toBe(200);
@@ -92,11 +96,14 @@ describe("/api/players/crud", () => {
     });
 
     it("fetches single player by id", async () => {
-      vi.spyOn(globalThis, "fetch").mockResolvedValue(
-        new Response(JSON.stringify([
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        if (String(url).includes("team_members")) {
+          return new Response(JSON.stringify([]), {});
+        }
+        return new Response(JSON.stringify([
           { id: "p1", data: { name: "Lucas", age: 15, vsi: 70 }, updated_at: "2026-01-01" },
-        ]), { headers: { "content-range": "0-0/1" } }),
-      );
+        ]), { headers: { "content-range": "0-0/1" } });
+      });
 
       const res = await crudHandler(makeRequest("GET", undefined, { id: "p1" }));
       expect(res.status).toBe(200);
