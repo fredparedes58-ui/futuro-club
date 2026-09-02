@@ -9,7 +9,7 @@
  * éxito). Misma forma que ResetPasswordPage (que también confía en el hash).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Loader2, CheckCircle2, AlertCircle, Zap } from "lucide-react";
@@ -26,11 +26,12 @@ export default function ConfirmEmailPage() {
   const { t } = useTranslation();
   const [status, setStatus] = useState<Status>("verifying");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const ranRef = useRef(false);
 
+  // Corre una vez al montar. Bajo StrictMode React monta/desmonta/monta: cada
+  // montaje reengancha suscripción + timers y el cleanup los libera todos, así
+  // que es idempotente sin necesidad de un ref-guard (que rompería justo eso).
   useEffect(() => {
-    if (ranRef.current) return; // StrictMode monta dos veces; corre una sola
-    ranRef.current = true;
+    const scrubHash = () => window.history.replaceState(null, "", window.location.pathname);
 
     if (!SUPABASE_CONFIGURED) {
       setStatus("error");
@@ -38,39 +39,40 @@ export default function ConfirmEmailPage() {
       return;
     }
 
-    // 1. Si el enlace trae un error (expirado / ya usado), Supabase lo devuelve
-    //    en el hash como error_description → lo mostramos tal cual, sin fingir.
+    // Si el enlace trae un error (expirado / ya usado), Supabase lo devuelve en
+    // el hash como error_description → lo mostramos tal cual, sin fingir éxito.
     const rawHash = window.location.hash.startsWith("#")
       ? window.location.hash.slice(1)
       : window.location.hash;
-    const hashParams = new URLSearchParams(rawHash);
-    const errDesc = hashParams.get("error_description");
+    const errDesc = new URLSearchParams(rawHash).get("error_description");
     if (errDesc) {
-      window.history.replaceState(null, "", window.location.pathname); // limpia el hash
+      scrubHash();
       setStatus("error");
       setErrorMsg(errDesc);
       return;
     }
 
     let done = false;
+    let navTimer: ReturnType<typeof setTimeout> | undefined;
     const succeed = () => {
       if (done) return;
       done = true;
-      window.history.replaceState(null, "", window.location.pathname); // scrub token
+      scrubHash(); // quita el token de la URL
       setStatus("success");
       // /home: ProtectedRoute enruta a /onboarding a los nuevos y deja pasar al resto
-      setTimeout(() => navigate("/home", { replace: true }), 1500);
+      navTimer = setTimeout(() => navigate("/home", { replace: true }), 1500);
     };
     const fail = () => {
       if (done) return;
       done = true;
+      scrubHash();
       setStatus("error");
       setErrorMsg(t("auth.confirmEmail.linkInvalid"));
     };
 
-    // 2. detectSessionInUrl procesa el hash de forma asíncrona → puede fijar la
-    //    sesión antes o después de que montemos. Cubrimos ambos: escuchamos el
-    //    evento SIGNED_IN y además consultamos getSession de inmediato.
+    // detectSessionInUrl procesa el hash de forma asíncrona → puede fijar la
+    // sesión antes o después de que montemos. Cubrimos ambos: escuchamos el
+    // evento SIGNED_IN y además consultamos getSession de inmediato.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) succeed();
     });
@@ -78,7 +80,7 @@ export default function ConfirmEmailPage() {
       if (data.session) succeed();
     });
 
-    // 3. Respaldo: si en 6s no hay sesión ni error, el enlace no era válido.
+    // Respaldo: si en 6s no hay sesión ni error, el enlace no era válido.
     const timeout = setTimeout(async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) succeed();
@@ -88,8 +90,11 @@ export default function ConfirmEmailPage() {
     return () => {
       sub.subscription.unsubscribe();
       clearTimeout(timeout);
+      if (navTimer) clearTimeout(navTimer);
     };
-  }, [navigate, t]);
+    // navigate/t son estables para el ciclo de vida de esta página; corre 1 vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
