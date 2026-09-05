@@ -10,7 +10,18 @@
  */
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM_ADDRESS = "VITAS <noreply@vitas.app>";
+
+/**
+ * Remitente ÚNICO de todos los correos transaccionales de VITAS (invariante #7:
+ * una sola implementación por concepto). Debe ser una dirección de un dominio
+ * VERIFICADO en Resend (SPF + DKIM), o Resend rechaza el envío.
+ *
+ * Configúralo en Vercel como `RESEND_FROM_EMAIL="VITAS <noreply@krujens.eu>"`.
+ * El valor por defecto asume el dominio krujens.eu ya verificado en Resend.
+ * Todos los envíos (helper `sendEmail` + llamadas directas a la API) importan
+ * esta constante — no vuelvas a hardcodear un `from:` en ningún endpoint.
+ */
+export const RESEND_FROM = process.env.RESEND_FROM_EMAIL ?? "VITAS <noreply@krujens.eu>";
 
 export async function sendEmail(options: {
   to: string;
@@ -31,7 +42,7 @@ export async function sendEmail(options: {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: FROM_ADDRESS,
+        from: RESEND_FROM,
         to: options.to,
         subject: options.subject,
         html: options.html,

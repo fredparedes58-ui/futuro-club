@@ -18,6 +18,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { randomHex } from "../_lib/edgeCrypto";
 import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
+import { RESEND_FROM } from "../_lib/email";
 
 export const config = { runtime: "edge" };
 
@@ -28,7 +29,7 @@ const deleteSchema = z.object({
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const PUBLIC_URL = process.env.VITAS_PUBLIC_URL ?? "https://vitas.app";
+const PUBLIC_URL = process.env.VITAS_PUBLIC_URL ?? "https://futuro-club.vercel.app";
 const RETENTION_HOURS = 72;
 
 async function sendDeletionEmail(to: string, cancellationLink: string, scheduledFor: string) {
@@ -56,7 +57,7 @@ async function sendDeletionEmail(to: string, cancellationLink: string, scheduled
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL ?? "VITAS <onboarding@resend.dev>",
+      from: RESEND_FROM,
       to: [to],
       subject: "VITAS · Solicitud de eliminación de cuenta",
       html,

@@ -340,7 +340,7 @@ export default function PlayerReportPrint() {
       <div className="pt-6 border-t border-gray-200 flex items-center justify-between">
         <div className="text-xs text-purple-600 font-bold tracking-widest uppercase">VITAS.</div>
         <div className="text-xs text-gray-400">
-          Football Intelligence · prophet-horizon.tech · {reportId}
+          Football Intelligence · krujens.eu · {reportId}
         </div>
         <div className="text-xs text-gray-400">© {new Date().getFullYear()}</div>
       </div>
