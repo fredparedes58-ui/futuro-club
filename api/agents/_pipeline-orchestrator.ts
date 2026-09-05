@@ -20,6 +20,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { RESEND_FROM } from "../_lib/email";
 import { deriveSimMetrics } from "../_lib/simMetrics";
 import { normalizeLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
@@ -166,7 +167,7 @@ async function sendCompletionEmail(
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL ?? "VITAS <onboarding@resend.dev>",
+      from: RESEND_FROM,
       to: [to],
       subject: `VITAS · Análisis de ${playerName} listo${vsi != null ? ` · VSI ${vsi}` : ""}`,
       html,

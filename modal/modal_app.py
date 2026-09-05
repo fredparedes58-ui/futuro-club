@@ -376,7 +376,7 @@ def analyze_endpoint(payload: dict) -> dict:
         "analysisId": "uuid",
         "playerId": "...",
         "videoId": "...",
-        "callbackUrl": "https://vitas.app/api/webhooks/modal-callback",
+        "callbackUrl": "https://futuro-club.vercel.app/api/webhooks/modal-callback",
         "callbackToken": "secret",
         "targetPlayerBbox": {...} | null
       }

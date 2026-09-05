@@ -14,6 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { RESEND_FROM } from "../_lib/email";
 
 // Node.js runtime — Resend SDK usa APIs de Node.
 // export const config = { runtime: "edge" };
@@ -109,7 +110,7 @@ export default withHandler(
       const reviewUrl = `${origin}/director`;
       const resend = new Resend(resendKey);
       await resend.emails.send({
-        from: "VITAS <no-reply@prophet-horizon.tech>",
+        from: RESEND_FROM,
         to: [directorEmail],
         subject: `Solicitud de acceso a ${orgName}`,
         html: `

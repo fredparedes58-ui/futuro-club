@@ -18,6 +18,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayerOrTenant } from "../_lib/ownership";
+import { RESEND_FROM } from "../_lib/email";
 import { createClient } from "@supabase/supabase-js";
 import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
 
@@ -75,9 +76,9 @@ async function sendConsentEmail(to: string, link: string, parentName: string, ch
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      // Sandbox por defecto (sin dominio verificado): solo envía a tu email Resend
-      // Cuando verifiques dominio, define RESEND_FROM_EMAIL="VITAS <noreply@tu-dominio.com>"
-      from: process.env.RESEND_FROM_EMAIL ?? "VITAS <onboarding@resend.dev>",
+      // Remitente único (RESEND_FROM_EMAIL, default krujens.eu). Exige dominio
+      // verificado en Resend; sin verificar, Resend rechaza el envío.
+      from: RESEND_FROM,
       to: [to],
       subject: template.subject,
       html: template.html,
@@ -195,7 +196,7 @@ export default withHandler(
     }
 
     // ── Enviar email de verificación ──────────────────────────────
-    const baseUrl = process.env.VITAS_PUBLIC_URL ?? "https://vitas.app";
+    const baseUrl = process.env.VITAS_PUBLIC_URL ?? "https://futuro-club.vercel.app";
     const verifyLink = `${baseUrl}/auth/verify-consent?token=${verificationToken}`;
     const emailSent = await sendConsentEmail(
       input.parentEmail,

@@ -11,6 +11,7 @@ import { Resend } from "resend";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { checkTeamQuota, quotaExceededResponse } from "../_lib/usageGuard";
+import { RESEND_FROM } from "../_lib/email";
 
 // Node.js runtime required — Resend SDK uses Node-only APIs
 // export const config = { runtime: "edge" };
@@ -92,7 +93,7 @@ export default withHandler(
     if (resendKey && !resendKey.startsWith("placeholder")) {
       const resend = new Resend(resendKey);
       await resend.emails.send({
-        from: "VITAS <no-reply@prophet-horizon.tech>",
+        from: RESEND_FROM,
         to: [email],
         subject: `Invitación a unirte al equipo de ${orgName}`,
         html: `

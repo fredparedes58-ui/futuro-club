@@ -66,7 +66,7 @@ export const env = {
   // ─── Notifications ───
   get vapidPublicKey() { return optional("VITE_VAPID_PUBLIC_KEY") ?? optional("VAPID_PUBLIC_KEY"); },
   get vapidPrivateKey() { return required("VAPID_PRIVATE_KEY"); },
-  get vapidMailto() { return optional("VAPID_SUBJECT") ?? optional("VAPID_MAILTO", "mailto:admin@vitas.app"); },
+  get vapidMailto() { return optional("VAPID_SUBJECT") ?? optional("VAPID_MAILTO", "mailto:Contact@krujens.eu"); },
 
   // ─── External APIs ───
   get footballDataApiKey() { return required("FOOTBALL_DATA_API_KEY"); },

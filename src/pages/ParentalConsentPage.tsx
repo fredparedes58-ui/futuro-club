@@ -62,7 +62,7 @@ const MOCK_PLAYERS: ConsentPlayer[] = [
 const MOCK_AUDIT: AuditEntry[] = [
   { id: "a1", player_id: "m3", action: "consent_granted", actor_email: "ana.ruiz@email.com", details: { guardian_name: "Ana Ruiz Martínez" }, created_at: "2026-04-10T10:30:00Z" },
   { id: "a2", player_id: "m4", action: "consent_denied", actor_email: "carlos.garcia@email.com", details: { reason: "No autorizo procesamiento IA" }, created_at: "2026-04-08T14:15:00Z" },
-  { id: "a3", player_id: "m1", action: "consent_requested", actor_email: "coach@vitas.app", details: {}, created_at: "2026-04-05T09:00:00Z" },
+  { id: "a3", player_id: "m1", action: "consent_requested", actor_email: "coach@krujens.eu", details: {}, created_at: "2026-04-05T09:00:00Z" },
 ];
 
 /* ── Status helpers ────────────────────────────────────────────── */

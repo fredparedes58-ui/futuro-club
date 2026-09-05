@@ -19,6 +19,7 @@
 import webpush from "web-push";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { RESEND_FROM } from "../_lib/email";
 
 interface PushSub {
   user_id: string;
@@ -73,7 +74,7 @@ export default withHandler(
     const serviceKey   = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const vapidPublic  = process.env.VITE_VAPID_PUBLIC_KEY ?? process.env.VAPID_PUBLIC_KEY ?? "";
     const vapidPrivate = process.env.VAPID_PRIVATE_KEY ?? "";
-    const vapidSubject = process.env.VAPID_SUBJECT ?? process.env.VAPID_MAILTO ?? "mailto:admin@vitas.app";
+    const vapidSubject = process.env.VAPID_SUBJECT ?? process.env.VAPID_MAILTO ?? "mailto:Contact@krujens.eu";
     const vapidEmail   = vapidSubject.startsWith("mailto:") ? vapidSubject : `mailto:${vapidSubject}`;
     const resendKey    = process.env.RESEND_API_KEY;
 
@@ -272,7 +273,7 @@ export default withHandler(
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  from: "VITAS <noreply@vitas.app>",
+                  from: RESEND_FROM,
                   to: [email],
                   subject: `⚠️ ${notif.title}`,
                   html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px;">
