@@ -16,6 +16,7 @@ import {
   TacticalPatternInputSchema,
   TacticalPatternOutputSchema,
 } from "../../src/agents/contracts";
+import { localeSchema } from "../../src/lib/shared/locale";
 import {
   buildTacticalPatternPrompt,
   TACTICAL_PROMPT_VERSION,
@@ -51,7 +52,7 @@ const GenerateInsightsSchema = z.object({
     })
     .optional(),
   // FASE 5 · idioma del reporte + maduración biológica del equipo (opcionales)
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
   phvDistribution: z
     .object({ prePhv: z.number().optional(), circaPhv: z.number().optional(), postPhv: z.number().optional() })
     .optional(),

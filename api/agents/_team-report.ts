@@ -13,7 +13,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { teamReportOutputSchema, validateLLMReport } from "./_outputSchemas";
-import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
@@ -27,7 +27,7 @@ const inputSchema = z.object({
   pressing: z.record(z.unknown()).optional(),
   passNetwork: z.record(z.unknown()).optional(),
   playerContext: z.record(z.unknown()).optional(),
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 }).passthrough();
 
 const PROMPT_VERSION = "v1.1.0"; // v1.1 = gate de hueco + observado/inferido + fallback honesto (docx #14 P4)

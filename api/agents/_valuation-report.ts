@@ -16,7 +16,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
-import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
@@ -47,7 +47,7 @@ const valuationReportSchema = z.object({
   teamAnalysis: z.unknown().nullable().optional(),
   analysisMode: z.string().optional(),
   // FASE 5 · idioma del reporte (evita que Zod lo recorte del sharedContext)
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
   // C1 multi-categoría · evita que Zod recorte la categoría del sharedContext
   category: z.enum(["youth", "senior"]).optional(),
 });

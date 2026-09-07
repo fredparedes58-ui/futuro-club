@@ -38,13 +38,13 @@ describe("categoryDirective", () => {
     expect(categoryDirective("youth", "en")).toBe("");
   });
 
-  it("senior → directiva que anula el framing juvenil (es/en)", () => {
-    const es = categoryDirective("senior");
-    expect(es).toContain("SÉNIOR/PROFESIONAL");
-    expect(es).toContain("NO padres");
-    expect(es).toContain("PHV");
-    const en = categoryDirective("senior", "en");
-    expect(en).toContain("SENIOR/PROFESSIONAL");
-    expect(en).toContain("NOT parents");
+  it("senior → directiva (idioma-neutral) que anula el framing juvenil", () => {
+    // Es una instrucción del prompt: texto único; la salida la fija languageDirective.
+    const d = categoryDirective("senior");
+    expect(d).toContain("SENIOR/PROFESSIONAL");
+    expect(d).toContain("NOT parents");
+    expect(d).toContain("PHV");
+    // El locale ya no cambia el texto (multi-idioma sin ramas por idioma).
+    expect(categoryDirective("senior", "en")).toBe(d);
   });
 });

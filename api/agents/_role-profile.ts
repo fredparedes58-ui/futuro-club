@@ -12,7 +12,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 import { roleProfileFallback } from "../_lib/agentFallbacks";
 import { MODELS } from "../_lib/models";
-import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -22,7 +22,7 @@ const roleSchema = z.object({
     name: z.string().min(1),
   }).passthrough(),
   // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 }).passthrough();
 
 function buildRoleProfilePrompt(locale: ReportLocale): string {

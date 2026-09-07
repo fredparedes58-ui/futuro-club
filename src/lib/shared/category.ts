@@ -45,21 +45,19 @@ export function phvApplies(category: PlayerCategory): boolean {
 /**
  * Directiva de framing para el prompt. "" en youth (prompt idéntico al actual);
  * en senior, bloque que ANULA el framing juvenil de los prompts existentes.
+ *
+ * Es una INSTRUCCIÓN del prompt (el idioma de SALIDA lo fija `languageDirective`),
+ * por eso su texto va en un solo idioma base — sin ramas por idioma. `locale` se
+ * acepta por compatibilidad pero ya no cambia el texto (multi-idioma sin hardcodeo).
  */
 export function categoryDirective(
   category: PlayerCategory,
-  locale: ReportLocale = "es",
+  _locale: ReportLocale = "es",
 ): string {
   if (category === "youth") return "";
-  return locale === "en"
-    ? `CATEGORY: SENIOR/PROFESSIONAL PLAYER — this overrides any youth-academy framing above.
+  return `CATEGORY: SENIOR/PROFESSIONAL PLAYER — this overrides any youth-academy framing above.
 - Audience: coaching staff and sporting direction (NOT parents; no notes for families).
 - Do NOT mention biological maturation/PHV or growth spurts — they do not apply to adults.
 - Use performance/form language ("current level", "role fit", "physical condition"), not youth-development language ("potential to develop", "long-term projection as a kid").
-- Honesty rules still apply: no invented stats, no famous-player comparisons, calibrated confidence.`
-    : `CATEGORÍA: JUGADOR SÉNIOR/PROFESIONAL — esto ANULA cualquier framing de academia juvenil anterior.
-- Audiencia: cuerpo técnico y dirección deportiva (NO padres; sin notas para familias).
-- NO menciones maduración biológica/PHV ni estirones de crecimiento — no aplican a adultos.
-- Usa lenguaje de rendimiento/forma ("nivel actual", "encaje en el rol", "estado físico"), no de desarrollo juvenil ("potencial de desarrollo", "proyección a largo plazo como niño").
-- Las reglas de honestidad siguen: sin stats inventadas, sin comparaciones con cracks, confianza calibrada.`;
+- Honesty rules still apply: no invented stats, no famous-player comparisons, calibrated confidence.`;
 }

@@ -16,7 +16,7 @@ import { successResponse } from "../_lib/apiResponse";
 import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { MODELS } from "../_lib/models";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
-import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -37,7 +37,7 @@ const coachingAssistantSchema = z.object({
   playerHighlights: z.array(z.record(z.unknown())).optional(),
   engagementSnapshots: z.array(z.record(z.unknown())).optional(),
   // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";

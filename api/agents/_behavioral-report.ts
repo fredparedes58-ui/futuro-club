@@ -15,7 +15,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
-import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -41,7 +41,7 @@ const behavioralReportSchema = z.object({
   developmentAreas: z.array(z.string()).optional(),
   videosAnalyzed: z.number().optional(),
   // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";

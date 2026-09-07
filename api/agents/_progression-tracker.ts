@@ -15,6 +15,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { localeSchema } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -38,7 +39,7 @@ const snapshotSchema = z.object({
   source: z.enum(["video_analysis", "manual", "combined"]).optional().default("video_analysis"),
   // Idioma de redacción (default "es"). Aceptado defensivamente para uniformidad de
   // contrato; este agente es determinista y NO genera prosa LLM, así que no se usa.
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 });
 
 export default withHandler(

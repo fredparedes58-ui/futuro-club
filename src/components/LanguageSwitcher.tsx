@@ -6,11 +6,15 @@
  * idioma en la UI — este es el control que faltaba.
  */
 import { useTranslation } from "react-i18next";
+import { SUPPORTED_LOCALES, LANGUAGE_REGISTRY } from "@/lib/shared/locale";
 
-const LANGS = [
-  { code: "es", label: "ES" },
-  { code: "en", label: "EN" },
-] as const;
+// Derivado del registro de idiomas → añadir un idioma (una entrada en
+// LANGUAGE_REGISTRY) añade su botón automáticamente, sin tocar este componente.
+const LANGS = SUPPORTED_LOCALES.map((code) => ({
+  code,
+  label: code.toUpperCase(),
+  name: LANGUAGE_REGISTRY[code].endonym,
+}));
 
 export function LanguageSwitcher({ className = "" }: { className?: string }) {
   const { i18n, t } = useTranslation();
@@ -29,7 +33,7 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
             key={l.code}
             onClick={() => i18n.changeLanguage(l.code)}
             aria-pressed={active}
-            aria-label={l.code === "es" ? t("languageSwitcher.spanish") : t("languageSwitcher.english")}
+            aria-label={l.name}
             className={`px-2 py-0.5 rounded-md text-[11px] font-display font-bold transition-colors ${
               active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
             }`}

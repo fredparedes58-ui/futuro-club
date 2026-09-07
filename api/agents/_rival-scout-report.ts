@@ -18,6 +18,7 @@ import {
   languageDirective,
   phvDistributionLine,
   phvConsideration,
+  localeSchema,
   type ReportLocale,
 } from "../../src/lib/shared/locale";
 import {
@@ -43,7 +44,7 @@ const inputSchema = z.object({
   phvDistribution: z
     .object({ prePhv: z.number().optional(), circaPhv: z.number().optional(), postPhv: z.number().optional() })
     .optional(),
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
 }).passthrough();
 
 const PROMPT_VERSION = "v1.1.0"; // v1.1 = gate de hueco + observado/inferido + fallback honesto (docx #14 P4)
