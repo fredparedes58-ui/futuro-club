@@ -18,13 +18,19 @@ import {
   buildTransferMatchPrompt,
   TRANSFER_PROMPT_VERSION,
 } from "../../src/lib/transfer/transferMatchPrompt";
+import { normalizeLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 const MODEL = MODELS.reasoning;
 
-/** Fallback heurístico: usa solo señales estructuradas (no necesita Claude). */
+/**
+ * Fallback heurístico: usa solo señales estructuradas (no necesita Claude).
+ * TODO(i18n): las cadenas de `reasoning`/`summary`/`matched`/`missing` de abajo
+ * son constantes de fallback (no pasan por el LLM) → quedan en español; su
+ * localización es una fase aparte, no la resuelve languageDirective.
+ */
 function generateFallback(
   data: z.infer<typeof TransferMatchInputSchema>,
 ): z.infer<typeof TransferMatchOutputSchema> {
@@ -101,7 +107,8 @@ export default withHandler(
     }
 
     try {
-      const prompt = buildTransferMatchPrompt(data);
+      const locale = normalizeLocale(data.locale);
+      const prompt = buildTransferMatchPrompt(data, locale);
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {

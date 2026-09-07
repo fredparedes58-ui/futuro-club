@@ -16,6 +16,7 @@ import { successResponse } from "../_lib/apiResponse";
 import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { MODELS } from "../_lib/models";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -35,11 +36,13 @@ const coachingAssistantSchema = z.object({
   teamAvgAge: z.number().optional(),
   playerHighlights: z.array(z.record(z.unknown())).optional(),
   engagementSnapshots: z.array(z.record(z.unknown())).optional(),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
 
-function buildPrompt(data: z.infer<typeof coachingAssistantSchema>, ragContext = ""): string {
+function buildPrompt(data: z.infer<typeof coachingAssistantSchema>, locale: ReportLocale, ragContext = ""): string {
   const teamName = data.teamName ?? "Equipo";
   const avgAge = data.teamAvgAge ?? 13;
   const phv = data.phvDistribution;
@@ -49,7 +52,7 @@ function buildPrompt(data: z.infer<typeof coachingAssistantSchema>, ragContext =
   // C1 multi-categoría · override explícito > edad promedio del equipo > default youth
   const category = resolveCategory({ age: data.teamAvgAge, category: (data as { category?: unknown }).category });
 
-  return `Eres un asistente de coaching para ${category === "senior" ? "fútbol profesional" : "fútbol juvenil"}. Generas reportes de sesión de entrenamiento en español, usando lenguaje profesional pero accesible para ${category === "senior" ? "el cuerpo técnico" : "entrenadores de academia"}.
+  return `Eres un asistente de coaching para ${category === "senior" ? "fútbol profesional" : "fútbol juvenil"}. Generas reportes de sesión de entrenamiento usando lenguaje profesional pero accesible para ${category === "senior" ? "el cuerpo técnico" : "entrenadores de academia"}.
 
 ## CONTEXTO DEL EQUIPO
 - Nombre: ${teamName}
@@ -69,7 +72,7 @@ ${JSON.stringify(recommendation, null, 2)}
 ${data.recentSessions ? JSON.stringify(data.recentSessions.slice(-4), null, 2) : "Sin historial"}
 ${ragContext ? `\n## BASE DE CONOCIMIENTO (metodología LTAD / drills)\n${ragContext}\n` : ""}
 ## INSTRUCCIONES
-Genera un reporte de coaching en español con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y ${category === "senior" ? "adapta las recomendaciones al contexto competitivo y la carga del equipo" : "adapta las recomendaciones a la edad del equipo y su fase LTAD"}. Cuando apliques metodología o drills de la BASE DE CONOCIMIENTO, cita la fuente (atributo source del contexto).
+Genera un reporte de coaching con las siguientes secciones. Sé concreto, usa datos cuando los tengas, y ${category === "senior" ? "adapta las recomendaciones al contexto competitivo y la carga del equipo" : "adapta las recomendaciones a la edad del equipo y su fase LTAD"}. Cuando apliques metodología o drills de la BASE DE CONOCIMIENTO, cita la fuente (atributo source del contexto).
 
 ### 1. Resumen de la Sesión
 Párrafo de 2-3 oraciones resumiendo lo que funcionó y el balance general.
@@ -106,7 +109,10 @@ Formato JSON:
   "confidence_score": number (0-100 · confianza real en el análisis según los datos disponibles),
   "data_completeness": number (0-100 · % de dimensiones evaluadas con datos reales, no inferidos),
   "not_evaluated": string[] (aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto)
-}${category === "senior" ? "\n\n" : ""}${categoryDirective(category)}`;
+}${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}
+
+${languageDirective(locale)}
+`;
 }
 
 export default withHandler(
@@ -144,7 +150,8 @@ export default withHandler(
     }
 
     try {
-      const prompt = buildPrompt(data, ragContext);
+      const locale = normalizeLocale(data.locale);
+      const prompt = buildPrompt(data, locale, ragContext);
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",

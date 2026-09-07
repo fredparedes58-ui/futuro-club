@@ -12,6 +12,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 import { roleProfileFallback } from "../_lib/agentFallbacks";
 import { MODELS } from "../_lib/models";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -20,9 +21,12 @@ const roleSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1),
   }).passthrough(),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 }).passthrough();
 
-const ROLE_PROFILE_PROMPT = `
+function buildRoleProfilePrompt(locale: ReportLocale): string {
+  return `
 Eres el motor de perfilado táctico de VITAS Football Intelligence.
 Tu función es construir un perfil de rol completo y preciso para un jugador juvenil de fútbol.
 
@@ -95,18 +99,22 @@ ESTRUCTURA JSON EXACTA — usa EXACTAMENTE estos nombres de campo (el cliente lo
   "confidence_score": 0-100,
   "data_completeness": 0-100,
   "not_evaluated": ["…"],
-  "summary": "≤400 caracteres, en español"
+  "summary": "≤400 caracteres"
 }
 RESTRICCIONES: identityDistribution suma exactamente 1.0 · topPositions y topArchetypes ≤5 · strengths ≤4 · risks ≤3 · gaps ≤3 · code de posición ∈ {GK,RB,RCB,LCB,LB,DM,RCM,LCM,RW,LW,ST} · stability y dominantIdentity solo los enums de arriba · fit 0-100, confidence/overallConfidence 0-1.
 
 RESPONDE ÚNICAMENTE con JSON válido.
 No incluyas texto, explicaciones ni markdown fuera del JSON.
-Todos los números con 2 decimales máximo. El summary en español, máximo 400 caracteres.
+Todos los números con 2 decimales máximo. El summary máximo 400 caracteres.
+
+${languageDirective(locale)}
 `;
+}
 
 export default withHandler(
   { schema: roleSchema, requireAuth: true, maxRequests: 30 },
   async ({ body, userId }) => {
+    const locale = normalizeLocale(body.locale);
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return successResponse(roleProfileFallback(body, "no_api_key"));
@@ -145,7 +153,7 @@ export default withHandler(
         model:       MODELS.fast,
         max_tokens:  1024,
         temperature: 0,
-        system:      ROLE_PROFILE_PROMPT,
+        system:      buildRoleProfilePrompt(locale),
         messages:    [{ role: "user", content: JSON.stringify(body) }],
       }),
     });

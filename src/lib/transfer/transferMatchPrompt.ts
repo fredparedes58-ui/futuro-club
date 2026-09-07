@@ -7,10 +7,14 @@
  */
 
 import type { TransferMatchInput } from "../../agents/contracts";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../shared/locale";
 
 export const TRANSFER_PROMPT_VERSION = "v1.0.0";
 
-export function buildTransferMatchPrompt(data: TransferMatchInput): string {
+export function buildTransferMatchPrompt(
+  data: TransferMatchInput,
+  locale: ReportLocale = normalizeLocale(data.locale),
+): string {
   const candidatesBlock = data.candidates
     .slice(0, 30)
     .map((c, i) => {
@@ -86,5 +90,8 @@ ${candidatesBlock}
 }
 \`\`\`
 
-Responde ÚNICAMENTE con el JSON. Sin texto extra ni markdown wrapper.`;
+Responde ÚNICAMENTE con el JSON. Sin texto extra ni markdown wrapper.
+
+${languageDirective(locale)}
+`;
 }

@@ -9,10 +9,14 @@
  */
 
 import type { IDPArchitectInput } from "../../agents/contracts";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../shared/locale";
 
 export const IDP_PROMPT_VERSION = "v1.0.0";
 
-export function buildIDPArchitectPrompt(data: IDPArchitectInput): string {
+export function buildIDPArchitectPrompt(
+  data: IDPArchitectInput,
+  locale: ReportLocale = normalizeLocale(data.locale),
+): string {
   const p = data.player;
   // Si los 4 buckets son iguales al overall, los datos vienen del VSI plano
   // (sin análisis de video). Lo marcamos en el prompt para que el agente
@@ -145,5 +149,8 @@ ${
 
 **Importante**: \`suggestedDrills\` SIEMPRE vacío array. El sistema lo rellena. \`weight\` 1-5 donde 5 = prioridad máxima. Mínimo 3 goals, máximo 5.
 
-Responde ÚNICAMENTE con el JSON, sin texto adicional ni markdown wrapper.`;
+Responde ÚNICAMENTE con el JSON, sin texto adicional ni markdown wrapper.
+
+${languageDirective(locale)}
+`;
 }

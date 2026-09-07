@@ -29,6 +29,8 @@ import { agentTracer } from "./agentTracer";
 import { resilientCall, AGENT_CIRCUITS, tokenBudget } from "./agentResilience";
 import { IS_DEMO } from "@/lib/demoMode";
 import { demoAgentResponse } from "@/lib/demo/demoAgents";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 const BASE = "/api/agents";
 
@@ -63,10 +65,18 @@ async function callAgent<TInput, TOutput>(
     estimatedTokens?: number;
   } = {}
 ): Promise<AgentResponse<TOutput>> {
+  // Inyecta el idioma ACTUAL de la UI (i18n) en el input → los agentes de servidor
+  // (y las respuestas de ejemplo del demo) redactan la prosa en ese idioma. Los
+  // agentes que no declaran `locale` en su schema lo ignoran (zod lo descarta):
+  // additive-safe. `input.locale` explícito (si un caller ya lo puso) tiene prioridad.
+  const localizedInput = (input && typeof input === "object" && !Array.isArray(input))
+    ? { locale: normalizeLocale(i18n.language), ...(input as Record<string, unknown>) }
+    : input;
+
   // DEMO (piso piloto): NO se llama a la IA real (sin claves ni sesión). Se
   // devuelve una respuesta de ejemplo determinista, sin red ni coste.
   if (IS_DEMO) {
-    return demoAgentResponse(endpoint, input) as AgentResponse<TOutput>;
+    return demoAgentResponse(endpoint, localizedInput) as AgentResponse<TOutput>;
   }
 
   const circuit = AGENT_CIRCUITS[endpoint] ?? {
@@ -77,7 +87,7 @@ async function callAgent<TInput, TOutput>(
   };
 
   // Start trace
-  const traceId = agentTracer.startTrace(endpoint, input, {
+  const traceId = agentTracer.startTrace(endpoint, localizedInput, {
     parentTraceId: options.parentTraceId,
     model: options.model ?? "claude-haiku-4-5",
     temperature: 0,
@@ -90,8 +100,8 @@ async function callAgent<TInput, TOutput>(
 
       // Si hay feedback de retry previo, adjuntarlo al body
       const body = feedback
-        ? { ...input, _retryFeedback: feedback }
-        : input;
+        ? { ...(localizedInput as Record<string, unknown>), _retryFeedback: feedback }
+        : localizedInput;
 
       const res = await fetch(`${BASE}/${endpoint}`, {
         method: "POST",
@@ -115,7 +125,7 @@ async function callAgent<TInput, TOutput>(
 
     circuit,
     maxRetries: 3,
-    estimatedTokens: options.estimatedTokens ?? tokenBudget.estimateTokens(JSON.stringify(input)),
+    estimatedTokens: options.estimatedTokens ?? tokenBudget.estimateTokens(JSON.stringify(localizedInput)),
 
     validateOutput: (response) => {
       if (!response.success || !response.data) return false;

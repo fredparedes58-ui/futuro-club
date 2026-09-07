@@ -71,7 +71,7 @@ ${JSON.stringify(fatigue, null, 2)}
 ${data.fatigueHistory ? JSON.stringify(data.fatigueHistory.slice(-10), null, 2) : "Sin historial disponible"}
 
 ## INSTRUCCIONES
-Genera un reporte de fatiga en español con las siguientes secciones. Usa SOLO datos concretos. Si falta un dato (índice de fatiga, ACWR, historial de carga), NO lo estimes: pon ese campo en null y decláralo en not_evaluated. NUNCA inventes una cifra de fatiga, carga o riesgo. Un hueco honesto vale más que un número inventado sobre un menor.
+Genera un reporte de fatiga con las siguientes secciones. Usa SOLO datos concretos. Si falta un dato (índice de fatiga, ACWR, historial de carga), NO lo estimes: pon ese campo en null y decláralo en not_evaluated. NUNCA inventes una cifra de fatiga, carga o riesgo. Un hueco honesto vale más que un número inventado sobre un menor.
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 

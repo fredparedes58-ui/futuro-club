@@ -128,6 +128,7 @@ export function useTeamIntelligence() {
               method: "POST",
               headers: await getAuthHeaders(),
               body: JSON.stringify({
+                locale: normalizeLocale(i18n.language),
                 videoBase64: videoData.base64,
                 mediaType: videoData.mediaType,
                 teamContext: {

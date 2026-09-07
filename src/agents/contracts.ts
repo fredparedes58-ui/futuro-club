@@ -63,6 +63,8 @@ export const ScoutInsightInputSchema = z.object({
     lastDrills: z.array(z.string()).optional(),
   }),
   context: z.enum(["breakout", "comparison", "phv_alert", "drill_record", "regression", "milestone", "general", "wellbeing_alert"]),
+  // Idioma de redacción de la prosa (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 export const ScoutInsightOutputSchema = z.object({
@@ -119,6 +121,8 @@ export const RoleProfileInputSchema = z.object({
     videoId:        z.string().nullable().optional(),
     analyzedAt:     z.string().nullable().optional(),
   }).optional(),
+  // Idioma de redacción de la prosa (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 }).passthrough();
 
 export const RoleProfileOutputSchema = z.object({
@@ -720,6 +724,8 @@ export const IDPArchitectInputSchema = z.object({
     missedDimensions: z.array(IDPDimensionEnum),
     coachNotes: z.string().optional(),
   }).optional(),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 export const IDPArchitectOutputSchema = z.object({
@@ -911,6 +917,8 @@ export const TransferMatchInputSchema = z.object({
       .optional(),
   }),
   candidates: z.array(ListingCandidateSchema).min(1).max(50),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 export const TransferMatchOutputSchema = z.object({

@@ -31,6 +31,7 @@ import {
   buildIDPArchitectPrompt,
   IDP_PROMPT_VERSION,
 } from "../../src/lib/idp/idpArchitectPrompt";
+import { normalizeLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -55,7 +56,8 @@ export default withHandler(
     }
 
     try {
-      const prompt = buildIDPArchitectPrompt(data);
+      const locale = normalizeLocale(data.locale);
+      const prompt = buildIDPArchitectPrompt(data, locale);
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",

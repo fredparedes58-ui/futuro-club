@@ -10,6 +10,7 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -64,6 +65,7 @@ export default withHandler(
         return errorResponse("No se pudo leer el body — el video puede ser demasiado grande para Vercel (máx ~4MB)", 413, "BODY_TOO_LARGE");
       }
       const { videoUrl, videoBase64: videoBase64FromBody, mediaType: mediaTypeFromBody, playerContext } = body;
+      const locale = normalizeLocale(body.locale);
 
       if (!playerContext) {
         return errorResponse("Faltan datos requeridos (playerContext)", 400);
@@ -268,7 +270,7 @@ REGLAS:
 - escaneos: giros de cabeza observables ANTES de recibir el balón. Es la métrica más predictiva de inteligencia de juego
 - IMPORTANTE: robos + anticipaciones DEBEN sumar ≤ recuperaciones (son subcategorías). Si el total es 2 recuperaciones (1 robo + 1 anticipación), OK. Si sobran recuperaciones sin subcategoría específica, está bien dejar robos/anticipaciones menores — preferible sub-contar que inventar
 - perdidas: NO incluyas pases fallados (esos ya están en pasesFallados). Una pérdida es cuando pierdes la posesión sin que haya habido un intento de pase — ej: mal control en área propia, regate temerario fallido, pase hacia atrás que intercepta el rival
-- Responde en español
+- ${languageDirective(locale)}
 - Solo JSON válido, sin markdown ni backticks`;
 
       // Llamar a Gemini API directamente via REST

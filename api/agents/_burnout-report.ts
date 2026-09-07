@@ -17,6 +17,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -69,11 +70,13 @@ const burnoutReportSchema = z.object({
     action: z.string(),
     priority: z.string(),
   })).optional(),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: z.enum(["es", "en"]).optional(),
 });
 
 const PROMPT_VERSION = "v1.0.0";
 
-function buildPrompt(data: z.infer<typeof burnoutReportSchema>): string {
+function buildPrompt(data: z.infer<typeof burnoutReportSchema>, locale: ReportLocale): string {
   const name = data.playerName ?? "Jugador";
   const age = data.playerAge;
   const eng = data.engagement;
@@ -83,7 +86,7 @@ function buildPrompt(data: z.infer<typeof burnoutReportSchema>): string {
   // C1 multi-categoría · override explícito > edad cronológica > default youth
   const category = resolveCategory({ age: age, category: (data as { category?: unknown }).category });
 
-  return `Eres un psicólogo deportivo y especialista en ${category === "senior" ? "bienestar del deportista" : "bienestar juvenil"} en fútbol. Generas reportes de riesgo de abandono en español, usando lenguaje profesional pero empático. Tu objetivo es ayudar al entrenador a retener al jugador con intervenciones prácticas.
+  return `Eres un psicólogo deportivo y especialista en ${category === "senior" ? "bienestar del deportista" : "bienestar juvenil"} en fútbol. Generas reportes de riesgo de abandono usando lenguaje profesional pero empático. Tu objetivo es ayudar al entrenador a retener al jugador con intervenciones prácticas.
 
 ## DATOS DEL JUGADOR
 - Nombre: ${name}
@@ -124,7 +127,7 @@ ${data.questionnaireSummary ?? "No disponibles"}
 ${data.interventionActions?.map(a => `- [${a.audience}] ${a.action} (${a.priority})`).join("\n") ?? "No disponibles"}
 
 ## INSTRUCCIONES
-Genera un reporte de riesgo de abandono en español con las siguientes secciones. Sé empático, concreto y orientado a la acción. Prioriza la retención del jugador.
+Genera un reporte de riesgo de abandono con las siguientes secciones. Sé empático, concreto y orientado a la acción. Prioriza la retención del jugador.
 
 ### Formato JSON:
 {
@@ -141,7 +144,10 @@ Genera un reporte de riesgo de abandono en español con las siguientes secciones
   "not_evaluated": string[] (aspectos que NO se pudieron evaluar por falta de datos; array vacío si todo cubierto)
 }
 
-CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.${category === "senior" ? "\n\n" : ""}${categoryDirective(category)}`;
+CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.${category === "senior" ? "\n\n" : ""}${categoryDirective(category, locale)}
+
+${languageDirective(locale)}
+`;
 }
 
 export default withHandler(
@@ -159,7 +165,8 @@ export default withHandler(
     }
 
     try {
-      const prompt = buildPrompt(data);
+      const locale = normalizeLocale(data.locale);
+      const prompt = buildPrompt(data, locale);
 
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
