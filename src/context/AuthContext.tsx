@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { OrganizationService } from "@/services/real/organizationService";
+import { IS_DEMO, DEMO_USER } from "@/lib/demoMode";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
 interface AuthState {
@@ -50,6 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Cargar org del usuario cuando cambia la sesión
   useEffect(() => {
+    // En demo no hay Supabase: no intentamos resolver org (evita llamadas al
+    // cliente placeholder). Las features de equipo van con datos de ejemplo.
+    if (IS_DEMO) {
+      setOrgId(null);
+      return;
+    }
     if (!user?.id) {
       setOrgId(null);
       return;
@@ -67,8 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!SUPABASE_CONFIGURED) {
-      // Modo offline: usuario demo para no bloquear dev
-      setUser(null);
+      // Modo offline. En el DEMO público (IS_DEMO) entramos como un
+      // "Director (Demo)" ficticio; en dev sin Supabase, sin usuario (Invitado).
+      // Las rutas de datos gatean por SUPABASE_CONFIGURED (false aquí), no por el
+      // usuario → el usuario ficticio NUNCA dispara llamadas a Supabase.
+      setUser(IS_DEMO ? DEMO_USER : null);
       setSession(null);
       setLoading(false);
       return;

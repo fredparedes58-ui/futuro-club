@@ -14,6 +14,7 @@ import { SyncProvider } from "@/context/SyncContext";
 import OfflineBanner from "@/components/OfflineBanner";
 import CookieConsent from "@/components/CookieConsent";
 import RouteSkeleton from "@/components/shared/RouteSkeleton";
+import { IS_DEMO } from "@/lib/demoMode";
 
 // Pages — Auth (static — small, needed immediately)
 import LoginPage from "./pages/LoginPage";
@@ -104,10 +105,19 @@ const LazyFallback = () => <RouteSkeleton />;
 function SyncManager() {
   // Purge mock players + health check on mount (once)
   React.useEffect(() => {
-    // Remove any fake/mock players from localStorage (legacy seed data)
-    import("@/services/real/playerService").then(({ PlayerService }) => {
-      PlayerService.purgeMockPlayers();
-    });
+    if (IS_DEMO) {
+      // DEMO (piso piloto): NO purgar — los datos de ejemplo SON el contenido.
+      // Se re-siembra el club canónico en cada carga → el demo se resetea solo
+      // (un visitante no puede dejarlo "roto"; al recargar vuelve al estado base).
+      import("@/services/real/demoDataService").then(({ DemoDataService }) => {
+        DemoDataService.forceReseed();
+      });
+    } else {
+      // Remove any fake/mock players from localStorage (legacy seed data)
+      import("@/services/real/playerService").then(({ PlayerService }) => {
+        PlayerService.purgeMockPlayers();
+      });
+    }
 
     import("@/services/real/healthCheck").then(({ HealthCheckService }) => {
       const result = HealthCheckService.run();
