@@ -12,6 +12,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { SyncProvider } from "@/context/SyncContext";
 import OfflineBanner from "@/components/OfflineBanner";
+import GlobalDemoBanner from "@/components/GlobalDemoBanner";
 import CookieConsent from "@/components/CookieConsent";
 import RouteSkeleton from "@/components/shared/RouteSkeleton";
 import { IS_DEMO } from "@/lib/demoMode";
@@ -183,6 +184,7 @@ const App = () => {
               {t("appRoot.skipToContent")}
             </a>
             <OfflineBanner />
+            {IS_DEMO && <GlobalDemoBanner />}
             <CookieConsent />
             <AcceptTermsGate>
             <main id="main-content" tabIndex={-1}>

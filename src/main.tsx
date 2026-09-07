@@ -1,9 +1,14 @@
 import { initSentry } from "./lib/sentry";
 import { installGlobalChunkErrorHandler, clearChunkReloadFlag } from "./lib/lazyWithRetry";
+import { installDemoApiGuard } from "./lib/demoApiGuard";
 import { createRoot } from "react-dom/client";
 import "./i18n"; // Initialize i18n before App renders
 import App from "./App.tsx";
 import "./index.css";
+
+// DEMO: intercepta toda llamada /api/* del mismo origen para que NINGÚN hook
+// pueda filtrar red real (no-op fuera del demo). Debe ir antes de renderizar.
+installDemoApiGuard();
 
 // Initialize Sentry before rendering (noop if VITE_SENTRY_DSN not set)
 initSentry();
