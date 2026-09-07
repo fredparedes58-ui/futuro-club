@@ -36,6 +36,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 import InsightCard from "@/components/scout/InsightCard";
 import { useRoleProfile } from "@/hooks/useRoleProfile";
 import { PlayerTrackingService, type TrackingSnapshot } from "@/services/real/playerTrackingService";
+import { IS_DEMO } from "@/lib/demoMode";
 
 import VsiGauge from "@/components/VsiGauge";
 import MatchStatsPanel from "@/components/MatchStatsPanel";
@@ -649,6 +650,16 @@ export default function PlayerHubPage() {
                     </div>
                   )}
                 </>
+              ) : IS_DEMO ? (
+                <div className="glass rounded-xl p-6 text-center">
+                  <Compass size={20} className="mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      "playerHubPage.roleProfileDemoUnavailable",
+                      "El perfil de rol se genera a partir del análisis de vídeo, no incluido en esta demo de ejemplo.",
+                    )}
+                  </p>
+                </div>
               ) : (
                 <div className="glass rounded-xl p-6 text-center">
                   <Sparkles size={20} className="mx-auto text-muted-foreground mb-2" />
