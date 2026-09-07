@@ -107,10 +107,11 @@ function SyncManager() {
   React.useEffect(() => {
     if (IS_DEMO) {
       // DEMO (piso piloto): NO purgar — los datos de ejemplo SON el contenido.
-      // Se re-siembra el club canónico en cada carga → el demo se resetea solo
-      // (un visitante no puede dejarlo "roto"; al recargar vuelve al estado base).
+      // Se siembra el club SI ESTÁ VACÍO (primera carga del navegador); en recargas
+      // NO se regenera → los IDs son estables y los deep-links/recargas de una ficha
+      // funcionan. Un visitante nuevo (navegador limpio) siempre ve el club base.
       import("@/services/real/demoDataService").then(({ DemoDataService }) => {
-        DemoDataService.forceReseed();
+        DemoDataService.seed();
       });
     } else {
       // Remove any fake/mock players from localStorage (legacy seed data)

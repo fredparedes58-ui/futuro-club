@@ -31,6 +31,9 @@ import * as tus from "tus-js-client";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { unwrapDnaContent } from "@/lib/reports/reportItems";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PlayerService } from "@/services/real/playerService";
+import { buildDemoAnalysisRows } from "@/lib/demo/demoReports";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 
@@ -549,7 +552,7 @@ export function usePlayerAnalysisV2() {
 // Queries V2 analyses+reports tables, maps to legacy VideoIntelligenceOutput
 // shape so existing consumer components continue to work without changes.
 
-type AnalysisDbRow = {
+export type AnalysisDbRow = {
   id: string;
   player_id: string;
   video_id: string;
@@ -671,7 +674,15 @@ export function useSavedAnalysesV2(playerId: string) {
   return useQuery({
     queryKey: ["analyses-v2", playerId],
     queryFn: async () => {
-      if (!playerId || !SUPABASE_CONFIGURED) return [];
+      if (!playerId) return [];
+      // DEMO (piso piloto): no hay pipeline ni Supabase → devolvemos un análisis
+      // de ejemplo PRE-HORNEADO por jugador (derivado de sus datos reales). La UI
+      // lo muestra bajo el banner «Datos de ejemplo».
+      if (IS_DEMO) {
+        const player = PlayerService.getById(playerId);
+        return player ? buildDemoAnalysisRows(player).map(mapDbRowToLegacy) : [];
+      }
+      if (!SUPABASE_CONFIGURED) return [];
       const { data, error } = await supabase
         .from("analyses")
         .select("id, player_id, video_id, created_at, vsi, reports(report_type, content)")
@@ -682,7 +693,7 @@ export function useSavedAnalysesV2(playerId: string) {
       if (error) throw error;
       return (data ?? []).map((row) => mapDbRowToLegacy(row as AnalysisDbRow));
     },
-    enabled: !!playerId && SUPABASE_CONFIGURED,
+    enabled: !!playerId && (IS_DEMO || SUPABASE_CONFIGURED),
     staleTime: 60_000,
   });
 }
