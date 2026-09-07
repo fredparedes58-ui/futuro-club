@@ -11,8 +11,14 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// `|| undefined` coacciona el string vacío ("") a undefined. Vercel puede crear
+// una env var detectada con VALOR vacío al importar un proyecto; sin esto,
+// `"" ?? placeholder` deja el "" y `createClient("")` lanza «supabaseUrl is
+// required» al evaluar el módulo → pantalla en blanco en TODA la app. Tratar
+// "" como ausente es lo correcto y además hace que SUPABASE_CONFIGURED sea
+// honesto (una URL vacía no es una configuración válida).
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) || undefined;
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) || undefined;
 
 export const SUPABASE_CONFIGURED = !!(supabaseUrl && supabaseAnonKey);
 
