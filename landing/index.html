@@ -1,0 +1,389 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="VITAS - Football Intelligence: corrige la edad biologica (PHV) de cada jugador y calcula su VSI. Detecta el talento que otros descartan."><style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>VITAS · Football Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --paper:#FFFFFF; --mist:#F7F5FF; --mist-2:#F0ECFF;
+    --ink:#1A1436; --ink-2:#574F7D; --ink-3:#918AB6;
+    --violet:#6D3BEE; --violet-deep:#4A22B8; --violet-2:#8B5CF6;
+    --lav:#E9E3FF;
+    --amber:#FF8A3D; --amber-deep:#F2681E;
+    --green:#12B886; --green-deep:#0C8F6B;
+    --line:rgba(76,34,184,.13); --line-2:rgba(76,34,184,.07);
+    --grad:linear-gradient(120deg,#4A22B8 0%,#6D3BEE 55%,#9A6BFF 100%);
+    --grad-ink:linear-gradient(100deg,#4A22B8 0%,#6D3BEE 60%,#8B5CF6 100%);
+    --shadow:0 26px 62px -30px rgba(74,34,184,.32);
+    --shadow-sm:0 12px 32px -18px rgba(74,34,184,.34);
+    --disp:"Rajdhani",system-ui,sans-serif;
+    --body:"Inter",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+    --maxw:1140px; --r:16px;
+  }
+  *{box-sizing:border-box}
+  /* #6D3BEE = violeta de marca Krujens (anclado en --violet) */
+  html{scroll-behavior:smooth}
+  #acceso{scroll-margin-top:86px}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  body{margin:0; background:var(--mist); color:var(--ink);
+    font-family:var(--body); font-size:16px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+  body::before{content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(52vw 40vw at 86% -12%, rgba(109,59,238,.14), transparent 62%),
+      radial-gradient(42vw 34vw at 4% 0%, rgba(139,92,246,.10), transparent 64%)}
+  .wrap{position:relative; z-index:1}
+  a{color:inherit; text-decoration:none}
+  h1,h2,h3{margin:0; font-family:var(--disp); font-weight:700; line-height:1.03; text-wrap:balance; color:var(--violet-deep)}
+  p{margin:0}
+  .container{width:100%; max-width:var(--maxw); margin-inline:auto; padding-inline:24px}
+  .eyebrow{font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:var(--violet-2)}
+
+  .mark{width:34px; height:34px; flex:none}
+  .mark path{fill:none; stroke-width:6.5; stroke-linecap:round; stroke-linejoin:round}
+  .mark .a{stroke:var(--violet)} .mark .b{stroke:var(--amber)}
+
+  /* nav */
+  header.nav{position:sticky; top:0; z-index:40; backdrop-filter:blur(12px);
+    background:rgba(247,245,255,.82); border-bottom:1px solid var(--line-2)}
+  .nav-in{display:flex; align-items:center; gap:20px; height:66px}
+  .brand{display:flex; align-items:center; gap:11px}
+  .brand .name{font-family:var(--disp); font-weight:700; font-size:1.4rem; letter-spacing:.08em; color:var(--violet-deep)}
+  .brand .sub{font-family:var(--mono); font-size:.58rem; letter-spacing:.16em; color:var(--ink-3); text-transform:uppercase; margin-top:2px; display:block}
+  .nav-cta{margin-left:auto}
+
+  /* buttons */
+  .btn{display:inline-flex; align-items:center; gap:9px; font-family:var(--disp); font-weight:600;
+    font-size:1.02rem; letter-spacing:.02em; padding:12px 20px; border-radius:12px; border:1px solid transparent;
+    cursor:pointer; transition:transform .16s, box-shadow .2s, background .2s, border-color .2s, color .2s; white-space:nowrap}
+  .btn .arw{transition:transform .18s}
+  .btn:hover .arw{transform:translateX(3px)}
+  .btn-primary{background:var(--violet); color:#fff; box-shadow:0 12px 30px -12px rgba(109,59,238,.6)}
+  .btn-primary:hover{background:#7d4ff2; transform:translateY(-1px); box-shadow:0 18px 42px -14px rgba(109,59,238,.7)}
+  .btn-ghost{border-color:var(--line); color:var(--violet-deep); background:var(--paper)}
+  .btn-ghost:hover{border-color:var(--violet); color:var(--violet)}
+  .btn-sm{padding:9px 15px; font-size:.92rem; border-radius:10px}
+
+  /* novelty badge */
+  .novel{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:.72rem; font-weight:500;
+    letter-spacing:.12em; text-transform:uppercase; color:#4a1e08;
+    background:linear-gradient(100deg,#FFB27A,var(--amber)); padding:7px 14px; border-radius:999px;
+    box-shadow:0 8px 22px -12px rgba(242,104,30,.8)}
+  .novel .dot{width:7px; height:7px; border-radius:50%; background:#4a1e08; animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* hero */
+  .hero{padding:clamp(40px,6vw,74px) 0 clamp(34px,4vw,54px)}
+  .hero-grid{display:grid; grid-template-columns:1.02fr .98fr; gap:clamp(28px,4vw,58px); align-items:center}
+  .hero h1{font-size:clamp(2.7rem,5.8vw,4.6rem); margin-top:20px}
+  .hero h1 .g{background:var(--grad-ink); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero .sub{font-size:clamp(1.06rem,1.7vw,1.26rem); color:var(--ink-2); margin-top:18px; max-width:45ch}
+  .hero-cta{display:flex; flex-wrap:wrap; gap:13px; margin-top:28px}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:22px}
+  .chip{font-family:var(--mono); font-size:.72rem; color:var(--ink-2);
+    border:1px solid var(--line); border-radius:999px; padding:6px 12px; background:var(--paper)}
+  .chip b{color:var(--violet); font-weight:500}
+
+  /* VSI comparison card (el demo real de VITAS) */
+  .vsi{position:relative; border-radius:20px; padding:22px; background:var(--paper);
+    border:1px solid var(--line); box-shadow:var(--shadow)}
+  .agent-tag{position:absolute; top:-13px; left:22px; font-family:var(--mono); font-size:.6rem; letter-spacing:.12em;
+    text-transform:uppercase; color:var(--violet-2); background:var(--paper); border:1px solid var(--line); border-radius:999px; padding:4px 11px}
+  .vsi-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:16px}
+  .vsi-head .h{font-family:var(--disp); font-weight:600; font-size:1.12rem; color:var(--ink)}
+  .vsi-head .ex{font-family:var(--mono); font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+  .vrow{display:grid; grid-template-columns:1fr auto; gap:6px 14px; align-items:center; padding:14px; border-radius:14px;
+    border:1px solid var(--line); background:var(--mist)}
+  .vrow + .vrow{margin-top:11px}
+  .vrow.win{border-color:rgba(18,184,134,.4); background:linear-gradient(120deg,rgba(18,184,134,.08),rgba(109,59,238,.05))}
+  .vrow .who{font-family:var(--disp); font-weight:600; font-size:1.02rem; color:var(--ink)}
+  .vrow .meta{font-size:.76rem; color:var(--ink-2)}
+  .vrow .tag{grid-column:1 / -1; justify-self:start; margin-top:2px; font-family:var(--mono); font-size:.6rem; letter-spacing:.06em;
+    text-transform:uppercase; padding:4px 9px; border-radius:999px; font-weight:500}
+  .tag.pre{background:rgba(109,59,238,.12); color:var(--violet-deep)}
+  .tag.gem{background:linear-gradient(100deg,rgba(18,184,134,.18),rgba(18,184,134,.28)); color:var(--green-deep)}
+  .scores{display:flex; align-items:center; gap:9px; font-family:var(--disp); font-weight:700}
+  .scores .old{color:var(--ink-3); font-size:1.15rem; text-decoration:line-through; text-decoration-color:rgba(145,138,182,.6)}
+  .scores .ar{color:var(--violet); font-size:1rem}
+  .scores .new{font-size:1.7rem; line-height:1}
+  .scores .new.up{color:var(--green-deep)} .scores .new.down{color:var(--violet-deep)}
+  .scores .d{font-family:var(--mono); font-size:.62rem; font-weight:500; padding:2px 6px; border-radius:6px}
+  .d.up{background:rgba(18,184,134,.14); color:var(--green-deep)} .d.down{background:rgba(109,59,238,.12); color:var(--violet-deep)}
+  .vsi-cap{margin-top:15px; display:flex; gap:10px; align-items:flex-start; border-top:1px solid var(--line-2); padding-top:13px}
+  .vsi-cap .lbl{flex:none; font-family:var(--mono); font-size:.58rem; letter-spacing:.06em; color:#fff;
+    background:var(--violet-2); border-radius:6px; padding:3px 7px; text-transform:uppercase; font-weight:500}
+  .vsi-cap p{font-size:.88rem; color:var(--ink); font-style:italic}
+  .float{animation:float 7s ease-in-out infinite}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+  /* band */
+  .band{padding:clamp(50px,6vw,84px) 0}
+  .band-head{max-width:640px; margin-bottom:clamp(26px,3.5vw,44px)}
+  .band-head.center{margin-inline:auto; text-align:center}
+  .band-head h2{font-size:clamp(1.95rem,3.6vw,2.9rem); margin-top:12px}
+  .band-head p{color:var(--ink-2); margin-top:12px; font-size:1.05rem}
+
+  /* differentiator band */
+  .diffband{border-radius:24px; padding:clamp(32px,4.5vw,56px); text-align:center; background:var(--paper);
+    border:1px solid var(--line); box-shadow:var(--shadow)}
+  .diffband .k{font-family:var(--mono); font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--amber-deep)}
+  .diffband h2{font-size:clamp(2rem,4vw,3rem); margin-top:14px}
+  .diffband p{color:var(--ink-2); margin:14px auto 0; max-width:52ch; font-size:1.08rem}
+  .diffband .only{display:inline-flex; align-items:center; gap:8px; margin-top:20px; font-family:var(--disp);
+    font-weight:600; font-size:1.15rem; color:var(--violet-deep)}
+  .diffband .only b{color:var(--amber-deep)}
+
+  /* features */
+  .benes{display:grid; grid-template-columns:repeat(4,1fr); gap:16px}
+  .bene{background:var(--paper); border:1px solid var(--line); border-radius:var(--r); padding:24px; box-shadow:var(--shadow-sm)}
+  .bene .bi{width:40px; height:40px; border-radius:11px; display:grid; place-items:center; margin-bottom:15px;
+    background:linear-gradient(140deg,rgba(109,59,238,.14),rgba(139,92,246,.1)); border:1px solid var(--line)}
+  .bene .bi svg{width:20px; height:20px; stroke:var(--violet); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  .bene h3{font-size:1.2rem; font-weight:700; color:var(--ink)}
+  .bene p{margin-top:7px; font-size:.9rem; color:var(--ink-2)}
+
+  /* steps */
+  .flow{display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap}
+  .fstep{display:flex; align-items:center; gap:11px; background:var(--paper); border:1px solid var(--line);
+    border-radius:14px; padding:14px 20px; box-shadow:var(--shadow-sm)}
+  .fstep .fn{font-family:var(--mono); font-size:.7rem; color:var(--violet); border:1px solid var(--line); border-radius:8px; padding:4px 8px}
+  .fstep .ft{font-family:var(--disp); font-weight:600; font-size:1.14rem; color:var(--ink)}
+  .fstep .fd{font-size:.82rem; color:var(--ink-2)}
+  .flow .fa{color:var(--violet); font-size:1.3rem; font-weight:700}
+
+  /* stats */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; text-align:center}
+  .stat .n{font-family:var(--disp); font-weight:700; font-size:clamp(2.4rem,4vw,3.2rem); line-height:1;
+    background:var(--grad-ink); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .stat .n small{font-size:1.2rem; color:var(--ink-2); -webkit-text-fill-color:var(--ink-2)}
+  .stat p{margin-top:8px; font-size:.86rem; color:var(--ink-2)}
+
+  /* form */
+  .cta-grid{display:grid; grid-template-columns:.95fr 1.05fr; gap:clamp(28px,4vw,56px); align-items:center;
+    background:var(--paper); border:1px solid var(--line); border-radius:26px; padding:clamp(28px,4vw,50px); box-shadow:var(--shadow)}
+  .cta-copy .novel{margin-bottom:16px}
+  .cta-copy h2{font-size:clamp(1.9rem,3.6vw,2.7rem)}
+  .cta-copy p{color:var(--ink-2); margin-top:14px; font-size:1.04rem; max-width:38ch}
+  .cta-copy .mail{display:inline-block; margin-top:16px; font-family:var(--mono); font-size:.9rem; color:var(--violet)}
+  .cta-copy .mail:hover{text-decoration:underline}
+  form{display:grid; gap:13px}
+  .frow{display:grid; grid-template-columns:1fr 1fr; gap:13px}
+  label{display:block}
+  .lb{font-family:var(--mono); font-size:.62rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px}
+  .lb .opt{text-transform:none; letter-spacing:0; color:var(--ink-3)}
+  input,textarea{width:100%; font-family:var(--body); font-size:.98rem; color:var(--ink); background:var(--mist);
+    border:1px solid var(--line); border-radius:12px; padding:12px 14px; transition:border-color .18s, box-shadow .18s}
+  input:focus,textarea:focus{outline:none; border-color:var(--violet); box-shadow:0 0 0 3px rgba(109,59,238,.14); background:var(--paper)}
+  textarea{resize:vertical; min-height:70px}
+  form .btn-primary{justify-content:center; width:100%; padding:14px; font-size:1.08rem}
+  .formnote{font-family:var(--mono); font-size:.66rem; color:var(--ink-3); text-align:center; line-height:1.5}
+  .ok{display:flex; flex-direction:column; align-items:center; text-align:center; gap:8px; padding:34px 14px}
+  .ok .ok-ic{width:52px; height:52px; border-radius:50%; display:grid; place-items:center;
+    background:var(--grad-ink); color:#fff; font-size:1.5rem}
+  .ok h3{color:var(--violet-deep); font-size:1.3rem}
+  .ok p{color:var(--ink-2); font-size:.92rem; max-width:32ch}
+
+  /* footer */
+  footer{border-top:1px solid var(--line-2); padding:34px 0 48px; margin-top:clamp(30px,4vw,56px)}
+  .foot{display:flex; flex-wrap:wrap; gap:16px 36px; align-items:center; justify-content:space-between}
+  .foot .fbrand{display:flex; align-items:center; gap:10px}
+  .foot .fbrand .name{font-family:var(--disp); font-weight:700; letter-spacing:.08em; font-size:1.05rem; color:var(--violet-deep)}
+  .foot .meta{font-family:var(--mono); font-size:.72rem; color:var(--ink-3); letter-spacing:.04em}
+  .foot a.mail{color:var(--violet)}
+
+  @media (max-width:940px){
+    .hero-grid{grid-template-columns:1fr; gap:34px}
+    .vsi{max-width:460px}
+    .cta-grid{grid-template-columns:1fr; gap:28px}
+    .benes{grid-template-columns:repeat(2,1fr)}
+    .stats{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:540px){
+    .benes,.stats{grid-template-columns:1fr}
+    .frow{grid-template-columns:1fr}
+    .flow .fa{transform:rotate(90deg)}
+    .brand .sub{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){.float,.novel .dot{animation:none}}
+  :focus-visible{outline:2px solid var(--violet); outline-offset:3px; border-radius:6px}
+</style>
+
+<div class="wrap">
+<header class="nav">
+  <div class="container nav-in">
+    <a class="brand" href="#top" aria-label="VITAS by Krujens">
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><path class="a" d="M13 11 L26 24 L13 37"/><path class="b" d="M24 11 L37 24 L24 37"/></svg>
+      <span><span class="name">VITAS</span><span class="sub">by Krujens</span></span>
+    </a>
+    <a class="btn btn-primary btn-sm nav-cta" href="#acceso">Solicitar acceso <span class="arw">→</span></a>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero container">
+  <div class="hero-grid">
+    <div>
+      <span class="novel"><span class="dot"></span>Aún no está en el mercado</span>
+      <h1>Ve el talento,<br><span class="g">no el tamaño.</span></h1>
+      <p class="sub">VITAS corrige la edad biológica de cada jugador. El que madura tarde deja de pasar desapercibido — y aparece la joya que otros descartan.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#acceso">Solicitar acceso <span class="arw">→</span></a>
+        <a class="btn btn-ghost" href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>
+      </div>
+      <div class="chips">
+        <span class="chip"><b>Edad biológica</b> (PHV)</span>
+        <span class="chip">VSI por jugador</span>
+        <span class="chip">Análisis por vídeo</span>
+        <span class="chip">RGPD</span>
+      </div>
+    </div>
+
+    <div class="vsi float" role="img" aria-label="Ejemplo VITAS Sub-12: Pablo (Q1, 1,62 m) baja de VSI 78 a 62 (madurador precoz); Hugo (Q4, 1,42 m) sube de 64 a 81 (joya oculta) al corregir la edad biológica.">
+      <span class="agent-tag">VITAS · Sub-12</span>
+      <div class="vsi-head">
+        <span class="h">VSI corregido por edad biológica</span>
+        <span class="ex">Ejemplo</span>
+      </div>
+
+      <div class="vrow">
+        <div><div class="who">Pablo</div><div class="meta">Nacido en enero · 1,62 m</div></div>
+        <div class="scores"><span class="old">78</span><span class="ar">→</span><span class="new down">62</span><span class="d down">−16</span></div>
+        <span class="tag pre">Ventaja física temporal</span>
+      </div>
+
+      <div class="vrow win">
+        <div><div class="who">Hugo</div><div class="meta">Nacido en diciembre · 1,42 m</div></div>
+        <div class="scores"><span class="old">64</span><span class="ar">→</span><span class="new up">81</span><span class="d up">+17</span></div>
+        <span class="tag gem">Joya oculta</span>
+      </div>
+
+      <div class="vsi-cap">
+        <span class="lbl">La clave</span>
+        <p>Misma categoría. La edad biológica cambia quién destaca de verdad.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band container">
+  <div class="diffband">
+    <span class="k">El diferenciador</span>
+    <h2>Dos niños de 13 no son iguales.</h2>
+    <p>Uno ya dio el estirón, el otro no. VITAS mide la maduración de cada jugador y compara talento por edad biológica, no por fecha de nacimiento.</p>
+    <span class="only">Esto <b>no lo hace nadie más</b> en el mercado.</span>
+  </div>
+</section>
+
+<section class="band container">
+  <div class="band-head">
+    <p class="eyebrow">Qué hace VITAS</p>
+    <h2>Datos que dicen la verdad sobre cada jugador.</h2>
+  </div>
+  <div class="benes">
+    <div class="bene"><div class="bi"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18M12 3v18M3 12h9M6 6.5a9 9 0 006 2.5 9 9 0 006-2.5M6 17.5a9 9 0 006-2.5 9 9 0 016 2.5"/></svg></div><h3>Edad biológica (PHV)</h3><p>Ajusta la evaluación por madurez real, no por el carnet.</p></div>
+    <div class="bene"><div class="bi"><svg viewBox="0 0 24 24"><path d="M4 15l4-4 3 3 5-6 4 5M4 20h16"/></svg></div><h3>VSI por jugador</h3><p>Una nota integral que sí tiene en cuenta el desarrollo.</p></div>
+    <div class="bene"><div class="bi"><svg viewBox="0 0 24 24"><path d="M4 6h13v10H4zM17 9l4-2v8l-4-2M9 8v6M6 11h6"/></svg></div><h3>Análisis por vídeo</h3><p>Seguimiento, mapas de calor y métricas físicas del partido.</p></div>
+    <div class="bene"><div class="bi"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-5M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg></div><h3>Sin inventos</h3><p>Si falta un dato, lo dice. Cero cifras inventadas.</p></div>
+  </div>
+</section>
+
+<section class="band container">
+  <div class="flow">
+    <div class="fstep"><span class="fn">01</span><div><div class="ft">Añade al jugador</div><div class="fd">Edad y medidas</div></div></div>
+    <span class="fa">→</span>
+    <div class="fstep"><span class="fn">02</span><div><div class="ft">VITAS lo analiza</div><div class="fd">VSI + edad biológica</div></div></div>
+    <span class="fa">→</span>
+    <div class="fstep"><span class="fn">03</span><div><div class="ft">Decides</div><div class="fd">Informe y ranking honestos</div></div></div>
+  </div>
+</section>
+
+<section class="band container">
+  <div class="stats">
+    <div class="stat"><div class="n">148</div><p>jugadores de referencia</p></div>
+    <div class="stat"><div class="n">5<small> min</small></div><p>por análisis</p></div>
+    <div class="stat"><div class="n">0</div><p>datos inventados</p></div>
+    <div class="stat"><div class="n">1</div><p>con edad biológica</p></div>
+  </div>
+</section>
+
+<section class="band container" id="acceso">
+  <div class="cta-grid">
+    <div class="cta-copy">
+      <span class="novel"><span class="dot"></span>Acceso anticipado</span>
+      <h2>Sé el primero en usarlo.</h2>
+      <p>Déjanos tus datos y te damos acceso a una demo privada de VITAS.</p>
+      <a class="mail" href="mailto:Contact@krujens.eu">Contact@krujens.eu</a>
+    </div>
+    <div>
+      <form id="lead" novalidate>
+        <div class="frow">
+          <label><span class="lb">Nombre</span><input name="nombre" autocomplete="name" required placeholder="Tu nombre"></label>
+          <label><span class="lb">Club / Rol</span><input name="club" autocomplete="organization" required placeholder="Club o cargo"></label>
+        </div>
+        <div class="frow">
+          <label><span class="lb">Email</span><input name="email" type="email" autocomplete="email" required placeholder="tu@email.com"></label>
+          <label><span class="lb">Teléfono <span class="opt">(opcional)</span></span><input name="tel" type="tel" autocomplete="tel" placeholder="+34 …"></label>
+        </div>
+        <label><span class="lb">Mensaje <span class="opt">(opcional)</span></span><textarea name="msg" placeholder="Cuéntanos qué buscas"></textarea></label>
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" placeholder="No rellenar">
+        <button class="btn btn-primary" type="submit">Solicitar acceso <span class="arw">→</span></button>
+        <p class="formnote">Se abrirá tu correo con la solicitud lista para enviar. Nada de spam.</p>
+      </form>
+      <div class="ok" id="ok" hidden>
+        <div class="ok-ic">✓</div>
+        <h3>¡Solicitud lista!</h3>
+        <p>Se ha abierto tu correo con los datos. Si no, escríbenos a <b>Contact@krujens.eu</b>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container foot">
+    <div class="fbrand">
+      <svg class="mark" viewBox="0 0 48 48" aria-hidden="true"><path class="a" d="M13 11 L26 24 L13 37"/><path class="b" d="M24 11 L37 24 L24 37"/></svg>
+      <span class="name">VITAS</span>
+    </div>
+    <div class="meta">Krujens · Football Intelligence · 2026</div>
+    <a class="mail meta" href="mailto:Contact@krujens.eu" style="color:var(--violet)">Contact@krujens.eu</a>
+  </div>
+</footer>
+</div>
+
+<script>
+  (function(){
+    // Endpoint de captura de leads de VITAS. Cámbialo si mueves la API a otro dominio.
+    var LEADS_ENDPOINT = 'https://futuro-club.vercel.app/api/leads';
+    var f = document.getElementById('lead');
+    var ok = document.getElementById('ok');
+    if(!f) return;
+    var btn = f.querySelector('button[type=submit]');
+    var g = function(n){ var el = f.elements[n]; return el && el.value ? el.value.trim() : ''; };
+
+    function mailtoFallback(d){
+      var subject = 'Solicito acceso a VITAS — ' + (d.club || d.name || 'nuevo interesado');
+      var lines = ['Nombre: ' + d.name, 'Club / Rol: ' + d.club, 'Email: ' + d.email];
+      if(d.phone) lines.push('Teléfono: ' + d.phone);
+      lines.push('', (d.message || 'Quiero probar VITAS.'));
+      window.location.href = 'mailto:Contact@krujens.eu?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join('\n'));
+    }
+    function done(){ f.hidden = true; ok.hidden = false; }
+
+    f.addEventListener('submit', function(e){
+      e.preventDefault();
+      if(!f.checkValidity()){ f.reportValidity(); return; }
+      var payload = { name:g('nombre'), club:g('club'), email:g('email'), phone:g('tel'), message:g('msg'), source:'landing-krujens', website:g('website') };
+      if(btn){ btn.disabled = true; btn.style.opacity = '.7'; }
+      // Content-Type text/plain → petición "simple", sin preflight CORS. El endpoint
+      // acepta el cuerpo como JSON igualmente. Si algo falla, caemos al correo.
+      fetch(LEADS_ENDPOINT, { method:'POST', headers:{ 'Content-Type':'text/plain' }, body: JSON.stringify(payload) })
+        .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return r.ok && d && d.ok === true; }); })
+        .then(function(good){ if(good){ done(); } else { mailtoFallback(payload); done(); } })
+        .catch(function(){ mailtoFallback(payload); done(); })
+        .then(function(){ if(btn){ btn.disabled = false; btn.style.opacity = ''; } });
+    });
+  })();
+</script>
+</body></html>
