@@ -267,8 +267,25 @@ export default function PlayerHubPage() {
     );
   }
 
-  const phvIcon = !hasValidPhv ? "⚪" : player.phvCategory === "early" ? "🟢" : player.phvCategory === "late" ? "🔵" : player.phvCategory ? "🟡" : "⚪";
-  const phvLabel = !hasValidPhv ? t("playerHubPage.phvNoData") : player.phvCategory === "early" ? t("playerHubPage.phvPre") : player.phvCategory === "late" ? t("playerHubPage.phvPost") : player.phvCategory ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
+  // Etapa de PHV para el badge del header. Se prefiere la categoría PERSISTIDA
+  // (comportamiento de producción intacto) y, si no está, se cae a la evaluación
+  // canónica en vivo (`assessment.status`, la MISMA fuente que usa la sección
+  // PHV). Sin esto, un jugador con PHV válidamente computado pero sin
+  // phvCategory guardado (el caso del club de ejemplo del demo, y de cualquier
+  // ficha sin persistir la categoría) mostraba "Sin datos PHV" contradiciendo su
+  // propia sección de maduración. No se toca la fórmula ni %PAH: solo se lee el
+  // estado ya calculado. status: pre_phv → Pre-PHV, post_phv → Post-PHV,
+  // circa_phv → En PHV.
+  const phvStage: "pre" | "post" | "in" | null =
+    player.phvCategory === "early" ? "pre"
+    : player.phvCategory === "late" ? "post"
+    : player.phvCategory ? "in"
+    : phvProduct?.assessment.status === "pre_phv" ? "pre"
+    : phvProduct?.assessment.status === "post_phv" ? "post"
+    : phvProduct?.assessment.status === "circa_phv" ? "in"
+    : null;
+  const phvIcon = !hasValidPhv ? "⚪" : phvStage === "pre" ? "🟢" : phvStage === "post" ? "🔵" : phvStage === "in" ? "🟡" : "⚪";
+  const phvLabel = !hasValidPhv ? t("playerHubPage.phvNoData") : phvStage === "pre" ? t("playerHubPage.phvPre") : phvStage === "post" ? t("playerHubPage.phvPost") : phvStage === "in" ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
 
   return (
     <div className="min-h-screen bg-background pb-24">
