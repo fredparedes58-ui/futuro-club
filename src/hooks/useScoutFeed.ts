@@ -1,5 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PlayerService } from "@/services/real/playerService";
+import { playerMaturity } from "@/lib/phv/playerMaturity";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,9 +59,55 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return headers;
 }
 
+// ── DEMO: insights de ejemplo (sin red) ───────────────────────────────────────
+const METRIC_ES: Record<string, string> = {
+  speed: "Velocidad", technique: "Técnica", vision: "Visión",
+  stamina: "Resistencia", shooting: "Definición", defending: "Defensa",
+};
+
+function buildDemoInsights(filters: InsightsFilters = {}): InsightsResponse {
+  let players = PlayerService.getAll();
+  if (filters.playerId) players = players.filter((p) => p.id === filters.playerId);
+  const rows: ScoutInsightRow[] = players.slice(0, 12).map((p) => {
+    const m = (p.metrics ?? {}) as Record<string, number>;
+    const topKey = Object.keys(METRIC_ES).sort((a, b) => (m[b] ?? 0) - (m[a] ?? 0))[0] ?? "technique";
+    const mat = playerMaturity(p as unknown as Parameters<typeof playerMaturity>[0]);
+    const isLate = mat.timing === "late";
+    const type: ScoutInsightRow["insight_type"] =
+      isLate ? "phv-alert" : (p.vsi ?? 0) >= 70 ? "breakout" : "comparison";
+    const first = p.name.split(" ")[0];
+    return {
+      id: `demo-insight-${p.id}`,
+      user_id: "demo",
+      player_id: p.id,
+      player_name: p.name,
+      insight_type: type,
+      title: isLate
+        ? `${first}: joya oculta (madurador tardío)`
+        : `${first} destaca en ${METRIC_ES[topKey].toLowerCase()}`,
+      description: isLate
+        ? `${first} madura por detrás de sus pares; su percentil está frenado por el crecimiento y proyecta al alza. Talento a menudo infravalorado — datos de ejemplo del demo.`
+        : `${first} muestra un nivel destacado en ${METRIC_ES[topKey].toLowerCase()} (${Math.round(m[topKey] ?? 0)}). Insight de ejemplo del demo.`,
+      metric: METRIC_ES[topKey],
+      metric_value: `${Math.round(m[topKey] ?? 0)}`,
+      urgency: isLate ? "high" : "low",
+      tags: ["ejemplo", type],
+      context_data: {},
+      rag_drills: [],
+      action_items: ["Dar continuidad de minutos"],
+      benchmark: "Referencia de ejemplo para su categoría",
+      is_read: false,
+      is_archived: false,
+      created_at: "2026-09-01T10:00:00.000Z",
+    };
+  });
+  return { insights: rows, total: rows.length, unread: rows.length, limit: filters.limit ?? 20, offset: filters.offset ?? 0 };
+}
+
 // ── Fetch insights from API ───────────────────────────────────────────────────
 
 async function fetchInsights(filters: InsightsFilters = {}): Promise<InsightsResponse> {
+  if (IS_DEMO) return buildDemoInsights(filters);
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
   if (filters.urgency) params.set("urgency", filters.urgency);
@@ -81,6 +130,12 @@ async function fetchInsights(filters: InsightsFilters = {}): Promise<InsightsRes
 // ── Generate insights ─────────────────────────────────────────────────────────
 
 async function generateInsights(playerId?: string): Promise<{ generated: number }> {
+  if (IS_DEMO) {
+    // En demo los insights ya están "generados" (buildDemoInsights); devolvemos
+    // el conteo para que la UI muestre el éxito y refresque la lista.
+    const n = playerId ? 1 : PlayerService.getAll().length;
+    return { generated: n };
+  }
   const headers = await getAuthHeaders();
   const res = await fetch("/api/scout/generate", {
     method: "POST",

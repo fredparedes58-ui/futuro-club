@@ -19,6 +19,7 @@ import { metricsTrustworthy } from "@/lib/yolo/fieldRegistration";
 import { detectFieldLines } from "@/lib/tracking/fieldLineDetector";
 import type { FieldDetectionResult } from "@/lib/tracking/fieldLineDetector";
 import { toast } from "sonner";
+import { IS_DEMO } from "@/lib/demoMode";
 import { useTranslation } from "react-i18next";
 import { useVideos } from "@/hooks/useVideos";
 import { getBestVideoUrl } from "@/services/real/videoService";
@@ -620,6 +621,15 @@ const VitasLab = () => {
   const handleCanvasMouseUp = () => setDraggingPoint(null);
 
   const handleStartAnalysis = async () => {
+    // DEMO: no hay pipeline de vídeo real. Los informes de ejemplo ya están
+    // cargados en cada jugador → avisamos en vez de intentar analizar (que fallaría).
+    if (IS_DEMO) {
+      toast.info("Demo: informes de ejemplo ya cargados", {
+        description: "En la demo cada jugador ya trae su análisis de ejemplo. El análisis de vídeo real se activa con una cuenta.",
+        duration: 5000,
+      });
+      return;
+    }
     if (!canRunAnalysis) {
       setShowUpgradePrompt(true);
       return;
