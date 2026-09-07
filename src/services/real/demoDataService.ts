@@ -145,6 +145,32 @@ export const DemoDataService = {
     return this.seed();
   },
 
+  /**
+   * Reinicio DURO para el modo DEMO (piso piloto). A diferencia de seed()/reseed(),
+   * NO respeta las guardas (no comprueba isSeeded ni jugadores existentes): borra
+   * los jugadores de ejemplo previos y vuelve a crear el club canónico SIEMPRE.
+   * Se llama en cada carga del demo → el estado vuelve al base y se resetea solo.
+   */
+  forceReseed(): number {
+    this.purge();
+    try {
+      localStorage.removeItem(DEMO_SEEDED_KEY);
+    } catch {
+      // Silent
+    }
+    let created = 0;
+    for (const input of DEMO_PLAYERS) {
+      try {
+        PlayerService.create(input);
+        created++;
+      } catch {
+        // Continuar con los demás si uno falla
+      }
+    }
+    this.markSeeded();
+    return created;
+  },
+
   /** Marca como seeded sin crear datos (útil si el usuario ya tiene jugadores). */
   markSeeded(): void {
     try {

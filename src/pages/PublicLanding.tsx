@@ -15,6 +15,7 @@ import {
   TrendingUp, Eye, Target, Send, Play, Star, BarChart3, Users,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { IS_DEMO } from "@/lib/demoMode";
 
 // ── Floating orbs (background decoration) ─────────────────────
 function FloatingOrbs() {
@@ -190,7 +191,9 @@ export default function PublicLanding() {
   const location = useLocation();
   const { user, configured } = useAuth();
   const isLoggedIn = !!(user && configured);
-  const shouldRedirect = isLoggedIn && location.pathname === "/";
+  // En el DEMO entramos directo al producto (como un usuario logueado): la landing
+  // de marketing no se enseña al cliente que abre el enlace del demo.
+  const shouldRedirect = (isLoggedIn || IS_DEMO) && location.pathname === "/";
 
   useEffect(() => {
     if (shouldRedirect) navigate("/pulse", { replace: true });
