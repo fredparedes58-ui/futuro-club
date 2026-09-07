@@ -84,9 +84,44 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 ---
 
+## 4-bis. Ground truth humano requerido — índice único (el cuello de botella real)
+
+> **Todo lo que sigue es dato HUMANO/FÍSICO, no un toggle ni código.** Ningún push
+> lo resuelve; hasta que exista, las métricas afectadas siguen 🟡 orientativas, 🔴
+> bloqueadas o 🟠 mock (nunca `MEDIDA`). Es deuda de **producto** (aparece en
+> desarrollo/producción con vídeo real), **no de la demo** — la demo ni toca estos
+> caminos (usa ejemplos pre-horneados). **Máximo apalancamiento: UN solo clip
+> calibrado + anotado desbloquea identidad + físicas + duelos a la vez.**
+>
+> Reglas invariantes al recogerlo: las anotaciones son **humanas**, nunca sintéticas
+> ni inferidas por un modelo (inv. identidad); `fixtures/` es **evaluación, no
+> entrenamiento** (los umbrales NO se ajustan mirando esos clips); el % de frames
+> legibles por un humano define el **techo físico** de cobertura y ninguna cifra de
+> éxito puede superarlo.
+
+| # | Qué falta (dato humano) | Fichero / destino | Cómo se recoge | Qué desbloquea | Estado hoy |
+|---|---|---|---|---|---|
+| GT1 | **Calibración de campo** — ≥4 puntos con coordenadas reales medidas del terreno | `fixtures/golden/calibracion.json` (plantilla vacía) | Marcar ≥4 puntos conocidos del campo (esquinas de área, círculo central…) con su posición en metros | Físicas 🟡→`MEDIDA`: velocidad/distancia/sprints/accel pasan de píxeles reescalados a metros/km-h fiables (valida homografía px→m) | 🔴 vacío |
+| GT2 | **Distancia real (verdad medida)** | `fixtures/golden/distancia_gt` | GPS/EPTS por jugador, o cinta métrica sobre recorridos conocidos | Valida distancia/velocidad contra verdad (no solo autoconsistencia de la homografía) | 🔴 vacío |
+| GT3 | **Ganador de duelos anotado** | `fixtures/golden/duelos_gt.csv` | Un humano marca por duelo quién gana/pierde | Duelos G/P 🔴→calculado: habilita el **criterio de ganador (G3)**, hoy prohibido inventar sin esta verdad | 🔴 vacío |
+| GT4 | **VSI de referencia** | `fixtures/golden/vsi_gt` | Evaluación humana del compuesto para contrastar | Valida el VSI-vídeo compuesto | 🔴 vacío |
+| GT5 | **Identidad por dorsal** — ≥3 clips ~60s anotados a mano | `fixtures/identidad/` (solo `_plantilla`) | Cámara fija + móvil + ≥1 en malas condiciones; fila por `(frame, track_id, dorsal, equipo, legible)` + convocatoria cerrada | Construir **y** validar la capa de identidad (≥98% precisión). Sin ella el sistema **abstiene** (pistas anónimas). Define el techo físico de cobertura | 🔴 solo plantilla |
+| GT6 | **Umbral de cercanía (pose vs solo-posición)** — validar la frontera cercano/lejano del pipeline de recall | `fixtures/` (V6) + `poseEligibility.ts` | Anotar a mano en qué cajas los keypoints son fiables vs no | Fija el umbral hoy "pendiente de validar"; permite dar recall/FP reales del tracking a plano completo | 🟡 sin validar |
+| GT7 | **Dataset para `vitas-pose-v1`** (modelo propio) | eval V6 + dataset etiquetado | Frames/bboxes de footage juvenil etiquetados a mano | Entrenar/validar el pose afinado (objetivo Fase 3); hoy producción usa pose de stock | 🔴 no existe |
+| GT8 | **Datos reales de bienestar/retención** | input ya cableado (`useWellbeing.ts`, señales de retención) | Que personas introduzcan cuestionario/asistencia/engagement por jugador | Bienestar y Radar de Retención 🟠 mock→real (hoy tras banner; retención aún = hash del id) | 🟠 mock, sin datos |
+| GT9 | **Clip real (idealmente público)** para benchmark de tracking | — | Un vídeo de partido/entreno con URL pública | Benchmark BoT-SORT vs ByteTrack, pose n vs m, balón dedicado, homografía px→m | 🔴 falta |
+
+> **Nota sobre técnica/mental/táctica del VSI-vídeo:** además de ground truth para
+> validar, requieren un **modelo que las mida** (hoy el pipeline de visión no las
+> mide → `CONSTANTE(null)`). Es hueco de capacidad a largo plazo, no solo de datos.
+
+---
+
 ## 5. Trabajo pendiente por categoría
 
 ### A) DATOS / VALIDACIÓN HUMANA — el cuello de botella real (no lo arregla código)
+
+> Resumen ejecutable del **índice §4-bis** (arriba, la lista completa con ficheros y estados).
 
 - [ ] **Ground truth de identidad** — `fixtures/identidad/` (hoy solo `_plantilla`): ≥3 clips de ~60s anotados a mano (cámara fija + móvil + ≥1 en malas condiciones), fila por `(frame, track_id, dorsal, equipo, legible)` + convocatoria cerrada. Define el techo físico de cobertura; sin él la capa de identidad por dorsal **no se puede construir ni validar** (≥98% precisión) → el sistema seguirá abstiéndose (pistas anónimas).
 - [ ] **Golden de físicas/duelos** — `fixtures/golden/` (vacío): `calibracion.json` (≥4 puntos medidos), `distancia_gt` (GPS/EPTS o cinta), `duelos_gt.csv`, `vsi_gt`. Sin verdad medida no se validan distancia/velocidad (homografía), duelos ni VSI.
