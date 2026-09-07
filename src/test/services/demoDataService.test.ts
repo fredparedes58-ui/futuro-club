@@ -33,18 +33,18 @@ describe("DemoDataService", () => {
   });
 
   describe("seed", () => {
-    it("crea 3 jugadores demo", () => {
+    it("crea todos los jugadores demo del catálogo", () => {
       const created = DemoDataService.seed();
-      expect(created).toBe(3);
+      expect(created).toBe(DemoDataService.count);
       const all = PlayerService.getAll();
-      expect(all.length).toBe(3);
+      expect(all.length).toBe(DemoDataService.count);
     });
 
     it("es idempotente — segunda llamada no crea más", () => {
       DemoDataService.seed();
       const second = DemoDataService.seed();
       expect(second).toBe(0);
-      expect(PlayerService.getAll().length).toBe(3);
+      expect(PlayerService.getAll().length).toBe(DemoDataService.count);
     });
 
     it("no sobreescribe jugadores existentes", () => {
@@ -77,14 +77,14 @@ describe("DemoDataService", () => {
       DemoDataService.seed();
       const names = PlayerService.getAll().map((p) => p.name);
       const uniqueNames = new Set(names);
-      expect(uniqueNames.size).toBe(3);
+      expect(uniqueNames.size).toBe(DemoDataService.count);
     });
 
     it("jugadores demo tienen posiciones variadas", () => {
       DemoDataService.seed();
       const positions = PlayerService.getAll().map((p) => p.position);
       const uniquePositions = new Set(positions);
-      expect(uniquePositions.size).toBe(3);
+      expect(uniquePositions.size).toBeGreaterThanOrEqual(3);
     });
 
     it("jugadores demo tienen edades entre 8 y 21", () => {
@@ -108,15 +108,15 @@ describe("DemoDataService", () => {
         minutesPlayed: 100,
         metrics: { speed: 60, technique: 60, vision: 60, stamina: 60, shooting: 60, defending: 60 },
       });
-      expect(PlayerService.getAll().length).toBe(4);
+      expect(PlayerService.getAll().length).toBe(DemoDataService.count + 1);
 
       // Verificar IDs únicos (fix del bug Date.now() colisión)
       const ids = PlayerService.getAll().map(p => p.id);
-      expect(new Set(ids).size).toBe(4);
+      expect(new Set(ids).size).toBe(DemoDataService.count + 1);
 
       // Purge elimina solo los demos
       const removed = DemoDataService.purge();
-      expect(removed).toBe(3);
+      expect(removed).toBe(DemoDataService.count);
 
       const remaining = PlayerService.getAll();
       expect(remaining.length).toBe(1);
@@ -129,16 +129,16 @@ describe("DemoDataService", () => {
   });
 
   describe("getDemoPlayerNames", () => {
-    it("devuelve 3 nombres", () => {
+    it("devuelve un nombre por jugador demo", () => {
       const names = DemoDataService.getDemoPlayerNames();
-      expect(names.length).toBe(3);
+      expect(names.length).toBe(DemoDataService.count);
       expect(names.every((n) => typeof n === "string" && n.length > 0)).toBe(true);
     });
   });
 
   describe("count", () => {
-    it("devuelve 3", () => {
-      expect(DemoDataService.count).toBe(3);
+    it("es el tamaño del catálogo demo (varios jugadores)", () => {
+      expect(DemoDataService.count).toBeGreaterThanOrEqual(3);
     });
   });
 

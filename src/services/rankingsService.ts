@@ -51,6 +51,15 @@ export interface RankedPlayer {
   foot: string;
   height: number;
   weight: number;
+  // ── Inputs de maduración (para playerMaturity → PHV/timing en el ranking) ──
+  // Sin `gender`, playerMaturity marca "sexo no registrado" y el timing sale
+  // "por determinar" para TODOS. Se arrastran desde el jugador crudo.
+  gender?: "M" | "F";
+  sittingHeight?: number;
+  legLength?: number;
+  motherHeightCm?: number;
+  fatherHeightCm?: number;
+  birthDate?: string;
 }
 
 /**
@@ -138,7 +147,8 @@ function fetchLocalRankedPlayers(
   // por grupo cuenta a todos.
   const vsiByAgeGroup: Record<string, number[]> = {};
   const countByAgeGroup: Record<string, number> = {};
-  const enriched: RankedPlayer[] = uiPlayers.map((p) => {
+  const enriched: RankedPlayer[] = uiPlayers.map((p, i) => {
+    const raw = sorted[i]; // jugador CRUDO (mismo índice) → tiene sexo/antropometría
     const ageGroup = getAgeGroup(p.age);
     countByAgeGroup[ageGroup] = (countByAgeGroup[ageGroup] ?? 0) + 1;
     if (p.vsi !== null) {
@@ -166,6 +176,14 @@ function fetchLocalRankedPlayers(
       foot: p.foot ?? "right",
       height: p.height ?? 170,
       weight: p.weight ?? 60,
+      // Maduración desde el jugador crudo (el adaptador UI no los arrastra) → así
+      // playerMaturity calcula PHV/timing en el ranking en vez de "por determinar".
+      gender: raw?.gender,
+      sittingHeight: raw?.sittingHeight,
+      legLength: raw?.legLength,
+      motherHeightCm: raw?.motherHeightCm,
+      fatherHeightCm: raw?.fatherHeightCm,
+      birthDate: raw?.birthDate,
     } as RankedPlayer;
   });
 
