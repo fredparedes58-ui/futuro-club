@@ -624,7 +624,7 @@ const VitasLab = () => {
     // DEMO: no hay pipeline de vídeo real. Los informes de ejemplo ya están
     // cargados en cada jugador → avisamos en vez de intentar analizar (que fallaría).
     if (IS_DEMO) {
-      toast.info("Demo: informes de ejemplo ya cargados", {
+      toast.info(t("toasts.demoReportsLoaded"), {
         description: "En la demo cada jugador ya trae su análisis de ejemplo. El análisis de vídeo real se activa con una cuenta.",
         duration: 5000,
       });

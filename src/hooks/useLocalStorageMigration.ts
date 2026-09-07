@@ -13,6 +13,7 @@ import { useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LocalStorageMigrationService } from "@/services/real/localStorageMigrationService";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 export function useLocalStorageMigration(): void {
   const { user, configured } = useAuth();
@@ -55,7 +56,7 @@ export function useLocalStorageMigration(): void {
 
       if (result.errors.length > 0 && !result.errors.every((e) => e.startsWith("already_"))) {
         console.warn("[migration] errors:", result.errors);
-        toast.warning("Algunos datos no se pudieron sincronizar", {
+        toast.warning(i18n.t("toasts.syncPartial"), {
           description: "Revisa la consola para detalles · puedes reintentar más tarde",
         });
       }

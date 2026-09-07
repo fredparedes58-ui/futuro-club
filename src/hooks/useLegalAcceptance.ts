@@ -6,6 +6,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import i18n from "@/i18n";
 import { useAuth } from "@/context/AuthContext";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
@@ -88,7 +89,7 @@ export function useLegalAcceptance() {
         headers,
         body: JSON.stringify({ document, version }),
       });
-      if (!res.ok) throw new Error("Error al aceptar");
+      if (!res.ok) throw new Error(i18n.t("errors.acceptFailed"));
       return res.json();
     },
     onSuccess: () => {

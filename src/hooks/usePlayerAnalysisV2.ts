@@ -209,7 +209,7 @@ export function usePlayerAnalysisV2() {
           }
           setState((s) => ({ ...s, progress: 40 + attempts, message: `Bunny encoding... ${attempts}/12` }));
         }
-        if (!finalized) throw new Error("Bunny tardó demasiado");
+        if (!finalized) throw new Error(i18n.t("errors.bunnyTimeout"));
 
         // ── 4. Polling análisis ──────────────────────
         setState({ step: "queued", progress: 55, message: "Análisis encolado · cron procesará en <1 min", error: null });
@@ -227,7 +227,7 @@ export function usePlayerAnalysisV2() {
           ac.signal
         );
 
-        if (!analysisStatus) throw new Error("Análisis no completó en 5 minutos");
+        if (!analysisStatus) throw new Error(i18n.t("errors.analysisTimeout"));
         if (analysisStatus.status === "failed") {
           throw new Error(analysisStatus.status_message ?? "Análisis falló");
         }
@@ -381,7 +381,7 @@ export function usePlayerAnalysisV2() {
           60, 5000, ac.signal
         );
 
-        if (!analysisStatus) throw new Error("Análisis no completó en 5 minutos");
+        if (!analysisStatus) throw new Error(i18n.t("errors.analysisTimeout"));
         if (analysisStatus.status === "failed") throw new Error(analysisStatus.status_message ?? "Análisis falló");
 
         setResult((r) => ({ ...r, analysisId: analysisStatus.id, videoId: params.videoId }));

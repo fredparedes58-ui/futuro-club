@@ -15,6 +15,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import i18n from "@/i18n";
 import * as tus from "tus-js-client";
 import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
@@ -216,7 +217,7 @@ export function useVideoUpload(playerId?: string) {
 
         if (!initRes.ok) {
           if (initRes.status === 401 || initRes.status === 403) {
-            throw new Error("Sesión expirada. Por favor, cierra sesión y vuelve a iniciar sesión.");
+            throw new Error(i18n.t("errors.sessionExpired"));
           }
           const errText = await initRes.text().catch(() => `HTTP ${initRes.status}`);
           let errMsg = `HTTP ${initRes.status}`;

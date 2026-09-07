@@ -11,6 +11,7 @@ import {
   type ParentalConsent,
 } from "@/services/real/parentalConsentService";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const STALE = 1000 * 60 * 2; // 2 min
 
@@ -63,11 +64,11 @@ export function useGrantConsent() {
     mutationFn: ({ playerId, guardianName, guardianEmail }: GrantInput) =>
       ParentalConsentService.grant(playerId, guardianName, guardianEmail),
     onSuccess: () => {
-      toast.success("Consentimiento parental concedido");
+      toast.success(i18n.t("toasts.consentGranted"));
       qc.invalidateQueries({ queryKey: ["parental-consent"] });
       qc.invalidateQueries({ queryKey: ["parental-consents"] });
     },
-    onError: () => toast.error("No se pudo guardar el consentimiento"),
+    onError: () => toast.error(i18n.t("toasts.consentSaveError")),
   });
 }
 
@@ -77,7 +78,7 @@ export function useDenyConsent() {
     mutationFn: ({ playerId, guardianName }: { playerId: string; guardianName?: string }) =>
       ParentalConsentService.deny(playerId, guardianName),
     onSuccess: () => {
-      toast.warning("Consentimiento denegado · datos del menor anonimizados");
+      toast.warning(i18n.t("toasts.consentDenied"));
       qc.invalidateQueries({ queryKey: ["parental-consent"] });
       qc.invalidateQueries({ queryKey: ["parental-consents"] });
     },
@@ -88,10 +89,10 @@ export function useSendConsentReminder() {
   return useMutation({
     mutationFn: (playerId: string) => ParentalConsentService.sendReminder(playerId),
     onSuccess: (res) => {
-      if (res.ok) toast.success("Recordatorio enviado al tutor");
+      if (res.ok) toast.success(i18n.t("toasts.reminderSent"));
       else if (res.reason === "email_service_not_configured")
-        toast.info("Servicio de email no configurado todavía");
-      else toast.error("Fallo enviando recordatorio");
+        toast.info(i18n.t("toasts.emailNotConfigured"));
+      else toast.error(i18n.t("toasts.reminderError"));
     },
   });
 }

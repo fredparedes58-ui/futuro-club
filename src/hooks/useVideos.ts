@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { VideoService } from "@/services/real/videoService";
 import type { VideoRecord, VideoAnalysis } from "@/services/real/videoService";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 import { useAuth } from "@/context/AuthContext";
 import { SupabaseVideoService } from "@/services/real/supabaseVideoService";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
@@ -149,12 +150,12 @@ export function useDeleteVideo() {
       }
     },
     onSuccess: (_, videoId) => {
-      toast.success("Video eliminado");
+      toast.success(i18n.t("toasts.videoDeleted"));
       qc.invalidateQueries({ queryKey: ["videos"] });
       qc.removeQueries({ queryKey: ["video", videoId] });
     },
     onError: (err: Error) => {
-      toast.error(`Error al eliminar: ${err.message}`);
+      toast.error(i18n.t("toasts.deleteError", { msg: err.message }));
     },
   });
 }
@@ -197,7 +198,7 @@ export function useRunPipeline() {
       return data.data!;
     },
     onSuccess: (data, { videoId, playerId: _pid }) => {
-      toast.success("Análisis táctico completado");
+      toast.success(i18n.t("toasts.tacticalAnalysisComplete"));
       if (data?.tacticalAnalysis) {
         if (user && SUPABASE_CONFIGURED) {
           SupabaseVideoService.saveAnalysis(user.id, videoId, data.tacticalAnalysis);

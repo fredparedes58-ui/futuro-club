@@ -19,6 +19,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, X, Activity, Swords, Grid3x3, Zap, Sparkles, FileText,
@@ -36,7 +37,7 @@ async function shareCurrentUrl() {
       await nav.share({ title: "VITAS", url });
     } else if (nav?.clipboard) {
       await nav.clipboard.writeText(url);
-      toast.success("Enlace copiado al portapapeles");
+      toast.success(i18n.t("toasts.linkCopied"));
     }
   } catch {
     /* el usuario canceló el diálogo de compartir — sin acción */

@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useState, useCallback } from "react";
+import i18n from "@/i18n";
 
 export type PushPermission = "granted" | "denied" | "default" | "unsupported";
 
