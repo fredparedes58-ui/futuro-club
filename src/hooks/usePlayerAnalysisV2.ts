@@ -672,7 +672,10 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
 
 export function useSavedAnalysesV2(playerId: string) {
   return useQuery({
-    queryKey: ["analyses-v2", playerId],
+    // En demo el idioma forma parte de la clave → cambiar de idioma regenera el
+    // informe de ejemplo en ese idioma. Fuera del demo el segmento es null (la
+    // caché real no depende del idioma: los datos guardados ya vienen en su idioma).
+    queryKey: ["analyses-v2", playerId, IS_DEMO ? normalizeLocale(i18n.language) : null],
     queryFn: async () => {
       if (!playerId) return [];
       // DEMO (piso piloto): no hay pipeline ni Supabase → devolvemos un análisis
@@ -680,7 +683,7 @@ export function useSavedAnalysesV2(playerId: string) {
       // lo muestra bajo el banner «Datos de ejemplo».
       if (IS_DEMO) {
         const player = PlayerService.getById(playerId);
-        return player ? buildDemoAnalysisRows(player).map(mapDbRowToLegacy) : [];
+        return player ? buildDemoAnalysisRows(player, normalizeLocale(i18n.language)).map(mapDbRowToLegacy) : [];
       }
       if (!SUPABASE_CONFIGURED) return [];
       const { data, error } = await supabase

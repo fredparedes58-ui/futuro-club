@@ -8,6 +8,10 @@
  * (VSI de ficha, posición, métricas, maduración) → cada jugador tiene un
  * informe distinto y coherente con su perfil, sin inventar un número global.
  *
+ * Idioma (P3): el informe se redacta en el idioma activo de la UI (i18n). Los
+ * tokens de enum (tier_label, prioridad, report_type) NO se traducen — la capa
+ * de presentación los rotula. Solo se traduce la PROSA.
+ *
  * Formato: se construye un `AnalysisDbRow` (el mismo shape que devuelve Supabase)
  * y se pasa por `mapDbRowToLegacy` en el hook → así el demo ejercita el MISMO
  * mapeo que producción, sin duplicar la lógica de presentación.
@@ -16,14 +20,26 @@
 import type { Player } from "@/services/real/playerService";
 import type { AnalysisDbRow } from "@/hooks/usePlayerAnalysisV2";
 import { playerMaturity } from "@/lib/phv/playerMaturity";
+import i18n from "@/i18n";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 
-const METRIC_LABEL: Record<string, string> = {
-  speed: "Velocidad",
-  technique: "Técnica con balón",
-  vision: "Visión de juego",
-  stamina: "Resistencia",
-  shooting: "Definición",
-  defending: "Trabajo defensivo",
+const METRIC_LABEL: Record<ReportLocale, Record<string, string>> = {
+  es: {
+    speed: "Velocidad",
+    technique: "Técnica con balón",
+    vision: "Visión de juego",
+    stamina: "Resistencia",
+    shooting: "Definición",
+    defending: "Trabajo defensivo",
+  },
+  en: {
+    speed: "Speed",
+    technique: "Ball technique",
+    vision: "Game vision",
+    stamina: "Stamina",
+    shooting: "Finishing",
+    defending: "Defensive work",
+  },
 };
 
 // Comparables de ejemplo por familia de posición (SOLO demo — etiquetado como ejemplo).
@@ -46,15 +62,25 @@ function tierLabelFor(vsi: number): string {
 }
 
 /** Ordena las 6 métricas para separar fortalezas (altas) de áreas (bajas). */
-function rankedMetrics(player: Player): Array<{ key: string; label: string; value: number }> {
+function rankedMetrics(player: Player, locale: ReportLocale): Array<{ key: string; label: string; value: number }> {
+  const labels = METRIC_LABEL[locale];
   const m = player.metrics ?? ({} as Record<string, number>);
-  return Object.keys(METRIC_LABEL)
-    .map((key) => ({ key, label: METRIC_LABEL[key], value: (m as Record<string, number>)[key] ?? 0 }))
+  return Object.keys(labels)
+    .map((key) => ({ key, label: labels[key], value: (m as Record<string, number>)[key] ?? 0 }))
     .sort((a, b) => b.value - a.value);
 }
 
-function maturityBlurb(player: Player): string {
+function maturityBlurb(player: Player, locale: ReportLocale): string {
   const mat = playerMaturity(player as unknown as Parameters<typeof playerMaturity>[0]);
+  if (locale === "en") {
+    if (mat.timing === "late")
+      return "Late maturer: today competes physically behind peers, but the growth margin is still to come. Often undervalued talent — don't rule out by size.";
+    if (mat.timing === "early")
+      return "Early maturer: part of the current output leans on a temporary physical edge peers will catch up to. Prioritise technical-tactical development over physical.";
+    if (mat.timing === "on_time")
+      return "Maturing in phase with peers: the current evaluation reflects their relative level well.";
+    return "Maturation timing to be determined (data outside the reliability window); observed performance is evaluated.";
+  }
   if (mat.timing === "late")
     return "Madurador tardío: hoy compite físicamente por detrás de sus pares, pero su margen de crecimiento está por llegar. Talento a menudo infravalorado — no descartar por tamaño.";
   if (mat.timing === "early")
@@ -65,14 +91,23 @@ function maturityBlurb(player: Player): string {
 }
 
 /** Construye el/los análisis de ejemplo para un jugador del demo. */
-export function buildDemoAnalysisRows(player: Player): AnalysisDbRow[] {
+export function buildDemoAnalysisRows(
+  player: Player,
+  locale: ReportLocale = normalizeLocale(i18n.language),
+): AnalysisDbRow[] {
+  const en = locale === "en";
   const vsi = typeof player.vsi === "number" ? player.vsi : 60;
-  const ranked = rankedMetrics(player);
+  const ranked = rankedMetrics(player, locale);
   const strengths = ranked.slice(0, 3).map((r) => ({ title: r.label }));
   const areas = ranked.slice(-2).map((r) => ({ title: r.label }));
   const first = player.name.split(" ")[0];
+  const pos = player.position;
+  const posLow = pos.toLowerCase();
   const pro = PRO_BY_POSITION.find((p) => p.match.test(player.position)) ?? PRO_BY_POSITION[4];
-  const matBlurb = maturityBlurb(player);
+  const matBlurb = maturityBlurb(player, locale);
+  const s0 = strengths[0].title.toLowerCase();
+  const a0 = areas[0].title.toLowerCase();
+  const join = (arr: string[]) => arr.join(en ? " and " : " y ");
 
   const row: AnalysisDbRow = {
     id: `demo-analysis-${player.id}`,
@@ -84,9 +119,11 @@ export function buildDemoAnalysisRows(player: Player): AnalysisDbRow[] {
       {
         report_type: "player-report",
         content: {
-          executive_summary:
-            `${first} (${player.position}, ${player.age} años) presenta un VSI de ficha de ${Math.round(vsi)}. ` +
-            `Destaca en ${strengths.map((s) => s.title.toLowerCase()).join(" y ")}, con recorrido en ${areas.map((a) => a.title.toLowerCase()).join(" y ")}. ${matBlurb}`,
+          executive_summary: en
+            ? `${first} (${pos}, age ${player.age}) has a profile VSI of ${Math.round(vsi)}. ` +
+              `Stands out in ${join(strengths.map((s) => s.title.toLowerCase()))}, with room to grow in ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`
+            : `${first} (${pos}, ${player.age} años) presenta un VSI de ficha de ${Math.round(vsi)}. ` +
+              `Destaca en ${join(strengths.map((s) => s.title.toLowerCase()))}, con recorrido en ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
           tier_label: tierLabelFor(vsi),
           strengths,
           areas_to_improve: areas,
@@ -95,13 +132,18 @@ export function buildDemoAnalysisRows(player: Player): AnalysisDbRow[] {
       {
         report_type: "dna-profile",
         content: {
-          primary_style: `${player.position} con perfil ${ranked[0].label.toLowerCase()}`,
-          style_summary:
-            `Juego apoyado en ${ranked[0].label.toLowerCase()} y ${ranked[1].label.toLowerCase()}. ` +
-            `Toma de decisiones acorde a su ${player.position.toLowerCase()}.`,
+          primary_style: en
+            ? `${pos} with a ${ranked[0].label.toLowerCase()} profile`
+            : `${pos} con perfil ${ranked[0].label.toLowerCase()}`,
+          style_summary: en
+            ? `Game built on ${ranked[0].label.toLowerCase()} and ${ranked[1].label.toLowerCase()}. ` +
+              `Decision-making in line with their ${posLow} role.`
+            : `Juego apoyado en ${ranked[0].label.toLowerCase()} y ${ranked[1].label.toLowerCase()}. ` +
+              `Toma de decisiones acorde a su ${posLow}.`,
           natural_role: player.position,
-          pressure_behavior:
-            vsi >= 65 ? "Competitivo bajo presión; mantiene criterio en zonas de decisión." : "En desarrollo bajo presión; mejora con repetición de contextos exigentes.",
+          pressure_behavior: en
+            ? (vsi >= 65 ? "Competitive under pressure; keeps good judgement in decision zones." : "Developing under pressure; improves with repeated demanding contexts.")
+            : (vsi >= 65 ? "Competitivo bajo presión; mantiene criterio en zonas de decisión." : "En desarrollo bajo presión; mejora con repetición de contextos exigentes."),
         },
       },
       {
@@ -111,26 +153,58 @@ export function buildDemoAnalysisRows(player: Player): AnalysisDbRow[] {
           posicion: pro.posicion,
           club: pro.club,
           score: Math.max(55, Math.min(88, Math.round(vsi + 8))),
-          narrativa: `Comparable de ejemplo por familia de posición (${pro.posicion}). Referencia orientativa, no una equivalencia de nivel.`,
+          narrativa: en
+            ? `Example comparable by position family (${pro.posicion}). Indicative reference, not a level equivalence.`
+            : `Comparable de ejemplo por familia de posición (${pro.posicion}). Referencia orientativa, no una equivalencia de nivel.`,
         },
       },
       {
         report_type: "projection",
         content: {
-          optimistic: { description: `Con progresión sostenida, ${first} podría proyectarse por encima de su nivel actual.`, level: vsi >= 70 ? "Semi-pro" : "Amateur alto" },
-          realistic: { description: `Desarrollo consistente dentro de su categoría manteniendo minutos y carga adecuada.`, level: vsi >= 60 ? "Amateur alto" : "Amateur" },
-          key_factors: [strengths[0].title, "Continuidad de minutos", "Acompañamiento de la maduración"],
-          risks: ["Sobrecarga en ventana de crecimiento", areas[0].title],
+          optimistic: {
+            description: en
+              ? `With sustained progression, ${first} could project above their current level.`
+              : `Con progresión sostenida, ${first} podría proyectarse por encima de su nivel actual.`,
+            level: en ? (vsi >= 70 ? "Semi-pro" : "High amateur") : (vsi >= 70 ? "Semi-pro" : "Amateur alto"),
+          },
+          realistic: {
+            description: en
+              ? `Consistent development within their age group, keeping suitable playing time and load.`
+              : `Desarrollo consistente dentro de su categoría manteniendo minutos y carga adecuada.`,
+            level: en ? (vsi >= 60 ? "High amateur" : "Amateur") : (vsi >= 60 ? "Amateur alto" : "Amateur"),
+          },
+          key_factors: en
+            ? [strengths[0].title, "Consistent playing time", "Maturation monitoring"]
+            : [strengths[0].title, "Continuidad de minutos", "Acompañamiento de la maduración"],
+          risks: en
+            ? ["Overload during the growth window", areas[0].title]
+            : ["Sobrecarga en ventana de crecimiento", areas[0].title],
         },
       },
       {
         report_type: "development-plan",
         content: {
-          goal_6months: `Consolidar ${strengths[0].title.toLowerCase()} y reducir la brecha en ${areas[0].title.toLowerCase()}.`,
-          goal_18months: `Transición a un rol de mayor responsabilidad como ${player.position.toLowerCase()}.`,
+          goal_6months: en
+            ? `Consolidate ${s0} and close the gap in ${a0}.`
+            : `Consolidar ${s0} y reducir la brecha en ${a0}.`,
+          goal_18months: en
+            ? `Transition to a higher-responsibility role as ${posLow}.`
+            : `Transición a un rol de mayor responsabilidad como ${posLow}.`,
           pillars: [
-            { pilar: areas[0].title, acciones: ["Bloques específicos 2×/semana", "Vídeo-feedback quincenal"], prioridad: "alta" },
-            { pilar: strengths[0].title, acciones: ["Mantener con retos de dificultad creciente"], prioridad: "media" },
+            {
+              pilar: areas[0].title,
+              acciones: en
+                ? ["Targeted blocks 2×/week", "Fortnightly video feedback"]
+                : ["Bloques específicos 2×/semana", "Vídeo-feedback quincenal"],
+              prioridad: "alta",
+            },
+            {
+              pilar: strengths[0].title,
+              acciones: en
+                ? ["Maintain with progressively harder challenges"]
+                : ["Mantener con retos de dificultad creciente"],
+              prioridad: "media",
+            },
           ],
         },
       },

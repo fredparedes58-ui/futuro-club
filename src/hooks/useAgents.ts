@@ -9,6 +9,8 @@ import { AgentService } from "@/services/real/agentService";
 import { PlayerService } from "@/services/real/playerService";
 import { ragService } from "@/services/real/ragService";
 import type { PHVInput, RoleProfileInput } from "@/agents/contracts";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 // ─────────────────────────────────────────
 // Hook: PHV Calculator
@@ -47,7 +49,8 @@ export function usePHVCalculator(input: PHVInput | null) {
 // ─────────────────────────────────────────
 export function useRoleProfileAgent(playerId: string | undefined) {
   return useQuery({
-    queryKey: ["role-profile-agent", playerId],
+    // El idioma forma parte de la clave → el perfil se regenera en el idioma activo.
+    queryKey: ["role-profile-agent", playerId, normalizeLocale(i18n.language)],
     queryFn: async () => {
       if (!playerId) throw new Error("No hay playerId");
       const player = PlayerService.getById(playerId);
