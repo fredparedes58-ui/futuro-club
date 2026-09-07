@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { IS_DEMO } from "@/lib/demoMode";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 // ── Floating orbs (background decoration) ─────────────────────
 function FloatingOrbs() {
@@ -245,6 +246,7 @@ export default function PublicLanding() {
             <a href="#pricing" className="hover:text-foreground transition-colors">{t("publicLanding.navPlans")}</a>
           </nav>
           <nav className="flex items-center gap-3">
+            <LanguageSwitcher />
             {isLoggedIn ? (
               <Link
                 to="/pulse"
