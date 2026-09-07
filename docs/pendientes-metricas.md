@@ -4,7 +4,7 @@
 > una métrica bloqueada con `gate_reason` honesto es un estado de entrega aceptable, pero
 > **no** es lo mismo que resuelta. Este fichero distingue las dos y se mantiene al día.
 >
-> **Última actualización:** 2026-08-28 · **Rama de creación:** `docs/pendientes-metricas`
+> **Última actualización:** 2026-09-07 · **Rama de creación:** `docs/pendientes-metricas`
 >
 > Estado del arnés a fecha de hoy: el **GATE real** (pre-commit → `audit_metrics.py
 > --baseline`) sale **exit 0** (deuda baselined). El audit CRUDO `audit_metrics.py` →
@@ -131,7 +131,12 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - [x] **C4 · Hard-caps de gasto** — ✅ **HECHO (28 ago): `GLOBAL_MONTHLY_BUDGET_USD` en Vercel + Anthropic $30/mes (hard-cap) + Modal $1/mes (Starter free tier, SIN tarjeta → tope natural, no puede cobrar).** El tripwire del código es fail-open; estos topes de proveedor son el backstop real.
 - [ ] **C5 · `MODAL_TRACK_URL` + `MODAL_API_KEY`** (+ `MODAL_TRACK_ASYNC_URL` + `MODAL_CALLBACK_SECRET`) en env Vercel; sin ellas el tracking de vídeo degrada a mock/cliente y `allowAsync` (§B) queda inerte.
 - [ ] **C5-bis · Escalar Modal para PARTIDOS COMPLETOS (diferido)** — hoy NO hacen falta (no se procesan partidos de 90 min; el tracking en navegador maneja clips). Cuando lleguen esos vídeos: (1) subir el **Modal usage limit** — requiere **añadir tarjeta** (se sale del free tier de $1); (2) subir **`GLOBAL_MONTHLY_BUDGET_USD`** — el gasto de Modal cuenta en ese bote compartido con Claude/Gemini, y el tripwire corta Modal si se supera. Coste ~**$0.60/partido** (T4, timeout 60 min; real ~$0.20–0.30). Dimensionado (Modal limit / GLOBAL): 10 partidos/mes → **$15 / $25** · 30 → **$30 / $45** · 50 → **$45 / $65** · 100 → **$80 / $110**.
-- [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Resend** (emails RGPD), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
+- [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
+- [ ] **C7 · Resend (correo transaccional + leads)** — la migración **063** (tabla `leads`) YA está aplicada, así que `/api/leads` **ya captura en Supabase y devuelve 200**; el lead NO se pierde. Lo único pendiente es la **notificación por email** y el resto del correo transaccional, todo centralizado en `sendEmail` (`api/_lib/email.ts`, #234). Pasos:
+  1. **Vercel (producción):** poner `RESEND_API_KEY`. Opcional `RESEND_FROM_EMAIL` (default `"VITAS <noreply@krujens.eu>"`). Sin la key, `sendEmail` degrada limpio (`console.warn` + `return false`, no rompe).
+  2. **DNS de `krujens.eu`** (⚠ el paso que se olvida): verificar el dominio en Resend añadiendo **DKIM + SPF + MX de retorno** (este último sobre un **subdominio**, p. ej. `send.krujens.eu`). Aunque pongas la key, si el dominio no está verificado el envío falla igual (el `from` es `@krujens.eu`). Los registros van **donde vivan los nameservers de krujens.eu** (si es **Hostinger**, en su editor de zona DNS; si está delegado a Vercel/Cloudflare, allí). **No requiere contratar nada en Hostinger** ni cambia el MX principal → los buzones/emails actuales de krujens.eu siguen intactos.
+  3. **Redesplegar** producción.
+  - **Desbloquea de golpe** (misma key, todos usan `sendEmail`): aviso de leads (`api/leads.ts`), bienvenida/confirmación de signup (`api/auth/_welcome.ts`, #227), **consentimiento RGPD** (`api/auth/sign-consent.ts`), borrado de cuenta RGPD (`api/account/delete-me.ts`), invitaciones/solicitudes de club (`api/team/_invite.ts`, `_request.ts`), notificaciones cron (`api/notifications/_cron.ts`).
 
 > **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
 > (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
@@ -144,6 +149,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - **Modal ya NO está huérfano** (la nota de `CLAUDE.md` es obsoleta): desplegado (roadmap V1/V2 ✅) y cableado a UI (`useTacticalHeatmap.ts:187`, `videoTrackingService.ts:184`).
 - **npm vulns bajaron** de ~35 → 10 → **2 moderate** en runtime (#186 cerró el RCE crítico de protobufjs). Restan `sharp`/`@vite-pwa/assets-generator` (build-time, CVEs libvips upstream sin fix).
 - **Modelo de balón dedicado ya existe** (`ball-football.onnx`, `ballModelConfig.ts:107`) — cierra el hueco de FASE 2; falta hacerlo default (desktop usa aún `yolo11s-detect` COCO genérico).
+- **`docs/demo-setup.md` está OBSOLETO** (describe el enfoque viejo #233 con Supabase separado + `seed-demo.mjs`). La demo VIGENTE (fases 1–4, #237–#243) corre **SIN Supabase**: `IS_DEMO = VITE_DEMO=1` **Y** Supabase NO configurado (doble guarda, `src/lib/demoMode.ts`); los datos viven en `localStorage`, sembrados por `DemoDataService.seed()` en la primera carga. La demo **no necesita** proyecto Supabase propio, migraciones ni `seed-demo.mjs`. **PENDIENTE:** actualizar o marcar como obsoleto ese doc para que nadie cablee Supabase a la demo (justo lo que la doble guarda evita).
 
 > **Mantenimiento:** actualizar este fichero cuando una métrica cambie de estado
 > (p. ej. al cerrar G3/G7, o cuando entre un golden anotado). No borrar las
