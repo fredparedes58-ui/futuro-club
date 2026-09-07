@@ -27,6 +27,8 @@ import {
 import { supabase } from "@/lib/supabase";
 import { agentTracer } from "./agentTracer";
 import { resilientCall, AGENT_CIRCUITS, tokenBudget } from "./agentResilience";
+import { IS_DEMO } from "@/lib/demoMode";
+import { demoAgentResponse } from "@/lib/demo/demoAgents";
 
 const BASE = "/api/agents";
 
@@ -61,6 +63,12 @@ async function callAgent<TInput, TOutput>(
     estimatedTokens?: number;
   } = {}
 ): Promise<AgentResponse<TOutput>> {
+  // DEMO (piso piloto): NO se llama a la IA real (sin claves ni sesión). Se
+  // devuelve una respuesta de ejemplo determinista, sin red ni coste.
+  if (IS_DEMO) {
+    return demoAgentResponse(endpoint, input) as AgentResponse<TOutput>;
+  }
+
   const circuit = AGENT_CIRCUITS[endpoint] ?? {
     agentName: endpoint,
     failureThreshold: 4,
