@@ -5,7 +5,23 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import es from "@/i18n/es.json";
 import en from "@/i18n/en.json";
+import itJson from "@/i18n/it.json";
+import deJson from "@/i18n/de.json";
+import frJson from "@/i18n/fr.json";
+import nlJson from "@/i18n/nl.json";
+import es419Json from "@/i18n/es-419.json";
 import i18n from "@/i18n/index";
+
+// Valor conocido por idioma para verificar que cada recurso carga (common.save).
+const SAVE_BY_LOCALE: Record<string, string> = {
+  es: es.common.save,
+  en: en.common.save,
+  it: itJson.common.save,
+  de: deJson.common.save,
+  fr: frJson.common.save,
+  nl: nlJson.common.save,
+  "es-419": es419Json.common.save,
+};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -139,9 +155,16 @@ describe("i18n translations", () => {
     });
 
     it("fallback a español cuando se solicita idioma desconocido", async () => {
-      await i18n.changeLanguage("fr");
-      // Fallback a "es" — debe devolver el valor en español
+      // Código inexistente (no en el registro) → fallback a "es".
+      await i18n.changeLanguage("zz");
       expect(i18n.t("common.save")).toBe("Guardar");
+    });
+
+    it("cada idioma soportado carga su propio recurso", async () => {
+      for (const [code, expected] of Object.entries(SAVE_BY_LOCALE)) {
+        await i18n.changeLanguage(code);
+        expect(i18n.t("common.save"), `common.save en ${code}`).toBe(expected);
+      }
     });
   });
 });

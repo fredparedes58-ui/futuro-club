@@ -23,10 +23,15 @@ import { z } from "zod";
  * añadir un idioma.
  */
 export const LANGUAGE_REGISTRY = {
-  es: { endonym: "español", englishName: "Spanish" },
-  en: { endonym: "English", englishName: "English" },
-  // Ejemplo de extensión futura (descomentar + añadir src/i18n/fr.json):
-  // fr: { endonym: "français", englishName: "French" },
+  es: { endonym: "español", englishName: "Spanish", label: "ES" },
+  en: { endonym: "English", englishName: "English", label: "EN" },
+  it: { endonym: "italiano", englishName: "Italian", label: "IT" },
+  de: { endonym: "Deutsch", englishName: "German", label: "DE" },
+  fr: { endonym: "français", englishName: "French", label: "FR" },
+  nl: { endonym: "Nederlands", englishName: "Dutch", label: "NL" },
+  // Español de Latinoamérica: código BCP-47 con región. normalizeLocale lo
+  // conserva (no lo colapsa a "es").
+  "es-419": { endonym: "español latinoamericano", englishName: "Latin American Spanish", label: "LAT" },
 } as const;
 
 /** Idioma de reporte soportado (derivado del registro — no listar a mano). */
@@ -58,10 +63,33 @@ export function pickLocale<T>(locale: ReportLocale, byLocale: Partial<Record<Rep
   return (byLocale[locale] ?? byLocale[DEFAULT_LOCALE]) as T;
 }
 
-/** Normaliza cualquier entrada (código, i18n.language, "en-US"…) a un locale soportado. */
+/**
+ * Normaliza cualquier entrada (código, i18n.language, "en-US", "es-419"…) a un
+ * locale soportado. Soporta códigos con región:
+ *   1) coincidencia exacta con el registro ("es-419" → "es-419")
+ *   2) si no, prefijo de 2 letras ("es-ES" → "es", "en-US" → "en", "de-AT" → "de")
+ *   3) si nada casa, el idioma por defecto.
+ * Las variantes regionales de español de Latinoamérica (es-MX, es-AR, es-CO…)
+ * se mapean explícitamente a "es-419" para una detección natural.
+ */
+const LATAM_ES_REGIONS = new Set([
+  "419", "ar", "bo", "cl", "co", "cr", "cu", "do", "ec", "gt", "hn",
+  "mx", "ni", "pa", "pe", "pr", "py", "sv", "us", "uy", "ve",
+]);
+
 export function normalizeLocale(l: unknown): ReportLocale {
-  const code = String(l ?? "").toLowerCase().slice(0, 2);
-  return (SUPPORTED_LOCALES as string[]).includes(code) ? (code as ReportLocale) : DEFAULT_LOCALE;
+  const raw = String(l ?? "").toLowerCase().replace("_", "-");
+  const supported = SUPPORTED_LOCALES as string[];
+  // 1) coincidencia exacta (p. ej. "es-419")
+  if (supported.includes(raw)) return raw as ReportLocale;
+  const [base, region] = raw.split("-");
+  // 2) español de Latinoamérica por región
+  if (base === "es" && region && LATAM_ES_REGIONS.has(region) && supported.includes("es-419")) {
+    return "es-419" as ReportLocale;
+  }
+  // 3) prefijo de 2 letras
+  if (supported.includes(base)) return base as ReportLocale;
+  return DEFAULT_LOCALE;
 }
 
 /**

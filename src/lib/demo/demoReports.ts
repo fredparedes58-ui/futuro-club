@@ -41,6 +41,46 @@ const METRIC_LABEL: Partial<Record<ReportLocale, Record<string, string>>> = {
     shooting: "Finishing",
     defending: "Defensive work",
   },
+  it: {
+    speed: "Velocità",
+    technique: "Tecnica con la palla",
+    vision: "Visione di gioco",
+    stamina: "Resistenza",
+    shooting: "Finalizzazione",
+    defending: "Lavoro difensivo",
+  },
+  de: {
+    speed: "Geschwindigkeit",
+    technique: "Balltechnik",
+    vision: "Spielübersicht",
+    stamina: "Ausdauer",
+    shooting: "Torabschluss",
+    defending: "Defensivarbeit",
+  },
+  fr: {
+    speed: "Vitesse",
+    technique: "Technique de balle",
+    vision: "Vision de jeu",
+    stamina: "Endurance",
+    shooting: "Finition",
+    defending: "Travail défensif",
+  },
+  nl: {
+    speed: "Snelheid",
+    technique: "Baltechniek",
+    vision: "Spelinzicht",
+    stamina: "Uithoudingsvermogen",
+    shooting: "Afwerking",
+    defending: "Verdedigend werk",
+  },
+  "es-419": {
+    speed: "Velocidad",
+    technique: "Técnica con balón",
+    vision: "Visión de juego",
+    stamina: "Resistencia",
+    shooting: "Definición",
+    defending: "Trabajo defensivo",
+  },
 };
 
 // Comparables de ejemplo por familia de posición (SOLO demo — etiquetado como ejemplo).
@@ -77,19 +117,39 @@ function maturityBlurb(player: Player, locale: ReportLocale): string {
     late: {
       es: "Madurador tardío: hoy compite físicamente por detrás de sus pares, pero su margen de crecimiento está por llegar. Talento a menudo infravalorado — no descartar por tamaño.",
       en: "Late maturer: today competes physically behind peers, but the growth margin is still to come. Often undervalued talent — don't rule out by size.",
+      it: "Maturatore tardivo: oggi compete fisicamente dietro ai suoi pari, ma il suo margine di crescita deve ancora arrivare. Talento spesso sottovalutato — non scartare in base alla taglia.",
+      de: "Spätentwickler: konkurriert körperlich derzeit hinter Gleichaltrigen, doch der Wachstumsspielraum steht noch bevor. Oft unterschätztes Talent — nicht nach Körpergröße aussortieren.",
+      fr: "Maturateur tardif : aujourd'hui, il rivalise physiquement en retrait de ses pairs, mais sa marge de croissance reste à venir. Talent souvent sous-évalué — ne pas écarter selon la taille.",
+      nl: "Laatrijpe speler: fysiek doet hij het vandaag onder zijn leeftijdsgenoten, maar zijn groeimarge moet nog komen. Vaak ondergewaardeerd talent — niet afschrijven op basis van lichaamsbouw.",
+      "es-419": "Madurador tardío: hoy compite físicamente por detrás de sus pares, pero su margen de crecimiento está por llegar. Talento a menudo infravalorado — no descartar por tamaño.",
     },
     early: {
       es: "Madurador precoz: parte de su rendimiento actual se apoya en una ventaja física temporal que sus pares igualarán. Priorizar el desarrollo técnico-táctico sobre el físico.",
       en: "Early maturer: part of the current output leans on a temporary physical edge peers will catch up to. Prioritise technical-tactical development over physical.",
+      it: "Maturatore precoce: parte del rendimento attuale poggia su un vantaggio fisico temporaneo che i suoi pari colmeranno. Dare priorità allo sviluppo tecnico-tattico rispetto a quello fisico.",
+      de: "Frühentwickler: Ein Teil der aktuellen Leistung beruht auf einem vorübergehenden körperlichen Vorteil, den Gleichaltrige aufholen werden. Technisch-taktische Entwicklung vor der körperlichen priorisieren.",
+      fr: "Maturateur précoce : une partie du rendement actuel repose sur un avantage physique temporaire que ses pairs combleront. Prioriser le développement technico-tactique sur le physique.",
+      nl: "Vroegrijpe speler: een deel van de huidige prestaties steunt op een tijdelijk fysiek voordeel dat leeftijdsgenoten zullen inhalen. Geef prioriteit aan technisch-tactische ontwikkeling boven fysieke.",
+      "es-419": "Madurador precoz: parte de su rendimiento actual se apoya en una ventaja física temporal que sus pares igualarán. Priorizar el desarrollo técnico-táctico sobre el físico.",
     },
     on_time: {
       es: "Maduración en fase con sus pares: la evaluación actual refleja bien su nivel relativo.",
       en: "Maturing in phase with peers: the current evaluation reflects their relative level well.",
+      it: "Maturazione in fase con i suoi pari: la valutazione attuale riflette bene il suo livello relativo.",
+      de: "Reifung im Gleichschritt mit Gleichaltrigen: Die aktuelle Bewertung spiegelt sein relatives Niveau gut wider.",
+      fr: "Maturation en phase avec ses pairs : l'évaluation actuelle reflète bien son niveau relatif.",
+      nl: "Rijping in fase met leeftijdsgenoten: de huidige beoordeling weerspiegelt zijn relatieve niveau goed.",
+      "es-419": "Maduración en fase con sus pares: la evaluación actual refleja bien su nivel relativo.",
     },
   };
   const fallback = {
     es: "Timing de maduración por determinar (datos fuera de la ventana de fiabilidad); se evalúa el rendimiento observado.",
     en: "Maturation timing to be determined (data outside the reliability window); observed performance is evaluated.",
+    it: "Timing di maturazione da determinare (dati al di fuori della finestra di affidabilità); si valuta il rendimento osservato.",
+    de: "Reifungszeitpunkt noch zu bestimmen (Daten außerhalb des Zuverlässigkeitsfensters); die beobachtete Leistung wird bewertet.",
+    fr: "Timing de maturation à déterminer (données hors de la fenêtre de fiabilité) ; on évalue la performance observée.",
+    nl: "Rijpingstiming nog te bepalen (gegevens buiten het betrouwbaarheidsvenster); de waargenomen prestatie wordt beoordeeld.",
+    "es-419": "Timing de maduración por determinar (datos fuera de la ventana de fiabilidad); se evalúa el rendimiento observado.",
   };
   return pickLocale(locale, byTiming[mat.timing] ?? fallback);
 }
@@ -110,7 +170,7 @@ export function buildDemoAnalysisRows(
   const matBlurb = maturityBlurb(player, locale);
   const s0 = strengths[0].title.toLowerCase();
   const a0 = areas[0].title.toLowerCase();
-  const joinSep = pickLocale(locale, { es: " y ", en: " and " });
+  const joinSep = pickLocale(locale, { es: " y ", en: " and ", it: " e ", de: " und ", fr: " et ", nl: " en ", "es-419": " y " });
   const join = (arr: string[]) => arr.join(joinSep);
 
   const row: AnalysisDbRow = {
@@ -128,6 +188,16 @@ export function buildDemoAnalysisRows(
               `Destaca en ${join(strengths.map((s) => s.title.toLowerCase()))}, con recorrido en ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
             en: `${first} (${pos}, age ${player.age}) has a profile VSI of ${Math.round(vsi)}. ` +
               `Stands out in ${join(strengths.map((s) => s.title.toLowerCase()))}, with room to grow in ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
+            it: `${first} (${pos}, ${player.age} anni) presenta un VSI di scheda di ${Math.round(vsi)}. ` +
+              `Spicca in ${join(strengths.map((s) => s.title.toLowerCase()))}, con margine di crescita in ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
+            de: `${first} (${pos}, ${player.age} Jahre) weist einen Profil-VSI von ${Math.round(vsi)} auf. ` +
+              `Sticht in ${join(strengths.map((s) => s.title.toLowerCase()))} hervor, mit Entwicklungsspielraum in ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
+            fr: `${first} (${pos}, ${player.age} ans) présente un VSI de fiche de ${Math.round(vsi)}. ` +
+              `Se distingue en ${join(strengths.map((s) => s.title.toLowerCase()))}, avec une marge de progression en ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
+            nl: `${first} (${pos}, ${player.age} jaar) heeft een profiel-VSI van ${Math.round(vsi)}. ` +
+              `Valt op in ${join(strengths.map((s) => s.title.toLowerCase()))}, met groeiruimte in ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
+            "es-419": `${first} (${pos}, ${player.age} años) presenta un VSI de ficha de ${Math.round(vsi)}. ` +
+              `Destaca en ${join(strengths.map((s) => s.title.toLowerCase()))}, con recorrido en ${join(areas.map((a) => a.title.toLowerCase()))}. ${matBlurb}`,
           }),
           tier_label: tierLabelFor(vsi),
           strengths,
@@ -140,22 +210,47 @@ export function buildDemoAnalysisRows(
           primary_style: pickLocale(locale, {
             es: `${pos} con perfil ${ranked[0].label.toLowerCase()}`,
             en: `${pos} with a ${ranked[0].label.toLowerCase()} profile`,
+            it: `${pos} con profilo ${ranked[0].label.toLowerCase()}`,
+            de: `${pos} mit ${ranked[0].label.toLowerCase()}-Profil`,
+            fr: `${pos} au profil ${ranked[0].label.toLowerCase()}`,
+            nl: `${pos} met ${ranked[0].label.toLowerCase()}-profiel`,
+            "es-419": `${pos} con perfil ${ranked[0].label.toLowerCase()}`,
           }),
           style_summary: pickLocale(locale, {
             es: `Juego apoyado en ${ranked[0].label.toLowerCase()} y ${ranked[1].label.toLowerCase()}. ` +
               `Toma de decisiones acorde a su ${posLow}.`,
             en: `Game built on ${ranked[0].label.toLowerCase()} and ${ranked[1].label.toLowerCase()}. ` +
               `Decision-making in line with their ${posLow} role.`,
+            it: `Gioco basato su ${ranked[0].label.toLowerCase()} e ${ranked[1].label.toLowerCase()}. ` +
+              `Presa di decisioni coerente con il suo ruolo di ${posLow}.`,
+            de: `Spiel gestützt auf ${ranked[0].label.toLowerCase()} und ${ranked[1].label.toLowerCase()}. ` +
+              `Entscheidungsfindung passend zu seiner Rolle als ${posLow}.`,
+            fr: `Jeu appuyé sur ${ranked[0].label.toLowerCase()} et ${ranked[1].label.toLowerCase()}. ` +
+              `Prise de décision en accord avec son rôle de ${posLow}.`,
+            nl: `Spel gebaseerd op ${ranked[0].label.toLowerCase()} en ${ranked[1].label.toLowerCase()}. ` +
+              `Besluitvorming in lijn met zijn rol als ${posLow}.`,
+            "es-419": `Juego apoyado en ${ranked[0].label.toLowerCase()} y ${ranked[1].label.toLowerCase()}. ` +
+              `Toma de decisiones acorde a su ${posLow}.`,
           }),
           natural_role: player.position,
           pressure_behavior: vsi >= 65
             ? pickLocale(locale, {
                 es: "Competitivo bajo presión; mantiene criterio en zonas de decisión.",
                 en: "Competitive under pressure; keeps good judgement in decision zones.",
+                it: "Competitivo sotto pressione; mantiene lucidità nelle zone di decisione.",
+                de: "Wettbewerbsstark unter Druck; behält die Übersicht in Entscheidungszonen.",
+                fr: "Compétitif sous pression ; garde son discernement dans les zones de décision.",
+                nl: "Competitief onder druk; behoudt het overzicht in beslissingszones.",
+                "es-419": "Competitivo bajo presión; mantiene criterio en zonas de decisión.",
               })
             : pickLocale(locale, {
                 es: "En desarrollo bajo presión; mejora con repetición de contextos exigentes.",
                 en: "Developing under pressure; improves with repeated demanding contexts.",
+                it: "In sviluppo sotto pressione; migliora con la ripetizione di contesti impegnativi.",
+                de: "In Entwicklung unter Druck; verbessert sich durch Wiederholung anspruchsvoller Situationen.",
+                fr: "En développement sous pression ; progresse avec la répétition de contextes exigeants.",
+                nl: "In ontwikkeling onder druk; verbetert door herhaling van veeleisende situaties.",
+                "es-419": "En desarrollo bajo presión; mejora con repetición de contextos exigentes.",
               }),
         },
       },
@@ -169,6 +264,11 @@ export function buildDemoAnalysisRows(
           narrativa: pickLocale(locale, {
             es: `Comparable de ejemplo por familia de posición (${pro.posicion}). Referencia orientativa, no una equivalencia de nivel.`,
             en: `Example comparable by position family (${pro.posicion}). Indicative reference, not a level equivalence.`,
+            it: `Confronto di esempio per famiglia di posizione (${pro.posicion}). Riferimento orientativo, non un'equivalenza di livello.`,
+            de: `Beispielhafter Vergleich nach Positionsfamilie (${pro.posicion}). Orientierende Referenz, keine Niveaugleichsetzung.`,
+            fr: `Comparable d'exemple par famille de poste (${pro.posicion}). Référence indicative, pas une équivalence de niveau.`,
+            nl: `Voorbeeldvergelijking per positiefamilie (${pro.posicion}). Indicatieve referentie, geen niveaugelijkstelling.`,
+            "es-419": `Comparable de ejemplo por familia de posición (${pro.posicion}). Referencia orientativa, no una equivalencia de nivel.`,
           }),
         },
       },
@@ -179,27 +279,47 @@ export function buildDemoAnalysisRows(
             description: pickLocale(locale, {
               es: `Con progresión sostenida, ${first} podría proyectarse por encima de su nivel actual.`,
               en: `With sustained progression, ${first} could project above their current level.`,
+              it: `Con una progressione costante, ${first} potrebbe proiettarsi al di sopra del suo livello attuale.`,
+              de: `Bei anhaltender Progression könnte sich ${first} über sein aktuelles Niveau hinaus entwickeln.`,
+              fr: `Avec une progression soutenue, ${first} pourrait se projeter au-dessus de son niveau actuel.`,
+              nl: `Bij aanhoudende progressie zou ${first} zich boven zijn huidige niveau kunnen ontwikkelen.`,
+              "es-419": `Con progresión sostenida, ${first} podría proyectarse por encima de su nivel actual.`,
             }),
             level: vsi >= 70
-              ? pickLocale(locale, { es: "Semi-pro", en: "Semi-pro" })
-              : pickLocale(locale, { es: "Amateur alto", en: "High amateur" }),
+              ? pickLocale(locale, { es: "Semi-pro", en: "Semi-pro", it: "Semi-pro", de: "Semi-pro", fr: "Semi-pro", nl: "Semi-prof", "es-419": "Semi-pro" })
+              : pickLocale(locale, { es: "Amateur alto", en: "High amateur", it: "Amateur di alto livello", de: "Gehobener Amateur", fr: "Haut niveau amateur", nl: "Hoog amateurniveau", "es-419": "Amateur alto" }),
           },
           realistic: {
             description: pickLocale(locale, {
               es: `Desarrollo consistente dentro de su categoría manteniendo minutos y carga adecuada.`,
               en: `Consistent development within their age group, keeping suitable playing time and load.`,
+              it: `Sviluppo costante all'interno della sua categoria mantenendo minutaggio e carico adeguati.`,
+              de: `Konsequente Entwicklung innerhalb seiner Altersklasse bei angemessener Spielzeit und Belastung.`,
+              fr: `Développement régulier au sein de sa catégorie en conservant temps de jeu et charge adaptés.`,
+              nl: `Consistente ontwikkeling binnen zijn leeftijdscategorie met passende speelminuten en belasting.`,
+              "es-419": `Desarrollo consistente dentro de su categoría manteniendo minutos y carga adecuada.`,
             }),
             level: vsi >= 60
-              ? pickLocale(locale, { es: "Amateur alto", en: "High amateur" })
-              : pickLocale(locale, { es: "Amateur", en: "Amateur" }),
+              ? pickLocale(locale, { es: "Amateur alto", en: "High amateur", it: "Amateur di alto livello", de: "Gehobener Amateur", fr: "Haut niveau amateur", nl: "Hoog amateurniveau", "es-419": "Amateur alto" })
+              : pickLocale(locale, { es: "Amateur", en: "Amateur", it: "Amateur", de: "Amateur", fr: "Amateur", nl: "Amateur", "es-419": "Amateur" }),
           },
           key_factors: pickLocale(locale, {
             es: [strengths[0].title, "Continuidad de minutos", "Acompañamiento de la maduración"],
             en: [strengths[0].title, "Consistent playing time", "Maturation monitoring"],
+            it: [strengths[0].title, "Continuità di minutaggio", "Accompagnamento della maturazione"],
+            de: [strengths[0].title, "Kontinuierliche Spielzeit", "Begleitung der Reifung"],
+            fr: [strengths[0].title, "Continuité de temps de jeu", "Accompagnement de la maturation"],
+            nl: [strengths[0].title, "Continuïteit van speelminuten", "Begeleiding van de rijping"],
+            "es-419": [strengths[0].title, "Continuidad de minutos", "Acompañamiento de la maduración"],
           }),
           risks: pickLocale(locale, {
             es: ["Sobrecarga en ventana de crecimiento", areas[0].title],
             en: ["Overload during the growth window", areas[0].title],
+            it: ["Sovraccarico nella finestra di crescita", areas[0].title],
+            de: ["Überlastung im Wachstumsfenster", areas[0].title],
+            fr: ["Surcharge pendant la fenêtre de croissance", areas[0].title],
+            nl: ["Overbelasting tijdens het groeivenster", areas[0].title],
+            "es-419": ["Sobrecarga en ventana de crecimiento", areas[0].title],
           }),
         },
       },
@@ -209,10 +329,20 @@ export function buildDemoAnalysisRows(
           goal_6months: pickLocale(locale, {
             es: `Consolidar ${s0} y reducir la brecha en ${a0}.`,
             en: `Consolidate ${s0} and close the gap in ${a0}.`,
+            it: `Consolidare ${s0} e ridurre il divario in ${a0}.`,
+            de: `${s0} festigen und den Rückstand in ${a0} verringern.`,
+            fr: `Consolider ${s0} et réduire l'écart en ${a0}.`,
+            nl: `${s0} consolideren en de achterstand in ${a0} verkleinen.`,
+            "es-419": `Consolidar ${s0} y reducir la brecha en ${a0}.`,
           }),
           goal_18months: pickLocale(locale, {
             es: `Transición a un rol de mayor responsabilidad como ${posLow}.`,
             en: `Transition to a higher-responsibility role as ${posLow}.`,
+            it: `Transizione verso un ruolo di maggiore responsabilità come ${posLow}.`,
+            de: `Übergang zu einer verantwortungsvolleren Rolle als ${posLow}.`,
+            fr: `Transition vers un rôle à plus grande responsabilité comme ${posLow}.`,
+            nl: `Overgang naar een rol met meer verantwoordelijkheid als ${posLow}.`,
+            "es-419": `Transición a un rol de mayor responsabilidad como ${posLow}.`,
           }),
           pillars: [
             {
@@ -220,6 +350,11 @@ export function buildDemoAnalysisRows(
               acciones: pickLocale(locale, {
                 es: ["Bloques específicos 2×/semana", "Vídeo-feedback quincenal"],
                 en: ["Targeted blocks 2×/week", "Fortnightly video feedback"],
+                it: ["Blocchi specifici 2×/settimana", "Video-feedback quindicinale"],
+                de: ["Gezielte Blöcke 2×/Woche", "Zweiwöchentliches Video-Feedback"],
+                fr: ["Blocs spécifiques 2×/semaine", "Retour vidéo bimensuel"],
+                nl: ["Gerichte blokken 2×/week", "Tweewekelijkse videofeedback"],
+                "es-419": ["Bloques específicos 2×/semana", "Video-feedback quincenal"],
               }),
               prioridad: "alta",
             },
@@ -228,6 +363,11 @@ export function buildDemoAnalysisRows(
               acciones: pickLocale(locale, {
                 es: ["Mantener con retos de dificultad creciente"],
                 en: ["Maintain with progressively harder challenges"],
+                it: ["Mantenere con sfide di difficoltà crescente"],
+                de: ["Mit zunehmend schwierigeren Herausforderungen halten"],
+                fr: ["Maintenir avec des défis de difficulté croissante"],
+                nl: ["Behouden met steeds moeilijkere uitdagingen"],
+                "es-419": ["Mantener con retos de dificultad creciente"],
               }),
               prioridad: "media",
             },
