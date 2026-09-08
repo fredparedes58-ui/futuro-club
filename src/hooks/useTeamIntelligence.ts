@@ -128,6 +128,7 @@ export function useTeamIntelligence() {
               method: "POST",
               headers: await getAuthHeaders(),
               body: JSON.stringify({
+                locale: normalizeLocale(i18n.language),
                 videoBase64: videoData.base64,
                 mediaType: videoData.mediaType,
                 teamContext: {
@@ -157,7 +158,7 @@ export function useTeamIntelligence() {
           setState({ step: "keyframes", progress: 20, message: "Extrayendo fotogramas..." });
           const frameCount = getOptimalFrameCount(videoDuration || 120);
           keyframes = await extractKeyframesFromVideo(localVideoSrc, videoDuration || 120, frameCount);
-          if (keyframes.length === 0) throw new Error("No se pudieron extraer frames del video");
+          if (keyframes.length === 0) throw new Error(i18n.t("errors.frameExtractError"));
 
           const payloadEstimate = JSON.stringify(keyframes).length;
           if (payloadEstimate > 4_000_000) {

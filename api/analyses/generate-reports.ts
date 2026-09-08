@@ -16,6 +16,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { createClient } from "@supabase/supabase-js";
+import { localeSchema } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -36,7 +37,7 @@ const schema = z.object({
   eventSummary: z.record(z.unknown()).nullable().optional(),
   playedPosition: z.string().nullable().optional(),
   /** FASE 5 · idioma de los reportes; se propaga al orchestrator y agentes */
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
   /** C1 multi-categoría · override explícito (si falta, el orchestrator deriva de la edad) */
   category: z.enum(["youth", "senior"]).optional(),
 });

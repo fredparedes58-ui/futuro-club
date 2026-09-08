@@ -11,6 +11,7 @@
  */
 
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
@@ -96,6 +97,7 @@ export default function InjuryLogForm({
   compact = false,
   maxVisible = 5,
 }: InjuryLogFormProps) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState<InjuryEntry | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -109,7 +111,7 @@ export default function InjuryLogForm({
   const handleSaveEntry = useCallback(() => {
     if (!editing) return;
     if (!editing.type || !editing.bodyPart) {
-      toast.error("Completa tipo y zona corporal");
+      toast.error(t("toasts.injuryFillTypeAndZone"));
       return;
     }
     const updated = editing.id
@@ -117,16 +119,16 @@ export default function InjuryLogForm({
       : [...injuries, { ...editing, id: `local-${Date.now()}` }];
     onChange(updated);
     setEditing(null);
-    toast.success(editing.id ? "Lesion actualizada" : "Lesion registrada");
-  }, [editing, injuries, onChange]);
+    toast.success(editing.id ? t("toasts.injuryUpdated") : t("toasts.injuryLogged"));
+  }, [editing, injuries, onChange, t]);
 
   const handleDelete = useCallback(
     (id: string | undefined) => {
       if (!id) return;
       onChange(injuries.filter((inj) => inj.id !== id));
-      toast.success("Lesion eliminada");
+      toast.success(t("toasts.injuryDeleted"));
     },
-    [injuries, onChange],
+    [injuries, onChange, t],
   );
 
   const handlePersist = useCallback(async () => {
@@ -134,13 +136,13 @@ export default function InjuryLogForm({
     setSaving(true);
     try {
       await onSave(injuries);
-      toast.success("Historial guardado");
+      toast.success(t("toasts.injuryHistorySaved"));
     } catch {
-      toast.error("Error al guardar");
+      toast.error(t("toasts.saveError"));
     } finally {
       setSaving(false);
     }
-  }, [injuries, onSave]);
+  }, [injuries, onSave, t]);
 
   // ── Compact mode for onboarding ──────────────────────────────
   if (compact) {

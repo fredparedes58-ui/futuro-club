@@ -22,7 +22,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { RESEND_FROM } from "../_lib/email";
 import { deriveSimMetrics } from "../_lib/simMetrics";
-import { normalizeLocale } from "../../src/lib/shared/locale";
+import { normalizeLocale, localeSchema } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
 import {
   buildVsiSubscores,
@@ -54,7 +54,7 @@ const orchestratorSchema = z.object({
   /** Sprint 8: team/rival analysis data (only present in team/rival modes) */
   teamAnalysis: z.record(z.unknown()).optional(),
   /** FASE 5 · idioma de los reportes (default es); se propaga a todos los agentes */
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
   /** C1 multi-categoría · override explícito; si falta se deriva de la edad */
   category: z.enum(["youth", "senior"]).optional(),
 });

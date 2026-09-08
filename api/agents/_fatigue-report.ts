@@ -13,7 +13,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
-import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { normalizeLocale, languageDirective, localeSchema } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 
 export const config = { runtime: "edge" };
@@ -40,7 +40,7 @@ const fatigueReportSchema = z.object({
   fatigueReport: z.record(z.unknown()).nullable().optional(),
   fatigueHistory: z.array(z.record(z.unknown())).optional(),
   // FASE 5 · idioma del reporte (default "es") — reportes bilingües ES/EN
-  locale: z.enum(["es", "en"]).optional(),
+  locale: localeSchema.optional(),
   // C1 multi-categoría · evita que Zod recorte la categoría del sharedContext
   category: z.enum(["youth", "senior"]).optional(),
 });
@@ -71,7 +71,7 @@ ${JSON.stringify(fatigue, null, 2)}
 ${data.fatigueHistory ? JSON.stringify(data.fatigueHistory.slice(-10), null, 2) : "Sin historial disponible"}
 
 ## INSTRUCCIONES
-Genera un reporte de fatiga en español con las siguientes secciones. Usa SOLO datos concretos. Si falta un dato (índice de fatiga, ACWR, historial de carga), NO lo estimes: pon ese campo en null y decláralo en not_evaluated. NUNCA inventes una cifra de fatiga, carga o riesgo. Un hueco honesto vale más que un número inventado sobre un menor.
+Genera un reporte de fatiga con las siguientes secciones. Usa SOLO datos concretos. Si falta un dato (índice de fatiga, ACWR, historial de carga), NO lo estimes: pon ese campo en null y decláralo en not_evaluated. NUNCA inventes una cifra de fatiga, carga o riesgo. Un hueco honesto vale más que un número inventado sobre un menor.
 
 CONFIANZA (obligatorio): rellena confidence_score (0-100) = tu confianza real en el análisis según los datos que realmente tienes; data_completeness (0-100) = porcentaje de dimensiones evaluadas con datos reales (no inferidos); not_evaluated = lista honesta de los aspectos que NO pudiste evaluar por falta de datos. Con pocos datos, BAJA el score — no infles la confianza. Es un diferenciador de VITAS mostrar incertidumbre con honestidad.
 

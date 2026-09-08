@@ -7,45 +7,86 @@
  * red y sin coste, derivadas de los datos que ya trae la petición. `agentService`
  * las usa cuando `IS_DEMO`. La UI las muestra bajo el banner «Datos de ejemplo».
  *
+ * MULTI-IDIOMA (sin ternarios es/en): los textos se eligen con `pickLocale` desde
+ * mapas por idioma → añadir un idioma = añadir su clave (si falta, cae al idioma
+ * por defecto). `agentService` inyecta `locale`; si faltara, se usa i18n.
+ *
  * Sólo se rellenan las superficies visibles del demo (scout-insight, role-profile).
  * Para el resto se devuelve un fallo elegante → el consumidor muestra su estado
  * honesto de «no disponible» (sin error ni llamada real).
  */
 
 import type { AgentResponse } from "@/agents/contracts";
+import i18n from "@/i18n";
+import { normalizeLocale, pickLocale, type ReportLocale } from "@/lib/shared/locale";
 
-const METRIC_ES: Record<string, string> = {
-  speed: "velocidad", technique: "técnica", vision: "visión de juego",
-  stamina: "resistencia", shooting: "definición", defending: "trabajo defensivo",
+const METRIC_LABELS: Partial<Record<ReportLocale, Record<string, string>>> = {
+  es: {
+    speed: "velocidad", technique: "técnica", vision: "visión de juego",
+    stamina: "resistencia", shooting: "definición", defending: "trabajo defensivo",
+  },
+  en: {
+    speed: "speed", technique: "technique", vision: "game vision",
+    stamina: "stamina", shooting: "finishing", defending: "defensive work",
+  },
 };
 
-function topMetric(metrics: Record<string, number> | undefined): { key: string; label: string; value: number } {
-  const m = metrics ?? {};
-  const entries = Object.keys(METRIC_ES).map((k) => ({ key: k, label: METRIC_ES[k], value: m[k] ?? 0 }));
-  return entries.sort((a, b) => b.value - a.value)[0] ?? { key: "technique", label: "técnica", value: 60 };
+/** Etiqueta de identidad dominante para MOSTRAR (el valor enum no se traduce). */
+const IDENTITY_LABELS: Partial<Record<ReportLocale, Record<string, string>>> = {
+  es: { ofensivo: "ofensiva", defensivo: "defensiva", tecnico: "técnica", fisico: "física", mixto: "mixta" },
+  en: { ofensivo: "attacking", defensivo: "defensive", tecnico: "technical", fisico: "physical", mixto: "mixed" },
+};
+
+function metricLabels(locale: ReportLocale): Record<string, string> {
+  return pickLocale(locale, METRIC_LABELS);
 }
 
-function scoutInsight(input: unknown): Record<string, unknown> {
+function topMetric(
+  metrics: Record<string, number> | undefined,
+  locale: ReportLocale,
+): { key: string; label: string; value: number } {
+  const labels = metricLabels(locale);
+  const m = metrics ?? {};
+  const entries = Object.keys(labels).map((k) => ({ key: k, label: labels[k], value: m[k] ?? 0 }));
+  return entries.sort((a, b) => b.value - a.value)[0] ?? { key: "technique", label: labels.technique, value: 60 };
+}
+
+function scoutInsight(input: unknown, locale: ReportLocale): Record<string, unknown> {
   const p = (input as { player?: Record<string, unknown> })?.player ?? {};
-  const name = (p.name as string) ?? "Jugador";
+  const name = (p.name as string) ?? pickLocale(locale, { es: "Jugador", en: "Player" });
+  const first = name.split(" ")[0];
   const metrics = p.recentMetrics as Record<string, number> | undefined;
-  const top = topMetric(metrics);
+  const top = topMetric(metrics, locale);
+  const headline = pickLocale(locale, {
+    es: `${first} destaca en ${top.label}`,
+    en: `${first} stands out in ${top.label}`,
+  });
+  const body = pickLocale(locale, {
+    es: `Rendimiento de ejemplo: ${name} muestra un nivel destacado en ${top.label}. Insight orientativo generado con datos de ejemplo del demo.`,
+    en: `Example performance: ${name} shows a strong level in ${top.label}. Indicative insight generated with the demo's example data.`,
+  });
   return {
     playerId: (p.id as string) ?? "demo",
     type: "general",
-    headline: `${name.split(" ")[0]} destaca en ${top.label}`.slice(0, 80),
-    body: `Rendimiento de ejemplo: ${name} muestra un nivel destacado en ${top.label}. Insight orientativo generado con datos de ejemplo del demo.`.slice(0, 400),
+    headline: headline.slice(0, 80),
+    body: body.slice(0, 400),
     metric: top.label,
     metricValue: `${Math.round(top.value)}`,
     urgency: "low",
-    tags: ["ejemplo", top.key],
+    tags: [pickLocale(locale, { es: "ejemplo", en: "example" }), top.key],
     timestamp: "2026-09-01T10:00:00.000Z",
-    actionItems: ["Dar continuidad de minutos", "Trabajar el punto débil identificado"],
-    benchmark: "Referencia de ejemplo para su categoría",
+    actionItems: pickLocale(locale, {
+      es: ["Dar continuidad de minutos", "Trabajar el punto débil identificado"],
+      en: ["Maintain playing time", "Work on the identified weak point"],
+    }),
+    benchmark: pickLocale(locale, {
+      es: "Referencia de ejemplo para su categoría",
+      en: "Example benchmark for their age group",
+    }),
   };
 }
 
-function roleProfile(input: unknown): Record<string, unknown> {
+function roleProfile(input: unknown, locale: ReportLocale): Record<string, unknown> {
   const p = (input as { player?: Record<string, unknown> })?.player ?? {};
   const m = (p.metrics as Record<string, number>) ?? {};
   const position = (p.position as string) ?? "Mediocentro";
@@ -60,8 +101,9 @@ function roleProfile(input: unknown): Record<string, unknown> {
     "ofensivo" | "defensivo" | "tecnico" | "fisico" | "mixto";
   const avg = Math.round((off + def + tec + fis) / 4);
   const cap = (base: number) => ({ current: base, p6m: Math.min(99, base + 4), p18m: Math.min(99, base + 9) });
-  const top = topMetric(m);
+  const top = topMetric(m, locale);
   const secondary = (p.secondaryPositions as string[]) ?? [];
+  const dominantLabel = pickLocale(locale, IDENTITY_LABELS)[dominant] ?? dominant;
 
   return {
     playerId: (p.id as string) ?? "demo",
@@ -79,24 +121,41 @@ function roleProfile(input: unknown): Record<string, unknown> {
       technical: cap(Math.round(tec || 55)),
       physical: cap(Math.round(fis || 55)),
     },
-    strengths: [`${METRIC_ES[top.key] ?? "técnica"} por encima de la media`, "Buena lectura para su edad"],
-    risks: ["Consolidar bajo presión competitiva"],
-    gaps: ["Datos de vídeo pendientes (demo)"],
+    strengths: pickLocale(locale, {
+      es: [`${top.label} por encima de la media`, "Buena lectura para su edad"],
+      en: [`${top.label} above average`, "Good game reading for their age"],
+    }),
+    risks: pickLocale(locale, {
+      es: ["Consolidar bajo presión competitiva"],
+      en: ["Consolidate under competitive pressure"],
+    }),
+    gaps: pickLocale(locale, {
+      es: ["Datos de vídeo pendientes (demo)"],
+      en: ["Video data pending (demo)"],
+    }),
     overallConfidence: 0.68,
-    summary: `Perfil de rol de ejemplo (${position}) con identidad ${dominant}. Nivel base ~${avg}. Datos de ejemplo del demo.`.slice(0, 400),
+    summary: pickLocale(locale, {
+      es: `Perfil de rol de ejemplo (${position}) con identidad ${dominantLabel}. Nivel base ~${avg}. Datos de ejemplo del demo.`,
+      en: `Example role profile (${position}) with ${dominantLabel} identity. Base level ~${avg}. Demo example data.`,
+    }).slice(0, 400),
   };
 }
 
 /** Respuesta de agente de ejemplo para el demo, sin red. */
 export function demoAgentResponse(endpoint: string, input: unknown): AgentResponse<unknown> {
+  const locale = normalizeLocale((input as { locale?: unknown })?.locale ?? i18n.language);
   switch (endpoint) {
     case "scout-insight":
-      return { success: true, data: scoutInsight(input), agentName: endpoint };
+      return { success: true, data: scoutInsight(input, locale), agentName: endpoint };
     case "role-profile":
-      return { success: true, data: roleProfile(input), agentName: endpoint };
+      return { success: true, data: roleProfile(input, locale), agentName: endpoint };
     default:
       // Superficie no cubierta por el demo: fallo elegante (el consumidor muestra
       // su estado honesto de «no disponible», sin llamada real ni error de red).
-      return { success: false, error: "No disponible en la demo", agentName: endpoint };
+      return {
+        success: false,
+        error: pickLocale(locale, { es: "No disponible en la demo", en: "Not available in the demo" }),
+        agentName: endpoint,
+      };
   }
 }

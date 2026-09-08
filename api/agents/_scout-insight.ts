@@ -14,6 +14,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached, incrementHitCount } from "../_lib/agentCache";
 import { scoutInsightFallback } from "../_lib/agentFallbacks";
 import { MODELS } from "../_lib/models";
+import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -29,11 +30,13 @@ const scoutSchema = z.object({
     recentMetrics: z.record(z.number()).optional(),
   }),
   context: z.string().optional(),
+  // Idioma de redacción (default "es"). Lo inyecta AgentService desde i18n.
+  locale: localeSchema.optional(),
 });
 
-function buildSystemPrompt(ragContext: string): string {
+function buildSystemPrompt(ragContext: string, locale: ReportLocale): string {
   return `Eres el generador de insights de scouting de VITAS Football Intelligence.
-Tu función es analizar métricas de un jugador juvenil y generar un insight accionable en español.
+Tu función es analizar métricas de un jugador juvenil y generar un insight accionable.
 
 CONTEXTOS Y SUS REGLAS:
 
@@ -89,7 +92,6 @@ Usa este contexto para:
 ` : ""}
 
 REGLAS DE ESCRITURA (obligatorias):
-- Todo en español
 - headline: máximo 80 caracteres, directo, sin emojis
 - body: máximo 400 caracteres, incluye dato numérico específico
 - metric: nombre corto de la métrica más destacada (ej: "VSI", "Velocidad", "Visión")
@@ -126,12 +128,15 @@ REGLAS DE ESTILO:
 - Si el informe supera 400 palabras, recortar áreas de mejora primero
 
 No incluyas texto, explicaciones ni markdown fuera del JSON.
+
+${languageDirective(locale)}
 `;
 }
 
 export default withHandler(
   { schema: scoutSchema, requireAuth: true, maxRequests: 30 },
   async ({ body, req, userId }) => {
+    const locale = normalizeLocale(body.locale);
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       return successResponse(scoutInsightFallback(body, "no_api_key"));
@@ -201,7 +206,7 @@ export default withHandler(
         model:       MODELS.fast,
         max_tokens:  1024,
         temperature: 0.3,
-        system:      buildSystemPrompt(ragContext),
+        system:      buildSystemPrompt(ragContext, locale),
         messages:    [{ role: "user", content: JSON.stringify(body) }],
       }),
     });

@@ -10,6 +10,7 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -19,6 +20,7 @@ export default withHandler(
     try {
       const body = await req.json();
       const { videoBase64, mediaType, teamContext } = body;
+      const locale = normalizeLocale(body.locale);
 
       if (!videoBase64 || !teamContext) {
         return errorResponse("Faltan datos requeridos (videoBase64, teamContext)", 400);
@@ -166,7 +168,7 @@ REGLAS:
 - Usa vocabulario táctico preciso: "half-space", "pressing trigger", "línea de presión", "superioridad numérica/posicional", "basculación", "escalonamiento defensivo"
 - Sé honesto y objetivo para el nivel competitivo — un equipo formativo no va a tener pressing de Champions League, pero puede tener principios claros
 - Describe lo que VES, no lo que asumes
-- Responde en español
+- ${languageDirective(locale)}
 - Solo JSON válido, sin markdown ni backticks`;
 
       const model = "gemini-2.0-flash";

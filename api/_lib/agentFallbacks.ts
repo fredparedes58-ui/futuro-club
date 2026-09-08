@@ -5,6 +5,8 @@
  * Confidence is always lower to indicate approximate results.
  */
 
+import { fallbackStrings } from "./fallbackStrings";
+
 type FallbackReason = "no_api_key" | "claude_error" | "parse_error";
 
 // ─── PHV Calculator (Mirwald Formula) ───────────────────────────────────────
@@ -101,10 +103,12 @@ interface RoleProfileInput {
     phvCategory?: string;
     phvOffset?: number;
   };
+  locale?: string;
 }
 
 export function roleProfileFallback(body: RoleProfileInput, reason: FallbackReason) {
   const p = body.player;
+  const S = fallbackStrings(body.locale);
   const m = p.metrics ?? { speed: 60, technique: 60, vision: 60, stamina: 60, shooting: 60, defending: 60 };
   const speed = m.speed ?? 60;
   const technique = m.technique ?? 60;
@@ -191,7 +195,7 @@ export function roleProfileFallback(body: RoleProfileInput, reason: FallbackReas
   // Strengths = top 3 metrics
   const strengths = sorted.slice(0, 3).map(s => `${s.k}: ${s.v}`);
   // Gaps = bottom 2
-  const gaps = sorted.slice(-2).map(s => `${s.k} necesita mejora (${s.v})`);
+  const gaps = sorted.slice(-2).map(s => S.roleGap(s.k, s.v));
 
   return {
     playerId: p.id,
@@ -205,10 +209,10 @@ export function roleProfileFallback(body: RoleProfileInput, reason: FallbackReas
     ],
     capabilities,
     strengths,
-    risks: ["Resultado aproximado — análisis IA no disponible"],
+    risks: [S.roleRiskUnavailable],
     gaps,
     overallConfidence: confidence,
-    summary: `Perfil generado por reglas determinísticas para ${p.name}. Identidad dominante: ${dominantIdentity}. Se recomienda ejecutar análisis con IA para mayor precisión.`,
+    summary: S.roleSummary(p.name, dominantIdentity),
     tokensUsed: 0,
     agentName: "RoleProfileAgent",
     _fallback: true,
@@ -230,10 +234,12 @@ interface ScoutInput {
     recentMetrics?: Record<string, number>;
   };
   context?: string;
+  locale?: string;
 }
 
 export function scoutInsightFallback(body: ScoutInput, reason: FallbackReason) {
   const p = body.player;
+  const S = fallbackStrings(body.locale);
   const vsi = p.vsi ?? 60;
   const trend = p.vsiTrend ?? "stable";
   const phv = p.phvCategory ?? "ontme";
@@ -244,36 +250,36 @@ export function scoutInsightFallback(body: ScoutInput, reason: FallbackReason) {
   // Determine type by rules
   let type: "breakout" | "phv_alert" | "drill_record" | "regression" | "comparison" | "general" = "general";
   let urgency: "high" | "medium" | "low" = "low";
-  let headline = `Resumen de ${p.name}`;
-  let body_text = `VSI actual: ${vsi}. Tendencia: ${trend}.`;
+  let headline = S.scoutSummaryHead(p.name);
+  let body_text = S.scoutSummaryBody(vsi, trend);
 
   if (vsi > 75 && trend === "up") {
     type = "breakout";
     urgency = "high";
-    headline = `${p.name} muestra progresión destacada`;
-    body_text = `VSI de ${vsi} con tendencia ascendente. Jugador en fase de despegue, monitorizar de cerca para optimizar su desarrollo.`;
+    headline = S.scoutBreakoutHead(p.name);
+    body_text = S.scoutBreakoutBody(vsi);
   } else if (phv === "early" && speed > 75) {
     // "early" = pre-PHV = madurador TARDÍO vs pares (no "temprana").
     type = "phv_alert";
     urgency = "high";
-    headline = `Alerta PHV: ${p.name} en ventana crítica`;
-    body_text = `Madurador tardío (aún pre-PHV) con velocidad ${speed}: rendimiento notable sin ventaja madurativa — señal de talento. Priorizar técnica sobre carga física.`;
+    headline = S.scoutPhvHead(p.name);
+    body_text = S.scoutPhvBody(speed);
   } else if (maxMetric > 85) {
     type = "drill_record";
     urgency = "medium";
-    const topMetricName = Object.entries(metrics).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "métrica";
-    headline = `${p.name} destaca en ${topMetricName}`;
-    body_text = `Valor de ${maxMetric} en ${topMetricName}. Potenciar esta fortaleza con ejercicios específicos.`;
+    const topMetricName = Object.entries(metrics).sort(([, a], [, b]) => b - a)[0]?.[0] ?? S.metricFallbackName;
+    headline = S.scoutDrillHead(p.name, topMetricName);
+    body_text = S.scoutDrillBody(maxMetric, topMetricName);
   } else if (trend === "down") {
     type = "regression";
     urgency = "high";
-    headline = `${p.name}: descenso en rendimiento`;
-    body_text = `VSI de ${vsi} con tendencia descendente. Revisar carga de entrenamiento y factores externos.`;
+    headline = S.scoutRegressionHead(p.name);
+    body_text = S.scoutRegressionBody(vsi);
   } else if (Object.values(metrics).every(v => typeof v === "number" && v >= 55 && v <= 75)) {
     type = "comparison";
     urgency = "low";
-    headline = `${p.name}: perfil equilibrado`;
-    body_text = `Métricas homogéneas entre 55-75. Buscar especialización en una dimensión clave.`;
+    headline = S.scoutBalancedHead(p.name);
+    body_text = S.scoutBalancedBody;
   }
 
   // Override with explicit context
@@ -289,13 +295,10 @@ export function scoutInsightFallback(body: ScoutInput, reason: FallbackReason) {
     metric: Object.entries(metrics).sort(([, a], [, b]) => b - a)[0]?.[0] ?? "vsi",
     metricValue: String(maxMetric > 0 ? maxMetric : vsi),
     urgency,
-    tags: [type, p.position ?? "jugador"].filter(Boolean).slice(0, 4),
+    tags: [type, p.position ?? S.playerTag].filter(Boolean).slice(0, 4),
     timestamp: new Date().toISOString(),
     recommendedDrills: [],
-    actionItems: [
-      "Revisar métricas en la próxima sesión",
-      "Comparar con jugadores de la misma edad y posición",
-    ],
+    actionItems: S.scoutActionItems,
     tokensUsed: 0,
     agentName: "ScoutInsightAgent",
     ragEnriched: false,

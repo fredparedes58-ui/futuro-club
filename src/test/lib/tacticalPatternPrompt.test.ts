@@ -29,16 +29,17 @@ function baseInput(overrides: Partial<TacticalPatternInput> = {}): TacticalPatte
 }
 
 describe("buildTacticalPatternPrompt · locale", () => {
-  it("por defecto (sin locale) usa la directiva en español", () => {
+  // La directiva es genérica (plantilla + endónimo del registro) → escala a N idiomas.
+  it("por defecto (sin locale) dirige la salida al idioma por defecto (español)", () => {
     const prompt = buildTacticalPatternPrompt(baseInput());
-    expect(prompt).toContain("Redacta TODA la respuesta en español");
+    expect(prompt).toContain("Write the ENTIRE response in natural español");
     expect(prompt).not.toContain("Write the ENTIRE response in natural English");
   });
 
-  it("locale 'en' usa la directiva en inglés", () => {
+  it("locale 'en' dirige la salida al inglés", () => {
     const prompt = buildTacticalPatternPrompt(baseInput({ locale: "en" }));
     expect(prompt).toContain("Write the ENTIRE response in natural English");
-    expect(prompt).not.toContain("Redacta TODA la respuesta en español");
+    expect(prompt).not.toContain("Write the ENTIRE response in natural español");
   });
 });
 
@@ -46,16 +47,17 @@ describe("buildTacticalPatternPrompt · PHV", () => {
   it("sin phvDistribution NO incluye el bloque PHV", () => {
     const prompt = buildTacticalPatternPrompt(baseInput());
     expect(prompt).not.toContain("MADURACIÓN BIOLÓGICA (PHV)");
-    expect(prompt).not.toContain("CONSIDERACIÓN PHV");
+    expect(prompt).not.toContain("PHV CONSIDERATION");
   });
 
   it("con phvDistribution incluye el bloque de datos y la consideración", () => {
     const prompt = buildTacticalPatternPrompt(
       baseInput({ phvDistribution: { prePhv: 40, circaPhv: 45, postPhv: 15 } }),
     );
+    // Cabecera del builder (instrucción, un solo idioma) + datos + consideración (genérica).
     expect(prompt).toContain("MADURACIÓN BIOLÓGICA (PHV)");
     expect(prompt).toContain("pre-PHV 40%");
-    expect(prompt).toContain("CONSIDERACIÓN PHV");
+    expect(prompt).toContain("PHV CONSIDERATION");
   });
 
   it("con phvDistribution y locale 'en' usa etiquetas/consideración en inglés", () => {

@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { normalizeLocale } from "@/lib/shared/locale";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Swords, Sparkles, Loader2, AlertCircle, Plus, X,
@@ -59,7 +60,7 @@ interface PlanResponse {
 
 export default function CompareRivalPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<AnalysisMode>("video");
   const [rivalName, setRivalName] = useState("");
   const [rivalFormation, setRivalFormation] = useState("");
@@ -86,6 +87,7 @@ export default function CompareRivalPage() {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale: normalizeLocale(i18n.language),
           videoUrl: url,
           playerContext: {
             name: rivalName || t("compareRivalPage.rivalTeamDefault"),

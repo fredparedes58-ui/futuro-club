@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, Zap, Activity, TrendingUp, Shield, S
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
 import bootBg  from "@/assets/login-boot-neon.jpg";
 import player1 from "@/assets/player-1.png";
@@ -348,6 +349,11 @@ export default function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden flex items-center justify-center">
+
+      {/* Selector de idioma — visible ANTES de entrar (un visitante EN no queda atrapado en ES) */}
+      <div className="absolute top-4 right-4 z-50">
+        <LanguageSwitcher className="glass-strong" />
+      </div>
 
       {/* ── Background: bota neon ANIMADA (zoom + drift lento) ── */}
       <div className="absolute inset-0">

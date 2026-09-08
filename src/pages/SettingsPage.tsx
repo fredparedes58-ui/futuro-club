@@ -36,6 +36,7 @@ import { StorageService } from "@/services/real/storageService";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 import { BackupService } from "@/services/real/backupService";
 import { useTranslation } from "react-i18next";
+import { normalizeLocale, SUPPORTED_LOCALES } from "@/lib/shared/locale";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { useGdprExport } from "@/hooks/useGdprExport";
@@ -322,9 +323,12 @@ const SettingsPage = () => {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
-  const currentLang = i18n.language?.startsWith("en") ? "en" : "es";
+  // Cicla por el registro de idiomas → añadir un idioma lo mete en la rotación
+  // automáticamente, sin cambiar este código (multi-idioma sin hardcodeo es/en).
+  const currentLang = normalizeLocale(i18n.language);
   const toggleLanguage = () => {
-    const next = currentLang === "es" ? "en" : "es";
+    const idx = SUPPORTED_LOCALES.indexOf(currentLang);
+    const next = SUPPORTED_LOCALES[(idx + 1) % SUPPORTED_LOCALES.length];
     i18n.changeLanguage(next);
     toast.success(t("toasts.settingSaved"));
   };

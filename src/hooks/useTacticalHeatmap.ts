@@ -126,7 +126,7 @@ export function useGenerateTacticalInsights() {
       if (isDemoMatchId(input.matchId)) {
         const summary = await TacticalHeatmapService.getMatchSummary(input.matchId);
         if (summary?.insights) return summary.insights;
-        throw new Error("Los insights de la demo ya están generados.");
+        throw new Error(i18n.t("errors.demoInsightsReady"));
       }
       const res = await fetch(`${apiBase}/generate-insights`, {
         method: "POST",

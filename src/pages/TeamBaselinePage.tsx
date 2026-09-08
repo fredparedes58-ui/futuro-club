@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { normalizeLocale } from "@/lib/shared/locale";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Sparkles, Loader2, Users, Brain, Swords, Activity, Target,
@@ -46,7 +47,7 @@ const REPORT_META: Record<string, { Icon: React.ElementType; titleKey: string; c
 
 export default function TeamBaselinePage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<AnalysisMode>("video");
   const [generating, setGenerating] = useState(false);
   const [data, setData] = useState<TeamBaselineResponse | null>(null);
@@ -67,6 +68,7 @@ export default function TeamBaselinePage() {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale: normalizeLocale(i18n.language),
           videoUrl: url,
           playerContext: {
             name: "Equipo propio",

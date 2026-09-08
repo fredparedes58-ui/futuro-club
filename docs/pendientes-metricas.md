@@ -4,7 +4,7 @@
 > una métrica bloqueada con `gate_reason` honesto es un estado de entrega aceptable, pero
 > **no** es lo mismo que resuelta. Este fichero distingue las dos y se mantiene al día.
 >
-> **Última actualización:** 2026-08-28 · **Rama de creación:** `docs/pendientes-metricas`
+> **Última actualización:** 2026-09-07 · **Rama de creación:** `docs/pendientes-metricas`
 >
 > Estado del arnés a fecha de hoy: el **GATE real** (pre-commit → `audit_metrics.py
 > --baseline`) sale **exit 0** (deuda baselined). El audit CRUDO `audit_metrics.py` →
@@ -84,9 +84,44 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 ---
 
+## 4-bis. Ground truth humano requerido — índice único (el cuello de botella real)
+
+> **Todo lo que sigue es dato HUMANO/FÍSICO, no un toggle ni código.** Ningún push
+> lo resuelve; hasta que exista, las métricas afectadas siguen 🟡 orientativas, 🔴
+> bloqueadas o 🟠 mock (nunca `MEDIDA`). Es deuda de **producto** (aparece en
+> desarrollo/producción con vídeo real), **no de la demo** — la demo ni toca estos
+> caminos (usa ejemplos pre-horneados). **Máximo apalancamiento: UN solo clip
+> calibrado + anotado desbloquea identidad + físicas + duelos a la vez.**
+>
+> Reglas invariantes al recogerlo: las anotaciones son **humanas**, nunca sintéticas
+> ni inferidas por un modelo (inv. identidad); `fixtures/` es **evaluación, no
+> entrenamiento** (los umbrales NO se ajustan mirando esos clips); el % de frames
+> legibles por un humano define el **techo físico** de cobertura y ninguna cifra de
+> éxito puede superarlo.
+
+| # | Qué falta (dato humano) | Fichero / destino | Cómo se recoge | Qué desbloquea | Estado hoy |
+|---|---|---|---|---|---|
+| GT1 | **Calibración de campo** — ≥4 puntos con coordenadas reales medidas del terreno | `fixtures/golden/calibracion.json` (plantilla vacía) | Marcar ≥4 puntos conocidos del campo (esquinas de área, círculo central…) con su posición en metros | Físicas 🟡→`MEDIDA`: velocidad/distancia/sprints/accel pasan de píxeles reescalados a metros/km-h fiables (valida homografía px→m) | 🔴 vacío |
+| GT2 | **Distancia real (verdad medida)** | `fixtures/golden/distancia_gt` | GPS/EPTS por jugador, o cinta métrica sobre recorridos conocidos | Valida distancia/velocidad contra verdad (no solo autoconsistencia de la homografía) | 🔴 vacío |
+| GT3 | **Ganador de duelos anotado** | `fixtures/golden/duelos_gt.csv` | Un humano marca por duelo quién gana/pierde | Duelos G/P 🔴→calculado: habilita el **criterio de ganador (G3)**, hoy prohibido inventar sin esta verdad | 🔴 vacío |
+| GT4 | **VSI de referencia** | `fixtures/golden/vsi_gt` | Evaluación humana del compuesto para contrastar | Valida el VSI-vídeo compuesto | 🔴 vacío |
+| GT5 | **Identidad por dorsal** — ≥3 clips ~60s anotados a mano | `fixtures/identidad/` (solo `_plantilla`) | Cámara fija + móvil + ≥1 en malas condiciones; fila por `(frame, track_id, dorsal, equipo, legible)` + convocatoria cerrada | Construir **y** validar la capa de identidad (≥98% precisión). Sin ella el sistema **abstiene** (pistas anónimas). Define el techo físico de cobertura | 🔴 solo plantilla |
+| GT6 | **Umbral de cercanía (pose vs solo-posición)** — validar la frontera cercano/lejano del pipeline de recall | `fixtures/` (V6) + `poseEligibility.ts` | Anotar a mano en qué cajas los keypoints son fiables vs no | Fija el umbral hoy "pendiente de validar"; permite dar recall/FP reales del tracking a plano completo | 🟡 sin validar |
+| GT7 | **Dataset para `vitas-pose-v1`** (modelo propio) | eval V6 + dataset etiquetado | Frames/bboxes de footage juvenil etiquetados a mano | Entrenar/validar el pose afinado (objetivo Fase 3); hoy producción usa pose de stock | 🔴 no existe |
+| GT8 | **Datos reales de bienestar/retención** | input ya cableado (`useWellbeing.ts`, señales de retención) | Que personas introduzcan cuestionario/asistencia/engagement por jugador | Bienestar y Radar de Retención 🟠 mock→real (hoy tras banner; retención aún = hash del id) | 🟠 mock, sin datos |
+| GT9 | **Clip real (idealmente público)** para benchmark de tracking | — | Un vídeo de partido/entreno con URL pública | Benchmark BoT-SORT vs ByteTrack, pose n vs m, balón dedicado, homografía px→m | 🔴 falta |
+
+> **Nota sobre técnica/mental/táctica del VSI-vídeo:** además de ground truth para
+> validar, requieren un **modelo que las mida** (hoy el pipeline de visión no las
+> mide → `CONSTANTE(null)`). Es hueco de capacidad a largo plazo, no solo de datos.
+
+---
+
 ## 5. Trabajo pendiente por categoría
 
 ### A) DATOS / VALIDACIÓN HUMANA — el cuello de botella real (no lo arregla código)
+
+> Resumen ejecutable del **índice §4-bis** (arriba, la lista completa con ficheros y estados).
 
 - [ ] **Ground truth de identidad** — `fixtures/identidad/` (hoy solo `_plantilla`): ≥3 clips de ~60s anotados a mano (cámara fija + móvil + ≥1 en malas condiciones), fila por `(frame, track_id, dorsal, equipo, legible)` + convocatoria cerrada. Define el techo físico de cobertura; sin él la capa de identidad por dorsal **no se puede construir ni validar** (≥98% precisión) → el sistema seguirá abstiéndose (pistas anónimas).
 - [ ] **Golden de físicas/duelos** — `fixtures/golden/` (vacío): `calibracion.json` (≥4 puntos medidos), `distancia_gt` (GPS/EPTS o cinta), `duelos_gt.csv`, `vsi_gt`. Sin verdad medida no se validan distancia/velocidad (homografía), duelos ni VSI.
@@ -131,7 +166,12 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - [x] **C4 · Hard-caps de gasto** — ✅ **HECHO (28 ago): `GLOBAL_MONTHLY_BUDGET_USD` en Vercel + Anthropic $30/mes (hard-cap) + Modal $1/mes (Starter free tier, SIN tarjeta → tope natural, no puede cobrar).** El tripwire del código es fail-open; estos topes de proveedor son el backstop real.
 - [ ] **C5 · `MODAL_TRACK_URL` + `MODAL_API_KEY`** (+ `MODAL_TRACK_ASYNC_URL` + `MODAL_CALLBACK_SECRET`) en env Vercel; sin ellas el tracking de vídeo degrada a mock/cliente y `allowAsync` (§B) queda inerte.
 - [ ] **C5-bis · Escalar Modal para PARTIDOS COMPLETOS (diferido)** — hoy NO hacen falta (no se procesan partidos de 90 min; el tracking en navegador maneja clips). Cuando lleguen esos vídeos: (1) subir el **Modal usage limit** — requiere **añadir tarjeta** (se sale del free tier de $1); (2) subir **`GLOBAL_MONTHLY_BUDGET_USD`** — el gasto de Modal cuenta en ese bote compartido con Claude/Gemini, y el tripwire corta Modal si se supera. Coste ~**$0.60/partido** (T4, timeout 60 min; real ~$0.20–0.30). Dimensionado (Modal limit / GLOBAL): 10 partidos/mes → **$15 / $25** · 30 → **$30 / $45** · 50 → **$45 / $65** · 100 → **$80 / $110**.
-- [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Resend** (emails RGPD), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
+- [ ] **C6 · Stripe** (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs), **VAPID** (push), **Telegram** (`TELEGRAM_BOT_TOKEN` + webhook) — hoy en modo demo/inertes. Activar el que necesites.
+- [ ] **C7 · Resend (correo transaccional + leads)** — la migración **063** (tabla `leads`) YA está aplicada, así que `/api/leads` **ya captura en Supabase y devuelve 200**; el lead NO se pierde. Lo único pendiente es la **notificación por email** y el resto del correo transaccional, todo centralizado en `sendEmail` (`api/_lib/email.ts`, #234). Pasos:
+  1. **Vercel (producción):** poner `RESEND_API_KEY`. Opcional `RESEND_FROM_EMAIL` (default `"VITAS <noreply@krujens.eu>"`). Sin la key, `sendEmail` degrada limpio (`console.warn` + `return false`, no rompe).
+  2. **DNS de `krujens.eu`** (⚠ el paso que se olvida): verificar el dominio en Resend añadiendo **DKIM + SPF + MX de retorno** (este último sobre un **subdominio**, p. ej. `send.krujens.eu`). Aunque pongas la key, si el dominio no está verificado el envío falla igual (el `from` es `@krujens.eu`). Los registros van **donde vivan los nameservers de krujens.eu** (si es **Hostinger**, en su editor de zona DNS; si está delegado a Vercel/Cloudflare, allí). **No requiere contratar nada en Hostinger** ni cambia el MX principal → los buzones/emails actuales de krujens.eu siguen intactos.
+  3. **Redesplegar** producción.
+  - **Desbloquea de golpe** (misma key, todos usan `sendEmail`): aviso de leads (`api/leads.ts`), bienvenida/confirmación de signup (`api/auth/_welcome.ts`, #227), **consentimiento RGPD** (`api/auth/sign-consent.ts`), borrado de cuenta RGPD (`api/account/delete-me.ts`), invitaciones/solicitudes de club (`api/team/_invite.ts`, `_request.ts`), notificaciones cron (`api/notifications/_cron.ts`).
 
 > **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
 > (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
@@ -144,6 +184,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - **Modal ya NO está huérfano** (la nota de `CLAUDE.md` es obsoleta): desplegado (roadmap V1/V2 ✅) y cableado a UI (`useTacticalHeatmap.ts:187`, `videoTrackingService.ts:184`).
 - **npm vulns bajaron** de ~35 → 10 → **2 moderate** en runtime (#186 cerró el RCE crítico de protobufjs). Restan `sharp`/`@vite-pwa/assets-generator` (build-time, CVEs libvips upstream sin fix).
 - **Modelo de balón dedicado ya existe** (`ball-football.onnx`, `ballModelConfig.ts:107`) — cierra el hueco de FASE 2; falta hacerlo default (desktop usa aún `yolo11s-detect` COCO genérico).
+- **`docs/demo-setup.md` está OBSOLETO** (describe el enfoque viejo #233 con Supabase separado + `seed-demo.mjs`). La demo VIGENTE (fases 1–4, #237–#243) corre **SIN Supabase**: `IS_DEMO = VITE_DEMO=1` **Y** Supabase NO configurado (doble guarda, `src/lib/demoMode.ts`); los datos viven en `localStorage`, sembrados por `DemoDataService.seed()` en la primera carga. La demo **no necesita** proyecto Supabase propio, migraciones ni `seed-demo.mjs`. **PENDIENTE:** actualizar o marcar como obsoleto ese doc para que nadie cablee Supabase a la demo (justo lo que la doble guarda evita).
 
 > **Mantenimiento:** actualizar este fichero cuando una métrica cambie de estado
 > (p. ej. al cerrar G3/G7, o cuando entre un golden anotado). No borrar las

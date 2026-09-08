@@ -13,6 +13,7 @@ import type {
   GenerationOptions,
 } from "@/lib/highlights/types";
 import { HighlightsStorage } from "./highlightsStorage";
+import i18n from "@/i18n";
 
 export interface DetectionProgress {
   stage:
@@ -202,7 +203,7 @@ export async function runHighlightsDetection(
   // Filter weights by allowed moments
   const allowed = MOMENT_WEIGHTS.filter((m) => options.momentTypes.includes(m.moment));
   if (allowed.length === 0) {
-    throw new Error("Selecciona al menos un tipo de momento");
+    throw new Error(i18n.t("errors.selectMomentType"));
   }
 
   // Distribute clips throughout the video timeline

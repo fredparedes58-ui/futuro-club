@@ -4,6 +4,7 @@ import {
   type CreateMatchEventInput,
 } from "@/services/real/matchEventsService";
 import { toast } from "sonner";
+import i18n from "@/i18n";
 
 const STALE = 1000 * 60; // 1 min
 
@@ -24,11 +25,11 @@ export function useLogMatchEvent(playerId: string) {
     mutationFn: (input: Omit<CreateMatchEventInput, "playerId">) =>
       MatchEventsService.create({ ...input, playerId }),
     onSuccess: () => {
-      toast.success("Evento registrado");
+      toast.success(i18n.t("toasts.eventLogged"));
       void qc.invalidateQueries({ queryKey: ["match-events", playerId] });
     },
     onError: (err: Error) => {
-      toast.error(`Error al registrar: ${err.message}`);
+      toast.error(i18n.t("toasts.logError", { msg: err.message }));
     },
   });
 }
@@ -39,7 +40,7 @@ export function useDeleteMatchEvent(playerId: string) {
   return useMutation({
     mutationFn: (eventId: string) => MatchEventsService.delete(eventId),
     onSuccess: () => {
-      toast.success("Evento eliminado");
+      toast.success(i18n.t("toasts.eventDeleted"));
       void qc.invalidateQueries({ queryKey: ["match-events", playerId] });
     },
   });

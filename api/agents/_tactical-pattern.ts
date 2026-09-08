@@ -31,6 +31,10 @@ export const config = { runtime: "edge" };
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 const MODEL = MODELS.reasoning;
 
+// Idioma: el prompt ya se localiza en buildTacticalPatternPrompt (lee data.locale,
+// apéndice languageDirective). TODO(i18n): las cadenas de este fallback heurístico
+// (headline/summary/observation/suggestion) NO pasan por el LLM → quedan en español;
+// su localización es una fase aparte.
 function generateFallback(data: z.infer<typeof TacticalPatternInputSchema>): z.infer<typeof TacticalPatternOutputSchema> {
   const totalSec = Object.values(data.phaseDurations).reduce((a, b) => a + b, 0) || 1;
   const dominantPhase = Object.entries(data.phaseDurations).sort(

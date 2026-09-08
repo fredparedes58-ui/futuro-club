@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2, Building2, Search
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
 
 const item = {
@@ -123,6 +124,11 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-y-auto">
       <div className="fixed inset-0 bg-[linear-gradient(rgba(var(--primary-rgb),0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(var(--primary-rgb),0.03)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
+      {/* Selector de idioma — visible antes de crear la cuenta */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSwitcher className="bg-background/80" />
+      </div>
 
       <motion.div
         variants={container}

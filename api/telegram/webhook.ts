@@ -25,6 +25,7 @@ import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
 import { avgEvaluatedVsi, countElite, formatVsi } from "../_lib/vsiStats";
+import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -365,8 +366,15 @@ async function execTool(
 
 // ─── Claude con tool use ────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Eres VITAS Copilot, asistente conversacional para coaches de fútbol juvenil
-en Telegram. Hablas en español natural y conciso (máximo 4-5 líneas por respuesta).
+/**
+ * Prompt de sistema del Copilot. Locale-aware: el idioma de la respuesta lo fija
+ * `languageDirective` a partir del idioma del coach (Telegram `language_code`) →
+ * responde en el idioma del coach, no en español fijo. Multi-idioma sin hardcodeo:
+ * cuando se añada un idioma al registro, el bot lo respeta automáticamente.
+ */
+function buildSystemPrompt(locale: ReportLocale): string {
+  return `Eres VITAS Copilot, asistente conversacional para coaches de fútbol juvenil
+en Telegram. Eres conciso (máximo 4-5 líneas por respuesta).
 
 CONTEXTO: el coach te pregunta sobre sus jugadores y equipo. Tienes herramientas
 para consultar la base de datos (list_players, get_player, get_latest_match,
@@ -385,7 +393,11 @@ LIMITACIONES:
   haga desde la app web/PWA · no las hagas tú
 - Si la pregunta no tiene sentido o falta contexto, pide clarificación
 
-Saluda solo cuando el coach inicia conversación con /start o "hola".`;
+Saluda solo cuando el coach inicia conversación con /start o "hola".
+
+${languageDirective(locale)}
+Si el coach te escribe en otro idioma soportado, respóndele en ESE idioma.`;
+}
 
 async function callClaudeWithTools(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -393,6 +405,7 @@ async function callClaudeWithTools(
   ctx: ToolContext,
   userMessage: string,
   history: Array<{ role: "user" | "assistant"; content: string }>,
+  locale: ReportLocale,
 ): Promise<{ text: string; toolsUsed: string[]; tokensIn: number; tokensOut: number }> {
   if (!ANTHROPIC_API_KEY) {
     return { text: "_(Bot no configurado · falta ANTHROPIC_API_KEY)_", toolsUsed: [], tokensIn: 0, tokensOut: 0 };
@@ -421,7 +434,7 @@ async function callClaudeWithTools(
         body: JSON.stringify({
           model: MODELS.fast,
           max_tokens: 800,
-          system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+          system: [{ type: "text", text: buildSystemPrompt(locale), cache_control: { type: "ephemeral" } }],
           tools: TOOLS,
           messages,
         }),
@@ -466,7 +479,7 @@ interface TelegramUpdate {
   message?: {
     message_id: number;
     chat: { id: number };
-    from?: { id: number; username?: string; first_name?: string };
+    from?: { id: number; username?: string; first_name?: string; language_code?: string };
     text?: string;
   };
 }
@@ -890,11 +903,16 @@ export default withHandler(
       content: text,
     });
 
+    // Idioma del coach desde Telegram (language_code de su app) → el Copilot
+    // responde en su idioma. normalizeLocale cae al idioma por defecto si no está
+    // en el registro (y lo respeta automáticamente cuando se añada).
+    const coachLocale = normalizeLocale(update.message.from?.language_code);
     const result = await callClaudeWithTools(
       supabase,
       { userId: mapping.user_id, tenantId: mapping.tenant_id ?? mapping.user_id, chatId },
       text,
       history,
+      coachLocale,
     );
 
     // Persistir respuesta + métricas
