@@ -85,6 +85,136 @@ const STRINGS: Record<string, FallbackStrings> = {
       "Compare with players of the same age and position",
     ],
   },
+  it: {
+    roleRiskUnavailable: "Risultato approssimativo — analisi IA non disponibile",
+    roleGap: (m, v) => `${m} necessita di miglioramento (${v})`,
+    roleSummary: (name, id) =>
+      `Profilo generato da regole deterministiche per ${name}. Identità dominante: ${id}. Si consiglia di eseguire l'analisi con IA per maggiore precisione.`,
+    scoutSummaryHead: (name) => `Riepilogo di ${name}`,
+    scoutSummaryBody: (vsi, trend) => `VSI attuale: ${vsi}. Tendenza: ${trend}.`,
+    scoutBreakoutHead: (name) => `${name} mostra una progressione notevole`,
+    scoutBreakoutBody: (vsi) =>
+      `VSI di ${vsi} con tendenza in crescita. Giocatore in fase di decollo, monitorare da vicino per ottimizzarne lo sviluppo.`,
+    scoutPhvHead: (name) => `Allerta PHV: ${name} in finestra critica`,
+    scoutPhvBody: (speed) =>
+      `Maturatore tardivo (ancora pre-PHV) con velocità ${speed}: rendimento notevole senza vantaggio maturativo — segnale di talento. Dare priorità alla tecnica rispetto al carico fisico.`,
+    scoutDrillHead: (name, metric) => `${name} spicca in ${metric}`,
+    scoutDrillBody: (max, metric) => `Valore di ${max} in ${metric}. Potenziare questo punto di forza con esercizi specifici.`,
+    scoutRegressionHead: (name) => `${name}: calo nel rendimento`,
+    scoutRegressionBody: (vsi) => `VSI di ${vsi} con tendenza in calo. Rivedere il carico di allenamento e i fattori esterni.`,
+    scoutBalancedHead: (name) => `${name}: profilo equilibrato`,
+    scoutBalancedBody: "Metriche omogenee tra 55-75. Cercare una specializzazione in una dimensione chiave.",
+    metricFallbackName: "metrica",
+    playerTag: "giocatore",
+    scoutActionItems: [
+      "Rivedere le metriche nella prossima sessione",
+      "Confrontare con giocatori della stessa età e posizione",
+    ],
+  },
+  de: {
+    roleRiskUnavailable: "Näherungsergebnis — KI-Analyse nicht verfügbar",
+    roleGap: (m, v) => `${m} benötigt Verbesserung (${v})`,
+    roleSummary: (name, id) =>
+      `Profil durch deterministische Regeln für ${name} erstellt. Dominante Identität: ${id}. Für höhere Genauigkeit wird empfohlen, die KI-Analyse auszuführen.`,
+    scoutSummaryHead: (name) => `Zusammenfassung von ${name}`,
+    scoutSummaryBody: (vsi, trend) => `Aktueller VSI: ${vsi}. Tendenz: ${trend}.`,
+    scoutBreakoutHead: (name) => `${name} zeigt bemerkenswerte Progression`,
+    scoutBreakoutBody: (vsi) =>
+      `VSI von ${vsi} mit steigender Tendenz. Spieler in der Durchbruchsphase — engmaschig beobachten, um die Entwicklung zu optimieren.`,
+    scoutPhvHead: (name) => `PHV-Warnung: ${name} in kritischem Fenster`,
+    scoutPhvBody: (speed) =>
+      `Spätentwickler (noch pre-PHV) mit Geschwindigkeit ${speed}: bemerkenswerte Leistung ohne Reifevorteil — ein Talentsignal. Technik vor körperlicher Belastung priorisieren.`,
+    scoutDrillHead: (name, metric) => `${name} sticht in ${metric} hervor`,
+    scoutDrillBody: (max, metric) => `Wert von ${max} in ${metric}. Diese Stärke mit gezielten Übungen ausbauen.`,
+    scoutRegressionHead: (name) => `${name}: Leistungsabfall`,
+    scoutRegressionBody: (vsi) => `VSI von ${vsi} mit fallender Tendenz. Trainingsbelastung und externe Faktoren überprüfen.`,
+    scoutBalancedHead: (name) => `${name}: ausgewogenes Profil`,
+    scoutBalancedBody: "Gleichmäßige Metriken zwischen 55-75. Spezialisierung in einer Schlüsseldimension anstreben.",
+    metricFallbackName: "Metrik",
+    playerTag: "Spieler",
+    scoutActionItems: [
+      "Metriken in der nächsten Einheit überprüfen",
+      "Mit Spielern gleichen Alters und gleicher Position vergleichen",
+    ],
+  },
+  fr: {
+    roleRiskUnavailable: "Résultat approximatif — analyse IA indisponible",
+    roleGap: (m, v) => `${m} nécessite une amélioration (${v})`,
+    roleSummary: (name, id) =>
+      `Profil généré par des règles déterministes pour ${name}. Identité dominante : ${id}. Il est recommandé d'exécuter l'analyse IA pour une meilleure précision.`,
+    scoutSummaryHead: (name) => `Résumé de ${name}`,
+    scoutSummaryBody: (vsi, trend) => `VSI actuel : ${vsi}. Tendance : ${trend}.`,
+    scoutBreakoutHead: (name) => `${name} montre une progression notable`,
+    scoutBreakoutBody: (vsi) =>
+      `VSI de ${vsi} avec une tendance à la hausse. Joueur en phase de décollage — surveiller de près pour optimiser son développement.`,
+    scoutPhvHead: (name) => `Alerte PHV : ${name} en fenêtre critique`,
+    scoutPhvBody: (speed) =>
+      `Maturateur tardif (encore pré-PHV) avec une vitesse de ${speed} : rendement notable sans avantage de maturation — un signal de talent. Prioriser la technique sur la charge physique.`,
+    scoutDrillHead: (name, metric) => `${name} se distingue en ${metric}`,
+    scoutDrillBody: (max, metric) => `Valeur de ${max} en ${metric}. Renforcer ce point fort avec des exercices spécifiques.`,
+    scoutRegressionHead: (name) => `${name} : baisse de rendement`,
+    scoutRegressionBody: (vsi) => `VSI de ${vsi} avec une tendance à la baisse. Revoir la charge d'entraînement et les facteurs externes.`,
+    scoutBalancedHead: (name) => `${name} : profil équilibré`,
+    scoutBalancedBody: "Métriques homogènes entre 55-75. Rechercher une spécialisation dans une dimension clé.",
+    metricFallbackName: "métrique",
+    playerTag: "joueur",
+    scoutActionItems: [
+      "Revoir les métriques lors de la prochaine séance",
+      "Comparer avec des joueurs du même âge et du même poste",
+    ],
+  },
+  nl: {
+    roleRiskUnavailable: "Benaderend resultaat — AI-analyse niet beschikbaar",
+    roleGap: (m, v) => `${m} heeft verbetering nodig (${v})`,
+    roleSummary: (name, id) =>
+      `Profiel gegenereerd door deterministische regels voor ${name}. Dominante identiteit: ${id}. Voor meer nauwkeurigheid wordt aangeraden de AI-analyse uit te voeren.`,
+    scoutSummaryHead: (name) => `Samenvatting van ${name}`,
+    scoutSummaryBody: (vsi, trend) => `Huidige VSI: ${vsi}. Trend: ${trend}.`,
+    scoutBreakoutHead: (name) => `${name} toont opvallende progressie`,
+    scoutBreakoutBody: (vsi) =>
+      `VSI van ${vsi} met een stijgende trend. Speler in doorbraakfase — nauwlettend volgen om de ontwikkeling te optimaliseren.`,
+    scoutPhvHead: (name) => `PHV-waarschuwing: ${name} in kritiek venster`,
+    scoutPhvBody: (speed) =>
+      `Laatrijpe speler (nog pre-PHV) met snelheid ${speed}: opvallende prestatie zonder rijpingsvoordeel — een talentsignaal. Geef prioriteit aan techniek boven fysieke belasting.`,
+    scoutDrillHead: (name, metric) => `${name} valt op in ${metric}`,
+    scoutDrillBody: (max, metric) => `Waarde van ${max} in ${metric}. Versterk dit sterke punt met gerichte oefeningen.`,
+    scoutRegressionHead: (name) => `${name}: prestatiedaling`,
+    scoutRegressionBody: (vsi) => `VSI van ${vsi} met een dalende trend. Bekijk de trainingsbelasting en externe factoren.`,
+    scoutBalancedHead: (name) => `${name}: gebalanceerd profiel`,
+    scoutBalancedBody: "Gelijkmatige metrieken tussen 55-75. Zoek specialisatie in een sleuteldimensie.",
+    metricFallbackName: "metriek",
+    playerTag: "speler",
+    scoutActionItems: [
+      "Metrieken in de volgende sessie bekijken",
+      "Vergelijken met spelers van dezelfde leeftijd en positie",
+    ],
+  },
+  "es-419": {
+    roleRiskUnavailable: "Resultado aproximado — análisis IA no disponible",
+    roleGap: (m, v) => `${m} necesita mejora (${v})`,
+    roleSummary: (name, id) =>
+      `Perfil generado por reglas determinísticas para ${name}. Identidad dominante: ${id}. Se recomienda ejecutar análisis con IA para mayor precisión.`,
+    scoutSummaryHead: (name) => `Resumen de ${name}`,
+    scoutSummaryBody: (vsi, trend) => `VSI actual: ${vsi}. Tendencia: ${trend}.`,
+    scoutBreakoutHead: (name) => `${name} muestra progresión destacada`,
+    scoutBreakoutBody: (vsi) =>
+      `VSI de ${vsi} con tendencia ascendente. Jugador en fase de despegue, monitorear de cerca para optimizar su desarrollo.`,
+    scoutPhvHead: (name) => `Alerta PHV: ${name} en ventana crítica`,
+    scoutPhvBody: (speed) =>
+      `Madurador tardío (aún pre-PHV) con velocidad ${speed}: rendimiento notable sin ventaja madurativa — señal de talento. Priorizar técnica sobre carga física.`,
+    scoutDrillHead: (name, metric) => `${name} destaca en ${metric}`,
+    scoutDrillBody: (max, metric) => `Valor de ${max} en ${metric}. Potenciar esta fortaleza con ejercicios específicos.`,
+    scoutRegressionHead: (name) => `${name}: descenso en rendimiento`,
+    scoutRegressionBody: (vsi) => `VSI de ${vsi} con tendencia descendente. Revisar carga de entrenamiento y factores externos.`,
+    scoutBalancedHead: (name) => `${name}: perfil equilibrado`,
+    scoutBalancedBody: "Métricas homogéneas entre 55-75. Buscar especialización en una dimensión clave.",
+    metricFallbackName: "métrica",
+    playerTag: "jugador",
+    scoutActionItems: [
+      "Revisar métricas en la próxima sesión",
+      "Comparar con jugadores de la misma edad y posición",
+    ],
+  },
 };
 
 /** Devuelve el bloque de strings del idioma pedido (fallback al idioma por defecto). */
