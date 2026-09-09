@@ -138,7 +138,7 @@ export function usePlayerAnalysisV2() {
 
       try {
         // ── 1. Crear upload en Bunny ──────────────────
-        setState({ step: "creating_upload", progress: 5, message: "Preparando subida...", error: null });
+        setState({ step: "creating_upload", progress: 5, message: i18n.t("videoAnalysis.progress.preparingUpload"), error: null });
         const headers = await getAuthHeaders();
         const createRes = await fetch("/api/videos/create-upload", {
           method: "POST",
@@ -152,7 +152,7 @@ export function usePlayerAnalysisV2() {
         });
         const createData = await createRes.json();
         if (!createRes.ok || !createData.success) {
-          throw new Error(createData?.error?.message ?? "Error creando upload");
+          throw new Error(createData?.error?.message ?? i18n.t("videoAnalysis.errors.createUpload"));
         }
         const meta = createData.data as {
           videoId: string;
@@ -166,7 +166,7 @@ export function usePlayerAnalysisV2() {
         setResult((r) => ({ ...r, videoId: meta.videoId }));
 
         // ── 2. Upload TUS directo a Bunny ─────────────
-        setState({ step: "uploading", progress: 10, message: "Subiendo a Bunny Stream...", error: null });
+        setState({ step: "uploading", progress: 10, message: i18n.t("videoAnalysis.progress.uploading"), error: null });
         await new Promise<void>((resolve, reject) => {
           const upload = new tus.Upload(params.file, {
             endpoint: meta.tusUploadUrl,
@@ -181,7 +181,7 @@ export function usePlayerAnalysisV2() {
             onError: (err) => reject(err),
             onProgress: (bytesUploaded, bytesTotal) => {
               const pct = 10 + Math.floor((bytesUploaded / bytesTotal) * 30);
-              setState((s) => ({ ...s, progress: pct, message: `Subiendo... ${Math.floor((bytesUploaded / bytesTotal) * 100)}%` }));
+              setState((s) => ({ ...s, progress: pct, message: i18n.t("videoAnalysis.progress.uploadingPct", { pct: Math.floor((bytesUploaded / bytesTotal) * 100) }) }));
             },
             onSuccess: () => resolve(),
           });
@@ -190,7 +190,7 @@ export function usePlayerAnalysisV2() {
         });
 
         // ── 3. Finalizar (esperar a Bunny encoding) ──
-        setState({ step: "bunny_processing", progress: 40, message: "Bunny procesando vídeo...", error: null });
+        setState({ step: "bunny_processing", progress: 40, message: i18n.t("videoAnalysis.progress.bunnyProcessing"), error: null });
         let attempts = 0;
         let finalized = false;
         while (attempts < 12 && !finalized && !ac.signal.aborted) {
@@ -209,12 +209,12 @@ export function usePlayerAnalysisV2() {
             finalized = true;
             break;
           }
-          setState((s) => ({ ...s, progress: 40 + attempts, message: `Bunny encoding... ${attempts}/12` }));
+          setState((s) => ({ ...s, progress: 40 + attempts, message: i18n.t("videoAnalysis.progress.bunnyEncoding", { n: attempts }) }));
         }
         if (!finalized) throw new Error(i18n.t("errors.bunnyTimeout"));
 
         // ── 4. Polling análisis ──────────────────────
-        setState({ step: "queued", progress: 55, message: "Análisis encolado · cron procesará en <1 min", error: null });
+        setState({ step: "queued", progress: 55, message: i18n.t("videoAnalysis.progress.queuedCron"), error: null });
 
         const analysisStatus = await pollUntil(
           async () => {
@@ -231,20 +231,20 @@ export function usePlayerAnalysisV2() {
 
         if (!analysisStatus) throw new Error(i18n.t("errors.analysisTimeout"));
         if (analysisStatus.status === "failed") {
-          throw new Error(analysisStatus.status_message ?? "Análisis falló");
+          throw new Error(analysisStatus.status_message ?? i18n.t("videoAnalysis.errors.analysisFailed"));
         }
 
         setResult((r) => ({ ...r, analysisId: analysisStatus.id }));
 
         // Ir actualizando estado durante polling para UX
         if (analysisStatus.status === "processing") {
-          setState({ step: "modal_processing", progress: 70, message: "Analizando el vídeo con IA...", error: null });
+          setState({ step: "modal_processing", progress: 70, message: i18n.t("videoAnalysis.progress.analyzingAi"), error: null });
         } else if (analysisStatus.status === "processing_reports") {
-          setState({ step: "generating_reports", progress: 85, message: "Claude generando 6 reportes...", error: null });
+          setState({ step: "generating_reports", progress: 85, message: i18n.t("videoAnalysis.progress.generatingReports"), error: null });
         }
 
         // ── 5. Cargar reportes ───────────────────────
-        setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
+        setState({ step: "generating_reports", progress: 90, message: i18n.t("videoAnalysis.progress.loadingReports"), error: null });
 
         const reportsRes = await fetch(`/api/analyses/reports?analysisId=${analysisStatus.id}`, {
           headers,
@@ -252,7 +252,7 @@ export function usePlayerAnalysisV2() {
         });
         const reportsData = await reportsRes.json();
         if (!reportsRes.ok || !reportsData.success) {
-          throw new Error(reportsData?.error?.message ?? "Error cargando reportes");
+          throw new Error(reportsData?.error?.message ?? i18n.t("videoAnalysis.errors.loadingReports"));
         }
 
         const a = reportsData.data.analysis;
@@ -268,12 +268,12 @@ export function usePlayerAnalysisV2() {
           completedAt: a.completed_at,
         });
 
-        setState({ step: "completed", progress: 100, message: "✓ 6 reportes generados", error: null });
+        setState({ step: "completed", progress: 100, message: i18n.t("videoAnalysis.progress.completed"), error: null });
 
         return reportsData.data;
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Error desconocido";
-        setState({ step: "error", progress: 0, message: "Error", error: errorMsg });
+        setState({ step: "error", progress: 0, message: i18n.t("videoAnalysis.progress.error"), error: errorMsg });
         throw err;
       }
     },
@@ -286,12 +286,12 @@ export function usePlayerAnalysisV2() {
    */
   const loadAnalysis = useCallback(async (analysisId: string) => {
     try {
-      setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
+      setState({ step: "generating_reports", progress: 90, message: i18n.t("videoAnalysis.progress.loadingReports"), error: null });
       const headers = await getAuthHeaders();
       const res = await fetch(`/api/analyses/reports?analysisId=${analysisId}`, { headers });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.errorDetail?.message ?? (typeof data?.error === "string" ? data.error : null) ?? "Not found");
+        throw new Error(data?.errorDetail?.message ?? (typeof data?.error === "string" ? data.error : null) ?? i18n.t("videoAnalysis.errors.notFound"));
       }
 
       const a = data.data.analysis;
@@ -306,13 +306,13 @@ export function usePlayerAnalysisV2() {
         reports: data.data.reports,
         completedAt: a.completed_at,
       });
-      setState({ step: "completed", progress: 100, message: "Cargado", error: null });
+      setState({ step: "completed", progress: 100, message: i18n.t("videoAnalysis.progress.loaded"), error: null });
       return data.data;
     } catch (err) {
       setState({
         step: "error",
         progress: 0,
-        message: "Error al cargar",
+        message: i18n.t("videoAnalysis.progress.errorLoading"),
         error: err instanceof Error ? err.message : "unknown",
       });
       throw err;
@@ -334,7 +334,7 @@ export function usePlayerAnalysisV2() {
         const headers = await getAuthHeaders();
 
         // 1. Verificar si ya existe un análisis completado
-        setState({ step: "queued", progress: 15, message: "Verificando análisis existente...", error: null });
+        setState({ step: "queued", progress: 15, message: i18n.t("videoAnalysis.progress.checkingExisting"), error: null });
         const checkRes = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, {
           headers, signal: ac.signal,
         });
@@ -348,7 +348,7 @@ export function usePlayerAnalysisV2() {
         }
 
         // 2. Disparar pipeline via finalize (trigger webhook → Modal → orchestrator)
-        setState({ step: "bunny_processing", progress: 30, message: "Preparando el análisis del vídeo...", error: null });
+        setState({ step: "bunny_processing", progress: 30, message: i18n.t("videoAnalysis.progress.preparingAnalysis"), error: null });
         let finalizeAttempts = 0;
         let finalized = false;
         while (finalizeAttempts < 12 && !finalized && !ac.signal.aborted) {
@@ -368,11 +368,11 @@ export function usePlayerAnalysisV2() {
           const finData = await finRes.json();
           if (finData?.data?.ready) { finalized = true; break; }
           await new Promise((r) => setTimeout(r, 5000));
-          setState((s) => ({ ...s, progress: 30 + finalizeAttempts * 2, message: `Bunny encoding... ${finalizeAttempts}/12` }));
+          setState((s) => ({ ...s, progress: 30 + finalizeAttempts * 2, message: i18n.t("videoAnalysis.progress.bunnyEncoding", { n: finalizeAttempts }) }));
         }
 
         // 3. Polling hasta completado
-        setState({ step: "queued", progress: 55, message: "Análisis encolado · procesando el vídeo con IA...", error: null });
+        setState({ step: "queued", progress: 55, message: i18n.t("videoAnalysis.progress.queuedProcessingAi"), error: null });
         const analysisStatus = await pollUntil(
           async () => {
             const res = await fetch(`/api/analyses/by-video?videoId=${params.videoId}`, { headers, signal: ac.signal });
@@ -385,15 +385,15 @@ export function usePlayerAnalysisV2() {
         );
 
         if (!analysisStatus) throw new Error(i18n.t("errors.analysisTimeout"));
-        if (analysisStatus.status === "failed") throw new Error(analysisStatus.status_message ?? "Análisis falló");
+        if (analysisStatus.status === "failed") throw new Error(analysisStatus.status_message ?? i18n.t("videoAnalysis.errors.analysisFailed"));
 
         setResult((r) => ({ ...r, analysisId: analysisStatus.id, videoId: params.videoId }));
-        setState({ step: "generating_reports", progress: 90, message: "Cargando reportes...", error: null });
+        setState({ step: "generating_reports", progress: 90, message: i18n.t("videoAnalysis.progress.loadingReports"), error: null });
         return await loadAnalysis(analysisStatus.id);
 
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Error desconocido";
-        setState({ step: "error", progress: 0, message: "Error", error: errorMsg });
+        setState({ step: "error", progress: 0, message: i18n.t("videoAnalysis.progress.error"), error: errorMsg });
         throw err;
       }
     },
@@ -424,7 +424,7 @@ export function usePlayerAnalysisV2() {
         const headers = await getAuthHeaders();
 
         // 1. Crear o encontrar análisis en Supabase
-        setState({ step: "queued", progress: 20, message: "Creando análisis con datos client-side...", error: null });
+        setState({ step: "queued", progress: 20, message: i18n.t("videoAnalysis.progress.creatingClientAnalysis"), error: null });
 
         if (SUPABASE_CONFIGURED) {
           // Upsert análisis con datos de biomecánica del cliente
@@ -457,7 +457,7 @@ export function usePlayerAnalysisV2() {
           }
 
           // 2. Disparar generación de reportes Claude
-          setState({ step: "generating_reports", progress: 50, message: "Claude generando 6 reportes especializados...", error: null });
+          setState({ step: "generating_reports", progress: 50, message: i18n.t("videoAnalysis.progress.generatingReportsSpecialized"), error: null });
 
           // Trigger report generation via API
           try {
@@ -479,7 +479,7 @@ export function usePlayerAnalysisV2() {
             });
 
             if (reportRes.ok) {
-              setState({ step: "generating_reports", progress: 75, message: "Reportes generándose...", error: null });
+              setState({ step: "generating_reports", progress: 75, message: i18n.t("videoAnalysis.progress.reportsGenerating"), error: null });
 
               // Poll until complete
               const completed = await pollUntil(
@@ -504,7 +504,7 @@ export function usePlayerAnalysisV2() {
         }
 
         // 3. Fallback: try the standard analyzeExistingVideo flow
-        setState({ step: "queued", progress: 40, message: "Intentando pipeline estándar...", error: null });
+        setState({ step: "queued", progress: 40, message: i18n.t("videoAnalysis.progress.tryingStandardPipeline"), error: null });
         const bunnyVideoId = params.videoId; // May need different extraction
         return await analyzeExistingVideo({
           videoId: params.videoId,
@@ -516,7 +516,7 @@ export function usePlayerAnalysisV2() {
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : "Error desconocido";
         // Don't throw — store biomechanics result even if reports fail
-        setState({ step: "completed", progress: 100, message: "Biomecánica guardada (reportes IA pendientes)", error: null });
+        setState({ step: "completed", progress: 100, message: i18n.t("videoAnalysis.progress.biomechanicsSaved"), error: null });
         setResult(r => ({
           ...r,
           videoId: params.videoId,

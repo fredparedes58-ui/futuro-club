@@ -5740,5 +5740,36 @@
       "empty": "Geen auditregistraties",
       "system": "Systeem"
     }
+  },
+  "videoAnalysis": {
+    "progress": {
+      "preparingUpload": "Upload voorbereiden...",
+      "uploading": "Uploaden naar Bunny Stream...",
+      "uploadingPct": "Uploaden... {{pct}}%",
+      "bunnyProcessing": "Bunny verwerkt de video...",
+      "bunnyEncoding": "Bunny encoding... {{n}}/12",
+      "queuedCron": "Analyse in wachtrij · de cron verwerkt deze binnen <1 min",
+      "analyzingAi": "Video analyseren met AI...",
+      "generatingReports": "Claude genereert 6 rapporten...",
+      "loadingReports": "Rapporten laden...",
+      "completed": "✓ 6 rapporten gegenereerd",
+      "error": "Fout",
+      "loaded": "Geladen",
+      "errorLoading": "Fout bij laden",
+      "checkingExisting": "Controleren op een bestaande analyse...",
+      "preparingAnalysis": "Video-analyse voorbereiden...",
+      "queuedProcessingAi": "Analyse in wachtrij · video verwerken met AI...",
+      "creatingClientAnalysis": "Analyse maken met client-side gegevens...",
+      "generatingReportsSpecialized": "Claude genereert 6 gespecialiseerde rapporten...",
+      "reportsGenerating": "Rapporten worden gegenereerd...",
+      "tryingStandardPipeline": "Standaardpijplijn proberen...",
+      "biomechanicsSaved": "Biomechanica opgeslagen (AI-rapporten in behandeling)"
+    },
+    "errors": {
+      "createUpload": "Fout bij het maken van de upload",
+      "analysisFailed": "Analyse mislukt",
+      "loadingReports": "Fout bij het laden van rapporten",
+      "notFound": "Niet gevonden"
+    }
   }
 }
