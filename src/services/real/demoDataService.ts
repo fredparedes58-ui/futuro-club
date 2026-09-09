@@ -12,7 +12,9 @@
  * «Datos de ejemplo». (No confundir con datos de menores reales — todo sintético.)
  */
 
-import { PlayerService, type CreatePlayerInput } from "./playerService";
+import { PlayerService, type CreatePlayerInput, type Player } from "./playerService";
+import { StorageService } from "./storageService";
+import { PlayerTrackingService, type TrackingSnapshot } from "./playerTrackingService";
 
 // ── Datos demo ──────────────────────────────────────────────────────────────
 // Convención antropométrica realista: altura-sentado ≈ 0,52·altura,
@@ -137,6 +139,86 @@ const DEMO_SEEDED_KEY = "demo_data_seeded";
 
 // ── Service ─────────────────────────────────────────────────────────────────
 
+/**
+ * Snapshot de tracking de EJEMPLO por jugador (pestaña Movimiento / Evolución).
+ * calibrationConfidence:"none" → el panel muestra el caveat "orientativo" (no
+ * calibrado). Derivado de las métricas de ficha; no implica captura real.
+ */
+function buildDemoSnapshot(player: Player): TrackingSnapshot {
+  const m = player.metrics;
+  const seed = ([...player.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) || 7) % 97;
+  const distance = Math.round(4200 + m.stamina * 42);
+  const scanCount = Math.round(20 + m.vision * 0.3);
+  const duelsWon = Math.round(4 + m.defending * 0.06);
+  const duelsLost = Math.round(3 + (100 - m.defending) * 0.04);
+  const sprintCount = Math.round(6 + m.speed * 0.14);
+  const focusPositions = Array.from({ length: 24 }, (_, i) => {
+    const a = (seed + i * 37) * 0.11;
+    return {
+      fx: +Math.min(104, Math.max(1, 52 + Math.sin(a) * 26 + ((i * 7) % 13) - 6)).toFixed(1),
+      fy: +Math.min(67, Math.max(1, 34 + Math.cos(a * 1.2) * 16 + ((i * 5) % 9) - 4)).toFixed(1),
+      tMs: i * 3000,
+    };
+  });
+  return {
+    playerId: player.id,
+    videoId: null,
+    savedAt: "2026-09-01T10:00:00.000Z",
+    durationSec: 75 * 60,
+    calibrationConfidence: "none",
+    sessionMetrics: {
+      maxSpeedMs: +(5.5 + m.speed * 0.035).toFixed(2),
+      avgSpeedMs: +(1.6 + m.stamina * 0.012).toFixed(2),
+      distanceCoveredM: distance,
+      sprintCount,
+      sprintDistanceM: Math.round(sprintCount * (14 + m.speed * 0.1)),
+      maxAccelMs2: +(2.5 + m.speed * 0.02).toFixed(2),
+      intensityZones: {
+        walk: Math.round(distance * 0.42),
+        jog: Math.round(distance * 0.34),
+        run: Math.round(distance * 0.16),
+        sprint: Math.round(distance * 0.08),
+      },
+      scanCount,
+      duelsWon,
+      duelsLost,
+      avgVoronoiAreaM2: +(80 + m.vision * 0.6).toFixed(1),
+    },
+    scanCount,
+    duelCount: duelsWon + duelsLost,
+    tracksCount: 22,
+    focusTrackId: 1,
+    scanEvents: [],
+    duelEvents: [],
+    focusPositions,
+  };
+}
+
+/**
+ * Extras por jugador tras sembrar: histórico VSI (≥2 puntos → Tendencia de Pulse
+ * y gráficos de evolución) y un snapshot de tracking de ejemplo. Idempotente.
+ */
+function seedPlayerExtras(): void {
+  try {
+    const players = StorageService.get<Player[]>("players", []);
+    let changed = false;
+    for (const p of players) {
+      if (!p.isDemo || p.vsi == null) continue;
+      if ((p.vsiHistory?.length ?? 0) < 2) {
+        const s = ([...p.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) || 7) % 5;
+        p.vsiHistory = [Math.max(0, Math.round(p.vsi - (3 + s))), Math.round(p.vsi)];
+        changed = true;
+      }
+      if (!PlayerTrackingService.get(p.id)) {
+        PlayerTrackingService.save(buildDemoSnapshot(p));
+      }
+    }
+    if (changed) StorageService.set("players", players);
+  } catch {
+    // best-effort: si algo falla, el demo sigue con estados vacíos honestos
+  }
+}
+
 export const DemoDataService = {
   /**
    * Verifica si los datos demo ya fueron cargados.
@@ -155,6 +237,10 @@ export const DemoDataService = {
    * Retorna la cantidad de jugadores creados.
    */
   seed(): number {
+    // Idempotente: garantiza los extras (histórico VSI + snapshot de tracking)
+    // aunque el club ya estuviera sembrado en una carga anterior (seed() sale
+    // temprano si isSeeded/hay jugadores → si no, esos extras no se crearían nunca).
+    seedPlayerExtras();
     if (this.isSeeded()) return 0;
 
     // No sobreescribir si el usuario ya tiene jugadores reales
@@ -174,6 +260,7 @@ export const DemoDataService = {
       }
     }
 
+    seedPlayerExtras();
     this.markSeeded();
     return created;
   },
@@ -234,6 +321,7 @@ export const DemoDataService = {
         // Continuar con los demás si uno falla
       }
     }
+    seedPlayerExtras();
     this.markSeeded();
     return created;
   },

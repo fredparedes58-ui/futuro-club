@@ -14,12 +14,21 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import { ValuationAggregator } from "@/services/real/valuationAggregator";
 import type { ValuationData } from "@/components/valuation/ValuationCard";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PlayerService } from "@/services/real/playerService";
+import { buildDemoValuation } from "@/lib/demo/demoHealth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 // ── Calculate valuation (deterministic) ─────────────────────────────────────
 
 async function calculateValuation(playerId: string): Promise<ValuationData | null> {
+  // Demo: el agente de valoración vive en /api (interceptado → null). Servimos
+  // una valoración de EJEMPLO derivada de la ficha (coldStartWarning:true).
+  if (IS_DEMO) {
+    const player = PlayerService.getById(playerId);
+    return player ? buildDemoValuation(player) : null;
+  }
   const snapshot = PlayerTrackingService.get(playerId);
   const fatigue = snapshot?.fatigueReport;
   const aggregation = await ValuationAggregator.aggregate(playerId, 90);
