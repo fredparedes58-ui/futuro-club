@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import VideoUpload from "@/components/VideoUpload";
+import { IS_DEMO } from "@/lib/demoMode";
 import { useAllPlayers } from "@/hooks/usePlayers";
 import { useAuth } from "@/context/AuthContext";
 import { DRILLS_LIBRARY, type DrillDocument } from "@/data/drillsLibrary";
@@ -521,6 +522,10 @@ const SoloDrill = () => {
                     {!selectedPlayerId ? (
                       <div className="glass rounded-xl p-4 text-center border border-dashed border-border">
                         <p className="text-xs text-muted-foreground">{t("drill.selectPlayerFirst")}</p>
+                      </div>
+                    ) : IS_DEMO ? (
+                      <div className="glass rounded-xl p-4 text-center border border-dashed border-border">
+                        <p className="text-xs text-muted-foreground">{t("drill.videoNotInDemo")}</p>
                       </div>
                     ) : (
                       <VideoUpload

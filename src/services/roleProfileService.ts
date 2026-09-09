@@ -404,7 +404,7 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
       explanation: `Perfil generado desde ${videoAnalyses.length} análisis de video.`,
     },
     positions: [
-      { code: mapPositionToCode(player.position, player.foot),
+      { code: mapPositionToCode(player.position, player.foot) as RoleProfileData["positions"][0]["code"],
         prob: 0.5, score: Math.max(tacticalScore, technicalScore), confidence: 0.65, reason: "Posición registrada — pendiente análisis completo con agente AI" },
     ],
     archetypes: [],
@@ -492,7 +492,7 @@ function buildMetricsOnlyProfile(player: Player): RoleProfileData | null {
     },
     positions: [
       {
-        code: posCode,
+        code: posCode as RoleProfileData["positions"][0]["code"],
         prob: 0.4,
         score: Math.max(tacticalScore, technicalScore, physicalScore),
         confidence: 0.35,

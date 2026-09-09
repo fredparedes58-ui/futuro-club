@@ -857,6 +857,7 @@
     "stepDrillType": "2. Type drill",
     "stepVideo": "3. Drillvideo",
     "selectPlayerFirst": "Selecteer eerst een speler",
+    "videoNotInDemo": "AI-videoanalyse is niet beschikbaar in de demo. In een echte club upload je de oefenvideo en analyseert VITAS die.",
     "analyzingIA": "Analyseren met AI…",
     "analyzingDesc": "Claude Sonnet verwerkt de keyframes van de drill en genereert het ontwikkelrapport.",
     "analysisError": "Fout bij de analyse",

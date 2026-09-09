@@ -857,6 +857,7 @@
     "stepDrillType": "2. Drill Type",
     "stepVideo": "3. Drill Video",
     "selectPlayerFirst": "Select a player first",
+    "videoNotInDemo": "AI video analysis isn't available in the demo. In a real club you upload the drill video and VITAS analyses it.",
     "analyzingIA": "Analyzing with AI…",
     "analyzingDesc": "Claude Sonnet is processing the drill keyframes and generating the development report.",
     "analysisError": "Analysis error",
