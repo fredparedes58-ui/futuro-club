@@ -132,6 +132,7 @@ export default function CompareRivalPage() {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
+          locale: normalizeLocale(i18n.language),
           rivalName: rivalName.trim(),
           rivalFormation: rivalFormation.trim() || undefined,
           rivalNotes: rivalNotes.trim() || undefined,

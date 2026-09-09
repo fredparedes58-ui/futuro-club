@@ -16,7 +16,7 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { TacticalHeatmapService } from "@/services/real/tacticalHeatmapService";
 import { PlayerService } from "@/services/real/playerService";
 import i18n from "@/i18n";
-import { normalizeLocale } from "@/lib/shared/locale";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 import { aggregatePhvDistribution } from "@/lib/shared/phv";
 import { isDemoMatchId } from "@/lib/tactical/tacticalTypes";
 import type {
@@ -110,7 +110,7 @@ interface GenerateInsightsInput {
     score?: { ours: number; theirs: number };
   };
   /** FASE 5 · idioma del reporte (default: idioma activo de la app) */
-  locale?: "es" | "en";
+  locale?: ReportLocale;
   /** FASE 5 · distribución PHV del equipo (diferenciador VITAS) */
   phvDistribution?: { prePhv?: number; circaPhv?: number; postPhv?: number };
 }

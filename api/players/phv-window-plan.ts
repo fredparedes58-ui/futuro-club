@@ -18,6 +18,12 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
+import {
+  localeSchema,
+  normalizeLocale,
+  languageDirective,
+  type ReportLocale,
+} from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -29,6 +35,7 @@ const PIPELINE_VERSION = "phv-window-v1.0";
 
 const bodySchema = z.object({
   playerId: z.string().min(1),
+  locale: localeSchema.optional(),
 });
 
 const SYSTEM_PROMPT = `Eres el motor de PHV Window Plan VITAS · diferenciador biológico
@@ -91,7 +98,7 @@ interface PlayerCtx {
   phv_offset: number | null;
 }
 
-function buildContext(p: PlayerCtx): string {
+function buildContext(p: PlayerCtx, locale: ReportLocale): string {
   const offset = p.phv_offset ?? 0;
   const aphv = p.age ? Number((p.age - offset).toFixed(2)) : null;
   return `JUGADOR
@@ -110,7 +117,9 @@ MADURACIÓN PHV (Mirwald)
     : "IN-PHV (en estirón · período sensible)"
   }
 
-Genera plan ESPECÍFICO para esta fase + edad cronológica + posición.`;
+Genera plan ESPECÍFICO para esta fase + edad cronológica + posición.
+
+${languageDirective(locale)}`;
 }
 
 async function callClaude(system: string, user: string): Promise<Record<string, unknown>> {
@@ -143,6 +152,7 @@ export default withHandler(
       return errorResponse({ code: "no_api_key", message: "missing", status: 500 });
     }
     const input = body as z.infer<typeof bodySchema>;
+    const reportLocale = normalizeLocale(input.locale);
     const startedAt = Date.now();
 
     // Perfil de jugador + generación LLM de pago → ownership obligatorio.
@@ -186,7 +196,7 @@ export default withHandler(
     // ── 2. Generar plan ────────────────────────────────────────
     let plan: Record<string, unknown>;
     try {
-      plan = await callClaude(SYSTEM_PROMPT, buildContext(ctx));
+      plan = await callClaude(SYSTEM_PROMPT, buildContext(ctx, reportLocale));
     } catch (err) {
       return errorResponse({
         code: "claude_error",
