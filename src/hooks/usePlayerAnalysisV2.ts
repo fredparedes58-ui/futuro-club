@@ -561,6 +561,8 @@ export type AnalysisDbRow = {
   video_id: string;
   created_at: string;
   vsi: Record<string, unknown> | null;
+  /** Estadísticas cuantitativas de partido (opcional; el demo las sirve, el pipeline real las anida en su propio flujo). */
+  metricasCuantitativas?: Record<string, unknown>;
   reports: Array<{ report_type: string; content: Record<string, unknown> }>;
 };
 
@@ -666,6 +668,9 @@ function mapDbRowToLegacy(row: AnalysisDbRow) {
     // confidence:0 (sentinela). 0 renderizado como "0%" viola inv #2 → se mapea a null y
     // la UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
     confianza: (row.vsi?.confidence as number) > 0 ? (row.vsi.confidence as number) : null,
+    // Estadísticas de partido (Stats tab / MatchStatsPanel / heatmap). Hoy solo el
+    // demo las provee; en real quedan undefined → la pestaña muestra su vacío honesto.
+    metricasCuantitativas: row.metricasCuantitativas,
   };
 
   // vsi top-level: el Histórico lo mostraba como "—" porque leía report.vsi (que no

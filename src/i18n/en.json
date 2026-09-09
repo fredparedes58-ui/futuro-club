@@ -2382,7 +2382,10 @@
       "dna-profile": "Football DNA",
       "best-match": "Best-Match",
       "projection": "3yr Projection",
-      "development-plan": "Development Plan"
+      "development-plan": "Development Plan",
+      "valuation-report": "Valuation",
+      "injury-risk-report": "Injury Risk",
+      "fatigue-report": "Fatigue & Load"
     },
     "noContent": "No content",
     "fallbackNotice": "Sample data — AI analysis was unavailable for this report.",

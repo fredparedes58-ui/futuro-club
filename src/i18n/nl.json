@@ -2382,7 +2382,10 @@
       "dna-profile": "Voetbal-DNA",
       "best-match": "Best-Match",
       "projection": "Projectie 3j",
-      "development-plan": "Ontwikkelplan"
+      "development-plan": "Ontwikkelplan",
+      "valuation-report": "Waardering",
+      "injury-risk-report": "Blessurerisico",
+      "fatigue-report": "Vermoeidheid & Belasting"
     },
     "noContent": "Geen inhoud",
     "fallbackNotice": "Voorbeeldgegevens — de AI-analyse was niet beschikbaar voor dit rapport.",

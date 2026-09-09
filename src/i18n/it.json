@@ -2381,7 +2381,10 @@
       "dna-profile": "DNA calcistico",
       "best-match": "Best-Match",
       "projection": "Proiezione 3a",
-      "development-plan": "Piano di sviluppo"
+      "development-plan": "Piano di sviluppo",
+      "valuation-report": "Valutazione",
+      "injury-risk-report": "Rischio Infortuni",
+      "fatigue-report": "Affaticamento e Carico"
     },
     "noContent": "Nessun contenuto",
     "fallbackNotice": "Dati di esempio — l'analisi IA non era disponibile per questo report.",

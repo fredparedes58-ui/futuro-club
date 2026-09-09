@@ -2381,7 +2381,10 @@
       "dna-profile": "Fußball-DNA",
       "best-match": "Best-Match",
       "projection": "Projektion 3J",
-      "development-plan": "Entwicklungsplan"
+      "development-plan": "Entwicklungsplan",
+      "valuation-report": "Bewertung",
+      "injury-risk-report": "Verletzungsrisiko",
+      "fatigue-report": "Ermüdung & Belastung"
     },
     "noContent": "Kein Inhalt",
     "fallbackNotice": "Beispieldaten — die KI-Analyse war für diesen Bericht nicht verfügbar.",
