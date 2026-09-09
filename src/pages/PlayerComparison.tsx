@@ -16,6 +16,7 @@ import VsiGauge from "@/components/VsiGauge";
 
 import VitasCard from "@/components/VitasCard";
 import { PlayerListSkeleton } from "@/components/shared/Skeletons";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -132,6 +133,10 @@ const PlayerComparison = () => {
   // fabrica una "probabilidad de élite" a partir de null (invariante #2). Los no
   // evaluados se excluyen del comparador → si quedan <2, cae al EmptyState.
   const players = (allPlayers ?? []).filter((p) => p.stats != null && p.vsi != null);
+  // Honestidad: el comparador deriva una "probabilidad de élite" de datos de
+  // ejemplo en el demo → banner visible (invariante MOCK), como en Rankings.
+  // Se lee de los jugadores CRUDOS: el adaptador de UI no conserva `isDemo`.
+  const isDemoData = PlayerService.getAll().some((p) => p.isDemo);
 
   const safeAIdx = Math.min(playerAIndex, Math.max(0, players.length - 1));
   const safeBIdx = Math.min(playerBIndex, Math.max(0, players.length - 1));
@@ -318,6 +323,7 @@ const PlayerComparison = () => {
       </motion.div>
 
       <div className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
+        {isDemoData && <DemoDataBanner messageKey="rankingsPage.demoNotice" />}
         {/* Selectores + Radar superpuesto */}
         <motion.div variants={item} className="glass rounded-2xl p-6">
           <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 items-center">
