@@ -164,6 +164,8 @@
   },
   "auth": {
     "login": {
+      "enterDemo": "Entra nella demo",
+      "demoNote": "Esplora VITAS con dati di esempio. Senza registrazione.",
       "title": "Accedi alla tua academy",
       "subtitle": "Accedi alla tua academy di scouting",
       "emailLabel": "Email",
@@ -2006,6 +2008,7 @@
     }
   },
   "publicLanding": {
+    "enterDemo": "Entra nella demo",
     "pulseSubtitle": "Intelligence calcistica in tempo reale",
     "statActive": "ATTIVI",
     "statAlerts": "ALLERTE",

@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2, AlertCircle, Zap, CheckCircle2, Building2, Search, UserRound, Users, Dumbbell } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
+import { IS_DEMO } from "@/lib/demoMode";
 
 const item = {
   hidden: { opacity: 0, y: 16 },
@@ -62,6 +63,9 @@ export default function RegisterPage() {
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const pwStrength = pwRules.filter((r) => r.test(password)).length;
+
+  // DEMO: no hay alta de cuenta (Supabase off) → entra directo a la app.
+  if (IS_DEMO) return <Navigate to="/pulse" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -164,6 +164,8 @@
   },
   "auth": {
     "login": {
+      "enterDemo": "Zur Demo",
+      "demoNote": "Entdecke VITAS mit Beispieldaten. Ohne Anmeldung.",
       "title": "Zu deiner Akademie",
       "subtitle": "Zugang zu deiner Scouting-Akademie",
       "emailLabel": "E-Mail",
@@ -2006,6 +2008,7 @@
     }
   },
   "publicLanding": {
+    "enterDemo": "Zur Demo",
     "pulseSubtitle": "Fußballintelligenz in Echtzeit",
     "statActive": "AKTIVE",
     "statAlerts": "WARNUNGEN",

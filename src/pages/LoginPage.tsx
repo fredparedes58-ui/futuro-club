@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import TurnstileWidget, { verifyCaptchaToken } from "@/components/TurnstileWidget";
+import { IS_DEMO } from "@/lib/demoMode";
 import bootBg  from "@/assets/login-boot-neon.jpg";
 import player1 from "@/assets/player-1.png";
 
@@ -478,8 +479,8 @@ export default function LoginPage() {
           {/* Divider */}
           <div style={{ height:1, background:"linear-gradient(90deg,transparent,rgba(34,211,238,0.38),transparent)", marginBottom:20 }} />
 
-          {/* Offline warning */}
-          {!configured && (
+          {/* Offline warning — no en el demo (ahí es entrada directa, no login) */}
+          {!IS_DEMO && !configured && (
             <div style={{ display:"flex", gap:8, padding:"9px 12px", borderRadius:10,
               background:"rgba(251,191,36,0.07)", border:"1px solid rgba(251,191,36,0.22)", marginBottom:16 }}>
               <AlertCircle size={12} color="#fbbf24" style={{ flexShrink:0, marginTop:1 }} />
@@ -487,6 +488,31 @@ export default function LoginPage() {
             </div>
           )}
 
+          {IS_DEMO ? (
+            /* DEMO: sin usuario/contraseña. Un solo click entra a la app con
+               datos de ejemplo (ProtectedRoute deja pasar sin Supabase). */
+            <div>
+              <p style={{ fontSize:12, color:"rgba(255,255,255,0.5)", textAlign:"center", lineHeight:1.5, marginBottom:18 }}>
+                {t("auth.login.demoNote", "Explora VITAS con datos de ejemplo. Sin registro.")}
+              </p>
+              <motion.button
+                type="button"
+                onClick={() => navigate("/pulse", { replace: true })}
+                whileHover={{ scale:1.03, boxShadow:"0 0 45px rgba(192,38,211,0.6), 0 0 75px rgba(34,211,238,0.22)" }}
+                whileTap={{ scale:0.97 }}
+                style={{
+                  width:"100%", padding:"13px", borderRadius:12,
+                  background:"linear-gradient(90deg,#c026d3 0%,#7c3aed 50%,#22d3ee 100%)",
+                  border:"none", color:"white", fontWeight:900, fontSize:14,
+                  letterSpacing:5, textTransform:"uppercase", cursor:"pointer",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                  boxShadow:"0 0 32px rgba(192,38,211,0.48), 0 0 60px rgba(34,211,238,0.18)",
+                }}
+              >
+                {t("auth.login.enterDemo", "Entrar a la demo")}
+              </motion.button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit}>
             {/* Email */}
             <div style={{ marginBottom:14 }}>
@@ -561,11 +587,14 @@ export default function LoginPage() {
                 : t("auth.login.submit")}
             </motion.button>
           </form>
+          )}
 
-          <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:"rgba(255,255,255,0.34)" }}>
-            {t("auth.login.noAccount")}{" "}
-            <Link to="/register" style={{ color:"#22d3ee", textDecoration:"none", fontWeight:800 }}>{t("auth.login.createAcademy")}</Link>
-          </p>
+          {!IS_DEMO && (
+            <p style={{ textAlign:"center", marginTop:18, fontSize:12, color:"rgba(255,255,255,0.34)" }}>
+              {t("auth.login.noAccount")}{" "}
+              <Link to="/register" style={{ color:"#22d3ee", textDecoration:"none", fontWeight:800 }}>{t("auth.login.createAcademy")}</Link>
+            </p>
+          )}
         </div>
 
         <p style={{ textAlign:"center", marginTop:13, fontSize:9, color:"rgba(34,211,238,0.3)", letterSpacing:3, textTransform:"uppercase" }}>

@@ -18,6 +18,12 @@ import { useAuth } from "@/context/AuthContext";
 import { IS_DEMO } from "@/lib/demoMode";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
+// En el DEMO no hay alta ni login reales (Supabase off): cualquier CTA de entrada
+// lleva directo a la app con datos de ejemplo (un solo click). Fuera del demo,
+// mantienen su destino de registro/login habitual.
+const ENTRY_HREF = IS_DEMO ? "/pulse" : "/register";
+const LOGIN_HREF = IS_DEMO ? "/pulse" : "/login";
+
 // ── Floating orbs (background decoration) ─────────────────────
 function FloatingOrbs() {
   return (
@@ -248,13 +254,13 @@ export default function PublicLanding() {
           </nav>
           <nav className="flex items-center gap-3">
             <LanguageSwitcher />
-            {isLoggedIn ? (
+            {isLoggedIn || IS_DEMO ? (
               <Link
                 to="/pulse"
                 className="px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5"
                 style={{ background: "linear-gradient(135deg, #0059B3, #A855F7)" }}
               >
-                {t("publicLanding.dashboard")} <ArrowRight size={12} />
+                {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.dashboard")} <ArrowRight size={12} />
               </Link>
             ) : (
               <>
@@ -303,14 +309,14 @@ export default function PublicLanding() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link
-                to="/register"
+                to={ENTRY_HREF}
                 className="px-6 py-3.5 rounded-xl font-display font-bold text-sm text-white flex items-center justify-center gap-2 hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
                 style={{ background: "linear-gradient(135deg, #E6197A, #A855F7)", boxShadow: "0 8px 30px rgba(230,25,122,0.3)" }}
               >
                 <Play size={14} /> {t("publicLanding.watchDemo")}
               </Link>
               <Link
-                to="/login"
+                to={LOGIN_HREF}
                 className="px-6 py-3.5 rounded-xl border border-border bg-white/80 font-display font-bold text-sm text-foreground flex items-center justify-center gap-2 hover:bg-white transition-colors"
               >
                 {t("publicLanding.requestDemo")}
@@ -473,11 +479,11 @@ export default function PublicLanding() {
             {t("publicLanding.ctaParagraph")}
           </p>
           <Link
-            to="/register"
+            to={ENTRY_HREF}
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-display font-bold text-sm text-white hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
             style={{ background: "linear-gradient(135deg, #E6197A, #A855F7)", boxShadow: "0 8px 30px rgba(230,25,122,0.3)" }}
           >
-            {t("publicLanding.startFree")} <ArrowRight size={14} />
+            {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.startFree")} <ArrowRight size={14} />
           </Link>
         </motion.div>
       </section>
@@ -495,7 +501,7 @@ export default function PublicLanding() {
           <nav className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link to="/terms" className="hover:text-foreground transition-colors">{t("publicLanding.footerTerms")}</Link>
             <Link to="/privacy" className="hover:text-foreground transition-colors">{t("publicLanding.footerPrivacy")}</Link>
-            <Link to="/login" className="hover:text-foreground transition-colors">{t("publicLanding.footerAccess")}</Link>
+            <Link to={LOGIN_HREF} className="hover:text-foreground transition-colors">{t("publicLanding.footerAccess")}</Link>
           </nav>
         </div>
         {/* Bottom gradient bar */}
@@ -622,7 +628,7 @@ function PlanTier({ name, description, features, highlight }: {
         ))}
       </ul>
       <Link
-        to="/register"
+        to={ENTRY_HREF}
         className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-all hover:scale-[1.02] ${
           highlight
             ? "bg-white text-primary hover:bg-white/90"
