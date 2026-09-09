@@ -63,7 +63,10 @@ export default function LiveHubPage() {
       const res = await fetch("/api/live/matches", { headers });
       const data = await res.json();
       if (res.ok && data.success) {
-        setMatches(data.data.matches as MatchSummary[]);
+        // En demo, demoApiGuard responde data:null → `data.data.matches` lanzaba
+        // TypeError y caía a la tarjeta de ERROR. Con `?.` queda el vacío honesto
+        // ("no hay partidos") en vez de un error.
+        setMatches((data.data?.matches ?? []) as MatchSummary[]);
       } else {
         // Respuesta no-ok: es un error de carga, no "sin partidos" (#30).
         setLoadError(true);

@@ -14,6 +14,7 @@ import {
   PLAN_LIMITS,
 } from "@/services/real/subscriptionService";
 import { PlayerService } from "@/services/real/playerService";
+import { IS_DEMO } from "@/lib/demoMode";
 
 export interface PlanState {
   plan: Plan;
@@ -80,15 +81,19 @@ export function usePlan(): PlanState & { isAdmin: boolean } {
   });
 
   const isAdmin = ADMIN_EMAILS.has((user?.email ?? "").toLowerCase());
-  const plan = data?.plan ?? "free";
-  // Admin siempre tiene limites de club (ilimitado)
-  const effectiveLimits = isAdmin ? PLAN_LIMITS["club"] : PLAN_LIMITS[plan];
+  // En modo demo (datos mockeados) se desbloquea todo como plan "club" para que
+  // ninguna pantalla quede tras un paywall: el GlobalDemoBanner ya declara que son
+  // datos de ejemplo. No aplica en prod/dev — IS_DEMO exige VITE_DEMO=1 && sin Supabase.
+  const demoUnlocked = isAdmin || IS_DEMO;
+  const plan: Plan = demoUnlocked ? "club" : (data?.plan ?? "free");
+  // Admin/demo siempre tienen limites de club (ilimitado)
+  const effectiveLimits = demoUnlocked ? PLAN_LIMITS["club"] : PLAN_LIMITS[plan];
   const playerCount = PlayerService.getAll().length;
   const analysesUsed = SubscriptionService.getAnalysesUsedThisMonth();
   const teamMemberCount = getTeamMemberCount();
 
   return {
-    plan: isAdmin ? "club" : plan,
+    plan,
     limits: effectiveLimits,
     playerCount,
     analysesUsed,

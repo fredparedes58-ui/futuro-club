@@ -5,6 +5,7 @@
 import { Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import type { UserRole } from "@/services/real/userProfileService";
+import { IS_DEMO } from "@/lib/demoMode";
 
 interface RoleGuardProps {
   /** Roles que tienen acceso */
@@ -16,6 +17,11 @@ interface RoleGuardProps {
 
 export function RoleGuard({ roles, children, fallback = null }: RoleGuardProps) {
   const { role, isLoading } = useUserProfile();
+
+  // En modo demo, un único usuario de ejemplo explora todas las vistas del
+  // producto: no bloqueamos por rol (el GlobalDemoBanner ya declara que es una
+  // demostración). No aplica en prod/dev (IS_DEMO exige VITE_DEMO=1 && sin Supabase).
+  if (IS_DEMO) return <>{children}</>;
 
   // Mientras el perfil carga (incluye syncFromSupabase), role cae al default
   // "scout" → un director legítimo veía un flash de "Acceso restringido".

@@ -94,7 +94,11 @@ async function fetchCoachingSessions(teamId: string): Promise<CoachingSession[]>
     );
     if (!res.ok) return generateMockSessions(teamId);
     const data = await res.json();
-    return data.data ?? data ?? [];
+    // En demo, demoApiGuard responde { success:true, data:null } con res.ok=true:
+    // `data.data ?? data` devolvía ESE objeto (no un array) → CoachDashboard hacía
+    // `.every()` sobre un objeto → crash. Garantizamos SIEMPRE un array.
+    const arr = data?.data ?? data;
+    return Array.isArray(arr) ? arr : generateMockSessions(teamId);
   } catch {
     return generateMockSessions(teamId);
   }
