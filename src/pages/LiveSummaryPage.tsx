@@ -19,6 +19,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoLiveAggregate } from "@/lib/demo/demoLive";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 
@@ -71,6 +73,10 @@ export default function LiveSummaryPage() {
     let mounted = true;
     (async () => {
       try {
+        if (IS_DEMO) {
+          if (mounted) { setData(buildDemoLiveAggregate() as AggregateResponse); setLoading(false); }
+          return;
+        }
         const headers = await getAuthHeaders();
         const res = await fetch(`/api/live/aggregate?matchId=${matchId}&locale=${normalizeLocale(i18n.language)}`, {
           method: "POST",

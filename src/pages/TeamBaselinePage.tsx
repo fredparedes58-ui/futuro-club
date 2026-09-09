@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoTeamBaseline } from "@/lib/demo/demoTeam";
 import VideoUpload from "@/components/VideoUpload";
 import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
 
@@ -97,6 +99,12 @@ export default function TeamBaselinePage() {
     setGenerating(true);
     setError(null);
     try {
+      if (IS_DEMO) {
+        const d = buildDemoTeamBaseline();
+        setData(d as TeamBaselineResponse);
+        setExpanded(d.reports[0]?.type ?? null);
+        return;
+      }
       const headers = await getAuthHeaders();
       const res = await fetch("/api/team/baseline-analysis", {
         method: "POST",
@@ -191,7 +199,7 @@ export default function TeamBaselinePage() {
 
             <button
               onClick={handleGenerate}
-              disabled={!videoAnalysis}
+              disabled={!videoAnalysis && !IS_DEMO}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               <Sparkles size={12} /> {t("teamBaselinePage.generateButton")}
