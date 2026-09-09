@@ -22,6 +22,13 @@ export interface EnqueueAnalysisInput {
   tenantId: string | null;
   playerId: string | null;
   playedPosition?: string | null;
+  /**
+   * Idioma pedido para los informes (código del LANGUAGE_REGISTRY, ya normalizado).
+   * Se persiste en `analyses.locale` (mig 064) porque el orquestador, cuando lo
+   * dispara el cron o modal-callback, solo recibe { analysisId } y no puede saber el
+   * idioma de otra forma. Null → el orquestador degrada a "es".
+   */
+  locale?: string | null;
   /** Base URL para disparar el cron (VITAS_PUBLIC_URL / VERCEL_URL). */
   publicUrl: string;
   /** CRON_SECRET: si falta, no se dispara el cron (el cron diario recogerá la cola). */
@@ -35,7 +42,7 @@ export type EnqueueAnalysisResult =
   | { status: "error"; error: string };
 
 export async function enqueueAnalysis(input: EnqueueAnalysisInput): Promise<EnqueueAnalysisResult> {
-  const { supabase, videoId, tenantId, playerId, playedPosition, publicUrl, cronSecret } = input;
+  const { supabase, videoId, tenantId, playerId, playedPosition, locale, publicUrl, cronSecret } = input;
 
   // Sin jugador o sin tenant → NO se encola (FK NOT NULL + RLS de menores).
   if (!playerId) return { status: "skipped", reason: "no_player" };
@@ -57,18 +64,32 @@ export async function enqueueAnalysis(input: EnqueueAnalysisInput): Promise<Enqu
 
   if (existing) return { status: "exists", analysisId: existing.id };
 
-  const { data: analysis, error } = await supabase
+  const baseRow = {
+    tenant_id: tenantId,
+    player_id: playerId,
+    video_id: videoId,
+    status: "queued",
+    pipeline_version: "v1.0",
+    played_position: playedPosition ?? null,
+  };
+
+  // Idioma en la fila (mig 064) para que el orquestador lo lea. DEFENSIVO frente al
+  // orden de despliegue: si la migración aún no está aplicada, PostgREST rechaza la
+  // columna desconocida (PGRST204 / "schema cache") → reintentamos SIN locale para
+  // no romper el encolado (los informes saldrían en "es", como antes de 064).
+  let { data: analysis, error } = await supabase
     .from("analyses")
-    .insert({
-      tenant_id: tenantId,
-      player_id: playerId,
-      video_id: videoId,
-      status: "queued",
-      pipeline_version: "v1.0",
-      played_position: playedPosition ?? null,
-    })
+    .insert(locale ? { ...baseRow, locale } : baseRow)
     .select("id")
     .single();
+
+  if (error && locale && /locale|PGRST204|schema cache/i.test(error.message ?? "")) {
+    ({ data: analysis, error } = await supabase
+      .from("analyses")
+      .insert(baseRow)
+      .select("id")
+      .single());
+  }
 
   if (error || !analysis) {
     return { status: "error", error: error?.message ?? "insert_failed" };

@@ -26,6 +26,11 @@ import { generatePlanDeterministic } from "../../src/lib/idp/idpGoalGenerator";
 import { suggestDrillIds } from "../../src/lib/idp/idpDrillMatcher";
 import { generateMilestonesForPlan } from "../../src/lib/idp/idpMilestoneScheduler";
 import { buildIDPArchitectPrompt } from "../../src/lib/idp/idpArchitectPrompt";
+import {
+  localeSchema,
+  normalizeLocale,
+  type ReportLocale,
+} from "../../src/lib/shared/locale";
 import type {
   DevelopmentPlan,
   IDPGoal,
@@ -44,6 +49,11 @@ const GeneratePlanInputSchema = z.object({
   /** Coach user_id; if set, plan is owned by them. */
   coachId: z.string().optional(),
   tenantId: z.string().optional(),
+  /**
+   * Output language of the plan (LLM prose). Takes precedence over
+   * `architectInput.locale`; when both are absent the agent defaults to "es".
+   */
+  locale: localeSchema.optional(),
 });
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY ?? "";
@@ -67,9 +77,13 @@ function currentMonthStart(): string {
 
 const uuid = (): string => crypto.randomUUID();
 
-/** Call the architect agent inline (no HTTP round-trip, save latency). */
+/**
+ * Call the architect agent inline (no HTTP round-trip, save latency).
+ * `locale` drives the `languageDirective` inside the prompt (default "es").
+ */
 async function callArchitect(
   input: z.infer<typeof IDPArchitectInputSchema>,
+  locale: ReportLocale = normalizeLocale(input.locale),
 ): Promise<{ output: IDPArchitectOutput; source: string; model: string }> {
   // No API key → deterministic
   if (!ANTHROPIC_API_KEY) {
@@ -81,7 +95,7 @@ async function callArchitect(
   }
 
   try {
-    const prompt = buildIDPArchitectPrompt(input);
+    const prompt = buildIDPArchitectPrompt(input, locale);
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -163,8 +177,10 @@ export default withHandler(
       }
     }
 
-    // 2. Call architect (Claude or deterministic)
-    const { output, source, model } = await callArchitect(input.architectInput);
+    // 2. Call architect (Claude or deterministic). Output language: explicit
+    //    top-level `locale` > `architectInput.locale` > default ("es").
+    const reportLocale = normalizeLocale(input.locale ?? input.architectInput.locale);
+    const { output, source, model } = await callArchitect(input.architectInput, reportLocale);
 
     // 3. Build hydrated plan
     const planId = uuid();

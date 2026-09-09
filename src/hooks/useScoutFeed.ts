@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { IS_DEMO } from "@/lib/demoMode";
 import { PlayerService } from "@/services/real/playerService";
 import { playerMaturity } from "@/lib/phv/playerMaturity";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -140,7 +142,9 @@ async function generateInsights(playerId?: string): Promise<{ generated: number 
   const res = await fetch("/api/scout/generate", {
     method: "POST",
     headers,
-    body: JSON.stringify({ playerId }),
+    // locale = idioma actual de la UI → el insight se redacta en ese idioma
+    // (el endpoint lo pasa a languageDirective; sin él caería al idioma por defecto).
+    body: JSON.stringify({ playerId, locale: normalizeLocale(i18n.language) }),
   });
 
   if (!res.ok) {

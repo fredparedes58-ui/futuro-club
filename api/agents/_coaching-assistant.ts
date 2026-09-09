@@ -2,8 +2,9 @@
  * VITAS · Coaching Assistant Agent (Sprint 15)
  * POST /api/agents/coaching-assistant
  *
- * Claude Haiku agent that generates a narrative coaching report in Spanish.
- * Input: SessionAnalysis + last 8 sessions + PHV distribution.
+ * Claude agent that generates a narrative coaching report in the requested
+ * `locale` (any language in LANGUAGE_REGISTRY; default "es" via languageDirective).
+ * Input: SessionAnalysis + last 8 sessions + PHV distribution (+ optional locale).
  * Output: sessionSummary, whatWorkedWell[3], whatToImprove[3],
  *         nextSessionPlan, playerSpotlight[3], weeklyPlan, phvAlerts.
  *

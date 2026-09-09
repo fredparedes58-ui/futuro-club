@@ -5,6 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { TransferMarketService } from "@/services/real/transferMarketService";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 import type {
   CreateListingInput,
   MatchScore,
@@ -198,6 +200,8 @@ interface SmartMatchInput {
     };
   };
   maxCandidates?: number;
+  /** Idioma de redacción del agente. Si se omite, se toma del idioma actual de la UI (i18n). */
+  locale?: ReportLocale;
 }
 
 interface SmartMatchResultEnvelope {
@@ -214,7 +218,10 @@ export function useSmartMatch() {
       const res = await fetch(`${apiBase}/smart-match`, {
         method: "POST",
         headers: await getAuthHeaders(),
-        body: JSON.stringify(input),
+        body: JSON.stringify({
+          ...input,
+          locale: input.locale ?? normalizeLocale(i18n.language),
+        }),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");
