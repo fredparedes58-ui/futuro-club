@@ -16,6 +16,9 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
 import type { InjuryEntry } from "@/components/injury/InjuryLogForm";
 import type { InjuryRiskData } from "@/components/injury/InjuryRiskCard";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PlayerService } from "@/services/real/playerService";
+import { buildDemoInjuryRisk } from "@/lib/demo/demoHealth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -64,6 +67,12 @@ async function calculateInjuryRisk(
   playerId: string,
   injuries: InjuryEntry[],
 ): Promise<InjuryRiskData | null> {
+  // Demo: el calculador de riesgo vive en /api (interceptado → null). Servimos
+  // un riesgo de EJEMPLO derivado de la ficha/edad (coldStartWarning:true).
+  if (IS_DEMO) {
+    const player = PlayerService.getById(playerId);
+    return player ? buildDemoInjuryRisk(player) : null;
+  }
   // Gather data from localStorage tracking snapshot
   const snapshot = PlayerTrackingService.get(playerId);
   const fatigue = snapshot?.fatigueReport;
