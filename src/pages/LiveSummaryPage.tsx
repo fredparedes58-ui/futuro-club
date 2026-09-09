@@ -19,6 +19,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 interface PlayerStat {
   playerId: string | null;
@@ -70,7 +72,7 @@ export default function LiveSummaryPage() {
     (async () => {
       try {
         const headers = await getAuthHeaders();
-        const res = await fetch(`/api/live/aggregate?matchId=${matchId}`, {
+        const res = await fetch(`/api/live/aggregate?matchId=${matchId}&locale=${normalizeLocale(i18n.language)}`, {
           method: "POST",
           headers,
         });

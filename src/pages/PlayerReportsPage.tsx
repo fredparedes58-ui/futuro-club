@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 import { getAuthHeaders } from "@/lib/apiAuth";
 
 import { PlayerService } from "@/services/real/playerService";
@@ -218,7 +220,7 @@ export default function PlayerReportsPage() {
       const res = await fetch("/api/players/baseline-analysis", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId: id }),
+        body: JSON.stringify({ playerId: id, locale: normalizeLocale(i18n.language) }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

@@ -31,6 +31,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
 import { createClient } from "@supabase/supabase-js";
+import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -58,6 +59,7 @@ const bodySchema = z.object({
     .optional(),
   matchContext: z.string().max(200).optional(),
   rivalVideoAnalysis: z.record(z.unknown()).optional(),
+  locale: localeSchema.optional(),
 });
 
 const SYSTEM_PROMPT = `Eres el motor Compare-to-Rival VITAS. Comparas DOS equipos juveniles
@@ -254,6 +256,7 @@ export default withHandler(
       return errorResponse({ code: "unauthorized", message: "Login requerido", status: 401 });
     }
     const input = body as z.infer<typeof bodySchema>;
+    const reportLocale = normalizeLocale(input.locale);
     const startedAt = Date.now();
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -286,7 +289,10 @@ export default withHandler(
     // ── 2. Generar plan ────────────────────────────────────────
     let plan: Record<string, unknown>;
     try {
-      plan = await callClaude(SYSTEM_PROMPT, buildContext(players as PlayerSummary[], "Mi equipo", input));
+      // El idioma de salida se inyecta como directiva dinámica al final del
+      // system prompt; el resto del prompt se mantiene en su idioma base.
+      const systemPrompt = `${SYSTEM_PROMPT}\n\n${languageDirective(reportLocale)}`;
+      plan = await callClaude(systemPrompt, buildContext(players as PlayerSummary[], "Mi equipo", input));
     } catch (err) {
       return errorResponse({
         code: "claude_error",

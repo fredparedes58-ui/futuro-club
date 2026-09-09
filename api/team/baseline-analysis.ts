@@ -23,6 +23,7 @@ import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/bu
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
+import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -37,6 +38,7 @@ const bodySchema = z.object({
   playerIds: z.array(z.string()).optional(),
   teamName: z.string().max(80).optional(),
   videoObservation: z.record(z.unknown()).optional(),
+  locale: localeSchema.optional(),
 });
 
 interface PlayerSummary {
@@ -307,6 +309,7 @@ export default withHandler(
     // por informe (abajo, en el .map).
     if (await isOverBudget()) return budgetExceededResponse();
     const input = body as z.infer<typeof bodySchema>;
+    const reportLocale = normalizeLocale(input.locale);
     const startedAt = Date.now();
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -360,7 +363,7 @@ export default withHandler(
       try {
         const content = await callClaude({
           model: cfg.model,
-          system: cfg.system,
+          system: `${cfg.system}\n\n${languageDirective(reportLocale)}`,
           user: userMessage,
           maxTokens: type === "team-overview" ? 2000 : 1200,
         });

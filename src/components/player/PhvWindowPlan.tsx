@@ -19,6 +19,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 interface Plan {
   current_phase: "pre_phv" | "in_phv" | "post_phv";
@@ -71,7 +73,7 @@ export function PhvWindowPlan({ playerId, hasPhv }: Props) {
       const res = await fetch("/api/players/phv-window-plan", {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ playerId }),
+        body: JSON.stringify({ playerId, locale: normalizeLocale(i18n.language) }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

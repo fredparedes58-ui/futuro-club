@@ -104,6 +104,7 @@ export default function TeamBaselinePage() {
         body: JSON.stringify({
           teamName: "Mi equipo",
           videoObservation: videoAnalysis ?? undefined,
+          locale: normalizeLocale(i18n.language),
         }),
       });
       const json = await res.json();

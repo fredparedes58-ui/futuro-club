@@ -20,6 +20,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayer } from "../_lib/ownership";
 import { MODELS } from "../_lib/models";
+import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -32,6 +33,7 @@ const PIPELINE_VERSION = "baseline-v1.0";
 
 const bodySchema = z.object({
   playerId: z.string().min(1),
+  locale: localeSchema.optional(),
 });
 
 // ── Player profile shape ────────────────────────────────────────────
@@ -345,6 +347,7 @@ export default withHandler(
       return errorResponse({ code: "no_api_key", message: "ANTHROPIC_API_KEY missing", status: 500 });
     }
     const input = body as z.infer<typeof bodySchema>;
+    const reportLocale = normalizeLocale(input.locale);
     const startedAt = Date.now();
 
     // Perfil de jugador (PII de menores) + generación LLM de pago → ownership obligatorio.
@@ -437,7 +440,10 @@ export default withHandler(
     }
 
     // ── 3. Generar 6 reportes Claude en paralelo ───────────────────
-    const userMessage = profileBlock(profile);
+    // La directiva de idioma va en el mensaje de usuario (compartido por los 6
+    // reportes) → los system prompts quedan agnósticos de idioma y conservan el
+    // cache ephemeral entre idiomas; el idioma de SALIDA lo fija reportLocale.
+    const userMessage = `${languageDirective(reportLocale)}\n\n${profileBlock(profile)}`;
 
     const reportPromises = (Object.keys(PROMPTS) as ReportType[]).map(async (reportType) => {
       const cfg = PROMPTS[reportType];

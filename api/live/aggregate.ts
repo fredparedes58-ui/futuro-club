@@ -17,6 +17,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { createClient } from "@supabase/supabase-js";
+import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 
 // Node.js runtime for Gemini video analysis (up to 120s)
 export const config = { runtime: "nodejs", maxDuration: 120 };
@@ -291,6 +292,9 @@ export default withHandler(
     if (!matchId) {
       return errorResponse({ code: "missing_matchId", message: "matchId requerido", status: 400 });
     }
+    // Idioma de SALIDA de los 3 reportes = idioma que pide el caller vía query
+    // (?locale=…). Sin ramas por idioma: normalizeLocale + languageDirective.
+    const reportLocale = normalizeLocale(query.locale);
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
@@ -358,7 +362,11 @@ export default withHandler(
     }
 
     // ── 4. Generar 3 reportes Claude en paralelo ───────────────
-    const userMessage = buildPromptContext(match, stats, videoObs);
+    // La directiva de idioma va en el mensaje de usuario compartido → los 3
+    // reportes (team-summary, per-player, tactical-take) se redactan en el idioma
+    // pedido. Los system prompts se mantienen en su idioma base (instrucciones +
+    // esquema JSON); las claves de evento (gol, asistencia…) son tokens, no prosa.
+    const userMessage = `${buildPromptContext(match, stats, videoObs)}\n\n${languageDirective(reportLocale)}`;
     const reportPromises = (Object.keys(PROMPTS) as ReportType[]).map(async (type) => {
       const cfg = PROMPTS[type];
       try {
