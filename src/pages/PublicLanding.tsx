@@ -192,9 +192,10 @@ export default function PublicLanding() {
   const location = useLocation();
   const { user, configured } = useAuth();
   const isLoggedIn = !!(user && configured);
-  // En el DEMO entramos directo al producto (como un usuario logueado): la landing
-  // de marketing no se enseña al cliente que abre el enlace del demo.
-  const shouldRedirect = (isLoggedIn || IS_DEMO) && location.pathname === "/";
+  // El demo SÍ enseña la landing de marketing completa (orbes flotantes incluidos):
+  // es la home que el cliente ve al abrir el enlace, con su CTA "Entrar" → /pulse.
+  // Solo redirige un usuario realmente logueado FUERA del demo.
+  const shouldRedirect = !IS_DEMO && isLoggedIn && location.pathname === "/";
 
   useEffect(() => {
     if (shouldRedirect) navigate("/pulse", { replace: true });
