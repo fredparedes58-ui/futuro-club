@@ -17,6 +17,8 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import InsightCard from "@/components/scout/InsightCard";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PRO_PLAYERS } from "@/data/proPlayers";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -38,6 +40,25 @@ function useIndexedPlayers(q: string, position: string, league: string) {
   return useQuery<IndexedPlayer[]>({
     queryKey: ["indexed-players", q, position, league],
     queryFn: async () => {
+      // Demo: /api/players/search → null. Servimos la base pública EA FC25 ya
+      // incluida en el repo (PRO_PLAYERS), etiquetada como fuente "EA FC25".
+      if (IS_DEMO) {
+        const ql = q.trim().toLowerCase();
+        return PRO_PLAYERS
+          .filter((p) =>
+            (!ql || p.name.toLowerCase().includes(ql) || p.short_name.toLowerCase().includes(ql)) &&
+            (!position || p.position === position || p.positions?.includes(position)) &&
+            (!league || p.league === league))
+          .slice(0, 30)
+          .map((p) => ({
+            id: p.id, name: p.name, short_name: p.short_name, position: p.position,
+            age: p.age, nationality: p.nationality, club: p.club,
+            league: p.league, season: "2024/25", source: "EA FC25",
+            metric_speed: p.pace, metric_shooting: p.shooting, metric_vision: p.passing,
+            metric_technique: p.dribbling, metric_defending: p.defending, metric_stamina: p.physic,
+            vsi_estimated: p.overall,
+          })) as IndexedPlayer[];
+      }
       const params = new URLSearchParams({ limit: "30" });
       if (q)        params.set("q", q);
       if (position) params.set("position", position);

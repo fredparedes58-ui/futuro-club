@@ -856,6 +856,7 @@
     "stepDrillType": "2. Tipo di drill",
     "stepVideo": "3. Video del drill",
     "selectPlayerFirst": "Seleziona prima un giocatore",
+    "videoNotInDemo": "L'analisi video con IA non è disponibile nella demo. In un club reale carichi il video dell'esercizio e VITAS lo analizza.",
     "analyzingIA": "Analisi con l'IA…",
     "analyzingDesc": "Claude Sonnet sta elaborando i keyframe del drill e generando il report di sviluppo.",
     "analysisError": "Errore nell'analisi",

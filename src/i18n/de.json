@@ -856,6 +856,7 @@
     "stepDrillType": "2. Drill-Typ",
     "stepVideo": "3. Drill-Video",
     "selectPlayerFirst": "Wähle zuerst einen Spieler",
+    "videoNotInDemo": "Die KI-Videoanalyse ist in der Demo nicht verfügbar. In einem echten Verein lädst du das Übungsvideo hoch und VITAS analysiert es.",
     "analyzingIA": "Analyse mit KI…",
     "analyzingDesc": "Claude Sonnet verarbeitet die Keyframes des Drills und erstellt den Entwicklungsbericht.",
     "analysisError": "Fehler bei der Analyse",
