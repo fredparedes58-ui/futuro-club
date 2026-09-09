@@ -203,7 +203,7 @@ const BottomNav = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 30, scale: 0.96 }}
               transition={{ type: "spring", stiffness: 400, damping: 32 }}
-              className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 glass-strong rounded-2xl shadow-2xl w-[92vw] max-w-md max-h-[70vh] overflow-y-auto"
+              className="fixed bottom-20 inset-x-0 mx-auto z-50 glass-strong rounded-2xl shadow-2xl w-[92vw] max-w-md max-h-[70vh] overflow-y-auto"
             >
               <div className="px-4 pt-4 pb-2 border-b border-border sticky top-0 glass-strong">
                 <h3 className="text-sm font-display font-bold text-foreground">

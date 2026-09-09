@@ -18,14 +18,19 @@ import { FlaskConical } from "lucide-react";
 export default function GlobalDemoBanner() {
   const { t } = useTranslation();
   return (
+    // Barra sólida de alto contraste: este banner se pinta sobre pantallas
+    // OSCURAS (la app) y CLARAS (la landing de marketing). Con `amber-500/15` +
+    // `text-amber-200` el texto quedaba casi invisible sobre la landing clara.
+    // Un ámbar sólido con texto oscuro se lee en cualquier fondo — y la
+    // declaración «datos de ejemplo» DEBE quedar visible (invariante metricas.md).
     <div
       role="status"
-      className="w-full bg-amber-500/15 border-b border-amber-500/30 px-4 py-1.5 text-center"
+      className="w-full bg-amber-400 border-b border-amber-500 px-4 py-1.5 text-center"
     >
-      <p className="text-[12px] leading-tight text-amber-200 flex items-center justify-center gap-1.5">
+      <p className="text-[12px] font-medium leading-tight text-amber-950 flex items-center justify-center gap-1.5">
         <FlaskConical size={13} className="shrink-0" aria-hidden="true" />
         <span>
-          <span className="font-semibold">
+          <span className="font-bold">
             {t("globalDemoBanner.tag", "DEMO")}
           </span>{" "}
           {t(

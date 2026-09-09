@@ -75,14 +75,17 @@ export default function FeatureHint({
   return (
     <AnimatePresence>
       {visible && (
+        // x:"-50%" centra vía el transform de framer-motion; con -translate-x-1/2
+        // (clase Tailwind) el transform de la animación (y/scale) lo pisaba y el hint
+        // se desbordaba por la derecha.
         <motion.div
-          initial={{ opacity: 0, y: position === "bottom" ? -4 : 4, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: position === "bottom" ? -4 : 4, scale: 0.95 }}
+          initial={{ opacity: 0, y: position === "bottom" ? -4 : 4, scale: 0.95, x: "-50%" }}
+          animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+          exit={{ opacity: 0, y: position === "bottom" ? -4 : 4, scale: 0.95, x: "-50%" }}
           transition={{ duration: 0.2 }}
           className={`absolute ${
             position === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
-          } left-1/2 -translate-x-1/2 z-50 w-max max-w-[260px]`}
+          } left-1/2 z-50 w-max max-w-[260px]`}
         >
           <div className="bg-primary text-primary-foreground rounded-lg px-3 py-2 shadow-lg flex items-start gap-2">
             <Lightbulb size={12} className="shrink-0 mt-0.5 opacity-80" />

@@ -164,6 +164,8 @@
   },
   "auth": {
     "login": {
+      "enterDemo": "Naar de demo",
+      "demoNote": "Verken VITAS met voorbeeldgegevens. Zonder registratie.",
       "title": "Ga naar je academie",
       "subtitle": "Ga naar je scouting-academie",
       "emailLabel": "E-mail",
@@ -2007,6 +2009,7 @@
     }
   },
   "publicLanding": {
+    "enterDemo": "Naar de demo",
     "pulseSubtitle": "Voetbalintelligentie in realtime",
     "statActive": "ACTIEF",
     "statAlerts": "WAARSCHUWINGEN",
