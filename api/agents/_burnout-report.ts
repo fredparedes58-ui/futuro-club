@@ -3,8 +3,9 @@
  * POST /api/agents/burnout-report
  *
  * Claude Haiku agent that generates a narrative burnout/dropout risk report
- * in Spanish. Input: dropout risk + engagement + overtraining + motivation +
- * attendance + questionnaires.
+ * in the requested `locale` (any registry language; default "es" via
+ * languageDirective). Input: dropout risk + engagement + overtraining +
+ * motivation + attendance + questionnaires.
  *
  * Output: headline, summary, primaryConcern, positiveSignals,
  *         interventionPlan, loadAdjustment, followUpDate, escalationNeeded.

@@ -22,7 +22,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { RESEND_FROM } from "../_lib/email";
 import { deriveSimMetrics } from "../_lib/simMetrics";
-import { normalizeLocale, localeSchema } from "../../src/lib/shared/locale";
+import { normalizeLocale, localeSchema, pickLocale, type ReportLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
 import {
   buildVsiSubscores,
@@ -108,12 +108,161 @@ async function callInternal(endpoint: string, payload: unknown) {
   }
 }
 
+/**
+ * Copy del email «análisis listo» por idioma (7 idiomas del LANGUAGE_REGISTRY).
+ * Es texto PLANTILLADO (no LLM), así que se traduce aquí; `pickLocale` degrada a
+ * "es" si faltara un idioma. Los nombres de producto (Player Report, LAB
+ * Biomechanics, Best-Match, VSI) se mantienen tal cual. Antes el email iba SIEMPRE
+ * en español, también a familias con la UI en otro idioma.
+ */
+interface EmailCopy {
+  title: string;
+  ready: (name: string) => string;
+  vsiNa: string;
+  /** Abreviatura para el número gigante del VSI cuando está bloqueado (null). */
+  vsiNaShort: string;
+  vsiPartial: string;
+  vsiFull: string;
+  receivedPartial: (n: number, total: number) => string;
+  receivedFull: (n: number) => string;
+  itemPlayer: string;
+  itemLab: string;
+  itemDna: string;
+  /** Nombre localizado del informe de ADN (la UI lo traduce: Football DNA, etc.). */
+  itemDnaName: string;
+  itemBest: string;
+  itemProjection: string;
+  itemPlan: string;
+  cta: string;
+  subject: (name: string, vsi: number | null) => string;
+}
+
+const EMAIL_ES: EmailCopy = {
+  title: "Tu análisis está listo",
+  ready: (n) => `El análisis biomecánico de <strong>${n}</strong> ya está disponible.`,
+  vsiNa: "no disponible en este análisis",
+  vsiNaShort: "N/D",
+  vsiPartial: "parcialmente estimado · algunas dimensiones son estimaciones",
+  vsiFull: "/100 · sobre todos los reportes",
+  receivedPartial: (n, t) => `Has recibido <strong>${n} de ${t} reportes</strong> (algunos no se pudieron generar o usan datos de respaldo):`,
+  receivedFull: (n) => `Has recibido <strong>${n} reportes profesionales</strong>:`,
+  itemPlayer: "resumen ejecutivo",
+  itemLab: "análisis técnico",
+  itemDna: "perfil de juego",
+  itemDnaName: "ADN Futbolístico",
+  itemBest: "comparable profesional",
+  itemProjection: "Proyección 3 años · curva PHV",
+  itemPlan: "Plan de desarrollo · 12 semanas",
+  cta: "Ver reportes →",
+  subject: (n, v) => `VITAS · Análisis de ${n} listo${v != null ? ` · VSI ${v}` : ""}`,
+};
+
+const EMAIL_COPY: Partial<Record<ReportLocale, EmailCopy>> = {
+  es: EMAIL_ES,
+  "es-419": EMAIL_ES,
+  en: {
+    title: "Your analysis is ready",
+    ready: (n) => `The biomechanical analysis of <strong>${n}</strong> is now available.`,
+    vsiNa: "not available in this analysis",
+    vsiNaShort: "N/A",
+    vsiPartial: "partially estimated · some dimensions are estimates",
+    vsiFull: "/100 · across all reports",
+    receivedPartial: (n, t) => `You received <strong>${n} of ${t} reports</strong> (some could not be generated or use fallback data):`,
+    receivedFull: (n) => `You received <strong>${n} professional reports</strong>:`,
+    itemPlayer: "executive summary",
+    itemLab: "technical analysis",
+    itemDna: "playing profile",
+    itemDnaName: "Football DNA",
+    itemBest: "professional comparable",
+    itemProjection: "3-year projection · PHV curve",
+    itemPlan: "Development plan · 12 weeks",
+    cta: "View reports →",
+    subject: (n, v) => `VITAS · ${n}'s analysis is ready${v != null ? ` · VSI ${v}` : ""}`,
+  },
+  it: {
+    title: "La tua analisi è pronta",
+    ready: (n) => `L'analisi biomeccanica di <strong>${n}</strong> è ora disponibile.`,
+    vsiNa: "non disponibile in questa analisi",
+    vsiNaShort: "N/D",
+    vsiPartial: "parzialmente stimato · alcune dimensioni sono stime",
+    vsiFull: "/100 · su tutti i report",
+    receivedPartial: (n, t) => `Hai ricevuto <strong>${n} di ${t} report</strong> (alcuni non sono stati generati o usano dati di riserva):`,
+    receivedFull: (n) => `Hai ricevuto <strong>${n} report professionali</strong>:`,
+    itemPlayer: "riepilogo esecutivo",
+    itemLab: "analisi tecnica",
+    itemDna: "profilo di gioco",
+    itemDnaName: "DNA calcistico",
+    itemBest: "comparabile professionale",
+    itemProjection: "Proiezione a 3 anni · curva PHV",
+    itemPlan: "Piano di sviluppo · 12 settimane",
+    cta: "Vedi i report →",
+    subject: (n, v) => `VITAS · Analisi di ${n} pronta${v != null ? ` · VSI ${v}` : ""}`,
+  },
+  de: {
+    title: "Deine Analyse ist fertig",
+    ready: (n) => `Die biomechanische Analyse von <strong>${n}</strong> ist jetzt verfügbar.`,
+    vsiNa: "in dieser Analyse nicht verfügbar",
+    vsiNaShort: "k. A.",
+    vsiPartial: "teilweise geschätzt · einige Dimensionen sind Schätzungen",
+    vsiFull: "/100 · über alle Berichte",
+    receivedPartial: (n, t) => `Du hast <strong>${n} von ${t} Berichten</strong> erhalten (einige konnten nicht erstellt werden oder nutzen Ersatzdaten):`,
+    receivedFull: (n) => `Du hast <strong>${n} professionelle Berichte</strong> erhalten:`,
+    itemPlayer: "Zusammenfassung",
+    itemLab: "technische Analyse",
+    itemDna: "Spielprofil",
+    itemDnaName: "Fußball-DNA",
+    itemBest: "professioneller Vergleich",
+    itemProjection: "3-Jahres-Prognose · PHV-Kurve",
+    itemPlan: "Entwicklungsplan · 12 Wochen",
+    cta: "Berichte ansehen →",
+    subject: (n, v) => `VITAS · Analyse von ${n} fertig${v != null ? ` · VSI ${v}` : ""}`,
+  },
+  fr: {
+    title: "Ton analyse est prête",
+    ready: (n) => `L'analyse biomécanique de <strong>${n}</strong> est maintenant disponible.`,
+    vsiNa: "non disponible dans cette analyse",
+    vsiNaShort: "N/D",
+    vsiPartial: "partiellement estimé · certaines dimensions sont des estimations",
+    vsiFull: "/100 · sur l'ensemble des rapports",
+    receivedPartial: (n, t) => `Tu as reçu <strong>${n} rapports sur ${t}</strong> (certains n'ont pas pu être générés ou utilisent des données de secours) :`,
+    receivedFull: (n) => `Tu as reçu <strong>${n} rapports professionnels</strong> :`,
+    itemPlayer: "résumé exécutif",
+    itemLab: "analyse technique",
+    itemDna: "profil de jeu",
+    itemDnaName: "ADN footballistique",
+    itemBest: "comparable professionnel",
+    itemProjection: "Projection à 3 ans · courbe PHV",
+    itemPlan: "Plan de développement · 12 semaines",
+    cta: "Voir les rapports →",
+    subject: (n, v) => `VITAS · Analyse de ${n} prête${v != null ? ` · VSI ${v}` : ""}`,
+  },
+  nl: {
+    title: "Je analyse is klaar",
+    ready: (n) => `De biomechanische analyse van <strong>${n}</strong> is nu beschikbaar.`,
+    vsiNa: "niet beschikbaar in deze analyse",
+    vsiNaShort: "n.v.t.",
+    vsiPartial: "deels geschat · sommige dimensies zijn schattingen",
+    vsiFull: "/100 · over alle rapporten",
+    receivedPartial: (n, t) => `Je hebt <strong>${n} van ${t} rapporten</strong> ontvangen (sommige konden niet worden gegenereerd of gebruiken reservegegevens):`,
+    receivedFull: (n) => `Je hebt <strong>${n} professionele rapporten</strong> ontvangen:`,
+    itemPlayer: "samenvatting",
+    itemLab: "technische analyse",
+    itemDna: "speelprofiel",
+    itemDnaName: "Voetbal-DNA",
+    itemBest: "professionele vergelijking",
+    itemProjection: "3-jaarsprojectie · PHV-curve",
+    itemPlan: "Ontwikkelplan · 12 weken",
+    cta: "Rapporten bekijken →",
+    subject: (n, v) => `VITAS · Analyse van ${n} klaar${v != null ? ` · VSI ${v}` : ""}`,
+  },
+};
+
 async function sendCompletionEmail(
   to: string,
   playerName: string,
   vsi: number | null,
   analysisLink: string,
-  opts: { reportsGenerated: number; reportsTotal: number; partiallyEstimated: boolean } = {
+  opts: { reportsGenerated: number; reportsTotal: number; partiallyEstimated: boolean; locale?: ReportLocale } = {
     reportsGenerated: 6,
     reportsTotal: 6,
     partiallyEstimated: false,
@@ -121,25 +270,23 @@ async function sendCompletionEmail(
 ) {
   if (!RESEND_API_KEY) return false;
 
+  // Idioma del destinatario (el de los informes). `pickLocale` degrada a "es".
+  const c = pickLocale(opts.locale ?? "es", EMAIL_COPY);
+
   // Honesto: nunca "VSI 0" cuando no hay VSI; y reflejar reportes parciales.
-  const vsiDisplay = vsi != null ? String(vsi) : "N/D";
-  const vsiNote =
-    vsi == null
-      ? "no disponible en este análisis"
-      : opts.partiallyEstimated
-        ? "parcialmente estimado · algunas dimensiones son estimaciones"
-        : "/100 · sobre todos los reportes";
+  const vsiDisplay = vsi != null ? String(vsi) : c.vsiNaShort;
+  const vsiNote = vsi == null ? c.vsiNa : opts.partiallyEstimated ? c.vsiPartial : c.vsiFull;
   const partial = opts.reportsGenerated < opts.reportsTotal;
   const reportsLine = partial
-    ? `Has recibido <strong>${opts.reportsGenerated} de ${opts.reportsTotal} reportes</strong> (algunos no se pudieron generar o usan datos de respaldo):`
-    : `Has recibido <strong>${opts.reportsGenerated} reportes profesionales</strong>:`;
+    ? c.receivedPartial(opts.reportsGenerated, opts.reportsTotal)
+    : c.receivedFull(opts.reportsGenerated);
 
   const html = `
 <!DOCTYPE html>
 <html><body style="font-family:system-ui;color:#0F172A;background:#F4F7FB;padding:40px 20px;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:40px;border:1px solid #E2E8F0;">
-    <h1 style="font-size:22px;color:#0066CC;margin:0 0 16px;">VITAS · Tu análisis está listo</h1>
-    <p>El análisis biomecánico de <strong>${playerName}</strong> ya está disponible.</p>
+    <h1 style="font-size:22px;color:#0066CC;margin:0 0 16px;">VITAS · ${c.title}</h1>
+    <p>${c.ready(playerName)}</p>
     <div style="background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;padding:24px;border-radius:14px;text-align:center;margin:24px 0;">
       <div style="font-size:14px;opacity:0.9;letter-spacing:0.1em;text-transform:uppercase;">VSI Score</div>
       <div style="font-size:56px;font-weight:700;line-height:1;margin:8px 0;">${vsiDisplay}</div>
@@ -147,16 +294,16 @@ async function sendCompletionEmail(
     </div>
     <p>${reportsLine}</p>
     <ul style="line-height:1.8;color:#475569;">
-      <li>📊 <strong>Player Report</strong> · resumen ejecutivo</li>
-      <li>🦴 <strong>LAB Biomechanics</strong> · análisis técnico</li>
-      <li>🧬 <strong>ADN Futbolístico</strong> · perfil de juego</li>
-      <li>🎯 <strong>Best-Match</strong> · comparable profesional</li>
-      ${vsi != null ? "<li>📈 <strong>Proyección 3 años</strong> · curva PHV</li>" : ""}
-      <li>📋 <strong>Plan de desarrollo</strong> · 12 semanas</li>
+      <li>📊 <strong>Player Report</strong> · ${c.itemPlayer}</li>
+      <li>🦴 <strong>LAB Biomechanics</strong> · ${c.itemLab}</li>
+      <li>🧬 <strong>${c.itemDnaName}</strong> · ${c.itemDna}</li>
+      <li>🎯 <strong>Best-Match</strong> · ${c.itemBest}</li>
+      ${vsi != null ? `<li>📈 <strong>${c.itemProjection}</strong></li>` : ""}
+      <li>📋 <strong>${c.itemPlan}</strong></li>
     </ul>
     <p style="text-align:center;margin:32px 0;">
       <a href="${analysisLink}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">
-        Ver reportes →
+        ${c.cta}
       </a>
     </p>
     <p style="font-size:12px;color:#94a3b8;text-align:center;">VITAS · Football Intelligence</p>
@@ -169,7 +316,7 @@ async function sendCompletionEmail(
     body: JSON.stringify({
       from: RESEND_FROM,
       to: [to],
-      subject: `VITAS · Análisis de ${playerName} listo${vsi != null ? ` · VSI ${vsi}` : ""}`,
+      subject: c.subject(playerName, vsi),
       html,
     }),
   });
@@ -183,7 +330,6 @@ export default withHandler(
   { schema: orchestratorSchema, serviceOnly: true, maxRequests: 50 },
   async ({ body }) => {
     const { analysisId, mode = "player", teamAnalysis, locale, category } = body as z.infer<typeof orchestratorSchema>;
-    const reportLocale = normalizeLocale(locale);
     const startedAt = Date.now();
 
     // Sprint 8: select report agents based on mode
@@ -207,6 +353,18 @@ export default withHandler(
     if (aErr || !analysis) {
       return errorResponse({ code: "analysis_not_found", message: "Analysis not in DB", status: 404 });
     }
+
+    // Idioma de los informes (registry-driven, 7 idiomas). Prioridad:
+    //   1) `locale` del body — lo manda generate-reports (ruta cliente);
+    //   2) `analyses.locale` (mig 064) — lo guardó finalize/webhook al encolar. Es lo
+    //      ÚNICO que tienen cron y modal-callback, que solo mandan { analysisId };
+    //   3) "es" (comportamiento previo).
+    // Antes se ignoraba la fila y TODOS los informes asíncronos salían en español para
+    // usuarios no hispanos aunque la UI estuviera en su idioma. La columna puede no
+    // existir aún (pre-064): entonces es undefined → "es", sin romper nada.
+    const reportLocale = normalizeLocale(
+      locale ?? (analysis as { locale?: string | null }).locale ?? undefined,
+    );
 
     // FASE 3: reportes premium gateados por plan. El orchestrator corre con service
     // token → withHandler NO lo gatea (allowServiceToken), así que lo gateamos aquí
@@ -740,6 +898,8 @@ export default withHandler(
             reportsGenerated: successfulReports.length,
             reportsTotal: activeAgents.length,
             partiallyEstimated: measuredFraction < 1,
+            // Email a la familia en el mismo idioma que los informes (antes siempre es).
+            locale: reportLocale,
           },
         );
       }

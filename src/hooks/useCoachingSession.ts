@@ -15,6 +15,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -141,6 +143,8 @@ export interface CoachingReportInput {
   phvDistribution?: { prePhv?: number; circaPhv?: number; postPhv?: number };
   teamAvgAge?: number;
   playerHighlights?: Array<Record<string, unknown>>;
+  /** Idioma de redacción del reporte. Si se omite, se toma del idioma de la UI (i18n). */
+  locale?: ReportLocale;
 }
 
 export interface AiReportResult {
@@ -150,10 +154,17 @@ export interface AiReportResult {
 }
 
 async function coachingReportApi(input: CoachingReportInput): Promise<AiReportResult> {
+  // El agente redacta en el idioma pedido (languageDirective). Por defecto, el
+  // idioma actual de la UI, normalizado al registro de locales soportados.
+  // `requestBody` (no `payload`): más abajo `payload` ya nombra la RESPUESTA.
+  const requestBody: CoachingReportInput = {
+    ...input,
+    locale: normalizeLocale(input.locale ?? i18n.language),
+  };
   const res = await fetch(`${API_BASE}/coaching-report`, {
     method: "POST",
     headers: await getAuthHeaders(),
-    body: JSON.stringify(input),
+    body: JSON.stringify(requestBody),
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "Unknown error");

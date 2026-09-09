@@ -23,6 +23,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { ownsVideo, ownsPlayerOrTenant } from "../_lib/ownership";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
+import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -40,6 +41,8 @@ const finalizeSchema = z.object({
   bunnyVideoId: z.string().min(1),
   playerId: z.string().min(1).optional(),      // jugador elegido al analizar (Lab)
   playedPosition: z.string().optional(),        // posición jugada en este video
+  /** Idioma de la UI del usuario → informes en ese idioma (mig 064; registry-driven). */
+  locale: localeSchema.optional(),
 });
 
 interface BunnyVideoStatus {
@@ -129,6 +132,19 @@ export default withHandler(
       if (player?.tenant_id) resolvedTenantId = player.tenant_id as string;
     }
 
+    // Idioma del usuario en la fila `videos` (mig 064) — se escribe AQUÍ, ANTES del
+    // gate de Bunny-ready. Motivo (carrera): el cliente sondea `finalize` mientras
+    // Bunny codifica; la PRIMERA llamada suele caer en "not ready" y sale antes. Pero
+    // el webhook de Bunny (servidor-a-servidor, sin usuario) dispara justo al terminar
+    // la codificación y encola leyendo `videos.locale`. Si el idioma se escribiera
+    // después del gate, el webhook podría encolar con locale=null → informes en
+    // español. Escribirlo en el primer `finalize` (antes de que exista el vídeo
+    // codificado) garantiza que el webhook lo vea. Best-effort: si la mig 064 aún no
+    // está aplicada, el update falla sin tumbar el resto (locale se degrada a "es").
+    if (input.locale) {
+      await supabase.from("videos").update({ locale: normalizeLocale(input.locale) }).eq("id", video.id);
+    }
+
     // Status del vídeo en Bunny
     const bunnyStatus = await getBunnyVideoStatus(input.bunnyVideoId);
     if (!bunnyStatus) {
@@ -166,6 +182,7 @@ export default withHandler(
       tenantId: resolvedTenantId,
       playerId,
       playedPosition: input.playedPosition ?? null,
+      locale: input.locale ? normalizeLocale(input.locale) : null,
       publicUrl: PUBLIC_URL,
       cronSecret: CRON_SECRET,
     });

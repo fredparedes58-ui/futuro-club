@@ -7,6 +7,8 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 
 /**
  * Trigger insight generation for a specific player (post-analysis).
@@ -24,7 +26,8 @@ export async function triggerInsightForPlayer(playerId: string): Promise<boolean
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ playerId }),
+      // locale: idioma de la UI → el insight se genera en ese idioma (antes siempre es).
+      body: JSON.stringify({ playerId, locale: normalizeLocale(i18n.language) }),
     });
 
     return res.ok;

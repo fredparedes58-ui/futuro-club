@@ -8,6 +8,8 @@
  * Mirrors the schema in supabase/migrations/047_development_plans.sql.
  */
 
+import type { ReportLocale } from "../shared/locale";
+
 // ── Enums ─────────────────────────────────────────────────────────────
 export type IDPDimension =
   | "technical"   // pase, control, finalización
@@ -215,6 +217,12 @@ export interface IDPArchitectInput {
     missedDimensions: IDPDimension[];
     coachNotes?: string;
   };
+  /**
+   * Output language of the generated plan (mirrors `IDPArchitectInputSchema.locale`
+   * in `src/agents/contracts.ts`). Set by `useIDPArchitectInput` from the current
+   * UI language; the API falls back to "es" when absent.
+   */
+  locale?: ReportLocale;
 }
 
 /** Output structure the `_idp-architect` returns (validated by Zod). */

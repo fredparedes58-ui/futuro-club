@@ -18,6 +18,7 @@ import {
   TRANSFER_PROMPT_VERSION,
 } from "../../src/lib/transfer/transferMatchPrompt";
 import { hashQuery } from "../../src/lib/transfer/matchScorer";
+import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
@@ -39,6 +40,8 @@ const SmartMatchInputSchema = z.object({
       .optional(),
   }),
   maxCandidates: z.number().int().min(5).max(50).default(30),
+  // Idioma de redacción del agente (default "es"). Lo envía el hook desde i18n.
+  locale: localeSchema.optional(),
 });
 
 interface DbListing {
@@ -81,7 +84,9 @@ export default withHandler(
     }
 
     // 2. Build agent input
+    const reportLocale = normalizeLocale(input.locale);
     const agentInput: z.infer<typeof TransferMatchInputSchema> = {
+      locale: reportLocale,
       buyerNeed: {
         description: input.buyerNeed.description,
         query: input.buyerNeed.query as z.infer<typeof TransferMatchInputSchema>["buyerNeed"]["query"],
@@ -118,7 +123,7 @@ export default withHandler(
 
     if (ANTHROPIC_API_KEY) {
       try {
-        const prompt = buildTransferMatchPrompt(agentInput);
+        const prompt = buildTransferMatchPrompt(agentInput, reportLocale);
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {

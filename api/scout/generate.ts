@@ -13,11 +13,16 @@ import { MODELS } from "../_lib/models";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "../../src/lib/phv/maturity";
 import { resolveChronologicalAge } from "../../src/lib/shared/age";
+import { normalizeLocale, languageDirective, localeSchema } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
 
 const GenerateSchema = z.object({
   playerId: z.string().optional(),
+  // Idioma de SALIDA del insight (registro de idiomas soportados, ver
+  // src/lib/shared/locale.ts). Opcional: sin él, normalizeLocale cae al idioma
+  // por defecto — los callers server-side (auto-generate cron) no lo envían.
+  locale: localeSchema.optional(),
 });
 
 interface PlayerRow {
@@ -242,6 +247,11 @@ export default withHandler(
     const authHeader = req.headers.get("Authorization") ?? "";
     const baseUrl = new URL(req.url).origin;
 
+    // Idioma de salida de TODOS los insights del lote (una decisión por request).
+    // El prompt inyecta `languageDirective(reportLocale)` en lugar de un idioma
+    // hardcodeado, así el ScoutFeed habla el idioma de la UI del usuario.
+    const reportLocale = normalizeLocale(body.locale);
+
     // 1. Fetch players
     let playersUrl = `${supabaseUrl}/rest/v1/players?select=*&user_id=eq.${userId}`;
     if (body.playerId) {
@@ -409,7 +419,9 @@ export default withHandler(
 
         // Prompt for Claude
         const systemPrompt = `Eres el generador de insights de scouting de VITAS Football Intelligence.
-Analiza datos de un jugador juvenil y genera un insight accionable en español.
+Analiza datos de un jugador juvenil y genera un insight accionable.
+
+${languageDirective(reportLocale)}
 
 CONTEXTO DETECTADO: ${context}
 ${ragContext ? `\nCONTEXTO RAG (base de conocimiento):\n${ragContext.slice(0, 1500)}` : ""}

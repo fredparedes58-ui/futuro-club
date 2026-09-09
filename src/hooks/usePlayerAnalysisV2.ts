@@ -199,7 +199,9 @@ export function usePlayerAnalysisV2() {
           const finRes = await fetch("/api/videos/finalize", {
             method: "POST",
             headers: { ...headers, "Content-Type": "application/json" },
-            body: JSON.stringify({ videoId: meta.videoId, bunnyVideoId: meta.bunnyVideoId }),
+            // locale: idioma de la UI → finalize lo persiste (mig 064) y los informes
+            // asíncronos salen en él (antes siempre en español).
+            body: JSON.stringify({ videoId: meta.videoId, bunnyVideoId: meta.bunnyVideoId, locale: normalizeLocale(i18n.language) }),
             signal: ac.signal,
           });
           const finData = await finRes.json();
@@ -359,6 +361,7 @@ export function usePlayerAnalysisV2() {
               bunnyVideoId: params.bunnyVideoId,
               playerId: params.playerId,                // jugador elegido → finalize siembra player_id/tenant_id + encola
               playedPosition: params.playedPosition,    // posición jugada en este video
+              locale: normalizeLocale(i18n.language),   // idioma de la UI → informes en ese idioma (mig 064)
             }),
             signal: ac.signal,
           });

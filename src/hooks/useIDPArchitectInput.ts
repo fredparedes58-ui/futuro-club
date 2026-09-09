@@ -21,6 +21,8 @@
  *   - `dataRichness`        → meta para el badge UI "basado en N análisis"
  */
 import { useMemo } from "react";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 import { usePlayerById } from "@/hooks/usePlayers";
 import { useBehavioralProfile } from "@/hooks/useBehavioralProfile";
 import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
@@ -95,6 +97,9 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
   const { data: savedAnalyses } = useSavedAnalysesV2(playerId ?? "");
   const { riskData: injuryRisk, injuries } = useInjuryRisk(playerId);
   const hasInjuries = Array.isArray(injuries) && injuries.length > 0;
+  // Idioma de salida del plan = idioma actual de la UI. Se lee en render (no
+  // dentro del memo) para que un cambio de idioma recomponga el input.
+  const locale = normalizeLocale(i18n.language);
 
   // ── Data richness signal ──
   const dataRichness: IDPDataRichness = useMemo(() => {
@@ -187,9 +192,10 @@ export function useIDPArchitectInput(playerId: string | undefined): IDPInputBund
           }
         : undefined,
       recentFatigue,
+      locale,
       // teamContext + wellbeing + previousPlanSummary wired in future iteration
     };
-  }, [player, behavioralProfile, savedAnalyses, injuryRisk, playerId]);
+  }, [player, behavioralProfile, savedAnalyses, injuryRisk, playerId, locale]);
 
   // ── Live metrics dict ──
   const liveMetrics: Record<string, number> = useMemo(() => {

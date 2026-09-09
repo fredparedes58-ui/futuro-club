@@ -18,6 +18,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/i18n";
+import { normalizeLocale } from "@/lib/shared/locale";
 import * as tus from "tus-js-client";
 import {
   getActiveFieldFormat,
@@ -179,6 +181,9 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
           body: JSON.stringify({
             videoId: meta.videoId,
             bunnyVideoId: meta.bunnyVideoId,
+            // Idioma de la UI → finalize lo persiste (mig 064) para que los 9 informes
+            // asíncronos salgan en este idioma y no siempre en español.
+            locale: normalizeLocale(i18n.language),
           }),
         });
 

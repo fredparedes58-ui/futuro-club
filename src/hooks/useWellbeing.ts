@@ -16,6 +16,8 @@
 
 import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import i18n from "@/i18n";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 
 const STALE_TIME = 1000 * 60 * 5; // 5 minutes
 
@@ -296,6 +298,10 @@ export interface BurnoutReportInput {
   attendance?: DropoutRiskAssessment["attendance"];
   questionnaireSummary?: string;
   interventionActions?: Array<{ audience: string; action: string; priority: string }>;
+  /** Idioma de redacción del reporte (uno de los soportados en el registro de
+   *  locale). Si se omite, `burnoutReportApi` lo rellena con el idioma actual
+   *  de la UI (i18n) para que el agente redacte en el idioma del usuario. */
+  locale?: ReportLocale;
 }
 
 export interface AiReportResult {
@@ -305,10 +311,16 @@ export interface AiReportResult {
 }
 
 async function burnoutReportApi(input: BurnoutReportInput): Promise<AiReportResult> {
+  // El agente redacta en `locale` (languageDirective). Si el caller no lo fijó,
+  // se toma el idioma actual de la UI — el POST SIEMPRE lleva locale.
+  const requestBody: BurnoutReportInput = {
+    ...input,
+    locale: input.locale ?? normalizeLocale(i18n.language),
+  };
   const res = await fetch(`${API_BASE}/burnout-report`, {
     method: "POST",
     headers: await getAuthHeaders(),
-    body: JSON.stringify(input),
+    body: JSON.stringify(requestBody),
   });
   if (!res.ok) {
     const errText = await res.text().catch(() => "Unknown error");
@@ -345,6 +357,7 @@ export function buildBurnoutInput(
     motivation: risk.motivation,
     attendance: risk.attendance,
     interventionActions: risk.intervention?.actions,
+    locale: normalizeLocale(i18n.language),
   };
 }
 

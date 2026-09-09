@@ -23,6 +23,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import i18n from "@/i18n";
+import { normalizeLocale, type ReportLocale } from "@/lib/shared/locale";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { IDPService } from "@/services/real/idpService";
 import {
@@ -99,6 +101,11 @@ interface GenerateInput {
   monthStart?: string;
   coachId?: string;
   tenantId?: string;
+  /**
+   * Output language of the plan. Optional: defaults to `architectInput.locale`
+   * (set by useIDPArchitectInput) and then to the current UI language.
+   */
+  locale?: ReportLocale;
 }
 
 interface GenerateResult {
@@ -112,10 +119,19 @@ export function useGenerateIDP() {
   const qc = useQueryClient();
   return useMutation<GenerateResult, Error, GenerateInput>({
     mutationFn: async (input) => {
+      // Always ship the output language (top-level + inside architectInput, both
+      // accepted by the API) so the agent never silently defaults to "es".
+      const locale: ReportLocale =
+        input.locale ?? input.architectInput.locale ?? normalizeLocale(i18n.language);
+      const payloadBody: GenerateInput = {
+        ...input,
+        locale,
+        architectInput: { ...input.architectInput, locale },
+      };
       const res = await fetch(`${apiBase}/generate-plan`, {
         method: "POST",
         headers: await getAuthHeaders(),
-        body: JSON.stringify(input),
+        body: JSON.stringify(payloadBody),
       });
       if (!res.ok) {
         const text = await res.text().catch(() => "");

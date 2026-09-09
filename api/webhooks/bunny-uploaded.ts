@@ -130,6 +130,18 @@ export default withHandler(
       });
     }
 
+    // ── Idioma del usuario (mig 064) ───────────────────────────────────────
+    // Este webhook es servidor-a-servidor (Bunny) y no tiene usuario: el idioma lo
+    // dejó `finalize` en `videos.locale`. Lectura SEPARADA y best-effort a propósito:
+    // si la migración aún no está aplicada, PostgREST devuelve error (no lanza) y
+    // `loc` queda null → el orquestador degrada a "es" sin tumbar el webhook.
+    const { data: loc } = await supabase
+      .from("videos")
+      .select("locale")
+      .eq("id", video.id)
+      .maybeSingle();
+    const videoLocale = (loc as { locale?: string | null } | null)?.locale ?? null;
+
     // ── Encolar (idempotente) · impl compartida con finalize (inv #7) ──────
     const result = await enqueueAnalysis({
       supabase,
@@ -137,6 +149,7 @@ export default withHandler(
       tenantId: video.tenant_id,
       playerId: video.player_id,
       playedPosition: (video as { played_position?: string | null }).played_position ?? null,
+      locale: videoLocale,
       publicUrl: PUBLIC_URL,
       cronSecret: CRON_SECRET,
     });
