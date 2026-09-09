@@ -5739,5 +5739,36 @@
       "empty": "Nessun record di audit",
       "system": "Sistema"
     }
+  },
+  "videoAnalysis": {
+    "progress": {
+      "preparingUpload": "Preparazione del caricamento...",
+      "uploading": "Caricamento su Bunny Stream...",
+      "uploadingPct": "Caricamento... {{pct}}%",
+      "bunnyProcessing": "Bunny sta elaborando il video...",
+      "bunnyEncoding": "Bunny encoding... {{n}}/12",
+      "queuedCron": "Analisi in coda · il cron la elaborerà in <1 min",
+      "analyzingAi": "Analisi del video con IA...",
+      "generatingReports": "Claude sta generando 6 report...",
+      "loadingReports": "Caricamento dei report...",
+      "completed": "✓ 6 report generati",
+      "error": "Errore",
+      "loaded": "Caricato",
+      "errorLoading": "Errore di caricamento",
+      "checkingExisting": "Verifica di un'analisi esistente...",
+      "preparingAnalysis": "Preparazione dell'analisi del video...",
+      "queuedProcessingAi": "Analisi in coda · elaborazione del video con IA...",
+      "creatingClientAnalysis": "Creazione dell'analisi con dati client-side...",
+      "generatingReportsSpecialized": "Claude sta generando 6 report specializzati...",
+      "reportsGenerating": "Generazione dei report in corso...",
+      "tryingStandardPipeline": "Tentativo con la pipeline standard...",
+      "biomechanicsSaved": "Biomeccanica salvata (report IA in sospeso)"
+    },
+    "errors": {
+      "createUpload": "Errore nella creazione del caricamento",
+      "analysisFailed": "Analisi non riuscita",
+      "loadingReports": "Errore nel caricamento dei report",
+      "notFound": "Non trovato"
+    }
   }
 }

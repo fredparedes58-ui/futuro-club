@@ -5740,5 +5740,36 @@
       "empty": "No audit records",
       "system": "System"
     }
+  },
+  "videoAnalysis": {
+    "progress": {
+      "preparingUpload": "Preparing upload...",
+      "uploading": "Uploading to Bunny Stream...",
+      "uploadingPct": "Uploading... {{pct}}%",
+      "bunnyProcessing": "Bunny is processing the video...",
+      "bunnyEncoding": "Bunny encoding... {{n}}/12",
+      "queuedCron": "Analysis queued · the cron will process it in <1 min",
+      "analyzingAi": "Analyzing the video with AI...",
+      "generatingReports": "Claude is generating 6 reports...",
+      "loadingReports": "Loading reports...",
+      "completed": "✓ 6 reports generated",
+      "error": "Error",
+      "loaded": "Loaded",
+      "errorLoading": "Error loading",
+      "checkingExisting": "Checking for an existing analysis...",
+      "preparingAnalysis": "Preparing the video analysis...",
+      "queuedProcessingAi": "Analysis queued · processing the video with AI...",
+      "creatingClientAnalysis": "Creating analysis with client-side data...",
+      "generatingReportsSpecialized": "Claude is generating 6 specialized reports...",
+      "reportsGenerating": "Reports are being generated...",
+      "tryingStandardPipeline": "Trying the standard pipeline...",
+      "biomechanicsSaved": "Biomechanics saved (AI reports pending)"
+    },
+    "errors": {
+      "createUpload": "Error creating upload",
+      "analysisFailed": "Analysis failed",
+      "loadingReports": "Error loading reports",
+      "notFound": "Not found"
+    }
   }
 }

@@ -5739,5 +5739,36 @@
       "empty": "Keine Audit-Einträge",
       "system": "System"
     }
+  },
+  "videoAnalysis": {
+    "progress": {
+      "preparingUpload": "Upload wird vorbereitet...",
+      "uploading": "Upload zu Bunny Stream...",
+      "uploadingPct": "Upload... {{pct}}%",
+      "bunnyProcessing": "Bunny verarbeitet das Video...",
+      "bunnyEncoding": "Bunny encoding... {{n}}/12",
+      "queuedCron": "Analyse in Warteschlange · der Cron verarbeitet sie in <1 Min.",
+      "analyzingAi": "Video wird mit KI analysiert...",
+      "generatingReports": "Claude erstellt 6 Berichte...",
+      "loadingReports": "Berichte werden geladen...",
+      "completed": "✓ 6 Berichte erstellt",
+      "error": "Fehler",
+      "loaded": "Geladen",
+      "errorLoading": "Fehler beim Laden",
+      "checkingExisting": "Prüfe auf eine vorhandene Analyse...",
+      "preparingAnalysis": "Videoanalyse wird vorbereitet...",
+      "queuedProcessingAi": "Analyse in Warteschlange · Video wird mit KI verarbeitet...",
+      "creatingClientAnalysis": "Analyse wird mit clientseitigen Daten erstellt...",
+      "generatingReportsSpecialized": "Claude erstellt 6 spezialisierte Berichte...",
+      "reportsGenerating": "Berichte werden erstellt...",
+      "tryingStandardPipeline": "Standard-Pipeline wird versucht...",
+      "biomechanicsSaved": "Biomechanik gespeichert (KI-Berichte ausstehend)"
+    },
+    "errors": {
+      "createUpload": "Fehler beim Erstellen des Uploads",
+      "analysisFailed": "Analyse fehlgeschlagen",
+      "loadingReports": "Fehler beim Laden der Berichte",
+      "notFound": "Nicht gefunden"
+    }
   }
 }
