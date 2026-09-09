@@ -20,6 +20,9 @@ import {
   Brain, Gauge, HeartPulse, BatteryLow, FlaskConical, Lock,
 } from "lucide-react";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { PlayerService } from "@/services/real/playerService";
+import { buildDemoAnalysisRows } from "@/lib/demo/demoReports";
 import { asItemArray, itemTitle } from "@/lib/reports/reportItems";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import PeerBenchmark from "@/components/PeerBenchmark";
@@ -132,6 +135,31 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
     let mounted = true;
     async function load() {
       try {
+        // Demo (datos mockeados): no hay backend. El endpoint /api/analyses/reports
+        // lo intercepta demoApiGuard con data:null → `data.data.analysis` reventaba.
+        // Construimos el informe de ejemplo en cliente desde el jugador sembrado.
+        if (IS_DEMO && analysisId.startsWith("demo-analysis-")) {
+          const pid = analysisId.slice("demo-analysis-".length);
+          const player = PlayerService.getById(pid);
+          if (player) {
+            const row = buildDemoAnalysisRows(player)[0];
+            const demoAnalysis = { id: row.id, status: "completed", vsi: row.vsi } as AnalysisData;
+            const demoReports = (row.reports ?? []).map((r) => ({
+              report_type: r.report_type,
+              content: r.content as Record<string, unknown>,
+              model: "demo",
+              prompt_version: "demo",
+              generated_at: row.created_at,
+            })) as ReportData[];
+            if (!mounted) return;
+            setAnalysis(demoAnalysis);
+            setReports(demoReports);
+            if (demoReports.length > 0) setActiveTab(demoReports[0].report_type);
+            setLoading(false);
+            if (onLoaded) onLoaded(demoAnalysis, demoReports);
+            return;
+          }
+        }
         const url = shareToken
           ? `/api/analyses/share?analysisId=${analysisId}&t=${encodeURIComponent(shareToken)}`
           : `/api/analyses/reports?analysisId=${analysisId}`;
