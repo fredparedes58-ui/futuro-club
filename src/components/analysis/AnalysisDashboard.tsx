@@ -139,10 +139,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         // lo intercepta demoApiGuard con data:null → `data.data.analysis` reventaba.
         // Construimos el informe de ejemplo en cliente desde el jugador sembrado.
         if (IS_DEMO && analysisId.startsWith("demo-analysis-")) {
-          const pid = analysisId.slice("demo-analysis-".length);
+          const pid = analysisId.slice("demo-analysis-".length).replace(/-prev$/, "");
           const player = PlayerService.getById(pid);
           if (player) {
-            const row = buildDemoAnalysisRows(player)[0];
+            const rows = buildDemoAnalysisRows(player);
+            const row = rows.find((r) => r.id === analysisId) ?? rows[0];
             const demoAnalysis = { id: row.id, status: "completed", vsi: row.vsi } as AnalysisData;
             const demoReports = (row.reports ?? []).map((r) => ({
               report_type: r.report_type,

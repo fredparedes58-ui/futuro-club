@@ -2381,7 +2381,10 @@
       "dna-profile": "ADN footballistique",
       "best-match": "Best-Match",
       "projection": "Projection 3 ans",
-      "development-plan": "Plan de développement"
+      "development-plan": "Plan de développement",
+      "valuation-report": "Valorisation",
+      "injury-risk-report": "Risque de Blessure",
+      "fatigue-report": "Fatigue et Charge"
     },
     "noContent": "Aucun contenu",
     "fallbackNotice": "Données d'exemple — l'analyse IA n'était pas disponible pour ce rapport.",

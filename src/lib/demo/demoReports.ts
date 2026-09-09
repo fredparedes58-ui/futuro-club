@@ -155,6 +155,22 @@ function maturityBlurb(player: Player, locale: ReportLocale): string {
 }
 
 /** Construye el/los análisis de ejemplo para un jugador del demo. */
+/** Zona base en el campo (105×68, ataca izq→der) por posición, para el heatmap de ejemplo. */
+function posZone(position: string): { x: number; y: number; sx: number; sy: number } {
+  const p = position.toLowerCase();
+  if (/portero|goalkeeper|gk/.test(p)) return { x: 9, y: 34, sx: 5, sy: 8 };
+  if (/lateral.*(izq|left|i\b)|left.?back|lb/.test(p)) return { x: 34, y: 55, sx: 18, sy: 9 };
+  if (/lateral|right.?back|rb|carrilero/.test(p)) return { x: 34, y: 13, sx: 18, sy: 9 };
+  if (/central|defensa|centre.?back|cb|zaguero/.test(p)) return { x: 24, y: 34, sx: 12, sy: 13 };
+  if (/pivote|mediocentro def|cdm|holding/.test(p)) return { x: 44, y: 34, sx: 14, sy: 14 };
+  if (/interior|mediocentro|central mid|cm|box.?to.?box/.test(p)) return { x: 56, y: 34, sx: 16, sy: 15 };
+  if (/mediapunta|enganche|cam|attacking mid|10\b/.test(p)) return { x: 68, y: 34, sx: 15, sy: 14 };
+  if (/extremo.*(izq|left|i\b)|left.?wing|lw/.test(p)) return { x: 74, y: 55, sx: 16, sy: 9 };
+  if (/extremo|winger|right.?wing|rw|banda/.test(p)) return { x: 74, y: 13, sx: 16, sy: 9 };
+  if (/delantero|striker|forward|st|punta|9\b/.test(p)) return { x: 86, y: 34, sx: 11, sy: 14 };
+  return { x: 55, y: 34, sx: 16, sy: 14 };
+}
+
 export function buildDemoAnalysisRows(
   player: Player,
   locale: ReportLocale = normalizeLocale(i18n.language),
@@ -173,12 +189,40 @@ export function buildDemoAnalysisRows(
   const joinSep = pickLocale(locale, { es: " y ", en: " and ", it: " e ", de: " und ", fr: " et ", nl: " en ", "es-419": " y " });
   const join = (arr: string[]) => arr.join(joinSep);
 
+  // Estadísticas de partido de EJEMPLO derivadas de las métricas de ficha. Se
+  // marcan fuente:"gemini_only" (sin YOLO/tracking físico) y confianza 0.6 → los
+  // paneles aplican la procedencia (ESTIMADA_LLM). NO se emite bloque `fisicas`:
+  // en demo no hay tracking real, así que no se implican metros/sprints medidos.
+  const m = player.metrics;
+  const seed = ([...player.id].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7) || 7) % 97;
+  const eventos = {
+    pasesCompletados: 28 + Math.round(m.technique * 0.45),
+    pasesFallados: 6 + Math.round((100 - m.technique) * 0.14),
+    precisionPases: Math.min(95, 62 + Math.round(m.technique * 0.28)),
+    recuperaciones: 3 + Math.round(m.defending * 0.09),
+    duelosGanados: 4 + Math.round((m.defending + m.stamina) * 0.05),
+    duelosPerdidos: 3 + Math.round((100 - m.defending) * 0.05),
+    disparosAlArco: Math.max(0, Math.round(m.shooting * 0.03)),
+    disparosFuera: Math.max(1, Math.round((100 - m.shooting) * 0.02)),
+  };
+  const zone = posZone(player.position);
+  // Nube de ~32 puntos determinista (sin Math.random → estable entre recargas).
+  const heatmapPositions = Array.from({ length: 32 }, (_, i) => {
+    const a = (seed + i * 41) * 0.13;
+    return {
+      fx: +Math.min(104, Math.max(1, zone.x + Math.sin(a) * zone.sx + ((i * 7) % 11) - 5)).toFixed(1),
+      fy: +Math.min(67, Math.max(1, zone.y + Math.cos(a * 1.3) * zone.sy + ((i * 5) % 9) - 4)).toFixed(1),
+    };
+  });
+  const metricasCuantitativas = { eventos, fuente: "gemini_only" as const, confianza: 0.6, heatmapPositions };
+
   const row: AnalysisDbRow = {
     id: `demo-analysis-${player.id}`,
     player_id: player.id,
     video_id: `demo-video-${player.id}`,
     created_at: "2026-09-01T10:00:00.000Z",
-    vsi: { vsi, tierLabel: tierLabelFor(vsi), confidence: 0.78 },
+    vsi: { vsi, tierLabel: tierLabelFor(vsi), confidence: 0.78, history: [Math.max(0, Math.round(vsi - 6)), Math.round(vsi)] },
+    metricasCuantitativas,
     reports: [
       {
         report_type: "player-report",
@@ -374,8 +418,106 @@ export function buildDemoAnalysisRows(
           ],
         },
       },
+      {
+        report_type: "lab-biomechanics",
+        content: {
+          title: pickLocale(locale, { es: "Biomecánica de laboratorio", en: "Lab biomechanics" }),
+          summary: pickLocale(locale, {
+            es: `Perfil biomecánico de ejemplo para ${first}. En la demo no hay captura de vídeo real: las cifras son ilustrativas y quedan sin validar por calibración.`,
+            en: `Example biomechanical profile for ${first}. The demo has no real video capture: figures are illustrative and uncalibrated.`,
+          }),
+          metrics_table: [
+            { metric: pickLocale(locale, { es: "Zancada", en: "Stride" }), value: `${(1.55 + m.speed * 0.006).toFixed(2)} m`, interpretation: pickLocale(locale, { es: "Estimado por IA", en: "AI-estimated" }) },
+            { metric: pickLocale(locale, { es: "Cadencia", en: "Cadence" }), value: `${170 + Math.round(m.stamina * 0.2)} ppm`, interpretation: pickLocale(locale, { es: "Estimado por IA", en: "AI-estimated" }) },
+            { metric: pickLocale(locale, { es: "Simetría", en: "Symmetry" }), value: `${88 + (seed % 8)} %`, interpretation: pickLocale(locale, { es: "Ejemplo", en: "Example" }) },
+          ],
+          next_focus: pickLocale(locale, { es: "Confirmar con captura de vídeo real en VITAS.LAB.", en: "Confirm with real video capture in VITAS.LAB." }),
+        },
+      },
+      {
+        report_type: "valuation-report",
+        content: {
+          evaluacionGeneral: pickLocale(locale, {
+            es: `${first} se sitúa en el tramo ${tierLabelFor(vsi)} (VSI ${Math.round(vsi)}). Valoración de ejemplo derivada de la ficha; sin datos de mercado reales.`,
+            en: `${first} sits in the ${tierLabelFor(vsi)} tier (VSI ${Math.round(vsi)}). Example valuation derived from the profile; no real market data.`,
+          }),
+          tierAnalisis: matBlurb,
+          comparablesProfesionales: [{ nombre: pro.nombre, equipo: pro.club, razon: pickLocale(locale, { es: "Perfil de rol similar", en: "Similar role profile" }) }],
+          factoresClave: [
+            { factor: strengths[0].title, impacto: "positivo", explicacion: pickLocale(locale, { es: "Fortaleza diferencial", en: "Standout strength" }) },
+            { factor: areas[0].title, impacto: "neutro", explicacion: pickLocale(locale, { es: "Margen de mejora", en: "Room to grow" }) },
+          ],
+          proyeccion: {
+            cortoPlaz: pickLocale(locale, { es: "Consolidación en su categoría", en: "Consolidation in his age group" }),
+            medioPlaz: pickLocale(locale, { es: "Salto de nivel tras el pico de maduración", en: "Level-up after the maturation peak" }),
+            techoEstimado: tierLabelFor(Math.min(99, vsi + 8)),
+          },
+          recomendacionesDesarrollo: [strengths[0].title, areas[0].title],
+          riesgosValoracion: [pickLocale(locale, { es: "Datos de ejemplo — no usar para decisiones reales.", en: "Example data — do not use for real decisions." })],
+        },
+      },
+      {
+        report_type: "injury-risk-report",
+        content: {
+          evaluacionGeneral: pickLocale(locale, {
+            es: `Riesgo de lesión de ejemplo para ${first}, orientativo: en la demo no hay historial de carga ni de lesiones reales.`,
+            en: `Example injury risk for ${first}, indicative only: the demo has no real load or injury history.`,
+          }),
+          nivelRiesgo: player.age <= 14 ? "moderado" : "bajo",
+          factoresRiesgo: [
+            { factor: pickLocale(locale, { es: "Ventana de maduración (PHV)", en: "Maturation window (PHV)" }), severidad: player.age <= 14 ? "media" : "baja", descripcion: matBlurb },
+            { factor: pickLocale(locale, { es: "Carga acumulada", en: "Accumulated load" }), severidad: "baja", descripcion: pickLocale(locale, { es: "Sin datos reales en la demo.", en: "No real data in the demo." }) },
+          ],
+          recomendacionesCarga: [
+            pickLocale(locale, { es: "Priorizar coordinación sobre fuerza máxima durante el estirón.", en: "Prioritise coordination over max strength during the growth spurt." }),
+            pickLocale(locale, { es: "Monitorizar molestias en rodilla/talón (Osgood-Schlatter / Sever).", en: "Monitor knee/heel discomfort (Osgood-Schlatter / Sever)." }),
+          ],
+          alertaPHV: player.age <= 15 ? pickLocale(locale, { es: "En ventana de crecimiento: vigilar tendones y cartílagos de crecimiento.", en: "In growth window: watch tendons and growth plates." }) : null,
+          protocoloPrevencion: [pickLocale(locale, { es: "Movilidad + fuerza excéntrica ligera 2×/semana.", en: "Mobility + light eccentric strength 2×/week." })],
+          seguimiento: pickLocale(locale, { es: "Reevaluar tras registrar sesiones reales de tracking.", en: "Re-evaluate after logging real tracking sessions." }),
+        },
+      },
+      {
+        report_type: "fatigue-report",
+        content: {
+          resumenEjecutivo: pickLocale(locale, {
+            es: `Estado de fatiga de ejemplo para ${first}. Sin señales reales de carga: valores orientativos bajo el banner de demostración.`,
+            en: `Example fatigue state for ${first}. No real load signals: indicative values under the demo banner.`,
+          }),
+          estadoActual: {
+            indice: 30 + (seed % 25),
+            severidad: pickLocale(locale, { es: "Baja", en: "Low" }),
+            indicadores: [pickLocale(locale, { es: "Percepción de esfuerzo estable", en: "Stable perceived exertion" })],
+          },
+          cargaACWR: {
+            valor: null,
+            zona: pickLocale(locale, { es: "Sin datos", en: "No data" }),
+            tendencia: pickLocale(locale, { es: "Sin serie de carga en la demo", en: "No load series in the demo" }),
+            recomendacionProximaSesion: pickLocale(locale, { es: "Registrar sesiones para calcular ACWR real.", en: "Log sessions to compute a real ACWR." }),
+          },
+          ajustesPHV: {
+            banda: matBlurb,
+            recomendaciones: [pickLocale(locale, { es: "Gestionar volumen en fases de mayor velocidad de crecimiento.", en: "Manage volume during peak growth-velocity phases." })],
+          },
+          protocoloRecuperacion: {
+            plan48h: [pickLocale(locale, { es: "Sueño 9 h + hidratación + movilidad suave.", en: "9h sleep + hydration + gentle mobility." })],
+            indicadoresRetorno: [pickLocale(locale, { es: "Ausencia de molestias + percepción de frescura", en: "No discomfort + feeling fresh" })],
+          },
+        },
+      },
     ],
   };
 
-  return [row];
+  // Segundo análisis (anterior) para poblar Evolución/Histórico (necesitan ≥2) y el
+  // delta de tendencia. Mismo perfil, fecha anterior y VSI algo menor → progresión.
+  const earlierVsi = Math.max(30, Math.round(vsi - 4));
+  const earlier: AnalysisDbRow = {
+    ...row,
+    id: `demo-analysis-${player.id}-prev`,
+    video_id: `demo-video-${player.id}-prev`,
+    created_at: "2026-06-02T10:00:00.000Z",
+    vsi: { vsi: earlierVsi, tierLabel: tierLabelFor(earlierVsi), confidence: 0.72, history: [Math.max(0, earlierVsi - 5), earlierVsi] },
+  };
+
+  return [row, earlier];
 }
