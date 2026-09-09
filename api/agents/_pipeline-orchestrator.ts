@@ -323,6 +323,22 @@ async function sendCompletionEmail(
   return res.ok;
 }
 
+/**
+ * Mensaje de estado «análisis parcial» por idioma. Se guarda en
+ * `analyses.status_message` y la UI (VideoUploader) lo muestra VERBATIM, así que
+ * debe ir en el idioma del usuario (mismo `reportLocale` que los informes) — antes
+ * salía siempre en español tras informes ya localizados. `pickLocale` degrada a es.
+ */
+const PARTIAL_STATUS: Partial<Record<ReportLocale, (ok: number, total: number) => string>> = {
+  es: (ok, t) => `Parcial: ${ok} de ${t} informes generados`,
+  "es-419": (ok, t) => `Parcial: ${ok} de ${t} informes generados`,
+  en: (ok, t) => `Partial: ${ok} of ${t} reports generated`,
+  it: (ok, t) => `Parziale: ${ok} di ${t} report generati`,
+  de: (ok, t) => `Teilweise: ${ok} von ${t} Berichten erstellt`,
+  fr: (ok, t) => `Partiel : ${ok} rapports sur ${t} générés`,
+  nl: (ok, t) => `Gedeeltelijk: ${ok} van ${t} rapporten gegenereerd`,
+};
+
 export default withHandler(
   // serviceOnly: orquesta ~14 agentes Claude/Gemini + email a la familia. Lo
   // disparan cron/modal-callback/generate-reports con INTERNAL_TOKEN; nunca
@@ -865,7 +881,7 @@ export default withHandler(
         completed_at: new Date().toISOString(),
         candidates: null, // limpiamos los crops · ya no se necesitan
         ...(isPartial
-          ? { status_message: `Parcial: ${reportsOk} de ${reportsTotal} informes generados` }
+          ? { status_message: pickLocale(reportLocale, PARTIAL_STATUS)(reportsOk, reportsTotal) }
           : {}),
       })
       .eq("id", analysis.id);
