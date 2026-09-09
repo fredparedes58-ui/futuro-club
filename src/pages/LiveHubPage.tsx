@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoLiveMatchSummary } from "@/lib/demo/demoLive";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
 import VideoUpload from "@/components/VideoUpload";
 import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
@@ -59,6 +61,11 @@ export default function LiveHubPage() {
     setLoading(true);
     setLoadError(false);
     try {
+      if (IS_DEMO) {
+        setMatches([buildDemoLiveMatchSummary()] as MatchSummary[]);
+        setLoading(false);
+        return;
+      }
       const headers = await getAuthHeaders();
       const res = await fetch("/api/live/matches", { headers });
       const data = await res.json();

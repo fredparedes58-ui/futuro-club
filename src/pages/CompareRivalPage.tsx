@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoRivalPlan } from "@/lib/demo/demoTeam";
 import VideoUpload from "@/components/VideoUpload";
 import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
 
@@ -127,6 +129,10 @@ export default function CompareRivalPage() {
     setGenerating(true);
     setError(null);
     try {
+      if (IS_DEMO) {
+        setResult(buildDemoRivalPlan(rivalName.trim()) as PlanResponse);
+        return;
+      }
       const headers = await getAuthHeaders();
       const res = await fetch("/api/team/compare-rival", {
         method: "POST",

@@ -18,6 +18,8 @@ import { ArrowLeft, ClipboardList, Sparkles, Loader2, AlertCircle, Home, Plane }
 import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoMatchReport } from "@/lib/demo/demoTeam";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 import TeamReportView from "@/components/analysis/reports/TeamReportView";
@@ -46,6 +48,10 @@ export default function MatchReportPage() {
     setGenerating(true);
     setError(null);
     try {
+      if (IS_DEMO) {
+        setReport(buildDemoMatchReport(homeName.trim(), awayName.trim()) as Record<string, unknown>);
+        return;
+      }
       const headers = await getAuthHeaders();
       const res = await fetch("/api/agents/team-report", {
         method: "POST",

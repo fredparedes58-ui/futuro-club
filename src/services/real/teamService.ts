@@ -5,6 +5,8 @@
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoTeamMembers } from "@/lib/demo/demoTeam";
 import type { UserRole } from "./userProfileService";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -44,6 +46,7 @@ export interface AccessRequest {
 
 export const TeamService = {
   async getMembers(orgOwnerId: string): Promise<TeamMember[]> {
+    if (IS_DEMO) return buildDemoTeamMembers(orgOwnerId) as TeamMember[];
     if (!SUPABASE_CONFIGURED) return [];
     const { data, error } = await supabase!
       .from("team_members")

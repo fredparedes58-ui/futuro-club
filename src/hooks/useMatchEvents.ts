@@ -22,7 +22,7 @@ export function useMatchEvents(playerId: string | undefined) {
 export function useLogMatchEvent(playerId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Omit<CreateMatchEventInput, "playerId">) =>
+    mutationFn: async (input: Omit<CreateMatchEventInput, "playerId">) =>
       MatchEventsService.create({ ...input, playerId }),
     onSuccess: () => {
       toast.success(i18n.t("toasts.eventLogged"));
@@ -38,7 +38,7 @@ export function useLogMatchEvent(playerId: string) {
 export function useDeleteMatchEvent(playerId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (eventId: string) => MatchEventsService.delete(eventId),
+    mutationFn: async (eventId: string) => MatchEventsService.delete(eventId),
     onSuccess: () => {
       toast.success(i18n.t("toasts.eventDeleted"));
       void qc.invalidateQueries({ queryKey: ["match-events", playerId] });

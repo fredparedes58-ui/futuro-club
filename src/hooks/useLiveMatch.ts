@@ -11,6 +11,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { IS_DEMO } from "@/lib/demoMode";
+import { buildDemoLiveMatchDetail } from "@/lib/demo/demoLive";
 
 export type LiveEventType =
   | "gol" | "pase_clave" | "recuperacion" | "perdida"
@@ -78,6 +80,22 @@ export function useLiveMatch(matchId: string | null) {
   const loadMatch = useCallback(async () => {
     if (!matchId) return;
     try {
+      if (IS_DEMO) {
+        const { match: dm, events: dev } = buildDemoLiveMatchDetail();
+        setMatch(dm as LiveMatchState);
+        setEvents(dev.map((r) => ({
+          matchId,
+          playerId: r.player_id,
+          eventType: r.event_type as LiveEventType,
+          timestampSeconds: r.timestamp_seconds,
+          half: (r.half ?? 1) as 1 | 2,
+          notes: r.notes ?? undefined,
+          clientEventId: r.client_event_id ?? r.id,
+          syncStatus: "synced" as const,
+          createdAt: new Date(r.created_at).getTime(),
+        })));
+        return;
+      }
       const headers = await getAuthHeaders();
       const res = await fetch(`/api/live/matches?id=${matchId}`, { headers });
       const data = await res.json();
@@ -306,6 +324,11 @@ export async function createLiveMatch(input: {
   competition?: string;
   videoUrl?: string;
 }): Promise<string | null> {
+  // Demo: el tagging en vivo requiere un partido real. Se gatea honestamente
+  // (el listado ya ofrece un partido de ejemplo para revisar).
+  if (IS_DEMO) {
+    throw new Error("El tagging en vivo requiere un partido real. En la demo puedes abrir el partido de ejemplo del listado.");
+  }
   const headers = await getAuthHeaders();
   const res = await fetch("/api/live/matches", {
     method: "POST",
