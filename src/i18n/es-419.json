@@ -2009,6 +2009,9 @@
     }
   },
   "publicLanding": {
+    "phvCorrectedLabel": "con corrección PHV",
+    "heroTagline": "Corregimos la maduración biológica. Ves al jugador real, no su físico de hoy.",
+    "howItWorks": "Cómo funciona",
     "enterDemo": "Entrar a la demo",
     "pulseSubtitle": "Inteligencia futbolística en tiempo real",
     "statActive": "ACTIVOS",

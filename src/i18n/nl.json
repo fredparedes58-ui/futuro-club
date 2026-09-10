@@ -2009,6 +2009,9 @@
     }
   },
   "publicLanding": {
+    "phvCorrectedLabel": "met PHV-correctie",
+    "heroTagline": "Wij corrigeren de biologische rijping. Je ziet de echte speler, niet zijn fysiek van vandaag.",
+    "howItWorks": "Hoe het werkt",
     "enterDemo": "Naar de demo",
     "pulseSubtitle": "Voetbalintelligentie in realtime",
     "statActive": "ACTIEF",

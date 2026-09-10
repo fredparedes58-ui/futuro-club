@@ -2008,6 +2008,9 @@
     }
   },
   "publicLanding": {
+    "phvCorrectedLabel": "mit PHV-Korrektur",
+    "heroTagline": "Wir korrigieren die biologische Reifung. Du siehst den echten Spieler, nicht die Physis von heute.",
+    "howItWorks": "So funktioniert’s",
     "enterDemo": "Zur Demo",
     "pulseSubtitle": "Fußballintelligenz in Echtzeit",
     "statActive": "AKTIVE",
