@@ -2009,6 +2009,9 @@
     }
   },
   "publicLanding": {
+    "phvCorrectedLabel": "with PHV correction",
+    "heroTagline": "We correct biological maturation. You see the real player, not today’s physique.",
+    "howItWorks": "How it works",
     "enterDemo": "Enter the demo",
     "pulseSubtitle": "Real-time football intelligence",
     "statActive": "ACTIVE",
