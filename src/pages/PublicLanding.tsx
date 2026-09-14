@@ -200,8 +200,20 @@ function PhoneMockup() {
   );
 }
 
+// ── CTA: en modo embed (iframe en krujens.eu) rompe el marco a _top con URL
+// absoluta al VITAS completo; fuera de embed, navegación SPA normal con <Link>.
+// Las anclas internas (#features…) se dejan como <a> aparte (scroll en el iframe).
+function Cta({ embed, to, className, style, children }: {
+  embed?: boolean; to: string; className?: string; style?: React.CSSProperties; children: React.ReactNode;
+}) {
+  if (embed) {
+    return <a href={`${PUBLIC_URL}${to}`} target="_top" rel="noopener" className={className} style={style}>{children}</a>;
+  }
+  return <Link to={to} className={className} style={style}>{children}</Link>;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
-export default function PublicLanding() {
+export default function PublicLanding({ embed = false }: { embed?: boolean } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -236,6 +248,25 @@ export default function PublicLanding() {
     set("twitter:card", "summary_large_image");
   }, [t]);
 
+  // Modo embed (iframe en krujens.eu): publica la altura del contenido al padre
+  // para que ajuste el iframe (evita clipping/scroll interno con cualquier idioma
+  // o ancho). Solo el número de altura; el padre filtra por origin. No-op fuera
+  // de un iframe.
+  useEffect(() => {
+    if (!embed || typeof window === "undefined" || window.parent === window) return;
+    const post = () => window.parent.postMessage(
+      { type: "vitas-embed-height", height: document.documentElement.scrollHeight }, "*",
+    );
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    window.addEventListener("load", post);
+    // Reintentos cortos: fuentes, imágenes lazy y animaciones cambian la altura.
+    const iv = window.setInterval(post, 1000);
+    const stop = window.setTimeout(() => window.clearInterval(iv), 8000);
+    return () => { ro.disconnect(); window.removeEventListener("load", post); window.clearInterval(iv); window.clearTimeout(stop); };
+  }, [embed]);
+
   const primaryLabel = IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.watchDemo");
 
   return (
@@ -265,15 +296,15 @@ export default function PublicLanding() {
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
               {isLoggedIn || IS_DEMO ? (
-                <Link to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                <Cta embed={embed} to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
                   {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.dashboard")} <ArrowRight size={12} />
-                </Link>
+                </Cta>
               ) : (
                 <>
-                  <Link to="/login" className="text-xs font-display font-semibold text-[#37425f] hover:text-[#0059B3] transition-colors hidden sm:block">{t("publicLanding.login")}</Link>
-                  <Link to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                  <Cta embed={embed} to="/login" className="text-xs font-display font-semibold text-[#37425f] hover:text-[#0059B3] transition-colors hidden sm:block">{t("publicLanding.login")}</Cta>
+                  <Cta embed={embed} to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
                     {t("publicLanding.startFree")} <ArrowRight size={12} />
-                  </Link>
+                  </Cta>
                 </>
               )}
             </div>
@@ -291,7 +322,7 @@ export default function PublicLanding() {
                 {t("publicLanding.heroTagline", "Corregimos la maduración biológica. Ves al jugador real — no su físico de hoy.")}
               </p>
               <div className="mt-8 flex gap-3.5 items-center flex-wrap justify-center md:justify-start vl-pop" style={{ animationDelay: ".8s" }}>
-                <Link to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Link>
+                <Cta embed={embed} to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Cta>
                 <a href="#phv" className="vl-ghost">{t("publicLanding.howItWorks", "Cómo funciona")}</a>
               </div>
               <div className="vl-mini mt-10 justify-center md:justify-start" style={{ animation: "vl-fadein 1s 1s both" }}>
@@ -415,9 +446,9 @@ export default function PublicLanding() {
         <div className="vl-wrap py-16 md:py-20">
           <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.pricingHeading")}</h2>
           <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            <PlanTier name="Free" description={t("publicLanding.planFreeDesc")} features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
-            <PlanTier name="Pro" description={t("publicLanding.planProDesc")} highlight features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
-            <PlanTier name="Club" description={t("publicLanding.planClubDesc")} features={[t("publicLanding.planClubFeature1"), t("publicLanding.planClubFeature2"), t("publicLanding.planClubFeature3"), t("publicLanding.planClubFeature4"), t("publicLanding.planClubFeature5"), t("publicLanding.planClubFeature6"), t("publicLanding.planClubFeature7")]} />
+            <PlanTier embed={embed} name="Free" description={t("publicLanding.planFreeDesc")} features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
+            <PlanTier embed={embed} name="Pro" description={t("publicLanding.planProDesc")} highlight features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
+            <PlanTier embed={embed} name="Club" description={t("publicLanding.planClubDesc")} features={[t("publicLanding.planClubFeature1"), t("publicLanding.planClubFeature2"), t("publicLanding.planClubFeature3"), t("publicLanding.planClubFeature4"), t("publicLanding.planClubFeature5"), t("publicLanding.planClubFeature6"), t("publicLanding.planClubFeature7")]} />
           </div>
           <p className="text-xs text-[#6c7794] text-center mt-8">{t("publicLanding.pricingNote")}</p>
         </div>
@@ -435,7 +466,7 @@ export default function PublicLanding() {
           <h3 className="font-display font-bold leading-tight mb-8" style={{ fontSize: "clamp(32px,4.4vw,56px)" }}>
             {t("publicLanding.ctaHeading")}
           </h3>
-          <Link to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Link>
+          <Cta embed={embed} to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Cta>
         </div>
       </section>
 
@@ -447,9 +478,9 @@ export default function PublicLanding() {
             <span className="text-xs text-[#6c7794]">VITAS · Football Intelligence © 2026</span>
           </div>
           <nav className="flex items-center gap-4 text-xs text-[#6c7794]">
-            <Link to="/terms" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerTerms")}</Link>
-            <Link to="/privacy" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerPrivacy")}</Link>
-            <Link to={LOGIN_HREF} className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerAccess")}</Link>
+            <Cta embed={embed} to="/terms" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerTerms")}</Cta>
+            <Cta embed={embed} to="/privacy" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerPrivacy")}</Cta>
+            <Cta embed={embed} to={LOGIN_HREF} className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerAccess")}</Cta>
           </nav>
         </div>
         <div className="vl-bar" />
@@ -546,8 +577,8 @@ function StepCard({ num, title, description, icon: Icon, color }: {
   );
 }
 
-function PlanTier({ name, description, features, highlight }: {
-  name: string; description: string; features: string[]; highlight?: boolean;
+function PlanTier({ name, description, features, highlight, embed }: {
+  name: string; description: string; features: string[]; highlight?: boolean; embed?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -572,10 +603,10 @@ function PlanTier({ name, description, features, highlight }: {
           </li>
         ))}
       </ul>
-      <Link to={ENTRY_HREF} className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-transform hover:scale-[1.02] ${highlight ? "bg-white" : "text-white"}`}
+      <Cta embed={embed} to={ENTRY_HREF} className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-transform hover:scale-[1.02] ${highlight ? "bg-white" : "text-white"}`}
         style={highlight ? { color: "#0059B3" } : { background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
         {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.getStarted")}
-      </Link>
+      </Cta>
     </motion.div>
     </div>
   );

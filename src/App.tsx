@@ -207,6 +207,10 @@ const App = () => {
                 {/* ── Landing pública (visitante frío ve la propuesta de valor). ──
                     PublicLanding auto-redirige a /pulse si ya hay sesión. ── */}
                 <Route path="/" element={<PublicLanding />} />
+                {/* Embed para incrustar el landing en krujens.eu vía <iframe>. Misma
+                    página, pero los CTA rompen el marco (target="_top") hacia el
+                    VITAS completo; sin redirección por sesión (pathname ≠ "/"). */}
+                <Route path="/embed" element={<PublicLanding embed />} />
                 <Route path="/welcome" element={<Navigate to="/" replace />} />
 
                 {/* ── Rutas protegidas ──────────────────────────────── */}
