@@ -377,6 +377,27 @@ export default function PublicLanding() {
       </section>
 
       {/* ── STEPS ─────────────────────────────────────────────── */}
+      {/* ── APP GALLERY (capturas reales) ─────────────────────── */}
+      <section className="relative border-y overflow-hidden" style={{ borderColor: "rgba(0,89,179,.1)" }}>
+        <div className="vl-bg" aria-hidden="true">
+          <div className="vl-aurora" style={{ width: 560, height: 560, left: "10%", top: 40, background: "radial-gradient(circle,rgba(47,124,246,.14),transparent 64%)" }} />
+          <div className="vl-aurora" style={{ width: 500, height: 500, right: "8%", top: 80, background: "radial-gradient(circle,rgba(230,25,122,.12),transparent 64%)", animationDelay: "-7s" }} />
+        </div>
+        <div className="vl-wrap py-16 md:py-20">
+          <div className="text-center mb-10">
+            <div className="vl-badge" style={{ margin: "0 auto" }}><span className="vl-dot" />{t("publicLanding.galleryEyebrow", "CAPTURAS REALES · SIN MAQUETAR")}</div>
+            <h2 className="font-display font-bold mt-4" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.galleryHeading", "La herramienta por dentro")}</h2>
+          </div>
+          <div className="flex gap-5 md:gap-7 overflow-x-auto pb-4 md:justify-center snap-x -mx-4 px-4 md:mx-0 md:px-0">
+            <PhoneShot src="/shots/shot-pulse.png" alt="VITAS · centro de inteligencia" delay={0} />
+            <PhoneShot src="/shots/shot-player.png" alt="Perfil de jugador con corrección PHV" delay={0.08} />
+            <PhoneShot src="/shots/shot-lab.png" alt="VITAS.LAB · calibración y tracking en campo" delay={0.16} />
+            <PhoneShot src="/shots/shot-rankings.png" alt="Rankings por VSI ajustado a maduración" delay={0.24} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
       <section className="relative border-y" style={{ borderColor: "rgba(0,89,179,.1)" }}>
         <div className="vl-wrap py-16 md:py-20">
           <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.stepsHeading")}</h2>
@@ -488,6 +509,22 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
         <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}><Icon size={17} style={{ color }} /></div>
         <h3 className="font-display font-bold text-sm text-[#0b1226] leading-tight">{title}</h3>
       </div>
+    </motion.div>
+  );
+}
+
+function PhoneShot({ src, alt, delay }: { src: string; alt: string; delay: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 26 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      transition={{ delay, duration: 0.6, ease: "easeOut" }}
+      whileHover={{ y: -8 }}
+      className="shrink-0 snap-center rounded-[2rem] p-1.5 bg-white"
+      style={{ boxShadow: "0 30px 70px rgba(20,40,120,.16)", border: "1px solid rgba(0,89,179,.1)" }}
+    >
+      <img src={src} alt={alt} loading="lazy" width={210} className="rounded-[1.6rem] block w-[210px] h-auto" />
     </motion.div>
   );
 }
