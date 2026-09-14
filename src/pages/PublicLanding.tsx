@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { IS_DEMO } from "@/lib/demoMode";
+import { PUBLIC_URL } from "@/lib/publicUrl";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 // En el DEMO no hay alta ni login reales (Supabase off): cualquier CTA de entrada
@@ -231,7 +232,7 @@ export default function PublicLanding() {
     set("og:title", "VITAS · Football Intelligence", true);
     set("og:description", t("publicLanding.ogDescription"), true);
     set("og:image", "/og-image.png", true);
-    set("og:url", "https://futuro-club.vercel.app", true);
+    set("og:url", PUBLIC_URL, true);
     set("twitter:card", "summary_large_image");
   }, [t]);
 

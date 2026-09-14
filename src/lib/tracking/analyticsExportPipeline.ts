@@ -21,6 +21,7 @@
 import type { Track, PhysicalMetrics, ScanEvent, DuelEvent } from "@/lib/yolo/types";
 import type { BiomechanicsScore } from "@/lib/mediapipe/biomechanicsEngine";
 import type { TacticalEvent, EventSummary } from "./eventDetectionEngine";
+import { PUBLIC_HOST } from "@/lib/publicUrl";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -444,7 +445,7 @@ ${meta.calibrationReliable ? "" : `
   </div>
 
   <div class="footer">
-    Generado por VITAS Football Intelligence · ${new Date().toISOString().slice(0, 10)} · futuro-club.vercel.app
+    Generado por VITAS Football Intelligence · ${new Date().toISOString().slice(0, 10)} · ${PUBLIC_HOST}
   </div>
 </body>
 </html>`;

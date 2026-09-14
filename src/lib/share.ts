@@ -6,7 +6,10 @@
  * aterriza en la landing y se registra. El enlace lleva UTM para atribución.
  */
 
-export const SHARE_BASE_URL = "https://futuro-club.vercel.app";
+import { PUBLIC_URL } from "./publicUrl";
+
+/** Origen público real (deriva del dominio servido / VITE_PUBLIC_URL). */
+export const SHARE_BASE_URL = PUBLIC_URL;
 
 /** Construye la URL de aterrizaje con atribución (ref + UTM). */
 export function buildShareUrl(ref: string): string {

@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Download, Share2, Loader2, Zap, Star, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PUBLIC_HOST } from "@/lib/publicUrl";
 import { toast } from "sonner";
 import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
@@ -292,7 +293,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
             VITAS · {new Date().toLocaleDateString("es-ES")}
           </span>
           <span className="text-[9px] font-mono font-bold text-indigo-400">
-            ⚡ {t("vitasCard.discoverYours")} → futuro-club.vercel.app
+            ⚡ {t("vitasCard.discoverYours")} → {PUBLIC_HOST}
           </span>
         </div>
       </motion.div>

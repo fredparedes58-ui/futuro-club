@@ -13,6 +13,7 @@ import {
   ChevronRight, Lightbulb, AlertTriangle, CheckCircle,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { PUBLIC_HOST } from "@/lib/publicUrl";
 
 // ── Section component ────────────────────────────────────────────────────────
 
@@ -521,7 +522,7 @@ const UserGuidePage = () => {
               VITAS Football Intelligence &middot; Version 1.0 &middot; Abril 2026
             </p>
             <p className="text-[10px] text-muted-foreground mt-1 print:text-gray-400">
-              Para soporte: contacto desde la seccion de Ajustes o en futuro-club.vercel.app
+              Para soporte: contacto desde la seccion de Ajustes o en {PUBLIC_HOST}
             </p>
           </div>
         </motion.div>

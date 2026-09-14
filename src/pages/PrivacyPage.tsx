@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Lock, Shield } from "lucide-react";
+import { PUBLIC_URL, PUBLIC_HOST } from "@/lib/publicUrl";
 
 const LAST_UPDATED = "12 de abril de 2026";
 
@@ -57,8 +58,8 @@ const PrivacyPage = () => {
             que confías a nuestra plataforma. Esta Política de Privacidad describe cómo recopilamos,
             utilizamos, almacenamos y protegemos tu información personal cuando usas nuestros
             servicios en{" "}
-            <a href="https://futuro-club.vercel.app" target="_blank" rel="noopener noreferrer">
-              futuro-club.vercel.app
+            <a href={PUBLIC_URL} target="_blank" rel="noopener noreferrer">
+              {PUBLIC_HOST}
             </a>.
           </p>
 
@@ -75,8 +76,8 @@ const PrivacyPage = () => {
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}
-              <a href="https://futuro-club.vercel.app" target="_blank" rel="noopener noreferrer">
-                futuro-club.vercel.app
+              <a href={PUBLIC_URL} target="_blank" rel="noopener noreferrer">
+                {PUBLIC_HOST}
               </a>
             </li>
           </ul>
@@ -419,8 +420,8 @@ const PrivacyPage = () => {
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}
-              <a href="https://futuro-club.vercel.app" target="_blank" rel="noopener noreferrer">
-                futuro-club.vercel.app
+              <a href={PUBLIC_URL} target="_blank" rel="noopener noreferrer">
+                {PUBLIC_HOST}
               </a>
             </li>
           </ul>

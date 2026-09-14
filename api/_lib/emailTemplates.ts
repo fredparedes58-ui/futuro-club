@@ -5,7 +5,11 @@
  * Texto en español. Diseño responsive con max-width 520px.
  */
 
-const BASE_URL = "https://futuro-club.vercel.app";
+import { env } from "./env";
+
+// Origen público real (VITAS_PUBLIC_URL en Vercel) — nunca quemado. Los enlaces
+// de los correos siguen al dominio de producción configurado.
+const BASE_URL = env.publicUrl;
 
 // ─── Base Layout ───────────────────────────────────────────────────────────────
 
