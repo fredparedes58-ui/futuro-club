@@ -154,7 +154,7 @@ function PhoneMockup() {
                 </div>
                 <span className="text-[9px] font-display font-bold text-[#0b1226]">VITAS</span>
               </div>
-              <span className="text-[9px] font-display font-bold" style={{ color: "#0059B3" }}>EN VIVO</span>
+              <span className="text-[9px] font-display font-bold" style={{ color: "#0059B3" }}>{t("publicLanding.phoneLive", "EN VIVO")}</span>
             </div>
             <h3 className="text-[12px] font-display font-bold tracking-wide" style={{ color: "#0059B3" }}>PULSE LIVE</h3>
             <p className="text-[7px] text-gray-400 mb-2">{t("publicLanding.pulseSubtitle")}</p>
@@ -307,9 +307,9 @@ export default function PublicLanding() {
               <PhoneMockup />
               <Ball id="vlb1" size={104} stroke="#0059B3" halo="rgba(0,89,179,.28)" style={{ left: "-4%", top: "4%", animation: "vl-float 8s 1.4s ease-in-out infinite" }} />
               <Ball id="vlb2" size={80} stroke="#e6197a" halo="rgba(230,25,122,.26)" spin style={{ right: "-2%", bottom: "4%", animation: "vl-float2 7s 1.2s ease-in-out infinite" }} />
-              <div className="vl-chip vl-pop" style={{ left: "-8%", top: "36%", animationDelay: "1s" }}><span className="d" style={{ background: "#0059B3", boxShadow: "0 0 8px rgba(0,89,179,.6)" }} />PHV +0.38 <small>maduración</small></div>
+              <div className="vl-chip vl-pop" style={{ left: "-8%", top: "36%", animationDelay: "1s" }}><span className="d" style={{ background: "#0059B3", boxShadow: "0 0 8px rgba(0,89,179,.6)" }} />PHV +0.38 <small>{t("publicLanding.chipMaturation", "maduración")}</small></div>
               <div className="vl-chip vl-pop" style={{ right: "-6%", top: "18%", animationDelay: "1.15s" }}><span className="d" style={{ background: "#a855f7", boxShadow: "0 0 8px rgba(168,85,247,.6)" }} />VAEP +0.142</div>
-              <div className="vl-chip vl-pop" style={{ left: "2%", bottom: "2%", animationDelay: "1.3s" }}><span className="d" style={{ background: "#12b981", boxShadow: "0 0 8px rgba(18,185,129,.6)" }} />Elite tier</div>
+              <div className="vl-chip vl-pop" style={{ left: "2%", bottom: "2%", animationDelay: "1.3s" }}><span className="d" style={{ background: "#12b981", boxShadow: "0 0 8px rgba(18,185,129,.6)" }} />{t("publicLanding.chipElite", "Nivel élite")}</div>
               <Spark size={18} color="#0059B3" style={{ left: "12%", top: "2%", animationDelay: ".3s" }} />
               <Spark size={13} color="#f59e0b" style={{ right: "16%", top: "12%", animationDelay: "1.1s" }} />
               <Spark size={15} color="#e6197a" style={{ right: "6%", bottom: "24%", animationDelay: "1.9s" }} />
@@ -354,7 +354,7 @@ export default function PublicLanding() {
                   <div className="font-mono text-[10px] uppercase tracking-wider text-[#6c7794]">VSI VITAS</div>
                   <div className="vl-big" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div>
                   <div className="inline-flex items-center gap-1.5 mt-2 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)" }}>
-                    <Sparkles size={11} /> Hidden gem
+                    <Sparkles size={11} /> {t("publicLanding.hiddenGem", "Diamante oculto")}
                   </div>
                 </div>
               </div>
@@ -389,11 +389,11 @@ export default function PublicLanding() {
             <h2 className="font-display font-bold mt-4" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.galleryHeading", "La herramienta por dentro")}</h2>
           </div>
           <div className="flex gap-5 md:gap-7 overflow-x-auto pb-4 md:justify-center snap-x -mx-4 px-4 md:mx-0 md:px-0">
-            <PhoneShot src="/shots/shot-pulse.png" alt="VITAS · centro de inteligencia" delay={0} />
-            <PhoneShot src="/shots/shot-player.png" alt="Perfil de jugador con corrección PHV" delay={0.06} />
-            <PhoneShot src="/shots/shot-stats.png" alt="Informe de partido generado por IA" delay={0.12} />
-            <PhoneShot src="/shots/shot-lab.png" alt="VITAS.LAB · calibración y tracking en campo" delay={0.18} />
-            <PhoneShot src="/shots/shot-rankings.png" alt="Rankings por VSI ajustado a maduración" delay={0.24} />
+            <PhoneShot src="/shots/shot-pulse.png" alt={t("publicLanding.galleryAltPulse", "VITAS · centro de inteligencia")} delay={0} />
+            <PhoneShot src="/shots/shot-player.png" alt={t("publicLanding.galleryAltPlayer", "Perfil de jugador con corrección PHV")} delay={0.06} />
+            <PhoneShot src="/shots/shot-stats.png" alt={t("publicLanding.galleryAltStats", "Informe de partido generado por IA")} delay={0.12} />
+            <PhoneShot src="/shots/shot-lab.png" alt={t("publicLanding.galleryAltLab", "VITAS.LAB · calibración y tracking en campo")} delay={0.18} />
+            <PhoneShot src="/shots/shot-rankings.png" alt={t("publicLanding.galleryAltRankings", "Rankings por VSI ajustado a maduración")} delay={0.24} />
           </div>
         </div>
       </section>
@@ -463,6 +463,7 @@ export default function PublicLanding() {
 function VisualFeature({ icon: Icon, title, color, mock }: {
   icon: React.ElementType; title: string; color: string; mock: "report" | "vsi" | "scan" | "telegram";
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
@@ -473,20 +474,20 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
       <div className="rounded-xl h-36 mb-4 p-3 relative overflow-hidden" style={{ background: "linear-gradient(160deg,#f8fafe,#eef2fb)", border: "1px solid rgba(0,89,179,.08)" }}>
         {mock === "report" && (
           <div className="h-full flex flex-col">
-            <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">Informe IA · listo</span></div>
+            <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">{t("publicLanding.mockReportReady", "Informe IA · listo")}</span></div>
             <div className="space-y-2">
               <div className="h-2 rounded-full" style={{ width: "88%", background: "rgba(168,85,247,.28)" }} />
               <div className="h-2 rounded-full" style={{ width: "72%", background: "rgba(0,89,179,.20)" }} />
               <div className="h-2 rounded-full" style={{ width: "56%", background: "rgba(0,89,179,.14)" }} />
             </div>
-            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>Fortalezas · PHV · Proyección</span>
+            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>{t("publicLanding.mockReportTags", "Fortalezas · PHV · Proyección")}</span>
           </div>
         )}
         {mock === "vsi" && (
           <div className="h-full flex items-center justify-center gap-3">
-            <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">Clásico</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
+            <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">{t("publicLanding.mockClassic", "Clásico")}</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
             <ArrowRight size={18} style={{ color: "#A855F7" }} />
-            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>Con PHV</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
+            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>{t("publicLanding.mockWithPhv", "Con PHV")}</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
           </div>
         )}
         {mock === "scan" && (
@@ -501,8 +502,8 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
         )}
         {mock === "telegram" && (
           <div className="h-full flex flex-col justify-center gap-2">
-            <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>¿Cómo va Rodríguez esta semana?</div>
-            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>VSI 94 ▲ · PHV +0.38 · listo para el reto ✅</div>
+            <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>{t("publicLanding.mockChatQuestion", "¿Cómo va Rodríguez esta semana?")}</div>
+            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>{t("publicLanding.mockChatAnswer", "VSI 94 ▲ · PHV +0.38 · listo para el reto ✅")}</div>
           </div>
         )}
       </div>
