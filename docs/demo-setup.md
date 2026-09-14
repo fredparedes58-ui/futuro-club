@@ -1,3 +1,19 @@
+> ## ⛔ OBSOLETO — no sigas este documento
+>
+> **La demo VIGENTE NO usa Supabase.** Corre con `VITE_DEMO=1` **y** sin Supabase
+> configurado (doble guarda en `src/lib/demoMode.ts`); los datos viven en `localStorage`,
+> sembrados por `DemoDataService.seed()` en la primera carga (fases 1–4, PRs #237–#243).
+> El proyecto Vercel `vitas-demo` solo lleva `VITE_DEMO=1` y **NADA** de Supabase/Resend;
+> el dominio `vitas-demo.krujens.eu` ya está apuntado y validado.
+>
+> **NO cables Supabase ni `seed-demo.mjs` a la demo** — la doble guarda existe precisamente
+> para impedir que la demo lea o escriba datos reales de menores. Todo lo de abajo describe
+> el enfoque ANTIGUO (#233, Supabase separado) y se conserva solo por histórico.
+>
+> _Marcado obsoleto: 2026-09-14._
+
+---
+
 # Demo VITAS — montaje (`vitas-demo.krujens.eu`)
 
 Objetivo: un demo **igual que desarrollo** (mismo código, todas las funciones), en un
