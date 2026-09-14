@@ -20,6 +20,7 @@ import webpush from "web-push";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { RESEND_FROM } from "../_lib/email";
+import { env } from "../_lib/env";
 
 interface PushSub {
   user_id: string;
@@ -279,7 +280,7 @@ export default withHandler(
                   html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:20px;">
                     <h2 style="color:#ef4444;">${notif.title}</h2>
                     <p>${notif.body}</p>
-                    <a href="https://futuro-club.vercel.app" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;">Ver en VITAS</a>
+                    <a href="${env.publicUrl}" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#6366f1;color:white;border-radius:8px;text-decoration:none;">Ver en VITAS</a>
                   </div>`,
                 }),
               });

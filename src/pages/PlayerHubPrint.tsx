@@ -20,6 +20,7 @@ import { PlayerService, type Player } from "@/services/real/playerService";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
 import { playerMaturity, maturityStatusKey, maturityConfidenceKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 import VsiGauge from "@/components/VsiGauge";
+import { PUBLIC_HOST } from "@/lib/publicUrl";
 
 export default function PlayerHubPrint() {
   const { id } = useParams<{ id: string }>();
@@ -338,7 +339,7 @@ export default function PlayerHubPrint() {
               {t("playerHubPrint.platformTagline")}
             </div>
             <div style={{ fontSize: 11, color: "#3b82f6", marginTop: 12, fontWeight: 700 }}>
-              futuro-club.vercel.app
+              {PUBLIC_HOST}
             </div>
           </div>
 

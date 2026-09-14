@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Shield } from "lucide-react";
+import { PUBLIC_URL, PUBLIC_HOST } from "@/lib/publicUrl";
 
 const LAST_UPDATED = "12 de abril de 2026";
 
@@ -55,8 +56,8 @@ const TermsPage = () => {
           <p>
             Bienvenido a <strong>VITAS</strong>. Estos Términos de Servicio ("Términos") regulan
             el acceso y uso de la plataforma VITAS, disponible en{" "}
-            <a href="https://futuro-club.vercel.app" target="_blank" rel="noopener noreferrer">
-              futuro-club.vercel.app
+            <a href={PUBLIC_URL} target="_blank" rel="noopener noreferrer">
+              {PUBLIC_HOST}
             </a>{" "}
             y sus aplicaciones asociadas. Al registrarte o utilizar nuestros servicios, aceptas
             quedar vinculado por estos Términos.
@@ -319,8 +320,8 @@ const TermsPage = () => {
             </li>
             <li>
               <strong>Plataforma:</strong>{" "}
-              <a href="https://futuro-club.vercel.app" target="_blank" rel="noopener noreferrer">
-                futuro-club.vercel.app
+              <a href={PUBLIC_URL} target="_blank" rel="noopener noreferrer">
+                {PUBLIC_HOST}
               </a>
             </li>
           </ul>

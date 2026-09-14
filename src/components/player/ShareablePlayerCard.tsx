@@ -20,6 +20,7 @@ import type { Player } from "@/services/real/playerService";
 import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
 import { SprintTestService } from "@/services/real/sprintTestService";
 import { shareNative, shareToWhatsApp } from "@/lib/share";
+import { PUBLIC_HOST } from "@/lib/publicUrl";
 
 const TIERS = [
   { min: 85, label: "ÉLITE", color: "#3b82f6" },
@@ -180,7 +181,7 @@ export default function ShareablePlayerCard({ player }: { player: Player }) {
               {/* tagline + url */}
               <div style={{ position: "absolute", bottom: 18, left: 22, right: 22 }}>
                 <div style={{ fontSize: 9, color: "#7f93a8" }}>{t("shareCard.tagline")}</div>
-                <div style={{ fontSize: 9, color: "#5a6b7d", marginTop: 2 }}>futuro-club.vercel.app</div>
+                <div style={{ fontSize: 9, color: "#5a6b7d", marginTop: 2 }}>{PUBLIC_HOST}</div>
               </div>
             </div>
 

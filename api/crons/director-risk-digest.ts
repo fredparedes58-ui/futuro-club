@@ -18,6 +18,7 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
+import { env } from "../_lib/env";
 import { successResponse } from "../_lib/apiResponse";
 import { sendEmail } from "../_lib/email";
 
@@ -78,7 +79,7 @@ function digestHtml(players: Array<{ name: string; score: number; level: string 
       <p style="margin:0;color:#92400e;font-size:13px;line-height:1.5;">🧪 <strong>Datos de ejemplo.</strong> El riesgo mostrado es una previsualización del modelo, aún sin señales reales por jugador (asistencia, implicación o carga). No representa datos medidos.</p>
     </div>
     <p style="text-align:center;margin:24px 0 0;">
-      <a href="https://futuro-club.vercel.app/director" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">Ver Radar completo →</a>
+      <a href="${env.publicUrl}/director" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">Ver Radar completo →</a>
     </p>
     <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:20px;">VITAS · Football Intelligence · retención con corrección PHV</p>
   </div></body></html>`;
