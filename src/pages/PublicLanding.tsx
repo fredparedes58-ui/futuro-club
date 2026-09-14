@@ -231,7 +231,7 @@ export default function PublicLanding() {
     set("description", t("publicLanding.metaDescription"));
     set("og:title", "VITAS · Football Intelligence", true);
     set("og:description", t("publicLanding.ogDescription"), true);
-    set("og:image", "/og-image.png", true);
+    set("og:image", `${PUBLIC_URL}/og-image.png`, true);
     set("og:url", PUBLIC_URL, true);
     set("twitter:card", "summary_large_image");
   }, [t]);
