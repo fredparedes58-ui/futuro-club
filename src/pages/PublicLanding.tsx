@@ -358,7 +358,6 @@ export default function PublicLanding() {
                   </div>
                 </div>
               </div>
-              <p className="mt-6 text-sm text-[#37425f] leading-relaxed">{t("publicLanding.exampleConclusion")}</p>
             </div>
           </motion.div>
         </div>
@@ -367,13 +366,12 @@ export default function PublicLanding() {
       {/* ── FEATURES ──────────────────────────────────────────── */}
       <section id="features" className="relative">
         <div className="vl-wrap py-16 md:py-20">
-          <h2 className="font-display font-bold text-center mb-3" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.featuresHeading")}</h2>
-          <p className="text-sm text-[#37425f] text-center mb-12 max-w-2xl mx-auto">{t("publicLanding.featuresSubtitle")}</p>
+          <h2 className="font-display font-bold text-center mb-10" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.featuresHeading")}</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <FeatureCard icon={Brain} title={t("publicLanding.featureAiTitle")} color="#A855F7" description={t("publicLanding.featureAiDesc")} />
-            <FeatureCard icon={Activity} title="VSI + PHV" color="#0059B3" description={t("publicLanding.featureVsiDesc")} />
-            <FeatureCard icon={Eye} title={t("publicLanding.featureScanTitle")} color="#0fb6d6" description={t("publicLanding.featureScanDesc")} />
-            <FeatureCard icon={Send} title={t("publicLanding.featureTelegramTitle")} color="#E6197A" description={t("publicLanding.featureTelegramDesc")} />
+            <VisualFeature icon={Brain} title={t("publicLanding.featureAiTitle")} color="#A855F7" mock="report" />
+            <VisualFeature icon={Activity} title="VSI + PHV" color="#0059B3" mock="vsi" />
+            <VisualFeature icon={Eye} title={t("publicLanding.featureScanTitle")} color="#0fb6d6" mock="scan" />
+            <VisualFeature icon={Send} title={t("publicLanding.featureTelegramTitle")} color="#E6197A" mock="telegram" />
           </div>
         </div>
       </section>
@@ -393,8 +391,7 @@ export default function PublicLanding() {
       {/* ── PRICING ───────────────────────────────────────────── */}
       <section id="pricing" className="relative">
         <div className="vl-wrap py-16 md:py-20">
-          <h2 className="font-display font-bold text-center mb-3" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.pricingHeading")}</h2>
-          <p className="text-sm text-[#37425f] text-center mb-12">{t("publicLanding.pricingSubtitle")}</p>
+          <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.pricingHeading")}</h2>
           <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
             <PlanTier name="Free" description={t("publicLanding.planFreeDesc")} features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
             <PlanTier name="Pro" description={t("publicLanding.planProDesc")} highlight features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
@@ -413,10 +410,9 @@ export default function PublicLanding() {
         <div className="vl-wrap py-20 text-center relative">
           <Spark size={16} color="#f59e0b" style={{ left: "24%", top: -8, animationDelay: ".4s" }} />
           <Spark size={13} color="#0059B3" style={{ right: "24%", top: 24, animationDelay: "1.4s" }} />
-          <h3 className="font-display font-bold leading-tight" style={{ fontSize: "clamp(32px,4.4vw,56px)" }}>
+          <h3 className="font-display font-bold leading-tight mb-8" style={{ fontSize: "clamp(32px,4.4vw,56px)" }}>
             {t("publicLanding.ctaHeading")}
           </h3>
-          <p className="text-sm text-[#37425f] mt-4 mb-8 max-w-xl mx-auto">{t("publicLanding.ctaParagraph")}</p>
           <Link to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Link>
         </div>
       </section>
@@ -442,19 +438,56 @@ export default function PublicLanding() {
 }
 
 // ── Subcomponentes ─────────────────────────────────────────────────────────────
-function FeatureCard({ icon: Icon, title, description, color }: {
-  icon: React.ElementType; title: string; description: string; color: string;
+function VisualFeature({ icon: Icon, title, color, mock }: {
+  icon: React.ElementType; title: string; color: string; mock: "report" | "vsi" | "scan" | "telegram";
 }) {
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="rounded-2xl p-6 space-y-3 border bg-white"
+      className="rounded-2xl p-4 border bg-white overflow-hidden"
       style={{ borderColor: "rgba(0,89,179,.12)", boxShadow: "0 18px 44px rgba(20,40,120,.08)" }}
     >
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: `${color}15` }}><Icon size={20} style={{ color }} /></div>
-      <h3 className="font-display font-bold text-base text-[#0b1226]">{title}</h3>
-      <p className="text-xs text-[#37425f] leading-relaxed">{description}</p>
+      <div className="rounded-xl h-36 mb-4 p-3 relative overflow-hidden" style={{ background: "linear-gradient(160deg,#f8fafe,#eef2fb)", border: "1px solid rgba(0,89,179,.08)" }}>
+        {mock === "report" && (
+          <div className="h-full flex flex-col">
+            <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">Informe IA · listo</span></div>
+            <div className="space-y-2">
+              <div className="h-2 rounded-full" style={{ width: "88%", background: "rgba(168,85,247,.28)" }} />
+              <div className="h-2 rounded-full" style={{ width: "72%", background: "rgba(0,89,179,.20)" }} />
+              <div className="h-2 rounded-full" style={{ width: "56%", background: "rgba(0,89,179,.14)" }} />
+            </div>
+            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>Fortalezas · PHV · Proyección</span>
+          </div>
+        )}
+        {mock === "vsi" && (
+          <div className="h-full flex items-center justify-center gap-3">
+            <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">Clásico</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
+            <ArrowRight size={18} style={{ color: "#A855F7" }} />
+            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>Con PHV</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
+          </div>
+        )}
+        {mock === "scan" && (
+          <div className="h-full rounded-lg relative overflow-hidden" style={{ background: "linear-gradient(160deg,#e0f4ea,#d0eede)", border: "1px solid rgba(18,150,100,.18)" }}>
+            <div className="absolute inset-y-2 left-1/2 w-px" style={{ background: "rgba(18,150,100,.28)" }} />
+            <div className="absolute left-1/2 top-1/2 w-9 h-9 -translate-x-1/2 -translate-y-1/2 rounded-full border" style={{ borderColor: "rgba(18,150,100,.28)" }} />
+            <div className="absolute w-12 h-12 rounded-full" style={{ left: "48%", top: "16%", background: "radial-gradient(circle,rgba(230,25,122,.42),transparent 70%)" }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "22%", top: "34%", background: "#0059B3" }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "62%", top: "56%", background: "#A855F7" }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "40%", top: "72%", background: "#E6197A" }} />
+          </div>
+        )}
+        {mock === "telegram" && (
+          <div className="h-full flex flex-col justify-center gap-2">
+            <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>¿Cómo va Rodríguez esta semana?</div>
+            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>VSI 94 ▲ · PHV +0.38 · listo para el reto ✅</div>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2.5">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}15` }}><Icon size={17} style={{ color }} /></div>
+        <h3 className="font-display font-bold text-sm text-[#0b1226] leading-tight">{title}</h3>
+      </div>
     </motion.div>
   );
 }
