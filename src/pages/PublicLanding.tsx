@@ -390,8 +390,9 @@ export default function PublicLanding() {
           </div>
           <div className="flex gap-5 md:gap-7 overflow-x-auto pb-4 md:justify-center snap-x -mx-4 px-4 md:mx-0 md:px-0">
             <PhoneShot src="/shots/shot-pulse.png" alt="VITAS · centro de inteligencia" delay={0} />
-            <PhoneShot src="/shots/shot-player.png" alt="Perfil de jugador con corrección PHV" delay={0.08} />
-            <PhoneShot src="/shots/shot-lab.png" alt="VITAS.LAB · calibración y tracking en campo" delay={0.16} />
+            <PhoneShot src="/shots/shot-player.png" alt="Perfil de jugador con corrección PHV" delay={0.06} />
+            <PhoneShot src="/shots/shot-stats.png" alt="Informe de partido generado por IA" delay={0.12} />
+            <PhoneShot src="/shots/shot-lab.png" alt="VITAS.LAB · calibración y tracking en campo" delay={0.18} />
             <PhoneShot src="/shots/shot-rankings.png" alt="Rankings por VSI ajustado a maduración" delay={0.24} />
           </div>
         </div>
