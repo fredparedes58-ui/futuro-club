@@ -8,7 +8,7 @@ npx lint-staged || exit 1
 #    Filtramos errores de tests preexistentes para no bloquear commits
 #    en archivos no relacionados.
 echo "🔍 Chequeando types de api/ (Vercel Edge Functions)..."
-ERRORS=$(npx tsc --project api/tsconfig.json --noEmit 2>&1 | grep -E "^api/" | grep -vE "test\.ts|__tests__|_player-report\.ts" || true)
+ERRORS=$(npx tsc --project api/tsconfig.json --noEmit 2>&1 | grep -E "^api/" | grep -vE "test\.ts|__tests__" || true)
 if [ -n "$ERRORS" ]; then
   echo "❌ Errores TS en api/ que romperian el deploy de Vercel:"
   echo "$ERRORS"

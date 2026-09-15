@@ -188,7 +188,7 @@ BIOMECÁNICA (agregados de pose; NO confundir con las observaciones de arriba):
 ${JSON.stringify(input.biomechanics ?? "no_data", null, 2)}
 
 COMPARABLES PRO (top-1 si existe):
-${JSON.stringify(input.similarity?.matches?.[0] ?? "no_data", null, 2)}
+${JSON.stringify((input.similarity?.matches as unknown[] | undefined)?.[0] ?? "no_data", null, 2)}
 
 Genera el Player Report en JSON estricto.`;
 
