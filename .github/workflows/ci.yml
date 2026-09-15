@@ -29,6 +29,11 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -40,6 +45,25 @@ jobs:
 
       - name: ESLint
         run: npm run lint
+
+      # api/ (Vercel Edge Functions) NO está en tsconfig.app.json → sus errores de tipo
+      # solo aparecían en el deploy. Replicamos el filtro del pre-commit (solo ^api/, sin
+      # tests) para cazarlos en CI. Ya SIN el whitelist de _player-report.ts (TS7053 corregido).
+      - name: API type check (Vercel Edge Functions)
+        run: |
+          ERRORS=$(npx tsc --project api/tsconfig.json --noEmit 2>&1 | grep -E "^api/" | grep -vE "test\.ts|__tests__" || true)
+          if [ -n "$ERRORS" ]; then
+            echo "::error::TypeScript errors in api/ (would break the Vercel deploy):"
+            echo "$ERRORS"
+            exit 1
+          fi
+          echo "api/ types OK"
+
+      # Arnés de honestidad de métricas (CLAUDE.md invariante 1). Antes solo corría en el
+      # pre-commit local (saltable con --no-verify). --baseline: solo fallan violaciones NUEVAS;
+      # la deuda conocida vive en config/metrics.baseline.json.
+      - name: Metric provenance audit (honesty harness)
+        run: python scripts/audit_metrics.py --baseline
 
   # ── Step 2: Unit & Integration Tests ───────────────────────────────────────
   test-unit:
