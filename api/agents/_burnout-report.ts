@@ -59,7 +59,7 @@ const burnoutReportSchema = z.object({
   }).optional(),
   // Attendance
   attendance: z.object({
-    rate: z.number(),
+    rate: z.number().nullable(), // null = sin sesiones registradas (no 100%)
     consecutiveAbsences: z.number(),
     recentTrend: z.string(),
   }).optional(),
@@ -117,7 +117,7 @@ ${mot ? `- Tipo: ${mot.type}
 - Confianza clasificación: ${(mot.confidence * 100).toFixed(0)}%` : "No disponible"}
 
 ## ASISTENCIA
-${att ? `- Tasa: ${att.rate}%
+${att ? `- Tasa: ${att.rate === null ? "sin datos (sin sesiones registradas)" : att.rate + "%"}
 - Ausencias consecutivas: ${att.consecutiveAbsences}
 - Tendencia reciente: ${att.recentTrend}` : "No disponible"}
 

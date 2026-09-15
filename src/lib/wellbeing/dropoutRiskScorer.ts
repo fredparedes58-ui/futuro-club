@@ -95,8 +95,15 @@ export function scoreDropoutRisk(input: DropoutRiskInput): DropoutRiskOutput {
     weights.lowResilience = 0;
   }
 
-  // Attendance score
-  const attendanceScore = Math.max(0, 100 - attendance.rate);
+  // Attendance score: GATEADO. Sin sesiones registradas la asistencia es null
+  // (no un 100% inventado) → se EXCLUYE el factor y su peso se redistribuye
+  // (mismo patrón que resilience), en vez de fabricar "0 riesgo por asistencia".
+  const attendanceScore = attendance.rate === null ? null : Math.max(0, 100 - attendance.rate);
+  if (attendanceScore === null) {
+    weights.engagementDecline += weights.attendanceDecline * 0.6;
+    weights.motivationType += weights.attendanceDecline * 0.4;
+    weights.attendanceDecline = 0;
+  }
 
   // Factor scores
   const factorScores = {
@@ -104,7 +111,7 @@ export function scoreDropoutRisk(input: DropoutRiskInput): DropoutRiskOutput {
     motivationType: motivation.inherentDropoutRisk,
     overtrainingRisk: overtraining.overtrainingRisk,
     vsiStagnation,
-    attendanceDecline: attendanceScore,
+    attendanceDecline: attendanceScore ?? 0,
     injuryRecurrence,
     growthSpurtStress,
     lowResilience: resilienceScore ?? 0,
@@ -144,7 +151,7 @@ export function scoreDropoutRisk(input: DropoutRiskInput): DropoutRiskOutput {
       motivationType: { score: motivation.inherentDropoutRisk, weight: weights.motivationType },
       overtrainingRisk: { score: overtraining.overtrainingRisk, weight: weights.overtrainingRisk },
       vsiStagnation: { score: vsiStagnation, weight: weights.vsiStagnation },
-      attendanceDecline: { score: attendanceScore, weight: weights.attendanceDecline },
+      attendanceDecline: { score: attendanceScore ?? 0, weight: weights.attendanceDecline },
       injuryRecurrence: { score: injuryRecurrence, weight: weights.injuryRecurrence },
       growthSpurtStress: { score: growthSpurtStress, weight: weights.growthSpurtStress },
       lowResilience: resilienceScore !== null

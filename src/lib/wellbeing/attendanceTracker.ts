@@ -20,8 +20,9 @@ export interface AttendanceRecord {
 
 export interface AttendanceProfile {
   playerId: string;
-  /** Overall attendance rate (0-100) */
-  rate: number;
+  /** Overall attendance rate (0-100), o null si no hay sesiones registradas.
+   *  Sin datos NO es asistencia perfecta: inv#2 → se bloquea (null), no se rellena. */
+  rate: number | null;
   /** Total sessions in window */
   totalSessions: number;
   /** Sessions attended */
@@ -66,7 +67,7 @@ export function calculateAttendanceProfile(
   if (total === 0) {
     return {
       playerId,
-      rate: 100,
+      rate: null, // sin sesiones registradas → asistencia DESCONOCIDA, no 100% (inv#2)
       totalSessions: 0,
       attended: 0,
       absent: 0,

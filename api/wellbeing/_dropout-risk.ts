@@ -249,7 +249,9 @@ export default withHandler(
 
     // recentTrend de asistencia (AttendanceProfile no lo trae): de la alerta/racha.
     const recentTrend =
-      attendance.consecutiveAbsences >= 2 ? "declining" : attendance.rate >= 85 ? "stable" : "declining";
+      attendance.rate === null ? "sin datos" :
+      attendance.consecutiveAbsences >= 2 ? "declining" :
+      attendance.rate >= 85 ? "stable" : "declining";
 
     const assessment = {
       playerId,
