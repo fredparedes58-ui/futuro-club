@@ -85,6 +85,20 @@ function tierFromPriceId(priceId: string): string | null {
   return null;
 }
 
+// Mapea el tier de facturación (personal/pro/academia/agencia) al plan de
+// AUTORIZACIÓN (free/pro/club) que leen los gates premium (withHandler.plan,
+// usePlan). Antes este webhook solo escribía plan_tier → plan se quedaba en
+// 'free' por defecto → quien pagaba por la UI recibía 403 en todo lo premium.
+// NOTA PRODUCTO: 'personal' → 'free' (no está anunciado con endpoints pro/club).
+export function planFromTier(tier: string): "free" | "pro" | "club" {
+  switch (tier) {
+    case "pro": return "pro";
+    case "academia":
+    case "agencia": return "club";
+    default: return "free"; // 'personal' y desconocidos
+  }
+}
+
 async function upsertSubscription(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -98,6 +112,12 @@ async function upsertSubscription(
     console.warn("[VITAS] Stripe webhook missing user_id or plan_tier", sub.id);
     return;
   }
+
+  // Plan de autorización sincronizado con plan_tier, GATEADO por status: una
+  // suscripción cancelada/impagada debe llevar plan='free' (usePlan lee plan sin
+  // re-chequear status). Mismo criterio fail-closed que withHandler.
+  const grants = sub.status === "active" || sub.status === "trialing";
+  const plan = grants ? planFromTier(planTier) : "free";
 
   // Get tenant_id from existing user data
   const { data: existing } = await supabase
@@ -118,6 +138,7 @@ async function upsertSubscription(
       stripe_subscription_id: sub.id,
       stripe_price_id: sub.items.data[0]?.price?.id ?? null,
       plan_tier: planTier,
+      plan, // autorización free/pro/club — sincronizada con plan_tier vía planFromTier (ITEM #11)
       user_persona: userPersona,
       status: sub.status,
       current_period_start: sub.current_period_start
@@ -130,7 +151,11 @@ async function upsertSubscription(
       canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
       trial_end: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
     },
-    { onConflict: "stripe_subscription_id" }
+    // onConflict: user_id (PK). El único índice único sobre stripe_subscription_id
+    // es PARCIAL (WHERE ... IS NOT NULL) y no sirve como árbitro de ON CONFLICT sin
+    // su predicado (42P10 abortaría el upsert). user_id también evita la violación de
+    // PK al resuscribirse (nuevo sub_id, mismo usuario). Una fila de suscripción por usuario.
+    { onConflict: "user_id" }
   );
 }
 
