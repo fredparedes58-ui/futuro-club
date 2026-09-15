@@ -58,7 +58,7 @@ export default function ListingDetailPage() {
             <h1 className="text-lg font-display font-bold">{t("listingDetailPage.notFoundTitle")}</h1>
           </div>
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-16 text-center">
           <p className="text-sm text-muted-foreground mb-4">
             {t("listingDetailPage.notFoundDescription")}
           </p>

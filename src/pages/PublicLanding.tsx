@@ -6,7 +6,7 @@
  * (balones, chips de telemetría), destellos y una secuencia de entrada
  * escalonada. Menos texto, más impacto. NADA de fondo oscuro (regla del cliente).
  *
- * Paleta: Blue #0059B3 · Azure #2f7cf6 · Violet #A855F7 · Magenta #E6197A · Gold #F59E0B
+ * Paleta VITAS azul-dominante (sin morado): Blue #0059B3 · Azure #2f7cf6 · Cyan #0fb6d6 · Magenta #E6197A (acento) · Gold #F59E0B (acento)
  */
 import { useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -29,11 +29,11 @@ const LOGIN_HREF = IS_DEMO ? "/pulse" : "/login";
 
 // ── Estilos scoped (prefijo vl-) ──────────────────────────────────────────────
 const STYLES = `
-.vl-root{--paper:#f4f7ff;--card:#fff;--blue:#0059B3;--azure:#2f7cf6;--cyan:#0fb6d6;--violet:#a855f7;--magenta:#e6197a;--gold:#f59e0b;
+.vl-root{--paper:#f4f7ff;--card:#fff;--blue:#0059B3;--azure:#2f7cf6;--cyan:#0fb6d6;--magenta:#e6197a;--gold:#f59e0b;
   --ink:#0b1226;--ink2:#37425f;--muted:#6c7794;--glass:rgba(255,255,255,.74);--vline:rgba(0,89,179,.14);
   --dispf:'Rajdhani',system-ui,sans-serif;--monof:'Geist Mono',ui-monospace,monospace;
   background:var(--paper);color:var(--ink);position:relative;overflow:hidden}
-.vl-bar{height:4px;background:linear-gradient(90deg,var(--gold),var(--magenta),var(--violet),var(--blue))}
+.vl-bar{height:4px;background:linear-gradient(90deg,var(--gold),var(--magenta),var(--azure),var(--blue))}
 .vl-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .vl-aurora{position:absolute;border-radius:50%;filter:blur(34px);animation:vl-drift 22s ease-in-out infinite}
 .vl-grid{position:absolute;inset:0;opacity:.55;background-image:linear-gradient(rgba(11,18,38,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(11,18,38,.035) 1px,transparent 1px);background-size:58px 58px;-webkit-mask-image:radial-gradient(ellipse at 50% 20%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 20%,#000 30%,transparent 78%)}
@@ -41,26 +41,26 @@ const STYLES = `
 .vl-badge{display:inline-flex;align-items:center;gap:9px;padding:8px 15px;border-radius:999px;font-family:var(--monof);font-size:12px;letter-spacing:1px;color:var(--blue);background:rgba(0,89,179,.07);border:1px solid rgba(0,89,179,.18)}
 .vl-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 9px rgba(0,89,179,.6);animation:vl-blink 1.5s infinite}
 .vl-h1{font-family:var(--dispf);font-weight:700;line-height:.98;letter-spacing:-.5px;margin:0;font-size:clamp(46px,6.4vw,92px)}
-.vl-h1 .g{background:linear-gradient(100deg,var(--blue),var(--violet) 40%,var(--magenta) 74%,var(--gold));background-size:220%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:vl-rise .9s cubic-bezier(.16,1,.3,1) both,vl-shimmer 7s linear infinite}
-.vl-btn{font-family:var(--dispf);font-weight:700;letter-spacing:2.5px;text-transform:uppercase;font-size:15px;padding:16px 32px;border-radius:14px;color:#fff;display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--magenta),var(--violet) 52%,var(--azure));box-shadow:0 16px 40px rgba(230,25,122,.28),0 6px 18px rgba(47,124,246,.2);transition:transform .2s}
+.vl-h1 .g{background:linear-gradient(100deg,var(--blue),var(--azure) 40%,var(--magenta) 74%,var(--gold));background-size:220%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:vl-rise .9s cubic-bezier(.16,1,.3,1) both,vl-shimmer 7s linear infinite}
+.vl-btn{font-family:var(--dispf);font-weight:700;letter-spacing:2.5px;text-transform:uppercase;font-size:15px;padding:16px 32px;border-radius:14px;color:#fff;display:inline-flex;align-items:center;gap:10px;background:linear-gradient(90deg,var(--blue),var(--azure) 55%,var(--magenta));box-shadow:0 16px 40px rgba(0,89,179,.26),0 6px 18px rgba(47,124,246,.2);transition:transform .2s}
 .vl-btn:hover{transform:translateY(-2px) scale(1.02)}
 .vl-ghost{font-family:var(--dispf);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;font-size:14px;padding:15px 24px;border-radius:14px;color:var(--ink2);border:1px solid rgba(0,89,179,.2);background:rgba(255,255,255,.6)}
 .vl-mini{display:flex;gap:34px;flex-wrap:wrap}
-.vl-mini .v{font-family:var(--dispf);font-weight:700;font-size:34px;background:linear-gradient(90deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.vl-mini .v{font-family:var(--dispf);font-weight:700;font-size:34px;background:linear-gradient(90deg,var(--blue),var(--azure));-webkit-background-clip:text;background-clip:text;color:transparent}
 .vl-mini .k{font-family:var(--monof);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:2px}
 .vl-showcase{position:relative;min-height:520px;display:flex;align-items:center;justify-content:center}
-.vl-phoneglow{position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.22),transparent 66%);filter:blur(12px)}
+.vl-phoneglow{position:absolute;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(47,124,246,.22),transparent 66%);filter:blur(12px)}
 .vl-obj{position:absolute}
 .vl-halo{position:absolute;inset:-30%;border-radius:50%;filter:blur(10px)}
 .vl-chip{position:absolute;display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:13px;background:var(--glass);border:1px solid var(--vline);backdrop-filter:blur(14px);box-shadow:0 14px 34px rgba(20,40,120,.14);font-family:var(--monof);font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
 .vl-chip .d{width:8px;height:8px;border-radius:50%}
 .vl-chip small{font-weight:600;font-size:9.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
-.vl-spark{position:absolute;pointer-events:none;animation:vl-twinkle 3s ease-in-out infinite;filter:drop-shadow(0 0 5px rgba(168,85,247,.5))}
+.vl-spark{position:absolute;pointer-events:none;animation:vl-twinkle 3s ease-in-out infinite;filter:drop-shadow(0 0 5px rgba(47,124,246,.5))}
 .vl-reveal{max-width:820px;margin:52px auto 0;padding:36px;border-radius:26px;position:relative;background:var(--card);border:1px solid var(--vline);box-shadow:0 40px 90px rgba(20,40,120,.16)}
 .vl-rc{display:grid;grid-template-columns:1fr auto 1fr;gap:26px;align-items:center}
 .vl-big{font-family:var(--dispf);font-weight:700;font-size:clamp(56px,8vw,78px);line-height:1}
 .vl-gauge{width:150px;max-width:40vw;height:7px;border-radius:7px;background:#e6edf9;overflow:hidden}
-.vl-gauge i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--blue),var(--violet),var(--magenta));width:81%;animation:vl-fillg 1.6s cubic-bezier(.16,1,.3,1) both}
+.vl-gauge i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,var(--blue),var(--azure),var(--magenta));width:81%;animation:vl-fillg 1.6s cubic-bezier(.16,1,.3,1) both}
 .vl-delta{font-family:var(--dispf);font-weight:700;font-size:30px;color:var(--blue);text-shadow:0 6px 18px rgba(0,89,179,.24)}
 .vl-in{opacity:0;animation:vl-rise .9s cubic-bezier(.16,1,.3,1) forwards}
 .vl-pop{opacity:0;animation:vl-pop .7s cubic-bezier(.16,1,.3,1) forwards}
@@ -97,7 +97,7 @@ function AuroraField() {
   return (
     <div className="vl-bg" aria-hidden="true">
       <div className="vl-aurora" style={{ width: 640, height: 640, left: -140, top: -160, background: "radial-gradient(circle,rgba(47,124,246,.26),transparent 62%)" }} />
-      <div className="vl-aurora" style={{ width: 600, height: 600, right: -120, top: -120, background: "radial-gradient(circle,rgba(168,85,247,.22),transparent 62%)", animationDelay: "-6s" }} />
+      <div className="vl-aurora" style={{ width: 600, height: 600, right: -120, top: -120, background: "radial-gradient(circle,rgba(47,124,246,.22),transparent 62%)", animationDelay: "-6s" }} />
       <div className="vl-aurora" style={{ width: 560, height: 560, left: "38%", top: 540, background: "radial-gradient(circle,rgba(230,25,122,.16),transparent 64%)", animationDelay: "-11s" }} />
       <div className="vl-aurora" style={{ width: 420, height: 420, right: "22%", top: 360, background: "radial-gradient(circle,rgba(245,158,11,.16),transparent 64%)", animationDelay: "-3s" }} />
       <div className="vl-grid" />
@@ -149,7 +149,7 @@ function PhoneMockup() {
           <div className="px-3 pb-4">
             <div className="flex items-center justify-between py-1.5">
               <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}>
                   <Zap size={10} className="text-white" />
                 </div>
                 <span className="text-[9px] font-display font-bold text-[#0b1226]">VITAS</span>
@@ -161,7 +161,7 @@ function PhoneMockup() {
             <div className="grid grid-cols-3 gap-1.5 mb-2.5">
               {[
                 { label: "VSI AVG", value: "72.4", color: "#0059B3" },
-                { label: t("publicLanding.statActive"), value: "342", color: "#A855F7" },
+                { label: t("publicLanding.statActive"), value: "342", color: "#2f7cf6" },
                 { label: t("publicLanding.statAlerts"), value: "18", color: "#F59E0B" },
               ].map((s) => (
                 <div key={s.label} className="rounded-lg p-1.5 text-center border" style={{ background: "#f4f7ff", borderColor: "#e6edf9" }}>
@@ -190,7 +190,7 @@ function PhoneMockup() {
                 <span className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full" style={{ color: "#0059B3", background: "rgba(0,89,179,.1)" }}>{t("publicLanding.lateMaturer")}</span>
               </div>
               <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "#e6edf9" }}>
-                <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)" }} initial={{ width: 0 }} animate={{ width: "68%" }} transition={{ duration: 1.5, delay: 1, ease: "easeOut" }} />
+                <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#0059B3,#2f7cf6)" }} initial={{ width: 0 }} animate={{ width: "68%" }} transition={{ duration: 1.5, delay: 1, ease: "easeOut" }} />
               </div>
             </div>
           </div>
@@ -282,10 +282,10 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
           {/* nav */}
           <nav className="flex items-center justify-between py-6 relative z-20" style={{ animation: "vl-fadein .8s .05s both" }}>
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)", boxShadow: "0 8px 22px rgba(0,89,179,.32)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)", boxShadow: "0 8px 22px rgba(0,89,179,.32)" }}>
                 <Zap size={19} className="text-white" />
               </div>
-              <span className="font-display font-bold text-[22px]">V<span style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>I</span>TAS</span>
+              <span className="font-display font-bold text-[22px]">V<span style={{ background: "linear-gradient(90deg,#0059B3,#2f7cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>I</span>TAS</span>
               <span className="text-[10px] font-display text-[#6c7794] hidden sm:block ml-1">FOOTBALL INTELLIGENCE</span>
             </div>
             <div className="hidden md:flex items-center gap-6 text-sm font-display font-semibold text-[#37425f]">
@@ -296,13 +296,13 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
               {isLoggedIn || IS_DEMO ? (
-                <Cta embed={embed} to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                <Cta embed={embed} to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}>
                   {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.dashboard")} <ArrowRight size={12} />
                 </Cta>
               ) : (
                 <>
                   <Cta embed={embed} to="/login" className="text-xs font-display font-semibold text-[#37425f] hover:text-[#0059B3] transition-colors hidden sm:block">{t("publicLanding.login")}</Cta>
-                  <Cta embed={embed} to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                  <Cta embed={embed} to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}>
                     {t("publicLanding.startFree")} <ArrowRight size={12} />
                   </Cta>
                 </>
@@ -339,12 +339,12 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
               <Ball id="vlb1" size={104} stroke="#0059B3" halo="rgba(0,89,179,.28)" style={{ left: "-4%", top: "4%", animation: "vl-float 8s 1.4s ease-in-out infinite" }} />
               <Ball id="vlb2" size={80} stroke="#e6197a" halo="rgba(230,25,122,.26)" spin style={{ right: "-2%", bottom: "4%", animation: "vl-float2 7s 1.2s ease-in-out infinite" }} />
               <div className="vl-chip vl-pop" style={{ left: "-8%", top: "36%", animationDelay: "1s" }}><span className="d" style={{ background: "#0059B3", boxShadow: "0 0 8px rgba(0,89,179,.6)" }} />PHV +0.38 <small>{t("publicLanding.chipMaturation", "maduración")}</small></div>
-              <div className="vl-chip vl-pop" style={{ right: "-6%", top: "18%", animationDelay: "1.15s" }}><span className="d" style={{ background: "#a855f7", boxShadow: "0 0 8px rgba(168,85,247,.6)" }} />VAEP +0.142</div>
+              <div className="vl-chip vl-pop" style={{ right: "-6%", top: "18%", animationDelay: "1.15s" }}><span className="d" style={{ background: "#2f7cf6", boxShadow: "0 0 8px rgba(47,124,246,.6)" }} />VAEP +0.142</div>
               <div className="vl-chip vl-pop" style={{ left: "2%", bottom: "2%", animationDelay: "1.3s" }}><span className="d" style={{ background: "#12b981", boxShadow: "0 0 8px rgba(18,185,129,.6)" }} />{t("publicLanding.chipElite", "Nivel élite")}</div>
               <Spark size={18} color="#0059B3" style={{ left: "12%", top: "2%", animationDelay: ".3s" }} />
               <Spark size={13} color="#f59e0b" style={{ right: "16%", top: "12%", animationDelay: "1.1s" }} />
               <Spark size={15} color="#e6197a" style={{ right: "6%", bottom: "24%", animationDelay: "1.9s" }} />
-              <Spark size={12} color="#a855f7" style={{ left: "6%", bottom: "18%", animationDelay: ".7s" }} />
+              <Spark size={12} color="#2f7cf6" style={{ left: "6%", bottom: "18%", animationDelay: ".7s" }} />
             </div>
           </div>
         </div>
@@ -354,7 +354,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
       <section id="phv" className="relative border-y" style={{ borderColor: "rgba(0,89,179,.1)" }}>
         <div className="vl-bg" aria-hidden="true">
           <div className="vl-aurora" style={{ width: 520, height: 520, left: "8%", top: 40, background: "radial-gradient(circle,rgba(47,124,246,.16),transparent 64%)" }} />
-          <div className="vl-aurora" style={{ width: 480, height: 480, right: "10%", top: 60, background: "radial-gradient(circle,rgba(168,85,247,.16),transparent 64%)", animationDelay: "-8s" }} />
+          <div className="vl-aurora" style={{ width: 480, height: 480, right: "10%", top: 60, background: "radial-gradient(circle,rgba(47,124,246,.16),transparent 64%)", animationDelay: "-8s" }} />
         </div>
         <div className="vl-wrap py-20 text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
@@ -363,12 +363,12 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
             </span>
             <h2 className="font-display font-bold leading-tight mt-6 mx-auto max-w-3xl" style={{ fontSize: "clamp(34px,4.6vw,64px)" }}>
               {t("publicLanding.phvHeadingStart")}{" "}
-              <span style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t("publicLanding.phvHeadingAccent")}</span>
+              <span style={{ background: "linear-gradient(90deg,#0059B3,#2f7cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t("publicLanding.phvHeadingAccent")}</span>
             </h2>
 
             <div className="vl-reveal">
               <Spark size={16} color="#0059B3" style={{ left: -6, top: -8, animationDelay: ".3s" }} />
-              <Spark size={13} color="#a855f7" style={{ right: 14, bottom: 10, animationDelay: "1.2s" }} />
+              <Spark size={13} color="#2f7cf6" style={{ right: 14, bottom: 10, animationDelay: "1.2s" }} />
               <div className="vl-rc">
                 <div className="text-center">
                   <div className="font-bold text-sm text-[#0b1226] mb-3.5">Hugo · Q4 · 1.42 m</div>
@@ -383,8 +383,8 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
                 <div className="text-center">
                   <div className="font-bold text-sm text-[#0b1226] mb-3.5">{t("publicLanding.phvCorrectedLabel")}</div>
                   <div className="font-mono text-[10px] uppercase tracking-wider text-[#6c7794]">VSI VITAS</div>
-                  <div className="vl-big" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div>
-                  <div className="inline-flex items-center gap-1.5 mt-2 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)" }}>
+                  <div className="vl-big" style={{ background: "linear-gradient(90deg,#0059B3,#2f7cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div>
+                  <div className="inline-flex items-center gap-1.5 mt-2 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: "#2f7cf6", background: "rgba(47,124,246,.12)", border: "1px solid rgba(47,124,246,.3)" }}>
                     <Sparkles size={11} /> {t("publicLanding.hiddenGem", "Diamante oculto")}
                   </div>
                 </div>
@@ -399,7 +399,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
         <div className="vl-wrap py-16 md:py-20">
           <h2 className="font-display font-bold text-center mb-10" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.featuresHeading")}</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <VisualFeature icon={Brain} title={t("publicLanding.featureAiTitle")} color="#A855F7" mock="report" />
+            <VisualFeature icon={Brain} title={t("publicLanding.featureAiTitle")} color="#2f7cf6" mock="report" />
             <VisualFeature icon={Activity} title="VSI + PHV" color="#0059B3" mock="vsi" />
             <VisualFeature icon={Eye} title={t("publicLanding.featureScanTitle")} color="#0fb6d6" mock="scan" />
             <VisualFeature icon={Send} title={t("publicLanding.featureTelegramTitle")} color="#E6197A" mock="telegram" />
@@ -435,7 +435,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
           <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.stepsHeading")}</h2>
           <div className="grid md:grid-cols-3 gap-6">
             <StepCard num={1} title={t("publicLanding.step1Title")} icon={Target} color="#0059B3" description={t("publicLanding.step1Desc")} />
-            <StepCard num={2} title={t("publicLanding.step2Title")} icon={Zap} color="#A855F7" description={t("publicLanding.step2Desc")} />
+            <StepCard num={2} title={t("publicLanding.step2Title")} icon={Zap} color="#2f7cf6" description={t("publicLanding.step2Desc")} />
             <StepCard num={3} title={t("publicLanding.step3Title")} icon={TrendingUp} color="#0fb6d6" description={t("publicLanding.step3Desc")} />
           </div>
         </div>
@@ -457,7 +457,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
       {/* ── FINAL CTA ─────────────────────────────────────────── */}
       <section className="relative">
         <div className="vl-bg" aria-hidden="true">
-          <div className="vl-aurora" style={{ width: 560, height: 560, left: "22%", top: -40, background: "radial-gradient(circle,rgba(168,85,247,.16),transparent 64%)" }} />
+          <div className="vl-aurora" style={{ width: 560, height: 560, left: "22%", top: -40, background: "radial-gradient(circle,rgba(47,124,246,.16),transparent 64%)" }} />
           <div className="vl-aurora" style={{ width: 420, height: 420, right: "20%", top: -20, background: "radial-gradient(circle,rgba(245,158,11,.16),transparent 64%)", animationDelay: "-4s" }} />
         </div>
         <div className="vl-wrap py-20 text-center relative">
@@ -474,7 +474,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
       <footer className="border-t" style={{ borderColor: "rgba(0,89,179,.1)" }}>
         <div className="vl-wrap py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}><Zap size={13} className="text-white" /></div>
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}><Zap size={13} className="text-white" /></div>
             <span className="text-xs text-[#6c7794]">VITAS · Football Intelligence © 2026</span>
           </div>
           <nav className="flex items-center gap-4 text-xs text-[#6c7794]">
@@ -507,18 +507,18 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
           <div className="h-full flex flex-col">
             <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">{t("publicLanding.mockReportReady", "Informe IA · listo")}</span></div>
             <div className="space-y-2">
-              <div className="h-2 rounded-full" style={{ width: "88%", background: "rgba(168,85,247,.28)" }} />
+              <div className="h-2 rounded-full" style={{ width: "88%", background: "rgba(47,124,246,.28)" }} />
               <div className="h-2 rounded-full" style={{ width: "72%", background: "rgba(0,89,179,.20)" }} />
               <div className="h-2 rounded-full" style={{ width: "56%", background: "rgba(0,89,179,.14)" }} />
             </div>
-            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>{t("publicLanding.mockReportTags", "Fortalezas · PHV · Proyección")}</span>
+            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#2f7cf6", background: "rgba(47,124,246,.12)" }}>{t("publicLanding.mockReportTags", "Fortalezas · PHV · Proyección")}</span>
           </div>
         )}
         {mock === "vsi" && (
           <div className="h-full flex items-center justify-center gap-3">
             <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">{t("publicLanding.mockClassic", "Clásico")}</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
-            <ArrowRight size={18} style={{ color: "#A855F7" }} />
-            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>{t("publicLanding.mockWithPhv", "Con PHV")}</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
+            <ArrowRight size={18} style={{ color: "#2f7cf6" }} />
+            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>{t("publicLanding.mockWithPhv", "Con PHV")}</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#2f7cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
           </div>
         )}
         {mock === "scan" && (
@@ -527,14 +527,14 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
             <div className="absolute left-1/2 top-1/2 w-9 h-9 -translate-x-1/2 -translate-y-1/2 rounded-full border" style={{ borderColor: "rgba(18,150,100,.28)" }} />
             <div className="absolute w-12 h-12 rounded-full" style={{ left: "48%", top: "16%", background: "radial-gradient(circle,rgba(230,25,122,.42),transparent 70%)" }} />
             <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "22%", top: "34%", background: "#0059B3" }} />
-            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "62%", top: "56%", background: "#A855F7" }} />
+            <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "62%", top: "56%", background: "#2f7cf6" }} />
             <span className="absolute w-2.5 h-2.5 rounded-full ring-2 ring-white" style={{ left: "40%", top: "72%", background: "#E6197A" }} />
           </div>
         )}
         {mock === "telegram" && (
           <div className="h-full flex flex-col justify-center gap-2">
             <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>{t("publicLanding.mockChatQuestion", "¿Cómo va Rodríguez esta semana?")}</div>
-            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>{t("publicLanding.mockChatAnswer", "VSI 94 ▲ · PHV +0.38 · listo para el reto ✅")}</div>
+            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}>{t("publicLanding.mockChatAnswer", "VSI 94 ▲ · PHV +0.38 · listo para el reto ✅")}</div>
           </div>
         )}
       </div>
@@ -587,7 +587,7 @@ function PlanTier({ name, description, features, highlight, embed }: {
       whileHover={{ y: -4 }}
       className={`rounded-2xl p-6 space-y-5 border ${highlight ? "text-white" : "bg-white"}`}
       style={highlight
-        ? { background: "linear-gradient(135deg,#0059B3,#A855F7)", borderColor: "#A855F7", boxShadow: "0 24px 60px rgba(168,85,247,.28)" }
+        ? { background: "linear-gradient(135deg,#0059B3,#2f7cf6)", borderColor: "#2f7cf6", boxShadow: "0 24px 60px rgba(47,124,246,.28)" }
         : { borderColor: "rgba(0,89,179,.12)", boxShadow: "0 18px 44px rgba(20,40,120,.08)" }}
     >
       {highlight && <span className="inline-block text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/20 text-white font-bold border border-white/30">{t("publicLanding.mostPopular")}</span>}
@@ -598,13 +598,13 @@ function PlanTier({ name, description, features, highlight, embed }: {
       <ul className="space-y-2.5 text-sm">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2">
-            <Check size={13} className={`shrink-0 mt-0.5 ${highlight ? "text-white/90" : ""}`} style={!highlight ? { color: "#A855F7" } : undefined} />
+            <Check size={13} className={`shrink-0 mt-0.5 ${highlight ? "text-white/90" : ""}`} style={!highlight ? { color: "#2f7cf6" } : undefined} />
             <span className={highlight ? "" : "text-[#37425f]"}>{f}</span>
           </li>
         ))}
       </ul>
       <Cta embed={embed} to={ENTRY_HREF} className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-transform hover:scale-[1.02] ${highlight ? "bg-white" : "text-white"}`}
-        style={highlight ? { color: "#0059B3" } : { background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+        style={highlight ? { color: "#0059B3" } : { background: "linear-gradient(135deg,#0059B3,#2f7cf6)" }}>
         {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.getStarted")}
       </Cta>
     </motion.div>

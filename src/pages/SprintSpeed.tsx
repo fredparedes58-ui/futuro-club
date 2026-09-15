@@ -121,7 +121,7 @@ export default function SprintSpeed() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 glass-strong border-b border-border">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back">
             <ArrowLeft size={18} />
           </Button>
@@ -130,7 +130,7 @@ export default function SprintSpeed() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+      <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-6 space-y-5">
         <p className="text-sm text-muted-foreground leading-relaxed">
           {t("sprintSpeed.intro")}
         </p>

@@ -77,7 +77,7 @@ export default function TransferMarketPage() {
             <h1 className="text-lg font-display font-bold">Transfer Intelligence</h1>
           </div>
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-16 text-center">
           <Lock className="size-8 text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold mb-2">{t("transferMarketPage.proFeatureTitle")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">

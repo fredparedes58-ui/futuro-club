@@ -76,7 +76,7 @@ export default function TacticalIndexPage() {
             </div>
           </div>
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-16 text-center">
           <Sparkles className="size-8 text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold text-foreground mb-2">{t("tacticalIndexPage.proFeature")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">

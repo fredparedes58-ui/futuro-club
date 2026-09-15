@@ -106,7 +106,7 @@ const Rankings = () => {
   }, []);
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-4 max-w-lg mx-auto">
+    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-4 max-w-lg lg:max-w-5xl mx-auto">
 
       {/* Datos de ejemplo cargados → rotular la vista (honestidad: no vender demo como real) */}
       {hasDemoPlayers && (

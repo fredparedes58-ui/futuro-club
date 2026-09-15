@@ -436,7 +436,7 @@ const PlayerForm = () => {
       variants={container}
       initial="hidden"
       animate="show"
-      className="px-4 pt-4 pb-28 space-y-5 max-w-lg mx-auto"
+      className="px-4 pt-4 pb-28 space-y-5 max-w-lg lg:max-w-5xl mx-auto"
     >
       {/* Header */}
       <motion.div variants={item} className="flex items-center gap-3">

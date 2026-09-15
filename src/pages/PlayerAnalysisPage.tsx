@@ -167,7 +167,7 @@ export default function PlayerAnalysisPage() {
         </p>
       </div>
 
-      <div className="px-4 py-4 max-w-3xl mx-auto">
+      <div className="px-4 py-4 max-w-3xl lg:max-w-5xl mx-auto">
         {analysisId ? (
           <AnalysisDashboard
             analysisId={analysisId}

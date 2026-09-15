@@ -41,7 +41,7 @@ export default function TacticalMatchPage() {
             </div>
           </div>
         </header>
-        <main className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-12 text-center">
           <Lock size={32} className="text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold text-foreground mb-2">{t("tacticalMatchPage.proFeatureHeading")}</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">

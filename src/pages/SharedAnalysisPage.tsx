@@ -82,7 +82,7 @@ export default function SharedAnalysisPage() {
     <div className="min-h-screen bg-background pb-12">
       {/* Public header · sin BottomNav */}
       <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
+        <div className="max-w-3xl lg:max-w-5xl mx-auto flex items-center gap-3">
           <Brain size={18} className="text-primary" />
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-display font-bold text-foreground truncate">
@@ -103,12 +103,12 @@ export default function SharedAnalysisPage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 max-w-3xl mx-auto">
+      <div className="px-4 py-4 max-w-3xl lg:max-w-5xl mx-auto">
         {analysisId && <AnalysisDashboard analysisId={analysisId} shareToken={token} />}
       </div>
 
       {/* Watermark footer */}
-      <div className="mt-8 max-w-3xl mx-auto px-4">
+      <div className="mt-8 max-w-3xl lg:max-w-5xl mx-auto px-4">
         <div className="text-center text-[10px] text-muted-foreground">
           {t("sharedAnalysisPage.generatedBy")} <a href="/" className="text-primary font-bold">VITAS · Football Intelligence</a>
         </div>

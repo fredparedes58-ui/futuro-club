@@ -459,7 +459,7 @@ function TeamStat({
 function EmptyState({ onCreate }: { onCreate: () => void }) {
   const { t } = useTranslation();
   return (
-    <div className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto border border-dashed border-border space-y-4">
+    <div className="glass rounded-2xl p-8 text-center max-w-2xl lg:max-w-5xl mx-auto border border-dashed border-border space-y-4">
       <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-pink-500/20 to-fuchsia-600/20 flex items-center justify-center">
         <Eye size={28} className="text-pink-500" />
       </div>

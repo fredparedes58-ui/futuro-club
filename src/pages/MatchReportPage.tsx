@@ -105,7 +105,7 @@ export default function MatchReportPage() {
             </button>
           </div>
         </div>
-        <div className="px-4 py-4 max-w-2xl mx-auto">
+        <div className="px-4 py-4 max-w-2xl lg:max-w-5xl mx-auto">
           <TeamReportView report={report} />
         </div>
       </div>
@@ -130,7 +130,7 @@ export default function MatchReportPage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      <div className="px-4 py-4 space-y-4 max-w-2xl lg:max-w-5xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Team A · home */}
           <TeamCard

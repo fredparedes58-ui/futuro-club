@@ -150,7 +150,7 @@ export default function TeamBaselinePage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 max-w-3xl mx-auto space-y-4">
+      <div className="px-4 py-4 max-w-3xl lg:max-w-5xl mx-auto space-y-4">
         {!data && !generating && (
           <div className="glass rounded-2xl p-6 text-center space-y-3">
             <Brain size={32} className="mx-auto text-primary/50" />

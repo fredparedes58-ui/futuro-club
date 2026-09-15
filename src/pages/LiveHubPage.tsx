@@ -137,7 +137,7 @@ export default function LiveHubPage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-lg mx-auto">
+      <div className="px-4 py-4 space-y-4 max-w-lg lg:max-w-5xl mx-auto">
         {/* CTA crear partido */}
         {!showForm ? (
           <motion.button

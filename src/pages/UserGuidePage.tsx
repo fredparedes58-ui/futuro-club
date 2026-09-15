@@ -110,7 +110,7 @@ const UserGuidePage = () => {
           animate={{ opacity: 1, y: 0 }}
           className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/40 no-print"
         >
-          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+          <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
               className="p-2 rounded-xl hover:bg-muted/50 transition-colors"
@@ -135,7 +135,7 @@ const UserGuidePage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="max-w-3xl mx-auto px-4 py-8"
+          className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-8"
         >
           {/* Cover */}
           <div className="text-center mb-10 pb-8 border-b border-border/30 print:border-gray-200">

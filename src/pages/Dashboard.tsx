@@ -107,7 +107,7 @@ const Dashboard = () => {
   return (
     <>
     <DashboardOrbs />
-    <motion.div variants={container} initial="hidden" animate="show" className="relative z-10 px-4 pt-4 pb-24 space-y-6 max-w-lg mx-auto">
+    <motion.div variants={container} initial="hidden" animate="show" className="relative z-10 px-4 pt-4 pb-24 space-y-6 max-w-lg lg:max-w-5xl mx-auto">
       {/* Gradient accent bar */}
       <div className="gradient-bar rounded-full mx-auto" style={{ width: "60%", opacity: 0.6 }} />
 
