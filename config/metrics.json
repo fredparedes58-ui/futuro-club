@@ -394,7 +394,7 @@
       "ui_paths": [],
       "allowed_literals": [24, 30, 50, 60],
       "gated": true,
-      "notes": "DEUDA inv#2: :24 si latestValue==null devuelve 0 (métrica ausente → 0% progreso), :85 ?? currentValue, :122 plan vacío → 0. Gatear en PR posterior. Superficie de padre vía IDPParentView (ParentDashboardPage)."
+      "notes": "GATEADO (inv#2): overallProgress es null si NINGUNA meta tiene medición, y las metas sin medir (ni métrica fresca ni currentValue) se EXCLUYEN del promedio ponderado y por dimensión — no arrastran un 0% inventado. computeGoalProgress mantiene el 0 defensivo: sus callers (IDPGoalCard/IDPParentView) siempre pasan baseline, y 0% desde baseline es legítimo. Umbrales pendiente de validar → confidence reducida."
     }
   ]
 }
