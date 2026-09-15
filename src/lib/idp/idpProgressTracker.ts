@@ -82,7 +82,15 @@ export function computeSummary(
   let open = 0;
 
   for (const g of goals) {
+    // Estado (independiente de medición): cuenta todas las metas.
+    if (g.status === "achieved") achieved += 1;
+    else if (g.status === "pending" || g.status === "in_progress") open += 1;
+
+    // Progreso (inv#2): una meta SIN medición (ni métrica fresca ni currentValue)
+    // se EXCLUYE del promedio ponderado y de la agregación por dimensión — no
+    // fabricamos un 0% que arrastre el progreso global del plan del jugador.
     const latest = metrics[metricKeyForGoal(g)] ?? g.currentValue;
+    if (latest == null) continue;
     const progress = computeGoalProgress(g, latest);
 
     // weighted overall
@@ -94,9 +102,6 @@ export function computeSummary(
     bucket.sum += progress;
     bucket.n += 1;
     byDimensionSum[g.dimension] = bucket;
-
-    if (g.status === "achieved") achieved += 1;
-    else if (g.status === "pending" || g.status === "in_progress") open += 1;
 
     if (isAtRisk(progress, days, plan.monthEnd)) atRiskGoals.push(g.id);
   }
@@ -119,7 +124,7 @@ export function computeSummary(
     playerId: plan.playerId,
     monthStart: plan.monthStart,
     monthEnd: plan.monthEnd,
-    overallProgress: weightTotal > 0 ? Math.round(weightedSum / weightTotal) : 0,
+    overallProgress: weightTotal > 0 ? Math.round(weightedSum / weightTotal) : null, // null = ninguna meta medida aún (no un 0% inventado)
     goalsAchieved: achieved,
     goalsOpen: open,
     goalsTotal: goals.length,

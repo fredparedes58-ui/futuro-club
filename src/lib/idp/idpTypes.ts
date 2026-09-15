@@ -153,8 +153,9 @@ export interface IDPProgressSummary {
   playerId: string;
   monthStart: string;
   monthEnd: string;
-  /** 0-100 weighted average across goals. */
-  overallProgress: number;
+  /** 0-100 weighted average across MEASURED goals, o null si ninguna meta tiene
+   *  medición todavía (inv#2: sin datos se bloquea, no se rellena con un 0%). */
+  overallProgress: number | null;
   goalsAchieved: number;
   goalsOpen: number;
   goalsTotal: number;

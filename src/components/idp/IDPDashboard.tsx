@@ -275,7 +275,7 @@ export function IDPDashboard({
           <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/5">
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("idpDashboard.overallProgress")}</div>
-              <div className="text-xl font-bold text-white tabular-nums">{summary.overallProgress}%</div>
+              <div className="text-xl font-bold text-white tabular-nums">{summary.overallProgress === null ? "—" : `${summary.overallProgress}%`}</div>
             </div>
             <div>
               <div className="text-[10px] uppercase tracking-wider text-slate-500">{t("idpDashboard.achieved")}</div>
