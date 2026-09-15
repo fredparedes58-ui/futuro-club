@@ -2446,7 +2446,8 @@
     "years": "años",
     "leftFooted": "zurdo",
     "pending": "Análisis pendiente — sube un video del partido",
-    "tagline": "VSI corregido por maduración biológica (PHV)"
+    "tagline": "VSI corregido por maduración biológica (PHV)",
+    "sampleBadge": "Datos de ejemplo · no es una valoración real"
   },
   "sprintBestCard": {
     "title": "Mejor sprint (test)",

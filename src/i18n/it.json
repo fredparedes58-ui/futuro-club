@@ -2445,7 +2445,8 @@
     "years": "anni",
     "leftFooted": "mancino",
     "pending": "Analisi in attesa — carica un video della partita",
-    "tagline": "VSI corretto per maturazione biologica (PHV)"
+    "tagline": "VSI corretto per maturazione biologica (PHV)",
+    "sampleBadge": "Dati di esempio · non è una valutazione reale"
   },
   "sprintBestCard": {
     "title": "Miglior sprint (test)",

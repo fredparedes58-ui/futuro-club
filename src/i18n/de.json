@@ -2445,7 +2445,8 @@
     "years": "Jahre",
     "leftFooted": "linksfüßig",
     "pending": "Analyse ausstehend — lade ein Spielvideo hoch",
-    "tagline": "VSI korrigiert nach biologischer Reifung (PHV)"
+    "tagline": "VSI korrigiert nach biologischer Reifung (PHV)",
+    "sampleBadge": "Beispieldaten · keine echte Bewertung"
   },
   "sprintBestCard": {
     "title": "Bester Sprint (Test)",
