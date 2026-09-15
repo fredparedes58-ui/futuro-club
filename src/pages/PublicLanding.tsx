@@ -154,7 +154,7 @@ function PhoneMockup() {
                 </div>
                 <span className="text-[9px] font-display font-bold text-[#0b1226]">VITAS</span>
               </div>
-              <span className="text-[9px] font-display font-bold" style={{ color: "#0059B3" }}>EN VIVO</span>
+              <span className="text-[9px] font-display font-bold" style={{ color: "#0059B3" }}>{t("publicLanding.phoneLive", "EN VIVO")}</span>
             </div>
             <h3 className="text-[12px] font-display font-bold tracking-wide" style={{ color: "#0059B3" }}>PULSE LIVE</h3>
             <p className="text-[7px] text-gray-400 mb-2">{t("publicLanding.pulseSubtitle")}</p>
@@ -200,8 +200,20 @@ function PhoneMockup() {
   );
 }
 
+// ── CTA: en modo embed (iframe en krujens.eu) rompe el marco a _top con URL
+// absoluta al VITAS completo; fuera de embed, navegación SPA normal con <Link>.
+// Las anclas internas (#features…) se dejan como <a> aparte (scroll en el iframe).
+function Cta({ embed, to, className, style, children }: {
+  embed?: boolean; to: string; className?: string; style?: React.CSSProperties; children: React.ReactNode;
+}) {
+  if (embed) {
+    return <a href={`${PUBLIC_URL}${to}`} target="_top" rel="noopener" className={className} style={style}>{children}</a>;
+  }
+  return <Link to={to} className={className} style={style}>{children}</Link>;
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
-export default function PublicLanding() {
+export default function PublicLanding({ embed = false }: { embed?: boolean } = {}) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -236,6 +248,25 @@ export default function PublicLanding() {
     set("twitter:card", "summary_large_image");
   }, [t]);
 
+  // Modo embed (iframe en krujens.eu): publica la altura del contenido al padre
+  // para que ajuste el iframe (evita clipping/scroll interno con cualquier idioma
+  // o ancho). Solo el número de altura; el padre filtra por origin. No-op fuera
+  // de un iframe.
+  useEffect(() => {
+    if (!embed || typeof window === "undefined" || window.parent === window) return;
+    const post = () => window.parent.postMessage(
+      { type: "vitas-embed-height", height: document.documentElement.scrollHeight }, "*",
+    );
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    window.addEventListener("load", post);
+    // Reintentos cortos: fuentes, imágenes lazy y animaciones cambian la altura.
+    const iv = window.setInterval(post, 1000);
+    const stop = window.setTimeout(() => window.clearInterval(iv), 8000);
+    return () => { ro.disconnect(); window.removeEventListener("load", post); window.clearInterval(iv); window.clearTimeout(stop); };
+  }, [embed]);
+
   const primaryLabel = IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.watchDemo");
 
   return (
@@ -265,15 +296,15 @@ export default function PublicLanding() {
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
               {isLoggedIn || IS_DEMO ? (
-                <Link to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                <Cta embed={embed} to="/pulse" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
                   {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.dashboard")} <ArrowRight size={12} />
-                </Link>
+                </Cta>
               ) : (
                 <>
-                  <Link to="/login" className="text-xs font-display font-semibold text-[#37425f] hover:text-[#0059B3] transition-colors hidden sm:block">{t("publicLanding.login")}</Link>
-                  <Link to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
+                  <Cta embed={embed} to="/login" className="text-xs font-display font-semibold text-[#37425f] hover:text-[#0059B3] transition-colors hidden sm:block">{t("publicLanding.login")}</Cta>
+                  <Cta embed={embed} to="/register" className="min-h-[44px] px-4 py-2 rounded-xl text-xs font-display font-bold text-white flex items-center gap-1.5" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
                     {t("publicLanding.startFree")} <ArrowRight size={12} />
-                  </Link>
+                  </Cta>
                 </>
               )}
             </div>
@@ -291,7 +322,7 @@ export default function PublicLanding() {
                 {t("publicLanding.heroTagline", "Corregimos la maduración biológica. Ves al jugador real — no su físico de hoy.")}
               </p>
               <div className="mt-8 flex gap-3.5 items-center flex-wrap justify-center md:justify-start vl-pop" style={{ animationDelay: ".8s" }}>
-                <Link to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Link>
+                <Cta embed={embed} to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Cta>
                 <a href="#phv" className="vl-ghost">{t("publicLanding.howItWorks", "Cómo funciona")}</a>
               </div>
               <div className="vl-mini mt-10 justify-center md:justify-start" style={{ animation: "vl-fadein 1s 1s both" }}>
@@ -307,9 +338,9 @@ export default function PublicLanding() {
               <PhoneMockup />
               <Ball id="vlb1" size={104} stroke="#0059B3" halo="rgba(0,89,179,.28)" style={{ left: "-4%", top: "4%", animation: "vl-float 8s 1.4s ease-in-out infinite" }} />
               <Ball id="vlb2" size={80} stroke="#e6197a" halo="rgba(230,25,122,.26)" spin style={{ right: "-2%", bottom: "4%", animation: "vl-float2 7s 1.2s ease-in-out infinite" }} />
-              <div className="vl-chip vl-pop" style={{ left: "-8%", top: "36%", animationDelay: "1s" }}><span className="d" style={{ background: "#0059B3", boxShadow: "0 0 8px rgba(0,89,179,.6)" }} />PHV +0.38 <small>maduración</small></div>
+              <div className="vl-chip vl-pop" style={{ left: "-8%", top: "36%", animationDelay: "1s" }}><span className="d" style={{ background: "#0059B3", boxShadow: "0 0 8px rgba(0,89,179,.6)" }} />PHV +0.38 <small>{t("publicLanding.chipMaturation", "maduración")}</small></div>
               <div className="vl-chip vl-pop" style={{ right: "-6%", top: "18%", animationDelay: "1.15s" }}><span className="d" style={{ background: "#a855f7", boxShadow: "0 0 8px rgba(168,85,247,.6)" }} />VAEP +0.142</div>
-              <div className="vl-chip vl-pop" style={{ left: "2%", bottom: "2%", animationDelay: "1.3s" }}><span className="d" style={{ background: "#12b981", boxShadow: "0 0 8px rgba(18,185,129,.6)" }} />Elite tier</div>
+              <div className="vl-chip vl-pop" style={{ left: "2%", bottom: "2%", animationDelay: "1.3s" }}><span className="d" style={{ background: "#12b981", boxShadow: "0 0 8px rgba(18,185,129,.6)" }} />{t("publicLanding.chipElite", "Nivel élite")}</div>
               <Spark size={18} color="#0059B3" style={{ left: "12%", top: "2%", animationDelay: ".3s" }} />
               <Spark size={13} color="#f59e0b" style={{ right: "16%", top: "12%", animationDelay: "1.1s" }} />
               <Spark size={15} color="#e6197a" style={{ right: "6%", bottom: "24%", animationDelay: "1.9s" }} />
@@ -354,7 +385,7 @@ export default function PublicLanding() {
                   <div className="font-mono text-[10px] uppercase tracking-wider text-[#6c7794]">VSI VITAS</div>
                   <div className="vl-big" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div>
                   <div className="inline-flex items-center gap-1.5 mt-2 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)" }}>
-                    <Sparkles size={11} /> Hidden gem
+                    <Sparkles size={11} /> {t("publicLanding.hiddenGem", "Diamante oculto")}
                   </div>
                 </div>
               </div>
@@ -389,11 +420,11 @@ export default function PublicLanding() {
             <h2 className="font-display font-bold mt-4" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.galleryHeading", "La herramienta por dentro")}</h2>
           </div>
           <div className="flex gap-5 md:gap-7 overflow-x-auto pb-4 md:justify-center snap-x -mx-4 px-4 md:mx-0 md:px-0">
-            <PhoneShot src="/shots/shot-pulse.png" alt="VITAS · centro de inteligencia" delay={0} />
-            <PhoneShot src="/shots/shot-player.png" alt="Perfil de jugador con corrección PHV" delay={0.06} />
-            <PhoneShot src="/shots/shot-stats.png" alt="Informe de partido generado por IA" delay={0.12} />
-            <PhoneShot src="/shots/shot-lab.png" alt="VITAS.LAB · calibración y tracking en campo" delay={0.18} />
-            <PhoneShot src="/shots/shot-rankings.png" alt="Rankings por VSI ajustado a maduración" delay={0.24} />
+            <PhoneShot src="/shots/shot-pulse.png" alt={t("publicLanding.galleryAltPulse", "VITAS · centro de inteligencia")} delay={0} />
+            <PhoneShot src="/shots/shot-player.png" alt={t("publicLanding.galleryAltPlayer", "Perfil de jugador con corrección PHV")} delay={0.06} />
+            <PhoneShot src="/shots/shot-stats.png" alt={t("publicLanding.galleryAltStats", "Informe de partido generado por IA")} delay={0.12} />
+            <PhoneShot src="/shots/shot-lab.png" alt={t("publicLanding.galleryAltLab", "VITAS.LAB · calibración y tracking en campo")} delay={0.18} />
+            <PhoneShot src="/shots/shot-rankings.png" alt={t("publicLanding.galleryAltRankings", "Rankings por VSI ajustado a maduración")} delay={0.24} />
           </div>
         </div>
       </section>
@@ -415,9 +446,9 @@ export default function PublicLanding() {
         <div className="vl-wrap py-16 md:py-20">
           <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.pricingHeading")}</h2>
           <div className="grid md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-            <PlanTier name="Free" description={t("publicLanding.planFreeDesc")} features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
-            <PlanTier name="Pro" description={t("publicLanding.planProDesc")} highlight features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
-            <PlanTier name="Club" description={t("publicLanding.planClubDesc")} features={[t("publicLanding.planClubFeature1"), t("publicLanding.planClubFeature2"), t("publicLanding.planClubFeature3"), t("publicLanding.planClubFeature4"), t("publicLanding.planClubFeature5"), t("publicLanding.planClubFeature6"), t("publicLanding.planClubFeature7")]} />
+            <PlanTier embed={embed} name="Free" description={t("publicLanding.planFreeDesc")} features={[t("publicLanding.planFreeFeature1"), t("publicLanding.planFreeFeature2"), t("publicLanding.planFreeFeature3"), t("publicLanding.planFreeFeature4")]} />
+            <PlanTier embed={embed} name="Pro" description={t("publicLanding.planProDesc")} highlight features={[t("publicLanding.planProFeature1"), t("publicLanding.planProFeature2"), t("publicLanding.planProFeature3"), t("publicLanding.planProFeature4"), t("publicLanding.planProFeature5"), t("publicLanding.planProFeature6"), t("publicLanding.planProFeature7")]} />
+            <PlanTier embed={embed} name="Club" description={t("publicLanding.planClubDesc")} features={[t("publicLanding.planClubFeature1"), t("publicLanding.planClubFeature2"), t("publicLanding.planClubFeature3"), t("publicLanding.planClubFeature4"), t("publicLanding.planClubFeature5"), t("publicLanding.planClubFeature6"), t("publicLanding.planClubFeature7")]} />
           </div>
           <p className="text-xs text-[#6c7794] text-center mt-8">{t("publicLanding.pricingNote")}</p>
         </div>
@@ -435,7 +466,7 @@ export default function PublicLanding() {
           <h3 className="font-display font-bold leading-tight mb-8" style={{ fontSize: "clamp(32px,4.4vw,56px)" }}>
             {t("publicLanding.ctaHeading")}
           </h3>
-          <Link to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Link>
+          <Cta embed={embed} to={ENTRY_HREF} className="vl-btn"><Play size={16} className="fill-white" />{primaryLabel}</Cta>
         </div>
       </section>
 
@@ -447,9 +478,9 @@ export default function PublicLanding() {
             <span className="text-xs text-[#6c7794]">VITAS · Football Intelligence © 2026</span>
           </div>
           <nav className="flex items-center gap-4 text-xs text-[#6c7794]">
-            <Link to="/terms" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerTerms")}</Link>
-            <Link to="/privacy" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerPrivacy")}</Link>
-            <Link to={LOGIN_HREF} className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerAccess")}</Link>
+            <Cta embed={embed} to="/terms" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerTerms")}</Cta>
+            <Cta embed={embed} to="/privacy" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerPrivacy")}</Cta>
+            <Cta embed={embed} to={LOGIN_HREF} className="hover:text-[#0059B3] transition-colors">{t("publicLanding.footerAccess")}</Cta>
           </nav>
         </div>
         <div className="vl-bar" />
@@ -463,6 +494,7 @@ export default function PublicLanding() {
 function VisualFeature({ icon: Icon, title, color, mock }: {
   icon: React.ElementType; title: string; color: string; mock: "report" | "vsi" | "scan" | "telegram";
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       whileHover={{ y: -6, scale: 1.02 }}
@@ -473,20 +505,20 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
       <div className="rounded-xl h-36 mb-4 p-3 relative overflow-hidden" style={{ background: "linear-gradient(160deg,#f8fafe,#eef2fb)", border: "1px solid rgba(0,89,179,.08)" }}>
         {mock === "report" && (
           <div className="h-full flex flex-col">
-            <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">Informe IA · listo</span></div>
+            <div className="flex items-center gap-1.5 mb-2.5"><span className="w-1.5 h-1.5 rounded-full" style={{ background: "#12b981" }} /><span className="text-[9px] font-bold text-[#0b1226]">{t("publicLanding.mockReportReady", "Informe IA · listo")}</span></div>
             <div className="space-y-2">
               <div className="h-2 rounded-full" style={{ width: "88%", background: "rgba(168,85,247,.28)" }} />
               <div className="h-2 rounded-full" style={{ width: "72%", background: "rgba(0,89,179,.20)" }} />
               <div className="h-2 rounded-full" style={{ width: "56%", background: "rgba(0,89,179,.14)" }} />
             </div>
-            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>Fortalezas · PHV · Proyección</span>
+            <span className="mt-auto self-start text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ color: "#A855F7", background: "rgba(168,85,247,.12)" }}>{t("publicLanding.mockReportTags", "Fortalezas · PHV · Proyección")}</span>
           </div>
         )}
         {mock === "vsi" && (
           <div className="h-full flex items-center justify-center gap-3">
-            <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">Clásico</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
+            <div className="text-center"><div className="text-[9px] font-mono text-[#aeb8cf] uppercase tracking-wider">{t("publicLanding.mockClassic", "Clásico")}</div><div className="text-3xl font-display font-bold" style={{ color: "#c2cbde" }}>64</div></div>
             <ArrowRight size={18} style={{ color: "#A855F7" }} />
-            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>Con PHV</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
+            <div className="text-center"><div className="text-[9px] font-mono uppercase tracking-wider" style={{ color: "#0059B3" }}>{t("publicLanding.mockWithPhv", "Con PHV")}</div><div className="text-3xl font-display font-bold" style={{ background: "linear-gradient(90deg,#0059B3,#A855F7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>81</div></div>
           </div>
         )}
         {mock === "scan" && (
@@ -501,8 +533,8 @@ function VisualFeature({ icon: Icon, title, color, mock }: {
         )}
         {mock === "telegram" && (
           <div className="h-full flex flex-col justify-center gap-2">
-            <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>¿Cómo va Rodríguez esta semana?</div>
-            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>VSI 94 ▲ · PHV +0.38 · listo para el reto ✅</div>
+            <div className="self-start max-w-[82%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-bl-sm bg-white border leading-snug" style={{ borderColor: "rgba(0,89,179,.1)", color: "#37425f" }}>{t("publicLanding.mockChatQuestion", "¿Cómo va Rodríguez esta semana?")}</div>
+            <div className="self-end max-w-[86%] text-[9px] px-2.5 py-1.5 rounded-xl rounded-br-sm text-white leading-snug" style={{ background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>{t("publicLanding.mockChatAnswer", "VSI 94 ▲ · PHV +0.38 · listo para el reto ✅")}</div>
           </div>
         )}
       </div>
@@ -545,8 +577,8 @@ function StepCard({ num, title, description, icon: Icon, color }: {
   );
 }
 
-function PlanTier({ name, description, features, highlight }: {
-  name: string; description: string; features: string[]; highlight?: boolean;
+function PlanTier({ name, description, features, highlight, embed }: {
+  name: string; description: string; features: string[]; highlight?: boolean; embed?: boolean;
 }) {
   const { t } = useTranslation();
   return (
@@ -571,10 +603,10 @@ function PlanTier({ name, description, features, highlight }: {
           </li>
         ))}
       </ul>
-      <Link to={ENTRY_HREF} className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-transform hover:scale-[1.02] ${highlight ? "bg-white" : "text-white"}`}
+      <Cta embed={embed} to={ENTRY_HREF} className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-display font-bold transition-transform hover:scale-[1.02] ${highlight ? "bg-white" : "text-white"}`}
         style={highlight ? { color: "#0059B3" } : { background: "linear-gradient(135deg,#0059B3,#A855F7)" }}>
         {IS_DEMO ? t("publicLanding.enterDemo", "Entrar a la demo") : t("publicLanding.getStarted")}
-      </Link>
+      </Cta>
     </motion.div>
     </div>
   );
