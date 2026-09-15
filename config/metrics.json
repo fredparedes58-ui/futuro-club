@@ -20,11 +20,11 @@
       "name": "PHV — maturity offset (Mirwald)",
       "concept": "maduracion.offset",
       "provenance": "DERIVADA",
-      "calc_paths": ["src/lib/phv/mirwald.ts"],
+      "calc_paths": ["src/lib/phv/mirwald.ts", "api/agents/_phv-calculator.ts", "api/players/anthropometrics.ts"],
       "ui_paths": ["src/components/phv/PHVProductCard.tsx"],
-      "allowed_literals": [],
+      "allowed_literals": [-9.376, -9.236, -2, 0.0001882, 0.0002708, 0.001663, 0.0022, 0.002658, 0.005841, 0.007216, 0.02292, 0.07693, 0.92, 1.12, 5, 15, 25, 30, 40, 60, 70, 80, 120, 130, 150, 230, 400, 403, 404, 422, 500],
       "gated": true,
-      "notes": "NO TOCAR (inv.4). Coef. Mirwald 2002 M/F verificados. Literales de la fórmula → deben ir a config/mirwald con cita (LIT001 esperado en G0)."
+      "notes": "NO TOCAR coeficientes (inv.4). Coef. Mirwald 2002 M/F byte-idénticos en 3 rutas vivas (mirwald.ts cliente + api/agents/_phv-calculator.ts + api/players/anthropometrics.ts). allowed_literals = 11 coeficientes Mirwald + literales estructurales legítimos (bounds de schema zod, HTTP status, factores VSI). El audit escanea las 3 rutas: cambiar cualquier coeficiente introduce un literal no whitelisted → LIT001 NUEVO → bloquea en pre-commit (inv.4/#7). Deuda inv#7: la fórmula está duplicada; fix definitivo = extraerla a un módulo único."
     },
     {
       "id": "biobanding_pah",
@@ -296,6 +296,105 @@
       "allowed_literals": [],
       "gated": true,
       "notes": "Ruta de recall (detección-primero): fracción de detecciones del frame con píxeles suficientes para pose. Posición del equipo completo; biomecánica solo en los cercanos. DERIVADA/orientativa (el umbral de cercanía está pendiente de validar con ground truth anotado → confidence reducida). BLOQUEADA si no hay detecciones (nunca un 0 que signifique 'no medido')."
+    },
+    {
+      "id": "dropout_riesgo",
+      "name": "Riesgo de abandono (scorer 8 factores)",
+      "concept": "bienestar.dropout_riesgo",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/dropoutRiskScorer.ts"],
+      "ui_paths": [],
+      "allowed_literals": [0.05, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.4, 0.6, 25, 50, 75],
+      "gated": true,
+      "notes": "Pesos del compuesto PENDIENTE DE VALIDAR → confidence reducida. DEUDA inv#2 (a gatear en PR posterior): :87 resilience ?? 50, :110 resilienceScore ?? 0, :116 ?? 0; scoreDropoutRisk nunca devuelve null. Render vía DropoutRiskGauge (PlayerHubPage). En la ruta de padre (_dropout-risk.ts) ya se gatea insufficient_data + banner isMock."
+    },
+    {
+      "id": "asistencia_tasa",
+      "name": "Tasa de asistencia",
+      "concept": "bienestar.asistencia",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/attendanceTracker.ts"],
+      "ui_paths": [],
+      "allowed_literals": [3, 0.3, 75],
+      "gated": true,
+      "notes": "DEUDA inv#2 (a gatear): :69 rate:100 cuando total===0 (sin datos → asistencia 'perfecta'). Gatear a null+gate_reason en PR de comportamiento. (100 es benigno, no va en allowed_literals.)"
+    },
+    {
+      "id": "engagement_score",
+      "name": "Engagement (compromiso)",
+      "concept": "bienestar.engagement",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/engagementTracker.ts"],
+      "ui_paths": [],
+      "allowed_literals": [3, 4, 5, -4, -5, -8, 10, 12, 25, 35, 45, 0.4, 0.5, 0.6],
+      "gated": true,
+      "notes": "DEUDA inv#2: :39 promedio de [] devuelve 0, :43 detectTrend con <4 muestras → 'stable'. Umbrales pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "motivacion_tipo",
+      "name": "Clasificador de motivación",
+      "concept": "bienestar.motivacion",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/motivationClassifier.ts"],
+      "ui_paths": [],
+      "allowed_literals": [3, 15, 20, 25, 30, 40, 45, 50, 55, 60, 65, 70, 90, -10, 0.3, 0.4, 0.6],
+      "gated": true,
+      "notes": "Alimenta el factor motivationType del riesgo de abandono (inherentDropoutRisk 0-100). Umbrales pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "sobreentrenamiento",
+      "name": "Detector de sobreentrenamiento",
+      "concept": "bienestar.sobreentrenamiento",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/overtrainingDetector.ts"],
+      "ui_paths": [],
+      "allowed_literals": [10, 12, 14, 16, 18, 20, 25, 30, 40, 50, 60, 65, 75, 90, 0.9, 1.1, 1.2, 1.3, 200, 300, 400, 500, 600, 700, 0.1, 0.25, 0.3, 0.75, 0.85],
+      "gated": true,
+      "notes": "Alimenta OvertrainingAlert (PlayerHubPage). Umbrales fisiológicos pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "intervencion_urgencia",
+      "name": "Protocolo de intervención (urgencia/seguimiento)",
+      "concept": "bienestar.intervencion",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/wellbeing/interventionProtocol.ts"],
+      "ui_paths": [],
+      "allowed_literals": [3, 7, 14, 60],
+      "gated": true,
+      "notes": "No es un score 0-100 (días de urgencia/seguimiento). Umbrales pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "dm_score",
+      "name": "DM Score (toma de decisiones)",
+      "concept": "cognitivo.dm_score",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/dmscore/dmScore.ts"],
+      "ui_paths": [],
+      "allowed_literals": [45, 65, 80, 0.15, 0.25, 0.35, 0.75],
+      "gated": true,
+      "notes": "YA gatea a null cuando faltan componentes (:92, <MIN_COMPONENTS). Pesos del compuesto pendiente de validar → confidence reducida. Render vía DMScoreCard (PlayerHubPage)."
+    },
+    {
+      "id": "scan_iq",
+      "name": "Scan IQ (escaneo cognitivo)",
+      "concept": "cognitivo.scan_iq",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/dmscore/scanIQ.ts"],
+      "ui_paths": [],
+      "allowed_literals": [4, 5, 6, 10, 25, 40, 50, 70, 75, 90, 95, 99, 1.5, -1.5],
+      "gated": true,
+      "notes": "Render vía ScanIQCard (PlayerHubPage). Umbrales pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "idp_progreso",
+      "name": "Progreso del plan de desarrollo (IDP)",
+      "concept": "idp.progreso",
+      "provenance": "DERIVADA",
+      "calc_paths": ["src/lib/idp/idpProgressTracker.ts"],
+      "ui_paths": [],
+      "allowed_literals": [24, 30, 50, 60],
+      "gated": true,
+      "notes": "DEUDA inv#2: :24 si latestValue==null devuelve 0 (métrica ausente → 0% progreso), :85 ?? currentValue, :122 plan vacío → 0. Gatear en PR posterior. Superficie de padre vía IDPParentView (ParentDashboardPage)."
     }
   ]
 }
