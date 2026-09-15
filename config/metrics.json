@@ -317,7 +317,7 @@
       "ui_paths": [],
       "allowed_literals": [3, 0.3, 75],
       "gated": true,
-      "notes": "DEUDA inv#2 (a gatear): :69 rate:100 cuando total===0 (sin datos → asistencia 'perfecta'). Gatear a null+gate_reason en PR de comportamiento. (100 es benigno, no va en allowed_literals.)"
+      "notes": "GATEADO (inv#2): sin sesiones registradas → rate null (antes 100 = 'asistencia perfecta' inventada). El factor de asistencia del riesgo de abandono se excluye y su peso se redistribuye (patrón de resilience), no fabrica '0 riesgo'. Umbrales/pesos pendiente de validar → confidence reducida."
     },
     {
       "id": "engagement_score",

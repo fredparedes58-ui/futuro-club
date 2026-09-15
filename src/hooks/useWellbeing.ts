@@ -57,7 +57,7 @@ export interface DropoutRiskAssessment {
     confidence: number;
   };
   attendance: {
-    rate: number;
+    rate: number | null; // null = sin sesiones registradas (no 100%)
     consecutiveAbsences: number;
     recentTrend: string;
   };
