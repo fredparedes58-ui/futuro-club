@@ -434,7 +434,7 @@ const VitasLab = () => {
       focusTrackId:   tracking.state.focusTrackId,
       scanEvents:     tracking.state.scanEvents,
       duelEvents:     tracking.state.duelEvents,
-      focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.tMs })),
+      focusPositions: focusTrack?.positions.map(p => ({ fx: p.fx, fy: p.fy, tMs: p.timestampMs })),
       tacticalEvents:     focusEvents,
       biomechanicsScore:  mediaPipe.biomechanics ?? undefined,
     });
@@ -445,7 +445,7 @@ const VitasLab = () => {
         ? tracking.state.sessionMetrics.distanceCoveredM / Math.max(0.1, tracking.state.sessionMetrics.avgSpeedMs)
         : 0;
       fatigue.addPositions(
-        focusTrack.positions.map(p => ({ x: p.fx, y: p.fy, timestampMs: p.tMs })),
+        focusTrack.positions.map(p => ({ x: p.fx, y: p.fy, timestampMs: p.timestampMs })),
       );
       if (durationSec > 0) {
         fatigue.generateReport(durationSec);
@@ -699,8 +699,10 @@ const VitasLab = () => {
           biomechanics: mediaPipe.biomechanics ? {
             drillScore: mediaPipe.biomechanics.drillScore,
             bilateralSymmetry: mediaPipe.biomechanics.bilateralSymmetry,
-            injuryRiskFlags: mediaPipe.biomechanics.injuryRiskFlags,
-            jointAngles: mediaPipe.biomechanics.avgJointAngles,
+            // Campos reales de BiomechanicsScore (antes leía injuryRiskFlags /
+            // avgJointAngles, que no existen → se enviaba undefined y se perdían).
+            injuryRisk: mediaPipe.biomechanics.injuryRisk,
+            jointDetail: mediaPipe.biomechanics.jointDetail,
             framesAnalyzed: mediaPipe.biomechanics.framesAnalyzed,
             source: "client_mediapipe",
           } : null,

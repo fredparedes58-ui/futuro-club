@@ -2463,7 +2463,8 @@
     "years": "jaar",
     "leftFooted": "linksbenig",
     "pending": "Analyse in afwachting — upload een wedstrijdvideo",
-    "tagline": "VSI gecorrigeerd voor biologische rijping (PHV)"
+    "tagline": "VSI gecorrigeerd voor biologische rijping (PHV)",
+    "sampleBadge": "Voorbeeldgegevens · geen echte beoordeling"
   },
   "sprintBestCard": {
     "title": "Beste sprint (test)",

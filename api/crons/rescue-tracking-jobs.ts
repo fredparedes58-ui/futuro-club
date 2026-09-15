@@ -24,6 +24,7 @@
  */
 
 import { errorResponse, successResponse } from "../_lib/apiResponse";
+import { timingSafeEqual } from "../_lib/edgeCrypto";
 import {
   supabaseRestUrl,
   serviceHeaders,
@@ -46,8 +47,14 @@ interface ClaimedJob {
 }
 
 export default async function handler(req: Request): Promise<Response> {
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Fail-closed: sin CRON_SECRET el cron queda deshabilitado (503) en vez de
+  // aceptar "Bearer undefined"; comparación en tiempo constante contra el secreto.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return errorResponse({ code: "cron_disabled", message: "CRON_SECRET not configured", status: 503 });
+  }
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!timingSafeEqual(authHeader, `Bearer ${cronSecret}`)) {
     return errorResponse({ code: "unauthorized", message: "Invalid cron auth", status: 401 });
   }
   if (!supabaseConfigured()) {

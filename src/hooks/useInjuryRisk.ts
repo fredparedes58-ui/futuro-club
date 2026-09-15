@@ -104,7 +104,7 @@ async function calculateInjuryRisk(
         fatigueIndex: fatigue?.fatigueIndex?.value ?? null,
         fatigueSeverity: fatigue?.fatigueIndex?.severity ?? null,
         biomechanicsInjuryRisk: biomech?.injuryRisk ?? null,
-        asymmetryPct: biomech?.asymmetry?.overallAsymmetryPct ?? null,
+        asymmetryPct: biomech?.asymmetryPct ?? null,
         injuryHistory: injuries.map((inj) => ({
           type: inj.type,
           severity: inj.severity,

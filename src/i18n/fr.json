@@ -2462,7 +2462,8 @@
     "years": "ans",
     "leftFooted": "gaucher",
     "pending": "Analyse en attente — ajoutez une vidéo du match",
-    "tagline": "VSI corrigé par la maturation biologique (PHV)"
+    "tagline": "VSI corrigé par la maturation biologique (PHV)",
+    "sampleBadge": "Données d'exemple · pas une évaluation réelle"
   },
   "sprintBestCard": {
     "title": "Meilleur sprint (test)",

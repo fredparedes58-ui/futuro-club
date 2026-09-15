@@ -21,6 +21,7 @@ import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/l
 import { SprintTestService } from "@/services/real/sprintTestService";
 import { shareNative, shareToWhatsApp } from "@/lib/share";
 import { PUBLIC_HOST } from "@/lib/publicUrl";
+import { IS_DEMO } from "@/lib/demoMode";
 
 const TIERS = [
   { min: 85, label: "ÉLITE", color: "#3b82f6" },
@@ -46,7 +47,13 @@ export default function ShareablePlayerCard({ player }: { player: Player }) {
   // reales). Sin datos ⇒ null → no se afirma "precoz/tardío" (invariantes #2/#7).
   const maturity = playerMaturity(player as PlayerMaturityInput);
   const phv = maturity.timing !== "unknown" ? t(maturityTimingKey(maturity.timing)) : null;
-  const shareText = t("shareCard.text", { name: player.name });
+  // Datos de EJEMPLO (demo, o jugador marcado isDemo): el PNG se comparte fuera de
+  // la app → debe llevar el sello dentro de la imagen y el texto de share debe
+  // advertirlo, para no difundir una cifra fabricada como si fuera real (regla MOCK).
+  const isSample = IS_DEMO || player.isDemo === true;
+  const shareText =
+    (isSample ? "⚠️ " + t("shareCard.sampleBadge", "Datos de ejemplo · no es una valoración real") + " · " : "") +
+    t("shareCard.text", { name: player.name });
 
   async function doShare() {
     setBusy(true);
@@ -147,6 +154,14 @@ export default function ShareablePlayerCard({ player }: { player: Player }) {
                   {player.position} · {player.age} {t("shareCard.years")}{player.foot === "left" ? " · " + t("shareCard.leftFooted") : ""}
                 </div>
               </div>
+
+              {/* Sello de EJEMPLO — DENTRO del cardRef → lo captura html2canvas en el
+                  PNG; no se puede recortar y compartir una cifra fabricada como real. */}
+              {isSample && (
+                <div style={{ marginTop: 14, display: "inline-flex", alignItems: "center", gap: 5, fontSize: 9, fontWeight: 800, letterSpacing: 0.3, color: "#fde68a", background: "rgba(245,158,11,.15)", border: "1px solid rgba(245,158,11,.4)", padding: "4px 9px", borderRadius: 8 }}>
+                  ⚠️ {t("shareCard.sampleBadge", "Datos de ejemplo · no es una valoración real")}
+                </div>
+              )}
 
               {/* VSI protagonista */}
               {hasVsi && (

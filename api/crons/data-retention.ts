@@ -20,6 +20,7 @@
  */
 
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
 
@@ -164,9 +165,15 @@ async function executePendingDeletions(supabase: any) {
 }
 
 export default async function handler(req: Request) {
-  // Verificar que viene de Vercel Cron (header secreto)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  // Verificar que viene de Vercel Cron (header secreto). Fail-closed: sin
+  // CRON_SECRET configurado el cron queda DESHABILITADO (503) en vez de aceptar
+  // "Bearer undefined"; comparación en tiempo constante contra el secreto.
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return errorResponse({ code: "cron_disabled", message: "CRON_SECRET not configured", status: 503 });
+  }
+  const authHeader = req.headers.get("Authorization") ?? "";
+  if (!timingSafeEqual(authHeader, `Bearer ${cronSecret}`)) {
     return errorResponse({ code: "unauthorized", message: "Invalid cron auth", status: 401 });
   }
 

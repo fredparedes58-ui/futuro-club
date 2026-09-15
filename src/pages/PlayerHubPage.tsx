@@ -720,6 +720,9 @@ export default function PlayerHubPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* En demo la predicción de lesión es determinística de ejemplo
+                      (no un modelo entrenado sobre datos reales del menor). */}
+                  {IS_DEMO && <DemoDataBanner />}
                   {/* Sprint 2.5: Escudo de Estirón (PHV × lesión) */}
                   {id && <GrowthSpurtShieldSection playerId={id} />}
                   {riskData && <InjuryRiskCard data={riskData} />}
@@ -805,6 +808,8 @@ export default function PlayerHubPage() {
                 </div>
               ) : valuationData ? (
                 <div className="space-y-4">
+                  {/* En demo la valoración deriva de datos de ejemplo, no de mercado real. */}
+                  {IS_DEMO && <DemoDataBanner />}
                   <ValuationCard data={valuationData} />
                   <div className="glass rounded-2xl p-4">
                     <ProbabilityDisplay

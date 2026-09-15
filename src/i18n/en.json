@@ -2463,7 +2463,8 @@
     "years": "yrs",
     "leftFooted": "left-footed",
     "pending": "Analysis pending — upload a match video",
-    "tagline": "VSI corrected for biological maturity (PHV)"
+    "tagline": "VSI corrected for biological maturity (PHV)",
+    "sampleBadge": "Sample data · not a real assessment"
   },
   "sprintBestCard": {
     "title": "Best sprint (test)",
