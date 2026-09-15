@@ -12,7 +12,7 @@ export default function CreateListingPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 glass-strong border-b border-border">
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft size={18} />
           </Button>
@@ -22,7 +22,7 @@ export default function CreateListingPage() {
           </div>
         </div>
       </header>
-      <main className="max-w-3xl mx-auto px-4 py-6">
+      <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-6">
         <CreateListingForm onCreated={(id) => navigate(`/transfer/listing/${id}`)} />
       </main>
     </div>

@@ -61,7 +61,7 @@ export default function WellbeingDashboardPage() {
 
       {/* Content — gate de plan Club (además del gate de rol) */}
       {!canUseTeamWellbeing ? (
-        <main className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <main className="max-w-3xl lg:max-w-5xl mx-auto px-4 py-12 text-center">
           <Lock size={32} className="text-amber-400 mx-auto mb-3" />
           <h2 className="text-xl font-semibold text-foreground mb-2">
             {t("wellbeingDashboardPage.clubFeatureTitle")}

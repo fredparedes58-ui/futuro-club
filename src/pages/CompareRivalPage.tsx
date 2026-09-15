@@ -189,7 +189,7 @@ export default function CompareRivalPage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      <div className="px-4 py-4 space-y-4 max-w-2xl lg:max-w-5xl mx-auto">
         {/* Video upload section */}
         {(
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
@@ -480,7 +480,7 @@ function PlanView({ data, onBack, onNavBack }: { data: PlanResponse; onBack: () 
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      <div className="px-4 py-4 space-y-4 max-w-2xl lg:max-w-5xl mx-auto">
         {/* TLDR */}
         {p.tldr && (
           <motion.div

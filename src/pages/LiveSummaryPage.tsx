@@ -152,7 +152,7 @@ export default function LiveSummaryPage() {
         </div>
       </div>
 
-      <div className="px-4 py-4 space-y-4 max-w-3xl mx-auto">
+      <div className="px-4 py-4 space-y-4 max-w-3xl lg:max-w-5xl mx-auto">
         {/* Score banner */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}

@@ -298,7 +298,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass rounded-2xl p-8 text-center max-w-2xl mx-auto border border-dashed border-border space-y-4"
+      className="glass rounded-2xl p-8 text-center max-w-2xl lg:max-w-5xl mx-auto border border-dashed border-border space-y-4"
     >
       <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-emerald-500/20 to-primary/20 flex items-center justify-center">
         <Film size={28} className="text-emerald-500" />

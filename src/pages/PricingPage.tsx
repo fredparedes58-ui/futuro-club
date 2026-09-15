@@ -181,7 +181,7 @@ export default function PricingPage() {
             {t("pricingPage.heroTitlePart1")}{" "}
             <span className="gradient-text">{t("pricingPage.heroTitleHighlight")}</span>
           </h1>
-          <p className="text-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base text-muted-foreground max-w-2xl lg:max-w-5xl mx-auto leading-relaxed">
             {t("pricingPage.heroSubtitle")}
           </p>
         </motion.section>
@@ -378,7 +378,7 @@ export default function PricingPage() {
           <h2 className="font-display font-bold text-3xl md:text-4xl">
             {t("pricingPage.ctaTitle")}
           </h2>
-          <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+          <p className="text-sm text-muted-foreground max-w-lg lg:max-w-5xl mx-auto">
             {t("pricingPage.ctaSubtitle")}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
