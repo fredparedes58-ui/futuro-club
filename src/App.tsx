@@ -35,6 +35,7 @@ import ContextualFAB from "./components/ContextualFAB";
 import OnboardingTour from "./components/OnboardingTour";
 import FirstRunWizard from "./components/FirstRunWizard";
 import AcceptTermsGate from "./components/AcceptTermsGate";
+import DemoGate from "./components/demo/DemoGate";
 
 // Pages — Lazy loaded (heavy pages, loaded on demand)
 const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
@@ -187,6 +188,7 @@ const App = () => {
             <OfflineBanner />
             {IS_DEMO && <GlobalDemoBanner />}
             <CookieConsent />
+            <DemoGate>
             <AcceptTermsGate>
             <main id="main-content" tabIndex={-1}>
             <ErrorBoundary>
@@ -304,6 +306,7 @@ const App = () => {
             <ContextualFAB />
             <OnboardingTour />
             <FirstRunWizard />
+            </DemoGate>
             </SyncProvider>
           </AuthProvider>
         </BrowserRouter>
