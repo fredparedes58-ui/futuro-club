@@ -2536,6 +2536,17 @@
     "historyEmpty": "Nog geen opgeslagen tests.",
     "viewProfile": "Profiel bekijken"
   },
+  "completeReport": {
+    "errorNoId": "De rapport-id ontbreekt.",
+    "errorNotFound": "Rapport niet gevonden. Open het opnieuw vanaf de analysepagina.",
+    "loading": "Volledig rapport laden…",
+    "kicker": "Volledig Rapport",
+    "generatedLabel": "Gegenereerd",
+    "demoBanner": "Voorbeeldgegevens — demo-omgeving. De cijfers komen niet overeen met een echte speler.",
+    "intro": "Dit document bevat alle informatie die voor elk rapport is gegenereerd, precies zoals de software die produceert.",
+    "empty": "Geen rapporten om weer te geven.",
+    "footer": "Gegenereerd door VITAS Intelligence"
+  },
   "analysisReportPrint": {
     "typeExecutive": "Directierapport",
     "typeTechnical": "Technisch Rapport",
@@ -3688,6 +3699,8 @@
     "whatsappFooter": "Gegenereerd door VITAS · Football Intelligence"
   },
   "playerComparison": {
+    "winnerNoReport": "Deze speler heeft nog geen gegenereerd rapport. Ik breng je erheen om het te maken.",
+    "exportWinnerHint": "Download het rapport van de winnaar (directie of technisch)",
     "addPlayer": "Speler toevoegen",
     "goToRankings": "Naar Rankings",
     "needMinHint": "Je hebt minstens 2 spelers in de selectie nodig om ze naast elkaar te vergelijken.",

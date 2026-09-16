@@ -116,8 +116,26 @@ export default function PlayerAnalysisPage() {
     }
   }
 
+  // Descarga el informe COMPLETO (todos los campos de cada report_type), no una
+  // captura de lo que se ve en pantalla. Serializa el content real a sessionStorage
+  // y abre la vista imprimible /report-full/:id (que la pestaña nueva hereda).
   function handlePrint() {
-    window.print();
+    if (!id || !loaded) return;
+    try {
+      sessionStorage.setItem(
+        `vitas-full-reports-${id}`,
+        JSON.stringify({
+          playerName: player?.name ?? t("playerAnalysisPage.playerFallback"),
+          playerPosition: player?.position ?? "",
+          reports: loaded.reports,
+        }),
+      );
+    } catch {
+      // sessionStorage lleno/bloqueado: la pestaña mostrará "no encontrado"
+    }
+    const url = `/report-full/${id}`;
+    const win = window.open(url, "_blank");
+    if (!win) window.location.href = url;
   }
 
   return (
@@ -140,7 +158,8 @@ export default function PlayerAnalysisPage() {
           </div>
           <button
             onClick={handlePrint}
-            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+            disabled={!loaded}
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             aria-label={t("playerAnalysisPage.printAria")}
             title={t("playerAnalysisPage.printTitle")}
           >
