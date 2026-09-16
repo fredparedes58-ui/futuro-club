@@ -1186,6 +1186,7 @@
     "moreInfo": "Meer informatie"
   },
   "account": {
+    "deleteKeyword": "VERWIJDEREN",
     "dangerZone": "Gevarenzone",
     "deleteWarning": "Deze actie is onomkeerbaar. Al je gegevens, spelers, analyses en historie worden permanent verwijderd.",
     "delete": "Mijn account verwijderen",
@@ -2535,6 +2536,332 @@
     "historyTitle": "Tests van deze speler",
     "historyEmpty": "Nog geen opgeslagen tests.",
     "viewProfile": "Profiel bekijken"
+  },
+  "userGuide": {
+    "kicker": "VITAS Intelligence · Gebruikershandleiding",
+    "title": "Gebruikershandleiding",
+    "subtitle": "Football Intelligence · Volledige handleiding van het platform",
+    "version": "Versie 1.0 · April 2026",
+    "download": "PDF downloaden",
+    "navTitle": "Gebruikershandleiding",
+    "tocTitle": "Inhoud",
+    "supportLine": "Voor ondersteuning: neem contact op via de sectie Instellingen of op {{host}}",
+    "toc": [
+      "Aan de slag",
+      "Spelersbeheer",
+      "Statistieken en VSI",
+      "Video-analyse",
+      "Ranglijsten en vergelijkingen",
+      "Tactisch profiel (Role Profile)",
+      "PHV en biologische rijping",
+      "Scout Insights (AI)",
+      "Team en samenwerking",
+      "Director Dashboard",
+      "Instellingen en gegevens",
+      "Abonnementen en facturatie",
+      "Beveiliging en privacy",
+      "Veelgestelde vragen"
+    ],
+    "gettingStarted": {
+      "title": "1. Aan de slag",
+      "intro": "VITAS is een sportintelligentieplatform voor jeugdvoetbal. Het stelt scouts, trainers en sportief directeuren in staat om spelers te beoordelen met objectieve statistieken, video-analyse met AI en professionele rapporten.",
+      "registerHeading": "Registratie",
+      "steps": [
+        {
+          "title": "Account aanmaken",
+          "desc": "Ga naar het registratiescherm en voer je e-mailadres en wachtwoord in. Je kunt ook Google gebruiken."
+        },
+        {
+          "title": "E-mail verifiëren",
+          "desc": "Controleer je inbox en klik op de verificatielink."
+        },
+        {
+          "title": "Onboarding voltooien",
+          "desc": "Selecteer je profieltype (Scout, Ouder, Academie, Club), organisatienaam en voorkeuren."
+        },
+        {
+          "title": "Startgegevens",
+          "desc": "Je kunt beginnen met demospelers om het platform te verkennen, of meteen je eigen spelers toevoegen."
+        }
+      ],
+      "tip": "Als je directeur van een academie bent, selecteer dan \"Academie\" of \"Club\" als profieltype om de team- en multigebruikersfuncties te ontgrendelen."
+    },
+    "players": {
+      "title": "2. Spelersbeheer",
+      "intro": "Spelers vormen de kern van VITAS. Elke speler heeft een volledig profiel met persoonlijke gegevens, prestatiestatistieken, analysegeschiedenis en zijn VSI-score.",
+      "createHeading": "Een speler aanmaken",
+      "steps": [
+        {
+          "title": "Ga naar Ranglijsten",
+          "desc": "Tik op de knop '+' of 'Nieuwe speler' in de bovenhoek."
+        },
+        {
+          "title": "Basisgegevens",
+          "desc": "Naam, geboortedatum, positie, voorkeursvoet, lengte en gewicht."
+        },
+        {
+          "title": "Beginstatistieken",
+          "desc": "Beoordeel snelheid, techniek, spelinzicht, afwerking, verdediging en uithoudingsvermogen (schaal 1-100)."
+        },
+        {
+          "title": "Opslaan",
+          "desc": "De speler verschijnt onmiddellijk in Ranglijsten met zijn berekende VSI."
+        }
+      ],
+      "profileHeading": "Spelersprofiel",
+      "profileIntro": "Als je op een speler in Ranglijsten tikt, krijg je toegang tot zijn volledige profiel, waar je het volgende kunt zien:",
+      "profileList": [
+        "VSI-score met trend (stijgend, stabiel, dalend)",
+        "Statistiekenradar met 6 dimensies",
+        "PHV-categorie (biologische rijping)",
+        "Geschiedenis van video-analyses",
+        "Role Profile (tactisch profiel)",
+        "Vergelijking met vergelijkbare professionele spelers"
+      ],
+      "tip": "De gegevens worden automatisch gesynchroniseerd met de server. Als je de verbinding verliest, slaat VITAS de wijzigingen lokaal op en uploadt ze zodra je weer internet hebt."
+    },
+    "metrics": {
+      "title": "3. Statistieken en VSI",
+      "intro": "De VSI (VITAS Scouting Index) is de belangrijkste score van elke speler. Deze loopt van 0 tot 100 en combineert alle statistieken met gewichten die per positie worden aangepast.",
+      "sixHeading": "De 6 basisstatistieken",
+      "metricsList": [
+        {
+          "name": "Snelheid",
+          "desc": "Snelheid en acceleratie op het veld"
+        },
+        {
+          "name": "Techniek",
+          "desc": "Balcontrole, dribbelen, eerste aanname"
+        },
+        {
+          "name": "Spelinzicht",
+          "desc": "Spellezing, creatieve passes"
+        },
+        {
+          "name": "Afwerking",
+          "desc": "Precisie en kracht van de afronding"
+        },
+        {
+          "name": "Verdediging",
+          "desc": "Anticipatie, tackles, positionering"
+        },
+        {
+          "name": "Uithoudingsvermogen",
+          "desc": "Aeroob vermogen en herstel"
+        }
+      ],
+      "calcHeading": "Hoe de VSI wordt berekend",
+      "calcText": "De VSI weegt de statistieken op basis van de positie van de speler. Bij een spits wegen Afwerking en Snelheid zwaarder, terwijl bij een centrale middenvelder Spelinzicht en Techniek zwaarder wegen. Het algoritme corrigeert ook voor de PHV-categorie om laatrijpende spelers niet te benadelen.",
+      "tip": "Een VSI boven de 75 wordt als uitmuntend beschouwd voor de leeftijd. Boven de 85 bevindt de speler zich in het hoogste percentiel van zijn categorie."
+    },
+    "video": {
+      "title": "4. Video-analyse met AI",
+      "intro": "VITAS analyseert wedstrijdvideo's met behulp van twee AI-modellen: Google Gemini bekijkt de volledige video en Claude genereert het gestructureerde tactische rapport.",
+      "individualHeading": "Individuele analyse (Video Intelligence)",
+      "steps": [
+        {
+          "title": "Ga naar het spelersprofiel",
+          "desc": "Tik op de speler in Ranglijsten en selecteer 'Video-analyse'."
+        },
+        {
+          "title": "Video uploaden",
+          "desc": "Sleep of selecteer een MP4-video van de wedstrijd. VITAS uploadt deze automatisch naar de cloud."
+        },
+        {
+          "title": "Context instellen",
+          "desc": "Kleur van het tenue, positie van de speler, competitieniveau. Optioneel, de focus van de analyse."
+        },
+        {
+          "title": "Analyse uitvoeren",
+          "desc": "De AI verwerkt de video (1-3 minuten). Je ziet de voortgang in realtime."
+        },
+        {
+          "title": "Rapport bekijken",
+          "desc": "Volledig rapport: managementsamenvatting, KPIs, sterke punten, verbeterpunten, aanbevelingen."
+        }
+      ],
+      "teamHeading": "Teamanalyse (Team Intelligence)",
+      "teamText": "Werkt op dezelfde manier, maar beoordeelt het volledige team: formatie, spelfases, collectieve statistieken (compactheid, synchronisatie, pressing) en prestaties per speler.",
+      "tip": "De video's worden veilig opgeslagen in Bunny CDN. Je kunt ze opnieuw analyseren met verschillende invalshoeken (aanvallend, verdedigend, omschakelingen) zonder ze opnieuw te uploaden."
+    },
+    "rankings": {
+      "title": "5. Ranglijsten en vergelijkingen",
+      "intro": "De weergave Ranglijsten toont al je spelers gesorteerd op VSI. Functies:",
+      "list": [
+        "Zoeken — Filter op naam in realtime",
+        "Sorteren — Op VSI, leeftijd of naam",
+        "Podium — De 3 beste spelers visueel uitgelicht",
+        "Filteren op groep — Sub-14, Sub-16, Sub-18, Sub-21"
+      ],
+      "compareHeading": "Spelers vergelijken",
+      "compareText": "Ga vanuit het hoofdmenu naar \"Vergelijken\" om 2 spelers te selecteren en hun statistiekenradars over elkaar te bekijken, de verschillen per dimensie en de aanbeveling van de AI over wie het meeste toekomstperspectief heeft."
+    },
+    "roleProfile": {
+      "title": "6. Tactisch profiel (Role Profile)",
+      "intro": "Role Profile is een door AI gegenereerde analyse die het tactische archetype van de speler bepaalt (bijv.: \"Dribbelaar\", \"Organisator\", \"Box-to-Box\") op basis van zijn statistieken.",
+      "includesHeading": "Wat het bevat",
+      "list": [
+        "Optimale positie — Waar hij het best presteert volgens zijn cijfers",
+        "Archetype — Dominante speelstijl",
+        "Identiteit — Verdeling: fysiek, technisch, aanvallend, verdedigend, gemengd",
+        "Prognose — Schatting op 6 en 18 maanden, gecorrigeerd voor PHV",
+        "Samenvatting — Door AI gegenereerde tekst met analyse van het profiel"
+      ],
+      "tip": "Role Profile wordt opnieuw berekend telkens wanneer je de statistieken van de speler bijwerkt. Je kunt rollen tussen spelers vergelijken en de wijzigingsgeschiedenis bekijken."
+    },
+    "phv": {
+      "title": "7. PHV en biologische rijping",
+      "intro": "De PHV (Peak Height Velocity) meet op welk punt van zijn biologische ontwikkeling een jeugdspeler zich bevindt. Dit is cruciaal om een vroegrijpe jongen niet oneerlijk te vergelijken met een laatrijpe.",
+      "categoriesHeading": "PHV-categorieën",
+      "categories": [
+        {
+          "name": "Early (Pre-PHV)",
+          "desc": "Heeft zijn groeipiek nog niet bereikt. Kan \"langzamer\" lijken, maar heeft een enorme fysieke verbetermarge. De VSI wordt gecorrigeerd met x1.12 om dit te compenseren."
+        },
+        {
+          "name": "On-time (Tijdens PHV)",
+          "desc": "Volop in de groeipiek. Kritiek ontwikkelingsvenster — de trainingsbeslissingen zijn hier het belangrijkst. VSI zonder correctie."
+        },
+        {
+          "name": "Late (Post-PHV)",
+          "desc": "Heeft zijn piek al gehad. Stabielere fysieke prestaties, maar kan \"opgeblazen\" zijn t.o.v. leeftijdsgenoten. De VSI wordt gecorrigeerd met x0.92."
+        }
+      ],
+      "tip": "VITAS berekent de PHV met de Mirwald-formule, de standaard in de jeugdsportwetenschap. Als je de zithoogte en beenlengte opgeeft, is de nauwkeurigheid 92%."
+    },
+    "scoutInsights": {
+      "title": "8. Scout Insights (AI)",
+      "intro": "Scout Insights zijn intelligente meldingen die automatisch worden gegenereerd door de AI van VITAS. Ze detecteren patronen in de gegevens van je spelers en genereren bruikbare aanbevelingen.",
+      "typesHeading": "Soorten insights",
+      "list": [
+        "Breakout — Speler met hoge VSI en stijgende trend",
+        "PHV Alert — Kritiek ontwikkelingsvenster gedetecteerd",
+        "Drill Record — Uitzonderlijke statistiek behaald",
+        "Regression — Aanzienlijke prestatiedaling",
+        "Milestone — Belangrijke mijlpaal bereikt (VSI 80, 90...)"
+      ],
+      "outro": "Elke insight bevat een kop, een tekst met een numeriek gegeven, aanbevolen drills uit de VITAS-bibliotheek en concrete acties voor de trainer."
+    },
+    "team": {
+      "title": "9. Team en samenwerking",
+      "intro": "VITAS maakt teamwerk mogelijk. De sportief directeur kan scouts, trainers en waarnemers uitnodigen voor de organisatie.",
+      "rolesHeading": "Beschikbare rollen",
+      "roles": [
+        {
+          "name": "Director",
+          "desc": "Volledige toegang: spelers aanmaken, bewerken, verwijderen, team beheren, analytics"
+        },
+        {
+          "name": "Scout",
+          "desc": "Spelers aanmaken en bewerken, analyses uitvoeren, alles bekijken, PDF exporteren"
+        },
+        {
+          "name": "Coach",
+          "desc": "Zijn spelers aanmaken en bewerken, analyses uitvoeren, video bekijken"
+        },
+        {
+          "name": "Viewer",
+          "desc": "Alleen-lezen: spelers en ranglijsten bekijken, zonder gegevens te wijzigen"
+        }
+      ],
+      "inviteHeading": "Leden uitnodigen",
+      "inviteText": "Vanuit de sectie \"Team\" kan de directeur uitnodigingen per e-mail versturen. De genodigde ontvangt een link om met de toegewezen rol lid te worden."
+    },
+    "director": {
+      "title": "10. Director Dashboard",
+      "intro": "Exclusief paneel voor sportief directeuren met bedrijfsstatistieken en platformgebruik.",
+      "metricsHeading": "Beschikbare statistieken",
+      "list": [
+        "Actieve spelers en abonnementsgebruik",
+        "AI-analyses uitgevoerd deze maand vs. vorige",
+        "Gebruiksoverzicht per agent (Scout Insight, Video, Team, enz.)",
+        "Teamsamenstelling per rol",
+        "Meest actieve spelers (op basis van bezoeken en gebeurtenissen)",
+        "Meldingen: abonnementslimieten, inactiviteit, enz.",
+        "Abonnementsstatus en verlengingsdatum"
+      ]
+    },
+    "settings": {
+      "title": "11. Instellingen en gegevens",
+      "exportHeading": "Gegevens exporteren",
+      "exportList": [
+        "Lokale back-up — Download je localStorage-gegevens als JSON",
+        "Volledige GDPR-export — Download AL je gegevens (server + lokaal) in één bestand",
+        "Back-up importeren — Herstel gegevens uit een eerder JSON-bestand"
+      ],
+      "notifHeading": "Meldingen",
+      "notifText": "Stel in welke pushmeldingen je wilt ontvangen: lage prestaties, inactiviteit, abonnementslimieten, voltooide analyses, scout insights en teamupdates.",
+      "deleteHeading": "Account verwijderen",
+      "deleteText": "In de gevarenzone kun je je account en al je gegevens permanent verwijderen. Je wordt gevraagd \"VERWIJDEREN\" te typen ter bevestiging. Deze actie is onomkeerbaar."
+    },
+    "plans": {
+      "title": "12. Abonnementen en facturatie",
+      "plans": [
+        {
+          "name": "Free",
+          "desc": "3 AI-analyses/maand, 5 spelers, basisfuncties"
+        },
+        {
+          "name": "Pro",
+          "desc": "20 AI-analyses/maand, 25 spelers, PDF-export, VAEP, pushmeldingen"
+        },
+        {
+          "name": "Club",
+          "desc": "Onbeperkte analyses, onbeperkt aantal spelers, multigebruikersrollen, prioriteitsondersteuning"
+        }
+      ],
+      "outro": "Je kunt op elk moment van abonnement wisselen via Instellingen > Facturatie. Betalingen worden veilig verwerkt met Stripe."
+    },
+    "security": {
+      "title": "13. Beveiliging en privacy",
+      "list": [
+        "JWT-authenticatie met automatische vernieuwing van tokens",
+        "Gegevens versleuteld tijdens verzending (HTTPS) en in rust (Supabase)",
+        "Rate limiting op alle API-endpoints",
+        "Row Level Security (RLS) — elke gebruiker ziet alleen zijn eigen gegevens",
+        "GDPR-naleving: gegevensexport, recht om vergeten te worden, expliciete toestemming",
+        "Gegevens van minderjarigen beschermd met een specifiek beleid (Sectie 10 van Privacy)",
+        "De video's worden opgeslagen in een beveiligde CDN (Bunny) met geverifieerde toegang",
+        "De AI traint NIET op je gegevens — ze worden verwerkt en verwijderd"
+      ]
+    },
+    "faq": {
+      "title": "14. Veelgestelde vragen",
+      "items": [
+        {
+          "q": "Werkt het zonder internet?",
+          "a": "Ja. VITAS is een PWA die offline werkt. De gegevens worden automatisch gesynchroniseerd zodra je weer verbinding hebt."
+        },
+        {
+          "q": "Kan ik de app installeren?",
+          "a": "Ja. Tik in Chrome op 'Installeren' in de adresbalk of in het menu. Het werkt als een native app op mobiel en desktop."
+        },
+        {
+          "q": "Wat gebeurt er als ik mijn analyselimiet overschrijd?",
+          "a": "De AI-analyses worden geblokkeerd tot de volgende maand. Je kunt op elk moment upgraden om er meer te ontgrendelen."
+        },
+        {
+          "q": "Zijn mijn gegevens privé?",
+          "a": "Volledig. Elke gebruiker ziet dankzij RLS alleen zijn eigen gegevens. De gegevens van je organisatie zijn geïsoleerd van andere organisaties."
+        },
+        {
+          "q": "Kan ik een spelersrapport exporteren?",
+          "a": "Ja. Tik in het spelersprofiel op 'PDF exporteren' om een professioneel, afdrukbaar rapport te genereren."
+        },
+        {
+          "q": "Hoe werkt de video-analyse?",
+          "a": "Gemini bekijkt de volledige video en haalt ruwe gegevens eruit. Claude interpreteert die gegevens en genereert een gestructureerd tactisch rapport met KPIs en aanbevelingen."
+        },
+        {
+          "q": "Wat is de VSI?",
+          "a": "De VITAS Scouting Index is een score van 0-100 die de 6 basisstatistieken combineert, gewogen per positie en gecorrigeerd voor biologische rijping."
+        },
+        {
+          "q": "Kan ik meerdere organisaties hebben?",
+          "a": "Momenteel behoort elke gebruiker tot één organisatie. Als je meerdere clubs moet beheren, neem dan contact op met support."
+        }
+      ]
+    }
   },
   "completeReport": {
     "errorNoId": "De rapport-id ontbreekt.",
