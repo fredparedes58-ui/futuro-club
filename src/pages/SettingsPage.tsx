@@ -461,7 +461,10 @@ const SettingsPage = () => {
   const handleDeleteAccount = async () => {
     const confirmation = window.prompt(t("account.deleteConfirm"));
     if (!confirmation) return;
-    const keyword = i18n.language?.startsWith("en") ? "DELETE" : "ELIMINAR";
+    // La palabra de confirmacion es la LOCALIZADA que muestra el prompt (account.deleteKeyword):
+    // en=DELETE, es=ELIMINAR, it=ELIMINA, fr=SUPPRIMER, de=LÖSCHEN, nl=VERWIJDEREN. Antes se
+    // exigia "ELIMINAR" para todo no-ingles → it/fr/de/nl no podian borrar su cuenta (RGPD).
+    const keyword = (t("account.deleteKeyword") || "ELIMINAR").toUpperCase();
     if (confirmation.trim().toUpperCase() !== keyword) {
       toast.error(t("common.error"));
       return;

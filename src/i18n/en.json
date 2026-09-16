@@ -1186,6 +1186,7 @@
     "moreInfo": "More info"
   },
   "account": {
+    "deleteKeyword": "DELETE",
     "dangerZone": "Danger zone",
     "deleteWarning": "This action is irreversible. All your data, players, analyses, and history will be permanently deleted.",
     "delete": "Delete my account",
@@ -2535,6 +2536,332 @@
     "historyTitle": "This player's tests",
     "historyEmpty": "No saved tests yet.",
     "viewProfile": "View profile"
+  },
+  "userGuide": {
+    "kicker": "VITAS Intelligence · User Guide",
+    "title": "User Guide",
+    "subtitle": "Football Intelligence · Complete platform manual",
+    "version": "Version 1.0 · April 2026",
+    "download": "Download PDF",
+    "navTitle": "User Guide",
+    "tocTitle": "Contents",
+    "supportLine": "For support: reach out from the Settings section or at {{host}}",
+    "toc": [
+      "Getting started",
+      "Player management",
+      "Metrics and VSI",
+      "Video analysis",
+      "Rankings and comparisons",
+      "Tactical profile (Role Profile)",
+      "PHV and biological maturation",
+      "Scout Insights (AI)",
+      "Team and collaboration",
+      "Director Dashboard",
+      "Settings and data",
+      "Plans and billing",
+      "Security and privacy",
+      "Frequently asked questions"
+    ],
+    "gettingStarted": {
+      "title": "1. Getting started",
+      "intro": "VITAS is a sports intelligence platform for youth football. It enables scouts, coaches and sporting directors to evaluate players with objective metrics, AI video analysis, and professional reports.",
+      "registerHeading": "Registration",
+      "steps": [
+        {
+          "title": "Create account",
+          "desc": "Go to the registration screen and enter your email and password. You can also use Google."
+        },
+        {
+          "title": "Verify email",
+          "desc": "Check your inbox and click the verification link."
+        },
+        {
+          "title": "Complete onboarding",
+          "desc": "Select your profile type (Scout, Parent, Academy, Club), organization name, and preferences."
+        },
+        {
+          "title": "Starting data",
+          "desc": "You can begin with demo players to explore the platform, or add your own players right away."
+        }
+      ],
+      "tip": "If you are the director of an academy, select \"Academy\" or \"Club\" as your profile type to unlock the team and multi-user features."
+    },
+    "players": {
+      "title": "2. Player management",
+      "intro": "Players are the core of VITAS. Each player has a complete profile with personal data, performance metrics, analysis history, and their VSI score.",
+      "createHeading": "Create a player",
+      "steps": [
+        {
+          "title": "Go to Rankings",
+          "desc": "Tap the '+' or 'New player' button in the top corner."
+        },
+        {
+          "title": "Basic data",
+          "desc": "Name, date of birth, position, dominant foot, height and weight."
+        },
+        {
+          "title": "Initial metrics",
+          "desc": "Rate speed, technique, vision, shooting, defense and stamina (1-100 scale)."
+        },
+        {
+          "title": "Save",
+          "desc": "The player appears immediately in Rankings with their calculated VSI."
+        }
+      ],
+      "profileHeading": "Player profile",
+      "profileIntro": "Tapping a player in Rankings opens their complete profile, where you can see:",
+      "profileList": [
+        "VSI score with trend (rising, stable, falling)",
+        "Metrics radar with 6 dimensions",
+        "PHV category (biological maturation)",
+        "Video analysis history",
+        "Role Profile (tactical profile)",
+        "Comparison with similar professional players"
+      ],
+      "tip": "Data syncs automatically with the server. If you lose connection, VITAS saves your changes locally and uploads them once you are back online."
+    },
+    "metrics": {
+      "title": "3. Metrics and VSI",
+      "intro": "The VSI (VITAS Scouting Index) is each player's main score. It ranges from 0 to 100 and combines all metrics with weights adjusted by position.",
+      "sixHeading": "The 6 base metrics",
+      "metricsList": [
+        {
+          "name": "Speed",
+          "desc": "Quickness and acceleration on the pitch"
+        },
+        {
+          "name": "Technique",
+          "desc": "Ball control, dribbling, first touch"
+        },
+        {
+          "name": "Vision",
+          "desc": "Reading the game, creative passing"
+        },
+        {
+          "name": "Shooting",
+          "desc": "Finishing accuracy and power"
+        },
+        {
+          "name": "Defense",
+          "desc": "Anticipation, tackles, positioning"
+        },
+        {
+          "name": "Stamina",
+          "desc": "Aerobic capacity and recovery"
+        }
+      ],
+      "calcHeading": "How the VSI is calculated",
+      "calcText": "The VSI weights the metrics according to the player's position. A center forward weighs more heavily on Shooting and Speed, while a central midfielder weighs more on Vision and Technique. The algorithm also adjusts for PHV category so as not to penalize late-maturing players.",
+      "tip": "A VSI above 75 is considered outstanding for a player's age. Above 85, the player is in the top percentile of their category."
+    },
+    "video": {
+      "title": "4. AI video analysis",
+      "intro": "VITAS analyzes match videos using two AI models: Google Gemini watches the full video, and Claude generates the structured tactical report.",
+      "individualHeading": "Individual analysis (Video Intelligence)",
+      "steps": [
+        {
+          "title": "Go to the player's profile",
+          "desc": "Tap the player in Rankings and select 'Video Analysis'."
+        },
+        {
+          "title": "Upload video",
+          "desc": "Drag or select an MP4 video of the match. VITAS uploads it to the cloud automatically."
+        },
+        {
+          "title": "Set the context",
+          "desc": "Kit color, player position, competitive level. Optionally, the analysis focus."
+        },
+        {
+          "title": "Run the analysis",
+          "desc": "The AI processes the video (1-3 minutes). You will see progress in real time."
+        },
+        {
+          "title": "Review the report",
+          "desc": "Complete report: executive summary, KPIs, strengths, areas to improve, recommendations."
+        }
+      ],
+      "teamHeading": "Team analysis (Team Intelligence)",
+      "teamText": "It works the same way but evaluates the whole team: formation, phases of play, collective metrics (compactness, synchronization, pressing), and per-player performance.",
+      "tip": "Videos are stored securely on Bunny CDN. You can re-analyze them with different focuses (offensive, defensive, transitions) without uploading them again."
+    },
+    "rankings": {
+      "title": "5. Rankings and comparisons",
+      "intro": "The Rankings view shows all your players sorted by VSI. Features:",
+      "list": [
+        "Search — Filter by name in real time",
+        "Sort — By VSI, age, or name",
+        "Podium — The top 3 players highlighted visually",
+        "Filter by group — Sub-14, Sub-16, Sub-18, Sub-21"
+      ],
+      "compareHeading": "Compare players",
+      "compareText": "From the main menu, open \"Compare\" to select 2 players and see their metrics radars overlaid, differences by dimension, and the AI's recommendation on which has more upside."
+    },
+    "roleProfile": {
+      "title": "6. Tactical profile (Role Profile)",
+      "intro": "The Role Profile is an AI-generated analysis that determines the player's tactical archetype (e.g., \"Dribbler\", \"Playmaker\", \"Box-to-Box\") based on their metrics.",
+      "includesHeading": "What it includes",
+      "list": [
+        "Optimal position — Where they perform best according to their numbers",
+        "Archetype — Dominant style of play",
+        "Identity — Breakdown: physical, technical, offensive, defensive, mixed",
+        "Projection — 6- and 18-month estimate adjusted for PHV",
+        "Summary — AI-generated text with an analysis of the profile"
+      ],
+      "tip": "The Role Profile is recalculated every time you update the player's metrics. You can compare roles across players and view the history of changes."
+    },
+    "phv": {
+      "title": "7. PHV and biological maturation",
+      "intro": "PHV (Peak Height Velocity) measures where a youth player is in their biological development. It is crucial for not unfairly comparing an early-maturing boy with a late-maturing one.",
+      "categoriesHeading": "PHV categories",
+      "categories": [
+        {
+          "name": "Early (Pre-PHV)",
+          "desc": "Has not yet reached their growth peak. May appear \"slower\" but has enormous room for physical improvement. The VSI is adjusted x1.12 to compensate."
+        },
+        {
+          "name": "On-time (During PHV)",
+          "desc": "In the middle of the growth peak. Critical development window — training decisions here are the most important. VSI with no adjustment."
+        },
+        {
+          "name": "Late (Post-PHV)",
+          "desc": "Has already passed their peak. More stable physical performance, but may be \"inflated\" vs peers. VSI is adjusted x0.92."
+        }
+      ],
+      "tip": "VITAS calculates PHV using the Mirwald formula, the standard in youth sports science. If you provide sitting height and leg length, the accuracy is 92%."
+    },
+    "scoutInsights": {
+      "title": "8. Scout Insights (AI)",
+      "intro": "Scout Insights are intelligent alerts generated automatically by VITAS's AI. They detect patterns in your players' data and produce actionable recommendations.",
+      "typesHeading": "Types of insight",
+      "list": [
+        "Breakout — Player with a high VSI and an upward trend",
+        "PHV Alert — Critical development window detected",
+        "Drill Record — Exceptional metric achieved",
+        "Regression — Significant drop in performance",
+        "Milestone — Important milestone crossed (VSI 80, 90...)"
+      ],
+      "outro": "Each insight includes a headline, a body with a numeric data point, recommended drills from the VITAS library, and concrete actions for the coach."
+    },
+    "team": {
+      "title": "9. Team and collaboration",
+      "intro": "VITAS lets you work as a team. The sporting director can invite scouts, coaches and observers to the organization.",
+      "rolesHeading": "Available roles",
+      "roles": [
+        {
+          "name": "Director",
+          "desc": "Full access: create, edit, delete players, manage the team, analytics"
+        },
+        {
+          "name": "Scout",
+          "desc": "Create and edit players, run analyses, view everything, export PDF"
+        },
+        {
+          "name": "Coach",
+          "desc": "Create and edit their players, run analyses, view video"
+        },
+        {
+          "name": "Viewer",
+          "desc": "Read-only: view players and rankings, without modifying data"
+        }
+      ],
+      "inviteHeading": "Invite members",
+      "inviteText": "From the \"Team\" section, the director can send email invitations. The invitee receives a link to join with the assigned role."
+    },
+    "director": {
+      "title": "10. Director Dashboard",
+      "intro": "An exclusive panel for sporting directors with business and platform-usage metrics.",
+      "metricsHeading": "Available metrics",
+      "list": [
+        "Active players and plan usage",
+        "AI analyses run this month vs the previous one",
+        "Usage breakdown by agent (Scout Insight, Video, Team, etc.)",
+        "Team composition by role",
+        "Most active players (by visits and events)",
+        "Alerts: plan limits, inactivity, etc.",
+        "Subscription status and renewal date"
+      ]
+    },
+    "settings": {
+      "title": "11. Settings and data",
+      "exportHeading": "Export data",
+      "exportList": [
+        "Local backup — Download your localStorage data as JSON",
+        "Full GDPR export — Download ALL your data (server + local) in a single file",
+        "Import backup — Restore data from a previous JSON file"
+      ],
+      "notifHeading": "Notifications",
+      "notifText": "Configure which push notifications you want to receive: low performance, inactivity, plan limits, completed analyses, scout insights, and team updates.",
+      "deleteHeading": "Delete account",
+      "deleteText": "In the danger zone you can permanently delete your account and all your data. You will be asked to type \"DELETE\" to confirm. This action is irreversible."
+    },
+    "plans": {
+      "title": "12. Plans and billing",
+      "plans": [
+        {
+          "name": "Free",
+          "desc": "3 AI analyses/month, 5 players, basic features"
+        },
+        {
+          "name": "Pro",
+          "desc": "20 AI analyses/month, 25 players, PDF export, VAEP, push notifications"
+        },
+        {
+          "name": "Club",
+          "desc": "Unlimited analyses, unlimited players, multi-user roles, priority support"
+        }
+      ],
+      "outro": "You can change your plan at any time from Settings > Billing. Payments are processed securely with Stripe."
+    },
+    "security": {
+      "title": "13. Security and privacy",
+      "list": [
+        "JWT authentication with automatic token renewal",
+        "Data encrypted in transit (HTTPS) and at rest (Supabase)",
+        "Rate limiting on all API endpoints",
+        "Row Level Security (RLS) — each user only sees their own data",
+        "GDPR compliance: data export, right to be forgotten, explicit consent",
+        "Minors' data protected by a specific policy (Privacy Section 10)",
+        "Videos are stored on a secure CDN (Bunny) with authenticated access",
+        "The AI does NOT train on your data — it is processed and discarded"
+      ]
+    },
+    "faq": {
+      "title": "14. Frequently asked questions",
+      "items": [
+        {
+          "q": "Does it work without internet?",
+          "a": "Yes. VITAS is a PWA that works offline. Data syncs automatically when you regain connection."
+        },
+        {
+          "q": "Can I install the app?",
+          "a": "Yes. In Chrome, tap 'Install' in the address bar or in the menu. It works like a native app on mobile and desktop."
+        },
+        {
+          "q": "What happens if I exceed my analysis limit?",
+          "a": "AI analyses are blocked until the next month. You can upgrade your plan at any time to unlock more."
+        },
+        {
+          "q": "Is my data private?",
+          "a": "Completely. Each user only sees their own data thanks to RLS. Your organization's data is isolated from others."
+        },
+        {
+          "q": "Can I export a player report?",
+          "a": "Yes. From the player's profile, tap 'Export PDF' to generate a printable professional report."
+        },
+        {
+          "q": "How does video analysis work?",
+          "a": "Gemini watches the full video and extracts raw data. Claude interprets that data and generates a structured tactical report with KPIs and recommendations."
+        },
+        {
+          "q": "What is the VSI?",
+          "a": "The VITAS Scouting Index is a 0-100 score that combines the 6 base metrics weighted by position and adjusted for biological maturation."
+        },
+        {
+          "q": "Can I have multiple organizations?",
+          "a": "Currently each user belongs to one organization. If you need to manage multiple clubs, contact support."
+        }
+      ]
+    }
   },
   "completeReport": {
     "errorNoId": "Report identifier is missing.",

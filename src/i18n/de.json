@@ -1185,6 +1185,7 @@
     "moreInfo": "Mehr Infos"
   },
   "account": {
+    "deleteKeyword": "LÖSCHEN",
     "dangerZone": "Gefahrenzone",
     "deleteWarning": "Diese Aktion ist unumkehrbar. Alle deine Daten, Spieler, Analysen und dein Verlauf werden dauerhaft gelöscht.",
     "delete": "Mein Konto löschen",
@@ -2534,6 +2535,332 @@
     "historyTitle": "Tests dieses Spielers",
     "historyEmpty": "Noch keine gespeicherten Tests.",
     "viewProfile": "Profil ansehen"
+  },
+  "userGuide": {
+    "kicker": "VITAS Intelligence · Benutzerhandbuch",
+    "title": "Benutzerhandbuch",
+    "subtitle": "Football Intelligence · Vollständiges Handbuch der Plattform",
+    "version": "Version 1.0 · April 2026",
+    "download": "PDF herunterladen",
+    "navTitle": "Benutzerhandbuch",
+    "tocTitle": "Inhalt",
+    "supportLine": "Für Support: Kontakt über den Bereich Einstellungen oder unter {{host}}",
+    "toc": [
+      "Erste Schritte",
+      "Spielerverwaltung",
+      "Metriken und VSI",
+      "Videoanalyse",
+      "Rankings und Vergleiche",
+      "Taktisches Profil (Role Profile)",
+      "PHV und biologische Reifung",
+      "Scout Insights (KI)",
+      "Team und Zusammenarbeit",
+      "Director Dashboard",
+      "Einstellungen und Daten",
+      "Tarife und Abrechnung",
+      "Sicherheit und Datenschutz",
+      "Häufig gestellte Fragen"
+    ],
+    "gettingStarted": {
+      "title": "1. Erste Schritte",
+      "intro": "VITAS ist eine Sport-Intelligence-Plattform für den Jugendfußball. Sie ermöglicht Scouts, Trainern und Sportdirektoren, Spieler anhand objektiver Metriken, KI-gestützter Videoanalyse und professioneller Berichte zu bewerten.",
+      "registerHeading": "Registrierung",
+      "steps": [
+        {
+          "title": "Konto erstellen",
+          "desc": "Gehen Sie zum Registrierungsbildschirm und geben Sie Ihre E-Mail-Adresse und Ihr Passwort ein. Sie können auch Google verwenden."
+        },
+        {
+          "title": "E-Mail verifizieren",
+          "desc": "Prüfen Sie Ihren Posteingang und klicken Sie auf den Verifizierungslink."
+        },
+        {
+          "title": "Onboarding abschließen",
+          "desc": "Wählen Sie Ihren Profiltyp (Scout, Elternteil, Akademie, Verein), den Namen der Organisation und Ihre Präferenzen aus."
+        },
+        {
+          "title": "Startdaten",
+          "desc": "Sie können mit Demo-Spielern beginnen, um die Plattform zu erkunden, oder sofort eigene Spieler hinzufügen."
+        }
+      ],
+      "tip": "Wenn Sie Leiter einer Akademie sind, wählen Sie \"Akademie\" oder \"Verein\" als Profiltyp, um die Team- und Mehrbenutzerfunktionen freizuschalten."
+    },
+    "players": {
+      "title": "2. Spielerverwaltung",
+      "intro": "Spieler sind der Kern von VITAS. Jeder Spieler verfügt über ein vollständiges Profil mit persönlichen Daten, Leistungsmetriken, Analyseverlauf und seinem VSI-Score.",
+      "createHeading": "Einen Spieler anlegen",
+      "steps": [
+        {
+          "title": "Zu Rankings gehen",
+          "desc": "Tippen Sie oben in der Ecke auf die Schaltfläche '+' oder 'Neuer Spieler'."
+        },
+        {
+          "title": "Grunddaten",
+          "desc": "Name, Geburtsdatum, Position, starker Fuß, Größe und Gewicht."
+        },
+        {
+          "title": "Anfangsmetriken",
+          "desc": "Bewerten Sie Schnelligkeit, Technik, Spielübersicht, Torschuss, Defensive und Ausdauer (Skala 1-100)."
+        },
+        {
+          "title": "Speichern",
+          "desc": "Der Spieler erscheint sofort in den Rankings mit seinem berechneten VSI."
+        }
+      ],
+      "profileHeading": "Spielerprofil",
+      "profileIntro": "Wenn Sie in den Rankings auf einen Spieler tippen, gelangen Sie zu seinem vollständigen Profil, in dem Sie Folgendes sehen können:",
+      "profileList": [
+        "VSI-Score mit Tendenz (steigend, stabil, fallend)",
+        "Metrik-Radar mit 6 Dimensionen",
+        "PHV-Kategorie (biologische Reifung)",
+        "Verlauf der Videoanalysen",
+        "Role Profile (taktisches Profil)",
+        "Vergleich mit ähnlichen Profispielern"
+      ],
+      "tip": "Die Daten werden automatisch mit dem Server synchronisiert. Wenn Sie die Verbindung verlieren, speichert VITAS die Änderungen lokal und lädt sie hoch, sobald Sie wieder online sind."
+    },
+    "metrics": {
+      "title": "3. Metriken und VSI",
+      "intro": "Der VSI (VITAS Scouting Index) ist der Hauptscore jedes Spielers. Er reicht von 0 bis 100 und kombiniert alle Metriken mit positionsspezifisch angepassten Gewichtungen.",
+      "sixHeading": "Die 6 Basismetriken",
+      "metricsList": [
+        {
+          "name": "Schnelligkeit",
+          "desc": "Tempo und Beschleunigung auf dem Platz"
+        },
+        {
+          "name": "Technik",
+          "desc": "Ballkontrolle, Dribbling, erster Kontakt"
+        },
+        {
+          "name": "Spielübersicht",
+          "desc": "Spielverständnis, kreative Pässe"
+        },
+        {
+          "name": "Torschuss",
+          "desc": "Präzision und Schusskraft"
+        },
+        {
+          "name": "Defensive",
+          "desc": "Antizipation, Tacklings, Stellungsspiel"
+        },
+        {
+          "name": "Ausdauer",
+          "desc": "Aerobe Kapazität und Regeneration"
+        }
+      ],
+      "calcHeading": "Wie der VSI berechnet wird",
+      "calcText": "Der VSI gewichtet die Metriken je nach Position des Spielers. Bei einem Mittelstürmer zählen Torschuss und Schnelligkeit mehr, während bei einem zentralen Mittelfeldspieler Spielübersicht und Technik stärker ins Gewicht fallen. Der Algorithmus passt außerdem nach PHV-Kategorie an, um Spieler mit später Reifung nicht zu benachteiligen.",
+      "tip": "Ein VSI über 75 gilt für das jeweilige Alter als herausragend. Über 85 befindet sich der Spieler im obersten Perzentil seiner Kategorie."
+    },
+    "video": {
+      "title": "4. Videoanalyse mit KI",
+      "intro": "VITAS analysiert Spielvideos mithilfe von zwei KI-Modellen: Google Gemini betrachtet das gesamte Video, und Claude erstellt den strukturierten taktischen Bericht.",
+      "individualHeading": "Einzelanalyse (Video Intelligence)",
+      "steps": [
+        {
+          "title": "Zum Spielerprofil gehen",
+          "desc": "Tippen Sie in den Rankings auf den Spieler und wählen Sie 'Videoanalyse'."
+        },
+        {
+          "title": "Video hochladen",
+          "desc": "Ziehen Sie ein MP4-Video des Spiels hierher oder wählen Sie es aus. VITAS lädt es automatisch in die Cloud hoch."
+        },
+        {
+          "title": "Kontext konfigurieren",
+          "desc": "Trikotfarbe, Position des Spielers, Wettbewerbsniveau. Optional der Analysefokus."
+        },
+        {
+          "title": "Analyse ausführen",
+          "desc": "Die KI verarbeitet das Video (1-3 Minuten). Sie sehen den Fortschritt in Echtzeit."
+        },
+        {
+          "title": "Bericht prüfen",
+          "desc": "Vollständiger Bericht: Executive Summary, KPIs, Stärken, Verbesserungsbereiche, Empfehlungen."
+        }
+      ],
+      "teamHeading": "Teamanalyse (Team Intelligence)",
+      "teamText": "Funktioniert genauso, bewertet aber das gesamte Team: Formation, Spielphasen, kollektive Metriken (Kompaktheit, Synchronisation, Pressing) und die Leistung pro Spieler.",
+      "tip": "Die Videos werden sicher im Bunny CDN gespeichert. Sie können sie mit unterschiedlichen Schwerpunkten (offensiv, defensiv, Umschaltspiel) erneut analysieren, ohne sie noch einmal hochzuladen."
+    },
+    "rankings": {
+      "title": "5. Rankings und Vergleiche",
+      "intro": "Die Rankings-Ansicht zeigt alle Ihre Spieler nach VSI sortiert. Funktionen:",
+      "list": [
+        "Suchen — Filtert in Echtzeit nach Namen",
+        "Sortieren — Nach VSI, Alter oder Name",
+        "Podium — Die 3 besten Spieler visuell hervorgehoben",
+        "Nach Gruppe filtern — Sub-14, Sub-16, Sub-18, Sub-21"
+      ],
+      "compareHeading": "Spieler vergleichen",
+      "compareText": "Über das Hauptmenü gelangen Sie zu \"Vergleichen\", um 2 Spieler auszuwählen und ihre überlagerten Metrik-Radare, die Unterschiede pro Dimension und die KI-Empfehlung dazu zu sehen, wer das größere Potenzial hat."
+    },
+    "roleProfile": {
+      "title": "6. Taktisches Profil (Role Profile)",
+      "intro": "Das Role Profile ist eine KI-generierte Analyse, die den taktischen Archetyp des Spielers (z. B. \"Dribbler\", \"Spielgestalter\", \"Box-to-Box\") anhand seiner Metriken bestimmt.",
+      "includesHeading": "Was enthalten ist",
+      "list": [
+        "Optimale Position — Wo er laut seinen Zahlen am besten aufgehoben ist",
+        "Archetyp — Dominanter Spielstil",
+        "Identität — Verteilung: physisch, technisch, offensiv, defensiv, gemischt",
+        "Prognose — Schätzung auf 6 und 18 Monate, angepasst nach PHV",
+        "Zusammenfassung — KI-generierter Text mit Profilanalyse"
+      ],
+      "tip": "Das Role Profile wird jedes Mal neu berechnet, wenn Sie die Metriken des Spielers aktualisieren. Sie können Rollen zwischen Spielern vergleichen und den Änderungsverlauf einsehen."
+    },
+    "phv": {
+      "title": "7. PHV und biologische Reifung",
+      "intro": "Der PHV (Peak Height Velocity) misst, an welchem Punkt seiner biologischen Entwicklung ein Nachwuchsspieler steht. Er ist entscheidend, um einen früh reifenden Jungen nicht ungerecht mit einem spät reifenden zu vergleichen.",
+      "categoriesHeading": "PHV-Kategorien",
+      "categories": [
+        {
+          "name": "Early / Früh (Pre-PHV)",
+          "desc": "Hat seinen Wachstumsschub noch nicht erreicht. Er mag \"langsamer\" wirken, hat aber ein enormes körperliches Verbesserungspotenzial. Der VSI wird zum Ausgleich mit x1.12 angepasst."
+        },
+        {
+          "name": "On-time / Zeitgerecht (während PHV)",
+          "desc": "Mitten im Wachstumsschub. Kritisches Entwicklungsfenster — die Trainingsentscheidungen sind hier am wichtigsten. VSI ohne Anpassung."
+        },
+        {
+          "name": "Late / Spät (Post-PHV)",
+          "desc": "Hat seinen Höhepunkt bereits überschritten. Stabilere körperliche Leistung, kann aber im Vergleich zu Gleichaltrigen \"aufgebläht\" sein. Der VSI wird mit x0.92 angepasst."
+        }
+      ],
+      "tip": "VITAS berechnet den PHV mit der Mirwald-Formel, dem Standard in der Nachwuchs-Sportwissenschaft. Wenn Sie die Sitzhöhe und die Beinlänge angeben, beträgt die Genauigkeit 92%."
+    },
+    "scoutInsights": {
+      "title": "8. Scout Insights (KI)",
+      "intro": "Scout Insights sind intelligente Hinweise, die automatisch von der KI von VITAS generiert werden. Sie erkennen Muster in den Daten Ihrer Spieler und erzeugen umsetzbare Empfehlungen.",
+      "typesHeading": "Arten von Insights",
+      "list": [
+        "Breakout — Spieler mit hohem VSI und steigender Tendenz",
+        "PHV Alert — Kritisches Entwicklungsfenster erkannt",
+        "Drill Record — Außergewöhnliche Metrik erreicht",
+        "Regression — Deutlicher Leistungsabfall",
+        "Milestone — Wichtiger Meilenstein überschritten (VSI 80, 90...)"
+      ],
+      "outro": "Jeder Insight enthält eine Überschrift, einen Textkörper mit numerischem Wert, empfohlene Übungen aus der VITAS-Bibliothek und konkrete Maßnahmen für den Trainer."
+    },
+    "team": {
+      "title": "9. Team und Zusammenarbeit",
+      "intro": "VITAS ermöglicht die Zusammenarbeit im Team. Der Sportdirektor kann Scouts, Trainer und Beobachter in die Organisation einladen.",
+      "rolesHeading": "Verfügbare Rollen",
+      "roles": [
+        {
+          "name": "Director",
+          "desc": "Vollzugriff: Spieler erstellen, bearbeiten, löschen, Team verwalten, Analytics"
+        },
+        {
+          "name": "Scout",
+          "desc": "Spieler erstellen und bearbeiten, Analysen ausführen, alles einsehen, PDF exportieren"
+        },
+        {
+          "name": "Coach",
+          "desc": "Eigene Spieler erstellen und bearbeiten, Analysen ausführen, Video ansehen"
+        },
+        {
+          "name": "Viewer",
+          "desc": "Nur Lesezugriff: Spieler und Rankings ansehen, ohne Daten zu ändern"
+        }
+      ],
+      "inviteHeading": "Mitglieder einladen",
+      "inviteText": "Im Bereich \"Team\" kann der Director Einladungen per E-Mail versenden. Der Eingeladene erhält einen Link, um mit der zugewiesenen Rolle beizutreten."
+    },
+    "director": {
+      "title": "10. Director Dashboard",
+      "intro": "Exklusives Dashboard für Sportdirektoren mit Geschäftskennzahlen und Plattformnutzung.",
+      "metricsHeading": "Verfügbare Metriken",
+      "list": [
+        "Aktive Spieler und Tarifnutzung",
+        "Durchgeführte KI-Analysen in diesem Monat vs. Vormonat",
+        "Nutzungsaufschlüsselung nach Agent (Scout Insight, Video, Team usw.)",
+        "Teamzusammensetzung nach Rolle",
+        "Aktivste Spieler (nach Aufrufen und Ereignissen)",
+        "Warnungen: Tariflimits, Inaktivität usw.",
+        "Abonnementstatus und Verlängerungsdatum"
+      ]
+    },
+    "settings": {
+      "title": "11. Einstellungen und Daten",
+      "exportHeading": "Daten exportieren",
+      "exportList": [
+        "Lokales Backup — Lädt Ihre Daten aus dem localStorage als JSON herunter",
+        "Vollständiger DSGVO-Export — Lädt ALLE Ihre Daten (Server + lokal) in einer einzigen Datei herunter",
+        "Backup importieren — Stellt Daten aus einer früheren JSON-Datei wieder her"
+      ],
+      "notifHeading": "Benachrichtigungen",
+      "notifText": "Legen Sie fest, welche Push-Benachrichtigungen Sie erhalten möchten: niedrige Leistung, Inaktivität, Tariflimits, abgeschlossene Analysen, Scout Insights und Team-Updates.",
+      "deleteHeading": "Konto löschen",
+      "deleteText": "Im Gefahrenbereich können Sie Ihr Konto und alle Ihre Daten dauerhaft löschen. Sie werden aufgefordert, zur Bestätigung \"LÖSCHEN\" einzugeben. Diese Aktion ist unwiderruflich."
+    },
+    "plans": {
+      "title": "12. Tarife und Abrechnung",
+      "plans": [
+        {
+          "name": "Free",
+          "desc": "3 KI-Analysen/Monat, 5 Spieler, Basisfunktionen"
+        },
+        {
+          "name": "Pro",
+          "desc": "20 KI-Analysen/Monat, 25 Spieler, PDF-Export, VAEP, Push-Benachrichtigungen"
+        },
+        {
+          "name": "Club",
+          "desc": "Unbegrenzte Analysen, unbegrenzte Spieler, Mehrbenutzer-Rollen, priorisierter Support"
+        }
+      ],
+      "outro": "Sie können Ihren Tarif jederzeit unter Einstellungen > Abrechnung ändern. Zahlungen werden sicher über Stripe abgewickelt."
+    },
+    "security": {
+      "title": "13. Sicherheit und Datenschutz",
+      "list": [
+        "JWT-Authentifizierung mit automatischer Token-Erneuerung",
+        "Daten verschlüsselt bei der Übertragung (HTTPS) und im Ruhezustand (Supabase)",
+        "Rate Limiting an allen API-Endpunkten",
+        "Row Level Security (RLS) — jeder Benutzer sieht nur seine eigenen Daten",
+        "DSGVO-Konformität: Datenexport, Recht auf Vergessenwerden, ausdrückliche Einwilligung",
+        "Daten Minderjähriger durch eine spezifische Richtlinie geschützt (Abschnitt 10 der Datenschutzerklärung)",
+        "Die Videos werden in einem sicheren CDN (Bunny) mit authentifiziertem Zugriff gespeichert",
+        "Die KI trainiert NICHT mit Ihren Daten — sie werden verarbeitet und verworfen"
+      ]
+    },
+    "faq": {
+      "title": "14. Häufig gestellte Fragen",
+      "items": [
+        {
+          "q": "Funktioniert es ohne Internet?",
+          "a": "Ja. VITAS ist eine PWA, die offline funktioniert. Die Daten werden automatisch synchronisiert, sobald Sie wieder eine Verbindung haben."
+        },
+        {
+          "q": "Kann ich die App installieren?",
+          "a": "Ja. Tippen Sie in Chrome in der Adressleiste oder im Menü auf 'Installieren'. Sie funktioniert wie eine native App auf Mobilgeräten und Desktop."
+        },
+        {
+          "q": "Was passiert, wenn ich mein Analyselimit überschreite?",
+          "a": "Die KI-Analysen werden bis zum nächsten Monat gesperrt. Sie können jederzeit auf einen höheren Tarif wechseln, um mehr freizuschalten."
+        },
+        {
+          "q": "Sind meine Daten privat?",
+          "a": "Absolut. Dank RLS sieht jeder Benutzer nur seine eigenen Daten. Die Daten Ihrer Organisation sind von anderen isoliert."
+        },
+        {
+          "q": "Kann ich einen Spielerbericht exportieren?",
+          "a": "Ja. Tippen Sie im Spielerprofil auf 'PDF exportieren', um einen professionellen, druckbaren Bericht zu erstellen."
+        },
+        {
+          "q": "Wie funktioniert die Videoanalyse?",
+          "a": "Gemini betrachtet das gesamte Video und extrahiert Rohdaten. Claude interpretiert diese Daten und erstellt einen strukturierten taktischen Bericht mit KPIs und Empfehlungen."
+        },
+        {
+          "q": "Was ist der VSI?",
+          "a": "Der VITAS Scouting Index ist ein Score von 0-100, der die 6 Basismetriken kombiniert, gewichtet nach Position und angepasst an die biologische Reifung."
+        },
+        {
+          "q": "Kann ich mehrere Organisationen haben?",
+          "a": "Derzeit gehört jeder Benutzer zu einer Organisation. Wenn Sie mehrere Vereine verwalten müssen, wenden Sie sich an den Support."
+        }
+      ]
+    }
   },
   "completeReport": {
     "errorNoId": "Die Berichtskennung fehlt.",
