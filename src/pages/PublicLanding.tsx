@@ -397,7 +397,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
       {/* ── FEATURES ──────────────────────────────────────────── */}
       <section id="features" className="relative">
         <div className="vl-wrap py-16 md:py-20">
-          <h2 className="font-display font-bold text-center mb-10" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.featuresHeading")}</h2>
+          <h2 className="font-display font-bold text-center mb-10 tracking-tight text-balance mx-auto max-w-4xl leading-[1.05]" style={{ fontSize: "clamp(38px,6vw,72px)" }}>{t("publicLanding.featuresHeading")}</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <VisualFeature icon={Brain} title={t("publicLanding.featureAiTitle")} color="#2f7cf6" mock="report" />
             <VisualFeature icon={Activity} title="VSI + PHV" color="#0059B3" mock="vsi" />

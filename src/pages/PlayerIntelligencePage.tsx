@@ -44,7 +44,6 @@ import PlayerHeatmap from "@/components/PlayerHeatmap";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import BenchmarkBadge from "@/components/intelligence/BenchmarkBadge";
 import { calculateReportBenchmark, type ReportBenchmark, DIMENSION_TO_METRIC } from "@/services/real/benchmarkService";
-import { PDFService } from "@/services/real/pdfService";
 import { usePlan } from "@/hooks/usePlan";
 import UpgradePrompt from "@/components/UpgradePrompt";
 
@@ -791,6 +790,32 @@ export default function PlayerIntelligencePage() {
   const top5Matches = latestReport?.jugadorReferencia?.top5 ?? [];
   const bestMatchData = latestReport?.jugadorReferencia?.bestMatch ?? null;
 
+  // Descarga del INFORME COMPLETO (no captura de pantalla). Serializa el informe real
+  // que ya se muestra en esta página a sessionStorage y abre la vista imprimible
+  // /analysis-report/:id, que la pestaña nueva hereda del opener. Dos modos:
+  //  · executive → informe serio para dirección (subconjunto curado)
+  //  · technical → todo tal cual lo genera el software (para el cuerpo técnico)
+  const openReport = (reportMode: "executive" | "technical") => {
+    if (!id || !latestReport) return;
+    try {
+      sessionStorage.setItem(
+        `vitas-analysis-report-${id}`,
+        JSON.stringify({
+          report: latestReport,
+          playerName: player?.name ?? "",
+          playerPosition: player?.position ?? "",
+        }),
+      );
+    } catch {
+      // sessionStorage lleno / bloqueado: la pestaña mostrará "no encontrado".
+      // No hay fallback por id de jugador (el informe vive en el sessionStorage
+      // que la pestaña nueva hereda del opener, no en player_analyses).
+    }
+    const url = `/analysis-report/${id}?mode=${reportMode}`;
+    const win = window.open(url, "_blank");
+    if (!win) window.location.href = url;
+  };
+
   return (
     <div className="min-h-screen pb-24">
       {/* Header */}
@@ -1065,28 +1090,27 @@ export default function PlayerIntelligencePage() {
                       </span>
                     )}
                   </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {t("playerIntelligencePage.exportChooseHint")}
+                  </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-2 text-xs"
-                      onClick={() => {
-                        if (id) PDFService.exportPlayerReport(id);
-                      }}
+                      onClick={() => openReport("executive")}
                     >
                       <FileText size={13} />
-                      {t("playerIntelligencePage.exportPDF")}
+                      {t("playerIntelligencePage.exportExecutive")}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-2 text-xs"
-                      onClick={() => {
-                        if (id) PDFService.exportAsImage(id);
-                      }}
+                      onClick={() => openReport("technical")}
                     >
                       <ArrowDownRight size={13} />
-                      {t("playerIntelligencePage.exportImage")}
+                      {t("playerIntelligencePage.exportTechnical")}
                     </Button>
                     <Button
                       variant="outline"
