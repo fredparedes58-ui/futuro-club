@@ -1768,6 +1768,9 @@
     "confidencePartial": "Parziale (senza PHV)"
   },
   "playerIntelligencePage": {
+    "exportExecutive": "Report esecutivo",
+    "exportTechnical": "Report tecnico completo",
+    "exportChooseHint": "Scegli il report da scaricare: esecutivo per la dirigenza o tecnico completo per lo staff tecnico.",
     "competitiveProjection": "Proiezione competitiva",
     "competitiveProjectionDesc": "Livello consigliato e roadmap per categoria d'età",
     "currentRecommendedLevel": "Livello attuale consigliato",
@@ -2038,8 +2041,8 @@
     "statAnalysisTime": "Dal video agli insight",
     "statFreeStart": "Per iniziare (piano Free)",
     "uniqueDifferentiator": "Fattore differenziante unico",
-    "phvHeadingStart": "Il tuo miglior giocatore non è il più alto.",
-    "phvHeadingAccent": "È quello che non è ancora cresciuto.",
+    "phvHeadingStart": "Il più grande non è il migliore.",
+    "phvHeadingAccent": "È solo cresciuto prima.",
     "phvParagraph": "Il 70% dei selezionati nelle academy giovanili nasce nel primo trimestre dell'anno. Sono più grossi, più forti, ma non necessariamente più talentuosi. VITAS applica la formula Mirwald di Peak Height Velocity (PHV) per correggere questo vantaggio biologico e vedere il vero giocatore che c'è sotto.",
     "phvFeature1": "Calcolo PHV con dati antropometrici · senza bisogno di radiografia",
     "phvFeature2": "VSI corretto per età biologica, non cronologica",
@@ -2533,6 +2536,11 @@
     "viewProfile": "Vedi scheda"
   },
   "analysisReportPrint": {
+    "typeExecutive": "Report Esecutivo",
+    "typeTechnical": "Report Tecnico",
+    "glanceLevel": "Livello attuale",
+    "glanceComparable": "Paragonabile a",
+    "glanceProjection": "Proiezione realistica",
     "errorNoId": "ID dell'analisi non fornito",
     "errorNotFound": "Analisi non trovata",
     "errorNotFoundSession": "Analisi non trovata nella sessione",

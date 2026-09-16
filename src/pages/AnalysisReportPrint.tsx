@@ -4,7 +4,7 @@
  * Optimizado para impresión / exportación PDF.
  * Lee datos de sessionStorage o Supabase (player_analyses).
  */
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
@@ -157,6 +157,11 @@ const printStyles = `
 export default function AnalysisReportPrint() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  // ?mode=executive ⇒ informe serio para dirección (subconjunto curado);
+  // por defecto 'technical' ⇒ todo lo que genera el software (para el cuerpo técnico).
+  const mode: "executive" | "technical" =
+    searchParams.get("mode") === "executive" ? "executive" : "technical";
   const [data, setData] = useState<StoredReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -287,7 +292,7 @@ export default function AnalysisReportPrint() {
         <div className="flex items-start justify-between mb-6 pb-4 border-b-2 border-gray-200 no-break">
           <div>
             <div className="text-[10px] font-bold tracking-widest text-purple-600 uppercase mb-1">
-              VITAS Intelligence Report
+              VITAS Intelligence · {mode === "executive" ? t("analysisReportPrint.typeExecutive") : t("analysisReportPrint.typeTechnical")}
             </div>
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{playerName}</h1>
             {playerPosition && (
@@ -307,10 +312,26 @@ export default function AnalysisReportPrint() {
           </div>
         </div>
 
+        {/* ── At-a-glance (solo ejecutivo · para dirección) ────────────── */}
+        {mode === "executive" && (
+          <section className="mb-6 no-break grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <GlanceCard label={t("analysisReportPrint.glanceLevel")} value={r.estadoActual.nivelActual} />
+            {r.confianza != null && (
+              <GlanceCard label={t("analysisReportPrint.confidence")} value={`${Math.round(r.confianza * 100)}%`} />
+            )}
+            {r.jugadorReferencia?.bestMatch?.nombre && (
+              <GlanceCard label={t("analysisReportPrint.glanceComparable")} value={r.jugadorReferencia.bestMatch.nombre} />
+            )}
+            {r.proyeccionCarrera?.escenarioRealista?.nivelProyecto && (
+              <GlanceCard label={t("analysisReportPrint.glanceProjection")} value={r.proyeccionCarrera.escenarioRealista.nivelProyecto} />
+            )}
+          </section>
+        )}
+
         {/* ── 2. Resumen Ejecutivo ────────────────────────────────────── */}
         <section className="mb-6 no-break">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.executiveSummary")}</h2>
-          <p className="text-sm text-gray-700 leading-relaxed">{r.estadoActual.resumenEjecutivo}</p>
+          <p className={mode === "executive" ? "text-base text-gray-800 leading-relaxed" : "text-sm text-gray-700 leading-relaxed"}>{r.estadoActual.resumenEjecutivo}</p>
           <div className="flex gap-4 mt-3 text-xs">
             <div>
               <span className="text-gray-400">{t("analysisReportPrint.currentLevel")}:</span>{" "}
@@ -335,7 +356,7 @@ export default function AnalysisReportPrint() {
         {/* #dimensiones fabricadas: radar y barras consumen dim.score (constante fabricada).
             Se ocultan por completo salvo que el informe declare dimensionesMedidas===true
             (hoy siempre false). No se pinta nada en su lugar — hueco visible, no 0 (inv #2). */}
-        {dimensionesMedidas && (
+        {mode === "technical" && dimensionesMedidas && (
         <section className="mb-6 no-break">
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.performanceDimensions")}</h2>
           <div className="grid grid-cols-2 gap-4">
@@ -384,7 +405,7 @@ export default function AnalysisReportPrint() {
         )}
 
         {/* ── 3b. Benchmark vs Pares ────────────────────────────────── */}
-        {benchmark && benchmark.sampleSize > 0 && (
+        {mode === "technical" && benchmark && benchmark.sampleSize > 0 && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">{t("analysisReportPrint.benchmarkVsPeers")}</h2>
             <p className="text-[9px] text-gray-400 mb-2">{benchmark.groupDescription}</p>
@@ -414,7 +435,7 @@ export default function AnalysisReportPrint() {
         )}
 
         {/* ── 3c. Quality Score ──────────────────────────────────────── */}
-        {validation && (
+        {mode === "technical" && validation && (
           <section className="mb-6 no-break">
             <div className="flex items-center gap-3 p-3 rounded-lg border"
               style={{
@@ -443,7 +464,7 @@ export default function AnalysisReportPrint() {
         )}
 
         {/* ── 4. Panel de Estadísticas (Wyscout premium) ─────────────── */}
-        {matchStats && (
+        {mode === "technical" && matchStats && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
               {t("analysisReportPrint.statsPanel")}
@@ -555,7 +576,7 @@ export default function AnalysisReportPrint() {
         )}
 
         {/* ── 5. Métricas Físicas ────────────────────────────────────── */}
-        {fisicas && (
+        {mode === "technical" && fisicas && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.physicalMetrics")}</h2>
             {/* Caveat de procedencia (#23): estas cifras vienen de la ruta de vídeo (Gemini/YOLO)
@@ -603,7 +624,7 @@ export default function AnalysisReportPrint() {
         )}
 
         {/* ── 5. Métricas Eventos ────────────────────────────────────── */}
-        {eventos && (
+        {mode === "technical" && eventos && (
           <section className="mb-6 no-break">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("analysisReportPrint.eventMetrics")}</h2>
             <div className="grid grid-cols-4 gap-3">
@@ -647,7 +668,7 @@ export default function AnalysisReportPrint() {
               <div className="text-xs font-bold text-purple-700">{r.adnFutbolistico.mentalidad}</div>
             </div>
           </div>
-          {r.adnFutbolistico.patrones.length > 0 && (
+          {mode === "technical" && r.adnFutbolistico.patrones.length > 0 && (
             <div className="space-y-1">
               {r.adnFutbolistico.patrones.map((p, i) => (
                 <div key={i} className="flex gap-2 text-[10px]">
@@ -733,7 +754,7 @@ export default function AnalysisReportPrint() {
               <div className="text-[10px] font-semibold text-gray-700">{r.planDesarrollo.objetivo18meses}</div>
             </div>
           </div>
-          {r.planDesarrollo.pilaresTrabajo.length > 0 && (
+          {mode === "technical" && r.planDesarrollo.pilaresTrabajo.length > 0 && (
             <div className="space-y-2">
               {r.planDesarrollo.pilaresTrabajo.map((pilar, i) => (
                 <div key={i} className="p-2 bg-gray-50 rounded">
@@ -795,6 +816,16 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub?:
       <div className="text-lg font-black text-gray-800 leading-tight">{value}</div>
       <div className="text-[9px] text-gray-500">{label}</div>
       {sub && <div className="text-[8px] text-gray-400">{sub}</div>}
+    </div>
+  );
+}
+
+// Tarjeta de "un vistazo" del informe ejecutivo — solo campos reales del informe.
+function GlanceCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-2 rounded-lg border border-gray-200 bg-gray-50">
+      <div className="text-[8px] uppercase tracking-wider text-gray-400">{label}</div>
+      <div className="text-xs font-bold text-gray-800 leading-tight mt-0.5">{value}</div>
     </div>
   );
 }

@@ -1769,6 +1769,9 @@
     "confidencePartial": "Gedeeltelijk (zonder PHV)"
   },
   "playerIntelligencePage": {
+    "exportExecutive": "Directierapport",
+    "exportTechnical": "Volledig technisch rapport",
+    "exportChooseHint": "Kies het rapport om te downloaden: directierapport voor het bestuur of volledig technisch rapport voor de technische staf.",
     "competitiveProjection": "Competitieve projectie",
     "competitiveProjectionDesc": "Aanbevolen niveau en roadmap per leeftijdscategorie",
     "currentRecommendedLevel": "Huidig aanbevolen niveau",
@@ -2039,8 +2042,8 @@
     "statAnalysisTime": "Van video naar insights",
     "statFreeStart": "Om te beginnen (Free-abonnement)",
     "uniqueDifferentiator": "Uniek onderscheidend vermogen",
-    "phvHeadingStart": "Je beste speler is niet de langste.",
-    "phvHeadingAccent": "Het is degene die nog niet gegroeid is.",
+    "phvHeadingStart": "De grootste is niet de beste.",
+    "phvHeadingAccent": "Hij groeide alleen eerder.",
     "phvParagraph": "70% van de geselecteerde spelers in jeugdacademies is geboren in het eerste kwartaal van het jaar. Ze zijn groter en sterker, maar niet noodzakelijk talentvoller. VITAS past de Mirwald-formule voor Peak Height Velocity (PHV) toe om dat biologische voordeel te corrigeren en de echte speler eronder te zien.",
     "phvFeature1": "PHV-berekening met antropometrische gegevens · zonder röntgenfoto",
     "phvFeature2": "VSI gecorrigeerd voor biologische leeftijd, niet kalenderleeftijd",
@@ -2534,6 +2537,11 @@
     "viewProfile": "Profiel bekijken"
   },
   "analysisReportPrint": {
+    "typeExecutive": "Directierapport",
+    "typeTechnical": "Technisch Rapport",
+    "glanceLevel": "Huidig niveau",
+    "glanceComparable": "Vergelijkbaar met",
+    "glanceProjection": "Realistische projectie",
     "errorNoId": "Analyse-ID niet opgegeven",
     "errorNotFound": "Analyse niet gevonden",
     "errorNotFoundSession": "Analyse niet gevonden in sessie",

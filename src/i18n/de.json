@@ -1768,6 +1768,9 @@
     "confidencePartial": "Teilweise (ohne PHV)"
   },
   "playerIntelligencePage": {
+    "exportExecutive": "Management-Bericht",
+    "exportTechnical": "Vollständiger Fachbericht",
+    "exportChooseHint": "Wähle den Bericht zum Download: Management-Bericht für die Leitung oder vollständiger Fachbericht für den Trainerstab.",
     "competitiveProjection": "Wettbewerbs-Projektion",
     "competitiveProjectionDesc": "Empfohlenes Niveau und Roadmap nach Altersklasse",
     "currentRecommendedLevel": "Aktuell empfohlenes Niveau",
@@ -2038,8 +2041,8 @@
     "statAnalysisTime": "Vom Video zu Insights",
     "statFreeStart": "Für den Start (Free-Plan)",
     "uniqueDifferentiator": "Einzigartiges Alleinstellungsmerkmal",
-    "phvHeadingStart": "Dein bester Spieler ist nicht der Größte.",
-    "phvHeadingAccent": "Es ist der, der noch nicht gewachsen ist.",
+    "phvHeadingStart": "Der Größte ist nicht der Beste.",
+    "phvHeadingAccent": "Er ist nur früher gewachsen.",
     "phvParagraph": "70 % der in Nachwuchsakademien ausgewählten Spieler werden im ersten Quartal des Jahres geboren. Sie sind größer, stärker, aber nicht unbedingt talentierter. VITAS wendet die Mirwald-Formel der Peak Height Velocity (PHV) an, um diesen biologischen Vorteil zu korrigieren und den echten Spieler darunter zu sehen.",
     "phvFeature1": "PHV-Berechnung mit anthropometrischen Daten · ohne Röntgen",
     "phvFeature2": "VSI korrigiert nach biologischem, nicht chronologischem Alter",
@@ -2533,6 +2536,11 @@
     "viewProfile": "Profil ansehen"
   },
   "analysisReportPrint": {
+    "typeExecutive": "Management-Bericht",
+    "typeTechnical": "Fachbericht",
+    "glanceLevel": "Aktuelles Niveau",
+    "glanceComparable": "Vergleichbar mit",
+    "glanceProjection": "Realistische Prognose",
     "errorNoId": "Analyse-ID nicht angegeben",
     "errorNotFound": "Analyse nicht gefunden",
     "errorNotFoundSession": "Analyse in der Sitzung nicht gefunden",
