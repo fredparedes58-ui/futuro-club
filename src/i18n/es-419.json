@@ -2536,6 +2536,17 @@
     "historyEmpty": "Sin tests guardados todavía.",
     "viewProfile": "Ver ficha"
   },
+  "completeReport": {
+    "errorNoId": "Falta el identificador del informe.",
+    "errorNotFound": "No se encontró el informe. Vuelve a abrirlo desde la página de análisis.",
+    "loading": "Cargando informe completo…",
+    "kicker": "Informe Completo",
+    "generatedLabel": "Generado",
+    "demoBanner": "Datos de ejemplo — entorno de demostración. Las cifras no corresponden a un jugador real.",
+    "intro": "Este documento contiene toda la información generada para cada informe, tal cual la produce el software.",
+    "empty": "No hay informes para mostrar.",
+    "footer": "Generado por VITAS Intelligence"
+  },
   "analysisReportPrint": {
     "typeExecutive": "Informe Ejecutivo",
     "typeTechnical": "Informe Técnico",
@@ -3688,6 +3699,8 @@
     "whatsappFooter": "Generado por VITAS · Football Intelligence"
   },
   "playerComparison": {
+    "winnerNoReport": "Este jugador aún no tiene informe generado. Te llevo a generarlo.",
+    "exportWinnerHint": "Descarga el informe del ganador (ejecutivo o técnico)",
     "addPlayer": "Añadir jugador",
     "goToRankings": "Ir a Rankings",
     "needMinHint": "Necesitas al menos 2 jugadores en plantilla para compararlos lado a lado.",

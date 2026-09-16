@@ -10,7 +10,7 @@ import { PlayerService } from "@/services/real/playerService";
 import { findSimilarPlayers, scoreToBadge, type SimilarityResult } from "@/services/real/similarityService";
 import { calculateAdvancedMetrics, VAEPService } from "@/services/real/advancedMetricsService";
 import { useMatchEvents } from "@/hooks/useMatchEvents";
-import { PDFService } from "@/services/real/pdfService";
+import { useSavedAnalysesV2 } from "@/hooks/usePlayerAnalysisV2";
 import RadarChartComponent from "@/components/RadarChart";
 import VsiGauge from "@/components/VsiGauge";
 
@@ -176,6 +176,12 @@ const PlayerComparison = () => {
     [eventsB, rawB]
   );
 
+  // Informe de IA guardado de cada jugador → para exportar el informe REAL del
+  // ganador (no un pantallazo). En demo hay informe de ejemplo por jugador; en
+  // prod queda vacío si el jugador no tiene análisis generado (avisamos al exportar).
+  const { data: analysesA } = useSavedAnalysesV2(rawA?.id ?? "");
+  const { data: analysesB } = useSavedAnalysesV2(rawB?.id ?? "");
+
   if (isLoading) {
     return (
       <div className="min-h-screen pb-24">
@@ -274,6 +280,34 @@ const PlayerComparison = () => {
     (aiWinner.phvCategory === "early" ? 5 : 0) // "early" = madurador tardío (su talento emergerá)
   ).toFixed(1);
 
+  // Informe REAL del ganador (el más reciente). Si no tiene análisis generado, la
+  // exportación avisa y lleva a generarlo — nunca un informe fabricado (invariante #2).
+  // useSavedAnalysesV2 devuelve filas envoltorio { id, …, report }; el informe real
+  // (AnalysisReport | null) está en .report. Si es null, el guard de abajo avisa.
+  const winnerReport = (playerA.vsi >= playerB.vsi ? analysesA : analysesB)?.[0]?.report ?? null;
+  const openWinnerReport = (mode: "executive" | "technical") => {
+    if (!winnerReport) {
+      toast.error(t("playerComparison.winnerNoReport"));
+      navigate(`/player/${aiWinner.id}/intelligence`);
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        `vitas-analysis-report-${aiWinner.id}`,
+        JSON.stringify({
+          report: winnerReport,
+          playerName: aiWinner.name ?? "",
+          playerPosition: aiWinner.position ?? "",
+        }),
+      );
+    } catch {
+      // sessionStorage lleno/bloqueado: la pestaña caerá a "no encontrado"
+    }
+    const url = `/analysis-report/${aiWinner.id}?mode=${mode}`;
+    const win = window.open(url, "_blank");
+    if (!win) window.location.href = url;
+  };
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="min-h-screen pb-24">
       
@@ -297,11 +331,20 @@ const PlayerComparison = () => {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => PDFService.exportPlayerReport(aiWinner.id)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors"
+              onClick={() => openWinnerReport("executive")}
+              title={t("playerComparison.exportWinnerHint")}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors"
+            >
+              <FileText size={16} />
+              {t("analysisReportPrint.typeExecutive")}
+            </button>
+            <button
+              onClick={() => openWinnerReport("technical")}
+              title={t("playerComparison.exportWinnerHint")}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-sm font-display font-medium text-foreground hover:bg-secondary transition-colors"
             >
               <Download size={16} />
-              {t("playerComparison.exportPdf")}
+              {t("analysisReportPrint.typeTechnical")}
             </button>
             <button
               onClick={() => {

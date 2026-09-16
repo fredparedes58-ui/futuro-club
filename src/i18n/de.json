@@ -2535,6 +2535,17 @@
     "historyEmpty": "Noch keine gespeicherten Tests.",
     "viewProfile": "Profil ansehen"
   },
+  "completeReport": {
+    "errorNoId": "Die Berichtskennung fehlt.",
+    "errorNotFound": "Bericht nicht gefunden. Öffne ihn erneut über die Analyseseite.",
+    "loading": "Vollständiger Bericht wird geladen…",
+    "kicker": "Vollständiger Bericht",
+    "generatedLabel": "Erstellt",
+    "demoBanner": "Beispieldaten — Demo-Umgebung. Die Zahlen entsprechen keinem echten Spieler.",
+    "intro": "Dieses Dokument enthält alle für jeden Bericht erzeugten Informationen, genau so, wie die Software sie erstellt.",
+    "empty": "Keine Berichte zum Anzeigen.",
+    "footer": "Erstellt von VITAS Intelligence"
+  },
   "analysisReportPrint": {
     "typeExecutive": "Management-Bericht",
     "typeTechnical": "Fachbericht",
@@ -3687,6 +3698,8 @@
     "whatsappFooter": "Erstellt von VITAS · Football Intelligence"
   },
   "playerComparison": {
+    "winnerNoReport": "Dieser Spieler hat noch keinen erstellten Bericht. Ich bringe dich zur Erstellung.",
+    "exportWinnerHint": "Lade den Bericht des Gewinners herunter (Management oder technisch)",
     "addPlayer": "Spieler hinzufügen",
     "goToRankings": "Zu den Rankings",
     "needMinHint": "Du brauchst mindestens 2 Spieler im Kader, um sie nebeneinander zu vergleichen.",

@@ -112,22 +112,25 @@ const LabResultsPanel = ({
                   <History size={12} />
                   {t("lab.historial").toUpperCase()}{savedAnalyses.length > 0 ? ` (${savedAnalyses.length})` : ""}
                 </button>
-                {/* Exportar PDF */}
-                <button
-                  onClick={() => {
-                    const tempId = `temp-${Date.now()}`;
-                    sessionStorage.setItem(`vitas-analysis-report-${tempId}`, JSON.stringify({
-                      report,
-                      playerName: playerName || t("vitasLab.playerFallback"),
-                      playerPosition: playerPosition || t("vitasLab.noPosition"),
-                    }));
-                    window.open(`/analysis-report/${tempId}`, "_blank");
-                  }}
-                  className="flex items-center gap-1 text-[10px] font-display px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                >
-                  <FileDown size={12} />
-                  PDF
-                </button>
+                {/* Exportar informe real — dos versiones: ejecutivo (dirección) y técnico (cuerpo técnico) */}
+                {(["executive", "technical"] as const).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      const tempId = `temp-${Date.now()}-${m}`;
+                      sessionStorage.setItem(`vitas-analysis-report-${tempId}`, JSON.stringify({
+                        report,
+                        playerName: playerName || t("vitasLab.playerFallback"),
+                        playerPosition: playerPosition || t("vitasLab.noPosition"),
+                      }));
+                      window.open(`/analysis-report/${tempId}?mode=${m}`, "_blank");
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-display px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                  >
+                    <FileDown size={12} />
+                    {m === "executive" ? t("analysisReportPrint.typeExecutive") : t("analysisReportPrint.typeTechnical")}
+                  </button>
+                ))}
                 <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors ml-1">
                   <X size={18} />
                 </button>

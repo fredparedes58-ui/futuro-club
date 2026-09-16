@@ -63,6 +63,7 @@ const ParentalConsentPage = lazyWithRetry(() => import("./pages/ParentalConsentP
 const PricingPage = lazyWithRetry(() => import("./pages/PricingPage"));
 const PlayerReportPrint = lazyWithRetry(() => import("./pages/PlayerReportPrint"));
 const AnalysisReportPrint = lazyWithRetry(() => import("./pages/AnalysisReportPrint"));
+const CompleteReportPrint = lazyWithRetry(() => import("./pages/CompleteReportPrint"));
 const TeamPage = lazyWithRetry(() => import("./pages/TeamPage"));
 const TeamAnalysisPage = lazyWithRetry(() => import("./pages/TeamAnalysisPage"));
 const TeamBaselinePage = lazyWithRetry(() => import("./pages/TeamBaselinePage"));
@@ -253,6 +254,7 @@ const App = () => {
                 <Route path="/player/:id/intelligence" element={<P><PlayerIntelligencePage /></P>} />
                 <Route path="/report/:id" element={<P><PlayerReportPrint /></P>} />
                 <Route path="/analysis-report/:id" element={<AnalysisReportPrint />} />
+                <Route path="/report-full/:id" element={<CompleteReportPrint />} />
                 <Route path="/equipo" element={<P><TeamPage /></P>} />
                 <Route path="/team-analysis" element={<P><TeamAnalysisPage /></P>} />
                 <Route path="/equipo/baseline" element={<P><TeamBaselinePage /></P>} />
