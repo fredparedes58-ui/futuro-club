@@ -84,7 +84,7 @@ export default async function handler(req: Request): Promise<Response> {
   const ua = req.headers.get("user-agent") ?? "";
   const now = new Date().toISOString();
 
-  const id = await insertRequest({
+  const { id, detail } = await insertRequest({
     name: d.name,
     club: d.club || null,
     role: d.role || null,
@@ -101,8 +101,8 @@ export default async function handler(req: Request): Promise<Response> {
   });
 
   if (!id) {
-    // Sin persistencia no hay flujo de aprobación posible.
-    return json({ ok: false, error: "No se pudo registrar la solicitud ahora mismo." }, 502);
+    // Sin persistencia no hay flujo de aprobación posible. `detail` = causa (diagnóstico).
+    return json({ ok: false, error: "No se pudo registrar la solicitud ahora mismo.", detail }, 502);
   }
 
   // Email al operador con enlaces firmados (solo quien tiene el email puede decidir).
