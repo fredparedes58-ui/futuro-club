@@ -34,7 +34,15 @@ function sbHeaders(key: string, extra: Record<string, string> = {}): Record<stri
 /** Inserta una solicitud y devuelve su id + un detalle diagnóstico. */
 export async function insertRequest(row: Record<string, unknown>): Promise<{ id: string | null; detail: string }> {
   const sb = sbBase();
-  if (!sb) return { id: null, detail: "no-env: falta SUPABASE_URL/VITE_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY" };
+  if (!sb) {
+    // Diagnóstico: SOLO presencia (nunca el valor) — seguro en un endpoint público.
+    const present = [
+      `SUPABASE_URL=${process.env.SUPABASE_URL ? "set" : "unset"}`,
+      `VITE_SUPABASE_URL=${process.env.VITE_SUPABASE_URL ? "set" : "unset"}`,
+      `SUPABASE_SERVICE_ROLE_KEY=${process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "unset"}`,
+    ].join(" ");
+    return { id: null, detail: `no-env: ${present}` };
+  }
   try {
     const res = await fetch(`${sb.url}/rest/v1/demo_access`, {
       method: "POST",
