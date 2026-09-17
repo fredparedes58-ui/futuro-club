@@ -13,6 +13,7 @@
  */
 
 import { verifyDecision, setStatus, getById, signDecision, esc, type DemoStatus } from "../_lib/demoAccess";
+import { sendEmail } from "../_lib/email";
 
 export const config = { runtime: "edge" };
 
@@ -78,6 +79,22 @@ export default async function handler(req: Request): Promise<Response> {
   if (!ok) return shell("Error", "<h1>No se pudo aplicar</h1><p>Inténtalo de nuevo en un momento.</p>", "#E5484D");
 
   if (target === "approved") {
+    // Email al SOLICITANTE con enlace mágico (entra desde cualquier dispositivo). Solo en una
+    // aprobación NUEVA (evita duplicados si el operador re-aprueba) y si hay token. En inglés
+    // por defecto: no conocemos el idioma del solicitante.
+    if (row.status !== "approved" && row.access_token) {
+      const appBase = process.env.DEMO_APP_BASE ?? "https://vitas-demo.krujens.eu";
+      const magic = `${appBase}/?demo_token=${encodeURIComponent(row.access_token)}`;
+      const clientHtml = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0b1226">
+        <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#0059B3;text-transform:uppercase">VITAS · Football Intelligence</div>
+        <h2 style="margin:8px 0 6px;font-size:20px">&#10003; Your demo access is ready</h2>
+        <p style="margin:8px 0;color:#37425f;line-height:1.5">Hi ${esc(row.name)}, your access to the VITAS demo has been approved. Click below to start exploring &mdash; the link works on any device.</p>
+        <div style="margin:18px 0"><a href="${magic}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#0059B3;color:#fff;text-decoration:none;font-weight:700;font-family:system-ui,sans-serif">Open the VITAS demo &rarr;</a></div>
+        <p style="margin:8px 0;color:#6c7794;font-size:12px">Or paste this link into your browser:<br><span style="color:#0059B3;word-break:break-all">${esc(magic)}</span></p>
+        <p style="margin:16px 0 0;color:#6c7794;font-size:12px">Access is personal and can be revoked at any time.</p>
+      </div>`;
+      await sendEmail({ to: row.email, subject: "Your VITAS demo access is ready", html: clientHtml });
+    }
     const revokeUrl = `${url.origin}/api/demo/decide?id=${encodeURIComponent(id)}&action=revoke&sig=${await signDecision(id, "revoke")}`;
     return shell("Acceso aprobado", `<h1>✓ Acceso aprobado</h1>${who}<p>El solicitante entrará al demo en cuanto su navegador actualice el estado.</p><a class="btn" style="background:#6c7794" href="${revokeUrl}">Revocar acceso</a><p class="mut">Guarda este correo: puedes revocar el acceso cuando quieras.</p>`, "#12B886");
   }
