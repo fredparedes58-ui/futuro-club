@@ -62,10 +62,10 @@ describe("constructores de conveniencia", () => {
   });
 
   it("estimatedLLM marca la fuente y no es MEDIDA", () => {
-    const m = estimatedLLM(12, { source_ref: "gemini-2.0-flash" });
+    const m = estimatedLLM(12, { source_ref: "gemini-2.5-flash" });
     expect(m.provenance).toBe("ESTIMADA_LLM");
     expect(m.calibrated).toBe(false);
-    expect(m.source_ref).toBe("gemini-2.0-flash");
+    expect(m.source_ref).toBe("gemini-2.5-flash");
   });
 
   it("mock es MOCK", () => {

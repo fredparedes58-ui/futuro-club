@@ -274,8 +274,8 @@ REGLAS:
 - Solo JSON válido, sin markdown ni backticks`;
 
       // Llamar a Gemini API directamente via REST
-      // Usamos gemini-2.0-flash para video (soporta hasta 1h)
-      const model = "gemini-2.0-flash";
+      // Usamos gemini-2.5-flash para video (soporta hasta 1h)
+      const model = "gemini-2.5-flash";
 
       // Determinar si usamos File API (>15MB) o inlineData (<15MB)
       const videoSizeBytes = Buffer.from(videoBase64, "base64").length;

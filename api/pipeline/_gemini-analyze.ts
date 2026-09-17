@@ -85,7 +85,7 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
     scans: events.escaneos ?? 0,
 
     gemini_observation: obs,
-    source: "gemini-2.0-flash",
+    source: "gemini-2.5-flash",
   };
 }
 
@@ -201,7 +201,7 @@ export default withHandler(
       analysisId,
       biomechanics,
       geminiLatencyMs,
-      source: "gemini-2.0-flash",
+      source: "gemini-2.5-flash",
     });
   },
 );
