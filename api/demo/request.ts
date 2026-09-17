@@ -101,8 +101,10 @@ export default async function handler(req: Request): Promise<Response> {
   });
 
   if (!id) {
-    // Sin persistencia no hay flujo de aprobación posible. `detail` = causa (diagnóstico).
-    return json({ ok: false, error: "No se pudo registrar la solicitud ahora mismo.", detail }, 502);
+    // Sin persistencia no hay flujo de aprobación posible. La causa se registra en el
+    // log del servidor (Vercel), NUNCA en la respuesta pública.
+    console.error("[demo/request] insert failed:", detail);
+    return json({ ok: false, error: "No se pudo registrar la solicitud ahora mismo." }, 502);
   }
 
   // Email al operador con enlaces firmados (solo quien tiene el email puede decidir).
