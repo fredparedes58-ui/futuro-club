@@ -623,7 +623,7 @@ export const AGENT_REGISTRY = {
     purpose: "Análisis completo de video → informe de jugador",
   },
   "video-observation": {
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     temperature: 0,
     maxTokens: 8192,
     timeoutMs: 120_000,
@@ -639,7 +639,7 @@ export const AGENT_REGISTRY = {
     purpose: "Análisis táctico completo de equipo",
   },
   "team-observation": {
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     temperature: 0,
     maxTokens: 12000,
     timeoutMs: 120_000,

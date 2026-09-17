@@ -112,7 +112,7 @@
       "ui_paths": [],
       "allowed_literals": [],
       "gated": true,
-      "source_ref": "gemini-2.0-flash",
+      "source_ref": "gemini-2.5-flash",
       "notes": "El 'physical_score' del vídeo lo estima el LLM (score_estimado 1-10), no mide nada físico. Se dibuja en radar como si fuera medido."
     },
     {
@@ -201,7 +201,7 @@
       "ui_paths": ["src/components/MatchStatsPanel.tsx", "src/components/QuantitativeMetricsPanel.tsx"],
       "allowed_literals": [],
       "gated": false,
-      "source_ref": "gemini-2.0-flash",
+      "source_ref": "gemini-2.5-flash",
       "notes": "G3: TERCERA ruta. Estimación del LLM. Etiqueta debe ser 'Estimado por IA', no 'duelos ganados'. DUP001 esperado."
     },
     {
@@ -213,7 +213,7 @@
       "ui_paths": ["src/components/QuantitativeMetricsPanel.tsx"],
       "allowed_literals": [],
       "gated": false,
-      "source_ref": "gemini-2.0-flash",
+      "source_ref": "gemini-2.5-flash",
       "notes": "G1/UI: el LLM cuenta pases mirando el vídeo. El panel los titula 'Datos cuantitativos medidos' → UI001 esperado. Etiqueta correcta: 'Estimado por IA'."
     },
     {
@@ -225,7 +225,7 @@
       "ui_paths": ["src/components/MatchStatsPanel.tsx"],
       "allowed_literals": [],
       "gated": false,
-      "source_ref": "gemini-2.0-flash",
+      "source_ref": "gemini-2.5-flash",
       "notes": "Cociente de dos conteos del LLM. Se muestra como % con rating Élite/Bueno (apariencia de métrica dura)."
     },
     {
@@ -237,7 +237,7 @@
       "ui_paths": ["src/pages/TeamAnalysisPage.tsx"],
       "allowed_literals": [],
       "gated": false,
-      "source_ref": "gemini-2.0-flash",
+      "source_ref": "gemini-2.5-flash",
       "notes": "El LLM estima la posesión a ojo (debe sumar 100). Se muestra como '%Posesión' indistinguible de estadística oficial."
     },
     {

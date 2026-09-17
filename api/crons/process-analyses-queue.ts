@@ -113,7 +113,7 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
 
     // Full observation for report agents
     gemini_observation: obs,
-    source: "gemini-2.0-flash",
+    source: "gemini-2.5-flash",
   };
 }
 

@@ -171,7 +171,7 @@ REGLAS:
 - ${languageDirective(locale)}
 - Solo JSON válido, sin markdown ni backticks`;
 
-      const model = "gemini-2.0-flash";
+      const model = "gemini-2.5-flash";
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const geminiBody = {

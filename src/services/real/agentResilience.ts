@@ -100,7 +100,7 @@ const TOKEN_BUDGET_KEY = "vitas_token_budget";
 const MODEL_LIMITS: Record<string, { contextWindow: number; dailyBudget: number }> = {
   "claude-haiku-4-5": { contextWindow: 200000, dailyBudget: 500000 },
   "claude-sonnet-4-20250514":  { contextWindow: 200000, dailyBudget: 200000 },
-  "gemini-2.0-flash":          { contextWindow: 1000000, dailyBudget: 400000 },
+  "gemini-2.5-flash":          { contextWindow: 1000000, dailyBudget: 400000 },
   default:                     { contextWindow: 200000, dailyBudget: 300000 },
 };
 
