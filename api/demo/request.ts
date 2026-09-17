@@ -106,7 +106,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   // Email al operador con enlaces firmados (solo quien tiene el email puede decidir).
-  const base = process.env.DEMO_DECIDE_BASE ?? "https://futuro-club.vercel.app";
+  const base = process.env.DEMO_DECIDE_BASE ?? "https://vitas.krujens.eu";
   const link = async (action: string) => `${base}/api/demo/decide?id=${id}&action=${action}&sig=${await signDecision(id, action)}`;
   const [approveUrl, rejectUrl, revokeUrl] = await Promise.all([link("approve"), link("reject"), link("revoke")]);
   const approver = process.env.DEMO_APPROVER_EMAIL ?? "Contact@krujens.eu";
