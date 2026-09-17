@@ -14,8 +14,8 @@ import { useTranslation } from "react-i18next";
 import { Loader2, ShieldCheck, Clock, XCircle, Lock } from "lucide-react";
 import { IS_DEMO } from "@/lib/demoMode";
 
-// El demo corre sin Supabase → la captura la hace el proyecto principal.
-const API_BASE = (import.meta.env.VITE_DEMO_API_BASE as string | undefined) || "https://futuro-club.vercel.app";
+// El demo corre sin Supabase → la captura la hace el proyecto principal (dominio krujens).
+const API_BASE = (import.meta.env.VITE_DEMO_API_BASE as string | undefined) || "https://vitas.krujens.eu";
 const LS_KEY = "vitas_demo_access";
 
 type Phase = "checking" | "form" | "pending" | "approved" | "rejected" | "revoked" | "limit" | "error";
