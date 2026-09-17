@@ -24,6 +24,7 @@
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
 
 // Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
 // por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
@@ -113,7 +114,7 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
 
     // Full observation for report agents
     gemini_observation: obs,
-    source: "gemini-2.5-flash",
+    source: GEMINI_MODEL,
   };
 }
 
