@@ -31,21 +31,24 @@ function sbHeaders(key: string, extra: Record<string, string> = {}): Record<stri
   return { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...extra };
 }
 
-/** Inserta una solicitud y devuelve su id, o null si no se pudo. */
-export async function insertRequest(row: Record<string, unknown>): Promise<string | null> {
+/** Inserta una solicitud y devuelve su id + un detalle diagnóstico. */
+export async function insertRequest(row: Record<string, unknown>): Promise<{ id: string | null; detail: string }> {
   const sb = sbBase();
-  if (!sb) return null;
+  if (!sb) return { id: null, detail: "no-env: falta SUPABASE_URL/VITE_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY" };
   try {
     const res = await fetch(`${sb.url}/rest/v1/demo_access`, {
       method: "POST",
       headers: sbHeaders(sb.key, { Prefer: "return=representation" }),
       body: JSON.stringify(row),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const body = (await res.text().catch(() => "")).slice(0, 200);
+      return { id: null, detail: `supabase ${res.status}: ${body}` };
+    }
     const data = (await res.json()) as Array<{ id: string }>;
-    return data?.[0]?.id ?? null;
-  } catch {
-    return null;
+    return { id: data?.[0]?.id ?? null, detail: "ok" };
+  } catch (e) {
+    return { id: null, detail: "fetch-error: " + (e instanceof Error ? e.message : String(e)) };
   }
 }
 
