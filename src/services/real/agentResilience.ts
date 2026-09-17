@@ -14,6 +14,8 @@
  *    El agente recibe info estructurada del fallo previo, no un stack trace crudo.
  */
 
+import { GEMINI_MODEL } from "../../lib/shared/geminiModel";
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export type CircuitState = "closed" | "open" | "half-open";
@@ -100,7 +102,7 @@ const TOKEN_BUDGET_KEY = "vitas_token_budget";
 const MODEL_LIMITS: Record<string, { contextWindow: number; dailyBudget: number }> = {
   "claude-haiku-4-5": { contextWindow: 200000, dailyBudget: 500000 },
   "claude-sonnet-4-20250514":  { contextWindow: 200000, dailyBudget: 200000 },
-  "gemini-2.5-flash":          { contextWindow: 1000000, dailyBudget: 400000 },
+  [GEMINI_MODEL]: { contextWindow: 1000000, dailyBudget: 400000 },
   default:                     { contextWindow: 200000, dailyBudget: 300000 },
 };
 

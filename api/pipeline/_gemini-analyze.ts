@@ -23,6 +23,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
 
 // maxDuration 300 (no 120): para un vídeo largo (~4 min) la observación Gemini puede
 // acercarse a su propio tope de 120s; con solo 120s aquí, este endpoint moría antes de
@@ -85,7 +86,7 @@ function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
     scans: events.escaneos ?? 0,
 
     gemini_observation: obs,
-    source: "gemini-2.5-flash",
+    source: GEMINI_MODEL,
   };
 }
 
@@ -201,7 +202,7 @@ export default withHandler(
       analysisId,
       biomechanics,
       geminiLatencyMs,
-      source: "gemini-2.5-flash",
+      source: GEMINI_MODEL,
     });
   },
 );

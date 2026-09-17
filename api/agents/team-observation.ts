@@ -11,6 +11,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -171,7 +172,7 @@ REGLAS:
 - ${languageDirective(locale)}
 - Solo JSON válido, sin markdown ni backticks`;
 
-      const model = "gemini-2.5-flash";
+      const model = GEMINI_MODEL;
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
       const geminiBody = {

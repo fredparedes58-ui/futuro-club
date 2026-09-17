@@ -11,6 +11,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -274,8 +275,8 @@ REGLAS:
 - Solo JSON válido, sin markdown ni backticks`;
 
       // Llamar a Gemini API directamente via REST
-      // Usamos gemini-2.5-flash para video (soporta hasta 1h)
-      const model = "gemini-2.5-flash";
+      // Modelo Gemini central — única fuente de verdad (src/lib/shared/geminiModel.ts)
+      const model = GEMINI_MODEL;
 
       // Determinar si usamos File API (>15MB) o inlineData (<15MB)
       const videoSizeBytes = Buffer.from(videoBase64, "base64").length;

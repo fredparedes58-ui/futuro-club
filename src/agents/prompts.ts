@@ -8,6 +8,8 @@
  * - Siempre responde en español
  */
 
+import { GEMINI_MODEL } from "../lib/shared/geminiModel";
+
 // ═══════════════════════════════════════════════════════════════════
 // BLOQUES COMPARTIDOS DE EXPERTISE FUTBOLÍSTICO
 // Se inyectan en múltiples prompts para consistencia y profundidad
@@ -623,7 +625,7 @@ export const AGENT_REGISTRY = {
     purpose: "Análisis completo de video → informe de jugador",
   },
   "video-observation": {
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL,
     temperature: 0,
     maxTokens: 8192,
     timeoutMs: 120_000,
@@ -639,7 +641,7 @@ export const AGENT_REGISTRY = {
     purpose: "Análisis táctico completo de equipo",
   },
   "team-observation": {
-    model: "gemini-2.5-flash",
+    model: GEMINI_MODEL,
     temperature: 0,
     maxTokens: 12000,
     timeoutMs: 120_000,
