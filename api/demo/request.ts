@@ -135,5 +135,15 @@ export default async function handler(req: Request): Promise<Response> {
 
   await sendEmail({ to: approver, subject: `Acceso demo VITAS — ${d.club || d.name}`, html });
 
+  // Email de confirmación al SOLICITANTE (en inglés por defecto: no conocemos su idioma).
+  const clientHtml = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0b1226">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#0059B3;text-transform:uppercase">VITAS · Football Intelligence</div>
+    <h2 style="margin:8px 0 6px;font-size:20px">Request received</h2>
+    <p style="margin:8px 0;color:#37425f;line-height:1.5">Hi ${esc(d.name)}, thanks for your interest in the VITAS demo. We've received your request and it's now pending review.</p>
+    <p style="margin:8px 0;color:#37425f;line-height:1.5">You'll get another email as soon as it's approved, with a link to open the demo from any device.</p>
+    <p style="margin:16px 0 0;color:#6c7794;font-size:12px">If you didn't request this, you can safely ignore this email.</p>
+  </div>`;
+  await sendEmail({ to: d.email, subject: "We received your VITAS demo request", html: clientHtml });
+
   return json({ ok: true, status: "pending", accessToken });
 }

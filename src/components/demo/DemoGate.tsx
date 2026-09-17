@@ -36,6 +36,24 @@ export default function DemoGate({ children }: { children: ReactNode }) {
   const [consentError, setConsentError] = useState(false);
   const tokenRef = useRef<string | null>(loadToken());
 
+  // Enlace mágico del email de aprobación (?demo_token=…): guarda el token y limpia la URL,
+  // para que el solicitante entre desde CUALQUIER dispositivo, no solo su navegador original.
+  // Declarado ANTES del polling para que tokenRef ya esté puesto cuando el polling consulte.
+  useEffect(() => {
+    if (!IS_DEMO) return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const magic = params.get("demo_token");
+      if (magic) {
+        saveToken(magic);
+        tokenRef.current = magic;
+        params.delete("demo_token");
+        const clean = window.location.pathname + (params.toString() ? `?${params.toString()}` : "") + window.location.hash;
+        window.history.replaceState(null, "", clean);
+      }
+    } catch { /* private mode / SSR-safe */ }
+  }, []);
+
   // Consulta de estado al cargar + polling (detecta aprobación y revocación).
   useEffect(() => {
     if (!IS_DEMO) return;

@@ -18,6 +18,7 @@ export interface DemoAccessRow {
   email: string;
   phone: string | null;
   created_at: string;
+  access_token?: string; // solo lo trae getById (para el enlace mágico del email de aprobación)
 }
 
 function sbBase(): { url: string; key: string } | null {
@@ -72,7 +73,7 @@ export async function getById(id: string): Promise<DemoAccessRow | null> {
   const sb = sbBase();
   if (!sb || !id) return null;
   try {
-    const q = `${sb.url}/rest/v1/demo_access?id=eq.${encodeURIComponent(id)}&select=id,status,name,club,role,email,phone,created_at&limit=1`;
+    const q = `${sb.url}/rest/v1/demo_access?id=eq.${encodeURIComponent(id)}&select=id,status,name,club,role,email,phone,created_at,access_token&limit=1`;
     const res = await fetch(q, { headers: sbHeaders(sb.key) });
     if (!res.ok) return null;
     const data = (await res.json()) as DemoAccessRow[];
