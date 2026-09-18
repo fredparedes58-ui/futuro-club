@@ -152,11 +152,11 @@ export default function DemoGate({ children }: { children: ReactNode }) {
               <form onSubmit={submit} className="space-y-3">
                 <Field label={t("demoGate.name")} value={form.name} onChange={(v) => setForm({ ...form, name: v })}
                   placeholder={t("demoGate.namePh")} required autoComplete="name" />
-                <Field label={t("demoGate.club")} value={form.club} onChange={(v) => setForm({ ...form, club: v })}
-                  placeholder={t("demoGate.clubPh")} required autoComplete="organization" />
-                <Field label={t("demoGate.role")} value={form.role} onChange={(v) => setForm({ ...form, role: v })}
-                  placeholder={t("demoGate.rolePh")} required />
-                <Field label={t("demoGate.email")} value={form.email} onChange={(v) => setForm({ ...form, email: v })}
+                <Field label={`${t("demoGate.club")} · ${t("demoGate.optional")}`} value={form.club} onChange={(v) => setForm({ ...form, club: v })}
+                  placeholder={t("demoGate.clubPh")} autoComplete="organization" />
+                <Field label={`${t("demoGate.role")} · ${t("demoGate.optional")}`} value={form.role} onChange={(v) => setForm({ ...form, role: v })}
+                  placeholder={t("demoGate.rolePh")} />
+                <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })}
                   placeholder={t("demoGate.emailPh")} required type="email" autoComplete="email" />
                 <Field label={`${t("demoGate.phone")} · ${t("demoGate.optional")}`} value={form.phone}
                   onChange={(v) => setForm({ ...form, phone: v })} placeholder={t("demoGate.phonePh")} type="tel" autoComplete="tel" />
