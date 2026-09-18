@@ -18,6 +18,11 @@ import { IS_DEMO } from "@/lib/demoMode";
 const API_BASE = (import.meta.env.VITE_DEMO_API_BASE as string | undefined) || "https://vitas.krujens.eu";
 const LS_KEY = "vitas_demo_access";
 
+// Rutas PÚBLICAS que el muro deja pasar SIN gate: el visitante ve primero la landing/
+// preview y el muro solo aparece al ENTRAR al demo (p.ej. "Entrar a la demo" → /pulse,
+// que sí está gateado). Evita que el muro tape la landing nada más abrir (era chocante).
+const PUBLIC_PATHS = new Set(["/", "/embed", "/pricing", "/privacy", "/terms"]);
+
 type Phase = "checking" | "form" | "pending" | "approved" | "rejected" | "revoked" | "limit" | "error";
 
 function loadToken(): string | null {
@@ -76,9 +81,10 @@ export default function DemoGate({ children }: { children: ReactNode }) {
     return () => { stop = true; clearInterval(iv); };
   }, []);
 
-  // No-op fuera del demo, y deja pasar las páginas legales (enlace de privacidad del consentimiento).
+  // No-op fuera del demo.
   if (!IS_DEMO) return <>{children}</>;
-  if (location.pathname === "/privacy" || location.pathname === "/terms") return <>{children}</>;
+  // Las páginas públicas (landing/preview, embed, precios, legales) se ven SIN muro.
+  if (PUBLIC_PATHS.has(location.pathname)) return <>{children}</>;
   if (phase === "approved") return <>{children}</>;
 
   const submit = async (e: React.FormEvent) => {

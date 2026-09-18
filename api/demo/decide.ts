@@ -84,7 +84,9 @@ export default async function handler(req: Request): Promise<Response> {
     // por defecto: no conocemos el idioma del solicitante.
     if (row.status !== "approved" && row.access_token) {
       const appBase = process.env.DEMO_APP_BASE ?? "https://vitas-demo.krujens.eu";
-      const magic = `${appBase}/?demo_token=${encodeURIComponent(row.access_token)}`;
+      // Apunta a /pulse (interior, gateado): el gate captura el token y, ya aprobado,
+      // ENTRA directo al demo sin pasar por la landing ni volver a pulsar.
+      const magic = `${appBase}/pulse?demo_token=${encodeURIComponent(row.access_token)}`;
       const clientHtml = `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:520px;margin:0 auto;color:#0b1226">
         <div style="font-size:12px;font-weight:700;letter-spacing:.12em;color:#0059B3;text-transform:uppercase">VITAS · Football Intelligence</div>
         <h2 style="margin:8px 0 6px;font-size:20px">&#10003; Your demo access is ready</h2>
