@@ -328,7 +328,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
               <div className="vl-mini mt-10 justify-center md:justify-start" style={{ animation: "vl-fadein 1s 1s both" }}>
                 <div><div className="v">148</div><div className="k">{t("publicLanding.statRefPlayers")}</div></div>
                 <div><div className="v">5 min</div><div className="k">{t("publicLanding.statAnalysisTime")}</div></div>
-                <div><div className="v">0€</div><div className="k">{t("publicLanding.statFreeStart")}</div></div>
+                {!IS_DEMO && <div><div className="v">0€</div><div className="k">{t("publicLanding.statFreeStart")}</div></div>}
               </div>
             </div>
 
@@ -419,12 +419,32 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
             <div className="vl-badge" style={{ margin: "0 auto" }}><span className="vl-dot" />{t("publicLanding.galleryEyebrow", "CAPTURAS REALES · SIN MAQUETAR")}</div>
             <h2 className="font-display font-bold mt-4" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.galleryHeading", "La herramienta por dentro")}</h2>
           </div>
-          <div className="flex gap-5 md:gap-7 overflow-x-auto pb-4 md:justify-center snap-x -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-4 overflow-x-auto pb-4 snap-x -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible">
             <PhoneShot src="/shots/shot-pulse.png" alt={t("publicLanding.galleryAltPulse", "VITAS · centro de inteligencia")} delay={0} />
             <PhoneShot src="/shots/shot-player.png" alt={t("publicLanding.galleryAltPlayer", "Perfil de jugador con corrección PHV")} delay={0.06} />
             <PhoneShot src="/shots/shot-stats.png" alt={t("publicLanding.galleryAltStats", "Informe de partido generado por IA")} delay={0.12} />
             <PhoneShot src="/shots/shot-lab.png" alt={t("publicLanding.galleryAltLab", "VITAS.LAB · calibración y tracking en campo")} delay={0.18} />
             <PhoneShot src="/shots/shot-rankings.png" alt={t("publicLanding.galleryAltRankings", "Rankings por VSI ajustado a maduración")} delay={0.24} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── BAJO EL CAPÓ · mención breve de tecnología ─────────── */}
+      <section className="relative">
+        <div className="vl-wrap py-12">
+          <div className="grid sm:grid-cols-3 gap-4 max-w-5xl mx-auto">
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: "rgba(0,89,179,.12)", boxShadow: "0 18px 44px rgba(20,40,120,.06)" }}>
+              <div className="text-[11px] font-display font-bold uppercase tracking-[.12em] text-[#0059B3]">{t("publicLanding.techAgentsTitle", "Agentes de IA")}</div>
+              <p className="text-sm text-[#37425f] mt-1.5 leading-relaxed">{t("publicLanding.techAgentsBody", "PHV, scouting y perfil de rol, con Claude.")}</p>
+            </div>
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: "rgba(0,89,179,.12)", boxShadow: "0 18px 44px rgba(20,40,120,.06)" }}>
+              <div className="text-[11px] font-display font-bold uppercase tracking-[.12em] text-[#0059B3]">{t("publicLanding.techVisionTitle", "Tracking por visión")}</div>
+              <p className="text-sm text-[#37425f] mt-1.5 leading-relaxed">{t("publicLanding.techVisionBody", "Modelos YOLO (pose + detección), en el navegador.")}</p>
+            </div>
+            <div className="rounded-2xl border bg-white p-5" style={{ borderColor: "rgba(0,89,179,.12)", boxShadow: "0 18px 44px rgba(20,40,120,.06)" }}>
+              <div className="text-[11px] font-display font-bold uppercase tracking-[.12em] text-[#0059B3]">{t("publicLanding.techPhvTitle", "Maduración biológica")}</div>
+              <p className="text-sm text-[#37425f] mt-1.5 leading-relaxed">{t("publicLanding.techPhvBody", "Corrección por PHV con la fórmula de Mirwald.")}</p>
+            </div>
           </div>
         </div>
       </section>
@@ -556,10 +576,10 @@ function PhoneShot({ src, alt, delay }: { src: string; alt: string; delay: numbe
       viewport={{ once: true, amount: 0.3 }}
       transition={{ delay, duration: 0.6, ease: "easeOut" }}
       whileHover={{ y: -8 }}
-      className="shrink-0 snap-center rounded-[2rem] p-1.5 bg-white"
+      className="shrink-0 snap-center rounded-[2rem] p-1.5 bg-white md:w-full md:min-w-0"
       style={{ boxShadow: "0 30px 70px rgba(20,40,120,.16)", border: "1px solid rgba(0,89,179,.1)" }}
     >
-      <img src={src} alt={alt} loading="lazy" width={210} className="rounded-[1.6rem] block w-[210px] h-auto" />
+      <img src={src} alt={alt} loading="lazy" width={210} className="rounded-[1.6rem] block w-[210px] h-auto md:w-full" />
     </motion.div>
   );
 }
