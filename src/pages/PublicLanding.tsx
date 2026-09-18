@@ -291,7 +291,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
             <div className="hidden md:flex items-center gap-6 text-sm font-display font-semibold text-[#37425f]">
               <a href="#features" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.navFeatures")}</a>
               <a href="#phv" className="hover:text-[#0059B3] transition-colors">PHV</a>
-              <a href="#pricing" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.navPlans")}</a>
+              {!IS_DEMO && <a href="#pricing" className="hover:text-[#0059B3] transition-colors">{t("publicLanding.navPlans")}</a>}
             </div>
             <div className="flex items-center gap-3">
               <LanguageSwitcher />
@@ -441,7 +441,8 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
         </div>
       </section>
 
-      {/* ── PRICING ───────────────────────────────────────────── */}
+      {/* ── PRICING (oculto en el demo/preview — IS_DEMO) ──────── */}
+      {!IS_DEMO && (
       <section id="pricing" className="relative">
         <div className="vl-wrap py-16 md:py-20">
           <h2 className="font-display font-bold text-center mb-12" style={{ fontSize: "clamp(30px,4vw,48px)" }}>{t("publicLanding.pricingHeading")}</h2>
@@ -453,6 +454,7 @@ export default function PublicLanding({ embed = false }: { embed?: boolean } = {
           <p className="text-xs text-[#6c7794] text-center mt-8">{t("publicLanding.pricingNote")}</p>
         </div>
       </section>
+      )}
 
       {/* ── FINAL CTA ─────────────────────────────────────────── */}
       <section className="relative">
