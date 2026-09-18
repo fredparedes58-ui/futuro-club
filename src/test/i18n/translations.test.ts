@@ -137,7 +137,9 @@ describe("i18n translations", () => {
       await i18n.changeLanguage("es");
     });
 
-    it("inicializa correctamente con idioma por defecto (es)", () => {
+    it("inicializa y aplica el idioma seleccionado (es)", () => {
+      // El default de la app es inglés (fallbackLng: "en"); aquí el beforeEach fuerza "es"
+      // para verificar init + cambio de idioma, no el idioma por defecto.
       expect(i18n.isInitialized).toBe(true);
       expect(i18n.language).toBe("es");
     });
@@ -154,10 +156,10 @@ describe("i18n translations", () => {
       expect(i18n.t("common.cancel")).toBe("Cancelar");
     });
 
-    it("fallback a español cuando se solicita idioma desconocido", async () => {
-      // Código inexistente (no en el registro) → fallback a "es".
+    it("fallback a inglés cuando se solicita idioma desconocido", async () => {
+      // Código inexistente (no en el registro) → fallback a "en" (idioma por defecto).
       await i18n.changeLanguage("zz");
-      expect(i18n.t("common.save")).toBe("Guardar");
+      expect(i18n.t("common.save")).toBe("Save");
     });
 
     it("cada idioma soportado carga su propio recurso", async () => {

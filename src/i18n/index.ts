@@ -33,17 +33,22 @@ i18n
     supportedLngs: SUPPORTED_LOCALES,
     // No cargar el idioma base ("es") para "es-419": es-419 tiene parity completa.
     load: "currentOnly",
-    fallbackLng: "es",
+    // Inglés por defecto: el producto es internacional y no conocemos el idioma del
+    // visitante de entrada. El usuario puede cambiarlo y su elección se guarda.
+    fallbackLng: "en",
     interpolation: {
       escapeValue: false, // React already escapes
     },
     detection: {
-      order: ["localStorage", "navigator"],
+      // Solo localStorage: NO auto-detectamos el idioma del navegador. Así el primer
+      // arranque es SIEMPRE inglés (fallbackLng) y, en cuanto el usuario elige idioma,
+      // se guarda en localStorage y se respeta a partir de entonces.
+      order: ["localStorage"],
       caches: ["localStorage"],
       lookupLocalStorage: "i18nextLng",
-      // Todo idioma detectado (localStorage/navegador, p. ej. "es-MX", "en-US")
-      // pasa por normalizeLocale → se resuelve a un idioma soportado (es-MX→es-419,
-      // en-US→en, de-AT→de, desconocido→es). Mantiene coherencia con los agentes.
+      // El idioma guardado (p. ej. "es-MX", "en-US") pasa por normalizeLocale → se
+      // resuelve a un idioma soportado (es-MX→es-419, en-US→en, de-AT→de). Mantiene
+      // coherencia con los agentes.
       convertDetectedLanguage: (lng: string) => normalizeLocale(lng),
     },
   });
