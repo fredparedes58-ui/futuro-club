@@ -496,7 +496,7 @@ const SettingsPage = () => {
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-6 max-w-lg lg:max-w-5xl mx-auto">
+    <motion.div variants={container} initial="hidden" animate="show" className="px-4 pt-4 pb-24 space-y-6 app-shell">
       <motion.button
         variants={item}
         onClick={() => navigate(-1)}

@@ -49,7 +49,7 @@ import { Plus, BarChart3 } from "lucide-react";
 function EmptyState({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   const { t } = useTranslation();
   return (
-    <div className="px-4 pt-8 max-w-md mx-auto">
+    <div className="px-4 pt-8 app-shell">
       <EmptyStateComponent
         Icon={Users}
         size="lg"
