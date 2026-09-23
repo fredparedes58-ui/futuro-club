@@ -21,7 +21,8 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import {
   IDPArchitectInputSchema,
   IDPArchitectOutputSchema,
@@ -59,7 +60,7 @@ export default withHandler(
       const locale = normalizeLocale(data.locale);
       const prompt = buildIDPArchitectPrompt(data, locale);
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetchMessages({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,8 +68,7 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 2500,
+          ...modelParams(MODEL, 2500),
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -94,7 +94,7 @@ export default withHandler(
         usage?: { input_tokens: number; output_tokens: number };
       };
 
-      const text = result.content?.[0]?.text ?? "";
+      const text = responseText(result);
 
       // Robust JSON extraction (Claude may wrap in ```json blocks)
       let parsed: unknown;

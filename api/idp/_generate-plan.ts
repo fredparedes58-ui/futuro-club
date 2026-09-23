@@ -17,7 +17,8 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import {
   IDPArchitectInputSchema,
   type IDPArchitectOutput,
@@ -97,7 +98,7 @@ async function callArchitect(
   try {
     const prompt = buildIDPArchitectPrompt(input, locale);
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchMessages({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -105,15 +106,14 @@ async function callArchitect(
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: MODELS.reasoning,
-        max_tokens: 2500,
+        ...modelParams(MODELS.reasoning, 2500),
         messages: [{ role: "user", content: prompt }],
       }),
     });
 
     if (!response.ok) throw new Error(`Anthropic ${response.status}`);
-    const data = (await response.json()) as { content: Array<{ text: string }> };
-    const text = data.content?.[0]?.text ?? "";
+    const data = await response.json();
+    const text = responseText(data);
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) throw new Error("No JSON in response");
     const parsed = JSON.parse(match[0]);

@@ -15,7 +15,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { coachingAssistantOutputSchema, validateLLMReport } from "./_outputSchemas";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
 import { normalizeLocale, languageDirective, localeSchema, type ReportLocale } from "../../src/lib/shared/locale";
 
@@ -154,7 +155,7 @@ export default withHandler(
       const locale = normalizeLocale(data.locale);
       const prompt = buildPrompt(data, locale, ragContext);
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetchMessages({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,8 +163,7 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: MODELS.reasoning,
-          max_tokens: 2000,
+          ...modelParams(MODELS.reasoning, 2000),
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -184,7 +184,7 @@ export default withHandler(
         usage?: { input_tokens: number; output_tokens: number };
       };
 
-      const text = result.content?.[0]?.text ?? "";
+      const text = responseText(result);
       let report: Record<string, unknown>;
 
       try {

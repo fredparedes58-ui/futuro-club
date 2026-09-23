@@ -14,7 +14,8 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { valuationOutputSchema, validateLLMReport } from "./_outputSchemas";
 import { normalizeLocale, languageDirective, localeSchema } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective } from "../../src/lib/shared/category";
@@ -189,7 +190,7 @@ export default withHandler(
     const prompt = buildPrompt(data);
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetchMessages({
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -197,8 +198,7 @@ export default withHandler(
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: MODELS.reasoning,
-          max_tokens: 2000,
+          ...modelParams(MODELS.reasoning, 2000),
           messages: [{ role: "user", content: prompt }],
         }),
       });
@@ -210,7 +210,7 @@ export default withHandler(
       }
 
       const json = await res.json();
-      const text = (json.content?.[0] as { text?: string })?.text ?? "";
+      const text = responseText(json);
 
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {

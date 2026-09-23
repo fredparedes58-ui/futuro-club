@@ -19,7 +19,8 @@
  */
 
 import { withHandler } from "../_lib/withHandler";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages } from "../_lib/anthropic";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 import {
@@ -324,7 +325,7 @@ RECOMENDACIONES PARA EL ENTRENADOR:
 
           let fullText = "";
           try {
-            const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+            const claudeRes = await fetchMessages({
               method: "POST",
               headers: {
                 "Content-Type":      "application/json",
@@ -332,8 +333,7 @@ RECOMENDACIONES PARA EL ENTRENADOR:
                 "anthropic-version": "2023-06-01",
               },
               body: JSON.stringify({
-                model:      MODELS.reasoning,
-                max_tokens: 8000,
+                ...modelParams(MODELS.reasoning, 8000),
                 messages:   [{ role: "user", content }],
               }),
             });
@@ -387,7 +387,7 @@ RECOMENDACIONES PARA EL ENTRENADOR:
                 ? [{ type: "text", text: retryPrompt }]
                 : [...imageBlocks, { type: "text", text: retryPrompt }];
 
-              const retryRes = await fetch("https://api.anthropic.com/v1/messages", {
+              const retryRes = await fetchMessages({
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -395,8 +395,7 @@ RECOMENDACIONES PARA EL ENTRENADOR:
                   "anthropic-version": "2023-06-01",
                 },
                 body: JSON.stringify({
-                  model: MODELS.reasoning,
-                  max_tokens: 8000,
+                  ...modelParams(MODELS.reasoning, 8000),
                   messages: [{ role: "user", content: retryContent }],
                 }),
               });

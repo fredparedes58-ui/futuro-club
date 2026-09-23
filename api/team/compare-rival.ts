@@ -26,7 +26,8 @@
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
@@ -224,7 +225,7 @@ el coach. Genera plan accionable y honesto sobre incertidumbre.`}`;
 }
 
 async function callClaude(system: string, user: string): Promise<Record<string, unknown>> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetchMessages({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -232,15 +233,14 @@ async function callClaude(system: string, user: string): Promise<Record<string, 
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODELS.reasoning,
-      max_tokens: 2500,
+      ...modelParams(MODELS.reasoning, 2500),
       system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: user }],
     }),
   });
   if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const data = await res.json();
-  const raw = data.content?.[0]?.text ?? "{}";
+  const raw = responseText(data) || "{}";
   const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   try { return JSON.parse(cleaned); }
   catch { return { _raw: raw, _parseError: true }; }

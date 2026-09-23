@@ -11,7 +11,8 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsMatch } from "../_lib/ownership";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import {
   TacticalPatternInputSchema,
   TacticalPatternOutputSchema,
@@ -154,10 +155,10 @@ export default withHandler(
       // Tripwire de presupuesto: corta si el mes superó el tope (fail-open si el
       // ledger no responde). Cae al fallback determinista, no rompe.
       if (await isOverBudget()) return budgetExceededResponse();
-      await recordSpendUsd("claude-opus"); // MODELS.reasoning = claude-opus-4-8
+      await recordSpendUsd("claude-opus"); // MODELS.reasoning = claude-opus-5-5
       try {
         const prompt = buildTacticalPatternPrompt(input);
-        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        const resp = await fetchMessages({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -165,14 +166,13 @@ export default withHandler(
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 2500,
+            ...modelParams(MODEL, 2500),
             messages: [{ role: "user", content: prompt }],
           }),
         });
         if (resp.ok) {
-          const data = (await resp.json()) as { content: Array<{ text: string }> };
-          const text = data.content?.[0]?.text ?? "";
+          const data = await resp.json();
+          const text = responseText(data);
           const match = text.match(/\{[\s\S]*\}/);
           if (match) {
             const parsed = JSON.parse(match[0]);

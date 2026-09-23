@@ -19,7 +19,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
@@ -128,7 +129,7 @@ ${languageDirective(locale)}${category === "senior" ? "\n\n" : ""}${categoryDire
 }
 
 async function callSonnet(systemPrompt: string, userMessage: string, apiKey: string) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetchMessages({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -136,15 +137,14 @@ async function callSonnet(systemPrompt: string, userMessage: string, apiKey: str
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODELS.reasoning,
-      max_tokens: 2500,
+      ...modelParams(MODELS.reasoning, 2500),
       system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userMessage }],
     }),
   });
   if (!res.ok) throw new Error(`Claude error ${res.status}: ${await res.text()}`);
   const data = await res.json();
-  return JSON.parse(data.content?.[0]?.text ?? "{}");
+  return JSON.parse(responseText(data) || "{}");
 }
 
 export default withHandler(
