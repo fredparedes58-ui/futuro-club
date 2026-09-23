@@ -8,7 +8,8 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import {
   TransferMatchInputSchema,
   TransferMatchOutputSchema,
@@ -124,7 +125,7 @@ export default withHandler(
     if (ANTHROPIC_API_KEY) {
       try {
         const prompt = buildTransferMatchPrompt(agentInput, reportLocale);
-        const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        const resp = await fetchMessages({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -132,14 +133,13 @@ export default withHandler(
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: MODEL,
-            max_tokens: 3000,
+            ...modelParams(MODEL, 3000),
             messages: [{ role: "user", content: prompt }],
           }),
         });
         if (resp.ok) {
-          const data = (await resp.json()) as { content: Array<{ text: string }> };
-          const text = data.content?.[0]?.text ?? "";
+          const data = await resp.json();
+          const text = responseText(data);
           const m = text.match(/\{[\s\S]*\}/);
           if (m) {
             const parsed = JSON.parse(m[0]);

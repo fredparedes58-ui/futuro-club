@@ -13,7 +13,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hashInput, getCached, setCached } from "../_lib/agentCache";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
 import { resolveCategory, categoryDirective, type PlayerCategory } from "../../src/lib/shared/category";
 
@@ -90,7 +91,7 @@ interface LabReportInput {
 }
 
 async function callClaude(systemPrompt: string, userMessage: string, apiKey: string) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetchMessages({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -98,8 +99,7 @@ async function callClaude(systemPrompt: string, userMessage: string, apiKey: str
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: MODELS.reasoning,
-      max_tokens: 2500,
+      ...modelParams(MODELS.reasoning, 2500),
       system: [
         {
           type: "text",
@@ -117,7 +117,7 @@ async function callClaude(systemPrompt: string, userMessage: string, apiKey: str
   }
 
   const data = await res.json();
-  const text = data.content?.[0]?.text ?? "{}";
+  const text = responseText(data) || "{}";
   try {
     return JSON.parse(text);
   } catch {

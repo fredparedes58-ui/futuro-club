@@ -9,7 +9,8 @@
  */
 
 import { z } from "zod";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
 import { rivalScoutOutputSchema, validateLLMReport } from "./_outputSchemas";
@@ -144,7 +145,7 @@ Pressing: ${JSON.stringify(body.pressing ?? {}, null, 2)}
 ${phvLine && phvApplies(category) ? `\n${phvLine}\n${phvNote}\n` : ""}
 Genera el informe SOLO con lo que estos datos soporten; deja vacío ([] / "sin datos suficientes") lo que no puedas evaluar y no inventes.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetchMessages({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -152,8 +153,7 @@ Genera el informe SOLO con lo que estos datos soporten; deja vacío ([] / "sin d
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: MODELS.reasoning,
-        max_tokens: 1024,
+        ...modelParams(MODELS.reasoning, 1024),
         system: buildSystemPrompt(locale, category),
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -170,7 +170,7 @@ Genera el informe SOLO con lo que estos datos soporten; deja vacío ([] / "sin d
     }
 
     const result = await response.json();
-    const text = result.content?.[0]?.text ?? "{}";
+    const text = responseText(result) || "{}";
 
     let report: unknown;
     try {

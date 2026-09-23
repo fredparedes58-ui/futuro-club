@@ -19,7 +19,8 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayer } from "../_lib/ownership";
-import { MODELS } from "../_lib/models";
+import { MODELS, modelParams } from "../_lib/models";
+import { fetchMessages, responseText } from "../_lib/anthropic";
 import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { createClient } from "@supabase/supabase-js";
 
@@ -66,7 +67,7 @@ async function callClaude(opts: {
   user: string;
   maxTokens?: number;
 }): Promise<Record<string, unknown>> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetchMessages({
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -74,8 +75,7 @@ async function callClaude(opts: {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: opts.model,
-      max_tokens: opts.maxTokens ?? 1500,
+      ...modelParams(opts.model, opts.maxTokens ?? 1500),
       system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: opts.user }],
     }),
@@ -85,7 +85,7 @@ async function callClaude(opts: {
     throw new Error(`Claude ${res.status}: ${text.slice(0, 200)}`);
   }
   const data = await res.json();
-  const raw = data.content?.[0]?.text ?? "{}";
+  const raw = responseText(data) || "{}";
   // Strip markdown fences if any
   const cleaned = raw.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   try { return JSON.parse(cleaned); }
