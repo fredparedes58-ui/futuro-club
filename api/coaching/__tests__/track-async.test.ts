@@ -72,6 +72,45 @@ describe("track-async (enqueue + spawn)", () => {
     process.env.MODAL_CALLBACK_SECRET = "cb-secret";
     process.env.VITAS_PUBLIC_URL = "https://vitas.test";
     delete process.env.PUBLIC_URL;
+    // Allowlist de videoUrl (api/_lib/videoUrlGuard): cdn.test es "nuestro" CDN aquí.
+    process.env.BUNNY_CDN_HOSTNAME = "cdn.test";
+    delete process.env.VITE_BUNNY_CDN_HOSTNAME;
+  });
+
+  it("videoUrl fuera de la allowlist Bunny → 400 sin dedup/insert/spawn (SSRF)", async () => {
+    for (const videoUrl of [
+      "https://169.254.169.254/latest/meta-data/",
+      "https://evil.example.com/huge.mp4",
+      "http://cdn.test/match.mp4",
+      "https://attacker-zone.b-cdn.net/match.mp4",
+    ]) {
+      const res = await trackAsync(post({ videoUrl }));
+      expect(res.status).toBe(400);
+      expect((await res.json()).errorDetail.code).toBe("VIDEO_URL_NOT_ALLOWED");
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sin BUNNY_CDN_HOSTNAME → 503 falla cerrado (el cliente cae a su fallback), sin fetch", async () => {
+    delete process.env.BUNNY_CDN_HOSTNAME;
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(503);
+    expect((await res.json()).errorDetail.code).toBe("VIDEO_HOSTS_NOT_CONFIGURED");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("Modal rechaza sin spawnear ({status:'error'} sin call_id) → job failed + 502, no queda 'processing'", async () => {
+    fetchMock
+      .mockResolvedValueOnce(noDup())                                                    // dedup
+      .mockResolvedValueOnce(jsonRes([{ id: "job-3" }], 201))                            // insert
+      .mockResolvedValueOnce(jsonRes({ status: "error", reason: "video_url_not_allowed" })) // spawn 200 + error
+      .mockResolvedValueOnce(jsonRes([{ id: "job-3" }]));                                // PATCH failed
+
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/match.mp4" }));
+    expect(res.status).toBe(502);
+    const patchBody = JSON.parse(fetchMock.mock.calls[3][1].body);
+    expect(patchBody.status).toBe("failed");
+    expect(patchBody.error).toContain("video_url_not_allowed");
   });
 
   it("presupuesto excedido (054) → 429 BUDGET_EXCEEDED y NO spawnea Modal", async () => {
