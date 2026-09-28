@@ -70,6 +70,7 @@ describe("video-observation · cuerpo y auth", () => {
   beforeEach(() => {
     process.env.GEMINI_API_KEY = "test-gemini-key";
     process.env.INTERNAL_API_TOKEN = "svc-token";
+    process.env.BUNNY_CDN_HOSTNAME = "cdn.test"; // allowlist de videoUrl (api/_lib/videoUrlGuard)
     vi.mocked(verifyAuth).mockResolvedValue({ userId: "user-123", email: null, tenantId: null, error: null } as never);
     fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes(":generateContent")) return geminiResponse();
@@ -82,6 +83,7 @@ describe("video-observation · cuerpo y auth", () => {
     vi.unstubAllGlobals();
     delete process.env.GEMINI_API_KEY;
     delete process.env.INTERNAL_API_TOKEN;
+    delete process.env.BUNNY_CDN_HOSTNAME;
   });
 
   it("un JSON pequeño con JWT de usuario llega a Gemini (no 413)", async () => {

@@ -7,7 +7,9 @@
  *   PATCH  /api/live/matches?id=<id>               → actualizar (pause/finish/score)
  *   DELETE /api/live/matches?id=<id>               → eliminar (cascade events)
  *
- * Body POST:   { teamName?, opponentName?, competition?, matchDate?, notes? }
+ * Body POST:   { teamName?, opponentName?, competition?, matchDate?, notes?, videoUrl? }
+ *              videoUrl solo se guarda si pasa la allowlist Bunny (videoUrlGuard);
+ *              si no, el partido se crea sin vídeo y la respuesta trae videoUrlRejected.
  * Body PATCH:  { status?, scoreHome?, scoreAway?, durationSeconds?, endedAt?, notes? }
  *
  * Auth: requiere usuario autenticado · RLS isola por tenant.
@@ -17,6 +19,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
+import { assertAllowedVideoUrl, VideoUrlError } from "../_lib/videoUrlGuard";
 
 export const config = { runtime: "edge" };
 
@@ -48,7 +51,7 @@ export default withHandler(
     requireAuth: true,
     maxRequests: 60,
   },
-  async ({ req, userId, method, query }) => {
+  async ({ req, body: ctxBody, userId, method, query }) => {
     if (!userId) {
       return errorResponse({ code: "unauthorized", message: "Login requerido", status: 401 });
     }
@@ -170,8 +173,9 @@ export default withHandler(
     }
 
     // ── POST · crear partido ────────────────────────────────────
-    const body = (await req.json().catch(() => null)) as unknown;
-    const parsed = createSchema.safeParse(body);
+    // withHandler YA leyó y parseó el cuerpo de los POST (ctx.body); un segundo
+    // req.json() lanzaba "Body is unusable" → null → 400 en TODA creación.
+    const parsed = createSchema.safeParse(ctxBody ?? {});
     if (!parsed.success) {
       return errorResponse({
         code: "invalid_body",
@@ -180,6 +184,23 @@ export default withHandler(
       });
     }
     const input = parsed.data;
+
+    // Allowlist en ESCRITURA (api/_lib/videoUrlGuard): live/aggregate reenvía esta URL
+    // a video-observation (descarga server-side + Gemini). Una URL fuera de nuestro CDN
+    // Bunny (o un blob: local del navegador, o allowlist sin configurar) NO se guarda;
+    // el partido se crea igual (el tagging manual no depende del vídeo) y se informa
+    // en `videoUrlRejected` — el agregado dirá honestamente "SIN VÍDEO".
+    let storedVideoUrl: string | null = null;
+    let videoUrlRejected: { code: string; message: string } | null = null;
+    if (input.videoUrl) {
+      try {
+        storedVideoUrl = assertAllowedVideoUrl(input.videoUrl).href;
+      } catch (err) {
+        if (!(err instanceof VideoUrlError)) throw err;
+        videoUrlRejected = { code: err.code, message: err.message };
+        console.warn(JSON.stringify({ level: "warn", scope: "live/matches", msg: "videoUrl rejected", code: err.code }));
+      }
+    }
 
     const { data: match, error } = await supabase
       .from("live_matches")
@@ -191,7 +212,7 @@ export default withHandler(
         competition: input.competition,
         match_date: input.matchDate,
         notes: input.notes,
-        video_url: input.videoUrl ?? null,
+        video_url: storedVideoUrl,
         status: "live",
         started_at: new Date().toISOString(),
       })
@@ -201,6 +222,6 @@ export default withHandler(
     if (error || !match) {
       return errorResponse({ code: "create_failed", message: error?.message ?? "no match", status: 500 });
     }
-    return successResponse({ match });
+    return successResponse(videoUrlRejected ? { match, videoUrlRejected } : { match });
   }
 );
