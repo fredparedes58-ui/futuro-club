@@ -12,7 +12,8 @@
  *
  * Flow:
  *   1. Look up video URL from Bunny CDN
- *   2. Load player context (position, age, foot)
+ *   2. Load player context (position, age, foot) + the player reference typed by the
+ *      user for THIS analysis (dorsal + kit colour, analyses row · mig 068)
  *   3. Call video-observation agent (Gemini)
  *   4. Convert GeminiObservation → biomechanics format (api/_lib/geminiBiomechanics.ts)
  *   5. Persist to analyses table
@@ -35,6 +36,7 @@ import {
   geminiToBiomechanics,
   type GeminiObservation,
 } from "../_lib/geminiBiomechanics";
+import { readAnalysisPlayerReference } from "../_lib/analysisPlayerReference";
 
 // maxDuration 300 (no 120): para un vídeo largo (~4 min) la observación Gemini puede
 // acercarse a su propio tope de 120s; con solo 120s aquí, este endpoint moría antes de
@@ -108,13 +110,17 @@ export default withHandler(
       .eq("player_id", playerId)
       .maybeSingle();
 
+    // Referencia del jugador que tecleó el usuario al analizar (dorsal + color de
+    // equipación, guardada por finalize en la fila · mig 068). referenceProvided solo es
+    // true si existen AMBOS; sin ellos, un clip con varios jugadores se abstiene.
+    const identification = await readAnalysisPlayerReference(supabase, analysisId);
+
     // Huecos → null + gate_reason (nunca edad 12 / "MID" / "derecho" por defecto).
-    // El pipeline aún no recibe dorsal/color de equipación → referenceProvided=false.
     const {
       playerContext,
       gate_reasons: contextGateReasons,
       referenceProvided,
-    } = buildGeminiPlayerContext(player, anthro);
+    } = buildGeminiPlayerContext(player, anthro, identification);
 
     // ── 3. Call Gemini video-observation agent ──
     const startMs = Date.now();

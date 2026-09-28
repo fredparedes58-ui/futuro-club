@@ -28,6 +28,8 @@ vi.mock("../../_lib/enqueueAnalysis", () => ({
 
 // Supabase mock: from("videos").select(...).eq(...).single() / .maybeSingle(); update().eq()
 const videoRow: { current: Record<string, unknown> | null } = { current: null };
+// Lecturas best-effort separadas de `videos` (locale · mig 064, referencia · mig 068).
+const extraColumns: { current: Record<string, unknown> } = { current: { locale: "en" } };
 const updateSpy = vi.fn();
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
@@ -35,7 +37,7 @@ vi.mock("@supabase/supabase-js", () => ({
       select: () => ({
         eq: () => ({
           single: async () => (videoRow.current ? { data: videoRow.current, error: null } : { data: null, error: { message: "no rows" } }),
-          maybeSingle: async () => ({ data: { locale: "en" }, error: null }),
+          maybeSingle: async () => ({ data: extraColumns.current, error: null }),
         }),
       }),
       update: (patch: unknown) => {
@@ -216,5 +218,31 @@ describe("webhook bunny-uploaded · gate de clips cortos", () => {
     expect(res.status).toBe(200);
     expect(enqueueMock).toHaveBeenCalledTimes(1);
     expect(updateSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("webhook bunny-uploaded · referencia del jugador (dorsal + color, mig 068)", () => {
+  beforeEach(() => {
+    process.env.BUNNY_WEBHOOK_SECRET = SECRET;
+    process.env.VITE_SUPABASE_URL = "https://sb.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
+    enqueueMock.mockReset();
+    enqueueMock.mockResolvedValue({ status: "queued", analysisId: "an-1", triggered: false });
+    videoRow.current = { id: "v1", tenant_id: "t1", player_id: "p1", duration_sec: 120 };
+  });
+  afterEach(() => {
+    extraColumns.current = { locale: "en" };
+  });
+
+  it("finalize dejó dorsal + color en `videos` → el webhook encola CON la referencia", async () => {
+    extraColumns.current = { locale: "en", jersey_number: "10", kit_color: "rojo" };
+    await handler(await signedRequest(FINISHED));
+    expect(enqueueMock.mock.calls[0][0]).toMatchObject({ playerReference: { jerseyNumber: "10", kitColor: "rojo" } });
+  });
+
+  it("sin referencia en `videos` (o mig 068 sin aplicar) → playerReference undefined, no se inventa", async () => {
+    extraColumns.current = { locale: "en" };
+    await handler(await signedRequest(FINISHED));
+    expect((enqueueMock.mock.calls[0][0] as { playerReference?: unknown }).playerReference).toBeUndefined();
   });
 });

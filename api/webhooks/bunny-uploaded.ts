@@ -35,6 +35,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
+import { readVideoPlayerReference } from "../_lib/analysisPlayerReference";
 import {
   BUNNY_WEBHOOK_STATUS,
   getBunnyVideo,
@@ -175,6 +176,12 @@ export default withHandler(
       .maybeSingle();
     const videoLocale = (loc as { locale?: string | null } | null)?.locale ?? null;
 
+    // ── Referencia del jugador (dorsal + color · mig 068) ──────────────────
+    // La dejó `finalize` en `videos` antes de que terminase la codificación (mismo
+    // patrón que el idioma). Sin ella (o sin la migración) → undefined: no se inventa y
+    // en un clip con varios jugadores Gemini se abstendrá.
+    const playerReference = await readVideoPlayerReference(supabase, vrow.id);
+
     const publicUrl =
       process.env.VITAS_PUBLIC_URL ??
       `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
@@ -187,6 +194,7 @@ export default withHandler(
       playerId: vrow.player_id,
       playedPosition: vrow.played_position ?? null,
       locale: videoLocale,
+      playerReference,
       publicUrl,
       cronSecret: process.env.CRON_SECRET ?? "",
     });

@@ -29,6 +29,7 @@ import {
   geminiToBiomechanics,
   type GeminiObservation,
 } from "../_lib/geminiBiomechanics";
+import { readAnalysisPlayerReference } from "../_lib/analysisPlayerReference";
 
 // Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
 // por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
@@ -143,8 +144,12 @@ async function dispatchToGemini(
       .eq("player_id", analysis.player_id)
       .maybeSingle();
 
+    // Referencia dorsal + color que tecleó el usuario (fila analyses · mig 068), leída
+    // con la MISMA impl que gemini-analyze (inv #7). Sin ambos ⇒ referenceProvided false.
+    const identification = await readAnalysisPlayerReference(supabase, analysis.id);
+
     // Huecos → null + gate_reason (nunca edad 12 / "MID" / "derecho" por defecto).
-    const { playerContext, gate_reasons, referenceProvided } = buildGeminiPlayerContext(player, anthro);
+    const { playerContext, gate_reasons, referenceProvided } = buildGeminiPlayerContext(player, anthro, identification);
 
     const res = await fetch(`${PUBLIC_URL}/api/agents/video-observation`, {
       method: "POST",

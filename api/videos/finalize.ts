@@ -13,7 +13,8 @@
  *   3. Gate honesto: un vídeo más largo que SYNC_ANALYSIS_MAX_DURATION_SEC (partido
  *      completo) NO se encola en la cola Gemini de clips cortos → 422
  *      `video_too_long_for_sync_analysis` con la duración real (el cliente lo traduce).
- *   4. Encola el análisis IN-PROCESS (impl compartida con el webhook, inv #7).
+ *   4. Encola el análisis IN-PROCESS (impl compartida con el webhook, inv #7), con la
+ *      referencia del jugador que tecleó el usuario (dorsal + color, mig 068) si la hay.
  *
  * Antes disparaba el webhook por HTTP SIN firma → el webhook fail-closed lo rechazaba
  * siempre (503/401) y el análisis nunca se encolaba, pero respondía ready:true → la UI
@@ -28,6 +29,7 @@ import { ownsVideo, ownsPlayerOrTenant } from "../_lib/ownership";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
 import { BUNNY_API_VIDEO_STATUS, getBunnyVideo } from "../_lib/bunnyStream";
 import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
+import { jerseyNumberSchema, kitColorSchema, type PlayerReference } from "../../src/lib/shared/playerReference";
 import {
   evaluateSyncAnalysisGate,
   knownDurationSec,
@@ -54,6 +56,14 @@ const finalizeSchema = z.object({
   playedPosition: z.string().optional(),        // posición jugada en este video
   /** Idioma de la UI del usuario → informes en ese idioma (mig 064; registry-driven). */
   locale: localeSchema.optional(),
+  /**
+   * Referencia del jugador en ESTE vídeo (mig 068), tecleada por el usuario: dorsal
+   * (1-3 dígitos) y color de equipación (texto corto). Vacío ⇒ null. Identidad SOLO
+   * por dorsal + color (identidad.md), nunca por la cara. Sin ambos, solo un clip con
+   * un único jugador en plano se puede atribuir; con varios, Gemini se abstiene.
+   */
+  jerseyNumber: jerseyNumberSchema.optional(),
+  kitColor: kitColorSchema.optional(),
 });
 
 export default withHandler(
@@ -135,6 +145,25 @@ export default withHandler(
       await supabase.from("videos").update({ locale: normalizeLocale(input.locale) }).eq("id", video.id);
     }
 
+    // Referencia del jugador (dorsal + color · mig 068): solo si el cliente la envía
+    // (aunque sea vacía → null). Un cliente que no la conoce (sin las claves) no toca
+    // lo que ya hubiera guardado.
+    const playerReference: PlayerReference | undefined =
+      input.jerseyNumber !== undefined || input.kitColor !== undefined
+        ? { jerseyNumber: input.jerseyNumber ?? null, kitColor: input.kitColor ?? null }
+        : undefined;
+    // MISMA carrera que el locale: si el webhook de Bunny encola primero (vídeo con
+    // jugador ya ligado desde create-upload), lee la referencia de `videos`. Se escribe
+    // aquí, ANTES del gate de Bunny-ready, y SOLO si el jugador es el ligado al vídeo
+    // (el webhook encola para videos.player_id; con otro jugador la atribuiría mal).
+    // Best-effort: sin la mig 068 el update falla sin tumbar nada (abstención de siempre).
+    if (playerReference && playerId && playerId === (vrow.player_id ?? null)) {
+      await supabase
+        .from("videos")
+        .update({ jersey_number: playerReference.jerseyNumber, kit_color: playerReference.kitColor })
+        .eq("id", video.id);
+    }
+
     // Status del vídeo en Bunny (enum de la API REST: 4 = Finished, 5 = Error)
     const bunnyStatus = await getBunnyVideo({
       libraryId: BUNNY_LIBRARY_ID,
@@ -192,6 +221,7 @@ export default withHandler(
       playerId,
       playedPosition: input.playedPosition ?? null,
       locale: input.locale ? normalizeLocale(input.locale) : null,
+      playerReference,
       publicUrl: PUBLIC_URL,
       cronSecret: CRON_SECRET,
     });
@@ -217,6 +247,8 @@ export default withHandler(
       videoId: video.id,
       analysisId,
       alreadyQueued: result.status === "exists",
+      // ¿Quedó guardada la referencia dorsal+color para ESTE análisis? (solo si se envió)
+      ...(result.referenceApplied === undefined ? {} : { referenceApplied: result.referenceApplied }),
       message: "Vídeo listo · análisis encolado · ETA ~2 minutos",
     });
   }
