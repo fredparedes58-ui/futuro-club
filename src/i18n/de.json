@@ -2111,6 +2111,9 @@
   "teamAnalysisPage": {
     "indicateTeamColor": "Gib die Trikotfarbe des Teams an",
     "analysisCompleted": "Teamanalyse abgeschlossen!",
+    "noVisualInputTitle": "Kein visueller Input: kein Bericht erstellt",
+    "noVisualInputReason": "Es gibt weder eine Videobeobachtung noch verwertbare Frames. Ein Teambericht ohne das Spiel gesehen zu haben wäre erfunden, daher wird er blockiert.",
+    "noVisualInputCloud": "Dieses Video liegt in der Cloud, und die Teamanalyse kann seine Frames von hier aus nicht lesen. Ohne Videobeobachtung oder Frames wäre ein Bericht erfunden, daher wird er blockiert. Funktioniert mit Videos, die auf diesem Gerät verfügbar sind.",
     "pageTitle": "Teamanalyse",
     "tabReport": "Bericht",
     "tabNewAnalysis": "Neue Analyse",

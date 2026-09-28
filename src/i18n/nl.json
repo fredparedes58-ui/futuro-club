@@ -2112,6 +2112,9 @@
   "teamAnalysisPage": {
     "indicateTeamColor": "Geef de tenuekleur van het team aan",
     "analysisCompleted": "Teamanalyse voltooid!",
+    "noVisualInputTitle": "Geen visuele input: geen rapport gemaakt",
+    "noVisualInputReason": "Er is geen video-observatie en geen bruikbaar frame. Een teamrapport zonder de wedstrijd te zien zou verzonnen zijn, dus wordt het geblokkeerd.",
+    "noVisualInputCloud": "Deze video staat in de cloud en de teamanalyse kan de frames van hieruit niet lezen. Zonder video-observatie of frames zou een rapport verzonnen zijn, dus wordt het geblokkeerd. Werkt met video's die op dit apparaat beschikbaar zijn.",
     "pageTitle": "Teamanalyse",
     "tabReport": "Rapport",
     "tabNewAnalysis": "Nieuwe analyse",

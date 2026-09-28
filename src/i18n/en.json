@@ -2112,6 +2112,9 @@
   "teamAnalysisPage": {
     "indicateTeamColor": "Indicate the team's kit color",
     "analysisCompleted": "Team analysis completed!",
+    "noVisualInputTitle": "No visual input: no report generated",
+    "noVisualInputReason": "There is no video observation and no usable frame. A team report without seeing the match would be made up, so it is blocked.",
+    "noVisualInputCloud": "This video is hosted in the cloud and team analysis cannot read its frames from here. Without a video observation or frames, a report would be made up, so it is blocked. It works with videos available on this device.",
     "pageTitle": "Team Analysis",
     "tabReport": "Report",
     "tabNewAnalysis": "New Analysis",

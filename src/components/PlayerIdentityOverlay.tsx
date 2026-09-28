@@ -14,6 +14,7 @@
 import React, { useEffect, useRef } from "react";
 import type { Track } from "@/lib/yolo/types";
 import type { PlayerIdentity } from "@/lib/yolo/playerIdentityManager";
+import { containTransform, toDisplay } from "@/lib/yolo/coordSpace";
 
 // ─── Props ─────────────────────────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ interface PlayerIdentityOverlayProps {
   /** Canvas dimensions (should match video overlay size) */
   width: number;
   height: number;
-  /** Current player tracks */
+  /** Current player tracks (bbox en píxeles NATIVOS del vídeo — espacio canónico, coordSpace.ts) */
   tracks: Track[];
   /** Identity map: trackId → PlayerIdentity */
   identities: Map<number, PlayerIdentity>;
@@ -76,9 +77,10 @@ export const PlayerIdentityOverlay: React.FC<PlayerIdentityOverlayProps> = ({
     // Clear
     ctx.clearRect(0, 0, width, height);
 
-    // Scale factors (video coords → canvas coords)
-    const scaleX = width / videoWidth;
-    const scaleY = height / videoHeight;
+    // Vídeo nativo → canvas. El <video> es object-contain dentro del contenedor
+    // (centrado con bandas): mismo mapeo que el overlay del Lab (coordSpace.ts).
+    const videoSpace = { width: videoWidth, height: videoHeight };
+    const tr = containTransform(videoSpace, videoSpace, { width, height });
 
     ctx.globalAlpha = opacity;
 
@@ -87,10 +89,9 @@ export const PlayerIdentityOverlay: React.FC<PlayerIdentityOverlayProps> = ({
       const [bx, by, bw, bh] = track.bbox;
 
       // Scale bbox to canvas coords
-      const x = bx * scaleX;
-      const y = by * scaleY;
-      const w = bw * scaleX;
-      const h = bh * scaleY;
+      const { x, y } = toDisplay(tr, bx, by);
+      const w = bw * tr.sx;
+      const h = bh * tr.sy;
 
       const isFocused = track.id === focusTrackId;
       const teamColor = showTeamColors && identity

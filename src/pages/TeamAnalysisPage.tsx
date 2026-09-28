@@ -34,6 +34,20 @@ import {
 } from "@/components/ui/sheet";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
+import { isLocalSrc } from "@/lib/localVideoUtils";
+
+// ─── Fuente visual ───────────────────────────────────────────────
+
+/**
+ * Local source (blob:/data:/same-origin path) the team analysis can read
+ * frames from, or undefined for a cloud-only (Bunny) video — which the
+ * analysis cannot see, so it is blocked instead of reporting on 0 frames.
+ */
+function localSourceOf(video: VideoRecord): string | undefined {
+  if (isLocalSrc(video.localPath)) return video.localPath;
+  if (isLocalSrc(video.streamUrl)) return video.streamUrl ?? undefined;
+  return undefined;
+}
 
 // ─── Helpers UI ──────────────────────────────────────────────────
 
@@ -303,6 +317,8 @@ export default function TeamAnalysisPage() {
   const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
   const [compareIdx, setCompareIdx] = useState(1);
+  /** Video whose last run was blocked for lack of visual input (no report). */
+  const [blockedVideoId, setBlockedVideoId] = useState<string | null>(null);
 
   const {
     state,
@@ -314,6 +330,14 @@ export default function TeamAnalysisPage() {
   const { data: savedAnalyses } = useAllTeamAnalyses();
 
   const allVideos = VideoService.getAll();
+  const selectedVideo = allVideos.find(v => v.id === selectedVideoId);
+  // Cloud-only video: nothing the analysis can see → gate before even trying.
+  const cloudOnly = !!selectedVideo && !localSourceOf(selectedVideo);
+  const visualInputGate: string | null = cloudOnly
+    ? t("teamAnalysisPage.noVisualInputCloud")
+    : state.step === "blocked" && blockedVideoId === selectedVideoId
+      ? state.gateReason ?? t("teamAnalysisPage.noVisualInputReason")
+      : null;
   const savedReport = savedAnalyses && savedAnalyses[selectedAnalysisIdx]
     ? (savedAnalyses[selectedAnalysisIdx].report as TeamIntelligenceOutput)
     : null;
@@ -336,18 +360,20 @@ export default function TeamAnalysisPage() {
     if (!video) return;
 
     try {
-      const localSrc = video.localPath && !video.localPath.startsWith("http") ? video.localPath
-        : video.streamUrl && !video.streamUrl.startsWith("http") ? video.streamUrl
-        : undefined;
-
-      await runAnalysis({
+      const report = await runAnalysis({
         videoId: selectedVideoId,
         videoDuration: (video.duration as number) || 120,
         teamColor: teamColor.trim(),
         opponentColor: opponentColor.trim() || undefined,
-        localVideoSrc: localSrc,
+        localVideoSrc: localSourceOf(video),
         analysisFocus: analysisFocus.length > 0 ? analysisFocus : undefined,
       });
+      if (!report) {
+        // Bloqueado (sin entrada visual): se muestra el motivo, no un informe.
+        setBlockedVideoId(selectedVideoId);
+        return;
+      }
+      setBlockedVideoId(null);
       toast.success(t("teamAnalysisPage.analysisCompleted"));
       setActiveTab("informe");
     } catch (err) {
@@ -472,8 +498,10 @@ export default function TeamAnalysisPage() {
               </p>
             </div>
 
-            {/* Progress */}
-            {state.step !== "idle" && state.step !== "done" && state.step !== "error" && (
+            {/* Progress — only while something is actually running. An allowlist
+                (not "anything but idle/done/error") so "blocked" never shows a
+                spinner or repeats the gate reason as a stuck progress message. */}
+            {(state.step === "keyframes" || state.step === "analyzing") && (
               <div className="glass rounded-2xl p-4">
                 <div className="flex items-center gap-3 mb-2">
                   <Loader2 size={14} className="text-primary animate-spin" />
@@ -498,13 +526,32 @@ export default function TeamAnalysisPage() {
               </div>
             )}
 
+            {/* Gate: sin entrada visual no se genera informe (abstención, no error) */}
+            {visualInputGate && (
+              <div
+                role="status"
+                data-testid="team-visual-input-gate"
+                className="glass rounded-2xl p-4 border border-amber-500/40 bg-amber-500/5"
+              >
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-display font-bold text-foreground">
+                      {t("teamAnalysisPage.noVisualInputTitle")}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">{visualInputGate}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Selector de enfoque */}
             <AnalysisFocusSelector value={analysisFocus} onChange={setAnalysisFocus} />
 
             <Button
               className="w-full h-12 text-sm font-display font-bold gap-2"
               onClick={handleRunAnalysis}
-              disabled={!selectedVideoId || !teamColor.trim() || isAnalyzing}
+              disabled={!selectedVideoId || !teamColor.trim() || isAnalyzing || cloudOnly}
             >
               {isAnalyzing ? (
                 <><Loader2 size={16} className="animate-spin" /> {t("teamAnalysisPage.analyzingTeam")}</>
