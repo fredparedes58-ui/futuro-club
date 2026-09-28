@@ -498,8 +498,10 @@ export default function TeamAnalysisPage() {
               </p>
             </div>
 
-            {/* Progress */}
-            {state.step !== "idle" && state.step !== "done" && state.step !== "error" && (
+            {/* Progress — only while something is actually running. An allowlist
+                (not "anything but idle/done/error") so "blocked" never shows a
+                spinner or repeats the gate reason as a stuck progress message. */}
+            {(state.step === "keyframes" || state.step === "analyzing") && (
               <div className="glass rounded-2xl p-4">
                 <div className="flex items-center gap-3 mb-2">
                   <Loader2 size={14} className="text-primary animate-spin" />

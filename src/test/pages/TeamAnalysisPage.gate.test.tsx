@@ -114,11 +114,13 @@ describe("TeamAnalysisPage · no-visual-input gate", () => {
   });
 
   it("a run blocked by the hook shows the gate reason instead of a report", async () => {
+    const reason = "Sin fotogramas utilizables";
     runAnalysis.mockImplementation(async () => {
-      Object.assign(hookState, { step: "blocked", message: "motivo", gateReason: "Sin fotogramas utilizables" });
+      // Same shape the real hook sets: message === gateReason on "blocked".
+      Object.assign(hookState, { step: "blocked", progress: 0, message: reason, gateReason: reason });
       return null;
     });
-    renderPage();
+    const { container } = renderPage();
     goToNewAnalysis();
     fireEvent.click(screen.getByText(LOCAL_VIDEO.title));
     fireEvent.change(screen.getByPlaceholderText(i18n.t("teamAnalysisPage.teamColorPlaceholder")), {
@@ -126,10 +128,23 @@ describe("TeamAnalysisPage · no-visual-input gate", () => {
     });
     fireEvent.click(analyzeButton());
 
-    await waitFor(() => expect(screen.getByTestId("team-visual-input-gate")).toHaveTextContent("Sin fotogramas utilizables"));
+    await waitFor(() => expect(screen.getByTestId("team-visual-input-gate")).toHaveTextContent(reason));
     expect(runAnalysis).toHaveBeenCalledWith(expect.objectContaining({ localVideoSrc: LOCAL_VIDEO.localPath }));
     expect(toast.success).not.toHaveBeenCalled();
     // Still on the "new analysis" tab — no report view was opened.
     expect(screen.getByTestId("video-upload")).toBeInTheDocument();
+    // Nothing is running: no progress panel / spinner, and the reason is shown
+    // once (in the gate box), not repeated as a stuck progress message.
+    expect(container.querySelectorAll(".animate-spin")).toHaveLength(0);
+    expect(screen.getAllByText(reason)).toHaveLength(1);
+  });
+
+  it("a running analysis still shows the progress panel", () => {
+    Object.assign(hookState, { step: "analyzing", progress: 40, message: "Analizando…", gateReason: null });
+    const { container } = renderPage();
+    goToNewAnalysis();
+    expect(screen.getByText("Analizando…")).toBeInTheDocument();
+    expect(container.querySelectorAll(".animate-spin").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("team-visual-input-gate")).toBeNull();
   });
 });
