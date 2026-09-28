@@ -146,28 +146,34 @@ function detectWeaknesses(subscores: Record<string, unknown>): string[] {
  * apunte a gaps vistos y no solo a subscores (que suelen venir null en vídeo). Solo
  * marca un déficit con muestra suficiente (≥3) y señal real — nunca desde un 0/ausencia.
  */
-function detectObservedWeaknesses(videoObservations: unknown): string[] {
+export function detectObservedWeaknesses(videoObservations: unknown): string[] {
   const obs = videoObservations as
     | { gemini?: { eventosContados?: Record<string, unknown> } | null; eventSummary?: Record<string, unknown> | null }
     | null;
   const out: string[] = [];
-  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+  // null/ausente = NO observado (Gemini: "0 = lo vio y no ocurrió; null = no pudo
+  // observarlo"). Un déficit solo se marca si TODOS sus datos se observaron: antes
+  // null→0 y un `escaneos` no visible acababa como "escaneo … (observado en vídeo)".
+  const n = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
   const ec = obs?.gemini?.eventosContados ?? null;
   const es = obs?.eventSummary ?? null;
   if (ec) {
-    const passTot = n(ec.pasesCompletados) + n(ec.pasesFallados);
-    if (passTot >= 3 && n(ec.pasesCompletados) / passTot < 0.6) out.push("precisión de pase (observada en vídeo)");
-    const duelTot = n(ec.duelosGanados) + n(ec.duelosPerdidos);
-    if (duelTot >= 3 && n(ec.duelosGanados) / duelTot < 0.5) out.push("duelos (observados en vídeo)");
-    if (passTot >= 5 && n(ec.escaneos) <= 2) out.push("escaneo/lectura de juego (observado en vídeo)");
+    const pc = n(ec.pasesCompletados), pf = n(ec.pasesFallados);
+    const passTot = pc !== null && pf !== null ? pc + pf : null;
+    if (passTot !== null && pc !== null && passTot >= 3 && pc / passTot < 0.6) out.push("precisión de pase (observada en vídeo)");
+    const dg = n(ec.duelosGanados), dp = n(ec.duelosPerdidos);
+    const duelTot = dg !== null && dp !== null ? dg + dp : null;
+    if (duelTot !== null && dg !== null && duelTot >= 3 && dg / duelTot < 0.5) out.push("duelos (observados en vídeo)");
+    const scans = n(ec.escaneos);
+    if (passTot !== null && scans !== null && passTot >= 5 && scans <= 2) out.push("escaneo/lectura de juego (observado en vídeo)");
     // Muestra mínima ≥3 (como los demás): un n=1 (1 pérdida, 0 recuperaciones) NO es
     // un déficit — evita fabricar "control bajo presión" desde casi nada (revisión #179).
-    const lossVol = n(ec.perdidas) + n(ec.recuperaciones);
-    if (lossVol >= 3 && n(ec.perdidas) > n(ec.recuperaciones)) out.push("control bajo presión (observado en vídeo)");
+    const losses = n(ec.perdidas), recs = n(ec.recuperaciones);
+    if (losses !== null && recs !== null && losses + recs >= 3 && losses > recs) out.push("control bajo presión (observado en vídeo)");
   } else if (es) {
     if (typeof es.passCompletionPct === "number" && es.passCompletionPct < 60) out.push("precisión de pase (observada en vídeo)");
     const dW = n(es.duelsWon), dL = n(es.duelsLost);
-    if (dW + dL >= 3 && dW / (dW + dL) < 0.5) out.push("duelos (observados en vídeo)");
+    if (dW !== null && dL !== null && dW + dL >= 3 && dW / (dW + dL) < 0.5) out.push("duelos (observados en vídeo)");
   }
   return out;
 }

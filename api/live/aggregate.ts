@@ -19,6 +19,7 @@ import { MODELS, modelParams } from "../_lib/models";
 import { fetchMessages, responseText } from "../_lib/anthropic";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { isAllowedVideoUrl } from "../_lib/videoUrlGuard";
 
 // Node.js runtime for Gemini video analysis (up to 120s)
 export const config = { runtime: "nodejs", maxDuration: 120 };
@@ -143,12 +144,10 @@ async function analyzeMatchVideo(
       },
       body: JSON.stringify({
         videoUrl,
-        playerContext: {
-          name: `${teamName} vs ${opponentName}`,
-          age: 13,
-          position: "MID",
-          competitiveLevel: "formativo",
-        },
+        // Observación de EQUIPO del partido: sin identificar a jugadores y sin
+        // edad/posición inventadas (antes 13 / "MID" / "formativo" por defecto).
+        analysisScope: "team",
+        playerContext: { name: `${teamName} vs ${opponentName}` },
       }),
     });
     if (!res.ok) return null;
@@ -353,7 +352,10 @@ export default withHandler(
 
     // ── 3. Analizar video con Gemini si existe ─────────────────
     let videoObs: Record<string, unknown> | null = null;
-    if (match.video_url) {
+    // Filas antiguas pueden traer una URL arbitraria (antes no se validaba al guardar):
+    // si no pasa la allowlist Bunny no se reenvía (video-observation la rechazaría
+    // igual, pero tras contabilizar gasto). Sin vídeo → "SIN VÍDEO" honesto.
+    if (match.video_url && isAllowedVideoUrl(match.video_url)) {
       videoObs = await analyzeMatchVideo(
         match.video_url,
         match.team_name,

@@ -76,12 +76,10 @@ export default function TeamBaselinePage() {
         body: JSON.stringify({
           locale: normalizeLocale(i18n.language),
           videoUrl: url,
-          playerContext: {
-            name: "Equipo propio",
-            age: 13,
-            position: "MID",
-            competitiveLevel: "formativo",
-          },
+          // Observación de EQUIPO: sin identificar ni atribuir a un jugador, y sin
+          // edad/posición inventadas (antes 13 / "MID" / "formativo" por defecto).
+          analysisScope: "team",
+          playerContext: { name: "Equipo propio" },
         }),
       });
       const json = await res.json();

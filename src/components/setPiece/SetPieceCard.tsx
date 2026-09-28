@@ -111,13 +111,9 @@ export default function SetPieceCard({ event, onClick, active }: SetPieceCardPro
         </div>
       )}
 
-      {/* Confidence */}
-      <div className="mt-2 pt-2 border-t border-border flex items-center justify-between text-[9px]">
-        <span className="text-muted-foreground/70">Confianza IA</span>
-        <span className="font-mono text-muted-foreground">
-          {Math.round(event.confidence * 100)}%
-        </span>
-      </div>
+      {/* Sin «Confianza IA»: no hay IA detrás de estas jugadas (las de ejemplo
+          traían una confianza aleatoria y las creadas a mano un 100% fijo). La
+          procedencia la rotula el contenedor con ProvenanceBadge. */}
     </motion.button>
   );
 }

@@ -28,7 +28,8 @@ export interface VideoRecord {
   duration: number;
   width: number;
   height: number;
-  fps: number;
+  /** null = desconocido (el navegador no expone los fps de un fichero). Nunca un valor inventado. */
+  fps: number | null;
   storageSize: number;
   thumbnailUrl: string | null;
   embedUrl: string;

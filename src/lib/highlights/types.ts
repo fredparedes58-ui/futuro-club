@@ -29,9 +29,9 @@ export interface HighlightClip {
   playerName?: string;
   /** Short description for the clip card */
   description: string;
-  /** Confidence 0-1 of the auto-detection */
+  /** Legacy 0-1. Aleatorio en los clips de ejemplo → NO se muestra como «confianza IA». */
   confidence: number;
-  /** True if user added manually, false if auto-detected */
+  /** true = añadido por el usuario; false = clip de EJEMPLO (MOCK) — no existe auto-detección */
   manual: boolean;
 }
 
@@ -53,6 +53,11 @@ export interface HighlightReel {
   notes?: string;
   /** Tag system — useful for filtering ("U14", "vs Rival FC", "Skills") */
   tags?: string[];
+  /**
+   * "MOCK" = reel de ejemplo generado al azar (no existe detector de momentos).
+   * Ausente en reels manuales. Los clips con `manual: false` también son MOCK.
+   */
+  provenance?: "MOCK";
 }
 
 export interface GenerationOptions {

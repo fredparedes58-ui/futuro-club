@@ -24,7 +24,11 @@
 import { errorResponse, successResponse } from "../_lib/apiResponse";
 import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
+import {
+  buildGeminiPlayerContext,
+  geminiToBiomechanics,
+  type GeminiObservation,
+} from "../_lib/geminiBiomechanics";
 
 // Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
 // por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
@@ -68,61 +72,18 @@ interface QueuedAnalysis {
 }
 
 // ─── Gemini Observation → Biomechanics adapter ────────────────────────────
-
-interface GeminiObservation {
-  timeline: Array<{ timestamp: string; tipo: string; descripcion: string }>;
-  dimensiones: Record<string, { observaciones: string[]; score_estimado: number }>;
-  momentosDestacados: Array<{ timestamp: string; tipo: string; descripcion: string }>;
-  patronesJuego: string[];
-  resumenGeneral: string;
-  eventosContados: Record<string, number>;
-}
-
-/**
- * Convert Gemini observation to a biomechanics-compatible object
- * that the pipeline-orchestrator can use for VSI calculation + reports.
- */
-function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
-  const dims = obs.dimensiones ?? {};
-  const events = obs.eventosContados ?? {};
-
-  return {
-    // Scores from Gemini dimensions (1-10 → normalized)
-    technical_score: dims.tecnicaConBalon?.score_estimado ?? 5,
-    tactical_score: dims.inteligenciaTactica?.score_estimado ?? 5,
-    physical_score: dims.capacidadFisica?.score_estimado ?? 5,
-    decision_score: dims.velocidadDecision?.score_estimado ?? 5,
-    leadership_score: dims.liderazgoPresencia?.score_estimado ?? 5,
-    efficacy_score: dims.eficaciaCompetitiva?.score_estimado ?? 5,
-
-    // Event counts
-    passes_completed: events.pasesCompletados ?? 0,
-    passes_failed: events.pasesFallados ?? 0,
-    progressive_passes: events.pasesProgresivos ?? 0,
-    dribbles_successful: events.regatesConVentaja ?? 0,
-    dribbles_failed: events.regatesSinVentaja ?? 0,
-    pressing_effective: events.pressingEfectivo ?? 0,
-    recoveries: events.recuperaciones ?? 0,
-    tackles: events.robos ?? 0,
-    interceptions: events.anticipaciones ?? 0,
-    turnovers: events.perdidas ?? 0,
-    duels_won: events.duelosGanados ?? 0,
-    duels_lost: events.duelosPerdidos ?? 0,
-    shots_on_target: events.disparosAlArco ?? 0,
-    shots_off_target: events.disparosFuera ?? 0,
-    scans: events.escaneos ?? 0,
-
-    // Full observation for report agents
-    gemini_observation: obs,
-    source: GEMINI_MODEL,
-  };
-}
+// Única implementación en api/_lib/geminiBiomechanics.ts (invariante #7). Antes
+// había aquí una copia que rellenaba huecos con `?? 5` / `?? 0` y edad 12.
 
 // ─── Dispatch to Gemini via dedicated endpoint (Sprint 7) ────────────────
 
-async function dispatchToGeminiEndpoint(
+/**
+ * `abstained` = gemini-analyze cerró el análisis sin atribuir nada al jugador
+ * (no identificado / jugador inexistente) → NO se disparan informes ni el inline.
+ */
+export async function dispatchToGeminiEndpoint(
   analysis: QueuedAnalysis,
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; abstained?: boolean; error?: string }> {
   try {
     const res = await fetch(`${PUBLIC_URL}/api/pipeline/gemini-analyze`, {
       method: "POST",
@@ -141,7 +102,8 @@ async function dispatchToGeminiEndpoint(
       const errText = await res.text().catch(() => "");
       return { success: false, error: `gemini-analyze ${res.status}: ${errText.slice(0, 200)}` };
     }
-    return { success: true };
+    const json = (await res.json().catch(() => null)) as { data?: { abstained?: unknown } } | null;
+    return { success: true, abstained: json?.data?.abstained === true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : "fetch failed" };
   }
@@ -152,7 +114,13 @@ async function dispatchToGeminiEndpoint(
 async function dispatchToGemini(
   analysis: QueuedAnalysis,
   videoUrl: string,
-): Promise<{ success: boolean; observation?: GeminiObservation; error?: string }> {
+): Promise<{
+  success: boolean;
+  observation?: GeminiObservation;
+  referenceProvided?: boolean;
+  contextGateReasons?: Record<string, string>;
+  error?: string;
+}> {
   try {
     // Load player context for Gemini prompt
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
@@ -164,21 +132,19 @@ async function dispatchToGemini(
       .eq("id", analysis.player_id)
       .single();
 
+    // Sin jugador no hay a quién atribuir el vídeo (antes: «Jugador» genérico).
+    if (!player) {
+      return { success: false, error: "player_not_found" };
+    }
+
     const { data: anthro } = await supabase
       .from("player_latest_anthropometrics")
       .select("chronological_age, height_cm, weight_kg")
       .eq("player_id", analysis.player_id)
       .maybeSingle();
 
-    const playerContext = {
-      name: player?.name ?? "Jugador",
-      age: anthro?.chronological_age ?? 12,
-      position: player?.position ?? "MID",
-      foot: player?.foot ?? "derecho",
-      height: anthro?.height_cm,
-      weight: anthro?.weight_kg,
-      competitiveLevel: "formativo",
-    };
+    // Huecos → null + gate_reason (nunca edad 12 / "MID" / "derecho" por defecto).
+    const { playerContext, gate_reasons, referenceProvided } = buildGeminiPlayerContext(player, anthro);
 
     const res = await fetch(`${PUBLIC_URL}/api/agents/video-observation`, {
       method: "POST",
@@ -200,13 +166,39 @@ async function dispatchToGemini(
       return { success: false, error: "Gemini returned no observations" };
     }
 
-    return { success: true, observation };
+    return { success: true, observation, referenceProvided, contextGateReasons: gate_reasons };
   } catch (err) {
     return {
       success: false,
       error: err instanceof Error ? err.message : "fetch failed",
     };
   }
+}
+
+/**
+ * Persiste el resultado del Gemini INLINE (fallback). Misma regla que
+ * gemini-analyze: si el jugador no se pudo identificar, el análisis se cierra como
+ * `failed` con el motivo y NO se atribuye nada ni se disparan informes.
+ */
+export async function persistInlineGeminiResult(
+  supabase: SupabaseClient,
+  analysisId: string,
+  observation: GeminiObservation,
+  opts: { referenceProvided: boolean; contextGateReasons?: Record<string, string> },
+): Promise<{ abstained: boolean; reason: string | null }> {
+  const { biomechanics, identity } = geminiToBiomechanics(observation, opts);
+  if (!identity.attributable) {
+    await supabase
+      .from("analyses")
+      .update({ status: "failed", status_message: identity.reason, biomechanics })
+      .eq("id", analysisId);
+    return { abstained: true, reason: identity.reason };
+  }
+  await supabase
+    .from("analyses")
+    .update({ status: "processing_reports", biomechanics })
+    .eq("id", analysisId);
+  return { abstained: false, reason: identity.reason };
 }
 
 // ─── Trigger pipeline orchestrator ──────────────────────────────────────
@@ -336,6 +328,14 @@ async function processQueue() {
     console.log(`[queue] Dispatching ${analysis.id} to gemini-analyze...`);
     const geminiRes = await dispatchToGeminiEndpoint(analysis);
 
+    // Abstención (jugador no identificado / inexistente): gemini-analyze ya cerró el
+    // análisis con su motivo. NO se reintenta inline ni se generan informes bajo el
+    // nombre del menor (identidad.md).
+    if (geminiRes.success && geminiRes.abstained) {
+      results.push({ id: analysis.id, status: "abstained" });
+      continue;
+    }
+
     if (!geminiRes.success) {
       // Fallback: try inline Gemini if endpoint fails
       console.log(`[queue] gemini-analyze endpoint failed, trying inline...`);
@@ -354,12 +354,15 @@ async function processQueue() {
         continue;
       }
 
-      // Persist inline Gemini results
-      const biomechanics = geminiToBiomechanics(gemini.observation);
-      await supabase
-        .from("analyses")
-        .update({ status: "processing_reports", biomechanics })
-        .eq("id", analysis.id);
+      // Persist inline Gemini results (misma regla de identidad que gemini-analyze)
+      const inline = await persistInlineGeminiResult(supabase, analysis.id, gemini.observation, {
+        referenceProvided: gemini.referenceProvided ?? false,
+        contextGateReasons: gemini.contextGateReasons,
+      });
+      if (inline.abstained) {
+        results.push({ id: analysis.id, status: "abstained", error: inline.reason ?? undefined });
+        continue;
+      }
     }
 
     // ── 5. Trigger pipeline orchestrator → 6 Claude reports ──
@@ -377,7 +380,8 @@ async function processQueue() {
     processed: results.length,
     reaped: reapedCount,
     completed: results.filter((r) => r.status === "completed").length,
-    failed: results.filter((r) => r.status !== "completed").length,
+    abstained: results.filter((r) => r.status === "abstained").length,
+    failed: results.filter((r) => r.status !== "completed" && r.status !== "abstained").length,
     details: results,
   };
 }

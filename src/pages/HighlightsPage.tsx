@@ -22,7 +22,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { HighlightsStorage } from "@/services/real/highlightsStorage";
+import { reelHasSimulatedClips } from "@/services/real/highlightsDetector";
 import GenerateReelDialog from "@/components/highlights/GenerateReelDialog";
+import DemoDataBanner from "@/components/DemoDataBanner";
+import { ProvenanceBadge } from "@/components/metrics/MetricValue";
 import type { HighlightReel } from "@/lib/highlights/types";
 import { MOMENT_META } from "@/lib/highlights/types";
 
@@ -131,7 +134,11 @@ export default function HighlightsPage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-5">
+      <main className="max-w-6xl mx-auto px-4 py-5 space-y-4">
+        {/* MOCK exige banner visible: algún reel trae clips de ejemplo (no detectados) */}
+        {reels.some(reelHasSimulatedClips) && (
+          <DemoDataBanner messageKey="highlightsPage.demoNotice" />
+        )}
         {reels.length === 0 ? (
           <EmptyState onCreate={() => setDialogOpen(true)} />
         ) : filtered.length === 0 ? (
@@ -245,6 +252,11 @@ function ReelCard({
               <VideoIcon size={9} />
               <span className="truncate">{reel.sourceVideoTitle}</span>
             </p>
+            {reelHasSimulatedClips(reel) && (
+              <div className="mt-1">
+                <ProvenanceBadge provenance="MOCK" />
+              </div>
+            )}
           </div>
           <button
             onClick={(e) => {

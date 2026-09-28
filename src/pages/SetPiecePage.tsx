@@ -10,8 +10,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, Cpu, Video, Wand2, Upload } from "lucide-react";
+import { ArrowLeft, Crosshair, BarChart3, Lightbulb, Filter, Plus, Pencil, Sparkles, Save, X, Edit3, FlaskConical, Wand2, Upload } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
+import DemoDataBanner from "@/components/DemoDataBanner";
+import { ProvenanceBadge } from "@/components/metrics/MetricValue";
 import { toast } from "sonner";
 import {
   getAllSetPieces,
@@ -197,8 +199,15 @@ export default function SetPiecePage() {
     tacticalNotes: "",
   });
 
-  // ── Video-driven detection handlers ─────────────────────────────────
+  // ── Jugadas de ejemplo «desde vídeo» (siempre MOCK: no existe detector) ──
   const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
+
+  // HONESTIDAD (metricas.md · MOCK exige banner): todo lo que no creó el usuario es
+  // de EJEMPLO — el catálogo base (setPieceService) y las jugadas/recomendaciones
+  // «desde vídeo» (simuladas). Se rotula con el badge canónico ProvenanceBadge MOCK
+  // + el DemoDataBanner de página.
+  const isMockEvent = (e: SetPieceEvent) => isVideoEvent(e.id) || !isCustomEvent(e);
+  const isMockRec = (r: SetPieceRecommendation) => isVideoRec(r) || !isCustomRec(r);
 
   const handleVideoDetectionCompleted = () => {
     // Reload custom events so the detected ones appear in the list
@@ -373,7 +382,9 @@ export default function SetPiecePage() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-5">
+      <main className="max-w-6xl mx-auto px-4 py-5 space-y-4">
+        {/* Banner canónico MOCK: el catálogo base y lo «desde vídeo» son de ejemplo */}
+        <DemoDataBanner messageKey="setPiecePage.demoNotice" />
         <AnimatePresence mode="wait">
           {tab === "events" && (
             <motion.div
@@ -418,9 +429,9 @@ export default function SetPiecePage() {
                   </button>
                   <button
                     onClick={() => setVideoDialogOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500 to-primary text-white text-xs font-display font-semibold hover:opacity-90 transition-all shadow-md"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-display font-semibold hover:bg-secondary/80 transition-all border border-border"
                   >
-                    <Cpu size={14} />
+                    <FlaskConical size={14} />
                     {t("setPiecePage.analyzeVideo")}
                   </button>
                   <button
@@ -533,10 +544,8 @@ export default function SetPiecePage() {
                           </span>
                         )}
                         <div className="absolute top-2 right-2 flex items-center gap-1">
-                          {isVideoEvent(event.id) ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-                              <Video size={8} /> {t("setPiecePage.badgeFromVideo")}
-                            </span>
+                          {isMockEvent(event) ? (
+                            <ProvenanceBadge provenance="MOCK" />
                           ) : isCustom ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                               <Sparkles size={8} /> {t("setPiecePage.badgeCustom")}
@@ -833,18 +842,14 @@ export default function SetPiecePage() {
               </div>
               {recommendations.map((rec) => {
                 const isCustom = isCustomRec(rec);
-                const isVideo = isVideoRec(rec);
+                const isMock = isMockRec(rec);
                 void folderVersion;
                 return (
                   <div key={rec.id} className="relative group">
                     <RecommendationCard rec={rec} />
                     <div className="absolute top-3 right-12 flex items-center gap-1">
-                      {isVideo && (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-                          <Wand2 size={8} /> {t("setPiecePage.badgeAiVideo")}
-                        </span>
-                      )}
-                      {!isVideo && isCustom && (
+                      {isMock && <ProvenanceBadge provenance="MOCK" />}
+                      {!isMock && isCustom && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/20 text-primary text-[8px] uppercase tracking-wider font-bold">
                           <Sparkles size={8} /> {t("setPiecePage.badgeCustom")}
                         </span>
@@ -889,10 +894,9 @@ export default function SetPiecePage() {
         open={uploadDialogOpen}
         onClose={() => setUploadDialogOpen(false)}
         onUploaded={() => {
-          // Close upload and chain into the analyzer
-          setUploadDialogOpen(false);
-          // Slight delay so the success card stays visible briefly
-          setTimeout(() => setVideoDialogOpen(true), 600);
+          // Ya NO se encadena el «analizador»: no existe detección de balón parado
+          // desde vídeo y antes eso guardaba jugadas inventadas como «Desde vídeo».
+          // El diálogo de subida se queda abierto con su tarjeta de éxito.
         }}
       />
     </div>

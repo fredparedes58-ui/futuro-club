@@ -17,6 +17,8 @@ export type { BallDetection, BallTrack };
 
 export interface PixelPoint  { px: number; py: number }
 export interface FieldPoint  { fx: number; fy: number }   // metros (0-105, 0-68)
+/** Dimensiones de un espacio de píxel (frame del modelo, vídeo nativo, overlay…). Ver coordSpace.ts. */
+export interface PixelSpace  { width: number; height: number }
 
 // ─── Keypoints COCO-17 ────────────────────────────────────────────────────────
 // 0=nariz 1=ojoIzq 2=ojoDer 3=orejaIzq 4=orejaDer
@@ -195,13 +197,26 @@ export interface VoronoiRegion {
 
 export type WorkerCommand =
   | { type: "INIT";  modelUrl: string; inputSize?: number; tiling?: TilingConfig | null; recall?: RecallConfig | null }
-  | { type: "FRAME"; imageData: ImageData; frameIndex: number; timestampMs: number; homography: number[] }
+  | { type: "FRAME"; imageData: ImageData; frameIndex: number; timestampMs: number;
+      /** Homografía PÍXEL→CAMPO (fila mayor) expresada en `sourceSpace`. */
+      homography: number[];
+      /**
+       * Espacio NATIVO del vídeo (videoWidth×videoHeight). El worker lleva las
+       * detecciones del frame (imageData, 640² aplastado) a este espacio antes del
+       * tracker. Ausente ⇒ se asume el propio frame (sin reescalado).
+       */
+      sourceSpace?: PixelSpace }
   | { type: "RESET" }
 
 export type WorkerEvent =
   | { type: "READY" }
   | { type: "PROGRESS"; percent: number; message: string }
-  | { type: "RESULT"; frameIndex: number; timestampMs: number; tracks: Track[]; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }>;
+  | { type: "RESULT"; frameIndex: number; timestampMs: number;
+      /** Espacio de píxel de `tracks` y `personBboxes` (vídeo nativo). */
+      trackSpace?: PixelSpace;
+      /** Espacio del frame que vio el modelo (imageData). */
+      frameSpace?: PixelSpace;
+      tracks: Track[]; personBboxes?: Array<{ bbox: [number, number, number, number]; confidence: number }>;
       /**
        * Cobertura de biomecánica del frame (ruta detección-primero): fracción de
        * detecciones con píxeles suficientes para pose. DERIVADA/orientativa. Solo

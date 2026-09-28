@@ -1,9 +1,19 @@
 /**
- * VITAS · Highlights Detector
+ * VITAS · Highlights — generador de reels de EJEMPLO (MOCK) + reels manuales
  *
- * Phase 1: simulates detection of highlight-worthy moments from a video.
- * Phase 2 hook: replace runHighlightsDetection() with a call to
- * /api/highlights/_detect.
+ * HONESTIDAD (CLAUDE.md inv. 1-3, .claude/rules/metricas.md): VITAS todavía NO
+ * detecta momentos (goles, tiros, regates…) en un vídeo. Antes este módulo decía
+ * «Tracking de los 22 jugadores (YOLO + ByteTrack)» con una barra teatral y
+ * generaba clips con timestamps, nombres y «confianza IA» aleatorios sobre los
+ * vídeos REALES del usuario.
+ *
+ * Ahora:
+ *  - Vídeo real ⇒ la detección queda BLOQUEADA (`gate_reason`); se puede crear un
+ *    reel VACÍO para añadir los clips a mano (`createManualReel`).
+ *  - Partido demo (`demo_reel_*`) ⇒ reel de EJEMPLO, `provenance: "MOCK"`, que la
+ *    UI rotula con el badge canónico y el DemoDataBanner.
+ *  - Un clip con `manual: false` NUNCA salió de un detector real ⇒ es de ejemplo
+ *    (`isSimulatedClip`), también en los reels guardados antes de este cambio.
  */
 
 import type {
@@ -15,37 +25,39 @@ import type {
 import { HighlightsStorage } from "./highlightsStorage";
 import i18n from "@/i18n";
 
+/** Solo los partidos demo pueden generar reels de ejemplo. */
+export const HIGHLIGHTS_DEMO_VIDEO_PREFIX = "demo_reel_";
+
+export function isDemoHighlightsVideo(videoId: string): boolean {
+  return videoId.startsWith(HIGHLIGHTS_DEMO_VIDEO_PREFIX);
+}
+
+/** Motivo de bloqueo de la detección automática, o null si es un partido demo. */
+export function highlightsDetectionGate(videoId: string): string | null {
+  return isDemoHighlightsVideo(videoId) ? null : i18n.t("generateReelDialog.gateRealVideo");
+}
+
+/** Un clip no manual jamás salió de un detector real: es de ejemplo (MOCK). */
+export function isSimulatedClip(clip: Pick<HighlightClip, "manual">): boolean {
+  return !clip.manual;
+}
+
+/** ¿El reel contiene clips de ejemplo? ⇒ exige ProvenanceBadge MOCK + banner. */
+export function reelHasSimulatedClips(reel: Pick<HighlightReel, "clips">): boolean {
+  return reel.clips.some(isSimulatedClip);
+}
+
 export interface DetectionProgress {
-  stage:
-    | "loading"
-    | "tracking"
-    | "ball_events"
-    | "shot_classification"
-    | "skill_detection"
-    | "ranking"
-    | "compiling"
-    | "finished";
+  stage: "generating" | "finished";
   pct: number;
   message: string;
 }
 
 export type DetectionListener = (p: DetectionProgress) => void;
 
-const STAGE_FLOW: Array<{
-  stage: DetectionProgress["stage"];
-  message: string;
-  duration: number;
-  pct: number;
-}> = [
-  { stage: "loading", message: "Cargando video y metadatos…", duration: 500, pct: 5 },
-  { stage: "tracking", message: "Tracking de los 22 jugadores (YOLO + ByteTrack)…", duration: 900, pct: 25 },
-  { stage: "ball_events", message: "Detectando eventos con el balón…", duration: 800, pct: 45 },
-  { stage: "shot_classification", message: "Clasificando tiros, goles, paradas…", duration: 700, pct: 62 },
-  { stage: "skill_detection", message: "Detectando regates, scans y duelos…", duration: 700, pct: 78 },
-  { stage: "ranking", message: "Rankeando momentos por impacto (xG, gol, asistencia)…", duration: 600, pct: 90 },
-  { stage: "compiling", message: "Compilando el reel…", duration: 500, pct: 97 },
-  { stage: "finished", message: "Reel listo", duration: 0, pct: 100 },
-];
+export type HighlightsDetectionResult =
+  | { status: "mock"; provenance: "MOCK"; reel: HighlightReel; gate_reason: null }
+  | { status: "gated"; provenance: null; reel: null; gate_reason: string };
 
 const PLAYER_POOL = [
   "Samu",
@@ -179,19 +191,37 @@ function genClipId(): string {
 }
 
 /**
- * Generate a set of highlight clips from a video.
- * The reel will roughly hit `targetDurationSec` total clip duration.
+ * Reel VACÍO para un vídeo real: el usuario añade los clips a mano en el detalle.
+ * No inventa ningún momento.
+ */
+export function createManualReel(options: Pick<GenerationOptions, "videoId" | "videoTitle" | "videoUrl" | "title" | "playerName">): HighlightReel {
+  return HighlightsStorage.create({
+    title: options.title?.trim() || `Reel — ${options.videoTitle}`,
+    sourceVideoId: options.videoId,
+    sourceVideoTitle: options.videoTitle,
+    sourceVideoUrl: options.videoUrl,
+    thumbnailUrl: null,
+    clips: [],
+    tags: options.playerName ? [options.playerName] : [],
+  });
+}
+
+/**
+ * «Detección» de highlights.
+ *  - Vídeo real ⇒ `{ status: "gated", gate_reason }`: no se genera ni guarda nada.
+ *  - Partido demo ⇒ reel de EJEMPLO (clips aleatorios, `manual: false`,
+ *    `provenance: "MOCK"`) de ~`targetDurationSec` segundos.
  */
 export async function runHighlightsDetection(
   options: GenerationOptions,
   onProgress?: DetectionListener,
-): Promise<HighlightReel> {
-  for (const step of STAGE_FLOW) {
-    onProgress?.({ stage: step.stage, pct: step.pct, message: step.message });
-    if (step.duration > 0) {
-      await new Promise((r) => setTimeout(r, step.duration));
-    }
+): Promise<HighlightsDetectionResult> {
+  const gate = highlightsDetectionGate(options.videoId);
+  if (gate) {
+    return { status: "gated", provenance: null, reel: null, gate_reason: gate };
   }
+
+  onProgress?.({ stage: "generating", pct: 50, message: i18n.t("generateReelDialog.analyzing") });
 
   const rng = seededRng(`${options.videoId}_${options.targetDurationSec}_${options.momentTypes.length}`);
 
@@ -261,7 +291,9 @@ export async function runHighlightsDetection(
     thumbnailUrl: null,
     clips,
     tags: options.playerName ? [options.playerName] : [],
+    provenance: "MOCK",
   });
 
-  return reel;
+  onProgress?.({ stage: "finished", pct: 100, message: "" });
+  return { status: "mock", provenance: "MOCK", reel, gate_reason: null };
 }
