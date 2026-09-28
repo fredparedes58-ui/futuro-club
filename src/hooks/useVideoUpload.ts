@@ -8,6 +8,9 @@
  *      authSignature, authExpire, libraryId} se guarda por huella del fichero → al
  *      recargar y volver a elegir el mismo fichero NO se vuelve a llamar a video-init,
  *      se reanuda desde el offset que tiene Bunny (findPreviousUploads).
+ *      Si Bunny RECHAZA la sesión guardada (4xx definitivo: vídeo borrado, clave rotada,
+ *      firma inválida) se descarta y se reintenta UNA vez con un video-init nuevo; un 4xx
+ *      en una sesión nueva también la descarta. Un corte de red la conserva (reanudable).
  *   3. Poll /api/videos/status → wait for encode to finish. Si el poll se agota (un
  *      partido largo codifica más que el poll) → termina con encodeStatus="processing"
  *      (subida OK; la codificación sigue en Bunny), nunca como error.
@@ -42,6 +45,8 @@ import {
   saveTusSession,
   updateTusSession,
   clearTusSession,
+  tusErrorStatus,
+  isTusSessionRejection,
   type TusUploadSession,
 } from "@/lib/tusUploadSession";
 import { evaluateSyncAnalysisGate, knownDurationSec } from "@/lib/shared/videoLimits";
@@ -154,6 +159,16 @@ export const BUNNY_TUS_ENDPOINT = "https://video.bunnycdn.com/tusupload";
  * (un PATCH por intento; tras un corte se reanuda desde el offset que confirma Bunny).
  */
 export const TUS_RETRY_DELAYS = [0, 3000, 10000, 30000, 60000, 120000];
+
+/** Fallo de la subida TUS con el código HTTP de Bunny (null = sin respuesta: red). */
+class TusUploadError extends Error {
+  readonly status: number | null;
+  constructor(message: string, status: number | null) {
+    super(message);
+    this.name = "TusUploadError";
+    this.status = status;
+  }
+}
 
 // Auth headers from shared utility
 const authHeaders = getAuthHeaders;
@@ -273,11 +288,10 @@ export function useVideoUpload(playerId?: string) {
         }
 
         // ── Step 1: Init (solo si NO hay una subida reanudable de este fichero) ──
-        let session: TusUploadSession;
-        if (resumable) {
-          session = resumable;
-          setPhase("uploading", { progress: 0 });
-        } else {
+        /** video-init → sesión TUS nueva (ya persistida) o, sin Bunny, el fallback local. */
+        const initFreshSession = async (): Promise<
+          { kind: "bunny"; session: TusUploadSession } | { kind: "local"; videoId: string }
+        > => {
           setPhase("init", { progress: 0 });
 
           const initRes = await fetch("/api/upload/video-init", {
@@ -385,13 +399,13 @@ export function useVideoUpload(playerId?: string) {
               if (playerId) {
                 queryClient.invalidateQueries({ queryKey: ["videos", playerId] });
               }
-              return localId;
+              return { kind: "local", videoId: localId };
             }
             throw new Error(initData.error ?? "Init failed");
           }
 
           const d = initData.data!;
-          session = {
+          const fresh: TusUploadSession = {
             videoId: d.videoId,
             uploadUrl: d.uploadUrl,
             authSignature: d.authSignature,
@@ -403,17 +417,18 @@ export function useVideoUpload(playerId?: string) {
           };
           // Persistir ANTES de subir: si la pestaña se cierra a mitad, la próxima vez
           // se reanuda este mismo vídeo en vez de crear otro.
-          saveTusSession(fingerprint, session);
-        }
+          saveTusSession(fingerprint, fresh);
+          return { kind: "bunny", session: fresh };
+        };
 
-        const { videoId, authSignature, authExpire, libraryId } = session;
-
-        // Local stub (al reanudar ya existe: solo se refresca el blob: de ESTA pestaña)
-        const localBlobUrl = URL.createObjectURL(file);
-        const existingLocal = VideoService.getById(videoId);
-        if (existingLocal) {
-          VideoService.save({ ...existingLocal, localPath: localBlobUrl });
-        } else {
+        /** Stub local (al reanudar ya existe: solo se refresca el blob: de ESTA pestaña). */
+        const prepareLocalStub = (videoId: string) => {
+          const localBlobUrl = URL.createObjectURL(file);
+          const existingLocal = VideoService.getById(videoId);
+          if (existingLocal) {
+            VideoService.save({ ...existingLocal, localPath: localBlobUrl });
+            return;
+          }
           const stubParams = {
             id: videoId,
             title: title ?? file.name,
@@ -429,76 +444,152 @@ export function useVideoUpload(playerId?: string) {
           } else {
             VideoService.createStub(stubParams);
           }
-        }
+        };
 
-        setState((prev) => ({ ...prev, videoId, phase: "uploading" }));
+        /**
+         * El vídeo de una sesión que Bunny RECHAZÓ ya no se va a completar → su registro
+         * local deja de figurar "en subida" y pasa a "upload-failed" (dato honesto; no se
+         * borra nada). Si el usuario ya lo borró, no hay registro que tocar.
+         */
+        const markUploadAbandoned = (videoId: string) => {
+          const old = VideoService.getById(videoId);
+          if (!old || old.status === "finished") return;
+          if (old.localPath?.startsWith("blob:")) URL.revokeObjectURL(old.localPath);
+          const failed = VideoService.updateStatus(videoId, "upload-failed");
+          if (!failed) return;
+          const cleaned: VideoRecord = { ...failed, localPath: undefined };
+          VideoService.save(cleaned);
+          if (user && SUPABASE_CONFIGURED) {
+            SupabaseVideoService.pushOne(user.id, cleaned).catch((err) => {
+              console.warn("[useVideoUpload] pushOne abandoned video failed:", err);
+            });
+          }
+        };
 
-        // ── Step 2: Upload to Bunny via TUS protocol (signed, resumable) ────
-        const uploadStartTime = Date.now();
-        await new Promise<void>((resolve, reject) => {
-          const tusUpload = new tus.Upload(file, {
-            endpoint: BUNNY_TUS_ENDPOINT,
-            // Misma huella que nuestra sesión → tus guarda/encuentra la URL de subida.
-            fingerprint: () => Promise.resolve(fingerprint),
-            retryDelays: TUS_RETRY_DELAYS,
-            removeFingerprintOnSuccess: true,
-            headers: {
-              AuthorizationSignature: authSignature,
-              AuthorizationExpire: String(authExpire),
-              VideoId: videoId,
-              LibraryId: String(libraryId),
-            },
-            metadata: {
-              filetype: file.type,
-              title: title ?? file.name,
-            },
-            onUploadUrlAvailable: () => {
-              if (tusUpload.url) updateTusSession(fingerprint, { tusUploadUrl: tusUpload.url });
-            },
-            onError: (error) => {
-              reject(new Error(`Upload failed: ${error.message || error}`));
-            },
-            onProgress: (bytesUploaded, bytesTotal) => {
-              const pct = Math.round((bytesUploaded / bytesTotal) * 100);
-              const now = Date.now();
-              const elapsed = (now - uploadStartTime) / 1000; // seconds
-              const speed = elapsed > 0 ? bytesUploaded / elapsed : 0;
-              const remaining = bytesTotal - bytesUploaded;
-              const eta = speed > 0 ? Math.round(remaining / speed) : 0;
-              setState((prev) => ({ ...prev, progress: pct, uploadSpeed: speed, etaSeconds: eta }));
-            },
-            onSuccess: () => {
-              resolve();
-            },
+        // ── Step 2 (helper): Upload to Bunny via TUS protocol (signed, resumable) ──
+        const runTusUpload = (s: TusUploadSession, isResume: boolean) =>
+          new Promise<void>((resolve, reject) => {
+            const uploadStartTime = Date.now();
+            const tusUpload = new tus.Upload(file, {
+              endpoint: BUNNY_TUS_ENDPOINT,
+              // Misma huella que nuestra sesión → tus guarda/encuentra la URL de subida.
+              fingerprint: () => Promise.resolve(fingerprint),
+              retryDelays: TUS_RETRY_DELAYS,
+              removeFingerprintOnSuccess: true,
+              headers: {
+                AuthorizationSignature: s.authSignature,
+                AuthorizationExpire: String(s.authExpire),
+                VideoId: s.videoId,
+                LibraryId: String(s.libraryId),
+              },
+              metadata: {
+                filetype: file.type,
+                title: title ?? file.name,
+              },
+              onUploadUrlAvailable: () => {
+                if (tusUpload.url) updateTusSession(fingerprint, { tusUploadUrl: tusUpload.url });
+              },
+              onError: (error) => {
+                // Se conserva el código HTTP de Bunny: distingue "red caída" (reanudable)
+                // de "sesión rechazada" (4xx definitivo → descartar la sesión).
+                reject(new TusUploadError(`Upload failed: ${error.message || error}`, tusErrorStatus(error)));
+              },
+              onProgress: (bytesUploaded, bytesTotal) => {
+                const pct = Math.round((bytesUploaded / bytesTotal) * 100);
+                const now = Date.now();
+                const elapsed = (now - uploadStartTime) / 1000; // seconds
+                const speed = elapsed > 0 ? bytesUploaded / elapsed : 0;
+                const remaining = bytesTotal - bytesUploaded;
+                const eta = speed > 0 ? Math.round(remaining / speed) : 0;
+                setState((prev) => ({ ...prev, progress: pct, uploadSpeed: speed, etaSeconds: eta }));
+              },
+              onSuccess: () => {
+                resolve();
+              },
+            });
+
+            // Store reference for cancel support
+            tusRef.current = tusUpload;
+
+            const begin = async () => {
+              if (isResume && typeof tusUpload.findPreviousUploads === "function") {
+                try {
+                  const previous = await tusUpload.findPreviousUploads();
+                  const match =
+                    previous.find((p) => !!p.uploadUrl && p.uploadUrl === s.tusUploadUrl) ??
+                    previous[0];
+                  // Reanuda desde el offset que tiene Bunny (HEAD), no desde el byte 0.
+                  if (match) tusUpload.resumeFromPreviousUpload(match);
+                } catch (err) {
+                  console.warn("[useVideoUpload] findPreviousUploads falló — subida desde el inicio:", err);
+                }
+              } else if (!isResume && typeof tusUpload.findPreviousUploads === "function") {
+                // Sesión NUEVA: las URLs TUS que tus guardó para este fichero son de un vídeo
+                // anterior (firma caducada) → se limpian para no reanudar contra otro vídeo.
+                try {
+                  const stale = await tusUpload.findPreviousUploads();
+                  for (const p of stale) await tusUpload.options.urlStorage?.removeUpload(p.urlStorageKey);
+                } catch { /* best-effort */ }
+              }
+              tusUpload.start();
+            };
+            void begin();
           });
 
-          // Store reference for cancel support
-          tusRef.current = tusUpload;
-
-          const begin = async () => {
-            if (resumable && typeof tusUpload.findPreviousUploads === "function") {
-              try {
-                const previous = await tusUpload.findPreviousUploads();
-                const match =
-                  previous.find((p) => !!p.uploadUrl && p.uploadUrl === resumable.tusUploadUrl) ??
-                  previous[0];
-                // Reanuda desde el offset que tiene Bunny (HEAD), no desde el byte 0.
-                if (match) tusUpload.resumeFromPreviousUpload(match);
-              } catch (err) {
-                console.warn("[useVideoUpload] findPreviousUploads falló — subida desde el inicio:", err);
-              }
-            } else if (!resumable && typeof tusUpload.findPreviousUploads === "function") {
-              // Sesión NUEVA: las URLs TUS que tus guardó para este fichero son de un vídeo
-              // anterior (firma caducada) → se limpian para no reanudar contra otro vídeo.
-              try {
-                const stale = await tusUpload.findPreviousUploads();
-                for (const p of stale) await tusUpload.options.urlStorage?.removeUpload(p.urlStorageKey);
-              } catch { /* best-effort */ }
+        /**
+         * Sube con la sesión dada. Si Bunny la rechaza de forma definitiva (4xx), la sesión
+         * se descarta ANTES de propagar el error: el siguiente intento con este fichero hace
+         * un video-init nuevo en vez de chocar contra la misma sesión muerta hasta que
+         * caduque. Un corte de red (sin respuesta) o un 5xx la conservan (reanudable).
+         */
+        const uploadWithSession = async (s: TusUploadSession, isResume: boolean) => {
+          prepareLocalStub(s.videoId);
+          setState((prev) => ({ ...prev, videoId: s.videoId, phase: "uploading" }));
+          try {
+            await runTusUpload(s, isResume);
+          } catch (tusErr) {
+            if (tusErr instanceof TusUploadError && isTusSessionRejection(tusErr.status)) {
+              clearTusSession(fingerprint);
             }
-            tusUpload.start();
-          };
-          void begin();
-        });
+            throw tusErr;
+          }
+        };
+
+        let session: TusUploadSession;
+        if (resumable) {
+          session = resumable;
+          setPhase("uploading", { progress: 0 });
+        } else {
+          const fresh = await initFreshSession();
+          if (fresh.kind === "local") return fresh.videoId;
+          session = fresh.session;
+        }
+
+        // ── Step 2: Upload to Bunny via TUS protocol (signed, resumable) ────
+        try {
+          await uploadWithSession(session, resumable !== null);
+        } catch (tusErr) {
+          // Bunny rechazó la sesión GUARDADA (vídeo borrado en Bunny, clave de la librería
+          // rotada, firma inválida): reanudar ya no es posible. UNA sola vez: sesión nueva
+          // (video-init → otro vídeo, desde el byte 0). Si esta también falla, se propaga.
+          if (
+            !resumable ||
+            !(tusErr instanceof TusUploadError) ||
+            !isTusSessionRejection(tusErr.status)
+          ) {
+            throw tusErr;
+          }
+          console.warn(
+            `[useVideoUpload] Bunny rechazó la sesión reanudable (HTTP ${tusErr.status}) — nueva subida con video-init`,
+          );
+          markUploadAbandoned(resumable.videoId);
+          const fresh = await initFreshSession();
+          if (fresh.kind === "local") return fresh.videoId;
+          session = fresh.session;
+          await uploadWithSession(session, false);
+        }
+
+        const { videoId, libraryId } = session;
 
         // Subida completa: la sesión ya no se necesita (el fichero está entero en Bunny).
         clearTusSession(fingerprint);

@@ -6,7 +6,9 @@
  *    vez y se reanuda con findPreviousUploads/resumeFromPreviousUpload;
  *  - sesión caducada → init nuevo;
  *  - onUploaded se dispara tras el éxito TUS y ANTES del poll de codificación;
- *  - poll agotado → done con encodeStatus "processing" (no error, sin URL de servidor).
+ *  - poll agotado → done con encodeStatus "processing" (no error, sin URL de servidor);
+ *  - Bunny RECHAZA la sesión guardada (4xx definitivo) → se descarta y se reintenta UNA
+ *    vez con video-init; un corte de red / 409 / 423 / 5xx la conservan.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -36,8 +38,14 @@ type TusOpts = {
   onUploadUrlAvailable?: () => void;
 };
 
-/** Comportamiento de la PRÓXIMA instancia tus.Upload creada. */
-const tusScript: Array<"fail" | "succeed"> = [];
+/**
+ * Comportamiento de la PRÓXIMA instancia tus.Upload creada:
+ *  - "fail"    → corte de red (error SIN respuesta HTTP, como tras agotar retryDelays)
+ *  - "succeed" → subida completa
+ *  - número    → Bunny responde ese código (p. ej. 401): DetailedError con originalResponse,
+ *                que tus-js-client v4 NO reintenta y entrega a onError.
+ */
+const tusScript: Array<"fail" | "succeed" | number> = [];
 const instances: Array<{
   opts: TusOpts;
   resumeFromPreviousUpload: ReturnType<typeof vi.fn>;
@@ -60,7 +68,14 @@ vi.mock("tus-js-client", () => ({
         inst.url = "https://video.bunnycdn.com/tusupload/abc";
         opts.onUploadUrlAvailable?.();
         if (behaviour === "fail") opts.onError?.(new Error("network down"));
-        else {
+        else if (typeof behaviour === "number") {
+          opts.onError?.(
+            Object.assign(new Error(`tus: unexpected response while creating upload (${behaviour})`), {
+              originalRequest: {},
+              originalResponse: { getStatus: () => behaviour },
+            }),
+          );
+        } else {
           opts.onProgress?.(100, 100);
           opts.onSuccess?.();
         }
@@ -322,4 +337,167 @@ describe("useVideoUpload · reanudación TUS", () => {
     expect(result.current.state.analysisQueued).toBe(true); // clip de duración desconocida: no se bloquea
     expect(result.current.state.syncGateDurationSec).toBeNull();
   });
+});
+
+// ── Sesión rechazada por Bunny (4xx definitivo) ─────────────────────────────
+// Antes: la sesión solo se borraba tras un éxito TUS. Si Bunny rechazaba el
+// {VideoId, AuthorizationSignature} guardado (vídeo borrado en Bunny, clave rotada)
+// cada reintento con el mismo fichero volvía a usar la sesión muerta → nunca se
+// llamaba a video-init y el fichero no se podía subir durante ~24 h.
+describe("useVideoUpload · sesión TUS rechazada por Bunny", () => {
+  /** Guarda directamente una sesión VIGENTE (como la dejaría un corte a mitad). */
+  async function storeLiveSession(videoId = "guid-dead") {
+    const { uploadFingerprint } = await import("@/lib/tusUploadSession");
+    const { BUNNY_TUS_ENDPOINT } = await import("@/hooks/useVideoUpload");
+    localStorage.setItem(
+      TUS_SESSIONS_STORAGE_KEY,
+      JSON.stringify({
+        [uploadFingerprint(file, BUNNY_TUS_ENDPOINT)]: {
+          videoId, uploadUrl: `https://video.bunnycdn.com/library/42/videos/${videoId}`,
+          authSignature: "sig-dead", libraryId: 42,
+          authExpire: Math.floor(Date.now() / 1000) + 20 * 3600, playerId: null,
+          tusUploadUrl: "https://video.bunnycdn.com/tusupload/abc", savedAt: 0,
+        },
+      }),
+    );
+  }
+  const storedSessions = () =>
+    JSON.parse(localStorage.getItem(TUS_SESSIONS_STORAGE_KEY) ?? "{}") as Record<string, { videoId: string }>;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+    URL.createObjectURL = () => "blob:test-video";
+    URL.revokeObjectURL = () => undefined;
+    localStorage.clear();
+    tusScript.length = 0;
+    instances.length = 0;
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    URL.createObjectURL = origCreate;
+    URL.revokeObjectURL = origRevoke;
+  });
+
+  /** video-init devuelve un GUID nuevo en cada llamada (guid-new-1, guid-new-2…). */
+  function mockInitSequence() {
+    let n = 0;
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === "/api/upload/video-init") return initOk(`guid-new-${++n}`);
+      if (url.startsWith("/api/videos/status")) return statusReady();
+      throw new Error(`unexpected fetch ${url}`);
+    });
+  }
+
+  it("sesión guardada + Bunny responde 4xx → se descarta y se reintenta UNA vez con video-init nuevo", async () => {
+    mockInitSequence();
+    // 1) Subida a medias (corte de red) → sesión guid-new-1 + stub local "created".
+    const { result } = renderHook(() => useVideoUpload());
+    tusScript.push("fail");
+    await act(async () => { await result.current.upload(file); });
+    expect(result.current.state.phase).toBe("error");
+    expect(initCalls()).toHaveLength(1);
+
+    // 2) Mismo fichero: la sesión guardada se intenta reanudar, pero Bunny ya no la acepta
+    //    (p. ej. se borró el vídeo o se rotó la clave) → 401. Reintento con init nuevo → OK.
+    const { VideoService } = await import("@/services/real/videoService");
+    const { result: r2 } = renderHook(() => useVideoUpload());
+    tusScript.push(401, "succeed");
+    let returned: string | null = null;
+    await act(async () => {
+      const p = r2.current.upload(file);
+      await vi.advanceTimersByTimeAsync(5000);
+      returned = await p;
+    });
+
+    expect(initCalls()).toHaveLength(2); // ← ahora SÍ se vuelve a llamar a video-init
+    expect(instances[1].opts.headers.VideoId).toBe("guid-new-1"); // intento de reanudar
+    expect(instances[1].resumeFromPreviousUpload).toHaveBeenCalled();
+    expect(instances[2].opts.headers.VideoId).toBe("guid-new-2"); // sesión nueva
+    expect(instances[2].resumeFromPreviousUpload).not.toHaveBeenCalled();
+    expect(returned).toBe("guid-new-2");
+    expect(r2.current.state.phase).toBe("done");
+    expect(r2.current.state.videoId).toBe("guid-new-2");
+    expect(localStorage.getItem(TUS_SESSIONS_STORAGE_KEY)).toBeNull();
+    // El vídeo de la sesión rechazada no se completará nunca → deja de figurar "en subida".
+    expect(VideoService.getById("guid-new-1")?.status).toBe("upload-failed");
+    expect(VideoService.getById("guid-new-1")?.localPath).toBeUndefined();
+  });
+
+  it("sesión guardada + 4xx también en el reintento → error, sesión borrada y la siguiente upload() llama a video-init", async () => {
+    mockInitSequence();
+    await storeLiveSession("guid-dead");
+    const { result } = renderHook(() => useVideoUpload());
+
+    tusScript.push(403, 403);
+    await act(async () => { await result.current.upload(file); });
+    expect(result.current.state.phase).toBe("error");
+    expect(instances[0].opts.headers.VideoId).toBe("guid-dead");
+    expect(initCalls()).toHaveLength(1); // un único reintento, no un bucle
+    expect(instances).toHaveLength(2);
+    expect(storedSessions()).toEqual({}); // ninguna sesión muerta queda guardada
+
+    // Siguiente intento con el MISMO fichero: ya no hay sesión que reanudar → video-init.
+    tusScript.push("succeed");
+    await act(async () => {
+      const p = result.current.upload(file);
+      await vi.advanceTimersByTimeAsync(5000);
+      await p;
+    });
+    expect(initCalls()).toHaveLength(2);
+    expect(instances[2].opts.headers.VideoId).toBe("guid-new-2");
+    expect(instances[2].resumeFromPreviousUpload).not.toHaveBeenCalled();
+    expect(result.current.state.phase).toBe("done");
+  });
+
+  it("sesión NUEVA rechazada con 4xx → se borra (sin reintento en la misma llamada); la siguiente upload() llama a video-init", async () => {
+    mockInitSequence();
+    const { result } = renderHook(() => useVideoUpload());
+    tusScript.push(400);
+    await act(async () => { await result.current.upload(file); });
+    expect(result.current.state.phase).toBe("error");
+    expect(initCalls()).toHaveLength(1);
+    expect(instances).toHaveLength(1);
+    expect(storedSessions()).toEqual({});
+
+    tusScript.push("succeed");
+    await act(async () => {
+      const p = result.current.upload(file);
+      await vi.advanceTimersByTimeAsync(5000);
+      await p;
+    });
+    expect(initCalls()).toHaveLength(2);
+    expect(instances[1].opts.headers.VideoId).toBe("guid-new-2");
+  });
+
+  it("corte de red al reanudar (sin respuesta HTTP) → la sesión se CONSERVA y no hay video-init", async () => {
+    mockInitSequence();
+    await storeLiveSession("guid-live");
+    const { result } = renderHook(() => useVideoUpload());
+    tusScript.push("fail");
+    await act(async () => { await result.current.upload(file); });
+    expect(result.current.state.phase).toBe("error");
+    expect(initCalls()).toHaveLength(0);
+    expect(Object.values(storedSessions()).map((s) => s.videoId)).toEqual(["guid-live"]);
+  });
+
+  it.each([409, 423, 500, 503])(
+    "HTTP %i (transitorio para tus) al reanudar → la sesión se conserva",
+    async (status) => {
+      mockInitSequence();
+      await storeLiveSession("guid-live");
+      const { result } = renderHook(() => useVideoUpload());
+      tusScript.push(status);
+      await act(async () => { await result.current.upload(file); });
+      expect(result.current.state.phase).toBe("error");
+      expect(initCalls()).toHaveLength(0);
+      expect(Object.values(storedSessions()).map((s) => s.videoId)).toEqual(["guid-live"]);
+    },
+  );
 });

@@ -16,6 +16,7 @@ import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PushNotificationService } from "@/services/real/pushNotificationService";
 import { isLocalSrc, clearStaleBlobUrls } from "@/lib/localVideoUtils";
 import { getAuthHeaders } from "@/lib/apiAuth";
+import { clearTusSessionsForVideo } from "@/lib/tusUploadSession";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
@@ -126,6 +127,10 @@ export function useDeleteVideo() {
 
   return useMutation({
     mutationFn: async (videoId: string) => {
+      // Una subida a medias de este vídeo ya no debe reanudarse: tras borrarlo, volver a
+      // subir el mismo fichero tiene que crear un vídeo nuevo (video-init), no reanudar
+      // contra un VideoId que Bunny ya no tiene.
+      clearTusSessionsForVideo(videoId);
       // Delete from Bunny API
       try {
         const res = await fetch(`/api/videos/delete?videoId=${videoId}`, {
