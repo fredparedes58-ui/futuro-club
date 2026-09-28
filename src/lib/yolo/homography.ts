@@ -56,9 +56,14 @@ function normalizingTransform(
 }
 
 /**
- * Dadas 4 correspondencias pixel↔campo, calcula la matriz H 3×3 (pixel→campo).
- * Devuelve un Float64Array de 9 elementos (fila mayor). DLT con normalización
- * de Hartley para estabilidad numérica.
+ * Dadas 4 correspondencias pixel↔campo, calcula la matriz H 3×3 **CAMPO→PÍXEL**
+ * (fuente = campo en metros, destino = píxel). Devuelve un Float64Array de 9
+ * elementos (fila mayor). DLT con normalización de Hartley para estabilidad numérica.
+ *
+ * OJO con la convención: esta H es la que consume `fieldToPixel` (render, RANSAC,
+ * reproyección). `pixelToField` (tracker, balón, métricas en metros) necesita la
+ * INVERSA → usa `computePixelToFieldHomography`. Pasar esta H a `pixelToField`
+ * fue el bug que dejaba las posiciones fuera del campo y las físicas a 0.
  */
 export function computeHomography(anchors: CalibrationAnchor[]): Float64Array {
   if (anchors.length < 4) {
@@ -89,7 +94,18 @@ export function computeHomography(anchors: CalibrationAnchor[]): Float64Array {
 }
 
 /**
+ * Homografía **PÍXEL→CAMPO** desde 4 correspondencias: la que espera
+ * `pixelToField` (y por tanto el tracker, el balón y las métricas en metros).
+ * Es la inversa de `computeHomography` (que es campo→píxel).
+ */
+export function computePixelToFieldHomography(anchors: CalibrationAnchor[]): Float64Array {
+  return invertMatrix3x3(computeHomography(anchors));
+}
+
+/**
  * Transformar un punto de píxeles a coordenadas de campo (metros).
+ * `H` debe ser PÍXEL→CAMPO (p. ej. `computePixelToFieldHomography`), expresada en
+ * el MISMO espacio de píxel que (px, py) — ver coordSpace.ts.
  */
 export function pixelToField(H: Float64Array, px: number, py: number): FieldPoint {
   const [h0, h1, h2, h3, h4, h5, h6, h7, h8] = H;
@@ -102,6 +118,7 @@ export function pixelToField(H: Float64Array, px: number, py: number): FieldPoin
 
 /**
  * Transformar un punto de campo (metros) a píxeles (para renderizado en canvas).
+ * La matriz debe ser CAMPO→PÍXEL (la que devuelve `computeHomography`).
  */
 export function fieldToPixel(Hinv: Float64Array, fx: number, fy: number): PixelPoint {
   const [h0, h1, h2, h3, h4, h5, h6, h7, h8] = Hinv;
