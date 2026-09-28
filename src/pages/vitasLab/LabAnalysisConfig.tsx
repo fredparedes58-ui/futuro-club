@@ -13,14 +13,6 @@ const analysisModes = [
 interface LabAnalysisConfigProps {
   selectedMode: string;
   setSelectedMode: Dispatch<SetStateAction<string>>;
-  jerseyNumber: string;
-  setJerseyNumber: Dispatch<SetStateAction<string>>;
-  teamColor: string;
-  setTeamColor: Dispatch<SetStateAction<string>>;
-  homeTeamColor: string;
-  setHomeTeamColor: Dispatch<SetStateAction<string>>;
-  awayTeamColor: string;
-  setAwayTeamColor: Dispatch<SetStateAction<string>>;
   playerName: string;
   setPlayerName: Dispatch<SetStateAction<string>>;
   playerPosition: string;
@@ -40,19 +32,16 @@ interface LabAnalysisConfigProps {
 }
 
 /** Panel de configuración del análisis en la sidebar (advanced settings de VitasLabOneClick):
- *  identidad del jugador, coordenadas de campo, selector de modo + config por modo, posición
- *  jugada y enfoque. Presentacional; todo el estado del formulario vive en el padre. */
+ *  coordenadas de campo, selector de modo + config por modo, posición jugada y enfoque.
+ *  Presentacional; todo el estado del formulario vive en el padre.
+ *
+ *  HONESTIDAD (identidad.md): los campos de dorsal y color de equipación (propio,
+ *  local, visitante, rival) se retiraron — nunca se enviaban a ningún análisis y la
+ *  identificación por dorsal aún no existe. Un campo inerte que dice «La IA buscará
+ *  ese dorsal» es una promesa falsa sobre a quién se atribuyen las cifras de un menor. */
 const LabAnalysisConfig = ({
   selectedMode,
   setSelectedMode,
-  jerseyNumber,
-  setJerseyNumber,
-  teamColor,
-  setTeamColor,
-  homeTeamColor,
-  setHomeTeamColor,
-  awayTeamColor,
-  setAwayTeamColor,
   playerName,
   setPlayerName,
   playerPosition,
@@ -74,10 +63,9 @@ const LabAnalysisConfig = ({
 
   return (
     <>
-          {/* Identificar jugador por dorsal se muestra SOLO en los modos por-jugador
-              (Seguimiento Manual / Jugador Específico), cada uno con su propio panel.
-              En "Todos los Jugadores" / "Equipo Completo" no hay un jugador objetivo,
-              así que no se pide identificar/seleccionar uno (coherencia, docx #3). */}
+          {/* Sin campos de dorsal/color: la identificación por dorsal aún no existe y
+              esos valores nunca llegaban a ningún análisis (identidad.md). En los modos
+              por-jugador la atribución sale de la pista seguida en el vídeo. */}
 
           {/* Coordinate Realtime */}
           <div>
@@ -137,39 +125,10 @@ const LabAnalysisConfig = ({
             {/* Panel de configuración según el modo seleccionado */}
             <div className="mt-3 space-y-2">
 
-              {/* ALL PLAYERS — colores de equipos */}
-              {selectedMode === "all" && (
-                <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
-                  <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.teamsConfig")}</p>
-                  <div>
-                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.homeTeamColor")}</label>
-                    <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
-                      placeholder={t("vitasLab.homeColorPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                  </div>
-                  <div>
-                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.awayTeamColor")}</label>
-                    <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                      placeholder={t("vitasLab.awayColorPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                  </div>
-                </div>
-              )}
-
               {/* CLICK-TO-TRACK — jugador específico manual */}
               {selectedMode === "click" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
                   <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.playerToTrack")}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.jerseyNumber")}</label>
-                      <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
-                        placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.uniformColor")}</label>
-                      <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
-                        placeholder={t("vitasLab.colorRedPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                    </div>
-                  </div>
                   <div>
                     <label className="text-[9px] text-muted-foreground">{t("vitasLab.playerNameOptional")}</label>
                     <input value={playerName} onChange={e => setPlayerName(e.target.value)}
@@ -213,18 +172,6 @@ const LabAnalysisConfig = ({
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.homeColor")}</label>
-                      <input value={homeTeamColor} onChange={e => setHomeTeamColor(e.target.value)}
-                        placeholder={t("vitasLab.colorWhitePlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.awayColor")}</label>
-                      <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                        placeholder={t("vitasLab.colorRedPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                    </div>
-                  </div>
                   <p className="text-[9px] text-muted-foreground">{t("vitasLab.fullTeamHint")}</p>
                 </div>
               )}
@@ -233,18 +180,6 @@ const LabAnalysisConfig = ({
               {selectedMode === "player" && (
                 <div className="p-3 rounded-xl bg-secondary/40 border border-border space-y-2">
                   <p className="text-[9px] font-display font-semibold uppercase tracking-wider text-muted-foreground">{t("vitasLab.playerProfile")}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.jerseyNumberRequired")}</label>
-                      <input value={jerseyNumber} onChange={e => setJerseyNumber(e.target.value)}
-                        placeholder="10" maxLength={3} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display font-bold focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.uniformColorRequired")}</label>
-                      <input value={teamColor} onChange={e => setTeamColor(e.target.value)}
-                        placeholder={t("vitasLab.colorMaroonPlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                    </div>
-                  </div>
                   <div>
                     <label className="text-[9px] text-muted-foreground">{t("vitasLab.name")}</label>
                     <input value={playerName} onChange={e => setPlayerName(e.target.value)}
@@ -260,21 +195,14 @@ const LabAnalysisConfig = ({
                       ))}
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.rivalTeamColor")}</label>
-                      <input value={awayTeamColor} onChange={e => setAwayTeamColor(e.target.value)}
-                        placeholder={t("vitasLab.colorBluePlaceholder")} className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50" />
-                    </div>
-                    <div>
-                      <label className="text-[9px] text-muted-foreground">{t("vitasLab.ownFormation")}</label>
-                      <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
-                        className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
-                        {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2"].map(f => (
-                          <option key={f} value={f}>{f}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="text-[9px] text-muted-foreground">{t("vitasLab.ownFormation")}</label>
+                    <select value={homeFormation} onChange={e => setHomeFormation(e.target.value)}
+                      className="w-full mt-1 px-2 py-1.5 rounded-lg border border-border bg-background text-xs font-display focus:outline-none focus:border-primary/50">
+                      {["4-3-3","4-4-2","4-2-3-1","3-5-2","5-3-2"].map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
                   </div>
                   <p className="text-[9px] text-muted-foreground">{t("vitasLab.specificPlayerRequiredHint")}</p>
                 </div>

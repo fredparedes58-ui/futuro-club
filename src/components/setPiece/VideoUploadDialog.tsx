@@ -1,10 +1,14 @@
 /**
  * VITAS · VideoUploadDialog
  *
- * Subida de video desde 3 fuentes:
+ * Subida de video desde:
  * 1. Archivo local (PC o móvil — incluye cámara/galería)
- * 2. URL pública (YouTube, Vimeo, Drive compartido, link directo MP4)
- * 3. Servicios cloud (Google Drive, Dropbox) — placeholder OAuth
+ * 2. Servicios cloud (Google Drive, Dropbox) — placeholder «Próximamente»
+ *
+ * HONESTIDAD: existía una pestaña «URL / Cloud» que FINGÍA la subida (barra de
+ * progreso simulada) e inventaba los metadatos (90 min, 1920×1080, 30 fps) de un
+ * enlace de YouTube/Vimeo/Drive que la CSP de producción ni siquiera deja
+ * reproducir. Se retiró: ningún metadato se inventa (fps desconocido = null).
  */
 
 import { useRef, useState } from "react";
@@ -13,14 +17,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
   Upload,
-  Link as LinkIcon,
   Smartphone,
   HardDrive,
   Cloud,
   Camera,
   CheckCircle2,
   Loader2,
-  AlertCircle,
   Video as VideoIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +38,7 @@ interface Props {
   onUploaded: (video: VideoRecord) => void;
 }
 
-type Source = "device" | "url" | "cloud";
+type Source = "device" | "cloud";
 
 function generateVideoId(): string {
   return `video_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -46,51 +48,10 @@ function inferTitle(filename: string): string {
   return filename.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
 }
 
-function detectCloudProvider(url: string): { provider: string; embedUrl?: string } | null {
-  try {
-    const u = new URL(url);
-    const host = u.hostname.toLowerCase();
-    if (host.includes("youtube.com") || host.includes("youtu.be")) {
-      const id =
-        host.includes("youtu.be")
-          ? u.pathname.slice(1)
-          : u.searchParams.get("v");
-      if (id) return { provider: "YouTube", embedUrl: `https://www.youtube.com/embed/${id}` };
-      return { provider: "YouTube" };
-    }
-    if (host.includes("vimeo.com")) {
-      const id = u.pathname.split("/").filter(Boolean).pop();
-      if (id) return { provider: "Vimeo", embedUrl: `https://player.vimeo.com/video/${id}` };
-      return { provider: "Vimeo" };
-    }
-    if (host.includes("drive.google.com")) {
-      const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (m) {
-        return {
-          provider: "Google Drive",
-          embedUrl: `https://drive.google.com/file/d/${m[1]}/preview`,
-        };
-      }
-      return { provider: "Google Drive" };
-    }
-    if (host.includes("dropbox.com")) {
-      const direct = url.replace("?dl=0", "?raw=1");
-      return { provider: "Dropbox", embedUrl: direct };
-    }
-    if (host.includes("vercel-storage.com") || /\.(mp4|webm|mov|m3u8)$/i.test(u.pathname)) {
-      return { provider: "Archivo directo", embedUrl: url };
-    }
-    return { provider: "URL externa" };
-  } catch {
-    return null;
-  }
-}
-
 export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) {
   const { t } = useTranslation();
   const [source, setSource] = useState<Source>("device");
   const [file, setFile] = useState<File | null>(null);
-  const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
@@ -100,7 +61,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
 
   const reset = () => {
     setFile(null);
-    setUrl("");
     setTitle("");
     setUploading(false);
     setUploadPct(0);
@@ -129,15 +89,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
     }
     setFile(f);
     if (!title) setTitle(inferTitle(f.name));
-  };
-
-  const simulateUpload = async (durationMs: number) => {
-    const steps = 20;
-    const interval = durationMs / steps;
-    for (let i = 1; i <= steps; i++) {
-      await new Promise((r) => setTimeout(r, interval));
-      setUploadPct(Math.round((i / steps) * 100));
-    }
   };
 
   const handleSubmitDevice = async () => {
@@ -192,7 +143,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
           duration: meta.duration,
           width: meta.width,
           height: meta.height,
-          fps: 30,
+          fps: null, // el navegador no expone los fps del fichero → desconocido, no 30
           storageSize: file.size,
           thumbnailUrl: bunnyResult.thumbnailUrl,
           // Prefer MP4 for compatibility (Modal, mobile native video, etc.)
@@ -209,9 +160,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
       } else {
         // ── Fallback: local blob: URL ──────────────────────────────
         const blobUrl = URL.createObjectURL(file);
-        if (!triedBunny) {
-          await simulateUpload(1200);
-        }
         video = {
           id: generateVideoId(),
           title: finalTitle,
@@ -222,7 +170,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
           duration: meta.duration,
           width: meta.width,
           height: meta.height,
-          fps: 30,
+          fps: null, // desconocido (ver arriba)
           storageSize: file.size,
           thumbnailUrl: null,
           embedUrl: blobUrl,
@@ -239,46 +187,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
     } catch (err) {
       console.error(err);
       toast.error(t("videoUploadDialog.errorProcessing"));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmitUrl = async () => {
-    if (!url.trim()) {
-      toast.error(t("videoUploadDialog.errorPasteUrl"));
-      return;
-    }
-    const provider = detectCloudProvider(url.trim());
-    if (!provider) {
-      toast.error(t("videoUploadDialog.errorInvalidUrl"));
-      return;
-    }
-    setUploading(true);
-    setUploadPct(0);
-    try {
-      await simulateUpload(1200);
-      const video: VideoRecord = {
-        id: generateVideoId(),
-        title: title.trim() || t("videoUploadDialog.defaultVideoTitle", { provider: provider.provider }),
-        playerId: null,
-        status: "finished",
-        statusCode: 4,
-        encodeProgress: 100,
-        duration: 90 * 60,
-        width: 1920,
-        height: 1080,
-        fps: 30,
-        storageSize: 0,
-        thumbnailUrl: null,
-        embedUrl: provider.embedUrl ?? url,
-        streamUrl: provider.embedUrl ?? url,
-        dateUploaded: new Date().toISOString(),
-      };
-      VideoService.save(video);
-      setResult(video);
-      toast.success(t("videoUploadDialog.successImported", { provider: provider.provider }));
-      onUploaded(video);
     } finally {
       setUploading(false);
     }
@@ -334,12 +242,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 onClick={() => setSource("device")}
                 icon={<HardDrive size={14} />}
                 label={t("videoUploadDialog.tabDevice")}
-              />
-              <SourceTab
-                active={source === "url"}
-                onClick={() => setSource("url")}
-                icon={<LinkIcon size={14} />}
-                label={t("videoUploadDialog.tabUrl")}
               />
               <SourceTab
                 active={source === "cloud"}
@@ -445,45 +347,6 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
               </>
             )}
 
-            {/* URL source */}
-            {!result && source === "url" && !uploading && (
-              <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  {t("videoUploadDialog.urlDescription")}
-                </p>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    {t("videoUploadDialog.urlLabel")}
-                  </label>
-                  <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://drive.google.com/file/d/... · https://youtu.be/... · https://example.com/video.mp4"
-                    className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    {t("videoUploadDialog.titleOptionalLabel")}
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={t("videoUploadDialog.titlePlaceholder")}
-                    className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
-                  />
-                </div>
-                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-[11px] text-amber-700 dark:text-amber-400 flex items-start gap-2">
-                  <AlertCircle size={12} className="mt-[2px] shrink-0" />
-                  <p>
-                    {t("videoUploadDialog.driveNotice")}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Cloud services source */}
             {!result && source === "cloud" && !uploading && (
               <div className="space-y-3">
@@ -519,7 +382,7 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                       </p>
                     </div>
                     <span className="text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-secondary text-muted-foreground font-bold">
-                      Beta
+                      {t("videoUploadDialog.comingSoonBadge")}
                     </span>
                   </button>
                 ))}
@@ -591,12 +454,8 @@ export default function VideoUploadDialog({ open, onClose, onUploaded }: Props) 
                 {t("videoUploadDialog.cancel")}
               </button>
               <button
-                onClick={source === "device" ? handleSubmitDevice : handleSubmitUrl}
-                disabled={
-                  (source === "device" && !file) ||
-                  (source === "url" && !url.trim()) ||
-                  source === "cloud"
-                }
+                onClick={handleSubmitDevice}
+                disabled={(source === "device" && !file) || source === "cloud"}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-display font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={12} />

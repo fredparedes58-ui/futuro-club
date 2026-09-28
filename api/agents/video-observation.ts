@@ -23,7 +23,7 @@ interface GeminiObservation {
   }>;
   dimensiones: Record<string, {
     observaciones: string[];
-    score_estimado: number;
+    score_estimado: number | null; // null = no observable / jugador no identificado
   }>;
   momentosDestacados: Array<{
     timestamp: string;
@@ -32,6 +32,17 @@ interface GeminiObservation {
   }>;
   patronesJuego: string[];
   resumenGeneral: string;
+  // Cómo se identificó al jugador (identidad.md: SOLO dorsal + equipación, nunca cara).
+  identificacion?: {
+    estado: "identificado" | "unico_jugador" | "no_identificado";
+    metodo: "dorsal_y_color" | "unico_jugador_en_plano" | null;
+    dorsalObservado: string | null;
+    colorObservado: string | null;
+    confianza: "alta" | "media" | "baja";
+    motivo: string;
+  };
+  // El prompt pide null cuando un evento no se pudo contar (o el jugador no fue
+  // identificado); el adaptador api/_lib/geminiBiomechanics.ts los trata como number|null.
   eventosContados: {
     pasesCompletados: number;
     pasesFallados: number;
@@ -131,8 +142,14 @@ export default withHandler(
         competitiveLevel?: string;
       };
 
-      // Calibración de exigencia por edad y nivel competitivo
-      const ageCalibration = ctx.age <= 12
+      // Calibración de exigencia por edad y nivel competitivo.
+      // Edad desconocida (null/ausente) ⇒ NO se calibra por edad ni se deja que el
+      // modelo la estime por el aspecto (antes el pipeline mandaba 12 por defecto, y
+      // además `null <= 12` caía en la rama sub-12).
+      const ageKnown = typeof ctx.age === "number" && Number.isFinite(ctx.age);
+      const ageCalibration = !ageKnown
+        ? `EDAD NO REGISTRADA: no conoces la edad del jugador. NO la estimes ni la deduzcas por su aspecto físico. No apliques calibración por edad y di en resumenGeneral que la evaluación no está calibrada por edad.`
+        : ctx.age <= 12
         ? `CALIBRACIÓN POR EDAD (sub-12): A esta edad prioriza la relación con el balón, la capacidad de tomar decisiones simples y la disposición a participar. NO penalices errores técnicos bajo presión — es normal. Valora especialmente: primer toque, orientación corporal al recibir, disposición a pedir el balón, alegría y desparpajo con balón. La capacidad física es IRRELEVANTE a esta edad para predecir talento.`
         : ctx.age <= 15
         ? `CALIBRACIÓN POR EDAD (sub-15): Etapa de formación técnico-táctica. Valora: capacidad de ejecutar bajo presión, lectura de espacios, timing de pase, desmarques inteligentes, y primeros signos de toma de decisiones en velocidad. La diferencia física entre "early" y "late maturers" puede ser enorme — un jugador más pequeño que lee bien el juego puede tener más potencial que uno grande y rápido que solo usa el físico.`
@@ -155,17 +172,36 @@ export default withHandler(
       };
       const positionFocus = positionFocusMap[ctx.position] || "Observa todas las acciones del jugador con atención al contexto táctico.";
 
+      // Identidad (.claude/rules/identidad.md): el jugador se busca SOLO por dorsal +
+      // color de equipación. Sin ambos de referencia no puede darse por "identificado"
+      // (antes el prompt decía "dorsal ? y uniforme color ?" y el modelo adivinaba).
+      const refJersey =
+        ctx.jerseyNumber !== undefined && ctx.jerseyNumber !== null && String(ctx.jerseyNumber).trim() !== ""
+          ? String(ctx.jerseyNumber).trim()
+          : null;
+      const refKitColor = typeof ctx.teamColor === "string" && ctx.teamColor.trim() !== "" ? ctx.teamColor.trim() : null;
+      const identityInstruction = refJersey && refKitColor
+        ? `Busca al jugador con dorsal ${refJersey} y uniforme color ${refKitColor}. Identifícalo SOLO por ese dorsal y ese color de equipación.`
+        : `No hay dorsal Y color de equipación de referencia para este jugador${refJersey ? ` (solo dorsal: ${refJersey})` : refKitColor ? ` (solo color: ${refKitColor})` : ""}: NO puedes marcarlo como "identificado".`;
+
       const prompt = `Eres un scout profesional de fútbol formado en metodologías de scouting europeas (La Masia, Ajax Academy, Clairefontaine). Tienes experiencia evaluando jugadores desde categorías sub-10 hasta profesional. Observa este video completo con la mentalidad de un ojeador que debe decidir si este jugador merece seguimiento.
 
-Busca al jugador con dorsal ${ctx.jerseyNumber || "?"} y uniforme color ${ctx.teamColor || "?"}.
+IDENTIFICACIÓN DEL JUGADOR (obligatorio, ANTES de observar nada):
+${identityInstruction}
+- Identifica al jugador ÚNICAMENTE por el dorsal y el color de la equipación. NUNCA por la cara, rasgos faciales, pelo, color de piel, estatura, complexión ni ningún otro rasgo físico o biométrico: son menores de edad.
+- estado "identificado": SOLO si has visto con claridad el dorsal de referencia en una equipación del color de referencia.
+- estado "unico_jugador": no hay dorsal + color de referencia (o no se ven), pero en TODO el vídeo aparece UN ÚNICO jugador (p. ej. un ejercicio individual).
+- estado "no_identificado": en cualquier otro caso (varios jugadores y no puedes confirmar dorsal + color). NO elijas "el jugador más probable" ni adivines.
+- confianza: "alta", "media" o "baja". Si sería "baja", usa estado "no_identificado".
+- Si el estado es "no_identificado", ABSTENTE de evaluar al jugador: "timeline": [], "momentosDestacados": [], cada dimensión con "observaciones": [] y "score_estimado": null, y TODOS los valores de "eventosContados" a null. "resumenGeneral" empieza por "Jugador no identificado:" seguido del motivo. "patronesJuego" solo puede describir el partido en general, nunca al jugador.
 
 DATOS DEL JUGADOR:
-- Nombre: ${ctx.name}
-- Edad: ${ctx.age} años
-- Posición: ${ctx.position}
+- Nombre: ${ctx.name || "no registrado"}
+- Edad: ${ageKnown ? `${ctx.age} años` : "no registrada"}
+- Posición: ${ctx.position || "no registrada"}
 - Pie: ${ctx.foot || "no especificado"}
-- Estatura: ${ctx.height || "?"} cm | Peso: ${ctx.weight || "?"} kg
-- Nivel competitivo: ${ctx.competitiveLevel || "formativo"}
+- Estatura: ${ctx.height ? `${ctx.height} cm` : "no registrada"} | Peso: ${ctx.weight ? `${ctx.weight} kg` : "no registrado"}
+- Nivel competitivo: ${ctx.competitiveLevel || "no especificado"}
 
 ${ageCalibration}
 
@@ -225,6 +261,7 @@ METODOLOGÍA DE OBSERVACIÓN (sigue este orden):
 Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin backticks):
 
 {
+  "identificacion": {"estado": "identificado", "metodo": "dorsal_y_color", "dorsalObservado": "10", "colorObservado": "rojo", "confianza": "alta", "motivo": "Dorsal 10 legible en la espalda en varios planos, camiseta roja"},
   "timeline": [
     {"timestamp": "0:15", "tipo": "accion_con_balon", "descripcion": "Recibe de espaldas al juego, gira sobre pie derecho y filtra pase entre líneas al mediapunta — buen escaneo previo"},
     {"timestamp": "0:32", "tipo": "sin_balon", "descripcion": "Desmarcaje diagonal al half-space derecho creando línea de pase progresiva"}
@@ -266,10 +303,12 @@ Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin
 }
 
 REGLAS:
+- "identificacion" es OBLIGATORIO. estado: "identificado" | "unico_jugador" | "no_identificado"; metodo: "dorsal_y_color" | "unico_jugador_en_plano" | null; dorsalObservado/colorObservado: lo que VISTE (null si no lo viste). El ejemplo de arriba es de formato: no copies sus valores
+- Un conteo o score es null SOLO si no pudiste observarlo; 0 significa que lo observaste y no ocurrió. Nunca pongas 0 para decir "no lo sé"
 - Tipos de timeline: "accion_con_balon", "sin_balon", "defensiva", "tactica", "transicion"
 - Tipos de momentos: "positivo" o "negativo"
 - Scores: 1-10, calibrados para la edad y nivel competitivo del jugador. Un 7 en un sub-12 formativo NO es lo mismo que un 7 en un sub-18 de liga nacional
-- Mínimo 10 entradas en timeline, 3 momentos destacados
+- Mínimo 10 entradas en timeline, 3 momentos destacados (salvo estado "no_identificado", que exige listas vacías)
 - Describe lo que VES con vocabulario táctico preciso: usa términos como "half-space", "entre líneas", "pase progresivo", "control orientado", "pressing tras pérdida", "transición defensiva", "línea de pase", "desmarque de ruptura"
 - Las observaciones por dimensión deben ser ESPECÍFICAS del video, no genéricas. Mal: "Buena técnica". Bien: "Control con exterior del pie derecho bajo presión del central, girando hacia el espacio libre"
 - eventosContados: cuenta CADA evento individualmente mirando el video. Si no puedes confirmar un evento, no lo cuentes. Es mejor sub-contar que inventar

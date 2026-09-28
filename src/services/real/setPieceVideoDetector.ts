@@ -1,12 +1,20 @@
 /**
- * VITAS · Set Piece Video Detector
+ * VITAS · Set Piece — generador de jugadas de EJEMPLO (MOCK)
  *
- * Phase 1: Simulates video-based detection of set pieces with a realistic flow.
- * Returns events extracted from a given videoId with confidence scores.
+ * HONESTIDAD (CLAUDE.md inv. 1-3, .claude/rules/metricas.md): este módulo NO
+ * analiza ningún vídeo. No existe todavía un modelo que detecte y clasifique
+ * jugadas a balón parado. Antes se presentaba como «tracking YOLO + ByteTrack /
+ * pose» con una barra de progreso teatral y generaba 8-14 jugadas con xG,
+ * confianza y nombres inventados a partir de un PRNG sembrado con el id del vídeo
+ * (MOCK disfrazado), incluso sobre los vídeos REALES del usuario.
  *
- * Phase 2 hook: replace `runDetection()` with a call to
- * /api/coaching/_detect-set-pieces that runs the vision pipeline. The rest of
- * the storage/UI integration stays untouched.
+ * Ahora:
+ *  - Vídeo real del usuario ⇒ BLOQUEADO con `gate_reason` (no se inventa nada).
+ *  - Partido demo (`demo_match_*`) ⇒ jugadas de ejemplo con `provenance: "MOCK"`,
+ *    que la UI rotula con el badge canónico («Datos de ejemplo») y el
+ *    DemoDataBanner.
+ *  - Todo lo guardado antes en `vitas_setpiece_video_events` también era
+ *    simulado ⇒ se lee siempre como MOCK.
  */
 
 import type {
@@ -19,44 +27,49 @@ import type {
   SetPieceRecommendation,
 } from "@/lib/setPiece/types";
 import { SetPieceCustomStorage, type CustomSetPieceEvent } from "./setPieceCustomStorage";
+import i18n from "@/i18n";
 
 const VIDEO_EVENTS_KEY = "vitas_setpiece_video_events";
 const VIDEO_RECS_KEY = "vitas_setpiece_video_recs";
 
-/** Same shape as CustomSetPieceEvent but tagged as video-extracted. */
+/** Solo los partidos demo pueden generar jugadas de ejemplo. */
+export const SET_PIECE_DEMO_VIDEO_PREFIX = "demo_match_";
+
+export function isDemoSetPieceVideo(videoId: string): boolean {
+  return videoId.startsWith(SET_PIECE_DEMO_VIDEO_PREFIX);
+}
+
+/**
+ * Motivo de bloqueo de la «detección desde vídeo» para un vídeo dado, o null si
+ * es un partido demo (del que solo se generan ejemplos MOCK).
+ */
+export function setPieceDetectionGate(videoId: string): string | null {
+  return isDemoSetPieceVideo(videoId) ? null : i18n.t("videoAnalyzerDialog.gateRealVideos");
+}
+
+/** Jugada de EJEMPLO asociada a un partido demo (nunca extraída de un vídeo). */
 export interface VideoSetPieceEvent extends CustomSetPieceEvent {
-  /** Source distinguishes user-created vs video-extracted */
+  /** Histórico: se llamaba «video»; siempre fue simulado. */
   source: "video";
-  /** Linked video this event was extracted from */
+  /** Partido demo para el que se generó el ejemplo */
   sourceVideoId: string;
-  /** Timestamp in source video (ms) */
+  /** Minuto ficticio dentro del partido demo (ms) */
   videoOffsetMs: number;
+  /** Procedencia canónica: SIEMPRE MOCK (exige banner visible). */
+  provenance: "MOCK";
 }
 
 export interface DetectionProgress {
-  stage:
-    | "starting"
-    | "tracking"
-    | "ball_detection"
-    | "set_piece_classification"
-    | "pose_estimation"
-    | "outcome_classification"
-    | "finished";
+  stage: "generating" | "finished";
   pct: number;
   message: string;
 }
 
 export type DetectionListener = (progress: DetectionProgress) => void;
 
-const STAGE_FLOW: Array<{ stage: DetectionProgress["stage"]; message: string; duration: number; pct: number }> = [
-  { stage: "starting", message: "Iniciando análisis del video…", duration: 600, pct: 5 },
-  { stage: "tracking", message: "Tracking de jugadores (YOLO + ByteTrack)…", duration: 900, pct: 25 },
-  { stage: "ball_detection", message: "Detección del balón y zonas de saque…", duration: 800, pct: 45 },
-  { stage: "set_piece_classification", message: "Clasificando jugadas (córner / falta / penal)…", duration: 700, pct: 65 },
-  { stage: "pose_estimation", message: "Pose estimation y posicionamiento de cada jugador…", duration: 700, pct: 82 },
-  { stage: "outcome_classification", message: "Clasificando resultado (gol / tiro / despeje)…", duration: 600, pct: 95 },
-  { stage: "finished", message: "Análisis completado", duration: 0, pct: 100 },
-];
+export type DetectionResult =
+  | { status: "mock"; provenance: "MOCK"; events: VideoSetPieceEvent[]; gate_reason: null }
+  | { status: "gated"; provenance: null; events: []; gate_reason: string };
 
 const PLAYER_POOL = [
   { id: "p1", name: "Samu", number: 8 },
@@ -204,29 +217,28 @@ const SIDE_WEIGHTS: Array<{ value: SetPieceSide; weight: number }> = [
 ];
 
 /**
- * Run detection on a given video. Calls the listener as stages progress.
- * Returns the generated events (also persisted to localStorage).
+ * «Detección» de jugadas a balón parado.
+ *  - Vídeo real ⇒ `{ status: "gated", gate_reason }`: NO se genera ni guarda nada.
+ *  - Partido demo ⇒ jugadas de EJEMPLO (`provenance: "MOCK"`), persistidas en
+ *    localStorage para que aparezcan en la lista con su badge.
+ * Sin barra de progreso simulada: no hay análisis que esperar.
  */
 export async function runDetection(
   videoId: string,
   videoTitle: string,
   options: { eventCount?: number; onProgress?: DetectionListener } = {},
-): Promise<VideoSetPieceEvent[]> {
+): Promise<DetectionResult> {
   const { eventCount, onProgress } = options;
-  const rng = seededRng(videoId);
 
-  for (const step of STAGE_FLOW) {
-    onProgress?.({
-      stage: step.stage,
-      pct: step.pct,
-      message: step.message,
-    });
-    if (step.duration > 0) {
-      await new Promise((r) => setTimeout(r, step.duration));
-    }
+  const gate = setPieceDetectionGate(videoId);
+  if (gate) {
+    return { status: "gated", provenance: null, events: [], gate_reason: gate };
   }
 
-  // Choose a realistic number of set pieces for a match (8-14)
+  onProgress?.({ stage: "generating", pct: 50, message: i18n.t("videoAnalyzerDialog.analyzing") });
+  const rng = seededRng(videoId);
+
+  // Número de jugadas de ejemplo (8-14)
   const count = eventCount ?? 8 + Math.floor(rng() * 7);
   const events: VideoSetPieceEvent[] = [];
 
@@ -262,7 +274,7 @@ export async function runDetection(
     events.push({
       id: `video_event_${videoId}_${i}`,
       matchId: `video_${videoId}`,
-      matchLabel: `🎥 ${videoTitle}`,
+      matchLabel: videoTitle,
       minute,
       type,
       side,
@@ -281,6 +293,7 @@ export async function runDetection(
       source: "video",
       sourceVideoId: videoId,
       videoOffsetMs: minute * 60_000 + Math.floor(rng() * 60_000),
+      provenance: "MOCK",
       createdAt: new Date().toISOString(),
     });
   }
@@ -296,7 +309,8 @@ export async function runDetection(
     SetPieceCustomStorage.saveCustomEvent(ev);
   }
 
-  return events;
+  onProgress?.({ stage: "finished", pct: 100, message: "" });
+  return { status: "mock", provenance: "MOCK", events, gate_reason: null };
 }
 
 function readVideoEvents(): VideoSetPieceEvent[] {
@@ -304,7 +318,11 @@ function readVideoEvents(): VideoSetPieceEvent[] {
     const raw = localStorage.getItem(VIDEO_EVENTS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    // Lo guardado antes de este cambio (sin `provenance`) también era simulado:
+    // nunca existió un detector real → se lee SIEMPRE como MOCK.
+    return Array.isArray(parsed)
+      ? parsed.map((e: VideoSetPieceEvent) => ({ ...e, provenance: "MOCK" as const }))
+      : [];
   } catch {
     return [];
   }
@@ -324,10 +342,10 @@ export const SetPieceVideoEvents = {
     return readVideoEvents().filter((e) => e.sourceVideoId === videoId);
   },
   deleteByVideo(videoId: string): void {
-    const remaining = readVideoEvents().filter((e) => e.sourceVideoId !== videoId);
-    writeVideoEvents(remaining);
-    // Also clean up from custom storage
-    const events = readVideoEvents().filter((e) => e.sourceVideoId === videoId);
+    const all = readVideoEvents();
+    // Leer ANTES de sobrescribir (antes se leía después y nunca limpiaba custom storage).
+    const events = all.filter((e) => e.sourceVideoId === videoId);
+    writeVideoEvents(all.filter((e) => e.sourceVideoId !== videoId));
     for (const ev of events) {
       SetPieceCustomStorage.deleteCustomEvent(ev.id);
     }
@@ -337,11 +355,12 @@ export const SetPieceVideoEvents = {
   },
 };
 
-// ─── Auto-Generated Recommendations from Detected Events ──────────────────
+// ─── Recomendaciones de EJEMPLO a partir de las jugadas de ejemplo ──────────
 
 /**
- * Generates 2-4 recommendations by analyzing patterns across detected events.
- * Looks for: most successful patterns, taker preferences, defensive weaknesses.
+ * Resume en 2-4 recomendaciones los patrones de las jugadas de EJEMPLO (MOCK).
+ * Como su entrada es MOCK, su salida también lo es: el texto lo declara y la UI
+ * las rotula con el badge canónico. No hay IA ni vídeo detrás.
  */
 export function generateRecommendationsFromEvents(
   events: SetPieceEvent[],
@@ -412,9 +431,9 @@ export function generateRecommendationsFromEvents(
       type: p.type,
       pattern: p.pattern,
       title: titles[p.pattern] ?? `Patrón ${patternLabels[p.pattern]}`,
-      description: `En tus videos, este patrón ha funcionado el ${Math.round(p.successRate * 100)}% de las veces (${p.count} intentos). Sugerimos repetirlo en próximos partidos con ${taker.name} como ejecutor.`,
+      description: `Ejemplo: en las jugadas de ejemplo generadas, este patrón funcionó el ${Math.round(p.successRate * 100)}% de las veces (${p.count} intentos), con ${taker.name} como ejecutor. No procede de ningún vídeo analizado.`,
       successProbability: Math.round(p.successRate * 100),
-      basedOn: `Análisis de ${p.count} jugadas detectadas en tus videos`,
+      basedOn: `${p.count} jugadas de ejemplo (no detectadas en ningún vídeo)`,
       diagram,
       keyPoints: [
         `${taker.name} (#${taker.number}) como ejecutor principal`,

@@ -27,8 +27,7 @@ const ReportsPage = () => {
   const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
-  const [jerseyNumber, setJerseyNumber] = useState<string>("");
-  const [teamColor, setTeamColor] = useState<string>("");
+  // (Dorsal / color retirados: nunca se enviaban a ningún análisis — identidad.md.)
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
 
   const { data: realVideos = [], isLoading } = useVideos();
@@ -259,32 +258,10 @@ const ReportsPage = () => {
                     )}
                   </div>
 
-                  {/* Nº Camiseta + Color */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("reports.jerseyNumber")}</label>
-                      <input
-                        type="text"
-                        maxLength={3}
-                        value={jerseyNumber}
-                        onChange={(e) => setJerseyNumber(e.target.value)}
-                        placeholder="10"
-                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display font-semibold text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[9px] font-display uppercase tracking-wider text-muted-foreground">{t("reports.uniformColor")}</label>
-                      <input
-                        type="text"
-                        value={teamColor}
-                        onChange={(e) => setTeamColor(e.target.value)}
-                        placeholder="Rojo"
-                        className="w-full mt-1 px-3 py-2 rounded-lg border border-border bg-background text-sm font-display text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-                      />
-                    </div>
-                  </div>
+                  {/* Antes: Nº camiseta + color con «La IA identificará al jugador por
+                      dorsal y color» — campos que no se enviaban a ningún sitio. */}
                   <p className="text-[9px] text-muted-foreground">
-                    {t("reports.jerseyHint")}
+                    {t("reports.identityHint")}
                   </p>
                 </div>
 

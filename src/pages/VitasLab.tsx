@@ -151,8 +151,8 @@ const VitasLab = () => {
     enabled: !!selectedPlayerId && SUPABASE_CONFIGURED,
   });
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
-  const [jerseyNumber, setJerseyNumber]         = useState<string>("");
-  const [teamColor, setTeamColor]               = useState<string>("");
+  // (Dorsal / color de equipación retirados: nunca se enviaban a ningún análisis y la
+  //  identificación por dorsal aún no existe — identidad.md. Nada de campos inertes.)
   const [showTracking, setShowTracking]         = useState(false);
   const [showVoronoi, setShowVoronoi]           = useState(false);
   // ¿La pasada de tracking activa/última usó "Análisis de precisión" (tiling)?
@@ -160,8 +160,6 @@ const VitasLab = () => {
   // para ofrecer "Re-analizar con precisión" cuando la pasada terminó sin tiling.
   const [passUsedPrecision, setPassUsedPrecision] = useState(false);
   // Configuración por modo de análisis
-  const [homeTeamColor, setHomeTeamColor]       = useState<string>("");
-  const [awayTeamColor, setAwayTeamColor]       = useState<string>("");
   const [analysisFocus, setAnalysisFocus]       = useState<string[]>([]);
   const [homeFormation, setHomeFormation]       = useState<string>("4-3-3");
   const [awayFormation, setAwayFormation]       = useState<string>("4-4-2");
@@ -1064,14 +1062,6 @@ const VitasLab = () => {
           <LabAnalysisConfig
             selectedMode={selectedMode}
             setSelectedMode={setSelectedMode}
-            jerseyNumber={jerseyNumber}
-            setJerseyNumber={setJerseyNumber}
-            teamColor={teamColor}
-            setTeamColor={setTeamColor}
-            homeTeamColor={homeTeamColor}
-            setHomeTeamColor={setHomeTeamColor}
-            awayTeamColor={awayTeamColor}
-            setAwayTeamColor={setAwayTeamColor}
             playerName={playerName}
             setPlayerName={setPlayerName}
             playerPosition={playerPosition}

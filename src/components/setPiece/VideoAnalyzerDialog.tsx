@@ -1,16 +1,21 @@
 /**
- * VITAS · VideoAnalyzerDialog
+ * VITAS · VideoAnalyzerDialog — jugadas de EJEMPLO (sin análisis de vídeo)
  *
- * Modal dialog to pick an existing video (or simulate one) and run the
- * set piece detection pipeline. Shows live progress and a summary at the end.
+ * HONESTIDAD (CLAUDE.md inv. 1-3): VITAS todavía no detecta jugadas a balón parado
+ * en un vídeo. Antes este diálogo prometía «Tracking YOLO + ByteTrack / pose» y
+ * «analizaba» también los vídeos reales del usuario con datos inventados. Ahora:
+ *  - los vídeos del usuario no se listan: la detección está bloqueada y se explica
+ *    por qué (gate_reason visible);
+ *  - solo los partidos demo generan jugadas de EJEMPLO, rotuladas MOCK con el
+ *    DemoDataBanner canónico.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Video, Cpu, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
+import { X, Video, FlaskConical, CheckCircle2, Loader2, Info } from "lucide-react";
 import { toast } from "sonner";
-import { VideoService, type VideoRecord } from "@/services/real/videoService";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import {
   runDetection,
   type DetectionProgress,
@@ -22,7 +27,7 @@ interface Props {
   onCompleted: (eventsCount: number, videoId: string) => void;
 }
 
-// Demo videos used when the user has no real ones uploaded yet
+// Partidos DEMO: los únicos para los que se generan jugadas de ejemplo (MOCK).
 const DEMO_VIDEOS: Array<{ id: string; title: string; minutes: number }> = [
   { id: "demo_match_riveralfc_2026_05_24", title: "vs Rival FC · 24 May", minutes: 90 },
   { id: "demo_match_academiasur_2026_05_17", title: "vs Academia Sur · 17 May", minutes: 90 },
@@ -36,17 +41,9 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<DetectionProgress | null>(null);
   const [result, setResult] = useState<{ count: number; videoTitle: string } | null>(null);
-  const [userVideos, setUserVideos] = useState<VideoRecord[]>([]);
 
   useEffect(() => {
     if (open) {
-      // Reload videos from local storage when opening
-      try {
-        const list = VideoService.getAll().filter((v) => v.status === "finished");
-        setUserVideos(list);
-      } catch {
-        setUserVideos([]);
-      }
       setSelectedVideoId(null);
       setProgress(null);
       setResult(null);
@@ -54,37 +51,23 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
     }
   }, [open]);
 
-  const combinedVideos = useMemo(() => {
-    const real = userVideos.map((v) => ({
-      id: v.id,
-      title: v.title,
-      isReal: true,
-      thumbnailUrl: v.thumbnailUrl ?? null,
-      minutes: Math.round(v.duration / 60),
-    }));
-    const demos = DEMO_VIDEOS.map((v) => ({
-      id: v.id,
-      title: v.title,
-      isReal: false,
-      thumbnailUrl: null,
-      minutes: v.minutes,
-    }));
-    return [...real, ...demos];
-  }, [userVideos]);
-
-  const selectedVideo = combinedVideos.find((v) => v.id === selectedVideoId) ?? null;
+  const selectedVideo = DEMO_VIDEOS.find((v) => v.id === selectedVideoId) ?? null;
 
   const handleStart = async () => {
     if (!selectedVideo) return;
     setRunning(true);
     setResult(null);
     try {
-      const events = await runDetection(selectedVideo.id, selectedVideo.title, {
+      const detection = await runDetection(selectedVideo.id, selectedVideo.title, {
         onProgress: (p) => setProgress(p),
       });
-      setResult({ count: events.length, videoTitle: selectedVideo.title });
-      toast.success(t("videoAnalyzerDialog.toastDetected", { count: events.length }));
-      onCompleted(events.length, selectedVideo.id);
+      if (detection.status === "gated") {
+        toast.error(detection.gate_reason);
+        return;
+      }
+      setResult({ count: detection.events.length, videoTitle: selectedVideo.title });
+      toast.success(t("videoAnalyzerDialog.toastDetected", { count: detection.events.length }));
+      onCompleted(detection.events.length, selectedVideo.id);
     } catch (err) {
       console.error(err);
       toast.error(t("videoAnalyzerDialog.toastError"));
@@ -114,8 +97,8 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
         >
           {/* Header */}
           <div className="flex items-center gap-3 p-4 border-b border-border bg-gradient-to-r from-primary/10 to-amber-500/10">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
-              <Cpu size={18} className="text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <FlaskConical size={18} className="text-white" />
             </div>
             <div className="flex-1">
               <h2 className="text-base font-display font-bold text-foreground">
@@ -128,6 +111,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
             {!running && (
               <button
                 onClick={onClose}
+                aria-label={t("videoAnalyzerDialog.cancel")}
                 className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary"
               >
                 <X size={16} />
@@ -137,15 +121,26 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
 
           {/* Body */}
           <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Banner canónico MOCK: todo lo que genera este diálogo es de ejemplo */}
+            <DemoDataBanner messageKey="setPiecePage.demoNotice" />
+
             {/* Idle / picking state */}
             {!running && !result && (
               <>
+                {/* Por qué NO se analizan los vídeos del usuario (gate_reason visible) */}
+                <div className="rounded-lg bg-secondary/40 border border-border p-3 text-[11px] text-foreground/80 space-y-1">
+                  <p className="font-semibold text-foreground flex items-center gap-1">
+                    <Info size={11} /> {t("videoAnalyzerDialog.pipelineHeading")}
+                  </p>
+                  <p>{t("videoAnalyzerDialog.gateRealVideos")}</p>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   {t("videoAnalyzerDialog.pickPrompt")}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {combinedVideos.map((v) => (
+                  {DEMO_VIDEOS.map((v) => (
                     <button
                       key={v.id}
                       onClick={() => setSelectedVideoId(v.id)}
@@ -156,18 +151,14 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                       }`}
                     >
                       <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-700 to-green-900 flex items-center justify-center shrink-0 overflow-hidden">
-                        {v.thumbnailUrl ? (
-                          <img src={v.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <Video size={18} className="text-emerald-300" />
-                        )}
+                        <Video size={18} className="text-emerald-300" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-display font-bold text-foreground truncate">
                           {v.title}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {v.minutes} min · {v.isReal ? t("videoAnalyzerDialog.uploadedVideo") : t("videoAnalyzerDialog.demoMatch")}
+                          {v.minutes} min · {t("videoAnalyzerDialog.demoMatch")}
                         </p>
                       </div>
                       {selectedVideoId === v.id && (
@@ -176,56 +167,14 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                     </button>
                   ))}
                 </div>
-
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 text-[11px] text-foreground/80 space-y-1">
-                  <p className="font-semibold text-primary flex items-center gap-1">
-                    <Sparkles size={11} /> {t("videoAnalyzerDialog.pipelineHeading")}
-                  </p>
-                  <ul className="space-y-0.5 ml-2">
-                    <li>{t("videoAnalyzerDialog.pipelineTracking")}</li>
-                    <li>{t("videoAnalyzerDialog.pipelineBallDetection")}</li>
-                    <li>{t("videoAnalyzerDialog.pipelineTypeClassification")}</li>
-                    <li>{t("videoAnalyzerDialog.pipelinePoseEstimation")}</li>
-                    <li>{t("videoAnalyzerDialog.pipelineOutcomeClassification")}</li>
-                  </ul>
-                </div>
               </>
             )}
 
-            {/* Running state */}
-            {running && progress && (
-              <div className="space-y-4 py-4">
-                <div className="flex items-center justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Loader2 size={48} className="text-primary" />
-                  </motion.div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-display font-bold text-foreground">
-                      {progress.message}
-                    </span>
-                    <span className="font-mono text-primary font-bold">{progress.pct}%</span>
-                  </div>
-                  <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progress.pct}%` }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-primary to-amber-500"
-                    />
-                  </div>
-                </div>
-
-                {selectedVideo && (
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    {t("videoAnalyzerDialog.analyzingLabel")} <strong>{selectedVideo.title}</strong>
-                  </p>
-                )}
+            {/* Running state (generación local, sin análisis) */}
+            {running && (
+              <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+                <Loader2 size={16} className="animate-spin text-primary" />
+                <span>{progress?.message || t("videoAnalyzerDialog.analyzing")}</span>
               </div>
             )}
 
@@ -236,9 +185,9 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: "spring", stiffness: 200, damping: 12 }}
-                  className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center"
+                  className="w-16 h-16 mx-auto rounded-full bg-amber-500/20 flex items-center justify-center"
                 >
-                  <CheckCircle2 size={32} className="text-emerald-500" />
+                  <CheckCircle2 size={32} className="text-amber-500" />
                 </motion.div>
                 <div>
                   <h3 className="text-lg font-display font-bold text-foreground">
@@ -278,7 +227,7 @@ export default function VideoAnalyzerDialog({ open, onClose, onCompleted }: Prop
                   </>
                 ) : (
                   <>
-                    <Cpu size={12} />
+                    <FlaskConical size={12} />
                     {t("videoAnalyzerDialog.startAnalysis")}
                   </>
                 )}

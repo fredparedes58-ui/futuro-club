@@ -395,6 +395,38 @@
       "allowed_literals": [24, 30, 50, 60],
       "gated": true,
       "notes": "GATEADO (inv#2): overallProgress es null si NINGUNA meta tiene medición, y las metas sin medir (ni métrica fresca ni currentValue) se EXCLUYEN del promedio ponderado y por dimensión — no arrastran un 0% inventado. computeGoalProgress mantiene el 0 defensivo: sus callers (IDPGoalCard/IDPParentView) siempre pasan baseline, y 0% desde baseline es legítimo. Umbrales pendiente de validar → confidence reducida."
+    },
+    {
+      "id": "balon_parado_video_simulado",
+      "name": "Jugadas a balón parado «desde vídeo» (xG, resultado, ejecutores) — de ejemplo",
+      "concept": "tactica.balon_parado.deteccion_video",
+      "provenance": "MOCK",
+      "calc_paths": ["src/services/real/setPieceVideoDetector.ts"],
+      "ui_paths": [
+        "src/pages/SetPiecePage.tsx",
+        "src/pages/SetPieceFolderPage.tsx",
+        "src/components/setPiece/VideoAnalyzerDialog.tsx"
+      ],
+      "allowed_literals": [],
+      "gated": true,
+      "banner": true,
+      "notes": "No existe detector de balón parado: antes se presentaba como «YOLO + ByteTrack / pose» y se inventaba sobre vídeos REALES. Ahora: vídeo real ⇒ gate_reason (bloqueado); solo partidos demo generan ejemplos MOCK, con ProvenanceBadge MOCK + DemoDataBanner. El catálogo base de setPieceService también es MOCK y comparte banner."
+    },
+    {
+      "id": "highlights_momentos_simulados",
+      "name": "Momentos de highlights «detectados» (clips, jugador, confianza) — de ejemplo",
+      "concept": "video.highlights.deteccion_momentos",
+      "provenance": "MOCK",
+      "calc_paths": ["src/services/real/highlightsDetector.ts"],
+      "ui_paths": [
+        "src/components/highlights/GenerateReelDialog.tsx",
+        "src/pages/HighlightsPage.tsx",
+        "src/pages/HighlightDetailPage.tsx"
+      ],
+      "allowed_literals": [],
+      "gated": true,
+      "banner": true,
+      "notes": "No existe detector de momentos: vídeo real ⇒ gate_reason + reel vacío para clips manuales; partido demo ⇒ reel de ejemplo MOCK. Todo clip con manual:false es MOCK (también los reels guardados antes). La «Confianza IA» ya no se muestra."
     }
   ]
 }

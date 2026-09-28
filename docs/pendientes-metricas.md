@@ -59,6 +59,9 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 | ~~**Espacio / Voronoi de sesión**~~ 🟢 | `src/hooks/useTracking.ts` | **RESUELTA (G7 · #187):** media de muestras Voronoi en instantes vivos del jugador enfocado; DERIVADA orientativa o gated (nunca 0). | — |
 | **VSI-vídeo compuesto** | `api/agents/_pipeline-orchestrator.ts:261` (`gateVsiComposite`) | Bloqueado si <4/5 dims reales. Técnica/mental/táctica son `CONSTANTE(null)` → siempre 2/5 reales (physical+projection) → compuesto SIEMPRE bloqueado. Proyección y best-match se **omiten** en consecuencia. | Depende de que la VISIÓN mida técnica/mental/táctica (hueco permanente hoy) |
 | **VSI-vídeo sub-scores técnica/mental/táctica** | `_pipeline-orchestrator.ts:244-260` (`buildVsiSubscores`) | `CONSTANTE value:null` por diseño: el pipeline de visión no los mide. Bloqueo honesto. | VALIDACIÓN + modelo que los mida (largo plazo) |
+| **Detección de balón parado desde vídeo** | `src/services/real/setPieceVideoDetector.ts` (`setPieceDetectionGate`) | No existe detector: antes se simulaba («YOLO + ByteTrack / pose») e inventaba jugadas sobre vídeos reales. Vídeo real ⇒ `gate_reason`; solo partidos demo generan ejemplos MOCK. | CÓDIGO (modelo que clasifique jugadas a balón parado) + VALIDACIÓN |
+| **Detección de momentos para highlights** | `src/services/real/highlightsDetector.ts` (`highlightsDetectionGate`) | No existe detector. Vídeo real ⇒ `gate_reason` + reel vacío para clips manuales. | CÓDIGO (detector de eventos) + VALIDACIÓN |
+| **Informe Gemini de jugador sin identificar** | `api/_lib/geminiBiomechanics.ts` (`resolvePlayerIdentity`) | Sin dorsal + color de referencia (el pipeline aún no los recibe), el informe solo se atribuye si el vídeo muestra UN único jugador (con advertencia); si no, el análisis se cierra `failed` con motivo y no se generan informes bajo el nombre del menor. Scores/conteos ausentes ⇒ `null` + `gate_reasons` (antes `?? 5` / `?? 0`). | CÓDIGO (llevar dorsal/color del UI → finalize → `analyses` → gemini-analyze; necesita migración) + VALIDACIÓN (identidad.md, ≥98%) |
 
 ## 2. Métricas 🟡 ORIENTATIVAS (se muestran, pero NO son `MEDIDA`)
 
@@ -71,6 +74,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 | Métrica | Dónde | Estado |
 |---|---|---|
+| **Set pieces (catálogo + «desde vídeo») y highlights de ejemplo** | `src/services/real/setPieceService.ts`, `setPieceVideoDetector.ts`, `highlightsDetector.ts` | MOCK+banner (`ProvenanceBadge` MOCK + `DemoDataBanner` en `/set-pieces`, carpetas, `/highlights`, detalle de reel). Registrados en `config/metrics.json` (`balon_parado_video_simulado`, `highlights_momentos_simulados`). |
 | **Bienestar / Wellbeing** (`/family/:id`) | `src/hooks/useWellbeing.ts:140` | MOCK+banner. Inputs manuales YA cableados (cuestionario/asistencia/engagement, PRs #167/#170); falta **que alguien introduzca datos**. |
 | **Radar de Retención** (`/director`) | `src/components/retention/RetentionRadarCard.tsx:66` | DemoDataBanner; **ROI en euros YA retirado** (`:113`, la cifra de mayor riesgo comercial). El riesgo subyacente sigue siendo hash del id (`src/lib/retention/dropoutScore.ts:57`) tras el banner y sin euros. Real solo con señales reales. |
 
