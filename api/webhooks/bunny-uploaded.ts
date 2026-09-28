@@ -2,82 +2,68 @@
  * VITAS · Webhook Bunny Stream
  * POST /api/webhooks/bunny-uploaded
  *
- * Llamado por Bunny CDN cuando termina el upload de un vídeo.
+ * Llamado por Bunny cuando cambia el estado de codificación de un vídeo.
+ * Contrato OFICIAL (https://bunny.net/docs/stream-webhook):
  *
- * Bunny envía:
- *   {
- *     "VideoLibraryId": 634866,
- *     "VideoGuid": "abc-def-...",
- *     "Status": 4,                    // 4 = encoded ready
- *     "Resolution": "1920x1080",
- *     "Length": 90,                   // duración en segundos
- *     "Size": 12345678,
- *     "Title": "..."
- *   }
+ *   Body:  { "VideoLibraryId": 133, "VideoGuid": "657bb740-…", "Status": 3 }
+ *   Cabeceras de firma:
+ *     X-BunnyStream-Signature-Version:   v1
+ *     X-BunnyStream-Signature-Algorithm: hmac-sha256
+ *     X-BunnyStream-Signature:           HMAC-SHA256(body CRUDO) en hex minúsculas,
+ *                                        con la Read-Only API key de la librería.
  *
- * Bunny puede enviar webhooks múltiples por upload (uploaded, encoded, etc).
- * Solo procesamos cuando Status === 4 (encoded ready, listo para usar).
+ * Estados del WEBHOOK (≠ estados de la API REST · ver api/_lib/bunnyStream.ts):
+ *   3 = Finished (codificación terminada, vídeo disponible) → ÚNICO que dispara trabajo.
+ *   4 = Resolution finished → llega UNA VEZ POR RESOLUCIÓN → se ignora (antes se trataba
+ *       como "terminado" por confusión con el enum de la API, donde 4 = Finished).
+ *   5 = Failed → se registra.
  *
- * Flujo:
- *   1. Validar payload + signature
- *   2. Buscar el "videos" row asociado (por bunny_video_id)
- *   3. Crear `analyses` row con status='queued'
- *   4. Cron worker procesará en <1 min
+ * Operador: BUNNY_WEBHOOK_SECRET debe contener la **Read-Only API key** de la librería
+ * de Bunny Stream (Stream → librería → API). Sin ella: 503 fail-closed.
+ *
+ * Flujo (solo Status = 3):
+ *   1. Validar firma (fail-closed, tiempo constante) sobre el body CRUDO
+ *   2. Buscar la fila `videos` (por bunny_video_id; la crea video-init / create-upload)
+ *   3. Gate honesto: un vídeo más largo que SYNC_ANALYSIS_MAX_DURATION_SEC NO se encola
+ *      en la cola Gemini de clips cortos (fallaría). El partido completo lo analizará el
+ *      futuro match-analysis job. Duración desconocida → no se bloquea, no se inventa.
+ *   4. Encolar el análisis (impl compartida con finalize, inv #7)
  */
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
-import { hmacSha256Hex, timingSafeEqual } from "../_lib/edgeCrypto";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
+import {
+  BUNNY_WEBHOOK_STATUS,
+  getBunnyVideo,
+  verifyBunnyWebhookSignature,
+} from "../_lib/bunnyStream";
+import {
+  evaluateSyncAnalysisGate,
+  knownDurationSec,
+  SYNC_ANALYSIS_GATE_CODE,
+} from "../../src/lib/shared/videoLimits";
 
 export const config = { runtime: "edge" };
 
-const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const BUNNY_WEBHOOK_SECRET = process.env.BUNNY_WEBHOOK_SECRET ?? "";
-const PUBLIC_URL =
-  process.env.VITAS_PUBLIC_URL ??
-  `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
-const CRON_SECRET = process.env.CRON_SECRET ?? "";
-
 const bunnySchema = z.object({
   VideoLibraryId: z.number(),
-  VideoGuid: z.string(),
+  VideoGuid: z.string().min(1),
   Status: z.number(),
-  Resolution: z.string().optional(),
-  Length: z.number().optional(),
-  Size: z.number().optional(),
-  Title: z.string().optional(),
 });
 
-// Bunny manda Status numérico:
-// 0=Created, 1=Uploaded, 2=Processing, 3=Transcoding, 4=Finished, 5=Error
-const STATUS_FINISHED = 4;
-const STATUS_ERROR = 5;
-
-async function validateBunnySignature(body: string, signature: string | null): Promise<boolean> {
-  // Fail-CLOSED: sin secret NO validamos como "ok" (ver guard en el handler).
-  if (!BUNNY_WEBHOOK_SECRET) return false;
-  if (!signature) return false;
-
-  try {
-    const expected = await hmacSha256Hex(BUNNY_WEBHOOK_SECRET, body);
-    return timingSafeEqual(signature.toLowerCase(), expected.toLowerCase());
-  } catch {
-    return false;
-  }
-}
-
 export default withHandler(
-  { schema: bunnySchema, requireAuth: false, maxRequests: 200 },
-  async ({ body, headers, rawBody }) => {
+  // rawBody: la firma es del body EXACTO; sin esto ctx.rawBody era null y el HMAC se
+  // calculaba sobre "" → ninguna firma real podía coincidir (webhook muerto).
+  { rawBody: true, requireAuth: false, maxRequests: 200 },
+  async ({ headers, rawBody }) => {
+    // Env leída por request (no a nivel de módulo): sin estado global y testeable.
+    const webhookSecret = process.env.BUNNY_WEBHOOK_SECRET ?? "";
+
     // ── Fail-CLOSED sin secret ──────────────────────────────
-    // Consistente con stripe/modal-tracking: sin BUNNY_WEBHOOK_SECRET no podemos
-    // verificar la firma → rechazamos. Antes hacía fail-OPEN (aceptaba cualquier
-    // webhook), permitiendo forjar filas `analyses` y encolar procesamiento.
-    if (!BUNNY_WEBHOOK_SECRET) {
+    if (!webhookSecret) {
       console.error("[VITAS] BUNNY_WEBHOOK_SECRET no configurado — rechazando webhook (fail-closed)");
       return errorResponse({
         code: "webhook_not_configured",
@@ -86,9 +72,9 @@ export default withHandler(
       });
     }
 
-    // ── Validar firma Bunny ─────────────────────────────────
-    const signature = headers?.["x-bunny-signature"] ?? null;
-    if (!(await validateBunnySignature(rawBody ?? "", signature))) {
+    // ── Validar firma Bunny (ANTES de parsear nada) ──────────
+    const raw = rawBody ?? "";
+    if (!(await verifyBunnyWebhookSignature(webhookSecret, raw, headers))) {
       return errorResponse({
         code: "invalid_signature",
         message: "Bunny webhook signature mismatch",
@@ -96,28 +82,42 @@ export default withHandler(
       });
     }
 
-    const payload = body as z.infer<typeof bunnySchema>;
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(raw);
+    } catch {
+      return errorResponse({ code: "invalid_json", message: "Invalid JSON body", status: 400 });
+    }
+    const parsed = bunnySchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      return errorResponse({ code: "invalid_payload", message: "Invalid Bunny webhook payload", status: 400 });
+    }
+    const payload = parsed.data;
 
-    // Solo procesamos cuando el vídeo está listo (encoded)
-    if (payload.Status !== STATUS_FINISHED) {
-      // Para Status=5 (error), opcional: marcar el video como failed
-      if (payload.Status === STATUS_ERROR) {
-        console.error(`[VITAS] Bunny reporta error en video ${payload.VideoGuid}`);
+    // Solo "Finished" (3) es terminal. "Resolution finished" (4) llega por resolución.
+    if (payload.Status !== BUNNY_WEBHOOK_STATUS.FINISHED) {
+      if (payload.Status === BUNNY_WEBHOOK_STATUS.FAILED) {
+        console.error(`[VITAS] Bunny reporta fallo de codificación en video ${payload.VideoGuid}`);
       }
       return successResponse({
         skipped: true,
-        reason: `status=${payload.Status} (only Status=4 triggers processing)`,
+        reason: `status=${payload.Status} (only Status=${BUNNY_WEBHOOK_STATUS.FINISHED} Finished triggers processing)`,
       });
     }
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+    const supabaseUrl = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "";
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    if (!supabaseUrl || !serviceKey) {
+      return errorResponse({ code: "supabase_not_configured", message: "Database not configured", status: 503 });
+    }
+    const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false },
     });
 
     // ── Buscar el video en nuestra BBDD ────────────────────
     const { data: video, error: videoError } = await supabase
       .from("videos")
-      .select("id, tenant_id, player_id, target_player_bbox, played_position")
+      .select("id, tenant_id, player_id, target_player_bbox, played_position, duration_sec")
       .eq("bunny_video_id", payload.VideoGuid)
       .single();
 
@@ -130,6 +130,39 @@ export default withHandler(
       });
     }
 
+    const vrow = video as {
+      id: string;
+      tenant_id: string | null;
+      player_id: string | null;
+      played_position?: string | null;
+      duration_sec?: number | null;
+    };
+
+    // ── Gate honesto de duración (clips cortos) ────────────────────────────
+    // Duración REAL: la de la fila (Bunny vía finalize, o metadatos del navegador vía
+    // video-init) y, si falta, la de la API de Bunny. Nunca se inventa.
+    let durationSec = knownDurationSec(vrow.duration_sec);
+    if (durationSec === null) {
+      const bunny = await getBunnyVideo({
+        libraryId: process.env.BUNNY_STREAM_LIBRARY_ID ?? "",
+        apiKey: process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY ?? "",
+        videoGuid: payload.VideoGuid,
+      });
+      durationSec = knownDurationSec(bunny?.length);
+      if (durationSec !== null) {
+        await supabase.from("videos").update({ duration_sec: durationSec }).eq("id", vrow.id);
+      }
+    }
+    const gate = evaluateSyncAnalysisGate(durationSec);
+    if (!gate.allowed) {
+      return successResponse({
+        skipped: true,
+        reason: SYNC_ANALYSIS_GATE_CODE,
+        durationSec: gate.durationSec,
+        maxDurationSec: gate.maxDurationSec,
+      });
+    }
+
     // ── Idioma del usuario (mig 064) ───────────────────────────────────────
     // Este webhook es servidor-a-servidor (Bunny) y no tiene usuario: el idioma lo
     // dejó `finalize` en `videos.locale`. Lectura SEPARADA y best-effort a propósito:
@@ -138,20 +171,24 @@ export default withHandler(
     const { data: loc } = await supabase
       .from("videos")
       .select("locale")
-      .eq("id", video.id)
+      .eq("id", vrow.id)
       .maybeSingle();
     const videoLocale = (loc as { locale?: string | null } | null)?.locale ?? null;
+
+    const publicUrl =
+      process.env.VITAS_PUBLIC_URL ??
+      `https://${process.env.VERCEL_URL ?? "futuro-club.vercel.app"}`;
 
     // ── Encolar (idempotente) · impl compartida con finalize (inv #7) ──────
     const result = await enqueueAnalysis({
       supabase,
-      videoId: video.id,
-      tenantId: video.tenant_id,
-      playerId: video.player_id,
-      playedPosition: (video as { played_position?: string | null }).played_position ?? null,
+      videoId: vrow.id,
+      tenantId: vrow.tenant_id,
+      playerId: vrow.player_id,
+      playedPosition: vrow.played_position ?? null,
       locale: videoLocale,
-      publicUrl: PUBLIC_URL,
-      cronSecret: CRON_SECRET,
+      publicUrl,
+      cronSecret: process.env.CRON_SECRET ?? "",
     });
 
     if (result.status === "error") {
@@ -165,10 +202,10 @@ export default withHandler(
       return successResponse({ skipped: true, reason: "analysis_already_exists", analysisId: result.analysisId });
     }
 
-    console.log(`[VITAS] Analysis ${result.analysisId} encolado para video ${video.id}`);
+    console.log(`[VITAS] Analysis ${result.analysisId} encolado para video ${vrow.id}`);
     return successResponse({
       analysisId: result.analysisId,
-      videoId: video.id,
+      videoId: vrow.id,
       status: "queued",
       estimatedStartIn: result.triggered
         ? "inmediato (procesamiento disparado)"

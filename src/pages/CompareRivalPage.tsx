@@ -21,7 +21,8 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { IS_DEMO } from "@/lib/demoMode";
 import { buildDemoRivalPlan } from "@/lib/demo/demoTeam";
 import VideoUpload from "@/components/VideoUpload";
-import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
+import { VideoService } from "@/services/real/videoService";
+import { resolveSyncAnalysisInput, syncAnalysisRefusalMessage } from "@/lib/syncVideoAnalysisGate";
 
 type AnalysisMode = "text" | "video";
 
@@ -79,6 +80,8 @@ export default function CompareRivalPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [analyzingVideo, setAnalyzingVideo] = useState(false);
   const [videoAnalysis, setVideoAnalysis] = useState<RivalVideoAnalysis | null>(null);
+  // Motivo honesto por el que el vídeo subido NO va al análisis rápido. null = sin aviso.
+  const [videoNotice, setVideoNotice] = useState<string | null>(null);
 
   async function handleVideoAnalysis(url: string) {
     setVideoUrl(url);
@@ -209,15 +212,28 @@ export default function CompareRivalPage() {
                   </div>
                 ) : (
                   <VideoUpload
-                    onDone={(videoId) => {
+                    onDone={(videoId, info) => {
                       // Prop correcto onDone(videoId); onUploadComplete no
                       // existía → subir vídeo del rival no hacía nada (#4).
-                      const video = VideoService.getById(videoId);
-                      const url = video ? getBestVideoUrl(video) : null;
-                      if (url) handleVideoAnalysis(url);
-                      else toast.error(t("compareRivalPage.errorAnalyzingVideo"));
+                      // Gate honesto (clips cortos + URL descargable por el servidor;
+                      // nunca un blob:) antes de llamar al agente.
+                      const input = resolveSyncAnalysisInput(VideoService.getById(videoId), info.durationSec);
+                      if (input.kind === "ok") {
+                        setVideoNotice(null);
+                        void handleVideoAnalysis(input.url);
+                      } else {
+                        const msg = syncAnalysisRefusalMessage(t, input);
+                        setVideoNotice(msg);
+                        toast.error(msg);
+                      }
                     }}
                   />
+                )}
+                {videoNotice && !analyzingVideo && (
+                  <div role="status" className="flex items-start gap-2 p-3 rounded-lg bg-secondary border border-border">
+                    <AlertCircle size={14} className="text-muted-foreground shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-foreground leading-relaxed">{videoNotice}</p>
+                  </div>
                 )}
               </div>
             ) : (

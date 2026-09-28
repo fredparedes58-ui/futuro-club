@@ -1,9 +1,9 @@
 /**
  * VITAS · File Hashing Utilities
  *
- * Calcula SHA-256 de un archivo para deduplicación.
- * Usa streaming (ArrayBuffer chunked) para no cargar archivos grandes
- * enteros en memoria. Resultado en hex (64 chars).
+ * Calcula SHA-256 de un archivo para deduplicación. Resultado en hex (64 chars).
+ * Web Crypto no hashea de forma incremental: el fichero acaba entero en memoria,
+ * por eso solo se hashean ficheros ≤ MAX_HASH_BYTES (el stream solo da progreso).
  *
  * Uso:
  *   const hash = await calculateFileHash(file);
@@ -15,12 +15,15 @@
  */
 
 /**
- * Tamaño máximo de archivo para calcular hash.
- * Archivos enormes (>2 GB) podrían tardar mucho o saturar memoria en
- * móviles de gama baja. Por encima de este límite devolvemos null y
- * el upload continúa sin dedup.
+ * Tamaño máximo de archivo para calcular hash: 512 MB.
+ * Web Crypto no hace SHA-256 incremental → hashear exige tener el fichero ENTERO en
+ * un buffer. Con partidos completos de varios GB eso tumba la pestaña (y en móvil,
+ * mucho antes). La dedup es best-effort: por encima de este límite devolvemos null
+ * SIN leer ni un byte y el upload continúa sin dedup.
+ * Elegido para que el peor caso en RAM (≈512 MB) siga siendo tolerable en escritorio;
+ * pendiente de validar en móviles de gama baja.
  */
-const MAX_HASH_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
+export const MAX_HASH_BYTES = 512 * 1024 * 1024; // 512 MB
 
 /**
  * Convierte ArrayBuffer → hex string
@@ -46,7 +49,7 @@ export async function calculateFileHash(
     if (!file || typeof file.size !== "number") return null;
     if (file.size === 0) return null;
     if (file.size > MAX_HASH_BYTES) {
-      console.warn(`[fileHash] Archivo demasiado grande para hash (${(file.size / 1e9).toFixed(2)} GB) — saltando dedup`);
+      console.warn(`[fileHash] Archivo demasiado grande para hash (${(file.size / (1024 * 1024)).toFixed(0)} MB > ${MAX_HASH_BYTES / (1024 * 1024)} MB) — saltando dedup`);
       return null;
     }
     if (typeof crypto === "undefined" || !crypto.subtle) {

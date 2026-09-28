@@ -7,9 +7,9 @@
  *  - Best-effort: nunca lanza
  *  - isValidSha256Hex validador correcto
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
 import { webcrypto } from "node:crypto";
-import { calculateFileHash, isValidSha256Hex } from "@/lib/fileHash";
+import { calculateFileHash, isValidSha256Hex, MAX_HASH_BYTES } from "@/lib/fileHash";
 
 // jsdom no expone crypto.subtle ni Blob.arrayBuffer()/stream() por defecto.
 // En lugar de polyfillar Blob (el polyfill de jsdom es buggy), usamos
@@ -126,6 +126,27 @@ describe("fileHash", () => {
       const fake = { size: 3 * 1024 * 1024 * 1024 } as Blob; // 3 GB
       const res = await calculateFileHash(fake);
       expect(res).toBeNull();
+    });
+
+    it("umbral de 512 MB: por encima NO lee ni un byte (nada de buffer de GB en RAM)", async () => {
+      expect(MAX_HASH_BYTES).toBe(512 * 1024 * 1024);
+      const stream = vi.fn();
+      const arrayBuffer = vi.fn();
+      // 600 MB: antes (umbral 2 GB) se leía entero por stream() y se concatenaba en RAM.
+      const fake = { size: 600 * 1024 * 1024, stream, arrayBuffer } as unknown as Blob;
+      const res = await calculateFileHash(fake);
+      expect(res).toBeNull();
+      expect(stream).not.toHaveBeenCalled();
+      expect(arrayBuffer).not.toHaveBeenCalled();
+    });
+
+    it("justo en el umbral sí intenta hashear (lee el fichero)", async () => {
+      const stream = vi.fn(() => ({
+        getReader: () => ({ read: async () => ({ done: true, value: undefined }) }),
+      }));
+      const fake = { size: MAX_HASH_BYTES, stream, arrayBuffer: vi.fn() } as unknown as Blob;
+      await calculateFileHash(fake);
+      expect(stream).toHaveBeenCalledTimes(1);
     });
   });
 });

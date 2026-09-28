@@ -25,7 +25,8 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import { IS_DEMO } from "@/lib/demoMode";
 import { buildDemoTeamBaseline } from "@/lib/demo/demoTeam";
 import VideoUpload from "@/components/VideoUpload";
-import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
+import { VideoService } from "@/services/real/videoService";
+import { resolveSyncAnalysisInput, syncAnalysisRefusalMessage } from "@/lib/syncVideoAnalysisGate";
 
 type AnalysisMode = "text" | "video";
 
@@ -60,6 +61,9 @@ export default function TeamBaselinePage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [analyzingVideo, setAnalyzingVideo] = useState(false);
   const [videoAnalysis, setVideoAnalysis] = useState<Record<string, unknown> | null>(null);
+  // Motivo honesto por el que el vídeo subido NO se manda al análisis rápido
+  // (partido completo, codificación en curso, solo local). null = sin aviso.
+  const [videoNotice, setVideoNotice] = useState<string | null>(null);
 
   async function handleVideoAnalysis(url: string) {
     setVideoUrl(url);
@@ -165,16 +169,28 @@ export default function TeamBaselinePage() {
             <div className="text-left space-y-3">
               {!videoAnalysis && !analyzingVideo && (
                 <VideoUpload
-                  onDone={(videoId) => {
+                  onDone={(videoId, info) => {
                     // VideoUpload expone onDone(videoId), no onUploadComplete
                     // (prop inexistente → subir vídeo no hacía nada · #3).
-                    // Resolvemos el videoId a una URL reproducible para el agente.
-                    const video = VideoService.getById(videoId);
-                    const url = video ? getBestVideoUrl(video) : null;
-                    if (url) handleVideoAnalysis(url);
-                    else toast.error(t("teamBaselinePage.errorAnalyzingVideo"));
+                    // Gate honesto (clips cortos + URL que el SERVIDOR pueda descargar;
+                    // nunca un blob:) antes de llamar al agente.
+                    const input = resolveSyncAnalysisInput(VideoService.getById(videoId), info.durationSec);
+                    if (input.kind === "ok") {
+                      setVideoNotice(null);
+                      void handleVideoAnalysis(input.url);
+                    } else {
+                      const msg = syncAnalysisRefusalMessage(t, input);
+                      setVideoNotice(msg);
+                      toast.error(msg);
+                    }
                   }}
                 />
+              )}
+              {videoNotice && !videoAnalysis && !analyzingVideo && (
+                <div role="status" className="flex items-start gap-2 p-3 rounded-lg bg-secondary border border-border">
+                  <AlertCircle size={14} className="text-muted-foreground shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-foreground leading-relaxed">{videoNotice}</p>
+                </div>
               )}
               {analyzingVideo && (
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 border border-primary/30">

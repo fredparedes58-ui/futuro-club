@@ -15,17 +15,36 @@ import {
 } from "lucide-react";
 import { useVideoUpload, type UploadPhase, type DuplicateInfo } from "@/hooks/useVideoUpload";
 import RecordingGuide, { useRecordingGuideNeeded } from "@/components/RecordingGuide";
+import { readVideoDurationSec } from "@/lib/localVideoUtils";
+import { syncAnalysisTooLongMessage } from "@/lib/syncVideoAnalysisGate";
+import {
+  checkUploadSize,
+  checkMatchDuration,
+  durationMinutesForDisplay,
+  MAX_MATCH_DURATION_MIN,
+  MAX_UPLOAD_SIZE_GB,
+} from "@/lib/shared/videoLimits";
+
+/** Info que acompaña a onDone: la duración que leyó el navegador (null = no se pudo leer). */
+export interface VideoUploadDoneInfo {
+  durationSec: number | null;
+}
 
 interface VideoUploadProps {
   playerId?: string;
-  onDone?: (videoId: string) => void;
+  onDone?: (videoId: string, info: VideoUploadDoneInfo) => void;
+  /**
+   * El fichero ya está entero en Bunny (éxito TUS), ANTES de esperar la codificación
+   * — que en un partido completo puede superar el poll. Útil para encolar trabajo
+   * que no necesita el vídeo codificado.
+   */
+  onUploaded?: (videoId: string) => void;
   className?: string;
 }
 
 const ACCEPTED = "video/mp4,video/quicktime,video/x-msvideo,video/webm,video/*";
-const MAX_SIZE_MB = 2048;
 
-export default function VideoUpload({ playerId, onDone, className = "" }: VideoUploadProps) {
+export default function VideoUpload({ playerId, onDone, onUploaded, className = "" }: VideoUploadProps) {
   const { t } = useTranslation();
   const { state, upload, cancel, reset } = useVideoUpload(playerId);
 
@@ -41,6 +60,8 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   };
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  // Leyendo metadatos (duración) del fichero antes de subir.
+  const [preparing, setPreparing] = useState(false);
   const [title, setTitle] = useState("");
   const guideNeeded = useRecordingGuideNeeded();
   const [showGuide, setShowGuide] = useState(false);
@@ -69,18 +90,41 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
   }, [t]);
 
   const handleFile = useCallback(
-    (file: File) => {
-      if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-        alert(t("videoUpload.fileTooLarge", { max: MAX_SIZE_MB }));
+    async (file: File) => {
+      // Límites compartidos (src/lib/shared/videoLimits · inv #7): un partido completo
+      // cabe; lo que exceda el tamaño o la duración máxima se rechaza antes de subir.
+      if (!checkUploadSize(file.size).ok) {
+        alert(t("videoUpload.fileTooLarge", { max: MAX_UPLOAD_SIZE_GB }));
         return;
       }
-      upload(file, { title: title || file.name, onDuplicate: handleDuplicate }).then((videoId) => {
-        // upload() devuelve el videoId real resuelto; antes leíamos
-        // state.videoId de la closure (stale) y el callback no disparaba (#26).
-        if (videoId && onDone) onDone(videoId);
+      // Duración REAL de los metadatos del navegador. Si no se puede leer → null:
+      // no se bloquea por duración y no se inventa un valor (invariante #2).
+      setPreparing(true);
+      let durationSec: number | null = null;
+      try {
+        durationSec = await readVideoDurationSec(file);
+      } finally {
+        setPreparing(false);
+      }
+      const durationGate = checkMatchDuration(durationSec);
+      if (!durationGate.allowed) {
+        alert(t("videoUpload.durationTooLong", {
+          duration: durationMinutesForDisplay(durationGate.durationSec),
+          max: MAX_MATCH_DURATION_MIN,
+        }));
+        return;
+      }
+      const videoId = await upload(file, {
+        title: title || file.name,
+        onDuplicate: handleDuplicate,
+        durationSec,
+        ...(onUploaded ? { onUploaded: (info: { videoId: string }) => onUploaded(info.videoId) } : {}),
       });
+      // upload() devuelve el videoId real resuelto; antes leíamos
+      // state.videoId de la closure (stale) y el callback no disparaba (#26).
+      if (videoId && onDone) onDone(videoId, { durationSec });
     },
-    [upload, title, onDone, handleDuplicate, t]
+    [upload, title, onDone, onUploaded, handleDuplicate, t]
   );
 
   const onDrop = useCallback(
@@ -88,14 +132,14 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
       e.preventDefault();
       setDragging(false);
       const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (file) void handleFile(file);
     },
     [handleFile]
   );
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) void handleFile(file);
   };
 
   const isActive = state.phase !== "idle" && state.phase !== "error" && state.phase !== "done";
@@ -159,10 +203,12 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
             </div>
             <div className="text-center">
               <p className="text-sm font-display font-semibold text-foreground">
-                {dragging ? t("videoUpload.dropHere") : t("videoUpload.dragOrClick")}
+                {preparing
+                  ? t("videoUpload.phaseInit")
+                  : dragging ? t("videoUpload.dropHere") : t("videoUpload.dragOrClick")}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {t("videoUpload.formatsHint", { max: MAX_SIZE_MB })}
+                {t("videoUpload.formatsHint", { max: MAX_UPLOAD_SIZE_GB, minutes: MAX_MATCH_DURATION_MIN })}
               </p>
             </div>
             <input
@@ -309,6 +355,23 @@ export default function VideoUpload({ playerId, onDone, className = "" }: VideoU
                 </p>
               </div>
             </div>
+            {state.encodeStatus === "processing" && (
+              <div className="p-3 rounded-lg bg-secondary space-y-1">
+                <p className="text-xs font-display font-semibold text-foreground">
+                  {t("videoUpload.encodingPendingTitle")}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  {t("videoUpload.encodingPendingHint")}
+                </p>
+              </div>
+            )}
+            {typeof state.syncGateDurationSec === "number" && (
+              <div className="p-3 rounded-lg bg-secondary">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  {syncAnalysisTooLongMessage(t, state.syncGateDurationSec)}
+                </p>
+              </div>
+            )}
             {state.analysisQueued && (
               <div className="p-3 rounded-lg bg-secondary space-y-1">
                 <p className="text-xs font-display font-semibold text-foreground">
