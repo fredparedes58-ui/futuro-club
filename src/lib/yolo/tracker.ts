@@ -9,8 +9,9 @@
  * threshold. This dramatically reduces ID switches.
  */
 
-import type { Detection, Track, FieldPosition } from "./types";
+import type { Detection, Track, FieldPosition, PixelSpace } from "./types";
 import { pixelToField, fieldDistance } from "./homography";
+import { scaleDetections } from "./coordSpace";
 import { KalmanLite2D } from "./kalmanLite";
 import type { PlayerIdentity } from "./playerIdentityManager";
 
@@ -78,6 +79,29 @@ export function isTrackIdentityReliable(
   return strong / total >= MIN_STRONG_MATCH_RATIO;
 }
 
+/**
+ * Paso del worker tras la inferencia (ruta ÚNICA: trackingWorker y tests la usan).
+ * Lleva las detecciones del espacio FRAME (el 640² aplastado que ve el modelo) al
+ * espacio SOURCE (píxeles nativos del vídeo, el canónico — ver coordSpace.ts) y
+ * actualiza el tracker con la homografía PÍXEL→CAMPO materializada en SOURCE.
+ *
+ * Unidades tras el cambio: IoU sobre cajas nativas (la IoU es invariante al escalado
+ * por eje, así que la asociación no cambia); Kalman, distancias y umbrales de
+ * velocidad en METROS (dependen solo de que caja y H compartan espacio).
+ */
+export function trackFrameDetections(
+  tracker: CentroidTracker,
+  frameDetections: Detection[],
+  frameSpace: PixelSpace,
+  sourceSpace: PixelSpace,
+  pixelToFieldSource: Float64Array,
+  timestampMs: number,
+): { tracks: Track[]; detections: Detection[] } {
+  const detections = scaleDetections(frameDetections, frameSpace, sourceSpace);
+  const tracks = tracker.update(detections, pixelToFieldSource, timestampMs);
+  return { tracks, detections };
+}
+
 export class CentroidTracker {
   private tracks  = new Map<number, Track>();
   private nextId  = 1;
@@ -85,8 +109,8 @@ export class CentroidTracker {
 
   /**
    * Actualiza los tracks con las nuevas detecciones del frame actual.
-   * @param detections  Detecciones YOLO del frame actual
-   * @param H           Matriz de homografía (píxeles → metros)
+   * @param detections  Detecciones YOLO del frame actual (en el MISMO espacio de píxel que H)
+   * @param H           Matriz de homografía PÍXEL→CAMPO (píxeles → metros)
    * @param timestampMs Timestamp del frame en ms
    */
   update(
