@@ -24,7 +24,12 @@ import { FIELD_ANCHOR_PRESETS, type PhysicalMetrics } from "@/lib/yolo/types";
 // ── onnxruntime-web falso: el modelo "ve" una persona en `ort.box` (cx,cy,w,h en 640²)
 // `modelScale` = inputSize del modelo / 640: el modelo real emite coords en SU espacio
 // de entrada (letterbox del frame 640²); el worker lo deshace con decodeYoloBox.
-const ort = vi.hoisted(() => ({ box: [0, 0, 0, 0] as number[], modelScale: 1 }));
+// `kps` (opcional): 17×[x, y, conf] en coords 640² (null → keypoints a 0, conf 0).
+const ort = vi.hoisted(() => ({
+  box: [0, 0, 0, 0] as number[],
+  modelScale: 1,
+  kps: null as null | Array<[number, number, number]>,
+}));
 vi.mock("onnxruntime-web", () => {
   const CHANNELS = 56; // 4 bbox + 1 conf + 17×3 keypoints (YOLOv8/11-pose)
   const ANCHORS = 8400;
@@ -49,6 +54,11 @@ vi.mock("onnxruntime-web", () => {
       data[2 * ANCHORS] = w;
       data[3 * ANCHORS] = h;
       data[4 * ANCHORS] = 0.9;
+      ort.kps?.forEach(([kx, ky, kc], k) => {
+        data[(5 + k * 3 + 0) * ANCHORS] = kx * ort.modelScale;
+        data[(5 + k * 3 + 1) * ANCHORS] = ky * ort.modelScale;
+        data[(5 + k * 3 + 2) * ANCHORS] = kc;
+      });
       return { output0: { data } };
     },
   };
@@ -238,5 +248,90 @@ describe("useTracking + trackingWorker — pipeline físico en metros (E2E)", ()
     // Contrato del mensaje FRAME: homografía + espacio nativo explícito.
     const frameMsg = workerIn.filter((msg) => msg.type === "FRAME").pop()!;
     expect(frameMsg.sourceSpace).toEqual({ width: NATIVE_W, height: NATIVE_H });
+  });
+});
+
+// ── PoseAnalyzer: umbrales en px evaluados en el FRAME, no en el nativo ───────────
+// El escaneo exige |nariz − punto medio de las orejas| > 8 px. Ese umbral siempre se
+// evaluó sobre el frame 640² del modelo. Si el analizador recibiera cajas NATIVAS, el
+// mismo gesto daría distinto nº de escaneos según la resolución de la cámara (a 4K el
+// umbral sería ~6× más laxo). Mismo clip (en coords del frame) a 720p y a 4K → mismo
+// `scans`.
+
+/** Pose en coords 640² con la nariz desplazada `noseOffsetPx` respecto al medio de las orejas. */
+function headPose(noseOffsetPx: number): Array<[number, number, number]> {
+  const kps: Array<[number, number, number]> = Array.from({ length: 17 }, () => [320, 300, 0]);
+  kps[0] = [320 + noseOffsetPx, 275, 0.9]; // nariz
+  kps[3] = [314, 275, 0.9];                // oreja izq
+  kps[4] = [326, 275, 0.9];                // oreja der
+  kps[5] = [312, 285, 0.9];                // hombro izq
+  kps[6] = [328, 285, 0.9];                // hombro der
+  return kps;
+}
+
+/**
+ * Corre por el pipeline REAL (hook → worker → hook) un clip de 9 frames: 3 con la
+ * cabeza girada a un lado (+offset), 3 al otro (−offset) y 3 de frente → 2 escaneos
+ * si el offset supera el umbral del analizador, 0 si no.
+ */
+async function scansForClip(nativeW: number, nativeH: number, noseOffsetFramePx: number) {
+  const video = { ...fakeVideo, videoWidth: nativeW, videoHeight: nativeH } as unknown as HTMLVideoElement;
+  const { result, unmount } = renderHook(() =>
+    useTracking({
+      videoId: "v-scan",
+      playerId: "p1",
+      calibrationPoints: CORNERS_PCT,
+      anchorPreset: "full_corners",
+      localVideoSrc: "blob:test",
+      enableBallTracking: false,
+      enableReId: false,
+    }),
+  );
+  await act(async () => {
+    await result.current.startTracking(video);
+    // El tracker del worker es de módulo: se reinicia para no arrastrar pistas previas.
+    BridgeWorker.last!.postMessage({ type: "RESET" });
+    await BridgeWorker.last!.pending;
+  });
+
+  ort.box = [320, 300, 20, 60];
+  const offsets = [1, 1, 1, -1, -1, -1, 0, 0, 0].map((s) => s * noseOffsetFramePx);
+  for (let k = 0; k < offsets.length; k++) {
+    ort.kps = headPose(offsets[k]);
+    await act(async () => {
+      extractor.onFrame!(frame640, 1000 + k * 125);
+      await BridgeWorker.last!.pending;
+    });
+  }
+
+  const scanEvents = result.current.state.scanEvents.length;
+  let metrics: PhysicalMetrics | null = null;
+  act(() => {
+    metrics = result.current.stopTracking();
+  });
+  ort.kps = null;
+  unmount();
+  return { scanEvents, scans: (metrics as unknown as PhysicalMetrics).scans };
+}
+
+describe("useTracking — PoseAnalyzer independiente de la resolución del vídeo", () => {
+  it("un giro de cabeza por debajo del umbral (5 px en el frame) no cuenta como escaneo ni a 720p ni a 4K", async () => {
+    const hd = await scansForClip(1280, 720, 5);
+    const uhd = await scansForClip(3840, 2160, 5);
+    // Antes del fix: 5 px de frame = 10 px nativos a 720p y 30 px a 4K (> 8) → 2 escaneos.
+    expect(hd.scanEvents).toBe(0);
+    expect(uhd.scanEvents).toBe(0);
+    expect(hd.scans?.value).toBe(0);
+    expect(uhd.scans?.value).toBe(0);
+  });
+
+  it("un giro claro (12 px en el frame) da los mismos 2 escaneos a 720p y a 4K", async () => {
+    const hd = await scansForClip(1280, 720, 12);
+    const uhd = await scansForClip(3840, 2160, 12);
+    expect(hd.scanEvents).toBe(2);
+    expect(uhd.scanEvents).toBe(2);
+    // Sigue siendo DERIVADA orientativa (no se relaja ningún gate).
+    expect(uhd.scans?.provenance).toBe("DERIVADA");
+    expect(uhd.scans?.calibrated).toBe(false);
   });
 });

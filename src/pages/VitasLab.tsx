@@ -36,7 +36,8 @@ import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
 import VitasLabOneClick from "@/components/VitasLabOneClick";
 import PrecisionToggle, { type PrecisionPhase } from "@/components/vision/PrecisionToggle";
 import { getTilingConfig } from "@/lib/yolo/tiling";
-import { containTransform, fromDisplay, toDisplay, videoSpaceOf, PERCENT_SPACE, type PixelSpace } from "@/lib/yolo/coordSpace";
+import { containTransform, fromDisplay, toDisplay, PERCENT_SPACE, type PixelSpace } from "@/lib/yolo/coordSpace";
+import { useVideoSpace } from "@/hooks/useVideoSpace";
 import { XgAccumulator } from "@/lib/xg/xgAccumulator";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import { useTeamAnalysis } from "@/hooks/useTeamAnalysis";
@@ -470,6 +471,13 @@ const VitasLab = () => {
 
   const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
+  // Vídeo mostrado (object-contain → centrado con bandas), como ESTADO: sus dimensiones
+  // llegan asíncronas (loadedmetadata) y el letterbox del overlay depende de ellas.
+  // drawOverlay y el hit-test de los puntos usan ESTE mismo valor → siempre coinciden,
+  // y el overlay se redibuja cuando el vídeo conoce su tamaño. Sin vídeo, null: la
+  // imagen del campo llena el contenedor (comportamiento previo).
+  const shownVideoSpace = useVideoSpace(() => labVideoRef.current ?? trackingVideoRef.current);
+
   const drawOverlay = useCallback(() => {
     const canvas    = canvasRef.current;
     const container = containerRef.current;
@@ -484,9 +492,7 @@ const VitasLab = () => {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const displaySpace: PixelSpace = { width: canvas.width, height: canvas.height };
-    // Vídeo mostrado (object-contain → centrado con bandas). Sin vídeo, null: la
-    // imagen del campo llena el contenedor (comportamiento previo).
-    const shownVideo = videoSpaceOf(labVideoRef.current ?? trackingVideoRef.current);
+    const shownVideo = shownVideoSpace;
 
     // ── Draw YOLO tracks (bounding boxes + keypoints) ──
     // Cajas/keypoints en píxeles NATIVOS del vídeo (trackSpace) → pantalla.
@@ -583,7 +589,7 @@ const VitasLab = () => {
       const coordLabel = `${pt.label}: ${Math.round((pt.x / 100) * 1050)}, ${Math.round((pt.y / 100) * 680)}`;
       ctx.fillText(coordLabel, px - 30, py - 12);
     });
-  }, [points, tracking.state.currentTracks, tracking.state.focusTrackId, tracking.state.trackSpace]);
+  }, [points, tracking.state.currentTracks, tracking.state.focusTrackId, tracking.state.trackSpace, shownVideoSpace]);
 
   useEffect(() => {
     drawOverlay();
@@ -600,12 +606,12 @@ const VitasLab = () => {
     return () => cancelAnimationFrame(raf);
   }, [tracking.state.status, drawOverlay]);
 
-  /** Ratón → % del frame del vídeo (el espacio de los puntos), con el mismo letterbox que el overlay. */
+  /** Ratón → % del frame del vídeo (el espacio de los puntos), con el mismo letterbox (y el mismo `shownVideoSpace`) que el overlay. */
   const mouseToCalibPct = (e: React.MouseEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
     const tr = containTransform(
       PERCENT_SPACE,
-      videoSpaceOf(labVideoRef.current ?? trackingVideoRef.current),
+      shownVideoSpace,
       { width: rect.width, height: rect.height },
     );
     return fromDisplay(tr, e.clientX - rect.left, e.clientY - rect.top);

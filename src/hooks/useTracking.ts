@@ -143,8 +143,9 @@ const EMPTY_METRICS: PhysicalMetrics = {
 // ─── Espacios de coordenadas (ver coordSpace.ts) ─────────────────────────────
 
 /**
- * Tracks de `from` a `to` para los recortes de color (Re-ID). Devuelve el MISMO
- * array si coinciden (lo normal: tracks y recorte están en el nativo del vídeo).
+ * Tracks de `from` a `to` (copias con caja y keypoints reescalados). Usos: recortes
+ * de color (Re-ID, nativo del canvas) y PoseAnalyzer (FRAME del modelo, donde viven
+ * sus umbrales en px). Devuelve el MISMO array si los espacios coinciden.
  */
 function tracksInSpace(tracks: Track[], from: PixelSpace, to: PixelSpace): Track[] {
   if (sameSpace(from, to)) return tracks;
@@ -279,9 +280,16 @@ export function useTracking(options: UseTrackingOptions) {
             event.frameSpace ?? { width: FRAME_SIZE, height: FRAME_SIZE };
           const frameSpace: PixelSpace = event.frameSpace ?? { width: FRAME_SIZE, height: FRAME_SIZE };
 
-          // Pose analysis (scanning + duels)
+          // Pose analysis (scanning + duels) en espacio FRAME, NO en el nativo.
+          // PoseAnalyzer tiene umbrales en PÍXELES fijos (escaneo: |nariz − medio
+          // orejas| > 8 px; duelo aéreo: |cadera − rodilla| < 20 px) que siempre se
+          // evaluaron sobre el frame 640² que ve el modelo. Pasarle cajas nativas los
+          // haría depender de la resolución (a 4K el umbral de escaneo sería ~6× más
+          // laxo) → mismo gesto, distinto `scans` según la cámara. Se llevan los
+          // tracks al FRAME: umbrales idénticos a los de antes, sin re-validar nada.
+          // Las posiciones en METROS (duelos por distancia) no cambian con el escalado.
           const { scans, duels } = analyzerRef.current.analyzeTracks(
-            tracks,
+            tracksInSpace(tracks, trackSpace, frameSpace),
             event.timestampMs,
             TARGET_FPS
           );
