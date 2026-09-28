@@ -16,7 +16,12 @@ import { DorsalOCR } from "./dorsalOCR";
 import type { DorsalDetection } from "./dorsalOCR";
 import { TeamClassifier } from "./teamClassifier";
 import type { TeamLabel, TeamAssignment } from "./teamClassifier";
-import { compareHistograms, extractTorsoHistogram } from "./colorReId";
+import {
+  compareHistograms,
+  extractTorsoHistogram,
+  isEmptyHistogram,
+  DEFAULT_REID_THRESHOLD,
+} from "./colorReId";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -42,7 +47,7 @@ export interface PlayerIdentity {
 export interface PlayerIdentityManagerConfig {
   /** Maximum time (ms) to keep a lost identity for re-ID (default: 10000) */
   maxLostDurationMs: number;
-  /** Maximum color distance for re-ID match (default: 0.5) */
+  /** Maximum color distance for re-ID match (default: DEFAULT_REID_THRESHOLD from colorReId) */
   colorMatchThreshold: number;
   /** Reclassify teams every N frames (default: 60) */
   teamClassifyInterval: number;
@@ -50,7 +55,8 @@ export interface PlayerIdentityManagerConfig {
 
 const DEFAULT_CONFIG: PlayerIdentityManagerConfig = {
   maxLostDurationMs: 10000,
-  colorMatchThreshold: 0.5,
+  // One "same kit" gate for every colour re-ID path (invariant #7).
+  colorMatchThreshold: DEFAULT_REID_THRESHOLD,
   teamClassifyInterval: 60,
 };
 
@@ -131,7 +137,9 @@ export class PlayerIdentityManager {
       // Update histogram (every Nth frame)
       if (imageData && this.frameCount % 5 === 0) {
         const hist = extractTorsoHistogram(imageData, track.bbox);
-        if (identity.histogram) {
+        if (isEmptyHistogram(hist)) {
+          // Off-frame crop: no colour evidence — keep the stored signature.
+        } else if (identity.histogram) {
           // EMA blend
           for (let i = 0; i < hist.length; i++) {
             identity.histogram[i] = 0.15 * hist[i] + 0.85 * identity.histogram[i];
@@ -176,10 +184,22 @@ export class PlayerIdentityManager {
     }
 
     // ── 3. Clean up very old lost identities ──
+    const expired = new Set<string>();
     for (const [stableId, identity] of this.identities) {
       if (!identity.active && timestampMs - identity.lastSeenMs > this.config.maxLostDurationMs) {
-        this.trackToStableId.delete(identity.currentTrackId);
+        expired.add(stableId);
         this.identities.delete(stableId);
+      }
+    }
+    if (expired.size > 0) {
+      // Every track id that ever pointed at an expired identity (a recovered
+      // identity keeps its OLD track ids too) is dropped, together with its
+      // per-track state in the team classifier and the dorsal reader.
+      for (const [trackId, sid] of this.trackToStableId) {
+        if (!expired.has(sid)) continue;
+        this.trackToStableId.delete(trackId);
+        this.teamClassifier.forgetTrack(trackId);
+        this.dorsalOCR.forgetTrack(trackId);
       }
     }
 
@@ -218,6 +238,11 @@ export class PlayerIdentityManager {
   /** Get all identities */
   getAllIdentities(): PlayerIdentity[] {
     return [...this.identities.values()];
+  }
+
+  /** Number of track ids currently mapped to a stable identity (memory bound check). */
+  get mappedTrackCount(): number {
+    return this.trackToStableId.size;
   }
 
   /* ── Private: Identity Recovery ─────────────────────────────────── */
