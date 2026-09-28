@@ -59,28 +59,70 @@ export interface VideoAnalysis {
 
 const STORAGE_KEY = "videos";
 
+const isHttpUrl = (url?: string | null): url is string => !!url && /^https?:\/\//i.test(url);
+
+/**
+ * URL HTTP(S) persistente del vídeo (CDN de Bunny), o null. Única implementación de la
+ * resolución HTTP que comparten getBestVideoUrl (reproducción) y getServerVideoUrl
+ * (consumidores de servidor).
+ */
+function resolveHttpVideoUrl(video: VideoRecord): string | null {
+  // If streamUrl is HLS (.m3u8), convert to direct MP4 (browsers can't play HLS natively)
+  if (isHttpUrl(video.streamUrl) && video.streamUrl.endsWith("/playlist.m3u8")) {
+    const base = video.streamUrl.replace("/playlist.m3u8", "");
+    return `${base}/play_720p.mp4`;
+  }
+  if (isHttpUrl(video.streamUrl)) return video.streamUrl;
+  if (isHttpUrl(video.localPath)) return video.localPath;
+  return null;
+}
+
 /**
  * Returns the best playable URL for a video, prioritizing persistent CDN URLs
  * over ephemeral blob: URLs that expire on page refresh.
  *
  * Priority: streamUrl (HTTP) > localPath (HTTP) > streamUrl (blob) > localPath (blob)
+ *
+ * SOLO para reproducir en ESTE navegador (<video src>). Puede devolver un blob: que no
+ * existe fuera de la pestaña → NUNCA pasarlo a una API. Para eso: getServerVideoUrl.
  */
 export function getBestVideoUrl(video: VideoRecord): string | null {
-  const isHttp = (url?: string | null) => !!url && url.startsWith("http");
-
-  // If streamUrl is HLS (.m3u8), convert to direct MP4 (browsers can't play HLS natively)
-  if (isHttp(video.streamUrl) && video.streamUrl!.endsWith("/playlist.m3u8")) {
-    const base = video.streamUrl!.replace("/playlist.m3u8", "");
-    return `${base}/play_720p.mp4`;
-  }
-
-  // Prefer persistent HTTP URLs from Bunny CDN
-  if (isHttp(video.streamUrl)) return video.streamUrl!;
-  if (isHttp(video.localPath)) return video.localPath!;
+  const http = resolveHttpVideoUrl(video);
+  if (http) return http;
   // Fallback to blob URLs (only work in current session)
   if (video.streamUrl) return video.streamUrl;
   if (video.localPath) return video.localPath;
   return null;
+}
+
+/** Por qué no hay URL utilizable por el servidor. */
+export type ServerVideoUrlReason =
+  /** Subido a Bunny pero la codificación no ha terminado (aún no hay URL de CDN). */
+  | "encoding_pending"
+  /** Solo existe en este navegador (blob:/local, sin CDN configurado). */
+  | "local_only"
+  /** Sin ninguna URL conocida. */
+  | "no_url";
+
+export type ServerVideoUrlResult =
+  | { url: string; reason: null }
+  | { url: null; reason: ServerVideoUrlReason };
+
+/**
+ * URL que un consumidor de SERVIDOR (agentes, /api/live/matches…) puede descargar.
+ * Solo HTTP(S): jamás un blob:/data:/ruta local (no existen fuera del navegador).
+ * Si no la hay, `url: null` + el motivo, para que la UI lo diga en vez de fallar.
+ */
+export function getServerVideoUrl(video: VideoRecord | null | undefined): ServerVideoUrlResult {
+  if (!video) return { url: null, reason: "no_url" };
+  const http = resolveHttpVideoUrl(video);
+  if (http) return { url: http, reason: null };
+  if (video.id.startsWith("local-")) return { url: null, reason: "local_only" };
+  if (video.status !== "finished" && video.status !== "error" && video.status !== "upload-failed") {
+    return { url: null, reason: "encoding_pending" };
+  }
+  if (video.streamUrl || video.localPath) return { url: null, reason: "local_only" };
+  return { url: null, reason: "no_url" };
 }
 
 export const VideoService = {

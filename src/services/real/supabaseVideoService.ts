@@ -13,18 +13,21 @@ import { VideoService, type VideoRecord } from "./videoService";
 import { SyncQueueService } from "./syncQueueService";
 import { OrganizationService } from "./organizationService";
 
+/** Valor numérico CONOCIDO (> 0). En un VideoRecord, 0 = "aún no se sabe" (stub). */
+const known = (n: number | null | undefined): n is number =>
+  typeof n === "number" && Number.isFinite(n) && n > 0;
+
 // ── Helper: extraer columnas relacionales de un VideoRecord (025_normalize_videos + 031_video_file_hash) ─
-function videoToColumns(v: VideoRecord) {
-  return {
+// Las métricas de metadatos (duración, tamaño, fps…) SOLO se envían si se conocen: el
+// stub local las tiene a 0 = "no se sabe" y un upsert con 0 pisaría lo que ya tenga la
+// fila (invariante #2: ausencia ≠ 0). Las columnas que siembra el servidor
+// (bunny_video_id, tenant_id, duration_sec — video-init/finalize) NUNCA se envían aquí.
+export function videoToColumns(v: VideoRecord): Record<string, unknown> {
+  const cols: Record<string, unknown> = {
     title: v.title ?? null,
     status: v.status ?? "unknown",
     status_code: v.statusCode ?? -1,
     encode_progress: v.encodeProgress ?? 0,
-    duration: v.duration ?? 0,
-    vid_width: v.width ?? 0,
-    vid_height: v.height ?? 0,
-    fps: v.fps ?? 0,
-    storage_size: v.storageSize ?? 0,
     thumbnail_url: v.thumbnailUrl ?? null,
     embed_url: v.embedUrl ?? "",
     stream_url: v.streamUrl ?? null,
@@ -33,6 +36,12 @@ function videoToColumns(v: VideoRecord) {
     analysis_result: v.analysisResult ?? null,
     file_hash: v.fileHash ?? null,
   };
+  if (known(v.duration)) cols.duration = v.duration;
+  if (known(v.width)) cols.vid_width = v.width;
+  if (known(v.height)) cols.vid_height = v.height;
+  if (known(v.fps)) cols.fps = v.fps;
+  if (known(v.storageSize)) cols.storage_size = v.storageSize;
+  return cols;
 }
 
 export const SupabaseVideoService = {
@@ -60,8 +69,11 @@ export const SupabaseVideoService = {
         return [];
       }
 
-      // Supabase-first: cloud reemplaza localStorage
-      const cloudVideos = data.map((row) => row.data as VideoRecord);
+      // Supabase-first: cloud reemplaza localStorage. Filas sin `data` (sembradas por
+      // el servidor y aún sin upsert del cliente) se omiten en vez de romper el pull.
+      const cloudVideos = data
+        .map((row) => row.data as VideoRecord | null)
+        .filter((v): v is VideoRecord => !!v && typeof v === "object" && typeof v.id === "string");
 
       // Excepción: preservar analysisResult local si cloud no lo tiene
       const localVideos = VideoService.getAll();
@@ -133,15 +145,19 @@ export const SupabaseVideoService = {
   async pushOne(userId: string, video: VideoRecord): Promise<void> {
     if (!SUPABASE_CONFIGURED) return;
     try {
-      // Verify player exists in Supabase if video has playerId
-      let safePlayerId: string | null = null;
+      // Verify player exists in Supabase if video has playerId.
+      // - sin jugador en el registro → player_id: null explícito (desasignar es legítimo)
+      // - con jugador visible bajo RLS → se envía
+      // - con jugador NO encontrado (local, o fallo transitorio) → NO se envía la columna:
+      //   así el upsert no borra el player_id que ya sembró el servidor (video-init/finalize).
+      let playerColumn: { player_id: string | null } | Record<string, never> = { player_id: null };
       if (video.playerId) {
         const { data } = await supabase
           .from("players")
           .select("id")
           .eq("id", video.playerId)
           .maybeSingle();
-        safePlayerId = data ? video.playerId : null;
+        playerColumn = data ? { player_id: video.playerId } : {};
       }
       const orgId = OrganizationService.getOrgId();
       const { error } = await supabase
@@ -150,7 +166,7 @@ export const SupabaseVideoService = {
           id: video.id,
           user_id: userId,
           ...(orgId ? { org_id: orgId } : {}),
-          player_id: safePlayerId,
+          ...playerColumn,
           data: video,
           updated_at: new Date().toISOString(),
           ...videoToColumns(video),

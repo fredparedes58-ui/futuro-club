@@ -36,6 +36,7 @@ import { PlayerService } from "@/services/real/playerService";
 import { buildDemoAnalysisRows } from "@/lib/demo/demoReports";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
+import { finalizeSyncGateMessage } from "@/lib/syncVideoAnalysisGate";
 
 // ── Tipos ─────────────────────────────────────────────────────────
 
@@ -205,6 +206,10 @@ export function usePlayerAnalysisV2() {
             signal: ac.signal,
           });
           const finData = await finRes.json();
+          // Gate honesto del servidor: vídeo demasiado largo para la cola de clips cortos
+          // → se para aquí con el motivo real, no tras 12 reintentos con un "timeout" falso.
+          const gateMsg = finalizeSyncGateMessage(i18n.t.bind(i18n), finData);
+          if (gateMsg) throw new Error(gateMsg);
           if (finData?.data?.ready) {
             finalized = true;
             break;
@@ -366,6 +371,8 @@ export function usePlayerAnalysisV2() {
             signal: ac.signal,
           });
           const finData = await finRes.json();
+          const gateMsg = finalizeSyncGateMessage(i18n.t.bind(i18n), finData);
+          if (gateMsg) throw new Error(gateMsg);
           if (finData?.data?.ready) { finalized = true; break; }
           await new Promise((r) => setTimeout(r, 5000));
           setState((s) => ({ ...s, progress: 30 + finalizeAttempts * 2, message: i18n.t("videoAnalysis.progress.bunnyEncoding", { n: finalizeAttempts }) }));
