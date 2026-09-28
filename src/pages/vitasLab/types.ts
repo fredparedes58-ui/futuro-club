@@ -1,6 +1,8 @@
 // Tipos del VitasLab extraídos del componente monolítico (paso 1 del split).
 // Código puro, sin dependencias de runtime — mover aquí no cambia comportamiento.
 
+import type { AnalysisIdentityCaveat } from "@/lib/reports/analysisIdentity";
+
 export interface CalibrationPoint {
   id: number;
   x: number;
@@ -85,4 +87,10 @@ export interface AnalysisReport {
     heatmapPositions?: Array<{ fx: number; fy: number }>;
   };
   confianza: number | null; // null ⇒ VSI-vídeo bloqueado (no se pinta badge de confianza, #40 clase)
+  /**
+   * Advertencia de identidad del jugador en el vídeo (src/lib/reports/analysisIdentity.ts).
+   * Presente en los informes del pipeline de análisis; `confianza` ya viene reducida por
+   * su factor. Ausente ⇒ informe sin fila de análisis (p. ej. exportación antigua).
+   */
+  identidad?: AnalysisIdentityCaveat;
 }

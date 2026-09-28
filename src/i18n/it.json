@@ -620,7 +620,7 @@
     "uploadVideoBtn": "Carica video",
     "selectPlayerFirst": "Seleziona prima un giocatore",
     "deleteConfirm": "Eliminare {{name}}?",
-    "identityHint": "VITAS non identifica ancora i giocatori dal numero di maglia: se il video mostra più giocatori, l'analisi si astiene invece di attribuirgli azioni che non può verificare."
+    "identityHint": "Per analizzare un giocatore in un video con più giocatori, indica il suo numero e il colore della maglia quando avvii l'analisi nel Lab. Senza di essi si analizzano solo clip con un solo giocatore inquadrato."
   },
   "billing": {
     "title": "Piano.",
@@ -2224,7 +2224,7 @@
     "playerNameFieldPlaceholder": "Nome del giocatore",
     "position": "Posizione",
     "ownFormation": "Formazione propria",
-    "specificPlayerRequiredHint": "VITAS non identifica ancora i giocatori dal numero di maglia: le metriche individuali provengono dalla traccia che segui nel video e vengono bloccate se la sua identità non è affidabile.",
+    "specificPlayerRequiredHint": "Le metriche del tracking provengono dalla traccia che segui nel video e vengono bloccate se la sua identità non è affidabile. Il numero e il colore della maglia indicati sotto il giocatore li usa l'analisi IA.",
     "playedPositionInVideo": "Posizione giocata in questo video",
     "otherPosition": "+ Altra posizione",
     "defaultPositionHint": "Default: posizione principale (⭐). Seleziona un'altra se ha giocato in una posizione diversa.",
@@ -2362,7 +2362,8 @@
     "label": "Confidenza",
     "completeness": "{{pct}}% dei dati",
     "notEvaluated": "Non valutato",
-    "notEvaluatedShort": "{{count}} senza dati"
+    "notEvaluatedShort": "{{count}} senza dati",
+    "reducedByIdentity": "· ridotta: identità non verificata"
   },
   "calibrationCaveat": {
     "text": "Metriche fisiche non calibrate — indicative. Dipendono dal rilevamento dei punti del campo; velocità/distanza in metri potrebbero non essere esatte."
@@ -6155,5 +6156,46 @@
       "loadingReports": "Errore nel caricamento dei report",
       "notFound": "Non trovato"
     }
+  },
+  "playerReference": {
+    "title": "Riferimento del giocatore nel video",
+    "jerseyLabel": "Numero di maglia",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Colore della maglia",
+    "kitColorNone": "Non indicato",
+    "hint": "Necessario per analizzare un giocatore in un video con più giocatori. Senza numero e colore si analizzano solo clip in cui compare un solo giocatore.",
+    "completeHint": "L'IA cercherà il giocatore solo dal numero e dal colore della maglia, mai dal volto. L'identificazione è una stima dell'IA e il report lo indicherà.",
+    "incompleteHint": "Manca il numero o il colore: se nel video compaiono più giocatori, nulla verrà attribuito a questo giocatore.",
+    "colors": {
+      "red": "Rosso",
+      "blue": "Blu",
+      "navy": "Blu navy",
+      "skyBlue": "Celeste",
+      "white": "Bianco",
+      "black": "Nero",
+      "yellow": "Giallo",
+      "green": "Verde",
+      "orange": "Arancione",
+      "purple": "Viola",
+      "maroon": "Granata",
+      "grey": "Grigio",
+      "pink": "Rosa"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "Identificazione stimata dall'IA",
+    "dorsal": "numero {{value}}",
+    "kitColor": "colore {{value}}",
+    "confidence": "confidenza {{level}}",
+    "level": {
+      "alta": "alta",
+      "media": "media",
+      "baja": "bassa"
+    },
+    "estimatedDetail": "Un modello di IA dichiara di aver visto questo numero e questo colore; nessuna persona lo ha verificato. La confidenza dei dati di questa analisi è stata ridotta.",
+    "singlePlayer": "Unico giocatore inquadrato (senza numero di riferimento)",
+    "singlePlayerDetail": "Attribuito per esclusione: nel video compare un solo giocatore e la sua identità non è stata verificata dal numero. La confidenza dei dati è stata ridotta.",
+    "unverified": "Identificazione non verificata",
+    "unverifiedDetail": "Questa analisi non registra come è stato identificato il giocatore nel video: non è confermato che i dati siano suoi. La confidenza dei dati è stata ridotta."
   }
 }

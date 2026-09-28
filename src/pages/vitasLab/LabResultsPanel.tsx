@@ -10,6 +10,7 @@ import XgPanel from "@/components/XgPanel";
 import TeamDashboard from "@/components/TeamDashboard";
 import DrillRecommendations from "@/components/intelligence/DrillRecommendations";
 import KnowledgeSearch from "@/components/KnowledgeSearch";
+import AnalysisIdentityBadge from "@/components/analysis/AnalysisIdentityBadge";
 import type { XgSummary } from "@/lib/xg/xgAccumulator";
 import type { AnalysisReport } from "./types";
 
@@ -167,6 +168,9 @@ const LabResultsPanel = ({
 
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
+
+              {/* Identidad del jugador en el vídeo (identidad.md): primero, sin scroll. */}
+              {report.identidad && <AnalysisIdentityBadge caveat={report.identidad} />}
 
               {/* Resumen ejecutivo */}
               <div className="glass rounded-xl p-4">

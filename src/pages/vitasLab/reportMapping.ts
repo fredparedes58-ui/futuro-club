@@ -1,5 +1,6 @@
 import { type AnalysisV2Result } from "@/hooks/usePlayerAnalysisV2";
 import { unwrapDnaContent } from "@/lib/reports/reportItems";
+import { reduceConfidenceForIdentity, resolveAnalysisIdentity } from "@/lib/reports/analysisIdentity";
 import type { AnalysisReport } from "./types";
 
 // ── Bridge: mapea V2 reports al shape legacy que usa el panel de resultados ──
@@ -25,6 +26,9 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
     (pj.optimistic as unknown) ?? (pj.escenarioOptimista as unknown) ??
     (pj.realistic as unknown)  ?? (pj.escenarioRealista as unknown)
   );
+  // Identidad del jugador en el vídeo (identidad.md): estimación de IA sin verificar por
+  // una persona ⇒ advertencia en el panel + confianza reducida (misma impl que el dashboard).
+  const identidad = resolveAnalysisIdentity(result.biomechanics);
 
   return {
     estadoActual: {
@@ -87,6 +91,11 @@ export function mapV2ToReport(result: AnalysisV2Result): AnalysisReport | null {
     // "sin base medida"). Un 0 renderizado como "0%" es justo lo que prohíbe el inv #2
     // (un 0 que significa «no se pudo medir»). >0 ⇒ número real; 0 o ausente ⇒ null → la
     // UI oculta el badge. Antes `?? 50` → 0.5 fabricado (#40 clase).
-    confianza: (result.vsi?.confidence as number) > 0 ? (result.vsi!.confidence as number) : null,
+    // Además se reduce por la identidad no verificada del jugador (null sigue null).
+    confianza: reduceConfidenceForIdentity(
+      (result.vsi?.confidence as number) > 0 ? (result.vsi!.confidence as number) : null,
+      identidad,
+    ),
+    identidad,
   };
 }

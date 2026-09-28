@@ -75,6 +75,12 @@ export interface VitasLabOneClickProps {
    * ANTES de analizar y vea el estado durante/después. Ver `PrecisionToggle`.
    */
   precisionControl?: React.ReactNode;
+  /**
+   * Referencia del jugador en el vídeo (dorsal + color de equipación). VISIBLE bajo el
+   * selector de jugador (no en "Ajustes avanzados"): sin ella, un clip con varios
+   * jugadores no se puede atribuir. Solo se muestra con un jugador elegido.
+   */
+  playerReferenceControl?: React.ReactNode;
   /** Children: manual override section content */
   children?: React.ReactNode;
 }
@@ -136,6 +142,7 @@ export default function VitasLabOneClick({
   onOpenUploadPanel,
   onViewResults,
   precisionControl,
+  playerReferenceControl,
   children,
 }: VitasLabOneClickProps) {
   const { t } = useTranslation();
@@ -234,6 +241,7 @@ export default function VitasLabOneClick({
             </span>
           </div>
         )}
+        {selectedPlayer && playerReferenceControl && <div className="mt-2">{playerReferenceControl}</div>}
       </div>
 
       {/* ── Step 2: Video Selector ── */}

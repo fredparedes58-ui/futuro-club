@@ -37,8 +37,17 @@ import { buildDemoAnalysisRows } from "@/lib/demo/demoReports";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 import { finalizeSyncGateMessage } from "@/lib/syncVideoAnalysisGate";
+import { playerReferenceBody, type PlayerReference } from "@/lib/shared/playerReference";
 
 // ── Tipos ─────────────────────────────────────────────────────────
+
+/**
+ * Referencia del jugador en ESTE vídeo que teclea el usuario (dorsal + color de
+ * equipación). Se envía a finalize → fila analyses (mig 068) → Gemini. Identidad
+ * solo por dorsal + color (identidad.md). Sin ella, en un clip con varios jugadores
+ * el análisis se abstiene; con un único jugador en plano, se atribuye por exclusión.
+ */
+export type AnalysisPlayerReferenceInput = Partial<PlayerReference>;
 
 export type AnalysisV2Step =
   | "idle"
@@ -132,7 +141,7 @@ export function usePlayerAnalysisV2() {
    *   file → Bunny → Modal → 6 reports
    */
   const startAnalysis = useCallback(
-    async (params: { file: File; playerId: string; title: string }) => {
+    async (params: { file: File; playerId: string; title: string; playerReference?: AnalysisPlayerReferenceInput }) => {
       const ac = new AbortController();
       abortRef.current = ac;
       setResult(INITIAL_RESULT);
@@ -201,8 +210,13 @@ export function usePlayerAnalysisV2() {
             method: "POST",
             headers: { ...headers, "Content-Type": "application/json" },
             // locale: idioma de la UI → finalize lo persiste (mig 064) y los informes
-            // asíncronos salen en él (antes siempre en español).
-            body: JSON.stringify({ videoId: meta.videoId, bunnyVideoId: meta.bunnyVideoId, locale: normalizeLocale(i18n.language) }),
+            // asíncronos salen en él (antes siempre en español). + dorsal/color (mig 068).
+            body: JSON.stringify({
+              videoId: meta.videoId,
+              bunnyVideoId: meta.bunnyVideoId,
+              locale: normalizeLocale(i18n.language),
+              ...playerReferenceBody(params.playerReference),
+            }),
             signal: ac.signal,
           });
           const finData = await finRes.json();
@@ -330,7 +344,13 @@ export function usePlayerAnalysisV2() {
    * Si ya hay un análisis completado lo carga directamente.
    */
   const analyzeExistingVideo = useCallback(
-    async (params: { videoId: string; bunnyVideoId: string; playerId: string; playedPosition?: string }) => {
+    async (params: {
+      videoId: string;
+      bunnyVideoId: string;
+      playerId: string;
+      playedPosition?: string;
+      playerReference?: AnalysisPlayerReferenceInput;
+    }) => {
       const ac = new AbortController();
       abortRef.current = ac;
       setResult(INITIAL_RESULT);
@@ -367,6 +387,7 @@ export function usePlayerAnalysisV2() {
               playerId: params.playerId,                // jugador elegido → finalize siembra player_id/tenant_id + encola
               playedPosition: params.playedPosition,    // posición jugada en este video
               locale: normalizeLocale(i18n.language),   // idioma de la UI → informes en ese idioma (mig 064)
+              ...playerReferenceBody(params.playerReference), // dorsal + color → Gemini identifica (mig 068)
             }),
             signal: ac.signal,
           });
@@ -422,6 +443,8 @@ export function usePlayerAnalysisV2() {
       biomechanics?: Record<string, unknown> | null;
       physicalMetrics?: Record<string, unknown> | null;
       eventSummary?: Record<string, unknown> | null;
+      /** Solo se usa si este camino cae al pipeline estándar (finalize → Gemini). */
+      playerReference?: AnalysisPlayerReferenceInput;
     }) => {
       const ac = new AbortController();
       abortRef.current = ac;
@@ -518,6 +541,7 @@ export function usePlayerAnalysisV2() {
           bunnyVideoId,
           playerId: params.playerId,
           playedPosition: params.playedPosition,
+          playerReference: params.playerReference,
         });
 
       } catch (err) {

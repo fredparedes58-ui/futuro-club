@@ -35,10 +35,11 @@ interface LabAnalysisConfigProps {
  *  coordenadas de campo, selector de modo + config por modo, posición jugada y enfoque.
  *  Presentacional; todo el estado del formulario vive en el padre.
  *
- *  HONESTIDAD (identidad.md): los campos de dorsal y color de equipación (propio,
- *  local, visitante, rival) se retiraron — nunca se enviaban a ningún análisis y la
- *  identificación por dorsal aún no existe. Un campo inerte que dice «La IA buscará
- *  ese dorsal» es una promesa falsa sobre a quién se atribuyen las cifras de un menor. */
+ *  HONESTIDAD (identidad.md): aquí NO hay campos de dorsal/color. La referencia del
+ *  jugador (dorsal + color de equipación) vive en PlayerReferenceFields, VISIBLE bajo el
+ *  selector de jugador del flujo 1-Click (no en estos ajustes plegados), y SÍ llega al
+ *  análisis: finalize → fila analyses (mig 068) → Gemini. Los antiguos campos de esta
+ *  sección (propio/local/visitante/rival) no se enviaban a ningún sitio y no vuelven. */
 const LabAnalysisConfig = ({
   selectedMode,
   setSelectedMode,
@@ -63,9 +64,8 @@ const LabAnalysisConfig = ({
 
   return (
     <>
-          {/* Sin campos de dorsal/color: la identificación por dorsal aún no existe y
-              esos valores nunca llegaban a ningún análisis (identidad.md). En los modos
-              por-jugador la atribución sale de la pista seguida en el vídeo. */}
+          {/* Dorsal/color: en PlayerReferenceFields (flujo visible del Lab), no aquí.
+              Un solo sitio para la referencia (inv #7), y que no quede plegado. */}
 
           {/* Coordinate Realtime */}
           <div>

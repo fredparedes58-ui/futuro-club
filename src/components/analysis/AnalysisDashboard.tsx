@@ -35,6 +35,9 @@ import PlayerReportView from "@/components/analysis/reports/PlayerReportView";
 import ProjectionReportView from "@/components/analysis/reports/ProjectionReportView";
 import DevelopmentPlanReportView from "@/components/analysis/reports/DevelopmentPlanReportView";
 import DnaProfileReportView from "@/components/analysis/reports/DnaProfileReportView";
+import AnalysisIdentityBadge from "@/components/analysis/AnalysisIdentityBadge";
+import { IdentityCaveatContext } from "@/components/analysis/reports/identityCaveatContext";
+import { resolveAnalysisIdentity } from "@/lib/reports/analysisIdentity";
 
 interface ReportData {
   report_type: string;
@@ -118,6 +121,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
   const [reports, setReports] = useState<ReportData[]>([]);
   const [activeTab, setActiveTab] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+
+  // Identidad del jugador en el vídeo (identidad.md): advertencia determinista desde lo
+  // guardado en biomechanics + factor que reduce la confianza de TODO lo derivado.
+  // MUST be before any early returns to keep hooks order consistent.
+  const identityCaveat = useMemo(() => resolveAnalysisIdentity(analysis?.biomechanics), [analysis]);
 
   // Extract areas_to_improve from player-report for RAG drill recommendations.
   // MUST be before any early returns to keep hooks order consistent.
@@ -237,7 +245,11 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
   const ActiveIcon = activeReport ? REPORT_META[activeReport.report_type]?.Icon ?? Brain : Brain;
 
   return (
+    <IdentityCaveatContext.Provider value={identityCaveat}>
     <div className="space-y-4">
+      {/* Identidad del jugador (identidad.md): ARRIBA, sin scroll, también en el PDF. */}
+      <AnalysisIdentityBadge caveat={identityCaveat} />
+
       {/* Header VSI · score + tier + peer percentile */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -413,6 +425,7 @@ export function AnalysisDashboard({ analysisId, shareToken, onLoaded }: Props) {
         </div>
       </details>
     </div>
+    </IdentityCaveatContext.Provider>
   );
 }
 

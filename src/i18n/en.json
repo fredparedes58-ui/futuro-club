@@ -621,7 +621,7 @@
     "uploadVideoBtn": "Upload video",
     "selectPlayerFirst": "Select a player first",
     "deleteConfirm": "Delete {{name}}?",
-    "identityHint": "VITAS does not identify players by jersey number yet: if the video shows several players, the analysis abstains rather than attributing actions it cannot verify."
+    "identityHint": "To analyze a player in a video with several players, enter their jersey number and jersey color when you start the analysis in the Lab. Without them, only clips with a single player in shot are analyzed."
   },
   "billing": {
     "title": "Plan.",
@@ -2225,7 +2225,7 @@
     "playerNameFieldPlaceholder": "Player name",
     "position": "Position",
     "ownFormation": "Own formation",
-    "specificPlayerRequiredHint": "VITAS does not identify players by jersey number yet: individual metrics come from the track you follow in the video and are blocked if its identity is not reliable.",
+    "specificPlayerRequiredHint": "Tracking metrics come from the track you follow in the video and are blocked if its identity is not reliable. The jersey number and color you enter under the player are used by the AI analysis.",
     "playedPositionInVideo": "Position played in this video",
     "otherPosition": "+ Other position",
     "defaultPositionHint": "Default: primary position (⭐). Select another if they played a different position.",
@@ -2363,7 +2363,8 @@
     "label": "Confidence",
     "completeness": "{{pct}}% data",
     "notEvaluated": "Not evaluated",
-    "notEvaluatedShort": "{{count}} without data"
+    "notEvaluatedShort": "{{count}} without data",
+    "reducedByIdentity": "· reduced: identity not verified"
   },
   "calibrationCaveat": {
     "text": "Physical metrics not calibrated — indicative only. They depend on detecting the pitch points; speed/distance in meters may not be exact."
@@ -6156,5 +6157,46 @@
       "loadingReports": "Error loading reports",
       "notFound": "Not found"
     }
+  },
+  "playerReference": {
+    "title": "Player reference in the video",
+    "jerseyLabel": "Jersey number",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Jersey color",
+    "kitColorNone": "Not set",
+    "hint": "Needed to analyze a player in a video with several players. Without jersey number and color, only clips showing a single player are analyzed.",
+    "completeHint": "The AI will look for the player only by jersey number and jersey color, never by face. The identification is an AI estimate and the report will say so.",
+    "incompleteHint": "Jersey number or color missing: if several players appear in the video, nothing will be attributed to this player.",
+    "colors": {
+      "red": "Red",
+      "blue": "Blue",
+      "navy": "Navy",
+      "skyBlue": "Sky blue",
+      "white": "White",
+      "black": "Black",
+      "yellow": "Yellow",
+      "green": "Green",
+      "orange": "Orange",
+      "purple": "Purple",
+      "maroon": "Maroon",
+      "grey": "Gray",
+      "pink": "Pink"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "AI-estimated identification",
+    "dorsal": "number {{value}}",
+    "kitColor": "color {{value}}",
+    "confidence": "{{level}} confidence",
+    "level": {
+      "alta": "high",
+      "media": "medium",
+      "baja": "low"
+    },
+    "estimatedDetail": "An AI model reports seeing this jersey number and color; no person has verified it. Confidence in this analysis's figures has been reduced.",
+    "singlePlayer": "Only player in shot (no reference jersey number)",
+    "singlePlayerDetail": "Attributed by exclusion: only one player appears in the video and their identity has not been verified by jersey number. Confidence in the figures has been reduced.",
+    "unverified": "Identification not verified",
+    "unverifiedDetail": "This analysis does not record how the player was identified in the video: it is not confirmed that the figures are theirs. Confidence in the figures has been reduced."
   }
 }

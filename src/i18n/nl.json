@@ -621,7 +621,7 @@
     "uploadVideoBtn": "Video uploaden",
     "selectPlayerFirst": "Selecteer eerst een speler",
     "deleteConfirm": "{{name}} verwijderen?",
-    "identityHint": "VITAS herkent spelers nog niet aan hun rugnummer: als de video meerdere spelers toont, onthoudt de analyse zich in plaats van acties toe te schrijven die ze niet kan verifiëren."
+    "identityHint": "Om een speler te analyseren in een video met meerdere spelers, geef je bij het starten van de analyse in het Lab zijn rugnummer en shirtkleur op. Zonder die gegevens worden alleen clips met één speler in beeld geanalyseerd."
   },
   "billing": {
     "title": "Abonnement.",
@@ -2225,7 +2225,7 @@
     "playerNameFieldPlaceholder": "Naam van de speler",
     "position": "Positie",
     "ownFormation": "Eigen formatie",
-    "specificPlayerRequiredHint": "VITAS herkent spelers nog niet aan hun rugnummer: individuele metrics komen van het spoor dat je in de video volgt en worden geblokkeerd als de identiteit ervan niet betrouwbaar is.",
+    "specificPlayerRequiredHint": "De trackingmetrics komen van het spoor dat je in de video volgt en worden geblokkeerd als de identiteit ervan niet betrouwbaar is. Het rugnummer en de shirtkleur onder de speler gebruikt de AI-analyse.",
     "playedPositionInVideo": "Gespeelde positie in deze video",
     "otherPosition": "+ Andere positie",
     "defaultPositionHint": "Standaard: hoofdpositie (⭐). Selecteer een andere als hij/zij op een andere positie speelde.",
@@ -2363,7 +2363,8 @@
     "label": "Betrouwbaarheid",
     "completeness": "{{pct}}% van de gegevens",
     "notEvaluated": "Niet beoordeeld",
-    "notEvaluatedShort": "{{count}} zonder gegevens"
+    "notEvaluatedShort": "{{count}} zonder gegevens",
+    "reducedByIdentity": "· verlaagd: identiteit niet gecontroleerd"
   },
   "calibrationCaveat": {
     "text": "Fysieke metrics niet gekalibreerd — indicatief. Afhankelijk van het detecteren van de veldpunten; snelheid/afstand in meters kunnen onnauwkeurig zijn."
@@ -6156,5 +6157,46 @@
       "loadingReports": "Fout bij het laden van rapporten",
       "notFound": "Niet gevonden"
     }
+  },
+  "playerReference": {
+    "title": "Referentie van de speler in de video",
+    "jerseyLabel": "Rugnummer",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Shirtkleur",
+    "kitColorNone": "Niet opgegeven",
+    "hint": "Nodig om een speler te analyseren in een video met meerdere spelers. Zonder rugnummer en kleur worden alleen clips geanalyseerd waarin één speler te zien is.",
+    "completeHint": "De AI zoekt de speler alleen op rugnummer en shirtkleur, nooit op het gezicht. De identificatie is een AI-schatting en het rapport vermeldt dat.",
+    "incompleteHint": "Rugnummer of kleur ontbreekt: als er meerdere spelers in de video staan, wordt niets aan deze speler toegeschreven.",
+    "colors": {
+      "red": "Rood",
+      "blue": "Blauw",
+      "navy": "Marineblauw",
+      "skyBlue": "Hemelsblauw",
+      "white": "Wit",
+      "black": "Zwart",
+      "yellow": "Geel",
+      "green": "Groen",
+      "orange": "Oranje",
+      "purple": "Paars",
+      "maroon": "Bordeauxrood",
+      "grey": "Grijs",
+      "pink": "Roze"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "Door AI geschatte identificatie",
+    "dorsal": "nummer {{value}}",
+    "kitColor": "kleur {{value}}",
+    "confidence": "betrouwbaarheid {{level}}",
+    "level": {
+      "alta": "hoog",
+      "media": "gemiddeld",
+      "baja": "laag"
+    },
+    "estimatedDetail": "Een AI-model zegt dit rugnummer en deze kleur te hebben gezien; niemand heeft dat gecontroleerd. De betrouwbaarheid van de cijfers van deze analyse is verlaagd.",
+    "singlePlayer": "Enige speler in beeld (zonder referentienummer)",
+    "singlePlayerDetail": "Toegeschreven door uitsluiting: er is maar één speler in de video te zien en zijn identiteit is niet via het rugnummer gecontroleerd. De betrouwbaarheid van de cijfers is verlaagd.",
+    "unverified": "Identificatie niet gecontroleerd",
+    "unverifiedDetail": "Deze analyse legt niet vast hoe de speler in de video is geïdentificeerd: het is niet bevestigd dat de cijfers van hem zijn. De betrouwbaarheid van de cijfers is verlaagd."
   }
 }

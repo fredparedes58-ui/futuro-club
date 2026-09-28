@@ -27,6 +27,8 @@ import {
   setActiveFieldFormat,
   type FieldFormat,
 } from "@/lib/yolo/fieldFormatConfig";
+import { playerReferenceBody } from "@/lib/shared/playerReference";
+import PlayerReferenceFields from "@/components/video/PlayerReferenceFields";
 
 interface Props {
   playerId: string;
@@ -65,6 +67,10 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
   // Formato del partido: el usuario lo elige ANTES de analizar → selecciona
   // internamente plantilla, dimensiones (metros) y métricas del campo correcto.
   const [fieldFormat, setFieldFormat] = useState<FieldFormat>(getActiveFieldFormat());
+  // Referencia del jugador en ESTE vídeo (dorsal + color de equipación) → finalize →
+  // fila analyses (mig 068) → Gemini. Sin ella, un clip con varios jugadores se abstiene.
+  const [jerseyNumber, setJerseyNumber] = useState<string>("");
+  const [kitColor, setKitColor] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function chooseFormat(fmt: FieldFormat) {
@@ -81,6 +87,8 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
     setAnalysisId(null);
     setFile(null);
     setTitle("");
+    setJerseyNumber("");
+    setKitColor("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -185,6 +193,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
             // Idioma de la UI → finalize lo persiste (mig 064) para que los 9 informes
             // asíncronos salgan en este idioma y no siempre en español.
             locale: normalizeLocale(i18n.language),
+            ...playerReferenceBody({ jerseyNumber, kitColor }), // dorsal + color (mig 068)
           }),
         });
 
@@ -299,6 +308,14 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
             </div>
             <p className="text-xs text-slate-500 mt-1">{t("videoUploader.fieldFormatHint")}</p>
           </div>
+
+          <PlayerReferenceFields
+            variant="uploader"
+            jerseyNumber={jerseyNumber}
+            kitColor={kitColor}
+            onJerseyNumberChange={setJerseyNumber}
+            onKitColorChange={setKitColor}
+          />
 
           <div>
             <label className="block text-sm font-semibold mb-1">{t("videoUploader.videoLabel")}</label>

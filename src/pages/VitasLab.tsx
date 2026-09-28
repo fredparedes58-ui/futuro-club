@@ -35,6 +35,7 @@ import { useFatigue } from "@/hooks/useFatigue";
 import { useOneClickAnalysis } from "@/hooks/useOneClickAnalysis";
 import VitasLabOneClick from "@/components/VitasLabOneClick";
 import PrecisionToggle, { type PrecisionPhase } from "@/components/vision/PrecisionToggle";
+import PlayerReferenceFields from "@/components/video/PlayerReferenceFields";
 import { getTilingConfig } from "@/lib/yolo/tiling";
 import { containTransform, fromDisplay, toDisplay, PERCENT_SPACE, type PixelSpace } from "@/lib/yolo/coordSpace";
 import { useVideoSpace } from "@/hooks/useVideoSpace";
@@ -153,8 +154,11 @@ const VitasLab = () => {
     enabled: !!selectedPlayerId && SUPABASE_CONFIGURED,
   });
   const [showPlayerDropdown, setShowPlayerDropdown] = useState(false);
-  // (Dorsal / color de equipación retirados: nunca se enviaban a ningún análisis y la
-  //  identificación por dorsal aún no existe — identidad.md. Nada de campos inertes.)
+  // Referencia del jugador en ESTE vídeo (dorsal + color de equipación): se envía a
+  // finalize → fila analyses (mig 068) → Gemini, que solo puede identificarle por ella
+  // (identidad.md: nunca por la cara). Por análisis: se vacía al cambiar de jugador.
+  const [jerseyNumber, setJerseyNumber]         = useState<string>("");
+  const [kitColor, setKitColor]                 = useState<string>("");
   const [showTracking, setShowTracking]         = useState(false);
   const [showVoronoi, setShowVoronoi]           = useState(false);
   // ¿La pasada de tracking activa/última usó "Análisis de precisión" (tiling)?
@@ -717,6 +721,7 @@ const VitasLab = () => {
           videoId: selectedVideoId,
           playerId: selectedPlayerId,
           playedPosition: finalPlayedPosition,
+          playerReference: { jerseyNumber, kitColor },
           biomechanics: mediaPipe.biomechanics ? {
             drillScore: mediaPipe.biomechanics.drillScore,
             bilateralSymmetry: mediaPipe.biomechanics.bilateralSymmetry,
@@ -752,6 +757,8 @@ const VitasLab = () => {
           bunnyVideoId,
           playerId: selectedPlayerId,
           playedPosition: finalPlayedPosition,
+          // Dorsal + color → Gemini identifica al jugador en clips con varios jugadores.
+          playerReference: { jerseyNumber, kitColor },
         });
       }
 
@@ -1049,6 +1056,8 @@ const VitasLab = () => {
             isIAProcessing={v2.isProcessing}
             isIAComplete={v2.isCompleted}
             onSelectPlayer={(id) => {
+              // El dorsal/color tecleados son de OTRO jugador: nunca se arrastran.
+              if (id !== selectedPlayerId) { setJerseyNumber(""); setKitColor(""); }
               setSelectedPlayerId(id);
               const p = players.find(pl => pl.id === id);
               if (p?.name) setPlayerName(p.name);
@@ -1062,6 +1071,15 @@ const VitasLab = () => {
                 activePrecision={passUsedPrecision}
                 onToggle={handlePrecisionToggle}
                 onReanalyze={launchAnalysisPass}
+              />
+            }
+            playerReferenceControl={
+              <PlayerReferenceFields
+                jerseyNumber={jerseyNumber}
+                kitColor={kitColor}
+                onJerseyNumberChange={setJerseyNumber}
+                onKitColorChange={setKitColor}
+                disabled={v2.isProcessing || oneClick.state.isRunning}
               />
             }
             onStopTracking={() => {

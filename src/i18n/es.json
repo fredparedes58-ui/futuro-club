@@ -621,7 +621,7 @@
     "uploadVideoBtn": "Subir video",
     "selectPlayerFirst": "Selecciona un jugador primero",
     "deleteConfirm": "¿Eliminar a {{name}}?",
-    "identityHint": "VITAS todavía no identifica jugadores por dorsal: si el vídeo muestra a varios jugadores, el análisis se abstiene en vez de atribuirle acciones que no puede verificar."
+    "identityHint": "Para analizar a un jugador en un vídeo con varios jugadores, indica su dorsal y el color de su camiseta al lanzar el análisis en el Lab. Sin ellos, solo se analizan clips con un único jugador en plano."
   },
   "billing": {
     "title": "Plan.",
@@ -2225,7 +2225,7 @@
     "playerNameFieldPlaceholder": "Nombre del jugador",
     "position": "Posición",
     "ownFormation": "Formación propia",
-    "specificPlayerRequiredHint": "VITAS todavía no identifica jugadores por dorsal: las métricas individuales salen de la pista que sigas en el vídeo y se bloquean si su identidad no es fiable.",
+    "specificPlayerRequiredHint": "Las métricas del tracking salen de la pista que sigas en el vídeo y se bloquean si su identidad no es fiable. El dorsal y el color de camiseta que indiques bajo el jugador los usa el análisis por IA.",
     "playedPositionInVideo": "Posición jugada en este video",
     "otherPosition": "+ Otra posición",
     "defaultPositionHint": "Default: posición principal (⭐). Selecciona otra si jugó en posición diferente.",
@@ -2363,7 +2363,8 @@
     "label": "Confianza",
     "completeness": "{{pct}}% de datos",
     "notEvaluated": "No evaluado",
-    "notEvaluatedShort": "{{count}} sin datos"
+    "notEvaluatedShort": "{{count}} sin datos",
+    "reducedByIdentity": "· reducida: identidad no verificada"
   },
   "calibrationCaveat": {
     "text": "Métricas físicas sin calibrar — orientativas. Dependen de detectar los puntos del campo; velocidad/distancia en metros pueden no ser exactas."
@@ -6156,5 +6157,46 @@
       "loadingReports": "Error cargando reportes",
       "notFound": "Not found"
     }
+  },
+  "playerReference": {
+    "title": "Referencia del jugador en el vídeo",
+    "jerseyLabel": "Dorsal",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Color de la camiseta",
+    "kitColorNone": "Sin indicar",
+    "hint": "Necesario para analizar a un jugador en un vídeo con varios jugadores. Sin dorsal y color, solo se analizan clips en los que aparece un único jugador.",
+    "completeHint": "La IA buscará al jugador solo por su dorsal y el color de su camiseta, nunca por la cara. La identificación es una estimación de IA y el informe lo indicará.",
+    "incompleteHint": "Falta el dorsal o el color: si en el vídeo aparecen varios jugadores, no se atribuirá nada a este jugador.",
+    "colors": {
+      "red": "Rojo",
+      "blue": "Azul",
+      "navy": "Azul marino",
+      "skyBlue": "Celeste",
+      "white": "Blanco",
+      "black": "Negro",
+      "yellow": "Amarillo",
+      "green": "Verde",
+      "orange": "Naranja",
+      "purple": "Morado",
+      "maroon": "Granate",
+      "grey": "Gris",
+      "pink": "Rosa"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "Identificación estimada por IA",
+    "dorsal": "dorsal {{value}}",
+    "kitColor": "color {{value}}",
+    "confidence": "confianza {{level}}",
+    "level": {
+      "alta": "alta",
+      "media": "media",
+      "baja": "baja"
+    },
+    "estimatedDetail": "Un modelo de IA dice haber visto este dorsal y este color; ninguna persona lo ha verificado. La confianza de las cifras de este análisis se ha reducido.",
+    "singlePlayer": "Único jugador en plano (sin dorsal de referencia)",
+    "singlePlayerDetail": "Se atribuye por exclusión: solo aparece un jugador en el vídeo y su identidad no se ha verificado por dorsal. La confianza de las cifras se ha reducido.",
+    "unverified": "Identificación no verificada",
+    "unverifiedDetail": "Este análisis no guarda cómo se identificó al jugador en el vídeo: no está comprobado que las cifras sean suyas. La confianza de las cifras se ha reducido."
   }
 }

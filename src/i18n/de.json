@@ -620,7 +620,7 @@
     "uploadVideoBtn": "Video hochladen",
     "selectPlayerFirst": "Wähle zuerst einen Spieler",
     "deleteConfirm": "{{name}} löschen?",
-    "identityHint": "VITAS erkennt Spieler noch nicht an der Rückennummer: Zeigt das Video mehrere Spieler, enthält sich die Analyse, statt ihm Aktionen zuzuschreiben, die sie nicht überprüfen kann."
+    "identityHint": "Um einen Spieler in einem Video mit mehreren Spielern zu analysieren, gib beim Start der Analyse im Lab seine Rückennummer und Trikotfarbe an. Ohne sie werden nur Clips mit einem einzigen Spieler im Bild analysiert."
   },
   "billing": {
     "title": "Plan.",
@@ -2224,7 +2224,7 @@
     "playerNameFieldPlaceholder": "Name des Spielers",
     "position": "Position",
     "ownFormation": "Eigene Formation",
-    "specificPlayerRequiredHint": "VITAS erkennt Spieler noch nicht an der Rückennummer: Die Einzelmetriken stammen aus der Spur, der du im Video folgst, und werden gesperrt, wenn ihre Identität nicht zuverlässig ist.",
+    "specificPlayerRequiredHint": "Die Tracking-Metriken stammen aus der Spur, der du im Video folgst, und werden gesperrt, wenn ihre Identität nicht zuverlässig ist. Rückennummer und Trikotfarbe unter dem Spieler nutzt die KI-Analyse.",
     "playedPositionInVideo": "Gespielte Position in diesem Video",
     "otherPosition": "+ Andere Position",
     "defaultPositionHint": "Standard: Hauptposition (⭐). Wähle eine andere, wenn er auf einer anderen Position gespielt hat.",
@@ -2362,7 +2362,8 @@
     "label": "Konfidenz",
     "completeness": "{{pct}}% der Daten",
     "notEvaluated": "Nicht bewertet",
-    "notEvaluatedShort": "{{count}} ohne Daten"
+    "notEvaluatedShort": "{{count}} ohne Daten",
+    "reducedByIdentity": "· reduziert: Identität nicht überprüft"
   },
   "calibrationCaveat": {
     "text": "Athletische Kennzahlen unkalibriert — als Orientierung. Sie hängen von der Erkennung der Feldpunkte ab; Geschwindigkeit/Distanz in Metern sind möglicherweise nicht exakt."
@@ -6155,5 +6156,46 @@
       "loadingReports": "Fehler beim Laden der Berichte",
       "notFound": "Nicht gefunden"
     }
+  },
+  "playerReference": {
+    "title": "Referenz des Spielers im Video",
+    "jerseyLabel": "Rückennummer",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Trikotfarbe",
+    "kitColorNone": "Nicht angegeben",
+    "hint": "Nötig, um einen Spieler in einem Video mit mehreren Spielern zu analysieren. Ohne Rückennummer und Farbe werden nur Clips analysiert, in denen ein einziger Spieler zu sehen ist.",
+    "completeHint": "Die KI sucht den Spieler nur anhand von Rückennummer und Trikotfarbe, niemals anhand des Gesichts. Die Identifizierung ist eine KI-Schätzung, und der Bericht weist darauf hin.",
+    "incompleteHint": "Rückennummer oder Farbe fehlt: Sind im Video mehrere Spieler zu sehen, wird diesem Spieler nichts zugeordnet.",
+    "colors": {
+      "red": "Rot",
+      "blue": "Blau",
+      "navy": "Marineblau",
+      "skyBlue": "Himmelblau",
+      "white": "Weiß",
+      "black": "Schwarz",
+      "yellow": "Gelb",
+      "green": "Grün",
+      "orange": "Orange",
+      "purple": "Lila",
+      "maroon": "Weinrot",
+      "grey": "Grau",
+      "pink": "Rosa"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "Von KI geschätzte Identifizierung",
+    "dorsal": "Nummer {{value}}",
+    "kitColor": "Farbe {{value}}",
+    "confidence": "Konfidenz {{level}}",
+    "level": {
+      "alta": "hoch",
+      "media": "mittel",
+      "baja": "niedrig"
+    },
+    "estimatedDetail": "Ein KI-Modell gibt an, diese Nummer und diese Farbe gesehen zu haben; kein Mensch hat das überprüft. Die Konfidenz der Werte dieser Analyse wurde reduziert.",
+    "singlePlayer": "Einziger Spieler im Bild (ohne Referenznummer)",
+    "singlePlayerDetail": "Per Ausschluss zugeordnet: Im Video ist nur ein Spieler zu sehen, und seine Identität wurde nicht über die Rückennummer überprüft. Die Konfidenz der Werte wurde reduziert.",
+    "unverified": "Identifizierung nicht überprüft",
+    "unverifiedDetail": "Diese Analyse speichert nicht, wie der Spieler im Video identifiziert wurde: Es ist nicht bestätigt, dass die Werte von ihm stammen. Die Konfidenz der Werte wurde reduziert."
   }
 }

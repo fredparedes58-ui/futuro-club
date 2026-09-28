@@ -620,7 +620,7 @@
     "uploadVideoBtn": "Ajouter une vidéo",
     "selectPlayerFirst": "Sélectionnez d'abord un joueur",
     "deleteConfirm": "Supprimer {{name}} ?",
-    "identityHint": "VITAS n'identifie pas encore les joueurs par leur numéro de maillot : si la vidéo montre plusieurs joueurs, l'analyse s'abstient plutôt que de lui attribuer des actions qu'elle ne peut pas vérifier."
+    "identityHint": "Pour analyser un joueur dans une vidéo avec plusieurs joueurs, indiquez son numéro et la couleur de son maillot au lancement de l'analyse dans le Lab. Sans eux, seuls les clips avec un seul joueur à l'image sont analysés."
   },
   "billing": {
     "title": "Abonnement.",
@@ -2224,7 +2224,7 @@
     "playerNameFieldPlaceholder": "Nom du joueur",
     "position": "Poste",
     "ownFormation": "Formation propre",
-    "specificPlayerRequiredHint": "VITAS n'identifie pas encore les joueurs par leur numéro de maillot : les métriques individuelles proviennent de la piste que vous suivez dans la vidéo et sont bloquées si son identité n'est pas fiable.",
+    "specificPlayerRequiredHint": "Les métriques de tracking proviennent de la piste que vous suivez dans la vidéo et sont bloquées si son identité n'est pas fiable. Le numéro et la couleur de maillot indiqués sous le joueur sont utilisés par l'analyse IA.",
     "playedPositionInVideo": "Poste joué dans cette vidéo",
     "otherPosition": "+ Autre poste",
     "defaultPositionHint": "Par défaut : poste principal (⭐). Sélectionnez-en un autre s'il a joué à un poste différent.",
@@ -2362,7 +2362,8 @@
     "label": "Confiance",
     "completeness": "{{pct}}% de données",
     "notEvaluated": "Non évalué",
-    "notEvaluatedShort": "{{count}} sans données"
+    "notEvaluatedShort": "{{count}} sans données",
+    "reducedByIdentity": "· réduite : identité non vérifiée"
   },
   "calibrationCaveat": {
     "text": "Métriques physiques non calibrées — indicatives. Elles dépendent de la détection des points du terrain ; la vitesse/distance en mètres peuvent ne pas être exactes."
@@ -6155,5 +6156,46 @@
       "loadingReports": "Erreur lors du chargement des rapports",
       "notFound": "Introuvable"
     }
+  },
+  "playerReference": {
+    "title": "Référence du joueur dans la vidéo",
+    "jerseyLabel": "Numéro de maillot",
+    "jerseyPlaceholder": "10",
+    "kitColorLabel": "Couleur du maillot",
+    "kitColorNone": "Non renseignée",
+    "hint": "Nécessaire pour analyser un joueur dans une vidéo avec plusieurs joueurs. Sans numéro ni couleur, seuls les clips montrant un seul joueur sont analysés.",
+    "completeHint": "L'IA cherchera le joueur uniquement par son numéro et la couleur de son maillot, jamais par le visage. L'identification est une estimation de l'IA et le rapport l'indiquera.",
+    "incompleteHint": "Il manque le numéro ou la couleur : si plusieurs joueurs apparaissent dans la vidéo, rien ne sera attribué à ce joueur.",
+    "colors": {
+      "red": "Rouge",
+      "blue": "Bleu",
+      "navy": "Bleu marine",
+      "skyBlue": "Bleu ciel",
+      "white": "Blanc",
+      "black": "Noir",
+      "yellow": "Jaune",
+      "green": "Vert",
+      "orange": "Orange",
+      "purple": "Violet",
+      "maroon": "Bordeaux",
+      "grey": "Gris",
+      "pink": "Rose"
+    }
+  },
+  "analysisIdentity": {
+    "estimatedByAi": "Identification estimée par l'IA",
+    "dorsal": "numéro {{value}}",
+    "kitColor": "couleur {{value}}",
+    "confidence": "confiance {{level}}",
+    "level": {
+      "alta": "élevée",
+      "media": "moyenne",
+      "baja": "faible"
+    },
+    "estimatedDetail": "Un modèle d'IA dit avoir vu ce numéro et cette couleur ; personne ne l'a vérifié. La confiance des chiffres de cette analyse a été réduite.",
+    "singlePlayer": "Seul joueur à l'image (sans numéro de référence)",
+    "singlePlayerDetail": "Attribué par exclusion : un seul joueur apparaît dans la vidéo et son identité n'a pas été vérifiée par le numéro. La confiance des chiffres a été réduite.",
+    "unverified": "Identification non vérifiée",
+    "unverifiedDetail": "Cette analyse n'enregistre pas comment le joueur a été identifié dans la vidéo : rien ne confirme que les chiffres sont les siens. La confiance des chiffres a été réduite."
   }
 }
