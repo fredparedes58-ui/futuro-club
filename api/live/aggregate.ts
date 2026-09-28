@@ -19,6 +19,7 @@ import { MODELS, modelParams } from "../_lib/models";
 import { fetchMessages, responseText } from "../_lib/anthropic";
 import { createClient } from "@supabase/supabase-js";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { isAllowedVideoUrl } from "../_lib/videoUrlGuard";
 
 // Node.js runtime for Gemini video analysis (up to 120s)
 export const config = { runtime: "nodejs", maxDuration: 120 };
@@ -351,7 +352,10 @@ export default withHandler(
 
     // ── 3. Analizar video con Gemini si existe ─────────────────
     let videoObs: Record<string, unknown> | null = null;
-    if (match.video_url) {
+    // Filas antiguas pueden traer una URL arbitraria (antes no se validaba al guardar):
+    // si no pasa la allowlist Bunny no se reenvía (video-observation la rechazaría
+    // igual, pero tras contabilizar gasto). Sin vídeo → "SIN VÍDEO" honesto.
+    if (match.video_url && isAllowedVideoUrl(match.video_url)) {
       videoObs = await analyzeMatchVideo(
         match.video_url,
         match.team_name,

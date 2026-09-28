@@ -20,6 +20,9 @@
  *
  * Contrato 503 idéntico al proxy síncrono ({error:"real_inference_disabled"} a
  * pelo) para que el cliente reutilice el mismo check de fallback.
+ *
+ * videoUrl: solo hosts Bunny de la allowlist (api/_lib/videoUrlGuard). Fuera de
+ * ella → 400 sin encolar; sin BUNNY_CDN_HOSTNAME → 503 (falla cerrado).
  */
 
 import { z } from "zod";
@@ -33,6 +36,7 @@ import {
 } from "../_lib/supabaseRest";
 import { env } from "../_lib/env";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { assertAllowedVideoUrl, VideoUrlError } from "../_lib/videoUrlGuard";
 
 export const config = { runtime: "edge" };
 
@@ -77,6 +81,20 @@ export default withHandler(
       });
     }
 
+    // Allowlist de host (api/_lib/videoUrlGuard): Modal descargará esta URL, así que
+    // solo se encolan vídeos de NUESTRO CDN Bunny (antes: cualquier URL → SSRF/coste
+    // GPU). Sin BUNNY_CDN_HOSTNAME falla cerrado (503 → el cliente cae a su fallback).
+    // Modal re-valida con la misma env (defensa en profundidad).
+    let videoUrl: string;
+    try {
+      videoUrl = assertAllowedVideoUrl(body.videoUrl).href;
+    } catch (err) {
+      if (err instanceof VideoUrlError) {
+        return errorResponse({ code: err.code, message: err.message, status: err.status });
+      }
+      throw err;
+    }
+
     // Techo de duración (el proxy síncrono tiene el suyo; este es el async).
     if (typeof body.durationSec === "number" && body.durationSec > MAX_ASYNC_TRACK_SEC) {
       return errorResponse({
@@ -93,7 +111,7 @@ export default withHandler(
     // 1 ── Dedup: job pendiente para el mismo vídeo → devolver el existente.
     const dedupUrl =
       `${supabaseRestUrl()}/rest/v1/tracking_jobs` +
-      `?video_url=eq.${encodeURIComponent(body.videoUrl)}` +
+      `?video_url=eq.${encodeURIComponent(videoUrl)}` +
       `&status=in.(queued,processing)` +
       (ownerId ? `&user_id=eq.${encodeURIComponent(ownerId)}` : "") +
       `&select=id,status&limit=1`;
@@ -118,7 +136,7 @@ export default withHandler(
       headers: serviceHeaders({ Prefer: "return=representation" }),
       body: JSON.stringify({
         video_id: body.videoId ?? null,
-        video_url: body.videoUrl,
+        video_url: videoUrl,
         player_id: body.playerId ?? null,
         user_id: ownerId,
         org_id: body.orgId ?? null,
@@ -156,7 +174,7 @@ export default withHandler(
           Authorization: `Bearer ${modalKey}`,
         },
         body: JSON.stringify({
-          video_url: body.videoUrl,
+          video_url: videoUrl,
           sample_fps: body.sampleFps ?? 5,
           classes: [0, 32],
           job_id: jobId,
@@ -181,12 +199,28 @@ export default withHandler(
       });
     }
 
-    // Spawn aceptado → contabiliza el gasto estimado (la llamada de pago más cara).
-    await recordSpendUsd("modal-track-async");
-
     // El parse del body es INFORMATIVO (call_id): si falla, el job sigue corriendo
     // en Modal — nunca marcar failed por esto (review C3).
-    const spawnData = (await spawn.json().catch(() => ({}))) as { call_id?: string };
+    const spawnData = (await spawn.json().catch(() => ({}))) as {
+      call_id?: string;
+      status?: string;
+      reason?: string;
+    };
+
+    // Modal responde 200 con {status:"error", reason} cuando RECHAZA sin spawnear
+    // (p. ej. URL fuera de su allowlist o sin configurar). Sin call_id no hay nada
+    // corriendo → marcar failed ya, en vez de dejar un "processing" colgado.
+    if (!spawnData.call_id && spawnData.status === "error") {
+      await markFailed(jobId, `modal rejected: ${String(spawnData.reason ?? "unknown").slice(0, 200)}`);
+      return errorResponse({
+        code: "modal_rejected",
+        message: `Modal rechazó el tracking (${String(spawnData.reason ?? "unknown").slice(0, 80)}).`,
+        status: 502,
+      });
+    }
+
+    // Spawn aceptado → contabiliza el gasto estimado (la llamada de pago más cara).
+    await recordSpendUsd("modal-track-async");
 
     // 4 ── Marcar processing (+call_id). Crítico para que el claim RPC (rescate
     // de spawns fallidos: queued AND modal_call_id IS NULL) no re-lance jobs

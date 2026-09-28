@@ -12,6 +12,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
+import { assertAllowedVideoUrl, fetchAllowedVideo, VideoUrlError } from "../_lib/videoUrlGuard";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -104,6 +105,19 @@ export default withHandler(
         return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
       }
 
+      // Allowlist de videoUrl ANTES del tripwire: una URL rechazada no cuenta como
+      // gasto Gemini (si no, peticiones inválidas en bucle inflarían el ledger global).
+      // La descarga re-valida cada salto de redirección (fetchAllowedVideo).
+      if (videoUrl && typeof videoUrl === "string") {
+        try {
+          assertAllowedVideoUrl(videoUrl);
+        } catch (urlErr) {
+          if (!(urlErr instanceof VideoUrlError)) throw urlErr;
+          console.warn(`[Gemini] videoUrl rechazada (${urlErr.code}): ${urlErr.message}`);
+          return errorResponse(urlErr.message, urlErr.status, urlErr.code);
+        }
+      }
+
       // Tripwire de presupuesto (054): Gemini vídeo es de las llamadas más caras.
       if (await isOverBudget()) return budgetExceededResponse();
       await recordSpendUsd("gemini-video");
@@ -113,20 +127,22 @@ export default withHandler(
       let mediaType: string;
 
       if (videoUrl && typeof videoUrl === "string") {
-        // Descargar video desde Bunny CDN (sin límite de tamaño en server-side fetch)
-        console.log(`[Gemini] Descargando video desde: ${videoUrl}`);
+        // Descarga server-side SOLO desde nuestros hosts Bunny (api/_lib/videoUrlGuard):
+        // https + allowlist por env (falla cerrado sin BUNNY_CDN_HOSTNAME), redirecciones
+        // manuales re-validadas, content-type video/* y techo de tamaño antes y durante
+        // la lectura. Antes: fetch a cualquier URL (SSRF) y sin límite (coste/memoria).
         try {
-          const videoRes = await fetch(videoUrl as string);
-          if (!videoRes.ok) {
-            return errorResponse(`No se pudo descargar el video desde CDN: HTTP ${videoRes.status}`, 502, "VIDEO_DOWNLOAD_FAILED");
-          }
-          const videoBuffer = await videoRes.arrayBuffer();
-          // Node.js Buffer para base64 (btoa no existe en Node)
-          videoBase64 = Buffer.from(videoBuffer).toString("base64");
-          mediaType = videoRes.headers.get("content-type") || "video/mp4";
-          const sizeMB = (videoBuffer.byteLength / 1024 / 1024).toFixed(1);
-          console.log(`[Gemini] Video descargado: ${sizeMB}MB, tipo: ${mediaType}`);
+          const video = await fetchAllowedVideo(videoUrl);
+          // Node.js Buffer para base64 (btoa no existe en Node) — vista sin copia.
+          videoBase64 = Buffer.from(video.bytes.buffer, video.bytes.byteOffset, video.bytes.byteLength).toString("base64");
+          mediaType = video.contentType;
+          const sizeMB = (video.bytes.byteLength / 1024 / 1024).toFixed(1);
+          console.log(`[Gemini] Video descargado: ${sizeMB}MB, tipo: ${mediaType}, host: ${new URL(video.finalUrl).hostname}`);
         } catch (dlErr) {
+          if (dlErr instanceof VideoUrlError) {
+            console.warn(`[Gemini] videoUrl rechazada (${dlErr.code}): ${dlErr.message}`);
+            return errorResponse(dlErr.message, dlErr.status, dlErr.code);
+          }
           console.error("[Gemini] Error descargando video:", dlErr);
           return errorResponse(`Error descargando video: ${dlErr instanceof Error ? dlErr.message : "unknown"}`, 502, "VIDEO_DOWNLOAD_ERROR");
         }
