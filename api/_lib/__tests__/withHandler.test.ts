@@ -207,6 +207,24 @@ describe("withHandler", () => {
     expect(data.data.raw).toBe("raw-text-body");
   });
 
+  it("with rawBody the handler can still read req (binary uploads)", async () => {
+    // withHandler lee el texto de un clon → el original sigue legible. Antes
+    // upload/image hacía req.arrayBuffer() sobre un cuerpo ya consumido.
+    const handler = withHandler({ rawBody: true }, async ({ req, rawBody }) => {
+      const buf = await req.arrayBuffer();
+      return new Response(JSON.stringify({ ok: true, data: { bytes: buf.byteLength, raw: rawBody } }));
+    });
+    const req = new Request("https://example.com/api/test", {
+      method: "POST",
+      body: new Uint8Array([1, 2, 3, 4]),
+    });
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.data.bytes).toBe(4);
+    expect(typeof data.data.raw).toBe("string");
+  });
+
   // ─── Request logging ─────────────────────────────────
   it("logs structured JSON for successful requests", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});

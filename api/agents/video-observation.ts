@@ -55,15 +55,23 @@ interface GeminiObservation {
 }
 
 export default withHandler(
-  { requireAuth: true, rawBody: true },
-  async ({ req }) => {
+  // allowServiceToken: la cola (crons/process-analyses-queue), pipeline/gemini-analyze
+  // y live/aggregate llaman server-to-server con INTERNAL_API_TOKEN / CRON_SECRET.
+  // Las llamadas directas desde la UI siguen exigiendo JWT de usuario.
+  { requireAuth: true, allowServiceToken: true, rawBody: true },
+  async ({ rawBody }) => {
     try {
+      // withHandler ya leyó el cuerpo (rawBody: true) → usar ctx.rawBody, nunca
+      // req.json() (antes fallaba SIEMPRE y se devolvía como 413 falso).
+      // Un cuerpo > ~4.5MB lo corta Vercel antes de llegar aquí.
       let body: Record<string, unknown>;
       try {
-        body = await req.json() as Record<string, unknown>;
+        const parsed: unknown = JSON.parse(rawBody ?? "");
+        if (!parsed || typeof parsed !== "object") throw new Error("body no es un objeto JSON");
+        body = parsed as Record<string, unknown>;
       } catch (parseErr) {
-        console.error("[Gemini] Body parse error (possibly too large):", parseErr);
-        return errorResponse("No se pudo leer el body — el video puede ser demasiado grande para Vercel (máx ~4MB)", 413, "BODY_TOO_LARGE");
+        console.error("[Gemini] Body parse error:", parseErr);
+        return errorResponse("Body JSON inválido", 400, "PARSE_ERROR");
       }
       const { videoUrl, videoBase64: videoBase64FromBody, mediaType: mediaTypeFromBody, playerContext } = body;
       const locale = normalizeLocale(body.locale);

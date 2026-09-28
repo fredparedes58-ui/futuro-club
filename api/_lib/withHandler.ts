@@ -93,7 +93,11 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
    * si no, no hay email y el gate falla-cerrado (403).
    */
   adminOnly?: boolean;
-  /** Si true, no parsea body como JSON (para webhooks que leen raw text). */
+  /**
+   * Si true, no parsea body como JSON: entrega el texto crudo en `ctx.rawBody`
+   * (webhooks con firma, JSON grandes). Se lee de un CLON de la request, así que
+   * `req` sigue legible para cuerpos binarios (p. ej. `req.arrayBuffer()`).
+   */
   rawBody?: boolean;
   /** Required subscription plan. Returns 403 if user doesn't have it. */
   requiredPlan?: string;
@@ -300,7 +304,10 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
     if (methods.includes(req.method) && req.method === "POST") {
       if (options.rawBody) {
         try {
-          rawBodyStr = await req.text();
+          // Clon: leer el original lo dejaba consumido y cualquier re-lectura del
+          // handler lanzaba "Body is unusable" (rompía video/team-observation,
+          // team-intelligence y la subida binaria de upload/image).
+          rawBodyStr = await req.clone().text();
           body = (rawBodyStr as unknown) as InferBody<T>;
         } catch {
           return errorResponse("Cannot read raw body", 400, "PARSE_ERROR", rateLimitHeaders(rl));
