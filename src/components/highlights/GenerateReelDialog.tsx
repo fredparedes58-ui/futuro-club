@@ -1,19 +1,28 @@
 /**
  * VITAS · GenerateReelDialog
  *
- * Choose a video + moment types + duration → run highlights detection → save reel.
+ * HONESTIDAD (CLAUDE.md inv. 1-3): VITAS todavía no detecta momentos en un vídeo.
+ *  - Vídeo del usuario ⇒ la detección está bloqueada (se explica el motivo) y se
+ *    ofrece crear un reel VACÍO para añadir los clips a mano.
+ *  - Partido demo ⇒ reel de EJEMPLO (MOCK) con el DemoDataBanner canónico.
+ * Antes: «detecta automáticamente los mejores momentos» + clips inventados sobre
+ * los vídeos reales, con una duración por defecto de 90 min si faltaba el dato.
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Film, Wand2, CheckCircle2, Loader2, Cpu } from "lucide-react";
+import { X, Film, Wand2, CheckCircle2, Loader2, Info, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
 import {
+  createManualReel,
+  isDemoHighlightsVideo,
   runHighlightsDetection,
   type DetectionProgress,
 } from "@/services/real/highlightsDetector";
+import { isLinkOnlyVideo } from "@/hooks/useVideos";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import type { HighlightReel } from "@/lib/highlights/types";
 import { MOMENT_META, ALL_MOMENTS, type ClipMoment } from "@/lib/highlights/types";
 
@@ -25,6 +34,7 @@ interface Props {
   preselectedVideoId?: string;
 }
 
+// Partidos DEMO: los únicos para los que se genera un reel de ejemplo (MOCK).
 const DEMO_VIDEOS = [
   { id: "demo_reel_riveralfc_2026_05_24", title: "vs Rival FC · 24 May", duration: 5400 },
   { id: "demo_reel_academiasur_2026_05_17", title: "vs Academia Sur · 17 May", duration: 5400 },
@@ -65,7 +75,11 @@ export default function GenerateReelDialog({
   useEffect(() => {
     if (open) {
       try {
-        setUserVideos(VideoService.getAll().filter((v) => v.status === "finished"));
+        // Los «vídeos» que eran solo un enlace externo (pestaña URL retirada) no
+        // son reproducibles aquí → no se ofrecen.
+        setUserVideos(
+          VideoService.getAll().filter((v) => v.status === "finished" && !isLinkOnlyVideo(v)),
+        );
       } catch {
         setUserVideos([]);
       }
@@ -82,7 +96,8 @@ export default function GenerateReelDialog({
       id: v.id,
       title: v.title,
       isReal: true,
-      duration: v.duration || 5400,
+      // Duración desconocida = null (antes se inventaban 90 min con `|| 5400`).
+      duration: v.duration > 0 ? v.duration : null,
       url:
         v.streamUrl ||
         v.embedUrl ||
@@ -93,13 +108,14 @@ export default function GenerateReelDialog({
       id: v.id,
       title: v.title,
       isReal: false,
-      duration: v.duration,
+      duration: v.duration as number | null,
       url: "",
     }));
     return [...real, ...demos];
   }, [userVideos]);
 
   const selectedVideo = combinedVideos.find((v) => v.id === videoId);
+  const isExample = !!selectedVideo && isDemoHighlightsVideo(selectedVideo.id);
 
   const toggleMoment = (m: ClipMoment) => {
     setMoments((prev) =>
@@ -107,11 +123,41 @@ export default function GenerateReelDialog({
     );
   };
 
+  const finish = (reel: HighlightReel) => {
+    setResult(reel);
+    toast.success(
+      t("generateReelDialog.reelCreatedToast", {
+        title: reel.title,
+        count: reel.clips.length,
+      }),
+    );
+    onCreated(reel);
+  };
+
   const handleStart = async () => {
     if (!selectedVideo) {
       toast.error(t("generateReelDialog.selectVideoError"));
       return;
     }
+
+    // Vídeo real: no hay detector → reel vacío para clips manuales (nada inventado).
+    if (!isExample) {
+      try {
+        finish(
+          createManualReel({
+            videoId: selectedVideo.id,
+            videoTitle: selectedVideo.title,
+            videoUrl: selectedVideo.url || "",
+            title: title.trim() || undefined,
+          }),
+        );
+      } catch (err) {
+        console.error(err);
+        toast.error(t("generateReelDialog.generateError"));
+      }
+      return;
+    }
+
     if (moments.length === 0) {
       toast.error(t("generateReelDialog.selectMomentError"));
       return;
@@ -119,12 +165,12 @@ export default function GenerateReelDialog({
     setRunning(true);
     setProgress(null);
     try {
-      const reel = await runHighlightsDetection(
+      const detection = await runHighlightsDetection(
         {
           videoId: selectedVideo.id,
           videoTitle: selectedVideo.title,
           videoUrl: selectedVideo.url || "",
-          videoDurationSec: selectedVideo.duration,
+          videoDurationSec: selectedVideo.duration ?? 0,
           targetDurationSec: duration,
           momentTypes: moments,
           playerName: playerName.trim() || undefined,
@@ -132,14 +178,11 @@ export default function GenerateReelDialog({
         },
         (p) => setProgress(p),
       );
-      setResult(reel);
-      toast.success(
-        t("generateReelDialog.reelCreatedToast", {
-          title: reel.title,
-          count: reel.clips.length,
-        }),
-      );
-      onCreated(reel);
+      if (detection.status === "gated") {
+        toast.error(detection.gate_reason);
+        return;
+      }
+      finish(detection.reel);
     } catch (err) {
       console.error(err);
       toast.error(t("generateReelDialog.generateError"));
@@ -183,6 +226,7 @@ export default function GenerateReelDialog({
             {!running && (
               <button
                 onClick={onClose}
+                aria-label={t("generateReelDialog.cancel")}
                 className="p-1.5 rounded-md text-muted-foreground hover:bg-secondary"
               >
                 <X size={16} />
@@ -219,7 +263,7 @@ export default function GenerateReelDialog({
                             {v.title}
                           </p>
                           <p className="text-[9px] text-muted-foreground">
-                            {Math.round(v.duration / 60)} min ·{" "}
+                            {v.duration != null ? `${Math.round(v.duration / 60)} min · ` : ""}
                             {v.isReal
                               ? t("generateReelDialog.uploadedVideo")
                               : t("generateReelDialog.demoMatch")}
@@ -232,6 +276,17 @@ export default function GenerateReelDialog({
                     ))}
                   </div>
                 </div>
+
+                {/* Vídeo real: detección bloqueada con su motivo visible */}
+                {selectedVideo && !isExample && (
+                  <div className="rounded-lg bg-secondary/40 border border-border p-3 text-[11px] text-foreground/80 flex items-start gap-2">
+                    <Info size={12} className="mt-[2px] shrink-0" />
+                    <p>{t("generateReelDialog.gateRealVideo")}</p>
+                  </div>
+                )}
+
+                {/* Partido demo: todo lo que se genera es de EJEMPLO */}
+                {isExample && <DemoDataBanner messageKey="generateReelDialog.exampleNotice" />}
 
                 {/* Title */}
                 <div className="space-y-1.5">
@@ -247,131 +302,111 @@ export default function GenerateReelDialog({
                   />
                 </div>
 
-                {/* Duration presets */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    {t("generateReelDialog.targetDurationLabel")}
-                  </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {DURATION_PRESETS.map((d) => (
-                      <button
-                        key={d.value}
-                        onClick={() => setDuration(d.value)}
-                        className={`flex flex-col items-center gap-0.5 p-2.5 rounded-lg border transition-all ${
-                          duration === d.value
-                            ? "bg-primary/10 border-primary text-foreground"
-                            : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        <span className="text-sm font-display font-bold">{d.label}</span>
-                        <span className="text-[9px] text-muted-foreground">
-                          {t(`generateReelDialog.${d.descKey}`)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {isExample && (
+                  <>
+                    {/* Duration presets */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                        {t("generateReelDialog.targetDurationLabel")}
+                      </label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {DURATION_PRESETS.map((d) => (
+                          <button
+                            key={d.value}
+                            onClick={() => setDuration(d.value)}
+                            className={`flex flex-col items-center gap-0.5 p-2.5 rounded-lg border transition-all ${
+                              duration === d.value
+                                ? "bg-primary/10 border-primary text-foreground"
+                                : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span className="text-sm font-display font-bold">{d.label}</span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {t(`generateReelDialog.${d.descKey}`)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                {/* Moment types */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                      {t("generateReelDialog.momentTypesLabel", {
-                        selected: moments.length,
-                        total: ALL_MOMENTS.length,
-                      })}
-                    </label>
-                    <button
-                      onClick={() =>
-                        setMoments(
-                          moments.length === ALL_MOMENTS.length ? [] : [...ALL_MOMENTS],
-                        )
-                      }
-                      className="text-[10px] text-primary hover:underline"
-                    >
-                      {moments.length === ALL_MOMENTS.length
-                        ? t("generateReelDialog.removeAll")
-                        : t("generateReelDialog.selectAll")}
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALL_MOMENTS.map((m) => {
-                      const meta = MOMENT_META[m];
-                      const active = moments.includes(m);
-                      return (
+                    {/* Moment types */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                          {t("generateReelDialog.momentTypesLabel", {
+                            selected: moments.length,
+                            total: ALL_MOMENTS.length,
+                          })}
+                        </label>
                         <button
-                          key={m}
-                          onClick={() => toggleMoment(m)}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
-                            active
-                              ? "border-primary/40 bg-primary/15 text-foreground"
-                              : "border-border bg-secondary/30 text-muted-foreground"
-                          }`}
-                          style={
-                            active
-                              ? { background: `${meta.color}25`, borderColor: meta.color }
-                              : undefined
+                          onClick={() =>
+                            setMoments(
+                              moments.length === ALL_MOMENTS.length ? [] : [...ALL_MOMENTS],
+                            )
                           }
+                          className="text-[10px] text-primary hover:underline"
                         >
-                          <span>{meta.emoji}</span>
-                          <span>{meta.label}</span>
+                          {moments.length === ALL_MOMENTS.length
+                            ? t("generateReelDialog.removeAll")
+                            : t("generateReelDialog.selectAll")}
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ALL_MOMENTS.map((m) => {
+                          const meta = MOMENT_META[m];
+                          const active = moments.includes(m);
+                          return (
+                            <button
+                              key={m}
+                              onClick={() => toggleMoment(m)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                                active
+                                  ? "border-primary/40 bg-primary/15 text-foreground"
+                                  : "border-border bg-secondary/30 text-muted-foreground"
+                              }`}
+                              style={
+                                active
+                                  ? { background: `${meta.color}25`, borderColor: meta.color }
+                                  : undefined
+                              }
+                            >
+                              <span>{meta.emoji}</span>
+                              <span>{meta.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                {/* Player focus */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                    {t("generateReelDialog.playerFocusLabel")}
-                  </label>
-                  <input
-                    type="text"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder={t("generateReelDialog.playerFocusPlaceholder")}
-                    className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
-                  />
-                  <p className="text-[9px] text-muted-foreground">
-                    {t("generateReelDialog.playerFocusHelp")}
-                  </p>
-                </div>
+                    {/* Player focus */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                        {t("generateReelDialog.playerFocusLabel")}
+                      </label>
+                      <input
+                        type="text"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        placeholder={t("generateReelDialog.playerFocusPlaceholder")}
+                        className="w-full bg-secondary/40 rounded-lg px-3 py-2 text-sm border border-border focus:border-primary focus:outline-none"
+                      />
+                      <p className="text-[9px] text-muted-foreground">
+                        {t("generateReelDialog.playerFocusHelp")}
+                      </p>
+                    </div>
+                  </>
+                )}
               </>
             )}
 
-            {/* Running */}
-            {running && progress && (
-              <div className="space-y-4 py-6">
-                <div className="flex justify-center">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Loader2 size={42} className="text-primary" />
-                  </motion.div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-display font-bold text-foreground">
-                      {progress.message}
-                    </span>
-                    <span className="font-mono text-primary font-bold">{progress.pct}%</span>
-                  </div>
-                  <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-                    <motion.div
-                      animate={{ width: `${progress.pct}%` }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
-                      className="h-full bg-gradient-to-r from-emerald-500 via-primary to-amber-500"
-                    />
-                  </div>
-                </div>
-                {selectedVideo && (
-                  <p className="text-[11px] text-muted-foreground text-center">
-                    {t("generateReelDialog.analyzing")}{" "}
-                    <strong>{selectedVideo.title}</strong>
-                  </p>
-                )}
+            {/* Running (generación local de ejemplo, sin análisis) */}
+            {running && (
+              <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+                <Loader2 size={16} className="animate-spin text-primary" />
+                <span>
+                  {progress?.message || t("generateReelDialog.analyzing")}
+                  {selectedVideo ? ` ${selectedVideo.title}` : ""}
+                </span>
               </div>
             )}
 
@@ -415,11 +450,20 @@ export default function GenerateReelDialog({
               </button>
               <button
                 onClick={handleStart}
-                disabled={!selectedVideo || moments.length === 0}
+                disabled={!selectedVideo || (isExample && moments.length === 0)}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-md bg-gradient-to-r from-emerald-500 to-primary text-white text-xs font-display font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Wand2 size={12} />
-                {t("generateReelDialog.generateReel")}
+                {selectedVideo && !isExample ? (
+                  <>
+                    <Plus size={12} />
+                    {t("generateReelDialog.createEmptyReel")}
+                  </>
+                ) : (
+                  <>
+                    <Wand2 size={12} />
+                    {t("generateReelDialog.generateReel")}
+                  </>
+                )}
               </button>
             </div>
           )}

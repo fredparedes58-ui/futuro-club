@@ -46,7 +46,7 @@ const playerReportSchema = z.object({
   }).passthrough(),
 }).passthrough();
 
-const PROMPT_VERSION = "player-report-v2.2.1"; // v2.2.1 = procedencia (gemini=IA), gate de identidad en eventSummary, trampa passCompletionPct 0 (revisión #177)
+const PROMPT_VERSION = "player-report-v2.3.0"; // v2.3.0 = advertencia de identidad no verificada por dorsal (Gemini unico_jugador/confianza media); v2.2.1 = procedencia (gemini=IA), gate de identidad en eventSummary, trampa passCompletionPct 0 (revisión #177)
 
 function buildSystemPrompt(locale: ReportLocale, category: PlayerCategory): string {
   return `Eres el motor del Player Report de VITAS Football Intelligence.
@@ -105,6 +105,7 @@ REGLAS ABSOLUTAS DE DATOS:
 EVIDENCIA DEL VÍDEO (obligatorio · esto es lo que hace el informe ÚTIL en vez de genérico):
 - PROCEDENCIA (obligatorio distinguir): gemini.* son observaciones ESTIMADAS POR IA (un modelo de visión mirando el clip) → cítalas como "observado por IA", NO como "medido". eventSummary/physicalMetrics vienen del tracking → son medidas SOLO con los gates de abajo.
 - IDENTIDAD (identidad.md): eventSummary y sus eventos son de la pista del jugador enfocado. Solo se envían si la identidad es fiable; aun así, si physicalMetrics.identityReliable === false, NO atribuyas esos eventos al jugador por nombre (pudieron acumularse tras un cambio de identidad de la pista).
+- IDENTIDAD EN EL VÍDEO (Gemini): si gemini.identificacion (o biomechanics.identity) indica que el jugador NO se verificó por dorsal y equipación (estado "unico_jugador", o confianza distinta de "alta"), escribe esa advertencia en honesty_note ("Identidad no verificada por dorsal: [motivo]") y añádela a not_evaluated. Nunca digas que se le identificó por la cara o por rasgos físicos.
 - passCompletionPct 0 con passesAttempted 0 significa "no se detectaron pases" (posible fallo de cobertura), NO "falla todos los pases" → no lo cites como debilidad; escribe "sin datos de pase en este vídeo".
 - La sección "OBSERVACIÓN DIRECTA DEL VÍDEO" trae lo contado/observado en ESTE vídeo:
   · gemini.eventosContados (pases completados/fallados/progresivos, regates con/sin ventaja, duelos ganados/perdidos, recuperaciones, robos, anticipaciones, pérdidas, escaneos, disparos al arco/fuera, centros…), gemini.dimensiones (score_estimado + observaciones por dimensión), gemini.momentosDestacados (timestamp+descripción), gemini.resumenGeneral;

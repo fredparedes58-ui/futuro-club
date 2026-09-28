@@ -41,6 +41,8 @@ import {
   OUTCOME_LABELS,
 } from "@/services/real/setPieceService";
 import { SetPieceVideoEvents, SetPieceVideoRecommendations } from "@/services/real/setPieceVideoDetector";
+import { ProvenanceBadge } from "@/components/metrics/MetricValue";
+import DemoDataBanner from "@/components/DemoDataBanner";
 import type { SetPieceEvent, SetPieceRecommendation } from "@/lib/setPiece/types";
 
 export default function SetPieceFolderPage() {
@@ -159,6 +161,11 @@ export default function SetPieceFolderPage() {
   const isVideoEvent = (id: string) => SetPieceVideoEvents.isVideoEvent(id);
   const isCustomEvent = (id: string) =>
     SetPieceCustomStorage.getCustomEvents().some((c) => c.id === id);
+  // MOCK exige banner visible (metricas.md): la carpeta contiene algún ítem de ejemplo.
+  const customRecIds = new Set(SetPieceCustomStorage.getCustomRecommendations().map((r) => r.id));
+  const hasMockItems =
+    folderEvents.some((e) => isVideoEvent(e.id) || !isCustomEvent(e.id)) ||
+    folderRecs.some((r) => !customRecIds.has(r.id));
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -295,6 +302,7 @@ export default function SetPieceFolderPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-5 space-y-6">
+        {hasMockItems && <DemoDataBanner messageKey="setPiecePage.demoNotice" />}
         {/* Notes section */}
         {folder.notes && (
           <div className="glass rounded-xl p-4 border-l-4 border-primary/60 bg-primary/5">
@@ -422,11 +430,9 @@ function FolderEventCard({
               ? t("setPieceFolderPage.offensive")
               : t("setPieceFolderPage.defensive")}
           </span>
-          {isVideo && (
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-600 text-[8px] uppercase tracking-wider font-bold border border-purple-500/30">
-              {t("setPieceFolderPage.videoBadge")}
-            </span>
-          )}
+          {/* «Desde vídeo» siempre fue simulado y el catálogo base es de ejemplo →
+              badge canónico MOCK (metricas.md), nunca «video». */}
+          {(isVideo || !isCustom) && <ProvenanceBadge provenance="MOCK" />}
           {!isVideo && isCustom && (
             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/15 text-primary text-[8px] uppercase tracking-wider font-bold">
               {t("setPieceFolderPage.customBadge")}

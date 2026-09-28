@@ -14,9 +14,15 @@
  *   1. Look up video URL from Bunny CDN
  *   2. Load player context (position, age, foot)
  *   3. Call video-observation agent (Gemini)
- *   4. Convert GeminiObservation → biomechanics format
+ *   4. Convert GeminiObservation → biomechanics format (api/_lib/geminiBiomechanics.ts)
  *   5. Persist to analyses table
  *   6. Return success with biomechanics
+ *
+ * Honestidad (CLAUDE.md inv. 1-2 + identidad.md): el contexto del jugador NO se
+ * rellena con valores por defecto (antes edad 12 / "MID" / "derecho") y la
+ * observación NO se atribuye al jugador si Gemini no pudo identificarlo por dorsal
+ * y equipación. En ese caso el análisis se cierra como `failed` con el motivo
+ * (`abstained: true`) y NO se generan informes bajo el nombre del menor.
  */
 
 import { z } from "zod";
@@ -24,6 +30,11 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
+import {
+  buildGeminiPlayerContext,
+  geminiToBiomechanics,
+  type GeminiObservation,
+} from "../_lib/geminiBiomechanics";
 
 // maxDuration 300 (no 120): para un vídeo largo (~4 min) la observación Gemini puede
 // acercarse a su propio tope de 120s; con solo 120s aquí, este endpoint moría antes de
@@ -43,52 +54,6 @@ const geminiAnalyzeSchema = z.object({
   playerId: z.string(),
   analysisId: z.string().uuid(),
 });
-
-interface GeminiObservation {
-  timeline: Array<{ timestamp: string; tipo: string; descripcion: string }>;
-  dimensiones: Record<string, { observaciones: string[]; score_estimado: number }>;
-  momentosDestacados: Array<{ timestamp: string; tipo: string; descripcion: string }>;
-  patronesJuego: string[];
-  resumenGeneral: string;
-  eventosContados: Record<string, number>;
-}
-
-/**
- * Convert Gemini observation to biomechanics-compatible format.
- * Same conversion as in process-analyses-queue.ts but centralized here.
- */
-function geminiToBiomechanics(obs: GeminiObservation): Record<string, unknown> {
-  const dims = obs.dimensiones ?? {};
-  const events = obs.eventosContados ?? {};
-
-  return {
-    technical_score: dims.tecnicaConBalon?.score_estimado ?? 5,
-    tactical_score: dims.inteligenciaTactica?.score_estimado ?? 5,
-    physical_score: dims.capacidadFisica?.score_estimado ?? 5,
-    decision_score: dims.velocidadDecision?.score_estimado ?? 5,
-    leadership_score: dims.liderazgoPresencia?.score_estimado ?? 5,
-    efficacy_score: dims.eficaciaCompetitiva?.score_estimado ?? 5,
-
-    passes_completed: events.pasesCompletados ?? 0,
-    passes_failed: events.pasesFallados ?? 0,
-    progressive_passes: events.pasesProgresivos ?? 0,
-    dribbles_successful: events.regatesConVentaja ?? 0,
-    dribbles_failed: events.regatesSinVentaja ?? 0,
-    pressing_effective: events.pressingEfectivo ?? 0,
-    recoveries: events.recuperaciones ?? 0,
-    tackles: events.robos ?? 0,
-    interceptions: events.anticipaciones ?? 0,
-    turnovers: events.perdidas ?? 0,
-    duels_won: events.duelosGanados ?? 0,
-    duels_lost: events.duelosPerdidos ?? 0,
-    shots_on_target: events.disparosAlArco ?? 0,
-    shots_off_target: events.disparosFuera ?? 0,
-    scans: events.escaneos ?? 0,
-
-    gemini_observation: obs,
-    source: GEMINI_MODEL,
-  };
-}
 
 export default withHandler(
   // serviceOnly: paso INTERNO del pipeline (lee PII de menores, dispara Gemini de
@@ -126,21 +91,30 @@ export default withHandler(
       .eq("id", playerId)
       .single();
 
+    // Sin jugador no hay a quién atribuir el vídeo: se cierra el análisis con el
+    // motivo (abstención), en vez de analizarlo como un «Jugador» genérico de 12 años.
+    if (!player) {
+      const gate_reason = "Jugador no encontrado: no se puede atribuir el vídeo a ningún jugador.";
+      await supabase
+        .from("analyses")
+        .update({ status: "failed", status_message: gate_reason })
+        .eq("id", analysisId);
+      return successResponse({ analysisId, abstained: true, gate_reason });
+    }
+
     const { data: anthro } = await supabase
       .from("player_latest_anthropometrics")
       .select("chronological_age, height_cm, weight_kg")
       .eq("player_id", playerId)
       .maybeSingle();
 
-    const playerContext = {
-      name: player?.name ?? "Jugador",
-      age: anthro?.chronological_age ?? 12,
-      position: player?.position ?? "MID",
-      foot: player?.foot ?? "derecho",
-      height: anthro?.height_cm,
-      weight: anthro?.weight_kg,
-      competitiveLevel: "formativo",
-    };
+    // Huecos → null + gate_reason (nunca edad 12 / "MID" / "derecho" por defecto).
+    // El pipeline aún no recibe dorsal/color de equipación → referenceProvided=false.
+    const {
+      playerContext,
+      gate_reasons: contextGateReasons,
+      referenceProvided,
+    } = buildGeminiPlayerContext(player, anthro);
 
     // ── 3. Call Gemini video-observation agent ──
     const startMs = Date.now();
@@ -179,7 +153,27 @@ export default withHandler(
     const geminiLatencyMs = Date.now() - startMs;
 
     // ── 4. Convert to biomechanics format ──
-    const biomechanics = geminiToBiomechanics(observation);
+    const { biomechanics, identity } = geminiToBiomechanics(observation, {
+      referenceProvided,
+      contextGateReasons,
+    });
+
+    // Identidad (identidad.md): jugador no identificado ⇒ nada se atribuye al menor.
+    // Se cierra el análisis con el motivo; el cron NO dispara los informes.
+    if (!identity.attributable) {
+      await supabase
+        .from("analyses")
+        .update({ status: "failed", status_message: identity.reason, biomechanics })
+        .eq("id", analysisId);
+      return successResponse({
+        analysisId,
+        abstained: true,
+        gate_reason: identity.reason,
+        identity,
+        geminiLatencyMs,
+        source: GEMINI_MODEL,
+      });
+    }
 
     // ── 5. Persist to analyses table ──
     const { error: updateError } = await supabase
@@ -200,6 +194,8 @@ export default withHandler(
 
     return successResponse({
       analysisId,
+      abstained: false,
+      identity,
       biomechanics,
       geminiLatencyMs,
       source: GEMINI_MODEL,

@@ -19,6 +19,42 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 
 const STALE = 2 * 60 * 1000; // 2 minutes
 
+// Hosts de Bunny Stream (subida real): iframe.mediadelivery.net, vz-*.b-cdn.net, video.bunnycdn.com
+const BUNNY_HOST_RE = /(^|\.)(mediadelivery\.net|b-cdn\.net|bunnycdn\.com)$/i;
+
+// Metadatos que INVENTABA la antigua pestaña «URL / Cloud» (90 min, 1920×1080, 30 fps).
+const LEGACY_URL_TAB_FAKE_META = { duration: 90 * 60, width: 1920, height: 1080, fps: 30 } as const;
+
+/**
+ * ¿Es un registro de «solo enlace» de la antigua pestaña «URL / Cloud»?
+ *
+ * Esa pestaña (ya retirada) guardaba un enlace de YouTube/Vimeo/Drive/Dropbox/URL
+ * FINGIENDO una subida y con metadatos inventados. No hay fichero: ni se subió a
+ * Bunny ni se puede analizar (la CSP de producción bloquea además el media externo),
+ * así que no debe ofrecerse como vídeo analizable. Se reconoce por la huella EXACTA
+ * de aquel código (metadatos inventados + tamaño 0 + sin fichero local + misma URL
+ * externa en embed/stream), para no confundirlo con ningún vídeo real.
+ */
+export function isLinkOnlyVideo(v: VideoRecord): boolean {
+  if (v.localPath || v.fileHash || v.thumbnailUrl) return false;
+  if ((v.storageSize ?? 0) !== 0) return false;
+  if (
+    v.duration !== LEGACY_URL_TAB_FAKE_META.duration ||
+    v.width !== LEGACY_URL_TAB_FAKE_META.width ||
+    v.height !== LEGACY_URL_TAB_FAKE_META.height ||
+    v.fps !== LEGACY_URL_TAB_FAKE_META.fps
+  ) {
+    return false;
+  }
+  const src = v.streamUrl;
+  if (!src || src !== v.embedUrl || !/^https?:\/\//i.test(src)) return false;
+  try {
+    return !BUNNY_HOST_RE.test(new URL(src).hostname);
+  } catch {
+    return false;
+  }
+}
+
 // ── Auto-heal: videos con embedUrl válido pero status stuck ──────────────────
 function autoHealVideoStatuses(videos: VideoRecord[]): VideoRecord[] {
   let changed = false;
@@ -71,11 +107,17 @@ export function useVideos(playerId?: string) {
       // Auto-heal videos stuck in "processing" that already have valid embedUrl
       all = autoHealVideoStatuses(all);
 
+      // Registros de «solo enlace» con metadatos inventados → fuera del selector del
+      // Lab / Reportes (no son analizables). No se borran del almacenamiento.
+      all = all.filter((v) => !isLinkOnlyVideo(v));
+
       return playerId ? all.filter((v) => v.playerId === playerId) : all;
     },
     staleTime: STALE,
     placeholderData: () =>
-      playerId ? VideoService.getByPlayerId(playerId) : VideoService.getAll(),
+      (playerId ? VideoService.getByPlayerId(playerId) : VideoService.getAll()).filter(
+        (v) => !isLinkOnlyVideo(v),
+      ),
   });
 }
 

@@ -25,7 +25,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { HighlightsStorage } from "@/services/real/highlightsStorage";
+import { isSimulatedClip, reelHasSimulatedClips } from "@/services/real/highlightsDetector";
 import ReelPlayer from "@/components/highlights/ReelPlayer";
+import DemoDataBanner from "@/components/DemoDataBanner";
+import { ProvenanceBadge } from "@/components/metrics/MetricValue";
 import type { HighlightReel, HighlightClip, ClipMoment } from "@/lib/highlights/types";
 import { MOMENT_META, ALL_MOMENTS } from "@/lib/highlights/types";
 
@@ -253,6 +256,10 @@ export default function HighlightDetailPage() {
       <main className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 lg:grid-cols-[1.5fr,1fr] gap-5">
         {/* Player */}
         <div className="space-y-3">
+          {/* MOCK exige banner visible: clips de ejemplo, no detectados en el vídeo */}
+          {reelHasSimulatedClips(reel) && (
+            <DemoDataBanner messageKey="highlightDetailPage.demoNotice" />
+          )}
           <ReelPlayer
             clips={sortedClips}
             sourceUrl={reel.sourceVideoUrl}
@@ -435,9 +442,13 @@ export default function HighlightDetailPage() {
                               👤 {clip.playerName}
                             </p>
                           )}
-                          <p className="text-[9px] text-muted-foreground mt-1">
-                            {t("highlightDetailPage.aiConfidence", { percent: Math.round(clip.confidence * 100) })}
-                          </p>
+                          {/* Antes: «Confianza IA: N%» (aleatoria en los de ejemplo, 100% fijo
+                              en los manuales). No hay IA detrás → se rotula la procedencia. */}
+                          {isSimulatedClip(clip) && (
+                            <div className="mt-1">
+                              <ProvenanceBadge provenance="MOCK" />
+                            </div>
+                          )}
                         </div>
                         <div className="opacity-0 group-hover/clip:opacity-100 flex flex-col gap-0.5 transition-opacity">
                           <button

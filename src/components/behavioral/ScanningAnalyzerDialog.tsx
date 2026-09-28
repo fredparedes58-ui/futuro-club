@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Eye, Cpu, CheckCircle2, Loader2, Video as VideoIcon } from "lucide-react";
 import { toast } from "sonner";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
+import { isLinkOnlyVideo } from "@/hooks/useVideos";
 import {
   runScanningDetection,
   type ScanningDetectionProgress,
@@ -52,7 +53,8 @@ export default function ScanningAnalyzerDialog({
   useEffect(() => {
     if (open) {
       try {
-        setUserVideos(VideoService.getAll().filter((v) => v.status === "finished"));
+        // Sin los registros «solo enlace» de la antigua pestaña URL (metadatos inventados).
+        setUserVideos(VideoService.getAll().filter((v) => v.status === "finished" && !isLinkOnlyVideo(v)));
       } catch {
         setUserVideos([]);
       }
