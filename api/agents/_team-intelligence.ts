@@ -34,7 +34,7 @@ export const config = { runtime: "edge" };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ req, userId }) => {
+  async ({ rawBody, userId }) => {
     // ── Usage quota check (before stream) ──────────────────────
     if (userId) {
       const usage = await checkUsageQuota(userId);
@@ -50,7 +50,8 @@ export default withHandler(
 
         try {
           send("progress", { step: "Iniciando análisis de equipo...", percent: 5 });
-          const body = await req.json();
+          // withHandler ya leyó el cuerpo (rawBody: true) → ctx.rawBody, nunca req.json().
+          const body = JSON.parse(rawBody ?? "");
           const { teamContext, geminiObservations, keyframes, videoId, yoloTrackData, analysisFocus } = body;
 
           // FASE 5 · idioma + maduración biológica del equipo (diferenciador VITAS)
@@ -432,7 +433,9 @@ RECOMENDACIONES PARA EL ENTRENADOR:
         } catch (error: unknown) {
           send("error", { message: error instanceof Error ? error.message : "Error interno" });
         } finally {
-          controller.close();
+          // Las salidas tempranas ya cierran el stream; un segundo close() lanza
+          // "Controller is already closed" y rechaza start() (evento de error perdido).
+          try { controller.close(); } catch { /* ya cerrado */ }
         }
       },
     });

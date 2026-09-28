@@ -17,9 +17,28 @@ export const config = { runtime: "nodejs", maxDuration: 120 };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ req }) => {
+  async ({ rawBody }) => {
     try {
-      const body = await req.json();
+      // withHandler ya leyó el cuerpo (rawBody: true) → usar ctx.rawBody, nunca req.json().
+      let body: {
+        videoBase64?: string;
+        mediaType?: string;
+        locale?: unknown;
+        teamContext?: {
+          teamColor?: string;
+          opponentColor?: string;
+          competitiveLevel?: string;
+          playerCount?: number | string;
+        };
+      };
+      try {
+        const parsed: unknown = JSON.parse(rawBody ?? "");
+        if (!parsed || typeof parsed !== "object") throw new Error("body no es un objeto JSON");
+        body = parsed as typeof body;
+      } catch (parseErr) {
+        console.error("[Team Gemini] Body parse error:", parseErr);
+        return errorResponse("Body JSON inválido", 400, "PARSE_ERROR");
+      }
       const { videoBase64, mediaType, teamContext } = body;
       const locale = normalizeLocale(body.locale);
 
