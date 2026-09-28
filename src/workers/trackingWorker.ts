@@ -12,7 +12,8 @@
  */
 
 import * as ort from "onnxruntime-web";
-import { CentroidTracker }  from "../lib/yolo/tracker";
+import { CentroidTracker, trackFrameDetections } from "../lib/yolo/tracker";
+import { isValidSpace } from "../lib/yolo/coordSpace";
 import {
   computeTileRects,
   cropImage,
@@ -27,7 +28,7 @@ import { runRecallFrame } from "../lib/yolo/recallPipeline";
 import { decodeDetections } from "../lib/yolo/detectPostprocess";
 import { poseCoverageMetric } from "../lib/yolo/poseEligibility";
 import { DEFAULT_RECALL_TILING, type RecallConfig } from "../lib/yolo/recallConfig";
-import type { Detection, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
+import type { Detection, PixelSpace, WorkerCommand, WorkerEvent } from "../lib/yolo/types";
 import { gated, type MetricResult } from "@/lib/metrics/MetricResult";
 
 // ─── Configuración ─────────────────────────────────────────────────────────
@@ -233,12 +234,22 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
           : await inferSingle(cmd.imageData);
     }
 
-    // 4. Actualizar tracker (usa timestamps reales, no FPS hardcoded)
-    const H = new Float64Array(cmd.homography);
-    const tracks = tracker.update(detections, H, cmd.timestampMs);
+    // 4. Espacios: las detecciones salen en el espacio del FRAME (imageData, el 640²
+    //    aplastado); la homografía PÍXEL→CAMPO llega expresada en píxeles NATIVOS del
+    //    vídeo (sourceSpace). trackFrameDetections reescala 640²→nativo ANTES del
+    //    tracker → caja y H comparten espacio y los metros salen dentro del campo.
+    //    Sin sourceSpace (llamante antiguo) se asume el propio frame.
+    const frameSpace: PixelSpace = { width: cmd.imageData.width, height: cmd.imageData.height };
+    const sourceSpace: PixelSpace = isValidSpace(cmd.sourceSpace) ? cmd.sourceSpace : frameSpace;
 
-    // 5. Extract person bboxes for ball heuristic detection (Sprint 1)
-    const personBboxes = detections.map(d => ({
+    // 5. Actualizar tracker (usa timestamps reales, no FPS hardcoded)
+    const H = new Float64Array(cmd.homography);
+    const { tracks, detections: sourceDetections } = trackFrameDetections(
+      tracker, detections, frameSpace, sourceSpace, H, cmd.timestampMs,
+    );
+
+    // 6. Person bboxes (espacio NATIVO, como los tracks) para la heurística de balón
+    const personBboxes = sourceDetections.map(d => ({
       bbox: d.bbox as [number, number, number, number],
       confidence: d.confidence,
     }));
@@ -247,6 +258,8 @@ async function processFrame(cmd: Extract<WorkerCommand, { type: "FRAME" }>): Pro
       type:       "RESULT",
       frameIndex: cmd.frameIndex,
       timestampMs: cmd.timestampMs,
+      trackSpace: sourceSpace,
+      frameSpace,
       tracks,
       personBboxes,
       ...(poseCoverage ? { poseCoverage } : {}),

@@ -15,9 +15,19 @@ import { getActiveModel } from "@/lib/yolo/modelConfig";
 import { getTilingConfig } from "@/lib/yolo/tiling";
 import { getRecallConfig } from "@/lib/yolo/recallConfig";
 import { computeVoronoi } from "@/lib/yolo/voronoi";
-import { buildAnchors, computeHomography, invertMatrix3x3, identityHomography } from "@/lib/yolo/homography";
+import {
+  calibrationFromPercentPoints,
+  fieldToPixelIn,
+  pixelToFieldIn,
+  sameSpace,
+  scaleBox,
+  scaleBoxed,
+  videoSpaceOf,
+  type PixelToFieldCalibration,
+} from "@/lib/yolo/coordSpace";
 import {
   FIELD_ANCHOR_PRESETS,
+  type PixelSpace,
   type Track,
   type ScanEvent,
   type DuelEvent,
@@ -78,6 +88,12 @@ export interface TrackingState {
    * DERIVADA/orientativa. Ver `poseEligibility.ts`.
    */
   poseCoverage: MetricResult<number> | null;
+  /**
+   * Espacio de píxel de `currentTracks` (bbox/keypoints): el NATIVO del vídeo
+   * (videoWidth×videoHeight). Los overlays lo mapean a pantalla con coordSpace.ts.
+   * `null` hasta el primer resultado del worker.
+   */
+  trackSpace: PixelSpace | null;
 }
 
 /** Callback for fatigue integration: receives field positions each frame */
@@ -124,6 +140,18 @@ const EMPTY_METRICS: PhysicalMetrics = {
   accel: gated("Sin sesión de tracking"),
 };
 
+// ─── Espacios de coordenadas (ver coordSpace.ts) ─────────────────────────────
+
+/**
+ * Tracks de `from` a `to` (copias con caja y keypoints reescalados). Usos: recortes
+ * de color (Re-ID, nativo del canvas) y PoseAnalyzer (FRAME del modelo, donde viven
+ * sus umbrales en px). Devuelve el MISMO array si los espacios coinciden.
+ */
+function tracksInSpace(tracks: Track[], from: PixelSpace, to: PixelSpace): Track[] {
+  if (sameSpace(from, to)) return tracks;
+  return tracks.map((t) => scaleBoxed(t, from, to));
+}
+
 // ─── Hook principal ───────────────────────────────────────────────────────────
 
 export function useTracking(options: UseTrackingOptions) {
@@ -168,14 +196,20 @@ export function useTracking(options: UseTrackingOptions) {
     teamAssignments: new Map(),
     calibrationConfidence: "none",
     poseCoverage:    null,
+    trackSpace:      null,
   });
 
   const workerRef       = useRef<Worker | null>(null);
   const extractorRef    = useRef<FrameExtractor | null>(null);
   const analyzerRef     = useRef<PoseAnalyzer>(new PoseAnalyzer());
   const videoRef        = useRef<HTMLVideoElement | null>(null);
-  const homographyRef   = useRef<Float64Array>(identityHomography());
-  const homographyInvRef = useRef<Float64Array>(identityHomography());
+  // Calibración del campo como homografía PÍXEL→CAMPO + el espacio en que está
+  // definida (PERCENT para la manual, nativo del vídeo para la auto). Se MATERIALIZA
+  // por frame en el espacio de cada consumidor (worker: nativo; balón: frame 640²;
+  // Voronoi: campo→píxel nativo). null = sin calibración → identidad.
+  // Antes se guardaba la matriz CAMPO→PÍXEL de computeHomography y se enviaba al
+  // worker como si fuera píxel→campo → posiciones fuera del campo → físicas a 0.
+  const calibrationRef  = useRef<PixelToFieldCalibration | null>(null);
   const voronoiTimerRef = useRef<number>(0);
   // G7: muestras de área Voronoi por track, tomadas en instantes VIVOS (roster real
   // simultáneo). Se promedian al cerrar la sesión → space por jugador, sin sesgo.
@@ -189,23 +223,23 @@ export function useTracking(options: UseTrackingOptions) {
   const errorRef          = useRef<string | null>(null);
   const focusTrackIdRef   = useRef<number | null>(null);
 
-  // ── Actualizar homografía cuando cambian los puntos de calibración ──────────
+  // ── Actualizar la calibración cuando cambian los puntos ──────────────────────
+  // Los puntos del Lab están en % del frame del vídeo → la homografía se construye
+  // en PERCENT_SPACE y no depende de la resolución (antes caía a 1280×720 si el
+  // vídeo aún no había cargado → escala equivocada para cualquier otro tamaño).
+  // Clave estable: el llamante pasa un array NUEVO en cada render; sin ella la
+  // calibración se recalculaba en cada render y pisaba la auto-calibración.
+  const calibrationPointsRef = useRef(calibrationPoints);
+  calibrationPointsRef.current = calibrationPoints;
+  const calibrationKey = calibrationPoints.map((p) => `${p.x},${p.y}`).join(";");
   useEffect(() => {
-    if (calibrationPoints.length < 4) return;
-    const presetAnchors = FIELD_ANCHOR_PRESETS[anchorPreset];
-    const vw = videoRef.current?.videoWidth  || 1280;
-    const vh = videoRef.current?.videoHeight || 720;
-
-    try {
-      const anchors = buildAnchors(calibrationPoints, presetAnchors as unknown as Array<{field:{fx:number;fy:number}}>, vw, vh);
-      const H    = computeHomography(anchors);
-      const Hinv = invertMatrix3x3(H);
-      homographyRef.current    = H;
-      homographyInvRef.current = Hinv;
-    } catch {
-      // Si la calibración no es válida aún, mantener identidad
-    }
-  }, [calibrationPoints, anchorPreset]);
+    const calib = calibrationFromPercentPoints(
+      calibrationPointsRef.current,
+      FIELD_ANCHOR_PRESETS[anchorPreset],
+    );
+    // Si la calibración no es válida aún (<4 puntos / degenerada), se mantiene la previa
+    if (calib) calibrationRef.current = calib;
+  }, [calibrationKey, anchorPreset]);
 
   // ── Inicializar Worker ───────────────────────────────────────────────────────
   const initWorker = useCallback(() => {
@@ -238,10 +272,24 @@ export function useTracking(options: UseTrackingOptions) {
         case "RESULT": {
           const tracks = event.tracks;
           allTracksRef.current = tracks;
+          // Espacio de las cajas/keypoints recibidos: NATIVO del vídeo (el worker ya
+          // reescaló 640²→nativo). Fallbacks solo para un worker antiguo sin el campo.
+          const trackSpace: PixelSpace =
+            event.trackSpace ??
+            videoSpaceOf(videoRef.current) ??
+            event.frameSpace ?? { width: FRAME_SIZE, height: FRAME_SIZE };
+          const frameSpace: PixelSpace = event.frameSpace ?? { width: FRAME_SIZE, height: FRAME_SIZE };
 
-          // Pose analysis (scanning + duels)
+          // Pose analysis (scanning + duels) en espacio FRAME, NO en el nativo.
+          // PoseAnalyzer tiene umbrales en PÍXELES fijos (escaneo: |nariz − medio
+          // orejas| > 8 px; duelo aéreo: |cadera − rodilla| < 20 px) que siempre se
+          // evaluaron sobre el frame 640² que ve el modelo. Pasarle cajas nativas los
+          // haría depender de la resolución (a 4K el umbral de escaneo sería ~6× más
+          // laxo) → mismo gesto, distinto `scans` según la cámara. Se llevan los
+          // tracks al FRAME: umbrales idénticos a los de antes, sin re-validar nada.
+          // Las posiciones en METROS (duelos por distancia) no cambian con el escalado.
           const { scans, duels } = analyzerRef.current.analyzeTracks(
-            tracks,
+            tracksInSpace(tracks, trackSpace, frameSpace),
             event.timestampMs,
             TARGET_FPS
           );
@@ -252,7 +300,9 @@ export function useTracking(options: UseTrackingOptions) {
           let voronoiRegions: VoronoiRegion[] = [];
           if (event.timestampMs - voronoiTimerRef.current > VORONOI_INTERVAL_MS) {
             voronoiTimerRef.current = event.timestampMs;
-            voronoiRegions = computeVoronoi(tracks, homographyInvRef.current);
+            // Polígonos para render: CAMPO→PÍXEL en el mismo espacio que los tracks.
+            // (Antes recibía la PÍXEL→CAMPO como si fuera campo→píxel.)
+            voronoiRegions = computeVoronoi(tracks, fieldToPixelIn(calibrationRef.current, trackSpace));
             // G7: muestrea el área de cada celda en ESTE instante vivo (todos los
             // jugadores presentes) → base honesta para el promedio de sesión. NO se
             // reconstruye desde tracks muertos (sesgaría el área al alza).
@@ -275,12 +325,18 @@ export function useTracking(options: UseTrackingOptions) {
           // Feed ball tracking worker with person bboxes for heuristic detection (Sprint 1)
           // FASE 2: solo en modo heurístico — en standalone el balón se alimenta
           // con imageData desde onFrame (inferencia dedicada en su worker)
-          if (enableBallTrackingRef.current && !ballStandaloneModeRef.current && (event as Record<string, unknown>).personBboxes) {
+          // El worker del balón trabaja SIEMPRE en el espacio FRAME (donde están sus
+          // umbrales en px, igual que en modo standalone): cajas nativo→frame y
+          // homografía PÍXEL→CAMPO materializada en frame.
+          if (enableBallTrackingRef.current && !ballStandaloneModeRef.current && event.personBboxes) {
             feedBallFrameRef.current({
-              personBboxes: (event as Record<string, unknown>).personBboxes as Array<{ bbox: [number, number, number, number]; confidence: number }>,
-              imgW: videoRef.current?.videoWidth ?? 1280,
-              imgH: videoRef.current?.videoHeight ?? 720,
-              homography: Array.from(homographyRef.current),
+              personBboxes: event.personBboxes.map((p) => ({
+                bbox: scaleBox(p.bbox, trackSpace, frameSpace),
+                confidence: p.confidence,
+              })),
+              imgW: frameSpace.width,
+              imgH: frameSpace.height,
+              homography: Array.from(pixelToFieldIn(calibrationRef.current, frameSpace)),
               timestampMs: event.timestampMs,
               frameIndex: event.frameIndex,
             });
@@ -300,11 +356,27 @@ export function useTracking(options: UseTrackingOptions) {
               if (idCtx) {
                 idCtx.drawImage(vid, 0, 0);
                 const frameData = idCtx.getImageData(0, 0, idCanvas.width, idCanvas.height);
+                // Recortes de color/dorsal sobre el frame NATIVO: las cajas deben estar
+                // en el espacio de ESTE canvas. Coincide con trackSpace salvo que el
+                // stream cambie de resolución a mitad → conversión explícita.
+                const cropSpace: PixelSpace = { width: idCanvas.width, height: idCanvas.height };
+                const cropTracks = tracksInSpace(tracks, trackSpace, cropSpace);
                 const identityMap = identityManagerRef.current.processFrame(
-                  tracks,
+                  cropTracks,
                   frameData,
                   event.timestampMs,
                 );
+                if (cropTracks !== tracks) {
+                  // processFrame anota la identidad en los tracks que recibe → volcarla
+                  // a los tracks originales (los que se pintan y se guardan en estado).
+                  cropTracks.forEach((ct, i) => {
+                    const t = tracks[i];
+                    t.stableId = ct.stableId;
+                    t.dorsalNumber = ct.dorsalNumber;
+                    t.team = ct.team;
+                    t.identityConfidence = ct.identityConfidence;
+                  });
+                }
                 identitiesRef.current = identityMap;
                 teamAssignmentsRef.current = identityManagerRef.current.getTeamMap();
                 updatedIdentities = identityMap;
@@ -317,6 +389,7 @@ export function useTracking(options: UseTrackingOptions) {
           setState(s => ({
             ...s,
             currentTracks:  tracks,
+            trackSpace,
             scanEvents:     scanEventsRef.current,
             duelEvents:     duelEventsRef.current,
             ...(voronoiRegions.length ? { voronoiRegions } : {}),
@@ -370,6 +443,7 @@ export function useTracking(options: UseTrackingOptions) {
       identities:    new Map(),
       teamAssignments: new Map(),
       poseCoverage:  null,
+      trackSpace:    null,
     }));
 
     // Reset identity manager (Sprint 4)
@@ -411,9 +485,13 @@ export function useTracking(options: UseTrackingOptions) {
     if (autoCalibrateRef.current && videoEl.readyState >= 2) {
       try {
         const calibResult = await runAutoCalibrate(videoEl);
-        if (calibResult.autoDetected && calibResult.confidence >= 0.5) {
-          homographyRef.current = calibResult.H;
-          homographyInvRef.current = calibResult.Hinv;
+        // Convención de AutoCalibrationResult: H = CAMPO→PÍXEL (computeHomography) y
+        // Hinv = PÍXEL→CAMPO, ambas en píxeles del frame capturado a resolución nativa
+        // (captureVideoFrame: videoWidth×videoHeight). Se guarda la PÍXEL→CAMPO con
+        // ese espacio. (Antes se guardaba H y se enviaba como píxel→campo.)
+        const autoSpace = videoSpaceOf(videoEl);
+        if (calibResult.autoDetected && calibResult.confidence >= 0.5 && autoSpace) {
+          calibrationRef.current = { pixelToField: calibResult.Hinv, space: autoSpace };
           console.log(`[useTracking] Auto-calibration: confidence=${calibResult.confidence.toFixed(2)}`);
         }
         // Gate HONESTO (T1): la auto-calibración es heurística → 'none'/'low', nunca
@@ -469,12 +547,18 @@ export function useTracking(options: UseTrackingOptions) {
       onFrame:   (imageData, timestampMs) => {
         if (!workerRef.current) return;
         const frameIndex = Math.round(timestampMs / (1000 / TARGET_FPS));
+        // Espacios explícitos: el modelo ve el FRAME aplastado (imageData); el worker
+        // reescala sus cajas al NATIVO del vídeo (sourceSpace) y la homografía
+        // PÍXEL→CAMPO se materializa en ese mismo espacio.
+        const frameSpace: PixelSpace = { width: imageData.width, height: imageData.height };
+        const sourceSpace: PixelSpace = videoSpaceOf(videoEl) ?? frameSpace;
         workerRef.current.postMessage({
           type:       "FRAME",
           imageData,
           frameIndex,
           timestampMs,
-          homography: Array.from(homographyRef.current),
+          homography: Array.from(pixelToFieldIn(calibrationRef.current, sourceSpace)),
+          sourceSpace,
         });
 
         // FASE 2 · balón standalone: inferencia dedicada en su propio worker.
@@ -488,12 +572,13 @@ export function useTracking(options: UseTrackingOptions) {
             imageData,
             imgW: imageData.width,
             imgH: imageData.height,
-            // Aspecto del vídeo original: el frame se aplasta a 640×640 cuadrado
-            // → el detector corrige el filtro de aspecto (bug del balón elíptico).
+            // Anisotropía del aplastado nativo→frame (con frame cuadrado = aspecto del
+            // vídeo) → el detector corrige el filtro de aspecto (bug del balón elíptico).
             srcAspect:
-              (videoRef.current?.videoWidth ?? 1280) /
-              (videoRef.current?.videoHeight ?? 720),
-            homography: Array.from(homographyRef.current),
+              (sourceSpace.width / sourceSpace.height) /
+              (frameSpace.width / frameSpace.height),
+            // El balón se detecta en espacio FRAME → homografía materializada en FRAME.
+            homography: Array.from(pixelToFieldIn(calibrationRef.current, frameSpace)),
             timestampMs,
             frameIndex,
           });
@@ -577,7 +662,6 @@ export function useTracking(options: UseTrackingOptions) {
 
   return {
     state,
-    homographyInv:  homographyInvRef.current,
     startTracking,
     stopTracking,
     pauseTracking,

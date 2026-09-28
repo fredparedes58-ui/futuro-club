@@ -11,6 +11,12 @@
 export interface FrameExtractorConfig {
   video:       HTMLVideoElement;
   targetFps:   number;                                             // e.g. 8
+  /**
+   * Tamaño del frame entregado. El vídeo se ESTIRA a width×height (sin letterbox):
+   * con 640×640 un 16:9 queda aplastado → x e y tienen escalas distintas. Todo lo
+   * que se detecte sobre `imageData` está en ese espacio FRAME; pasarlo a píxeles
+   * nativos del vídeo (videoWidth×videoHeight) SIEMPRE con coordSpace.ts.
+   */
   width:       number;                                             // canvas resize width
   height:      number;                                             // canvas resize height
   onFrame:     (imageData: ImageData, timestampMs: number) => void;
