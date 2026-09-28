@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
+import { finalizeSyncGateMessage } from "@/lib/syncVideoAnalysisGate";
 import * as tus from "tus-js-client";
 import {
   getActiveFieldFormat,
@@ -188,6 +189,10 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
         });
 
         const finData = await finRes.json();
+        // Gate honesto del servidor (vídeo demasiado largo para la cola de clips cortos):
+        // se muestra el motivo real en vez de reintentar hasta un "timeout" falso.
+        const gateMsg = finalizeSyncGateMessage(t, finData);
+        if (gateMsg) throw new Error(gateMsg);
         if (finData?.data?.ready) {
           finalized = true;
           break;

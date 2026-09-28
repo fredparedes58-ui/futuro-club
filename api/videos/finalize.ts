@@ -10,7 +10,10 @@
  *   2. SIEMBRA en `videos` las columnas que el pipeline necesita —bunny_video_id,
  *      player_id, tenant_id (resuelto del jugador; el cliente solo tiene org_id),
  *      duration_sec, played_position— con check de OWNERSHIP (anti-IDOR de menor ajeno).
- *   3. Encola el análisis IN-PROCESS (impl compartida con el webhook, inv #7).
+ *   3. Gate honesto: un vídeo más largo que SYNC_ANALYSIS_MAX_DURATION_SEC (partido
+ *      completo) NO se encola en la cola Gemini de clips cortos → 422
+ *      `video_too_long_for_sync_analysis` con la duración real (el cliente lo traduce).
+ *   4. Encola el análisis IN-PROCESS (impl compartida con el webhook, inv #7).
  *
  * Antes disparaba el webhook por HTTP SIN firma → el webhook fail-closed lo rechazaba
  * siempre (503/401) y el análisis nunca se encolaba, pero respondía ready:true → la UI
@@ -23,7 +26,15 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { ownsVideo, ownsPlayerOrTenant } from "../_lib/ownership";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
+import { BUNNY_API_VIDEO_STATUS, getBunnyVideo } from "../_lib/bunnyStream";
 import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
+import {
+  evaluateSyncAnalysisGate,
+  knownDurationSec,
+  SYNC_ANALYSIS_GATE_CODE,
+  SYNC_ANALYSIS_MAX_DURATION_MIN,
+  durationMinutesForDisplay,
+} from "../../src/lib/shared/videoLimits";
 
 export const config = { runtime: "edge" };
 
@@ -45,34 +56,6 @@ const finalizeSchema = z.object({
   locale: localeSchema.optional(),
 });
 
-interface BunnyVideoStatus {
-  guid: string;
-  status: number;
-  length: number;
-  width: number;
-  height: number;
-}
-
-async function getBunnyVideoStatus(bunnyVideoId: string): Promise<BunnyVideoStatus | null> {
-  try {
-    const res = await fetch(
-      `https://video.bunnycdn.com/library/${BUNNY_LIBRARY_ID}/videos/${bunnyVideoId}`,
-      { headers: { AccessKey: BUNNY_API_KEY, Accept: "application/json" } }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return {
-      guid: data.guid,
-      status: data.status,
-      length: data.length,
-      width: data.width,
-      height: data.height,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export default withHandler(
   { schema: finalizeSchema, requireAuth: true, maxRequests: 30 },
   async ({ body, userId, tenantId, isServiceCall }) => {
@@ -87,7 +70,7 @@ export default withHandler(
     // Verificar que el video existe (+ leer dueño y lo que ya tenga)
     const { data: video } = await supabase
       .from("videos")
-      .select("id, bunny_video_id, player_id, tenant_id, user_id")
+      .select("id, bunny_video_id, player_id, tenant_id, user_id, duration_sec")
       .eq("id", input.videoId)
       .single();
 
@@ -95,7 +78,14 @@ export default withHandler(
       return errorResponse({ code: "video_not_found", message: "Video no existe", status: 404 });
     }
 
-    const vrow = video as { id: string; bunny_video_id?: string | null; player_id?: string | null; tenant_id?: string | null; user_id?: string | null };
+    const vrow = video as {
+      id: string;
+      bunny_video_id?: string | null;
+      player_id?: string | null;
+      tenant_id?: string | null;
+      user_id?: string | null;
+      duration_sec?: number | null;
+    };
 
     // ── AUTORIZACIÓN A NIVEL DE OBJETO (anti-IDOR de menores) ────────────────
     // finalize MUTA una fila `videos` EXISTENTE (siembra bunny_video_id/player_id/
@@ -145,20 +135,21 @@ export default withHandler(
       await supabase.from("videos").update({ locale: normalizeLocale(input.locale) }).eq("id", video.id);
     }
 
-    // Status del vídeo en Bunny
-    const bunnyStatus = await getBunnyVideoStatus(input.bunnyVideoId);
+    // Status del vídeo en Bunny (enum de la API REST: 4 = Finished, 5 = Error)
+    const bunnyStatus = await getBunnyVideo({
+      libraryId: BUNNY_LIBRARY_ID,
+      apiKey: BUNNY_API_KEY,
+      videoGuid: input.bunnyVideoId,
+    });
     if (!bunnyStatus) {
       return errorResponse({ code: "bunny_query_failed", message: "No se pudo consultar Bunny", status: 502 });
     }
 
-    const STATUS_FINISHED = 4;
-    const STATUS_ERROR = 5;
-
-    if (bunnyStatus.status === STATUS_ERROR) {
+    if (bunnyStatus.status === BUNNY_API_VIDEO_STATUS.ERROR) {
       return errorResponse({ code: "bunny_encoding_failed", message: "Bunny falló encoding", status: 422 });
     }
 
-    if (bunnyStatus.status !== STATUS_FINISHED) {
+    if (bunnyStatus.status !== BUNNY_API_VIDEO_STATUS.FINISHED) {
       return successResponse({
         ready: false,
         status: bunnyStatus.status,
@@ -174,6 +165,24 @@ export default withHandler(
     if (bunnyStatus.length > 0) updateData.duration_sec = bunnyStatus.length;
     if (input.playedPosition) updateData.played_position = input.playedPosition;
     await supabase.from("videos").update(updateData).eq("id", video.id);
+
+    // ── Gate honesto ANTES de encolar: la cola Gemini es de CLIPS CORTOS ────────
+    // video-observation descarga el fichero entero dentro de una función de 120 s → un
+    // partido completo fallaría tras gastar cómputo. Se rechaza con un código que el
+    // cliente traduce (7 idiomas). Duración REAL (Bunny, o la de la fila — metadatos del
+    // navegador vía video-init); si no se conoce, no se bloquea y no se inventa.
+    const gate = evaluateSyncAnalysisGate(knownDurationSec(bunnyStatus.length, vrow.duration_sec));
+    if (!gate.allowed) {
+      return errorResponse({
+        code: SYNC_ANALYSIS_GATE_CODE,
+        message:
+          `El vídeo dura ${durationMinutesForDisplay(gate.durationSec)} min y el análisis rápido admite ` +
+          `hasta ${SYNC_ANALYSIS_MAX_DURATION_MIN} min. El análisis de partido completo llegará con el ` +
+          `nuevo análisis de partido; el vídeo queda guardado.`,
+        status: 422,
+        details: { durationSec: gate.durationSec, maxDurationSec: gate.maxDurationSec },
+      });
+    }
 
     // ── Encolar el análisis (idempotente, impl compartida con el webhook) ──
     const result = await enqueueAnalysis({
