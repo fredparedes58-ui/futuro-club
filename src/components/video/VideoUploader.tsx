@@ -8,7 +8,16 @@
  *   1. Llama /api/videos/create-upload → recibe credenciales TUS
  *   2. Sube archivo a Bunny via TUS (con barra de progreso)
  *   3. Llama /api/videos/finalize → dispara análisis
- *   4. Polling a /api/analyses/[id] hasta status='completed'
+ *   4. Polling a /api/analyses/by-video hasta status='completed'
+ *
+ * Auth: los tres endpoints son `requireAuth` y `verifyAuth` (api/_lib/auth.ts) SOLO
+ * acepta `Authorization: Bearer <jwt>`. Antes se mandaba `credentials: "include"`
+ * sin cabecera → 401 SIEMPRE y la subida desde IDP/Tactical nunca funcionó. Ahora
+ * cada llamada usa el helper compartido `getAuthHeaders` (inv #7), pedido JUSTO antes
+ * de cada fetch para que una subida larga no finalice con un token ya caducado (el
+ * helper lo refresca). Sin sesión (demo / Supabase sin configurar) el helper no lanza
+ * y devuelve solo Content-Type → el servidor responde 401 y la UI muestra el error
+ * genérico, sin romperse.
  *
  * Requiere: npm install tus-js-client
  *
@@ -20,6 +29,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
+import { finalizeSyncGateMessage } from "@/lib/syncVideoAnalysisGate";
+import { getAuthHeaders } from "@/lib/apiAuth";
 import * as tus from "tus-js-client";
 import {
   getActiveFieldFormat,
@@ -116,10 +127,10 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
     try {
       // 1. Crear video en Bunny + obtener credenciales TUS
+      const createHeaders = await getAuthHeaders();
       const createRes = await fetch("/api/videos/create-upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: createHeaders,
         body: JSON.stringify({
           playerId,
           title,
@@ -127,6 +138,11 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
         }),
       });
 
+      // 401 CON token enviado = sesión caducada/rechazada → se dice tal cual. Sin token
+      // (demo / sin sesión) no hay sesión que "caducar" → cae al error genérico de abajo.
+      if (createRes.status === 401 && createHeaders.Authorization) {
+        throw new Error(t("errors.sessionExpired"));
+      }
       const createData = await createRes.json();
       if (!createRes.ok || !createData.success) {
         throw new Error(createData?.error?.message ?? t("videoUploader.errorCreatingUpload"));
@@ -176,8 +192,7 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
         const finRes = await fetch("/api/videos/finalize", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             videoId: meta.videoId,
             bunnyVideoId: meta.bunnyVideoId,
@@ -187,7 +202,15 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
           }),
         });
 
+        // create-upload ya aceptó un token en este mismo flujo → un 401 aquí es una
+        // sesión perdida: se para con el motivo real en vez de reintentar 12 veces y
+        // acabar en un "Bunny tardó demasiado" falso.
+        if (finRes.status === 401) throw new Error(t("errors.sessionExpired"));
         const finData = await finRes.json();
+        // Gate honesto del servidor (vídeo demasiado largo para la cola de clips cortos):
+        // se muestra el motivo real en vez de reintentar hasta un "timeout" falso.
+        const gateMsg = finalizeSyncGateMessage(t, finData);
+        if (gateMsg) throw new Error(gateMsg);
         if (finData?.data?.ready) {
           finalized = true;
           break;
@@ -209,8 +232,11 @@ export function VideoUploader({ playerId, playerName, onComplete }: Props) {
 
         const statusRes = await fetch(
           `/api/analyses/by-video?videoId=${meta.videoId}`,
-          { credentials: "include" }
+          { headers: await getAuthHeaders() }
         );
+        // Mismo motivo que en finalize: sin esto el polling ignoraba el 401 en silencio
+        // durante 4 min y terminaba en "está tardando" cuando en realidad no había sesión.
+        if (statusRes.status === 401) throw new Error(t("errors.sessionExpired"));
         if (statusRes.ok) {
           const status = await statusRes.json();
           const a = status?.data?.analysis;

@@ -22,7 +22,7 @@ import { IS_DEMO } from "@/lib/demoMode";
 import { buildDemoLiveMatchSummary } from "@/lib/demo/demoLive";
 import { createLiveMatch } from "@/hooks/useLiveMatch";
 import VideoUpload from "@/components/VideoUpload";
-import { VideoService, getBestVideoUrl } from "@/services/real/videoService";
+import { VideoService, getServerVideoUrl } from "@/services/real/videoService";
 import ErrorState from "@/components/ErrorState";
 
 interface MatchSummary {
@@ -229,8 +229,9 @@ export default function LiveHubPage() {
                   <VideoUpload
                     onDone={(videoId) => {
                       // Prop correcto onDone(videoId); onUploadComplete no existía.
-                      const video = VideoService.getById(videoId);
-                      const url = video ? getBestVideoUrl(video) : null;
+                      // La URL viaja al servidor (/api/live/matches) → solo HTTP(S) de
+                      // CDN; nunca el blob: de esta pestaña (getServerVideoUrl).
+                      const { url } = getServerVideoUrl(VideoService.getById(videoId));
                       if (url) {
                         setVideoUrl(url);
                         toast.success(t("liveHubPage.toastVideoUploaded"));
