@@ -86,6 +86,11 @@ export default withHandler(
       }
       const { videoUrl, videoBase64: videoBase64FromBody, mediaType: mediaTypeFromBody, playerContext } = body;
       const locale = normalizeLocale(body.locale);
+      // Ámbito de la observación. "player" (por defecto, el estricto): informe de UN
+      // jugador → exige identificarlo por dorsal + color o abstenerse (identidad.md).
+      // "team": baseline de equipo, rival y live aggregate → se observa al equipo y no
+      // se identifica ni se atribuye nada a un jugador, así que no aplica esa abstención.
+      const analysisScope: "player" | "team" = body.analysisScope === "team" ? "team" : "player";
 
       if (!playerContext) {
         return errorResponse("Faltan datos requeridos (playerContext)", 400);
@@ -184,9 +189,7 @@ export default withHandler(
         ? `Busca al jugador con dorsal ${refJersey} y uniforme color ${refKitColor}. Identifícalo SOLO por ese dorsal y ese color de equipación.`
         : `No hay dorsal Y color de equipación de referencia para este jugador${refJersey ? ` (solo dorsal: ${refJersey})` : refKitColor ? ` (solo color: ${refKitColor})` : ""}: NO puedes marcarlo como "identificado".`;
 
-      const prompt = `Eres un scout profesional de fútbol formado en metodologías de scouting europeas (La Masia, Ajax Academy, Clairefontaine). Tienes experiencia evaluando jugadores desde categorías sub-10 hasta profesional. Observa este video completo con la mentalidad de un ojeador que debe decidir si este jugador merece seguimiento.
-
-IDENTIFICACIÓN DEL JUGADOR (obligatorio, ANTES de observar nada):
+      const playerIdentityBlock = `IDENTIFICACIÓN DEL JUGADOR (obligatorio, ANTES de observar nada):
 ${identityInstruction}
 - Identifica al jugador ÚNICAMENTE por el dorsal y el color de la equipación. NUNCA por la cara, rasgos faciales, pelo, color de piel, estatura, complexión ni ningún otro rasgo físico o biométrico: son menores de edad.
 - estado "identificado": SOLO si has visto con claridad el dorsal de referencia en una equipación del color de referencia.
@@ -205,7 +208,18 @@ DATOS DEL JUGADOR:
 
 ${ageCalibration}
 
-${positionFocus}
+${positionFocus}`;
+
+      const teamScopeBlock = `ÁMBITO: análisis del EQUIPO${refKitColor ? ` que viste de color ${refKitColor}` : ""} (${ctx.name || "equipo sin nombre"}), NO de un jugador concreto.
+- Aplica las pasadas y las dimensiones al equipo en su conjunto: donde el método dice "el jugador", entiende "el equipo".
+- NO identifiques, nombres, numeres ni evalúes a jugadores individuales, y NUNCA uses la cara ni rasgos físicos o biométricos: son menores de edad.
+- No conoces la categoría de edad: no la estimes por el aspecto físico.
+- Nivel competitivo: ${ctx.competitiveLevel || "no especificado"}.
+- Omite el campo "identificacion".`;
+
+      const prompt = `Eres un scout profesional de fútbol formado en metodologías de scouting europeas (La Masia, Ajax Academy, Clairefontaine). Tienes experiencia evaluando jugadores desde categorías sub-10 hasta profesional. Observa este video completo con la mentalidad de un ojeador que debe decidir si este jugador merece seguimiento.
+
+${analysisScope === "team" ? teamScopeBlock : playerIdentityBlock}
 
 METODOLOGÍA DE OBSERVACIÓN (sigue este orden):
 
@@ -260,8 +274,8 @@ METODOLOGÍA DE OBSERVACIÓN (sigue este orden):
 
 Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin backticks):
 
-{
-  "identificacion": {"estado": "identificado", "metodo": "dorsal_y_color", "dorsalObservado": "10", "colorObservado": "rojo", "confianza": "alta", "motivo": "Dorsal 10 legible en la espalda en varios planos, camiseta roja"},
+{${analysisScope === "player" ? `
+  "identificacion": {"estado": "identificado", "metodo": "dorsal_y_color", "dorsalObservado": "10", "colorObservado": "rojo", "confianza": "alta", "motivo": "Dorsal 10 legible en la espalda en varios planos, camiseta roja"},` : ""}
   "timeline": [
     {"timestamp": "0:15", "tipo": "accion_con_balon", "descripcion": "Recibe de espaldas al juego, gira sobre pie derecho y filtra pase entre líneas al mediapunta — buen escaneo previo"},
     {"timestamp": "0:32", "tipo": "sin_balon", "descripcion": "Desmarcaje diagonal al half-space derecho creando línea de pase progresiva"}
@@ -303,7 +317,9 @@ Genera un análisis detallado con esta estructura JSON exacta (sin markdown, sin
 }
 
 REGLAS:
-- "identificacion" es OBLIGATORIO. estado: "identificado" | "unico_jugador" | "no_identificado"; metodo: "dorsal_y_color" | "unico_jugador_en_plano" | null; dorsalObservado/colorObservado: lo que VISTE (null si no lo viste). El ejemplo de arriba es de formato: no copies sus valores
+${analysisScope === "player"
+  ? `- "identificacion" es OBLIGATORIO. estado: "identificado" | "unico_jugador" | "no_identificado"; metodo: "dorsal_y_color" | "unico_jugador_en_plano" | null; dorsalObservado/colorObservado: lo que VISTE (null si no lo viste). El ejemplo de arriba es de formato: no copies sus valores`
+  : `- Análisis de EQUIPO: no incluyas "identificacion" ni atribuyas acciones a jugadores concretos (ni por nombre ni por dorsal). El ejemplo de arriba es de formato: no copies sus valores`}
 - Un conteo o score es null SOLO si no pudiste observarlo; 0 significa que lo observaste y no ocurrió. Nunca pongas 0 para decir "no lo sé"
 - Tipos de timeline: "accion_con_balon", "sin_balon", "defensiva", "tactica", "transicion"
 - Tipos de momentos: "positivo" o "negativo"

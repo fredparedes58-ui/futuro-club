@@ -143,12 +143,10 @@ async function analyzeMatchVideo(
       },
       body: JSON.stringify({
         videoUrl,
-        playerContext: {
-          name: `${teamName} vs ${opponentName}`,
-          age: 13,
-          position: "MID",
-          competitiveLevel: "formativo",
-        },
+        // Observación de EQUIPO del partido: sin identificar a jugadores y sin
+        // edad/posición inventadas (antes 13 / "MID" / "formativo" por defecto).
+        analysisScope: "team",
+        playerContext: { name: `${teamName} vs ${opponentName}` },
       }),
     });
     if (!res.ok) return null;

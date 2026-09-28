@@ -91,12 +91,10 @@ export default function CompareRivalPage() {
         body: JSON.stringify({
           locale: normalizeLocale(i18n.language),
           videoUrl: url,
-          playerContext: {
-            name: rivalName || t("compareRivalPage.rivalTeamDefault"),
-            age: 13,
-            position: "MID",
-            competitiveLevel: "formativo",
-          },
+          // Observación de EQUIPO (el rival): sin identificar a jugadores y sin
+          // edad/posición inventadas (antes 13 / "MID" / "formativo" por defecto).
+          analysisScope: "team",
+          playerContext: { name: rivalName || t("compareRivalPage.rivalTeamDefault") },
         }),
       });
       const json = await res.json();

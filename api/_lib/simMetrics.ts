@@ -41,6 +41,14 @@ export interface SimDerivation {
 
 const clamp = (n: number): number => Math.max(0, Math.min(100, Math.round(n)));
 const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+/** Conteo observado o null. Gemini: 0 = "lo vio y no ocurrió"; null = "no pudo
+ *  observarlo" → nunca se convierte en 0 (invariante #2). */
+const obsNum = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+/** Suma de los componentes observados; null si no se observó ninguno. */
+const sumObserved = (...vs: Array<number | null>): number | null => {
+  const seen = vs.filter((v): v is number => v !== null);
+  return seen.length > 0 ? seen.reduce((a, b) => a + b, 0) : null;
+};
 
 // Normalizaciones por VOLUMEN — "pendiente de validar" (no hay literatura/umbral
 // medido detrás). Cuántos eventos ≈ "100" en una escala 0-100 por vídeo. Deliberadamente
@@ -86,28 +94,39 @@ export function deriveSimMetrics(
 
   if (ec) {
     source = "gemini";
+    // Cada ratio exige que sus DOS componentes se hayan observado; un volumen usa solo
+    // lo observado. Si falta, la dim cae al fallback neutro de este módulo y NO cuenta
+    // como ratio-derivada (antes null→0 hundía la dim como si se hubiera observado 0).
+    const ratio = (hit: number | null, miss: number | null): { tot: number; pct: number } | null =>
+      hit !== null && miss !== null && hit + miss >= MIN_SAMPLE ? { tot: hit + miss, pct: (hit / (hit + miss)) * 100 } : null;
     // technique ← precisión de pase (ratio real) + éxito en regate (ratio real)
-    const passTot = num(ec.pasesCompletados) + num(ec.pasesFallados);
-    const dribTot = num(ec.regatesConVentaja) + num(ec.regatesSinVentaja);
-    const passAcc = passTot >= MIN_SAMPLE ? (num(ec.pasesCompletados) / passTot) * 100 : null;
-    const dribAcc = dribTot >= MIN_SAMPLE ? (num(ec.regatesConVentaja) / dribTot) * 100 : null;
-    const techParts = [passAcc, dribAcc].filter((v): v is number => v != null);
+    const passR = ratio(obsNum(ec.pasesCompletados), obsNum(ec.pasesFallados));
+    const dribR = ratio(obsNum(ec.regatesConVentaja), obsNum(ec.regatesSinVentaja));
+    const techParts = [passR?.pct ?? null, dribR?.pct ?? null].filter((v): v is number => v != null);
     technique = techParts.length > 0 ? clamp(techParts.reduce((a, b) => a + b, 0) / techParts.length) : 50;
     if (techParts.length > 0) ratioDerivedDims++;
     // defending ← % duelos ganados (ratio real) + volumen de acciones defensivas
-    const duelTot = num(ec.duelosGanados) + num(ec.duelosPerdidos);
-    const duelWin = duelTot >= MIN_SAMPLE ? (num(ec.duelosGanados) / duelTot) * 100 : null;
-    const defVol = Math.min(100, ((num(ec.recuperaciones) + num(ec.robos) + num(ec.anticipaciones)) / DEFVOL_FULL) * 100);
-    defending = duelWin != null ? clamp(duelWin * 0.6 + defVol * 0.4) : clamp(defVol);
-    if (duelTot >= MIN_SAMPLE) ratioDerivedDims++;
+    const duelR = ratio(obsNum(ec.duelosGanados), obsNum(ec.duelosPerdidos));
+    const defRaw = sumObserved(obsNum(ec.recuperaciones), obsNum(ec.robos), obsNum(ec.anticipaciones));
+    const defVol = defRaw !== null ? Math.min(100, (defRaw / DEFVOL_FULL) * 100) : null;
+    defending = duelR
+      ? clamp(defVol !== null ? duelR.pct * 0.6 + defVol * 0.4 : duelR.pct)
+      : defVol !== null ? clamp(defVol) : 50;
+    if (duelR) ratioDerivedDims++;
     // shooting ← % disparos a puerta (ratio real)
-    const shotTot = num(ec.disparosAlArco) + num(ec.disparosFuera);
-    shooting = shotTot >= MIN_SAMPLE ? clamp((num(ec.disparosAlArco) / shotTot) * 100) : clamp(technique * 0.7);
-    if (shotTot >= MIN_SAMPLE) ratioDerivedDims++;
+    const shotR = ratio(obsNum(ec.disparosAlArco), obsNum(ec.disparosFuera));
+    shooting = shotR ? clamp(shotR.pct) : clamp(technique * 0.7);
+    if (shotR) ratioDerivedDims++;
     // vision ← volumen de escaneo + pases progresivos (proxies, sin ratio → pendiente de validar)
-    const scanScore = Math.min(100, (num(ec.escaneos) / SCAN_FULL) * 100);
-    const progScore = Math.min(100, (num(ec.pasesProgresivos) / PROG_FULL) * 100);
-    vision = clamp(scanScore * 0.6 + progScore * 0.4);
+    const scans = obsNum(ec.escaneos);
+    const prog = obsNum(ec.pasesProgresivos);
+    const scanScore = scans !== null ? Math.min(100, (scans / SCAN_FULL) * 100) : null;
+    const progScore = prog !== null ? Math.min(100, (prog / PROG_FULL) * 100) : null;
+    vision = scanScore !== null && progScore !== null
+      ? clamp(scanScore * 0.6 + progScore * 0.4)
+      : scanScore !== null ? clamp(scanScore)
+      : progScore !== null ? clamp(progScore)
+      : clamp(technique * 0.8); // mismo fallback que la ruta cliente sin señal de visión
   } else {
     source = "client";
     // technique ← passCompletionPct (ratio real, ya 0-100)
