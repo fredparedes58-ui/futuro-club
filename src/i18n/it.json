@@ -2119,6 +2119,9 @@
   "teamAnalysisPage": {
     "indicateTeamColor": "Indica il colore della divisa della squadra",
     "analysisCompleted": "Analisi di squadra completata!",
+    "noVisualInputTitle": "Nessun input visivo: nessun report generato",
+    "noVisualInputReason": "Non c'è un'osservazione del video né fotogrammi utilizzabili. Un report di squadra senza vedere la partita sarebbe inventato, quindi viene bloccato.",
+    "noVisualInputCloud": "Questo video è ospitato nel cloud e l'analisi di squadra non può leggerne i fotogrammi da qui. Senza osservazione del video né fotogrammi, un report sarebbe inventato, quindi viene bloccato. Funziona con i video disponibili su questo dispositivo.",
     "pageTitle": "Analisi di squadra",
     "tabReport": "Report",
     "tabNewAnalysis": "Nuova analisi",

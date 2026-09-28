@@ -59,6 +59,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 | ~~**Espacio / Voronoi de sesión**~~ 🟢 | `src/hooks/useTracking.ts` | **RESUELTA (G7 · #187):** media de muestras Voronoi en instantes vivos del jugador enfocado; DERIVADA orientativa o gated (nunca 0). | — |
 | **VSI-vídeo compuesto** | `api/agents/_pipeline-orchestrator.ts:261` (`gateVsiComposite`) | Bloqueado si <4/5 dims reales. Técnica/mental/táctica son `CONSTANTE(null)` → siempre 2/5 reales (physical+projection) → compuesto SIEMPRE bloqueado. Proyección y best-match se **omiten** en consecuencia. | Depende de que la VISIÓN mida técnica/mental/táctica (hueco permanente hoy) |
 | **VSI-vídeo sub-scores técnica/mental/táctica** | `_pipeline-orchestrator.ts:244-260` (`buildVsiSubscores`) | `CONSTANTE value:null` por diseño: el pipeline de visión no los mide. Bloqueo honesto. | VALIDACIÓN + modelo que los mida (largo plazo) |
+| **Informe táctico de equipo con vídeo en la nube (Bunny)** | `src/hooks/useTeamIntelligence.ts` (gate cliente), `api/agents/_team-intelligence.ts` (gate servidor, `NO_VISUAL_INPUT`) | Sin entrada visual: el navegador no puede leer fotogramas de un vídeo de Bunny y no hay observación de Gemini → antes se generaba un informe "de 0 fotogramas" (inventado). Ahora se bloquea con motivo en `/team-analysis`. | CÓDIGO (extraer fotogramas u observación en servidor desde la URL de Bunny) |
 
 ## 2. Métricas 🟡 ORIENTATIVAS (se muestran, pero NO son `MEDIDA`)
 
