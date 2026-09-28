@@ -23,6 +23,7 @@ import { MODELS, modelParams } from "../_lib/models";
 import { fetchMessages } from "../_lib/anthropic";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
+import { NO_VISUAL_INPUT, hasGeminiObservations, hasVisualInput } from "../../src/lib/shared/teamVisualInput";
 import {
   normalizeLocale,
   languageDirective,
@@ -76,7 +77,8 @@ export default withHandler(
           send("progress", { step: "Preparando análisis táctico...", percent: 15 });
 
           const ctx = teamContext;
-          const hasGemini = !!geminiObservations;
+          // Un objeto vacío ({}) no es una observación del vídeo.
+          const hasGemini = hasGeminiObservations(geminiObservations);
           const hasYolo = Array.isArray(yoloTrackData) && yoloTrackData.length > 0;
 
           // Build image content blocks from keyframes (fallback mode)
@@ -104,6 +106,18 @@ export default withHandler(
                 });
               }
             }
+          }
+
+          // ── GATE · sin entrada visual no hay informe (invariantes 2-3) ──────
+          // Ni observación de Gemini ni fotogramas utilizables → el modelo no ha
+          // visto el partido; un informe "de 0 fotogramas" sería inventado.
+          // Se rechaza con código + motivo; el finally cierra el stream.
+          if (!hasVisualInput(geminiObservations, imageBlocks.length)) {
+            const gateReason =
+              "Sin entrada visual: no hay observación del vídeo ni fotogramas utilizables. " +
+              "No se genera un informe de equipo sin ver el partido.";
+            send("error", { message: gateReason, code: NO_VISUAL_INPUT, gate_reason: gateReason });
+            return;
           }
 
           send("progress", { step: hasGemini ? "Generando informe táctico..." : `Analizando ${imageBlocks.length} fotogramas...`, percent: 30 });

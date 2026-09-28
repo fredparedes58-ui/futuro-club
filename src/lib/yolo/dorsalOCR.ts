@@ -41,6 +41,12 @@ export interface DorsalOCRConfig {
   cropBottomRatio: number;
   /** Every Nth frame to process (performance, default: 5) */
   frameInterval: number;
+  /**
+   * Forget a track after this many frames without being processed (default: 300).
+   * Memory bound only: ByteTrack issues a fresh id after every occlusion, so
+   * per-track vote maps otherwise grow for the whole match.
+   */
+  maxStaleFrames: number;
 }
 
 const DEFAULT_CONFIG: DorsalOCRConfig = {
@@ -51,6 +57,7 @@ const DEFAULT_CONFIG: DorsalOCRConfig = {
   cropTopRatio: 0.25,
   cropBottomRatio: 0.55,
   frameInterval: 5,
+  maxStaleFrames: 300,
 };
 
 // ─── Dorsal OCR Engine ─────────────────────────────────────────────────────
@@ -63,6 +70,8 @@ export class DorsalOCR {
   private frameCounts = new Map<number, number>();
   /** Track ID → last processed frame index */
   private lastProcessedFrame = new Map<number, number>();
+  /** Frame index of the last stale-track sweep (at most one sweep per frame) */
+  private lastPruneFrame = -1;
 
   constructor(config?: Partial<DorsalOCRConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -72,6 +81,26 @@ export class DorsalOCR {
     this.votes.clear();
     this.frameCounts.clear();
     this.lastProcessedFrame.clear();
+    this.lastPruneFrame = -1;
+  }
+
+  /** Forget everything about a track (votes and frame counters). */
+  forgetTrack(trackId: number): void {
+    this.votes.delete(trackId);
+    this.frameCounts.delete(trackId);
+    this.lastProcessedFrame.delete(trackId);
+  }
+
+  /** Drop tracks not processed for more than `maxStaleFrames` frames before `currentFrame`. */
+  pruneStale(currentFrame: number): void {
+    for (const [trackId, last] of this.lastProcessedFrame) {
+      if (currentFrame - last > this.config.maxStaleFrames) this.forgetTrack(trackId);
+    }
+  }
+
+  /** Number of tracks currently held in memory. */
+  get trackedCount(): number {
+    return this.lastProcessedFrame.size;
   }
 
   /**
@@ -90,6 +119,12 @@ export class DorsalOCR {
     bbox: [number, number, number, number],
     frameIndex: number,
   ): DorsalDetection | null {
+    // Bounded memory: sweep stale tracks once per frame index.
+    if (frameIndex !== this.lastPruneFrame) {
+      this.lastPruneFrame = frameIndex;
+      this.pruneStale(frameIndex);
+    }
+
     // Rate limit processing
     const lastFrame = this.lastProcessedFrame.get(trackId) ?? -999;
     if (frameIndex - lastFrame < this.config.frameInterval) return null;

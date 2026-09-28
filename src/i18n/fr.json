@@ -2119,6 +2119,9 @@
   "teamAnalysisPage": {
     "indicateTeamColor": "Indiquez la couleur du maillot de l'équipe",
     "analysisCompleted": "Analyse d'équipe terminée !",
+    "noVisualInputTitle": "Aucune entrée visuelle : aucun rapport généré",
+    "noVisualInputReason": "Il n'y a ni observation de la vidéo ni image exploitable. Un rapport d'équipe sans voir le match serait inventé : il est donc bloqué.",
+    "noVisualInputCloud": "Cette vidéo est hébergée dans le cloud et l'analyse d'équipe ne peut pas en lire les images d'ici. Sans observation de la vidéo ni images, un rapport serait inventé : il est donc bloqué. Cela fonctionne avec les vidéos disponibles sur cet appareil.",
     "pageTitle": "Analyse d'équipe",
     "tabReport": "Rapport",
     "tabNewAnalysis": "Nouvelle analyse",

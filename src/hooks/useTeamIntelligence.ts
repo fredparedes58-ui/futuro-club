@@ -17,14 +17,31 @@ import { getAuthHeaders } from "@/lib/apiAuth";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 import { aggregatePhvDistribution } from "@/lib/shared/phv";
+import { NO_VISUAL_INPUT, hasGeminiObservations, hasVisualInput } from "@/lib/shared/teamVisualInput";
 import { PlayerService } from "@/services/real/playerService";
 
 // ——— Tipos ——————————————————————————————————————————————————————
 
 export interface TeamIntelligenceState {
-  step:     "idle" | "keyframes" | "analyzing" | "done" | "error";
+  /** "blocked" = gate: no visual input, so NO report is generated (not an error). */
+  step:     "idle" | "keyframes" | "analyzing" | "done" | "error" | "blocked";
   progress: number;
   message:  string;
+  /** Why the analysis was blocked (step "blocked"); absent otherwise. */
+  gateReason?: string | null;
+}
+
+/**
+ * The team analysis was refused because the model would not see the match
+ * (no Gemini observation and no usable frames). Raised by the client gate or
+ * mapped from the server's SSE error with code NO_VISUAL_INPUT.
+ */
+export class TeamAnalysisGateError extends Error {
+  readonly code = NO_VISUAL_INPUT;
+  constructor(message: string) {
+    super(message);
+    this.name = "TeamAnalysisGateError";
+  }
 }
 
 // ——— Helper: leer SSE stream ————————————————————————————————————
@@ -80,7 +97,9 @@ async function readSSEStream(
           const report = data.report as TeamIntelligenceOutput | undefined;
           if (report) return report;
         } else if (eventType === "error") {
-          throw new Error((data.message as string) ?? "Error en el análisis");
+          const message = (data.message as string) ?? "Error en el análisis";
+          if (data.code === NO_VISUAL_INPUT) throw new TeamAnalysisGateError(message);
+          throw new Error(message);
         }
       }
     }
@@ -100,6 +119,11 @@ export function useTeamIntelligence() {
 
   const [result, setResult] = useState<TeamIntelligenceOutput | null>(null);
 
+  /**
+   * Runs the team analysis. Resolves with the report, or with `null` when the
+   * analysis was BLOCKED for lack of visual input (state.step === "blocked",
+   * state.gateReason set) — in that case no report is generated or saved.
+   */
   const runAnalysis = useCallback(async (opts: {
     videoId:          string;
     videoDuration?:   number;
@@ -109,8 +133,9 @@ export function useTeamIntelligence() {
     localVideoSrc?:   string;
     yoloTracks?:      Track[];
     analysisFocus?:   string[];
-  }) => {
+  }): Promise<TeamIntelligenceOutput | null> => {
     const { videoId, videoDuration, teamColor, opponentColor, competitiveLevel, localVideoSrc, yoloTracks, analysisFocus } = opts;
+    const hasLocalVideo = !!localVideoSrc && isLocalSrc(localVideoSrc);
     setState({ step: "analyzing", progress: 10, message: "Preparando video para análisis de equipo..." });
 
     try {
@@ -118,7 +143,7 @@ export function useTeamIntelligence() {
       let keyframes: Array<{ url: string; timestamp: number; frameIndex: number }> = [];
 
       // 1. Intentar Gemini con video completo
-      if (localVideoSrc && isLocalSrc(localVideoSrc)) {
+      if (localVideoSrc && hasLocalVideo) {
         setState({ step: "analyzing", progress: 15, message: "Preparando video..." });
         try {
           const videoData = await readVideoAsBase64(localVideoSrc);
@@ -140,9 +165,12 @@ export function useTeamIntelligence() {
             });
 
             if (geminiRes.ok) {
-              const geminiData = await geminiRes.json() as { observations?: Record<string, unknown> };
-              if (geminiData.observations) {
-                geminiObservations = geminiData.observations;
+              // Contrato successResponse (api/_lib/apiResponse.ts): { ok, success, data: { observations } }.
+              // Leer `observations` en la raíz descartaba SIEMPRE la observación de Gemini.
+              const geminiData = await geminiRes.json() as { data?: { observations?: unknown } };
+              const observations = geminiData.data?.observations;
+              if (hasGeminiObservations(observations)) {
+                geminiObservations = observations as Record<string, unknown>;
                 console.log("[Team Intelligence] Gemini observaciones recibidas");
               }
             } else {
@@ -165,6 +193,13 @@ export function useTeamIntelligence() {
             keyframes = keyframes.filter((_, i) => i % 2 === 0);
           }
         }
+      }
+
+      // GATE · sin entrada visual no hay informe. Un vídeo en la nube (Bunny) no
+      // se puede leer desde aquí → ni Gemini ni fotogramas; antes se pedía igualmente
+      // un informe "de 0 fotogramas" (inventado). Se bloquea con motivo.
+      if (!hasVisualInput(geminiObservations, keyframes.length)) {
+        throw new TeamAnalysisGateError("Sin entrada visual (ni observación de Gemini ni fotogramas)");
       }
 
       // 2. Preparar datos YOLO si están disponibles
@@ -234,8 +269,19 @@ export function useTeamIntelligence() {
 
       setResult(analysisResult);
       setState({ step: "done", progress: 100, message: "Análisis de equipo completado" });
+      return analysisResult;
 
     } catch (err) {
+      if (err instanceof TeamAnalysisGateError) {
+        // Abstención válida (no es un fallo): se muestra el motivo, no un informe.
+        // Mismo código en cliente y servidor → motivo en el idioma activo.
+        const gateReason = hasLocalVideo
+          ? i18n.t("teamAnalysisPage.noVisualInputReason")
+          : i18n.t("teamAnalysisPage.noVisualInputCloud");
+        setResult(null);
+        setState({ step: "blocked", progress: 0, message: gateReason, gateReason });
+        return null;
+      }
       const msg = err instanceof Error ? err.message : "Error desconocido";
       setState({ step: "error", progress: 0, message: msg });
       throw err;
@@ -243,7 +289,7 @@ export function useTeamIntelligence() {
   }, []);
 
   const reset = useCallback(() => {
-    setState({ step: "idle", progress: 0, message: "" });
+    setState({ step: "idle", progress: 0, message: "", gateReason: null });
     setResult(null);
   }, []);
 
