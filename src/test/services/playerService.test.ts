@@ -140,19 +140,28 @@ describe("PlayerService", () => {
     });
   });
 
-  describe("updatePHV", () => {
-    it("persiste category, offset y adjustedVSI", async () => {
-      const player = PlayerService.create(samplePlayer);
-      const updated = await PlayerService.updatePHV(player.id, "late", -1.5, 72.5);
-      expect(updated).not.toBeNull();
-      expect(updated!.phvCategory).toBe("late");
-      expect(updated!.phvOffset).toBe(-1.5);
-      expect(updated!.vsi).toBe(72.5);
+  describe("PHV persistido (gate único · regla del owner 28-sep)", () => {
+    it("updatePHV ya no existe: nada sobrescribe el VSI con un «VSI ajustado» sin procedencia", () => {
+      expect((PlayerService as unknown as Record<string, unknown>).updatePHV).toBeUndefined();
     });
 
-    it("retorna null para ID inexistente", async () => {
-      const result = await PlayerService.updatePHV("no-existe", "ontme", 0, 70);
-      expect(result).toBeNull();
+    it("getAll retira un phvCategory/phvOffset persistido si faltan entradas introducidas", () => {
+      const player = PlayerService.create({ ...samplePlayer, phvCategory: "early", phvOffset: -1.2 });
+      const read = PlayerService.getById(player.id)!;
+      expect(read.phvCategory).toBeUndefined();
+      expect(read.phvOffset).toBeUndefined();
+    });
+
+    it("getAll recalcula la categoría desde entradas completas (no la persistida)", () => {
+      const player = PlayerService.create({
+        ...samplePlayer,
+        height: 165, weight: 55, sittingHeight: 85, legLength: 80,
+        birthDate: "2012-03-15", gender: "M",
+        phvCategory: "late", phvOffset: 9,
+      });
+      const read = PlayerService.getById(player.id)!;
+      expect(read.phvOffset).not.toBe(9);
+      expect(typeof read.phvOffset).toBe("number");
     });
   });
 

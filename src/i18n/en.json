@@ -475,10 +475,7 @@
       "sortAge": "Age",
       "sortName": "Name",
       "phvFilter": {
-        "all": "All",
-        "late": "Early",
-        "onTime": "Normal",
-        "early": "Late ⭐"
+        "all": "All"
       },
       "bioMaturation": "Biological Maturation (PHV)",
       "ofPlayers": "{filtered} of {total} players",
@@ -1260,6 +1257,8 @@
     "toastUpdated": "Measurement updated",
     "toastSaved": "Measurement saved · PHV recalculated",
     "toastQueuedSave": "📡 Saved to queue · will sync when the network returns",
+    "toastProfilePendingSync": "Measurement saved, but the player profile is pending sync: the profile PHV will update once it syncs",
+    "toastProfileNotOnDevice": "Measurement saved, but the profile on this device was not updated (the player is not loaded here): reload the profile to see the PHV",
     "errUnknown": "Unknown error",
     "confirmDelete": "Delete this measurement? The historical PHV for this date will be lost.",
     "queueLabelDelete": "Delete measurement",
@@ -3308,7 +3307,23 @@
     "ageAtPHV": "Estimated PHV",
     "percentPAH": "% adult height",
     "yearsUnit": "yrs",
-    "addParentsHint": "Add both parents' heights for the percentage-of-adult-height method (more reliable)."
+    "addParentsHint": "Add both parents' heights for the percentage-of-adult-height method (more reliable).",
+    "gate": {
+      "unavailable": "PHV not available",
+      "missing": "Missing: {{list}}",
+      "outOfRange": "Data outside Mirwald's validity range (ages 8–18)",
+      "legacyRow": "Measurement recorded before exact age from date of birth was used: save it again",
+      "noRow": "No anthropometric measurement recorded",
+      "notComputed": "PHV was not calculated for this measurement",
+      "input": {
+        "height": "height",
+        "weight": "weight",
+        "sittingHeight": "sitting height",
+        "legLength": "leg length",
+        "birthDate": "player's date of birth",
+        "sex": "registered sex"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "No position data to generate heatmap",

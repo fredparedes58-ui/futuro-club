@@ -6,7 +6,7 @@
 
 import type { Player } from "./playerService";
 import type { ScoutInsightOutput } from "@/agents/contracts";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity, sanitizePlayerPhv } from "@/lib/phv/phvGate";
 import { vsiTrendArrow } from "@/lib/scoring/vsiDelta";
 
 // Avatares por defecto usando iniciales (sin CDN externo)
@@ -22,7 +22,10 @@ const PLAYER_IMAGES = [
 // ─────────────────────────────────────────
 // Adapta Player → forma esperada por Dashboard/Rankings
 // ─────────────────────────────────────────
-export function adaptPlayerForUI(player: Player) {
+export function adaptPlayerForUI(rawPlayer: Player) {
+  // phvCategory/phvOffset PERSISTIDOS solo sobreviven si el gate único de PHV los
+  // recalcula desde entradas introducidas (regla del owner 28-sep); si no, null.
+  const player = sanitizePlayerPhv(rawPlayer);
   // vsi puede ser null ("sin evaluar"): se propaga tal cual, nunca se convierte
   // en 0. La tendencia solo sale de dos evaluaciones reales con fecha (vsiTrendArrow →
   // computeVsiDelta); el vsiHistory legacy solo cuenta para jugadores demo.
@@ -45,6 +48,8 @@ export function adaptPlayerForUI(player: Player) {
     name: player.name,
     age: player.age,
     position: player.position,
+    // Polivalencia: LiveMatchPage (selector de posición) la lee del jugador adaptado.
+    secondaryPositions: player.secondaryPositions,
     positionShort: player.position,
     academy: "VITAS Academy",
     vsi: player.vsi,
@@ -133,7 +138,7 @@ export function computeDashboardStats(players: Player[]) {
   // evaluar (vsi null) no puede ser talento oculto: se excluye.
   const hiddenTalents = players.filter((p) => {
     if (p.vsi === null || p.vsi >= 65) return false;
-    const m = playerMaturity(p);
+    const m = gatedMaturity(p);
     return m.timing === "late" && (m.confidence === "high" || m.confidence === "moderate");
   }).length;
 

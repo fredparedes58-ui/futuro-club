@@ -475,10 +475,7 @@
       "sortAge": "Âge",
       "sortName": "Nom",
       "phvFilter": {
-        "all": "Tous",
-        "late": "Précoce",
-        "onTime": "Normal",
-        "early": "Tardif ⭐"
+        "all": "Tous"
       },
       "bioMaturation": "Maturation biologique (PHV)",
       "ofPlayers": "{filtered} sur {total} joueurs",
@@ -1259,6 +1256,8 @@
     "toastUpdated": "Mesure mise à jour",
     "toastSaved": "Mesure enregistrée · PHV recalculé",
     "toastQueuedSave": "📡 Enregistrement en file · sera synchronisé au retour du réseau",
+    "toastProfilePendingSync": "Mesure enregistrée, mais la fiche du joueur est en attente de synchronisation : le PHV de la fiche sera mis à jour après la synchronisation",
+    "toastProfileNotOnDevice": "Mesure enregistrée, mais la fiche de cet appareil n'a pas été mise à jour (le joueur n'est pas chargé ici) : rechargez la fiche pour voir le PHV",
     "errUnknown": "Erreur inconnue",
     "confirmDelete": "Supprimer cette mesure ? Le PHV historique de cette date sera perdu.",
     "queueLabelDelete": "Supprimer la mesure",
@@ -3307,7 +3306,23 @@
     "ageAtPHV": "PHV estimé",
     "percentPAH": "% taille adulte",
     "yearsUnit": "ans",
-    "addParentsHint": "Ajoutez la taille des deux parents pour le calcul par % de taille adulte (plus fiable)."
+    "addParentsHint": "Ajoutez la taille des deux parents pour le calcul par % de taille adulte (plus fiable).",
+    "gate": {
+      "unavailable": "PHV non disponible",
+      "missing": "Manquant : {{list}}",
+      "outOfRange": "Données hors de la plage de validité de Mirwald (8–18 ans)",
+      "legacyRow": "Mesure enregistrée avant l'utilisation de l'âge exact à partir de la date de naissance : enregistrez-la à nouveau",
+      "noRow": "Aucune mesure anthropométrique enregistrée",
+      "notComputed": "Le PHV n'a pas été calculé pour cette mesure",
+      "input": {
+        "height": "taille",
+        "weight": "poids",
+        "sittingHeight": "taille assise",
+        "legLength": "longueur de jambe",
+        "birthDate": "date de naissance du joueur",
+        "sex": "sexe enregistré"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Aucune donnée de position pour générer la carte de chaleur",

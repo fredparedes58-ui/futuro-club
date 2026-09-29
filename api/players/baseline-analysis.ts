@@ -22,6 +22,7 @@ import { ownsPlayer } from "../_lib/ownership";
 import { MODELS, modelParams } from "../_lib/models";
 import { fetchMessages, responseText } from "../_lib/anthropic";
 import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
+import { trustAnthropometricsRow, PHV_STATUS_LABEL_ES, type PhvCategory } from "../../src/lib/phv/phvGate";
 import { createClient } from "@supabase/supabase-js";
 
 export const config = { runtime: "edge" };
@@ -51,9 +52,17 @@ interface PlayerProfile {
     speed: number; technique: number; vision: number;
     stamina: number; shooting: number; defending: number;
   };
+  /**
+   * PHV SOLO desde una fila COMPLETA y fiable de player_anthropometrics (gate
+   * único · regla del owner 28-sep: 4 medidas introducidas + edad decimal desde la
+   * fecha de nacimiento + sexo). Si no, category/offset null + gate_reason.
+   */
   phv: {
     category: string | null;
     offset: number | null;
+    /** Edad DECIMAL de la medición (la usada en Mirwald). */
+    chronologicalAge: number | null;
+    gate_reason: string | null;
   };
   vsi: number;
   tenant_id: string;
@@ -94,6 +103,29 @@ async function callClaude(opts: {
 
 // ── Shared player context for the prompts ───────────────────────────
 
+/**
+ * Bloque PHV del prompt desde el GATE ÚNICO. Con PHV fiable: estado por fase
+ * (la categoría persistida es de ESTADO — early = pre-PHV —, no un timing vs
+ * pares), offset y APHV con la edad DECIMAL de la medición. Sin PHV fiable: se
+ * dice qué falta y se PROHÍBE al LLM afirmar maduración (antes recibía la
+ * categoría cruda persistida y la citaba en los 6 reportes).
+ */
+export function phvBlock(p: Pick<PlayerProfile, "phv">): string {
+  const { category, offset, chronologicalAge, gate_reason } = p.phv;
+  if (category === null || offset === null) {
+    return `PHV (maduración biológica · Mirwald): NO DISPONIBLE — ${gate_reason ?? "sin medición antropométrica completa"}.
+El PHV solo se calcula con TODAS las medidas introducidas (talla, peso, talla sentado,
+pierna, fecha de nacimiento del jugador y sexo). NO afirmes categoría, offset, estirón
+ni estado de maduración en ningún reporte; en "phv_summary" explica qué medidas faltan.`;
+  }
+  const phase = PHV_STATUS_LABEL_ES[(category === "ontime" ? "ontme" : category) as PhvCategory] ?? category;
+  const aphv = chronologicalAge !== null ? `${(chronologicalAge - offset).toFixed(2)}a` : "—";
+  return `PHV (maduración biológica · Mirwald, medidas introducidas + edad decimal)
+- Fase (estado en SU curva, NO timing vs pares): ${phase}
+- Offset: ${offset > 0 ? "+" : ""}${offset} años
+- APHV estimado: ${aphv}`;
+}
+
 function profileBlock(p: PlayerProfile): string {
   const m = p.metrics;
   return `JUGADOR
@@ -109,10 +141,7 @@ VALORACIÓN COACH (0-100, subjetiva)
 - Técnica: ${m.technique}  · Visión: ${m.vision}
 - Tiro: ${m.shooting}      · Defensa: ${m.defending}
 
-PHV (maduración biológica · Mirwald)
-- Categoría: ${p.phv.category ?? "no calculado"}
-- Offset: ${p.phv.offset !== null ? `${p.phv.offset > 0 ? "+" : ""}${p.phv.offset} años` : "?"}
-- APHV estimado: ${p.phv.offset !== null && p.age ? `${(p.age - p.phv.offset).toFixed(2)}a` : "—"}
+${phvBlock(p)}
 
 VSI cacheado: ${p.vsi}/100
 
@@ -125,16 +154,18 @@ Sé honesto sobre las limitaciones del análisis sin vídeo.`;
 // (Sin «tendencia VSI» aquí: el antiguo computeVsiTrend —pendiente/momentum/delta—
 //  corría sobre players.vsi_history, legacy SIN fechas ni origen, ver el handler.)
 
-// ── Compute VSI score from metrics + PHV ────────────────────────────
+// ── Compute VSI score from metrics ──────────────────────────────────
 
-function computeVsi(p: PlayerProfile): { vsi: number; tier: string; tierLabel: string } {
+export function computeVsi(p: Pick<PlayerProfile, "metrics" | "phv">): { vsi: number; tier: string; tierLabel: string } {
   const m = p.metrics;
   const avg = (m.speed + m.technique + m.vision + m.stamina + m.shooting + m.defending) / 6;
-  let vsi = Math.round(avg);
+  const vsi = Math.round(avg);
 
-  // Ajuste por PHV (precoz penaliza, tardío bonifica)
-  if (p.phv.category === "early")  vsi = Math.max(0, vsi - 5);
-  if (p.phv.category === "late")   vsi = Math.min(100, vsi + 5);
+  // SIN ajuste PHV ±5 (retirado · regla del owner 28-sep, inv #7): leía la
+  // categoría PERSISTIDA —de ESTADO, early = pre-PHV— como si fuera timing
+  // («precoz penaliza, tardío bonifica»: invertido) y se aplicaba sin medidas.
+  // La corrección por maduración vive SOLO en el factor canónico gateado
+  // (src/lib/phv/maturity.ts vía phvGate); este VSI baseline es el crudo.
 
   let tier = "develop";
   let tierLabel = "En desarrollo";
@@ -316,7 +347,7 @@ export default withHandler(
     // ── 1. Cargar player ───────────────────────────────────────────
     const { data: playerRow, error: pErr } = await supabase
       .from("players")
-      .select("id, tenant_id, name, age, position, foot, height_cm, weight_kg, competitive_level, metric_speed, metric_technique, metric_vision, metric_stamina, metric_shooting, metric_defending, vsi, vsi_history, phv_category, phv_offset")
+      .select("id, tenant_id, name, age, position, foot, height_cm, weight_kg, competitive_level, metric_speed, metric_technique, metric_vision, metric_stamina, metric_shooting, metric_defending, vsi, vsi_history")
       .eq("id", input.playerId)
       .single();
 
@@ -324,11 +355,15 @@ export default withHandler(
       return errorResponse({ code: "player_not_found", message: pErr?.message ?? "Jugador no existe", status: 404 });
     }
 
-    const { data: anthro } = await supabase
+    // PHV SOLO desde la última fila COMPLETA y fiable (gate único): 4 medidas +
+    // edad decimal por fecha de nacimiento (age_source, migración 069). Las
+    // filas antiguas (edad entera) y el players.phv_category persistido NO cuentan.
+    const { data: anthroRaw } = await supabase
       .from("player_latest_anthropometrics")
-      .select("maturity_offset, phv_category")
+      .select("*")
       .eq("player_id", input.playerId)
       .maybeSingle();
+    const anthroTrust = trustAnthropometricsRow(anthroRaw);
 
     const profile: PlayerProfile = {
       id: playerRow.id,
@@ -349,8 +384,10 @@ export default withHandler(
         defending: Number(playerRow.metric_defending) || 0,
       },
       phv: {
-        category:        anthro?.phv_category    ?? playerRow.phv_category ?? null,
-        offset:          anthro?.maturity_offset ?? (Number(playerRow.phv_offset) || null),
+        category:         anthroTrust.category,
+        offset:           anthroTrust.offset,
+        chronologicalAge: anthroTrust.chronologicalAge,
+        gate_reason:      anthroTrust.gate_reason,
       },
       vsi: Number(playerRow.vsi) || 0,
     };

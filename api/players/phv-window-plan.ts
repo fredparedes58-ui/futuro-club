@@ -25,6 +25,7 @@ import {
   languageDirective,
   type ReportLocale,
 } from "../../src/lib/shared/locale";
+import { trustAnthropometricsRow } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
 
@@ -95,13 +96,15 @@ interface PlayerCtx {
   position: string | null;
   height_cm: number | null;
   weight_kg: number | null;
-  phv_category: string | null;
-  phv_offset: number | null;
+  phv_category: string;
+  phv_offset: number;
+  /** Edad DECIMAL de la medición (la usada en Mirwald), no el entero `age`. */
+  measurement_age: number | null;
 }
 
 function buildContext(p: PlayerCtx, locale: ReportLocale): string {
-  const offset = p.phv_offset ?? 0;
-  const aphv = p.age ? Number((p.age - offset).toFixed(2)) : null;
+  const offset = p.phv_offset;
+  const aphv = p.measurement_age !== null ? Number((p.measurement_age - offset).toFixed(2)) : null;
   return `JUGADOR
 - Nombre: ${p.name ?? "—"}
 - Edad cronológica: ${p.age ?? "?"} años
@@ -167,7 +170,7 @@ export default withHandler(
     // ── 1. Cargar player + última antropometría ────────────────
     const { data: pRow, error: pErr } = await supabase
       .from("players")
-      .select("name, age, position, height_cm, weight_kg, phv_category, phv_offset")
+      .select("name, age, position, height_cm, weight_kg")
       .eq("id", input.playerId)
       .single();
 
@@ -175,10 +178,21 @@ export default withHandler(
       return errorResponse({ code: "player_not_found", message: pErr?.message ?? "no encontrado", status: 404 });
     }
 
-    if (!pRow.phv_category) {
+    // PHV SOLO desde la última fila FIABLE de player_anthropometrics (gate único ·
+    // regla del owner 28-sep: 4 medidas + edad decimal por fecha de nacimiento +
+    // sexo). NO desde players.phv_category: antes de aplicar 069 guarda aún el valor
+    // naive legacy (p.ej. un pre-púber sin medidas «early», offset −1.2). select=*
+    // ⇒ sin 069 la fila no trae age_source ⇒ no fiable ⇒ no_phv (falla cerrado).
+    const { data: anthroRaw } = await supabase
+      .from("player_latest_anthropometrics")
+      .select("*")
+      .eq("player_id", input.playerId)
+      .maybeSingle();
+    const trust = trustAnthropometricsRow(anthroRaw);
+    if (!trust.trusted || trust.category === null || trust.offset === null) {
       return errorResponse({
         code: "no_phv",
-        message: "Jugador sin medición PHV · registra antropometría primero",
+        message: `PHV no disponible · ${trust.gate_reason ?? "registra una medición antropométrica completa"}`,
         status: 400,
       });
     }
@@ -189,8 +203,9 @@ export default withHandler(
       position: pRow.position,
       height_cm: pRow.height_cm,
       weight_kg: pRow.weight_kg,
-      phv_category: pRow.phv_category,
-      phv_offset: Number(pRow.phv_offset) || 0,
+      phv_category: trust.category === "ontme" ? "ontime" : trust.category,
+      phv_offset: trust.offset,
+      measurement_age: trust.chronologicalAge,
     };
 
     // ── 2. Generar plan ────────────────────────────────────────

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { IS_DEMO } from "@/lib/demoMode";
 import { PlayerService } from "@/services/real/playerService";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import i18n from "@/i18n";
 import { normalizeLocale } from "@/lib/shared/locale";
 
@@ -73,7 +73,7 @@ function buildDemoInsights(filters: InsightsFilters = {}): InsightsResponse {
   const rows: ScoutInsightRow[] = players.slice(0, 12).map((p) => {
     const m = (p.metrics ?? {}) as Record<string, number>;
     const topKey = Object.keys(METRIC_ES).sort((a, b) => (m[b] ?? 0) - (m[a] ?? 0))[0] ?? "technique";
-    const mat = playerMaturity(p as unknown as Parameters<typeof playerMaturity>[0]);
+    const mat = gatedMaturity(p);
     const isLate = mat.timing === "late";
     const type: ScoutInsightRow["insight_type"] =
       isLate ? "phv-alert" : (p.vsi ?? 0) >= 70 ? "breakout" : "comparison";

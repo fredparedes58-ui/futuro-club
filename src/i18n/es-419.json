@@ -475,10 +475,7 @@
       "sortAge": "Edad",
       "sortName": "Nombre",
       "phvFilter": {
-        "all": "Todos",
-        "late": "Precoz",
-        "onTime": "Normal",
-        "early": "Tardío ⭐"
+        "all": "Todos"
       },
       "bioMaturation": "Maduración Biológica (PHV)",
       "ofPlayers": "{filtered} de {total} jugadores",
@@ -1260,6 +1257,8 @@
     "toastUpdated": "Medida actualizada",
     "toastSaved": "Medida guardada · PHV recalculado",
     "toastQueuedSave": "📡 Guardado en cola · se sincronizará al volver la red",
+    "toastProfilePendingSync": "Medida guardada, pero la ficha del jugador está pendiente de sincronizar: el PHV de la ficha se actualizará al sincronizar",
+    "toastProfileNotOnDevice": "Medida guardada, pero la ficha de este dispositivo no se actualizó (el jugador no está cargado aquí): recarga la ficha para ver el PHV",
     "errUnknown": "Error desconocido",
     "confirmDelete": "¿Eliminar esta medición? El PHV histórico de esta fecha se perderá.",
     "queueLabelDelete": "Eliminar medición",
@@ -3308,7 +3307,23 @@
     "ageAtPHV": "PHV estimado",
     "percentPAH": "% talla adulta",
     "yearsUnit": "años",
-    "addParentsHint": "Añade la altura de ambos padres para el cálculo por % de talla adulta (más fiable)."
+    "addParentsHint": "Añade la altura de ambos padres para el cálculo por % de talla adulta (más fiable).",
+    "gate": {
+      "unavailable": "PHV no disponible",
+      "missing": "Falta: {{list}}",
+      "outOfRange": "Datos fuera del rango de validez de Mirwald (8–18 años)",
+      "legacyRow": "Medición registrada antes de usar la edad exacta por fecha de nacimiento: vuelve a guardarla",
+      "noRow": "Sin medición antropométrica registrada",
+      "notComputed": "El PHV no se calculó para esta medición",
+      "input": {
+        "height": "talla",
+        "weight": "peso",
+        "sittingHeight": "talla sentado",
+        "legLength": "longitud de pierna",
+        "birthDate": "fecha de nacimiento del jugador",
+        "sex": "sexo registrado"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Sin datos de posición para generar mapa de calor",

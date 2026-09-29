@@ -20,7 +20,7 @@ import {
 import { PlayerService } from "@/services/real/playerService";
 import { computeDashboardStats } from "@/services/real/adapters";
 import { MetricsService } from "@/services/real/metricsService";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import { useTranslation } from "react-i18next";
 
 const sidebarItems = [
@@ -73,7 +73,7 @@ const MasterDashboard = () => {
         // Sesgo desde el motor canónico, con gating: solo marcamos "high" (talento
         // infravalorado) a un madurador TARDÍO con confianza suficiente, no a
         // cualquier pre-púber (evita falso positivo).
-        const mat = playerMaturity(p);
+        const mat = gatedMaturity(p);
         const matFirm = mat.confidence === "high" || mat.confidence === "moderate";
         // pct es null para un jugador sin evaluar (no tiene percentil): en ese caso
         // no se marca sesgo por percentil, queda "med" salvo señal de maduración.

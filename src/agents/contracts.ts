@@ -21,6 +21,11 @@ export const PHVInputSchema = z.object({
   // Sexo SIN default: sexo-específico (invariante #5). Ausente ⇒ el consumidor
   // debe bloquear, no asumir masculino.
   gender: z.enum(["M", "F"]).optional(),
+  // Fecha de nacimiento del JUGADOR (ISO): fuente de la edad DECIMAL de Mirwald
+  // (regla del owner 28-sep). Sin ella el endpoint bloquea (422).
+  birthDate: z.string().optional(),
+  // VSI real del jugador: sin él no hay «VSI ajustado» (antes: base fija 70).
+  currentVSI: z.number().min(0).max(100).optional(),
 });
 
 export const PHVOutputSchema = z.object({
@@ -32,7 +37,9 @@ export const PHVOutputSchema = z.object({
   category: z.enum(["early", "ontme", "late"]),
   phvStatus: z.enum(["pre_phv", "during_phv", "post_phv"]),
   developmentWindow: z.enum(["critical", "active", "stable"]),
-  adjustedVSI: z.number().min(0).max(100),     // VSI corregido por PHV
+  // VSI corregido con el factor CANÓNICO (maturity.ts). null sin VSI real del
+  // jugador (antes se inventaba desde una base fija 70).
+  adjustedVSI: z.number().min(0).max(100).nullable(),
   recommendation: z.string(),
   confidence: z.number().min(0).max(1),
 });
@@ -113,8 +120,10 @@ export const RoleProfileInputSchema = z.object({
       pressing: z.number().min(0).max(100).optional(),
       positioning: z.number().min(0).max(100).optional(),
     }),
-    phvCategory: z.enum(["early", "ontme", "late"]),
-    phvOffset: z.number(),
+    // Solo con PHV gateado (src/lib/phv/phvGate.ts): ausentes ⇒ PHV no disponible.
+    // Nunca un «ontme»/0 por defecto (invariante #2).
+    phvCategory: z.enum(["early", "ontme", "late"]).optional(),
+    phvOffset: z.number().optional(),
     videoAnalysisSummary: z.unknown().optional(),               // estructura libre · datos del video
   }).passthrough(),
   videoContext: z.object({                                       // contexto del video específico

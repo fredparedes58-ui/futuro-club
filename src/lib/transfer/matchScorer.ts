@@ -12,6 +12,7 @@
 
 import { MATCH_WEIGHTS } from "./transferConfig";
 import type { TransferListing, TransferSearchQuery, MatchScore } from "./transferTypes";
+import { trustedSnapshotPhv } from "../phv/phvGate";
 
 interface ScoringResult {
   score: number;
@@ -99,13 +100,15 @@ export function scoreListingAgainstQuery(
   }
 
   // 6. PHV category alignment (relevante en juveniles)
+  // Solo PHV marcado fiable por el servidor (gate único · regla del owner 28-sep).
+  const snapPhv = trustedSnapshotPhv(snap).phvCategory;
   if (query.phvCategory && query.phvCategory.length > 0) {
     maxScore += MATCH_WEIGHTS.phvAlignment;
-    if (snap.phvCategory && query.phvCategory.includes(snap.phvCategory as "early" | "on-time" | "late")) {
+    if (snapPhv && query.phvCategory.includes(snapPhv as "early" | "on-time" | "late")) {
       score += MATCH_WEIGHTS.phvAlignment;
-      matched.push(`PHV ${snap.phvCategory}`);
-    } else if (snap.phvCategory) {
-      missing.push(`PHV ${snap.phvCategory} (pedido: ${query.phvCategory.join("/")})`);
+      matched.push(`PHV ${snapPhv}`);
+    } else if (snapPhv) {
+      missing.push(`PHV ${snapPhv} (pedido: ${query.phvCategory.join("/")})`);
     }
   }
 

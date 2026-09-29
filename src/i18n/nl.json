@@ -475,10 +475,7 @@
       "sortAge": "Leeftijd",
       "sortName": "Naam",
       "phvFilter": {
-        "all": "Alle",
-        "late": "Vroegrijp",
-        "onTime": "Normaal",
-        "early": "Laatrijp ⭐"
+        "all": "Alle"
       },
       "bioMaturation": "Biologische rijping (PHV)",
       "ofPlayers": "{filtered} van {total} spelers",
@@ -1260,6 +1257,8 @@
     "toastUpdated": "Meting bijgewerkt",
     "toastSaved": "Meting opgeslagen · PHV herberekend",
     "toastQueuedSave": "📡 In wachtrij opgeslagen · wordt gesynchroniseerd zodra het netwerk terug is",
+    "toastProfilePendingSync": "Meting opgeslagen, maar het spelersprofiel wacht op synchronisatie: de PHV in het profiel wordt bijgewerkt na synchronisatie",
+    "toastProfileNotOnDevice": "Meting opgeslagen, maar het profiel op dit apparaat is niet bijgewerkt (de speler is hier niet geladen): herlaad het profiel om de PHV te zien",
     "errUnknown": "Onbekende fout",
     "confirmDelete": "Deze meting verwijderen? De historische PHV van deze datum gaat verloren.",
     "queueLabelDelete": "Meting verwijderen",
@@ -3308,7 +3307,23 @@
     "ageAtPHV": "Geschatte PHV",
     "percentPAH": "% volwassen lengte",
     "yearsUnit": "jaar",
-    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder)."
+    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder).",
+    "gate": {
+      "unavailable": "PHV niet beschikbaar",
+      "missing": "Ontbreekt: {{list}}",
+      "outOfRange": "Gegevens buiten het geldigheidsbereik van Mirwald (8–18 jaar)",
+      "legacyRow": "Meting vastgelegd voordat de exacte leeftijd uit de geboortedatum werd gebruikt: sla haar opnieuw op",
+      "noRow": "Geen antropometrische meting vastgelegd",
+      "notComputed": "De PHV is niet berekend voor deze meting",
+      "input": {
+        "height": "lengte",
+        "weight": "gewicht",
+        "sittingHeight": "zithoogte",
+        "legLength": "beenlengte",
+        "birthDate": "geboortedatum van de speler",
+        "sex": "geregistreerd geslacht"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Geen positiegegevens om een heatmap te genereren",

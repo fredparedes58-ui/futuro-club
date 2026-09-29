@@ -475,10 +475,7 @@
       "sortAge": "Alter",
       "sortName": "Name",
       "phvFilter": {
-        "all": "Alle",
-        "late": "Frühentwickler",
-        "onTime": "Normal",
-        "early": "Spätentwickler ⭐"
+        "all": "Alle"
       },
       "bioMaturation": "Biologische Reifung (PHV)",
       "ofPlayers": "{filtered} von {total} Spielern",
@@ -1259,6 +1256,8 @@
     "toastUpdated": "Messung aktualisiert",
     "toastSaved": "Messung gespeichert · PHV neu berechnet",
     "toastQueuedSave": "📡 In Warteschlange gespeichert · wird synchronisiert, sobald das Netz zurück ist",
+    "toastProfilePendingSync": "Messung gespeichert, aber das Spielerprofil wartet auf Synchronisierung: das PHV im Profil wird nach der Synchronisierung aktualisiert",
+    "toastProfileNotOnDevice": "Messung gespeichert, aber das Profil auf diesem Gerät wurde nicht aktualisiert (der Spieler ist hier nicht geladen): lade das Profil neu, um das PHV zu sehen",
     "errUnknown": "Unbekannter Fehler",
     "confirmDelete": "Diese Messung löschen? Der historische PHV dieses Datums geht verloren.",
     "queueLabelDelete": "Messung löschen",
@@ -3307,7 +3306,23 @@
     "ageAtPHV": "Geschätzter PHV",
     "percentPAH": "% Erwachsenengröße",
     "yearsUnit": "Jahre",
-    "addParentsHint": "Füge die Körpergröße beider Eltern für die Berechnung über den % der Erwachsenengröße hinzu (zuverlässiger)."
+    "addParentsHint": "Füge die Körpergröße beider Eltern für die Berechnung über den % der Erwachsenengröße hinzu (zuverlässiger).",
+    "gate": {
+      "unavailable": "PHV nicht verfügbar",
+      "missing": "Fehlt: {{list}}",
+      "outOfRange": "Daten außerhalb des Gültigkeitsbereichs von Mirwald (8–18 Jahre)",
+      "legacyRow": "Messung vor Verwendung des exakten Alters aus dem Geburtsdatum erfasst: bitte erneut speichern",
+      "noRow": "Keine anthropometrische Messung erfasst",
+      "notComputed": "PHV wurde für diese Messung nicht berechnet",
+      "input": {
+        "height": "Körpergröße",
+        "weight": "Gewicht",
+        "sittingHeight": "Sitzhöhe",
+        "legLength": "Beinlänge",
+        "birthDate": "Geburtsdatum des Spielers",
+        "sex": "erfasstes Geschlecht"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Keine Positionsdaten zur Erstellung der Heatmap",

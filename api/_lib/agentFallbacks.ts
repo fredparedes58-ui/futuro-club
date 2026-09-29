@@ -9,84 +9,14 @@ import { fallbackStrings } from "./fallbackStrings";
 
 type FallbackReason = "no_api_key" | "claude_error" | "parse_error";
 
-// ─── PHV Calculator (Mirwald Formula) ───────────────────────────────────────
-
-interface PHVInput {
-  playerId: string;
-  chronologicalAge: number;
-  height?: number;
-  weight?: number;
-  sitingHeight?: number;
-  legLength?: number;
-  currentVSI?: number;
-}
-
-// ⚠️ SIN CALLER EN PRODUCCIÓN (solo tests). Implementa ÚNICAMENTE la fórmula
-// Mirwald MASCULINA e ignora el sexo (PHVInput ni siquiera lo lleva). NO cablear
-// como fallback del agente PHV sin añadir antes un gate de sexo: produciría un PHV
-// mal-sexado sobre un menor (invariante #5). El path VIVO y correcto, con gate M/F,
-// es api/agents/_phv-calculator.ts.
-export function phvFallback(body: PHVInput, reason: FallbackReason) {
-  const age = body.chronologicalAge;
-  const height = body.height ?? 155;
-  const weight = body.weight ?? 45;
-  const sittingHeight = body.sitingHeight ?? height * 0.52;
-  const legLength = body.legLength ?? height * 0.48;
-  const hasRealData = !!(body.sitingHeight && body.legLength);
-  const vsi = body.currentVSI ?? 70;
-
-  // Mirwald formula (male)
-  const offset =
-    -9.236 +
-    0.0002708 * legLength * sittingHeight -
-    0.001663 * age * legLength +
-    0.007216 * age * sittingHeight +
-    0.02292 * ((weight / height) * 100);
-
-  // Categorization
-  const category: "early" | "ontme" | "late" =
-    offset < -1.0 ? "early" : offset > 1.0 ? "late" : "ontme";
-
-  const phvStatus: "pre_phv" | "during_phv" | "post_phv" =
-    category === "early" ? "pre_phv" : category === "late" ? "post_phv" : "during_phv";
-
-  // Development window
-  let developmentWindow: "critical" | "active" | "stable" = "stable";
-  if (phvStatus === "during_phv") developmentWindow = "critical";
-  else if ((offset >= -2.0 && offset < -1.0) || (offset > 1.0 && offset <= 2.0))
-    developmentWindow = "active";
-
-  // VSI adjustment
-  const factor = category === "early" ? 1.12 : category === "late" ? 0.92 : 1.0;
-  const adjustedVSI = Math.min(100, Math.max(0, Math.round(vsi * factor * 100) / 100));
-
-  // Confidence is lower than Claude's (0.5/0.62 vs 0.74/0.92)
-  const confidence = hasRealData ? 0.62 : 0.5;
-
-  // OJO: phvCategory está invertido vs pares — "early" = pre-PHV = madurador
-  // TARDÍO (talento oculto); "late" = post-PHV = PRECOZ (ventaja física temporal).
-  const recommendations: Record<string, string> = {
-    early: "Madurador tardío (aún pre-PHV): su físico no refleja todavía su talento. Priorizar técnica y paciencia; su rendimiento suele emerger tras el estirón.",
-    ontme: "Maduración en fase con su edad. Mantener plan de desarrollo equilibrado.",
-    late: "Madurador precoz (post-PHV): ventaja física posiblemente temporal. Que el VSI no la sobrevalore; reforzar técnica-táctica sobre el físico.",
-  };
-
-  return {
-    playerId: body.playerId,
-    chronologicalAge: age,
-    offset: Math.round(offset * 100) / 100,
-    category,
-    phvStatus,
-    developmentWindow,
-    adjustedVSI,
-    recommendation: recommendations[category],
-    confidence,
-    tokensUsed: 0,
-    agentName: "PHVCalculatorAgent",
-    _fallback: true,
-    _fallbackReason: reason,
-  };
-}
+// ─── PHV Calculator ─────────────────────────────────────────────────────────
+// `phvFallback()` RETIRADO (regla del owner 28-sep · invariantes #2/#5/#7): era
+// una 4ª copia de Mirwald (solo masculina, sin gate de sexo) que ESTIMABA talla
+// sentado/pierna (×0.52/×0.48), rellenaba talla/peso (155/45) y VSI (70) por
+// defecto y aplicaba ×1.12 / ×0.92 por la categoría de ESTADO. No tenía caller en
+// producción. El PHV no usa LLM: el cálculo vivo es api/agents/_phv-calculator.ts,
+// gateado por src/lib/phv/phvGate.ts; sin todas las entradas introducidas se
+// bloquea con motivo, no se «aproxima».
 
 // ─── Role Profile (Rule-based) ──────────────────────────────────────────────
 

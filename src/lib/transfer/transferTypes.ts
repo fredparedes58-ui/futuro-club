@@ -53,6 +53,12 @@ export interface TransferListing {
     vsi?: number;
     phvOffset?: number;
     phvCategory?: string;
+    /**
+     * true SOLO si el servidor copió phvCategory/phvOffset de las columnas gateadas
+     * de players (api/transfer/_create-listing.ts · migración 069). Sin él, el PHV
+     * del snapshot no se muestra ni puntúa (trustedSnapshotPhv).
+     */
+    phvTrusted?: boolean;
   };
 
   expiresAt: string;
