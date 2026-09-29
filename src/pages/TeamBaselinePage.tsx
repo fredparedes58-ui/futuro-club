@@ -27,6 +27,9 @@ import { buildDemoTeamBaseline } from "@/lib/demo/demoTeam";
 import VideoUpload from "@/components/VideoUpload";
 import { VideoService } from "@/services/real/videoService";
 import { resolveSyncAnalysisInput, syncAnalysisRefusalMessage } from "@/lib/syncVideoAnalysisGate";
+import { useMatchAnalysisJob } from "@/hooks/useMatchAnalysisJob";
+import BaselineMatchJobPanel from "@/components/match/BaselineMatchJobPanel";
+import { isMatchVideoClientFlagOn, resolveMatchVideoAvailability } from "@/lib/match/matchVideoAvailability";
 
 type AnalysisMode = "text" | "video";
 
@@ -64,6 +67,15 @@ export default function TeamBaselinePage() {
   // Motivo honesto por el que el vídeo subido NO se manda al análisis rápido
   // (partido completo, codificación en curso, solo local). null = sin aviso.
   const [videoNotice, setVideoNotice] = useState<string | null>(null);
+  // Partido completo (más largo que el límite síncrono) → job asíncrono team_baseline,
+  // SOLO si el análisis de partido completo se ofrece (hoy «en validación»: sin red).
+  const matchVideoAvailable =
+    resolveMatchVideoAvailability({ clientFlag: isMatchVideoClientFlagOn(), isDemo: IS_DEMO, serverDisabled: false }) === "available";
+  const [fullMatchVideo, setFullMatchVideo] = useState<{ videoId: string; durationSec: number | null } | null>(null);
+  const matchJob = useMatchAnalysisJob({ purpose: "team_baseline", enabled: matchVideoAvailable });
+  const matchAnalysisId = matchJob.data?.job.status === "completed" ? matchJob.jobId : null;
+  const focusSide = matchJob.data?.job.focusTeam;
+  const matchTeamName = focusSide ? matchJob.data?.job[focusSide]?.name : null;
 
   async function handleVideoAnalysis(url: string) {
     setVideoUrl(url);
@@ -112,8 +124,9 @@ export default function TeamBaselinePage() {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
-          teamName: "Mi equipo",
-          videoObservation: videoAnalysis ?? undefined,
+          teamName: matchTeamName ?? "Mi equipo",
+          // Partido completo: el servidor carga la observación del job (con check de propiedad).
+          ...(matchAnalysisId ? { matchAnalysisId } : { videoObservation: videoAnalysis ?? undefined }),
           locale: normalizeLocale(i18n.language),
         }),
       });
@@ -165,7 +178,7 @@ export default function TeamBaselinePage() {
 
             {/* Video upload section */}
             <div className="text-left space-y-3">
-              {!videoAnalysis && !analyzingVideo && (
+              {!videoAnalysis && !analyzingVideo && !fullMatchVideo && !matchJob.jobId && (
                 <VideoUpload
                   onDone={(videoId, info) => {
                     // VideoUpload expone onDone(videoId), no onUploadComplete
@@ -176,11 +189,26 @@ export default function TeamBaselinePage() {
                     if (input.kind === "ok") {
                       setVideoNotice(null);
                       void handleVideoAnalysis(input.url);
+                    } else if (input.kind === "too_long" && matchVideoAvailable) {
+                      // Partido completo: job asíncrono en vez de la llamada síncrona de 120 s.
+                      setVideoNotice(null);
+                      setFullMatchVideo({ videoId, durationSec: input.durationSec });
                     } else {
                       const msg = syncAnalysisRefusalMessage(t, input);
-                      setVideoNotice(msg);
+                      setVideoNotice(input.kind === "too_long" ? `${msg} ${t("matchJob.validation.baselineSuffix")}` : msg);
                       toast.error(msg);
                     }
+                  }}
+                />
+              )}
+              {!videoAnalysis && (fullMatchVideo || matchJob.jobId) && (
+                <BaselineMatchJobPanel
+                  job={matchJob}
+                  videoId={fullMatchVideo?.videoId ?? null}
+                  durationSec={fullMatchVideo?.durationSec ?? null}
+                  onReset={() => {
+                    setFullMatchVideo(null);
+                    matchJob.clear();
                   }}
                 />
               )}
@@ -213,7 +241,7 @@ export default function TeamBaselinePage() {
 
             <button
               onClick={handleGenerate}
-              disabled={!videoAnalysis && !IS_DEMO}
+              disabled={!videoAnalysis && !matchAnalysisId && !IS_DEMO}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-xs font-display font-bold hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               <Sparkles size={12} /> {t("teamBaselinePage.generateButton")}
