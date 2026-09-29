@@ -112,6 +112,25 @@ export const SyncQueueService = {
     }
   },
 
+  /** ¿Hay alguna operación sin sincronizar para esta entidad? (estado «pendiente de sincronizar») */
+  hasPendingFor(entity: SyncEntity, entityId: string): boolean {
+    return this.getQueue().some((q) => q.entity === entity && q.entityId === entityId);
+  },
+
+  /**
+   * Quitar las operaciones create/update pendientes de una entidad cuyo estado
+   * COMPLETO acaba de llegar a la nube (upsert de fila entera): reprocesarlas
+   * después re-subiría datos más viejos encima de los nuevos. Un delete
+   * pendiente NO se toca.
+   */
+  removeUpsertsFor(entity: SyncEntity, entityId: string): void {
+    const queue = this.getQueue();
+    const kept = queue.filter(
+      (q) => !(q.entity === entity && q.entityId === entityId && q.action !== "delete"),
+    );
+    if (kept.length !== queue.length) StorageService.set(QUEUE_KEY, kept);
+  },
+
   /** Limpiar toda la cola */
   clearQueue(): void {
     StorageService.set(QUEUE_KEY, []);

@@ -1112,6 +1112,9 @@
     "playerDeleted": "{name} eliminato",
     "playerNotFound": "Giocatore non trovato",
     "playerSaveError": "Errore nel salvataggio del giocatore",
+    "playerSavedPendingSync": "{{name}} salvato solo su questo dispositivo: in attesa di sincronizzazione con il cloud",
+    "playerAddedPendingSync": "{{name}} creato solo su questo dispositivo: in attesa di sincronizzazione con il cloud",
+    "playerNotOnDevice": "Non è stato salvato nulla: {{name}} non è caricato su questo dispositivo. Ricarica e riprova.",
     "planLimitReached": "Limite raggiunto: {{count}}/{{limit}} giocatori. Aggiorna il tuo piano.",
     "viewPlans": "Vedi i piani",
     "planActivated": "Piano attivato! Le modifiche saranno applicate a breve.",
@@ -1831,15 +1834,19 @@
     "benchmarkLabel": "Benchmark: {{group}}"
   },
   "playerPhvSection": {
-    "parentalTitle": "Dati parentali",
-    "parentalNote": "L'altezza di entrambi i genitori abilita il calcolo per % di statura adulta (Khamis-Roche), affidabile anche lontano dal PHV. La data di nascita fornisce l'età esatta.",
-    "birthDate": "Data nasc.",
+    "parentalTitle": "Dati di maturazione (giocatore e genitori)",
+    "parentalNote": "La data di nascita del giocatore fornisce la sua età esatta. L'altezza di entrambi i genitori abilita il calcolo per % di statura adulta (Khamis-Roche), affidabile anche lontano dal PHV.",
+    "birthDate": "Data di nascita del giocatore",
     "motherHeight": "Altezza madre (cm)",
     "fatherHeight": "Altezza padre (cm)",
-    "parentalSave": "Salva dati parentali",
-    "parentalSaved": "Dati parentali salvati — la proiezione viene ricalcolata",
-    "parentalError": "Impossibile salvare i dati parentali",
-    "parentalRangeError": "Altezze fuori dal range plausibile (madre 120-210, padre 120-230 cm)"
+    "parentalSave": "Salva data di nascita e altezze",
+    "parentalSaved": "Data di nascita e altezze salvate — la proiezione viene ricalcolata",
+    "parentalError": "Impossibile salvare la data di nascita e le altezze",
+    "parentalRangeError": "Altezze fuori dal range plausibile (madre 120-210, padre 120-230 cm)",
+    "birthDateInvalid": "Data di nascita non valida: deve essere una data reale, precedente a oggi e dal 1900 in poi",
+    "notFoundError": "Non è stato salvato nulla: questo giocatore non è caricato su questo dispositivo. Ricarica la scheda e riprova.",
+    "pendingSync": "In attesa di sincronizzazione",
+    "pendingSyncToast": "Salvato solo su questo dispositivo: in attesa di sincronizzazione con il cloud (nuovo tentativo alla riconnessione o alla riapertura dell'app)"
   },
   "playerProfile": {
     "phvCategoryEarly": "Precoce",

@@ -18,6 +18,7 @@
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { toEngagementRow } from "./engagementRow";
+import { toIsoBirthDate } from "@/lib/shared/birthDate";
 
 const MIGRATION_FLAG_KEY = "vitas_supabase_migration_v1";
 
@@ -129,6 +130,8 @@ export const LocalStorageMigrationService = {
           name: (p.name as string) ?? "Jugador",
           age: (p.age as number) ?? null,
           position: (p.position as string) ?? null,
+          // Fecha del JUGADOR → columna del control RGPD de consentimiento (036).
+          birth_date: toIsoBirthDate(p.birthDate),
           data: p,
         }));
         const { error } = await supabase.from("players").upsert(rows, { onConflict: "id" });

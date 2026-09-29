@@ -10,8 +10,18 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
+import { toIsoBirthDate } from "../../src/lib/shared/birthDate";
 
 export const config = { runtime: "edge" };
+
+// Fecha de nacimiento DEL JUGADOR (YYYY-MM-DD). Misma regla que la columna
+// players.birth_date (control RGPD de consentimiento, 036): una fecha que la
+// columna rechazaría es un 400, no se guarda a medias en el blob.
+const BirthDateSchema = z
+  .string()
+  .refine((s) => toIsoBirthDate(s) !== null, {
+    message: "birthDate debe ser YYYY-MM-DD, una fecha real anterior a hoy y desde 1900",
+  });
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -49,10 +59,14 @@ const CreatePlayerSchema = z.object({
   gender: z.enum(["M", "F"]).optional(), // sin default "M": sexo ausente ⇒ null (invariante #5)
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
+  // Antes no estaba en el schema ⇒ zod la descartaba en silencio al crear.
+  birthDate: BirthDateSchema.optional(),
 });
 
 const UpdatePlayerSchema = z.object({
   id: z.string(),
+  // null ⇒ borrar la fecha (la columna birth_date pasa a NULL).
+  birthDate: BirthDateSchema.nullable().optional(),
   metrics: MetricsSchema.optional(),
   phvCategory: z.enum(["early", "ontme", "late"]).optional(),
   phvOffset: z.number().optional(),
@@ -221,6 +235,8 @@ export default withHandler(
         vsi_history: vsi !== null ? [vsi] : [],
         phv_category: input.phvCategory ?? null,
         phv_offset: input.phvOffset ?? null,
+        // Fecha del JUGADOR → columna del trigger RGPD de consentimiento (036).
+        birth_date: toIsoBirthDate(input.birthDate),
       };
 
       const res = await fetch(`${supabaseUrl}/rest/v1/players`, {
@@ -290,6 +306,8 @@ export default withHandler(
       if (updates.minutesPlayed !== undefined) updatedData.minutesPlayed = updates.minutesPlayed;
       if (updates.phvCategory !== undefined) updatedData.phvCategory = updates.phvCategory;
       if (updates.phvOffset !== undefined) updatedData.phvOffset = updates.phvOffset;
+      if (updates.birthDate === null) delete updatedData.birthDate;
+      else if (updates.birthDate !== undefined) updatedData.birthDate = updates.birthDate;
 
       // Recalculate VSI if metrics changed
       if (updates.metrics) {
@@ -330,6 +348,8 @@ export default withHandler(
         vsi_history: ud.vsiHistory ?? [],
         phv_category: ud.phvCategory ?? null,
         phv_offset: ud.phvOffset ?? null,
+        // Proyección del blob (fuente única de la fecha del jugador) → columna RGPD.
+        birth_date: toIsoBirthDate(ud.birthDate),
       };
 
       const patchRes = await fetch(

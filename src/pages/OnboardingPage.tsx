@@ -127,8 +127,9 @@ const OnboardingPage = () => {
         });
         // Empujar a Supabase para que el jugador exista como sujeto de análisis
         // de vídeo / PHV de servidor (antes: localStorage-only → el pipeline no lo
-        // encontraba). Best-effort · mismo patrón que PlayerPhvSection.
-        SupabasePlayerService.pushOne(user.id, created).catch(() => {});
+        // encontraba). Sin bloquear el alta; si la nube falla queda en SyncQueue
+        // (se reintenta), en vez de perderse en silencio como antes.
+        void SupabasePlayerService.persistOrQueue(user.id, created, "create");
       }
 
       toast.success(t("toasts.profileConfigured"));

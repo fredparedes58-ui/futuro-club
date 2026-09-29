@@ -1112,6 +1112,9 @@
     "playerDeleted": "{name} supprimé",
     "playerNotFound": "Joueur introuvable",
     "playerSaveError": "Erreur lors de l'enregistrement du joueur",
+    "playerSavedPendingSync": "{{name}} enregistré sur cet appareil uniquement : en attente de synchronisation avec le cloud",
+    "playerAddedPendingSync": "{{name}} créé sur cet appareil uniquement : en attente de synchronisation avec le cloud",
+    "playerNotOnDevice": "Rien n'a été enregistré : {{name}} n'est pas chargé sur cet appareil. Rechargez et réessayez.",
     "planLimitReached": "Limite atteinte : {{count}}/{{limit}} joueurs. Mettez à niveau votre abonnement.",
     "viewPlans": "Voir les abonnements",
     "planActivated": "Abonnement activé ! Les changements s'appliqueront sous peu.",
@@ -1831,15 +1834,19 @@
     "benchmarkLabel": "Benchmark : {{group}}"
   },
   "playerPhvSection": {
-    "parentalTitle": "Données parentales",
-    "parentalNote": "La taille des deux parents active le calcul par % de taille adulte (Khamis-Roche), fiable même loin du PHV. La date de naissance donne l'âge exact.",
-    "birthDate": "Date de naiss.",
+    "parentalTitle": "Données de maturation (joueur et parents)",
+    "parentalNote": "La date de naissance du joueur donne son âge exact. La taille des deux parents active le calcul par % de taille adulte (Khamis-Roche), fiable même loin du PHV.",
+    "birthDate": "Date de naissance du joueur",
     "motherHeight": "Taille de la mère (cm)",
     "fatherHeight": "Taille du père (cm)",
-    "parentalSave": "Enregistrer les données parentales",
-    "parentalSaved": "Données parentales enregistrées — la projection est recalculée",
-    "parentalError": "Impossible d'enregistrer les données parentales",
-    "parentalRangeError": "Tailles hors plage plausible (mère 120-210, père 120-230 cm)"
+    "parentalSave": "Enregistrer la date de naissance et les tailles",
+    "parentalSaved": "Date de naissance et tailles enregistrées — la projection est recalculée",
+    "parentalError": "Impossible d'enregistrer la date de naissance et les tailles",
+    "parentalRangeError": "Tailles hors plage plausible (mère 120-210, père 120-230 cm)",
+    "birthDateInvalid": "Date de naissance non valide : ce doit être une date réelle, antérieure à aujourd'hui et à partir de 1900",
+    "notFoundError": "Rien n'a été enregistré : ce joueur n'est pas chargé sur cet appareil. Rechargez la fiche et réessayez.",
+    "pendingSync": "En attente de synchronisation",
+    "pendingSyncToast": "Enregistré sur cet appareil uniquement : en attente de synchronisation avec le cloud (nouvel essai à la reconnexion ou à la réouverture de l'app)"
   },
   "playerProfile": {
     "phvCategoryEarly": "Précoce",

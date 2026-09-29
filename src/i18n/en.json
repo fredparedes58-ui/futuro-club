@@ -1113,6 +1113,9 @@
     "playerDeleted": "{name} deleted",
     "playerNotFound": "Player not found",
     "playerSaveError": "Error saving player",
+    "playerSavedPendingSync": "{{name}} saved on this device only: pending sync with the cloud",
+    "playerAddedPendingSync": "{{name}} created on this device only: pending sync with the cloud",
+    "playerNotOnDevice": "Nothing was saved: {{name}} isn't loaded on this device. Reload and try again.",
     "planLimitReached": "Limit reached: {{count}}/{{limit}} players. Upgrade your plan.",
     "viewPlans": "View plans",
     "planActivated": "Plan activated! Changes will apply shortly.",
@@ -1832,15 +1835,19 @@
     "benchmarkLabel": "Benchmark: {{group}}"
   },
   "playerPhvSection": {
-    "parentalTitle": "Parental data",
-    "parentalNote": "Both parents' heights enable the % predicted adult height method (Khamis-Roche), reliable even far from PHV. Date of birth gives the exact age.",
-    "birthDate": "Birth date",
+    "parentalTitle": "Maturation data (player and parents)",
+    "parentalNote": "The player's date of birth gives their exact age. Both parents' heights enable the % predicted adult height method (Khamis-Roche), reliable even far from PHV.",
+    "birthDate": "Player's date of birth",
     "motherHeight": "Mother height (cm)",
     "fatherHeight": "Father height (cm)",
-    "parentalSave": "Save parental data",
-    "parentalSaved": "Parental data saved — projection recalculated",
-    "parentalError": "Couldn't save parental data",
-    "parentalRangeError": "Heights out of plausible range (mother 120-210, father 120-230 cm)"
+    "parentalSave": "Save date of birth and heights",
+    "parentalSaved": "Date of birth and heights saved — projection recalculated",
+    "parentalError": "Couldn't save the date of birth and heights",
+    "parentalRangeError": "Heights out of plausible range (mother 120-210, father 120-230 cm)",
+    "birthDateInvalid": "Invalid date of birth: it must be a real date, before today and from 1900 onwards",
+    "notFoundError": "Nothing was saved: this player isn't loaded on this device. Reload the profile and try again.",
+    "pendingSync": "Pending sync",
+    "pendingSyncToast": "Saved on this device only: pending sync with the cloud (retried when you reconnect or reopen the app)"
   },
   "playerProfile": {
     "phvCategoryEarly": "Early",

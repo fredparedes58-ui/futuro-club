@@ -1112,6 +1112,9 @@
     "playerDeleted": "{name} gelöscht",
     "playerNotFound": "Spieler nicht gefunden",
     "playerSaveError": "Fehler beim Speichern des Spielers",
+    "playerSavedPendingSync": "{{name}} nur auf diesem Gerät gespeichert: Synchronisierung mit der Cloud ausstehend",
+    "playerAddedPendingSync": "{{name}} nur auf diesem Gerät angelegt: Synchronisierung mit der Cloud ausstehend",
+    "playerNotOnDevice": "Nichts wurde gespeichert: {{name}} ist auf diesem Gerät nicht geladen. Neu laden und erneut versuchen.",
     "planLimitReached": "Limit erreicht: {{count}}/{{limit}} Spieler. Upgrade deinen Plan.",
     "viewPlans": "Pläne ansehen",
     "planActivated": "Plan aktiviert! Die Änderungen werden in Kürze übernommen.",
@@ -1831,15 +1834,19 @@
     "benchmarkLabel": "Benchmark: {{group}}"
   },
   "playerPhvSection": {
-    "parentalTitle": "Elterndaten",
-    "parentalNote": "Die Körpergröße beider Eltern ermöglicht die Berechnung über den % der Erwachsenengröße (Khamis-Roche), zuverlässig sogar weit weg vom PHV. Das Geburtsdatum liefert das exakte Alter.",
-    "birthDate": "Geb.-Datum",
+    "parentalTitle": "Reifungsdaten (Spieler und Eltern)",
+    "parentalNote": "Das Geburtsdatum des Spielers liefert das exakte Alter. Die Körpergröße beider Eltern ermöglicht die Berechnung über den % der Erwachsenengröße (Khamis-Roche), zuverlässig sogar weit weg vom PHV.",
+    "birthDate": "Geburtsdatum des Spielers",
     "motherHeight": "Größe Mutter (cm)",
     "fatherHeight": "Größe Vater (cm)",
-    "parentalSave": "Elterndaten speichern",
-    "parentalSaved": "Elterndaten gespeichert — die Projektion wird neu berechnet",
-    "parentalError": "Die Elterndaten konnten nicht gespeichert werden",
-    "parentalRangeError": "Größen außerhalb des plausiblen Bereichs (Mutter 120-210, Vater 120-230 cm)"
+    "parentalSave": "Geburtsdatum und Größen speichern",
+    "parentalSaved": "Geburtsdatum und Größen gespeichert — die Projektion wird neu berechnet",
+    "parentalError": "Geburtsdatum und Größen konnten nicht gespeichert werden",
+    "parentalRangeError": "Größen außerhalb des plausiblen Bereichs (Mutter 120-210, Vater 120-230 cm)",
+    "birthDateInvalid": "Ungültiges Geburtsdatum: Es muss ein echtes Datum vor heute und ab 1900 sein",
+    "notFoundError": "Nichts wurde gespeichert: Dieser Spieler ist auf diesem Gerät nicht geladen. Lade das Profil neu und versuche es erneut.",
+    "pendingSync": "Synchronisierung ausstehend",
+    "pendingSyncToast": "Nur auf diesem Gerät gespeichert: Synchronisierung mit der Cloud ausstehend (erneuter Versuch beim Wiederverbinden oder erneuten Öffnen der App)"
   },
   "playerProfile": {
     "phvCategoryEarly": "Frühentwickler",
