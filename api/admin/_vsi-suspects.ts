@@ -48,11 +48,13 @@ export default withHandler(
     );
 
     if (!res.ok) {
-      // Lo más probable: la migración 070 aún no está aplicada (la vista no existe).
+      // Lo más probable: la migración 070 aún no está aplicada (la vista no existe:
+      // PostgREST 404 PGRST205 / 42P01). 503 = gate explícito hasta aplicarla; solo afecta
+      // a esta pestaña nueva del panel /admin (el resto del panel no la consulta).
       const detail = await res.text().catch(() => "");
       return errorResponse(
         `No se pudo leer v_vsi_default_suspects (¿migración 070 aplicada?): ${res.status} ${detail.slice(0, 160)}`,
-        502,
+        503,
         "VSI_REVIEW_UNAVAILABLE",
       );
     }

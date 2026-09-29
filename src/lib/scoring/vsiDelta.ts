@@ -9,7 +9,9 @@
  *     que consumen el ScoutFeed (api/scout/generate.ts → InsightCard), el panel de
  *     familia (ParentDashboardPage) y el informe imprimible (PlayerReportPrint);
  *   - la serie de evaluaciones reales con fecha (`realVsiEvaluations`), única base de
- *     las gráficas de evolución (PlayerReportPrint, api/reports/_pdf.ts).
+ *     las gráficas de evolución (PlayerReportPrint, api/reports/_pdf.ts);
+ *   - la flecha de tendencia ↑/↓ (`vsiTrendArrow`, derivada de `computeVsiDelta`) de
+ *     /rankings (api/rankings/_list.ts, adapters.ts) y de «Talentos en tendencia» (/pulse).
  *
  * Por qué existe: el «67.4 (+9.9)» del ScoutFeed lo escribía el LLM como texto libre y
  * el panel de familia rotulaba «+X pts vs hace 1 mes» restando posiciones de
@@ -243,6 +245,59 @@ export function readVsiDelta(raw: unknown): VsiDelta | null {
     to_value: num(r.to_value),
     gate_code: code && code in VSI_DELTA_GATE_REASONS ? (code as VsiDeltaGateCode) : null,
   };
+}
+
+// ── Flecha de tendencia ↑/↓ (/rankings y «Talentos en tendencia» de /pulse) ──
+
+/**
+ * Flecha de tendencia de un jugador. "stable" = SIN flecha: ninguna superficie pinta
+ * "stable" (Rankings solo dibuja ↑/↓; dashboardService solo lista "up"), así que cubre
+ * tanto una variación pequeña como una variación NO calculable (bloqueada).
+ */
+export type VsiTrendArrow = "up" | "down" | "stable";
+
+/**
+ * Banda de la flecha, en pts de VSI de ficha: la misma ±2 que usaban las flechas
+ * anteriores (y MetricsService.calculateTrend). Sin fuente en literatura: pendiente de
+ * validar. La flecha solo resume el signo de una variación ya calculada por
+ * computeVsiDelta (DERIVADA, confidence orientativa); no añade ninguna cifra.
+ */
+export const VSI_TREND_ARROW_BAND_PTS = 2;
+
+export interface VsiTrendArrowInput extends VsiDeltaInput {
+  /**
+   * `true` ⇒ jugador de DEMO (MOCK, la demo lleva banner). Sus evaluaciones son
+   * `demo_seed` (nunca reales), así que su flecha sale del historial que siembra
+   * demoDataService (seedPlayerExtras, #198). Solo el literal `true` activa esa vía:
+   * un jugador real NUNCA recibe una flecha del historial legacy.
+   */
+  isDemo?: boolean | null;
+}
+
+/** Variación del historial SEMBRADO de un jugador demo (actual − penúltimo); null si no hay dos. */
+function demoLegacyChange(legacy: unknown, current: number | null | undefined): number | null {
+  if (typeof current !== "number" || !Number.isFinite(current) || !Array.isArray(legacy)) return null;
+  const nums = legacy.filter((v): v is number => typeof v === "number" && Number.isFinite(v));
+  return nums.length >= 2 ? current - nums[nums.length - 2] : null;
+}
+
+/**
+ * Flecha ↑/↓ desde la MISMA variación que el panel de familia, el informe y el ScoutFeed
+ * (computeVsiDelta, invariante #7): ↑ si value > banda, ↓ si value < −banda; value null
+ * (sin dos evaluaciones reales con fecha, historial legacy, VSI actual distinto…) ⇒ sin
+ * flecha. Antes /rankings y /pulse restaban `vsiHistory.at(-2)`: con Samu ([57.5, 67.4],
+ * sin evaluaciones con fecha) salía ↑ y «en tendencia» mientras el panel de familia
+ * bloqueaba la misma variación («historial anterior sin fecha ni origen»).
+ */
+export function vsiTrendArrow(input: VsiTrendArrowInput): VsiTrendArrow {
+  let change = computeVsiDelta(input).value;
+  if (change === null && input.isDemo === true) {
+    change = demoLegacyChange(input.legacyHistory, input.currentVsi);
+  }
+  if (change === null) return "stable";
+  if (change > VSI_TREND_ARROW_BAND_PTS) return "up";
+  if (change < -VSI_TREND_ARROW_BAND_PTS) return "down";
+  return "stable";
 }
 
 // ── Serie legacy retirada de `analyses.vsi` ──────────────────────────────────
