@@ -6,8 +6,10 @@
  *     guarda en el blob `data` del jugador cada vez que el entrenador evalúa las 6
  *     barras (PlayerService en el navegador, api/players/_crud.ts en el servidor);
  *   - la VARIACIÓN del VSI entre las dos últimas evaluaciones reales (`computeVsiDelta`),
- *     que consumen el ScoutFeed (api/scout/generate.ts → InsightCard) y el panel de
- *     familia (ParentDashboardPage).
+ *     que consumen el ScoutFeed (api/scout/generate.ts → InsightCard), el panel de
+ *     familia (ParentDashboardPage) y el informe imprimible (PlayerReportPrint);
+ *   - la serie de evaluaciones reales con fecha (`realVsiEvaluations`), única base de
+ *     las gráficas de evolución (PlayerReportPrint, api/reports/_pdf.ts).
  *
  * Por qué existe: el «67.4 (+9.9)» del ScoutFeed lo escribía el LLM como texto libre y
  * el panel de familia rotulaba «+X pts vs hace 1 mes» restando posiciones de
@@ -74,6 +76,17 @@ export function parseVsiEvaluations(raw: unknown): VsiEvaluation[] {
     .map((e, i) => ({ e, i, t: Date.parse(e.at) }))
     .sort((a, b) => a.t - b.t || a.i - b.i)
     .map(({ e }) => e);
+}
+
+/**
+ * Evaluaciones REALES (origen persona: coach_form | players_api) con fecha, en orden
+ * ascendente. Es la ÚNICA serie con la que se puede pintar una evolución del VSI de
+ * ficha (informe imprimible /report/:id, PDF de servidor) y la misma que usa
+ * `computeVsiDelta`. El historial legacy `vsiHistory` (sin fechas ni origen, con el
+ * 57.5 fabricado antes de #146) nunca entra; las semillas demo tampoco.
+ */
+export function realVsiEvaluations(raw: unknown): VsiEvaluation[] {
+  return parseVsiEvaluations(raw).filter((e) => REAL_VSI_EVALUATION_SOURCES.includes(e.source));
 }
 
 /**
@@ -168,9 +181,7 @@ export interface VsiDeltaInput {
  * valoraciones SUBJETIVAS del entrenador (sliders), no medidas.
  */
 export function computeVsiDelta(input: VsiDeltaInput): VsiDelta {
-  const real = parseVsiEvaluations(input.evaluations).filter((e) =>
-    REAL_VSI_EVALUATION_SOURCES.includes(e.source),
-  );
+  const real = realVsiEvaluations(input.evaluations);
 
   if (real.length < 2) {
     if (legacyLength(input.legacyHistory) >= 2) return blocked("legacy_undated");
@@ -232,4 +243,26 @@ export function readVsiDelta(raw: unknown): VsiDelta | null {
     to_value: num(r.to_value),
     gate_code: code && code in VSI_DELTA_GATE_REASONS ? (code as VsiDeltaGateCode) : null,
   };
+}
+
+// ── Serie legacy retirada de `analyses.vsi` ──────────────────────────────────
+
+/**
+ * Campos RETIRADOS del JSON `analyses.vsi`: `trend` (pendiente/momentum/delta) e
+ * `history`. Su único escritor fue api/players/baseline-analysis.ts, que los calculaba
+ * sobre `players.vsi_history` (legacy SIN fechas ni origen, con el 57.5 fabricado antes
+ * de #146) con, al final, un VSI de OTRA fórmula. Para Samu ([57.5, 67.4]) el panel de
+ * análisis pintaba «↗» y «+9.x pts»: la misma variación fabricada que el ScoutFeed.
+ * baseline-analysis ya no los escribe; las filas guardadas los conservan, así que los
+ * endpoints que sirven análisis (api/analyses/reports.ts, api/analyses/share.ts) los
+ * quitan al leer. La única variación válida es `computeVsiDelta` (invariante #7).
+ */
+export const RETIRED_ANALYSIS_VSI_FIELDS = ["trend", "history"] as const;
+
+/** Copia de `analyses.vsi` sin los campos retirados. No muta la entrada; lo demás intacto. */
+export function withoutUndatedVsiSeries<T>(vsi: T): T {
+  if (!vsi || typeof vsi !== "object" || Array.isArray(vsi)) return vsi;
+  const copy: Record<string, unknown> = { ...(vsi as Record<string, unknown>) };
+  for (const field of RETIRED_ANALYSIS_VSI_FIELDS) delete copy[field];
+  return copy as T;
 }

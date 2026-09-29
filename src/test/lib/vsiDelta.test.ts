@@ -12,6 +12,8 @@ import {
   computeVsiDelta,
   parseVsiEvaluations,
   readVsiDelta,
+  realVsiEvaluations,
+  withoutUndatedVsiSeries,
   VSI_DELTA_GATE_REASONS,
   type VsiEvaluation,
 } from "@/lib/scoring/vsiDelta";
@@ -187,5 +189,59 @@ describe("readVsiDelta — lectura defensiva de context_data.vsi_delta", () => {
     expect(readVsiDelta({ value: 9.9 })).toBeNull(); // sin provenance
     expect(readVsiDelta({ value: null, provenance: "DERIVADA", gate_reason: "" })).toBeNull(); // null sin motivo
     expect(readVsiDelta({ value: "9.9", provenance: "DERIVADA" })).toBeNull();
+  });
+});
+
+describe("realVsiEvaluations — única serie para gráficas de evolución", () => {
+  it("solo evaluaciones reales con fecha, en orden; fuera demo_seed y entradas sin fecha", () => {
+    const raw = [
+      ev(70, "2026-09-20T10:00:00.000Z"),
+      ev(99, "2026-09-05T10:00:00.000Z", "demo_seed"),
+      { value: 57.5 }, // sin fecha ni origen (forma del legacy)
+      ev(64, "2026-09-10T10:00:00.000Z", "players_api"),
+    ];
+    expect(realVsiEvaluations(raw)).toEqual([
+      ev(64, "2026-09-10T10:00:00.000Z", "players_api"),
+      ev(70, "2026-09-20T10:00:00.000Z"),
+    ]);
+  });
+
+  it("el historial legacy [57.5, 67.4] (números sueltos) no produce ninguna evaluación", () => {
+    expect(realVsiEvaluations([57.5, 67.4])).toEqual([]);
+    expect(realVsiEvaluations(undefined)).toEqual([]);
+  });
+
+  it("es la misma serie que usa computeVsiDelta (última − penúltima de realVsiEvaluations)", () => {
+    const raw = [ev(60, "2026-09-01T10:00:00.000Z"), ev(63.5, "2026-09-10T10:00:00.000Z"), ev(99, "2026-09-12T10:00:00.000Z", "demo_seed")];
+    const series = realVsiEvaluations(raw);
+    const d = computeVsiDelta({ evaluations: raw });
+    expect(d.value).toBe(series[series.length - 1].value - series[series.length - 2].value);
+    expect(d.to_at).toBe(series[series.length - 1].at);
+  });
+});
+
+describe("withoutUndatedVsiSeries — analyses.vsi sin la serie legacy retirada", () => {
+  it("quita trend e history (calculados sobre vsi_history sin fechas) y conserva el resto", () => {
+    // Forma real de una fila baseline-v1.0 de Samu: [57.5, 67.4] + el VSI de otra fórmula.
+    const stored = {
+      vsi: 67, tier: "talent", tierLabel: "Talento",
+      peer: { percentile: null, peerCount: 0, stratum: "no-data" },
+      trend: { slope: 4.75, momentum: "up", confidence: "medium", delta: null, samples: 3 },
+      history: [57.5, 67.4, 67],
+    };
+    const out = withoutUndatedVsiSeries(stored);
+    expect(out).toEqual({
+      vsi: 67, tier: "talent", tierLabel: "Talento",
+      peer: { percentile: null, peerCount: 0, stratum: "no-data" },
+    });
+    expect(out).not.toHaveProperty("trend");
+    expect(out).not.toHaveProperty("history");
+    // No muta la fila leída.
+    expect(stored).toHaveProperty("trend");
+  });
+
+  it("valores no-objeto pasan tal cual (vsi null en análisis sin VSI)", () => {
+    expect(withoutUndatedVsiSeries(null)).toBeNull();
+    expect(withoutUndatedVsiSeries(undefined)).toBeUndefined();
   });
 });

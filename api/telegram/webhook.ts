@@ -26,6 +26,7 @@ import { createClient } from "@supabase/supabase-js";
 import { MODELS } from "../_lib/models";
 import { avgEvaluatedVsi, countElite, formatVsi } from "../_lib/vsiStats";
 import { normalizeLocale, languageDirective, type ReportLocale } from "../../src/lib/shared/locale";
+import { withoutUndatedVsiSeries } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -195,7 +196,8 @@ interface ToolContext {
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
-async function execTool(
+/** Ejecuta una herramienta del bot. Exportada solo para tests (no es una ruta). */
+export async function execTool(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   ctx: ToolContext,
@@ -250,7 +252,15 @@ async function execTool(
           .maybeSingle();
 
         const stats = extractKeyStats(lastReport?.report);
-        return JSON.stringify({ player: matches[0], lastAnalysis, lastVideoStats: stats }, null, 2);
+        // Al LLM no le llega el historial legacy SIN fechas (vsi_history, con el 57.5
+        // fabricado antes de #146) ni la serie retirada de analyses.vsi (trend/history):
+        // narraría una «subida» que la app no puede calcular (src/lib/scoring/vsiDelta.ts).
+        const player = { ...matches[0] };
+        delete player.vsi_history;
+        const analysisForLlm = lastAnalysis
+          ? { ...lastAnalysis, vsi: withoutUndatedVsiSeries(lastAnalysis.vsi) }
+          : lastAnalysis;
+        return JSON.stringify({ player, lastAnalysis: analysisForLlm, lastVideoStats: stats }, null, 2);
       }
       return `Múltiples coincidencias: ${matches.map((m: { name: string }) => m.name).join(", ")}. Especifica más.`;
     }
