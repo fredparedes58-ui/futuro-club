@@ -169,7 +169,9 @@ function fetchLocalRankedPlayers(
       // categoría persistida no recalculable) ⇒ null, no se inventa una fase.
       phvCategory: p.phvCategory ?? null,
       phvOffset: p.phvOffset ?? null,
-      competitiveLevel: p.competitiveLevel ?? "Regional",
+      // Del jugador CRUDO: el adaptador de UI no conserva estos campos (antes salía
+      // siempre "Regional"/"right" por defecto aunque la ficha tuviera otro valor).
+      competitiveLevel: raw?.competitiveLevel ?? "Regional",
       ageGroup,
       trending: p.trending ?? "stable",
       // Sin evaluar ⇒ percentil null (no compite ni cuenta como 0).
@@ -177,7 +179,7 @@ function fetchLocalRankedPlayers(
       percentileInAgeGroup: null, // calculated below
       updatedAt: p.lastActive ?? new Date().toISOString(),
       metrics: p.stats ?? {},
-      foot: p.foot ?? "right",
+      foot: raw?.foot ?? "right",
       // Entradas del gate PHV que Rankings recalcula: sin default 170/60 (inv #2).
       height: raw?.height ?? null,
       weight: raw?.weight ?? null,

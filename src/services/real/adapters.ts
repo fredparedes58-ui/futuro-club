@@ -45,6 +45,8 @@ export function adaptPlayerForUI(rawPlayer: Player) {
     name: player.name,
     age: player.age,
     position: player.position,
+    // Polivalencia: LiveMatchPage (selector de posición) la lee del jugador adaptado.
+    secondaryPositions: player.secondaryPositions,
     positionShort: player.position,
     academy: "VITAS Academy",
     vsi: player.vsi,
