@@ -20,6 +20,7 @@ import {
 } from "../../src/lib/transfer/transferMatchPrompt";
 import { hashQuery } from "../../src/lib/transfer/matchScorer";
 import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
+import { trustedSnapshotPhv } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
 
@@ -108,8 +109,10 @@ export default withHandler(
             vsiBreakdown: snap.vsiBreakdown as
               | { technical: number; tactical: number; physical: number; mental: number }
               | undefined,
-            phvOffset: snap.phvOffset as number | undefined,
-            phvCategory: snap.phvCategory as string | undefined,
+            // PHV solo si el servidor lo marcó fiable al crear el listing (gate único,
+            // regla del owner 28-sep); snapshots antiguos ⇒ el LLM no recibe PHV.
+            phvOffset: trustedSnapshotPhv(snap).phvOffset ?? undefined,
+            phvCategory: trustedSnapshotPhv(snap).phvCategory ?? undefined,
             tags: l.tags,
             description: l.description ?? undefined,
           },

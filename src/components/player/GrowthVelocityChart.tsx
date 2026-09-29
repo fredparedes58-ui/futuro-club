@@ -18,14 +18,21 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { TrendingUp, AlertCircle, Loader2, Sparkles } from "lucide-react";
+import { trustAnthropometricsRow } from "@/lib/phv/phvGate";
+import { getAuthHeaders } from "@/lib/apiAuth";
+import { PhvGateNotice, usePhvGateText } from "@/components/phv/PhvGateNotice";
 
 interface AnthroRow {
   id: string;
   height_cm: number;
   weight_kg: number;
+  sitting_height_cm?: number | null;
+  leg_length_cm?: number | null;
   chronological_age: number;
-  maturity_offset: number;
-  phv_category: "early" | "ontime" | "late";
+  age_source?: string | null;
+  maturity_offset: number | null;
+  phv_category: "early" | "ontime" | "late" | null;
+  phv_gate_reason?: string | null;
   measured_at: string;
 }
 
@@ -47,9 +54,15 @@ export default function GrowthVelocityChart({ playerId }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/players/anthropometrics?playerId=${playerId}&history=true`, {
-      credentials: "include",
-    })
+    // Bearer: el endpoint exige auth (requireAuth); sin la cabecera respondía 401
+    // y la curva/APHV nunca se pintaban.
+    getAuthHeaders()
+      .then((headers) =>
+        fetch(`/api/players/anthropometrics?playerId=${playerId}&history=true`, {
+          headers,
+          credentials: "include",
+        }),
+      )
       .then((r) => r.json())
       .then((data) => {
         if (data?.success && Array.isArray(data?.data?.history)) {
@@ -65,9 +78,9 @@ export default function GrowthVelocityChart({ playerId }: Props) {
   }, [playerId]);
 
   // Compute chart points + APHV prediction
-  const { points, aphv, currentOffset, latestCategory } = useMemo(() => {
+  const { points, aphv, currentOffset, latestCategory, latestTrust } = useMemo(() => {
     if (history.length === 0) {
-      return { points: [], aphv: null, currentOffset: null, latestCategory: null };
+      return { points: [], aphv: null, currentOffset: null, latestCategory: null, latestTrust: null };
     }
 
     const pts: ChartPoint[] = history.map((m, i) => {
@@ -87,17 +100,25 @@ export default function GrowthVelocityChart({ playerId }: Props) {
       };
     });
 
-    // APHV = chronological_age - maturity_offset (último registro)
+    // APHV = chronological_age - maturity_offset (último registro) — SOLO si la fila
+    // es fiable (gate único: 4 medidas + edad decimal por fecha de nacimiento, 069).
+    // Una fila antigua (edad entera) o incompleta NO produce APHV ni categoría.
     const latest = history[history.length - 1];
-    const aphvEstimate = latest.chronological_age - latest.maturity_offset;
+    const trust = trustAnthropometricsRow(latest);
+    if (!trust.trusted || trust.offset === null || trust.chronologicalAge === null) {
+      return { points: pts, aphv: null, currentOffset: null, latestCategory: null, latestTrust: trust };
+    }
+    const aphvEstimate = trust.chronologicalAge - trust.offset;
 
     return {
       points: pts,
       aphv: Number(aphvEstimate.toFixed(2)),
-      currentOffset: latest.maturity_offset,
-      latestCategory: latest.phv_category,
+      currentOffset: trust.offset,
+      latestCategory: trust.category,
+      latestTrust: trust,
     };
   }, [history]);
+  const gateText = usePhvGateText()({ code: latestTrust?.code ?? "no_row", missing: latestTrust?.missing, bare: true });
 
   if (loading) {
     return (
@@ -128,15 +149,19 @@ export default function GrowthVelocityChart({ playerId }: Props) {
     <div className="space-y-3">
       {/* Header con APHV + estado */}
       <div className="grid grid-cols-3 gap-2">
-        <Stat label={t("growthVelocityChart.aphvEst")} value={aphv !== null ? `${aphv.toFixed(1)}a` : "—"} icon={<Sparkles size={11} />} />
-        <Stat label={t("growthVelocityChart.currentOffset")} value={currentOffset !== null ? `${currentOffset > 0 ? "+" : ""}${currentOffset.toFixed(1)}a` : "—"} />
+        <Stat label={t("growthVelocityChart.aphvEst")} value={aphv !== null ? `${aphv.toFixed(1)}a` : gateText} icon={<Sparkles size={11} />} gated={aphv === null} />
+        <Stat label={t("growthVelocityChart.currentOffset")} value={currentOffset !== null ? `${currentOffset > 0 ? "+" : ""}${currentOffset.toFixed(1)}a` : gateText} gated={currentOffset === null} />
         <Stat label={t("growthVelocityChart.measurements")} value={String(history.length)} />
       </div>
 
       {hasOnePoint ? (
-        <div className="rounded-lg bg-secondary/30 border border-border p-3 text-[11px] text-muted-foreground">
-          {t("growthVelocityChart.onePointMessage", { aphv: aphv?.toFixed(1) })}
-        </div>
+        aphv !== null ? (
+          <div className="rounded-lg bg-secondary/30 border border-border p-3 text-[11px] text-muted-foreground">
+            {t("growthVelocityChart.onePointMessage", { aphv: aphv.toFixed(1) })}
+          </div>
+        ) : (
+          <PhvGateNotice variant="card" code={latestTrust?.code ?? "no_row"} missing={latestTrust?.missing} />
+        )
       ) : (
         <div className="rounded-xl bg-secondary/30 border border-border p-2">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 px-2">
@@ -229,30 +254,38 @@ export default function GrowthVelocityChart({ playerId }: Props) {
         </div>
       )}
 
-      {/* Hint educativo */}
-      <p className="text-[10px] text-muted-foreground leading-relaxed">
-        <Trans
-          i18nKey="growthVelocityChart.hint"
-          values={{
-            category:
-              latestCategory === "early" ? t("growthVelocityChart.categoryEarly") :
-              latestCategory === "late"  ? t("growthVelocityChart.categoryLate") :
-                                           t("growthVelocityChart.categoryOntime"),
-          }}
-          components={{ strong: <strong />, strongCat: <strong className="text-foreground" /> }}
-        />
-      </p>
+      {/* Hint educativo — la categoría solo con fila fiable (gate único). */}
+      {latestCategory ? (
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          <Trans
+            i18nKey="growthVelocityChart.hint"
+            values={{
+              category:
+                latestCategory === "early" ? t("growthVelocityChart.categoryEarly") :
+                latestCategory === "late"  ? t("growthVelocityChart.categoryLate") :
+                                             t("growthVelocityChart.categoryOntime"),
+            }}
+            components={{ strong: <strong />, strongCat: <strong className="text-foreground" /> }}
+          />
+        </p>
+      ) : (
+        !hasOnePoint && <PhvGateNotice variant="card" code={latestTrust?.code ?? "no_row"} missing={latestTrust?.missing} />
+      )}
     </div>
   );
 }
 
-function Stat({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+function Stat({ label, value, icon, gated }: { label: string; value: string; icon?: React.ReactNode; gated?: boolean }) {
   return (
     <div className="rounded-lg bg-secondary/30 border border-border px-2 py-1.5">
       <div className="text-[8px] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1">
         {icon}{label}
       </div>
-      <div className="text-sm font-display font-bold text-foreground">{value}</div>
+      {gated ? (
+        <div className="text-[10px] italic text-muted-foreground leading-snug">{value}</div>
+      ) : (
+        <div className="text-sm font-display font-bold text-foreground">{value}</div>
+      )}
     </div>
   );
 }

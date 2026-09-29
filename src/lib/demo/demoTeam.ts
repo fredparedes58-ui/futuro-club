@@ -8,7 +8,7 @@
  */
 
 import { PlayerService, type Player } from "@/services/real/playerService";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import { normalizeLocale, pickLocale, type ReportLocale } from "@/lib/shared/locale";
 import i18n from "@/i18n";
 
@@ -21,7 +21,7 @@ function phvDist(players: Player[]) {
   const d = { early: 0, ontime: 0, late: 0, unknown: 0 };
   for (const p of players) {
     try {
-      const timing = playerMaturity(p as unknown as Parameters<typeof playerMaturity>[0]).timing;
+      const timing = gatedMaturity(p as unknown as Parameters<typeof gatedMaturity>[0]).timing;
       if (timing === "early") d.early++;
       else if (timing === "late") d.late++;
       else if (timing === "on_time") d.ontime++;

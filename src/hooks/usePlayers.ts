@@ -10,6 +10,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PlayerService, type Player, type CreatePlayerInput } from "@/services/real/playerService";
 import { adaptPlayerForUI } from "@/services/real/adapters";
+import { sanitizePlayerPhv } from "@/lib/phv/phvGate";
 import { useAuth } from "@/context/AuthContext";
 import { SUPABASE_CONFIGURED, supabase } from "@/lib/supabase";
 import { OrganizationService } from "@/services/real/organizationService";
@@ -107,7 +108,10 @@ export function useRawPlayerById(id: string | undefined) {
 
       if (SUPABASE_CONFIGURED) {
         try {
-          return await apiRequest<Player>("GET", undefined, { id });
+          // Blob crudo del API: su phvCategory/phvOffset persistido solo cuenta si
+          // el gate único de PHV lo recalcula (igual que PlayerService.getAll).
+          const apiPlayer = await apiRequest<Player>("GET", undefined, { id });
+          return apiPlayer ? sanitizePlayerPhv(apiPlayer) : apiPlayer;
         } catch {
           // Fallback to local
         }

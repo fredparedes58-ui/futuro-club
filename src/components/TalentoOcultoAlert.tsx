@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { Sparkles, TrendingUp, Info } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { Player } from "@/services/real/playerService";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 
 interface Props {
   player: Player;
@@ -25,7 +25,7 @@ export default function TalentoOcultoAlert({ player }: Props) {
   // Fuente única: solo es "talento oculto" un madurador TARDÍO con confianza
   // suficiente. Antes usaba campos inexistentes (phvAge/maturityOffset) → nunca
   // se mostraba; y sin gating habría marcado a cualquier pre-púber (falso positivo).
-  const a = playerMaturity(player);
+  const a = gatedMaturity(player); // gate único: sin todas las entradas introducidas ⇒ abstención
   if (a.timing !== "late" || (a.confidence !== "high" && a.confidence !== "moderate")) return null;
   // Sin VSI de ficha (jugador sin evaluar) no hay base que proyectar: no se muestra
   // un "talento oculto" con VSI actual 0 / proyección ~0 fabricados (invariante #2).

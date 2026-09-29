@@ -20,6 +20,7 @@ import {
   useDeleteListing,
 } from "@/hooks/useTransferMarket";
 import { InquiryInbox } from "@/components/transfer/InquiryInbox";
+import { trustedSnapshotPhv } from "@/lib/phv/phvGate";
 import { useAuth } from "@/context/AuthContext";
 import {
   LISTING_TYPE_LABELS,
@@ -181,10 +182,11 @@ export default function ListingDetailPage() {
                     <div className="text-sm font-semibold text-cyan-300">{Math.round(snap.vsi)}</div>
                   </div>
                 )}
-                {snap.phvCategory && (
+                {/* PHV solo si el servidor lo marcó fiable (gate único · regla del owner). */}
+                {trustedSnapshotPhv(snap).phvCategory && (
                   <div>
                     <div className="text-[10px] uppercase tracking-wider text-slate-500">PHV</div>
-                    <div className="text-sm font-semibold text-white capitalize">{snap.phvCategory}</div>
+                    <div className="text-sm font-semibold text-white capitalize">{trustedSnapshotPhv(snap).phvCategory}</div>
                   </div>
                 )}
               </div>

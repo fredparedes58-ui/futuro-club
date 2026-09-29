@@ -177,6 +177,73 @@ describe("Rankings", () => {
     expect(screen.getByText(/players\.rankings\.sortName/)).toBeDefined();
   });
 
+  // Gate único de PHV (regla del owner 28-sep): sin TODAS las entradas
+  // introducidas la fila nombra qué falta; nunca una fase/timing ni el
+  // phvCategory persistido.
+  it("jugadores sin todas las entradas PHV muestran el motivo del gate, no un timing", () => {
+    render(<Rankings />);
+    const notices = screen.getAllByTestId("phv-gate-notice");
+    expect(notices.length).toBeGreaterThan(0);
+    for (const n of notices) {
+      expect(n.textContent).toContain("maturity.gate.unavailable");
+      expect(n.textContent).toContain("maturity.gate.missing");
+    }
+    expect(screen.queryByText(/maturity\.timing\./)).toBeNull();
+  });
+
+  it("jugador con entradas completas introducidas muestra timing del motor, sin aviso de gate", () => {
+    const complete = {
+      ...mockPlayers[0], id: "full", name: "Completo",
+      height: 165, weight: 55, sittingHeight: 85, legLength: 80, birthDate: "2012-03-15", gender: "M",
+    };
+    mockUseRankedPlayers.mockReturnValue({
+      data: { ...mockRankingsResponse, players: [complete], total: 1, totalUnfiltered: 1 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<Rankings />);
+    expect(screen.queryByTestId("phv-gate-notice")).toBeNull();
+    expect(screen.getAllByText(/maturity\.timing\./).length).toBeGreaterThan(0);
+  });
+
+  // Filtro «Maduración» = TIMING (mismo rótulo que la fila), nunca la fase: antes el
+  // chip «Tardío ⭐» (phvFilter.early) filtraba pre-PHV y ocultaba al tardío en PHV.
+  it("el chip de maduración y la fila usan el MISMO rótulo de timing y el chip filtra por timing", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
+    try {
+      const lateInPhv = {
+        ...mockPlayers[0], id: "late", name: "Tardio EnPHV",
+        height: 160, weight: 48, sittingHeight: 80, legLength: 80, birthDate: "2011-09-29", gender: "M",
+      };
+      const preOnTime = {
+        ...mockPlayers[1], id: "pre", name: "Pre EnFase",
+        height: 150, weight: 42, sittingHeight: 78, legLength: 72, birthDate: "2016-03-29", gender: "M",
+      };
+      mockUseRankedPlayers.mockReturnValue({
+        data: { ...mockRankingsResponse, players: [lateInPhv, preOnTime], total: 2, totalUnfiltered: 2 },
+        isLoading: false,
+        isError: false,
+      });
+      render(<Rankings />);
+      fireEvent.click(screen.getByText("common.filters"));
+      // Chip + fila del tardío en PHV; chip + fila del pre-PHV en fase.
+      expect(screen.getAllByText("maturity.timing.late ⭐")).toHaveLength(2);
+      expect(screen.getAllByText("maturity.timing.on_time")).toHaveLength(2);
+      expect(screen.getAllByText("maturity.timing.early")).toHaveLength(1); // solo el chip
+      // Las claves de fase rotuladas como timing ya no existen.
+      expect(document.body.textContent).not.toMatch(/players\.rankings\.phvFilter\.(late|early|onTime)/);
+
+      const chip = screen.getAllByText("maturity.timing.late ⭐").find((el) => el.tagName === "BUTTON")!;
+      fireEvent.click(chip);
+      const lastCall = mockUseRankedPlayers.mock.calls[mockUseRankedPlayers.mock.calls.length - 1];
+      expect(lastCall[2]).toEqual(expect.objectContaining({ timing: "late" }));
+      expect(lastCall[2]).not.toHaveProperty("phv");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("muestra skeleton mientras carga", () => {
     mockUseRankedPlayers.mockReturnValue({
       data: null,

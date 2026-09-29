@@ -14,7 +14,8 @@ import { toast } from "sonner";
 import { shareToWhatsApp, shareNative } from "@/lib/share";
 import type { Player } from "@/services/real/playerService";
 import type { PlayerMetrics } from "@/services/real/metricsService";
-import { playerMaturity, maturityTimingKey, maturityTone, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { maturityTimingKey, maturityTone, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import type { SimilarityMatch } from "@/services/real/similarityService";
 
 interface VitasCardProps {
@@ -99,7 +100,7 @@ export default function VitasCard({ player, bestMatch, projection, onClose }: Vi
 
   // Maduración honesta: timing gateado (unknown si faltan datos → "Timing por
   // determinar", no un "precoz/tardío" inventado ni un "A tiempo" por defecto).
-  const maturity = playerMaturity(player as PlayerMaturityInput);
+  const maturity = gatedMaturity(player as PlayerMaturityInput);
   const phvLabel = t(maturityTimingKey(maturity.timing));
   const phvColor = maturity.timing === "unknown" ? "#94A3B8" : MATURITY_TONE_COLOR[maturityTone(maturity)];
   const cloneScore = bestMatch?.score ?? null;

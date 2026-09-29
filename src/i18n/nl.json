@@ -475,10 +475,7 @@
       "sortAge": "Leeftijd",
       "sortName": "Naam",
       "phvFilter": {
-        "all": "Alle",
-        "late": "Vroegrijp",
-        "onTime": "Normaal",
-        "early": "Laatrijp ⭐"
+        "all": "Alle"
       },
       "bioMaturation": "Biologische rijping (PHV)",
       "ofPlayers": "{filtered} van {total} spelers",
@@ -1260,6 +1257,8 @@
     "toastUpdated": "Meting bijgewerkt",
     "toastSaved": "Meting opgeslagen · PHV herberekend",
     "toastQueuedSave": "📡 In wachtrij opgeslagen · wordt gesynchroniseerd zodra het netwerk terug is",
+    "toastProfilePendingSync": "Meting opgeslagen, maar het spelersprofiel wacht op synchronisatie: de PHV in het profiel wordt bijgewerkt na synchronisatie",
+    "toastProfileNotOnDevice": "Meting opgeslagen, maar het profiel op dit apparaat is niet bijgewerkt (de speler is hier niet geladen): herlaad het profiel om de PHV te zien",
     "errUnknown": "Onbekende fout",
     "confirmDelete": "Deze meting verwijderen? De historische PHV van deze datum gaat verloren.",
     "queueLabelDelete": "Meting verwijderen",
@@ -3308,7 +3307,23 @@
     "ageAtPHV": "Geschatte PHV",
     "percentPAH": "% volwassen lengte",
     "yearsUnit": "jaar",
-    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder)."
+    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder).",
+    "gate": {
+      "unavailable": "PHV niet beschikbaar",
+      "missing": "Ontbreekt: {{list}}",
+      "outOfRange": "Gegevens buiten het geldigheidsbereik van Mirwald (8–18 jaar)",
+      "legacyRow": "Meting vastgelegd voordat de exacte leeftijd uit de geboortedatum werd gebruikt: sla haar opnieuw op",
+      "noRow": "Geen antropometrische meting vastgelegd",
+      "notComputed": "De PHV is niet berekend voor deze meting",
+      "input": {
+        "height": "lengte",
+        "weight": "gewicht",
+        "sittingHeight": "zithoogte",
+        "legLength": "beenlengte",
+        "birthDate": "geboortedatum van de speler",
+        "sex": "geregistreerd geslacht"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Geen positiegegevens om een heatmap te genereren",
@@ -6188,6 +6203,295 @@
       "analysisFailed": "Analyse mislukt",
       "loadingReports": "Fout bij het laden van rapporten",
       "notFound": "Niet gevonden"
+    }
+  },
+  "matchJob": {
+    "stage": {
+      "uploading": "Uploaden",
+      "encoding": "Bunny verwerkt (kan uren duren)",
+      "preparing": "Video wordt voorbereid",
+      "analysing": "Bezig met analyseren",
+      "reporting": "Rapport wordt geschreven",
+      "aggregating": "Observatie wordt samengevoegd",
+      "done": "Klaar",
+      "failed": "Mislukt",
+      "cancelled": "Geannuleerd"
+    },
+    "progress": {
+      "title": "Analyse van de hele wedstrijd",
+      "stepsLabel": "Stappen van de analyse",
+      "segment": "Deel {{k}}/{{n}}",
+      "segmentsPending": "De delen worden gepland zodra de video klaar is",
+      "segmentRange": "videotijd {{range}}",
+      "encodeProgress": "Bunny meldt {{pct}} % gecodeerd",
+      "encodeHint": "De gratis codering van Bunny kan van enkele minuten tot uren duren.",
+      "nextPoll": "Volgende controle over {{sec}} s",
+      "retry": "Nu controleren",
+      "cancel": "Analyse annuleren",
+      "cancelling": "Bezig met annuleren…",
+      "confirmCancel": "Deze analyse annuleren? Ze kan daarna niet worden hervat.",
+      "failedTitle": "De analyse kon niet worden voltooid",
+      "errorCode": "Code: {{code}}",
+      "cancelledTitle": "Analyse geannuleerd",
+      "startNew": "Nieuwe analyse starten",
+      "statusError": "Status kon niet worden gecontroleerd: {{message}}",
+      "closeHint": "Je kunt deze pagina sluiten: de analyse loopt door en je vindt haar hier terug."
+    },
+    "coverage": {
+      "title": "Dekking (videotijd)",
+      "analysedLabel": "Geanalyseerd",
+      "ofLabel": "van",
+      "complete": "Alle delen zijn geanalyseerd.",
+      "noSegments": "Er is nog geen deel geanalyseerd.",
+      "partialNote": "Een deel van de video is niet geanalyseerd: de conclusies gelden alleen voor de geanalyseerde delen.",
+      "videoTimeNote": "Tijden zijn videotijd (vóór de aftrap en rust inbegrepen), geen speelminuten.",
+      "gapSegment": "{{range}} niet geanalyseerd: {{reason}}",
+      "gapAmbiguous": "{{range}} teams niet te onderscheiden: {{reason}}",
+      "gapNotEvaluable": "{{range}} niet te beoordelen: {{reason}}",
+      "failedSegments": "Niet-geanalyseerde delen:",
+      "ambiguousLabel": "Teams niet te onderscheiden (volgens de AI):",
+      "notEvaluableLabel": "Niet te beoordelen (volgens de AI):",
+      "moreGaps": "Nog {{n}} tonen",
+      "showLess": "Minder tonen"
+    },
+    "kit": {
+      "title": "Tenue · {{team}}",
+      "shirt": "Shirt",
+      "shorts": "Broek (optioneel)",
+      "gk": "Keeper (optioneel)",
+      "clear": "Verwijderen",
+      "custom": "Andere kleur",
+      "label": "Omschrijving",
+      "labelPlaceholder": "bijv. rood met witte strepen",
+      "shirtRequired": "Kies de shirtkleur (verplicht).",
+      "similarWarning": "De twee shirts lijken erg op elkaar. De AI kan de teams mogelijk niet onderscheiden en onthoudt zich op die momenten. Voeg de broekkleuren toe als die verschillen.",
+      "identityNote": "Teams worden alleen onderscheiden aan de tenuekleuren die je opgeeft: nooit aan gezichten of rugnummers.",
+      "colour": {
+        "white": "Wit",
+        "black": "Zwart",
+        "red": "Rood",
+        "maroon": "Bordeaux",
+        "orange": "Oranje",
+        "yellow": "Geel",
+        "green": "Groen",
+        "skyBlue": "Hemelsblauw",
+        "blue": "Blauw",
+        "navy": "Marineblauw",
+        "purple": "Paars",
+        "pink": "Roze",
+        "grey": "Grijs"
+      }
+    },
+    "attestation": {
+      "text_2026_09_28_v1": "Ik verklaar dat ik de toestemming en de rechten heb om deze video te analyseren",
+      "required": "Verplicht om de analyse te starten.",
+      "version": "Versie van de verklaring {{version}}"
+    },
+    "evidence": {
+      "chipTitle": "Videotijd {{time}} · AI-aanwijzing, niet geverifieerd",
+      "unavailable": "Video niet beschikbaar voor dit moment",
+      "legend": "De tijdmarkeringen zijn aanwijzingen van de AI, geen geverifieerde feiten: open ze om te controleren.",
+      "dialogTitle": "Videotijd {{time}}",
+      "dialogNote": "AI-aanwijzing, niet geverifieerd. Controleer wat er rond dit moment gebeurt.",
+      "openNewTab": "Openen in een nieuw tabblad",
+      "listTitle": "Alle bewijzen ({{n}})",
+      "teamAmbiguous": "Team onduidelijk",
+      "category": {
+        "build_up": "Opbouw",
+        "pressing": "Pressing",
+        "defensive_block": "Verdedigend blok",
+        "attacking_transition": "Omschakeling naar aanval",
+        "defensive_transition": "Omschakeling naar verdediging",
+        "set_piece": "Spelhervatting",
+        "chance": "Kans",
+        "possession_spell": "Balbezitfase",
+        "other": "Overig"
+      }
+    },
+    "possession": {
+      "title": "Balbezit geschat door AI",
+      "note": "Schatting van de AI op basis van de video, gewogen naar geanalyseerde tijd. Geen officiële statistiek.",
+      "lowConfidenceTag": "Lage betrouwbaarheid",
+      "lowConfidence": {
+        "no_visual_basis": "Lage betrouwbaarheid: deze schatting is niet te koppelen aan wat de AI zag (video-invoer niet bevestigd of geen bewijs geciteerd).",
+        "uniform_output": "Lage betrouwbaarheid: elk bruikbaar deel kwam uit op 50 % – 50 % met ‘In evenwicht’ (of geen) dominantie, niet te onderscheiden van een standaardantwoord; lees het niet als een gegeven."
+      }
+    },
+    "dominance": {
+      "home": "{{team}} domineert",
+      "balanced": "In evenwicht",
+      "away": "{{team}} domineert"
+    },
+    "segments": {
+      "title": "Per deel (~15 min video)",
+      "dominance": "Territoriale dominantie:",
+      "detailsShow": "Details per team en deel tonen",
+      "detailsHide": "Details verbergen",
+      "status": {
+        "pending": "In afwachting",
+        "running": "Wordt geanalyseerd",
+        "done": "Geanalyseerd",
+        "failed": "Niet geanalyseerd",
+        "skipped": "Overgeslagen"
+      },
+      "descriptor": {
+        "formation": "Formatie",
+        "phases": "Overheersende fase",
+        "build_up": "Opbouw",
+        "pressing_height": "Hoogte van de druk",
+        "pressing_intensity": "Intensiteit van de druk",
+        "block_height": "Hoogte van het blok",
+        "block_compactness": "Compactheid van het blok",
+        "transition_attacking": "Omschakeling naar aanval",
+        "transition_defensive": "Omschakeling naar verdediging",
+        "set_pieces": "Gevaar bij spelhervattingen"
+      },
+      "value": {
+        "organised_attack": "Georganiseerde aanval",
+        "organised_defence": "Georganiseerde verdediging",
+        "attacking_transition": "Omschakeling naar aanval",
+        "defensive_transition": "Omschakeling naar verdediging",
+        "short": "Kort",
+        "direct": "Direct",
+        "mixed": "Gemengd",
+        "low": "Laag",
+        "mid": "Gemiddeld",
+        "high": "Hoog",
+        "compact": "Compact",
+        "medium": "Gemiddeld",
+        "stretched": "Uitgerekt",
+        "fast": "Snel",
+        "controlled": "Beheerst",
+        "counter_press": "Tegenpressing",
+        "retreat": "Terugzakken"
+      },
+      "uniformWarning": "Elk bruikbaar deel komt uit op ‘In evenwicht’ en 50/50: lage betrouwbaarheid, de AI had mogelijk geen visuele basis."
+    },
+    "report": {
+      "summaryTitle": "Belangrijkste conclusies",
+      "noClaims": "Het rapport bevat geen beweringen die door bewijs worden gestaafd.",
+      "gateTitle": "Geschreven rapport niet beschikbaar",
+      "observationOnly": "Hieronder staat de observatie van de video door de AI.",
+      "citedEventsTitle": "Door de AI geciteerde momenten",
+      "citedEventsNote": "Aantal AI-aanwijzingen, geen gebeurtenissenstatistiek.",
+      "emptySection": "Geen beweringen voor dit team.",
+      "section": {
+        "in_possession": "In balbezit",
+        "out_of_possession": "Zonder bal",
+        "transitions": "Omschakelingen",
+        "set_pieces": "Spelhervattingen",
+        "strengths": "Sterke punten",
+        "areas_to_improve": "Verbeterpunten",
+        "recommendations": "Aanbevelingen"
+      },
+      "notEvaluatedTitle": "Niet beoordeeld",
+      "droppedClaims": "Beweringen verworpen wegens gebrek aan geldig bewijs:",
+      "coachNotes": "Er zijn notities van de trainer meegegeven: aangeleverd door de trainer, niet waargenomen in de video.",
+      "generatedBy": "Geschreven door {{model}} · {{prompt}}",
+      "generatedByMock": "Voorbeeldrapport · {{prompt}}",
+      "identityScrubbed": "Teksten verborgen omdat ze rugnummers of individuele spelers noemden: {{n}}. Deze analyse gaat alleen over het team."
+    },
+    "fallback": {
+      "mock": "Dit rapport is niet door de AI geschreven: de analyse-engine is niet beschikbaar. Het is een eerlijke onthouding, geen analyse.",
+      "error": "De analyse-engine gaf een fout terug: dit rapport is niet beschikbaar.",
+      "schema": "Het antwoord van het model had een ongeldige structuur en is verworpen: dit rapport is niet beschikbaar."
+    },
+    "legacy": {
+      "sectionEmpty": "Het rapport bevat geen gegevens over dit team.",
+      "noRecommendations": "Het rapport bevat geen aanbevelingen.",
+      "ratingMissing": "Het rapport bevat geen beoordeling."
+    },
+    "errors": {
+      "attestation_required": "Vink de verklaring aan om de analyse te starten.",
+      "invalid_request": "Er ontbreken gegevens of ze zijn ongeldig. Controleer de teamnamen en shirtkleuren.",
+      "unauthorized": "Je sessie is verlopen. Log opnieuw in.",
+      "plan_required": "Je abonnement omvat geen videoanalyse van hele wedstrijden.",
+      "not_owner": "Deze video hoort niet bij je account.",
+      "video_not_found": "Video niet gevonden. Upload hem opnieuw of kies een andere.",
+      "video_too_long": "De video duurt langer dan {{max}} minuten, het maximum voor een wedstrijd.",
+      "concurrency_limit": "Je hebt al een analyse lopen. Wacht tot die klaar is of annuleer hem.",
+      "budget_exceeded": "Het maandelijkse analysebudget is bereikt. Probeer het later opnieuw.",
+      "match_video_disabled": "Videoanalyse van hele wedstrijden wordt gevalideerd en de server biedt ze nog niet aan.",
+      "real_inference_disabled": "De analysedienst is nog niet volledig ingesteld. Je kunt het rapport zonder video (alleen notities) gebruiken.",
+      "not_found": "Analyse niet gevonden.",
+      "network": "Kan de server niet bereiken. Controleer je verbinding.",
+      "invalid_response": "De server gaf gegevens terug die niet aan het verwachte formaat voldoen; ze worden daarom niet getoond.",
+      "generic": "Er ging iets mis: {{message}}"
+    },
+    "video": {
+      "title": "Wedstrijdvideo",
+      "upload": "Video uploaden",
+      "pickExisting": "Een geüploade video gebruiken",
+      "pickPlaceholder": "Kies een video",
+      "noExisting": "Er staan nog geen geüploade video's in je account.",
+      "selected": "Video: {{title}}",
+      "change": "Andere video",
+      "localOnly": "Deze video staat alleen in deze browser. De analyse van de hele wedstrijd heeft een video in de cloud nodig."
+    },
+    "form": {
+      "modeVideo": "Rapport op basis van video",
+      "modeNotes": "Rapport zonder video (alleen notities)",
+      "modeNotesHint": "Tweede optie: de AI leest alleen wat je schrijft. Er wordt geen video bekeken.",
+      "namesRequired": "Voer de namen van beide teams in.",
+      "kitsRequired": "Kies beide shirtkleuren.",
+      "videoRequired": "Upload of kies de wedstrijdvideo.",
+      "options": "Optionele details",
+      "category": "Categorie",
+      "categoryNone": "Niet opgegeven",
+      "categoryYouth": "Jeugd / academie",
+      "categorySenior": "Senioren",
+      "direction": "Thuisploeg valt in de 1e helft aan (zoals in beeld)",
+      "directionNone": "Niet opgegeven",
+      "directionLtr": "Links → rechts",
+      "directionRtl": "Rechts → links",
+      "notes": "Notities van de trainer (optioneel)",
+      "notesHint": "Aangeleverd door de trainer, niet waargenomen. Alleen gebruikt om het rapport te schrijven; nooit naar het videomodel gestuurd.",
+      "notesPlaceholder": "Competitie, context, alles wat relevant is…",
+      "start": "Wedstrijd analyseren",
+      "starting": "Bezig met starten…",
+      "startedToast": "Analyse gestart",
+      "startHint": "Asynchrone analyse: dit kan uren duren terwijl Bunny de video codeert. Je kunt de pagina sluiten.",
+      "autoStartHint": "Met een volledig formulier start de analyse automatisch zodra de upload klaar is.",
+      "recentTitle": "Recente analyses",
+      "recentOpen": "Openen",
+      "newAnalysis": "Nieuwe analyse",
+      "resultTitle": "{{home}} vs {{away}}",
+      "resultSubtitle": "Tactisch rapport op basis van video · AI-schattingen",
+      "notesResultSubtitle": "Rapport zonder video (alleen notities)",
+      "notesGenerate": "Rapport zonder video maken",
+      "modeNotesHintPrimary": "De AI leest alleen wat je schrijft: er wordt geen video bekeken."
+    },
+    "baseline": {
+      "fullMatchTitle": "Analyse van de hele wedstrijd",
+      "fullMatchDesc": "Deze video ({{duration}} min) is te lang voor de snelle analyse. Hij wordt als asynchrone taak, deel voor deel, geanalyseerd.",
+      "fullMatchDescNoDuration": "Deze video wordt als asynchrone taak, deel voor deel, geanalyseerd.",
+      "ownTeam": "Je team",
+      "ownTeamName": "Naam van je team",
+      "ownSide": "In deze video speelt je team als",
+      "sideHome": "Thuisploeg",
+      "sideAway": "Uitploeg",
+      "rival": "Tegenstander",
+      "rivalName": "Naam van de tegenstander (optioneel)",
+      "rivalHint": "De shirtkleur van de tegenstander (optioneel) helpt de AI de teams te onderscheiden.",
+      "start": "Hele wedstrijd analyseren",
+      "completedHint": "Wedstrijdobservatie klaar. Je kunt nu de rapporten maken.",
+      "notCompleted": "De rapporten kunnen worden gemaakt zodra de analyse voltooid is.",
+      "coverageNote": "Deze rapporten gebruiken de video van de hele wedstrijd. Wat de AI er echt van analyseerde:",
+      "coverageUnavailable": "De dekking van de wedstrijdvideo is niet beschikbaar: lees deze rapporten niet alsof ze op de hele wedstrijd zijn gebaseerd.",
+      "unavailableHint": "Gebruik een korte clip voor de snelle analyse."
+    },
+    "demo": {
+      "banner": "Deze wedstrijdanalyse is een voorbeeld: de functie is in validatie, er is geen echte video geanalyseerd en alle waarden zijn voorbeeldgegevens."
+    },
+    "validation": {
+      "badge": "In validatie",
+      "title": "Videoanalyse van de hele wedstrijd",
+      "reason": "Deze wordt gevalideerd en wordt nog niet aangeboden. In een test met een echte wedstrijd noemde de AI acties die op de genoemde seconde niet gebeurden, vermeldde rugnummers die niet bestonden en gaf een balbezit van 50/50 zonder basis. Ze wordt pas ingeschakeld als ze een validatie met door mensen geannoteerde gebeurtenissen doorstaat.",
+      "serverRefused": "Ook de server heeft haar geweigerd: analyse van de hele wedstrijd in validatie.",
+      "meanwhile": "Intussen werkt het rapport zonder video (alleen notities) gewoon.",
+      "useNotes": "Het rapport zonder video (alleen notities) gebruiken",
+      "demoPreview": "Een voorbeeld bekijken (voorbeeldgegevens)",
+      "baselineSuffix": "De analyse van de hele wedstrijd wordt gevalideerd en nog niet aangeboden: gebruik een korte clip of de tekstmodus."
     }
   }
 }

@@ -24,6 +24,7 @@ import { RESEND_FROM } from "../_lib/email";
 import { deriveSimMetrics } from "../_lib/simMetrics";
 import { normalizeLocale, localeSchema, pickLocale, type ReportLocale } from "../../src/lib/shared/locale";
 import { resolveCategory } from "../../src/lib/shared/category";
+import { gateAnthropometricsRow } from "../../src/lib/phv/phvGate";
 import {
   buildVsiSubscores,
   gateVsiComposite,
@@ -415,11 +416,16 @@ export default withHandler(
       .eq("id", analysis.player_id)
       .single();
 
-    const { data: anthro } = await supabase
+    // Gate único de PHV (regla del owner 28-sep): el maturity_offset/phv_category
+    // de la fila solo pasan a agentes/VSI/analyses.phv si la fila es COMPLETA y su
+    // edad salió de la fecha de nacimiento (age_source, migración 069). Una fila
+    // antigua (edad entera) conserva sus medidas pero su PHV queda null + motivo.
+    const { data: anthroRaw } = await supabase
       .from("player_latest_anthropometrics")
       .select("*")
       .eq("player_id", analysis.player_id)
       .maybeSingle();
+    const anthro = gateAnthropometricsRow(anthroRaw);
 
     // ── 2. Calcular VSI (servicio determinista) ─────────────────────
     // Solo `physical` (biomecánica: frecuencia de zancada + asimetría) y
@@ -561,6 +567,7 @@ export default withHandler(
               chronological_age: anthro.chronological_age,
               offset: anthro.maturity_offset,
               category: anthro.phv_category,
+              ...(anthro.phv_trusted ? {} : { gate_reason: anthro.phv_gate_reason }),
             }
           : null,
         similarity,

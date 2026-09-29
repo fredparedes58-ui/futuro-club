@@ -60,6 +60,10 @@ REGLAS DE CAPABILITIES:
 - current: promedio ponderado de métricas relevantes por dimensión
 - p6m: current + ajuste PHV (early: +3%, ontme: +2%, late: +1%)
 - p18m: current + ajuste PHV × 2.5
+- Si player.phvCategory NO viene (phvDataAvailable=false: el PHV no se calcula sin
+  TODAS las medidas introducidas — talla, peso, talla sentado, pierna, fecha de
+  nacimiento y sexo), usa +2% genérico SIN atribuirlo a la maduración y NO
+  menciones PHV, estirón, maduración ni offset en ningún campo: no hay dato.
 
 REGLAS DE CONFIANZA:
 - minutesPlayed > 500: overallConfidence = 0.85

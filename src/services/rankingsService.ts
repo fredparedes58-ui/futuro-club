@@ -5,12 +5,14 @@
 import { PlayerService } from "@/services/real/playerService";
 import { adaptPlayerForUI } from "@/services/real/adapters";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { phvGate, matchesTimingFilter, type MaturityTiming } from "@/lib/phv/phvGate";
 
 export type SortField = "vsi" | "name" | "age" | "percentile";
 export type SortDir = "asc" | "desc";
 
 export interface RankingsFilters {
-  phv?: string;        // "all" | "early" | "on-time" | "late"
+  /** "all" | "late" | "on_time" | "early": TIMING vs pares (lo que rotula la fila), no la fase PHV. */
+  timing?: string;
   position?: string;   // Position string or "Todos"
   ageGroup?: string;   // "Sub-14", etc. or "all"
   level?: string;      // Competitive level or "all"
@@ -39,8 +41,12 @@ export interface RankedPlayer {
   secondaryPositions?: string[];          // polivalencia
   positionShort: string;
   vsi: number | null;                     // null ⇒ sin evaluar
-  phvCategory: string;
-  phvOffset: number;
+  phvCategory: string | null;             // null ⇒ PHV bloqueado (gate único)
+  phvOffset: number | null;
+  /** Timing vs pares del gate único (null ⇒ gate cerrado). Es lo que filtra `timing`. */
+  phvTiming?: MaturityTiming | null;
+  /** Motivo del gate PHV del servidor (qué falta) cuando phvCategory es null. */
+  phvGateReason?: string | null;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
@@ -49,8 +55,8 @@ export interface RankedPlayer {
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
-  height: number;
-  weight: number;
+  height: number | null;
+  weight: number | null;
   // ── Inputs de maduración (para playerMaturity → PHV/timing en el ranking) ──
   // Sin `gender`, playerMaturity marca "sexo no registrado" y el timing sale
   // "por determinar" para TODOS. Se arrastran desde el jugador crudo.
@@ -85,7 +91,7 @@ export async function fetchRankedPlayers(
           limit: String(limit),
           offset: String(offset),
         });
-        if (filters.phv && filters.phv !== "all") params.set("phv", filters.phv);
+        if (filters.timing && filters.timing !== "all") params.set("timing", filters.timing);
         if (filters.position && filters.position !== "Todos") params.set("position", filters.position);
         if (filters.ageGroup && filters.ageGroup !== "all") params.set("ageGroup", filters.ageGroup);
         if (filters.level && filters.level !== "all") params.set("level", filters.level);
@@ -155,7 +161,7 @@ function fetchLocalRankedPlayers(
       if (!vsiByAgeGroup[ageGroup]) vsiByAgeGroup[ageGroup] = [];
       vsiByAgeGroup[ageGroup].push(p.vsi);
     }
-    return {
+    const row = {
       id: p.id,
       name: p.name,
       age: p.age,
@@ -163,9 +169,13 @@ function fetchLocalRankedPlayers(
       secondaryPositions: (p as unknown as { secondaryPositions?: string[] }).secondaryPositions,
       positionShort: p.positionShort ?? p.position.slice(0, 3).toUpperCase(),
       vsi: p.vsi,
-      phvCategory: p.phvCategory ?? "on-time",
-      phvOffset: p.phvOffset ?? 0,
-      competitiveLevel: p.competitiveLevel ?? "Regional",
+      // Sin default «on-time»/0: sin PHV gateado (adaptPlayerForUI ya retira la
+      // categoría persistida no recalculable) ⇒ null, no se inventa una fase.
+      phvCategory: p.phvCategory ?? null,
+      phvOffset: p.phvOffset ?? null,
+      // Del jugador CRUDO: el adaptador de UI no conserva estos campos (antes salía
+      // siempre "Regional"/"right" por defecto aunque la ficha tuviera otro valor).
+      competitiveLevel: raw?.competitiveLevel ?? "Regional",
       ageGroup,
       trending: p.trending ?? "stable",
       // Sin evaluar ⇒ percentil null (no compite ni cuenta como 0).
@@ -173,9 +183,10 @@ function fetchLocalRankedPlayers(
       percentileInAgeGroup: null, // calculated below
       updatedAt: p.lastActive ?? new Date().toISOString(),
       metrics: p.stats ?? {},
-      foot: p.foot ?? "right",
-      height: p.height ?? 170,
-      weight: p.weight ?? 60,
+      foot: raw?.foot ?? "right",
+      // Entradas del gate PHV que Rankings recalcula: sin default 170/60 (inv #2).
+      height: raw?.height ?? null,
+      weight: raw?.weight ?? null,
       // Maduración desde el jugador crudo (el adaptador UI no los arrastra) → así
       // playerMaturity calcula PHV/timing en el ranking en vez de "por determinar".
       gender: raw?.gender,
@@ -185,6 +196,10 @@ function fetchLocalRankedPlayers(
       fatherHeightCm: raw?.fatherHeightCm,
       birthDate: raw?.birthDate,
     } as RankedPlayer;
+    // Timing con el MISMO gate y las MISMAS entradas que pinta la fila (Rankings.tsx).
+    const g = phvGate(row);
+    row.phvTiming = g.ok ? g.assessment.timing : null;
+    return row;
   });
 
   // Calculate age group percentiles (sin evaluar queda null)
@@ -199,8 +214,8 @@ function fetchLocalRankedPlayers(
     const q = filters.search.toLowerCase();
     filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
   }
-  if (filters.phv && filters.phv !== "all") {
-    filtered = filtered.filter((p) => p.phvCategory === filters.phv);
+  if (filters.timing && filters.timing !== "all") {
+    filtered = filtered.filter((p) => matchesTimingFilter(p.phvTiming, filters.timing));
   }
   if (filters.position && filters.position !== "Todos") {
     // Incluye también jugadores que tienen la posición como secundaria (polivalencia)

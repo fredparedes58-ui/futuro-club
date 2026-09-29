@@ -475,10 +475,7 @@
       "sortAge": "Edad",
       "sortName": "Nombre",
       "phvFilter": {
-        "all": "Todos",
-        "late": "Precoz",
-        "onTime": "Normal",
-        "early": "Tardío ⭐"
+        "all": "Todos"
       },
       "bioMaturation": "Maduración Biológica (PHV)",
       "ofPlayers": "{filtered} de {total} jugadores",
@@ -1260,6 +1257,8 @@
     "toastUpdated": "Medida actualizada",
     "toastSaved": "Medida guardada · PHV recalculado",
     "toastQueuedSave": "📡 Guardado en cola · se sincronizará al volver la red",
+    "toastProfilePendingSync": "Medida guardada, pero la ficha del jugador está pendiente de sincronizar: el PHV de la ficha se actualizará al sincronizar",
+    "toastProfileNotOnDevice": "Medida guardada, pero la ficha de este dispositivo no se actualizó (el jugador no está cargado aquí): recarga la ficha para ver el PHV",
     "errUnknown": "Error desconocido",
     "confirmDelete": "¿Eliminar esta medición? El PHV histórico de esta fecha se perderá.",
     "queueLabelDelete": "Eliminar medición",
@@ -3308,7 +3307,23 @@
     "ageAtPHV": "PHV estimado",
     "percentPAH": "% talla adulta",
     "yearsUnit": "años",
-    "addParentsHint": "Añade la altura de ambos padres para el cálculo por % de talla adulta (más fiable)."
+    "addParentsHint": "Añade la altura de ambos padres para el cálculo por % de talla adulta (más fiable).",
+    "gate": {
+      "unavailable": "PHV no disponible",
+      "missing": "Falta: {{list}}",
+      "outOfRange": "Datos fuera del rango de validez de Mirwald (8–18 años)",
+      "legacyRow": "Medición registrada antes de usar la edad exacta por fecha de nacimiento: vuelve a guardarla",
+      "noRow": "Sin medición antropométrica registrada",
+      "notComputed": "El PHV no se calculó para esta medición",
+      "input": {
+        "height": "talla",
+        "weight": "peso",
+        "sittingHeight": "talla sentado",
+        "legLength": "longitud de pierna",
+        "birthDate": "fecha de nacimiento del jugador",
+        "sex": "sexo registrado"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Sin datos de posición para generar mapa de calor",
@@ -6188,6 +6203,295 @@
       "analysisFailed": "Análisis falló",
       "loadingReports": "Error cargando reportes",
       "notFound": "Not found"
+    }
+  },
+  "matchJob": {
+    "stage": {
+      "uploading": "Subiendo",
+      "encoding": "Bunny procesando (puede tomar horas)",
+      "preparing": "Preparando video",
+      "analysing": "Analizando",
+      "reporting": "Redactando informe",
+      "aggregating": "Agregando la observación",
+      "done": "Listo",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    },
+    "progress": {
+      "title": "Análisis del partido completo",
+      "stepsLabel": "Etapas del análisis",
+      "segment": "Tramo {{k}}/{{n}}",
+      "segmentsPending": "Los tramos se planifican cuando el video está listo",
+      "segmentRange": "tiempo de video {{range}}",
+      "encodeProgress": "Bunny informa de un {{pct}} % codificado",
+      "encodeHint": "La codificación gratuita de Bunny puede tomar de minutos a horas.",
+      "nextPoll": "Próxima comprobación en {{sec}} s",
+      "retry": "Comprobar ahora",
+      "cancel": "Cancelar análisis",
+      "cancelling": "Cancelando…",
+      "confirmCancel": "¿Cancelar este análisis? Después no se puede reanudar.",
+      "failedTitle": "No se pudo completar el análisis",
+      "errorCode": "Código: {{code}}",
+      "cancelledTitle": "Análisis cancelado",
+      "startNew": "Empezar un análisis nuevo",
+      "statusError": "No se pudo comprobar el estado: {{message}}",
+      "closeHint": "Puedes cerrar esta página: el análisis sigue en marcha y puedes volver a él desde aquí."
+    },
+    "coverage": {
+      "title": "Cobertura (tiempo de video)",
+      "analysedLabel": "Analizado",
+      "ofLabel": "de",
+      "complete": "Se analizaron todos los tramos.",
+      "noSegments": "Todavía no se ha analizado ningún tramo.",
+      "partialNote": "Parte del video no se analizó: las conclusiones solo cubren los tramos analizados.",
+      "videoTimeNote": "Los tiempos son tiempo de video (incluyen el pre-saque y el descanso), no minutos de partido.",
+      "gapSegment": "{{range}} no analizado: {{reason}}",
+      "gapAmbiguous": "{{range}} equipos no distinguibles: {{reason}}",
+      "gapNotEvaluable": "{{range}} no evaluable: {{reason}}",
+      "failedSegments": "Tramos no analizados:",
+      "ambiguousLabel": "Equipos no distinguibles (según la IA):",
+      "notEvaluableLabel": "No evaluable (según la IA):",
+      "moreGaps": "Mostrar {{n}} más",
+      "showLess": "Mostrar menos"
+    },
+    "kit": {
+      "title": "Equipación · {{team}}",
+      "shirt": "Camiseta",
+      "shorts": "Short (opcional)",
+      "gk": "Arquero (opcional)",
+      "clear": "Quitar",
+      "custom": "Otro color",
+      "label": "Descripción",
+      "labelPlaceholder": "p. ej. roja con rayas blancas",
+      "shirtRequired": "Elige el color de la camiseta (obligatorio).",
+      "similarWarning": "Las dos camisetas se parecen mucho. La IA puede no distinguir a los equipos y se abstendrá en esos momentos. Si los shorts son distintos, añádelos.",
+      "identityNote": "Los equipos se distinguen solo por los colores de equipación que declaras: nunca por caras ni por dorsales.",
+      "colour": {
+        "white": "Blanco",
+        "black": "Negro",
+        "red": "Rojo",
+        "maroon": "Granate",
+        "orange": "Naranja",
+        "yellow": "Amarillo",
+        "green": "Verde",
+        "skyBlue": "Celeste",
+        "blue": "Azul",
+        "navy": "Azul marino",
+        "purple": "Morado",
+        "pink": "Rosa",
+        "grey": "Gris"
+      }
+    },
+    "attestation": {
+      "text_2026_09_28_v1": "Declaro que tengo el consentimiento y los derechos para analizar este video",
+      "required": "Obligatorio para iniciar el análisis.",
+      "version": "Versión de la declaración {{version}}"
+    },
+    "evidence": {
+      "chipTitle": "Tiempo de video {{time}} · puntero IA, no verificado",
+      "unavailable": "Video no disponible para este momento",
+      "legend": "Las marcas de tiempo son punteros de la IA, no hechos verificados: ábrelas para comprobarlo.",
+      "dialogTitle": "Tiempo de video {{time}}",
+      "dialogNote": "Puntero IA, no verificado. Comprueba qué pasa alrededor de este momento.",
+      "openNewTab": "Abrir en una pestaña nueva",
+      "listTitle": "Todas las evidencias ({{n}})",
+      "teamAmbiguous": "Equipo no claro",
+      "category": {
+        "build_up": "Salida de balón",
+        "pressing": "Presión",
+        "defensive_block": "Bloque defensivo",
+        "attacking_transition": "Transición ofensiva",
+        "defensive_transition": "Transición defensiva",
+        "set_piece": "Balón parado",
+        "chance": "Ocasión",
+        "possession_spell": "Fase de posesión",
+        "other": "Otro"
+      }
+    },
+    "possession": {
+      "title": "Posesión estimada por IA",
+      "note": "Estimación de la IA sobre el video, ponderada por el tiempo analizado. No es una estadística oficial.",
+      "lowConfidenceTag": "Baja confianza",
+      "lowConfidence": {
+        "no_visual_basis": "Baja confianza: esta estimación no se puede vincular con lo que vio la IA (entrada de video no confirmada o ninguna evidencia citada).",
+        "uniform_output": "Baja confianza: todos los tramos utilizables salieron 50 % – 50 % con dominio «equilibrado» (o sin dominio), indistinguible de una respuesta por defecto; no la leas como un dato."
+      }
+    },
+    "dominance": {
+      "home": "Domina {{team}}",
+      "balanced": "Equilibrado",
+      "away": "Domina {{team}}"
+    },
+    "segments": {
+      "title": "Por tramo (~15 min de video)",
+      "dominance": "Dominio territorial:",
+      "detailsShow": "Ver el detalle de cada equipo por tramo",
+      "detailsHide": "Ocultar el detalle",
+      "status": {
+        "pending": "Pendiente",
+        "running": "Analizando",
+        "done": "Analizado",
+        "failed": "No analizado",
+        "skipped": "Omitido"
+      },
+      "descriptor": {
+        "formation": "Formación",
+        "phases": "Fase predominante",
+        "build_up": "Salida de balón",
+        "pressing_height": "Altura de presión",
+        "pressing_intensity": "Intensidad de presión",
+        "block_height": "Altura del bloque",
+        "block_compactness": "Compactación del bloque",
+        "transition_attacking": "Transición ofensiva",
+        "transition_defensive": "Transición defensiva",
+        "set_pieces": "Peligro a balón parado"
+      },
+      "value": {
+        "organised_attack": "Ataque organizado",
+        "organised_defence": "Defensa organizada",
+        "attacking_transition": "Transición ofensiva",
+        "defensive_transition": "Transición defensiva",
+        "short": "Corta",
+        "direct": "Directa",
+        "mixed": "Mixta",
+        "low": "Baja",
+        "mid": "Media",
+        "high": "Alta",
+        "compact": "Compacto",
+        "medium": "Intermedio",
+        "stretched": "Estirado",
+        "fast": "Rápida",
+        "controlled": "Controlada",
+        "counter_press": "Presión tras pérdida",
+        "retreat": "Repliegue"
+      },
+      "uniformWarning": "Todos los tramos utilizables salen «equilibrado» y 50/50: baja confianza, puede que la IA no tuviera base visual."
+    },
+    "report": {
+      "summaryTitle": "Conclusiones clave",
+      "noClaims": "El informe no tiene afirmaciones respaldadas por evidencias.",
+      "gateTitle": "Informe escrito no disponible",
+      "observationOnly": "Debajo se muestra la observación del video hecha por la IA.",
+      "citedEventsTitle": "Momentos citados por la IA",
+      "citedEventsNote": "Recuento de punteros de la IA, no una estadística de eventos.",
+      "emptySection": "Sin afirmaciones para este equipo.",
+      "section": {
+        "in_possession": "Con balón",
+        "out_of_possession": "Sin balón",
+        "transitions": "Transiciones",
+        "set_pieces": "Balón parado",
+        "strengths": "Fortalezas",
+        "areas_to_improve": "A mejorar",
+        "recommendations": "Recomendaciones"
+      },
+      "notEvaluatedTitle": "No evaluado",
+      "droppedClaims": "Afirmaciones descartadas por falta de evidencia válida:",
+      "coachNotes": "Se aportaron notas del entrenador: aportadas por el entrenador, no observadas en el video.",
+      "generatedBy": "Redactado por {{model}} · {{prompt}}",
+      "generatedByMock": "Informe de ejemplo · {{prompt}}",
+      "identityScrubbed": "Textos ocultos por mencionar dorsales o jugadores concretos: {{n}}. Este análisis es solo por equipo."
+    },
+    "fallback": {
+      "mock": "Este informe no lo ha redactado la IA: el motor de análisis no está disponible. Es una abstención honesta, no un análisis.",
+      "error": "El motor de análisis devolvió un error: este informe no está disponible.",
+      "schema": "La respuesta del modelo tenía una estructura inválida y se descartó: este informe no está disponible."
+    },
+    "legacy": {
+      "sectionEmpty": "El informe no trae datos de este equipo.",
+      "noRecommendations": "El informe no trae recomendaciones.",
+      "ratingMissing": "El informe no incluye valoración."
+    },
+    "errors": {
+      "attestation_required": "Marca la declaración para iniciar el análisis.",
+      "invalid_request": "Faltan datos o no son válidos. Revisa los nombres y los colores de camiseta.",
+      "unauthorized": "Tu sesión expiró. Vuelve a iniciar sesión.",
+      "plan_required": "Tu plan no incluye el análisis de partidos completos por video.",
+      "not_owner": "Este video no pertenece a tu cuenta.",
+      "video_not_found": "No se encontró el video. Vuelve a subirlo o elige otro.",
+      "video_too_long": "El video dura más de {{max}} minutos, el máximo para un partido.",
+      "concurrency_limit": "Ya tienes un análisis en curso. Espera a que termine o cancélalo.",
+      "budget_exceeded": "Se ha alcanzado el presupuesto mensual de análisis. Inténtalo más adelante.",
+      "match_video_disabled": "El análisis de partido completo por video está en validación y el servidor todavía no lo ofrece.",
+      "real_inference_disabled": "El servicio de análisis aún no está configurado del todo. Puedes usar el informe sin video (solo notas).",
+      "not_found": "No se encontró el análisis.",
+      "network": "No se pudo conectar con el servidor. Revisa tu conexión.",
+      "invalid_response": "El servidor devolvió datos que no cumplen el formato esperado, así que no se muestran.",
+      "generic": "Algo salió mal: {{message}}"
+    },
+    "video": {
+      "title": "Video del partido",
+      "upload": "Subir video",
+      "pickExisting": "Usar un video ya subido",
+      "pickPlaceholder": "Elige un video",
+      "noExisting": "Todavía no hay videos subidos en tu cuenta.",
+      "selected": "Video: {{title}}",
+      "change": "Cambiar video",
+      "localOnly": "Este video solo está guardado en este navegador. El análisis del partido completo necesita el video subido a la nube."
+    },
+    "form": {
+      "modeVideo": "Informe desde video",
+      "modeNotes": "Informe sin video (solo notas)",
+      "modeNotesHint": "Opción secundaria: la IA solo lee lo que escribes. No se observa ningún video.",
+      "namesRequired": "Escribe el nombre de los dos equipos.",
+      "kitsRequired": "Elige el color de las dos camisetas.",
+      "videoRequired": "Sube o elige el video del partido.",
+      "options": "Detalles opcionales",
+      "category": "Categoría",
+      "categoryNone": "Sin indicar",
+      "categoryYouth": "Formación / cantera",
+      "categorySenior": "Sénior",
+      "direction": "El local ataca en la 1.ª parte (según se ve en pantalla)",
+      "directionNone": "Sin indicar",
+      "directionLtr": "Izquierda → derecha",
+      "directionRtl": "Derecha → izquierda",
+      "notes": "Notas del entrenador (opcional)",
+      "notesHint": "Aportado por el entrenador, no observado. Solo se usa para redactar el informe; nunca se envía al modelo de video.",
+      "notesPlaceholder": "Competición, contexto, lo que sea relevante…",
+      "start": "Analizar el partido",
+      "starting": "Iniciando…",
+      "startedToast": "Análisis iniciado",
+      "startHint": "Análisis asíncrono: puede tomar horas mientras Bunny codifica el video. Puedes cerrar la página.",
+      "autoStartHint": "Con el formulario completo, el análisis empieza solo al terminar la subida.",
+      "recentTitle": "Análisis recientes",
+      "recentOpen": "Abrir",
+      "newAnalysis": "Nuevo análisis",
+      "resultTitle": "{{home}} vs {{away}}",
+      "resultSubtitle": "Informe táctico desde video · estimaciones de IA",
+      "notesResultSubtitle": "Informe sin video (solo notas)",
+      "notesGenerate": "Generar informe sin video",
+      "modeNotesHintPrimary": "La IA solo lee lo que escribes: no se observa ningún video."
+    },
+    "baseline": {
+      "fullMatchTitle": "Análisis de partido completo",
+      "fullMatchDesc": "Este video ({{duration}} min) es demasiado largo para el análisis rápido. Se analizará como un trabajo asíncrono, tramo a tramo.",
+      "fullMatchDescNoDuration": "Este video se analizará como un trabajo asíncrono, tramo a tramo.",
+      "ownTeam": "Tu equipo",
+      "ownTeamName": "Nombre de tu equipo",
+      "ownSide": "En este video tu equipo juega como",
+      "sideHome": "Local",
+      "sideAway": "Visitante",
+      "rival": "Rival",
+      "rivalName": "Nombre del rival (opcional)",
+      "rivalHint": "El color de camiseta del rival (opcional) ayuda a la IA a distinguir a los equipos.",
+      "start": "Analizar el partido completo",
+      "completedHint": "Observación del partido lista. Ya puedes generar los informes.",
+      "notCompleted": "Los informes se pueden generar cuando el análisis esté completo.",
+      "coverageNote": "Estos informes usan el video del partido completo. Lo que la IA analizó realmente:",
+      "coverageUnavailable": "No hay datos de cobertura del video del partido: no leas estos informes como basados en el partido completo.",
+      "unavailableHint": "Usa un clip corto para el análisis rápido."
+    },
+    "demo": {
+      "banner": "Este análisis de partido es un ejemplo: la función está en validación, no se ha analizado ningún video real y todos los valores son datos de ejemplo."
+    },
+    "validation": {
+      "badge": "En validación",
+      "title": "Análisis de partido completo por video",
+      "reason": "Está en validación y todavía no se ofrece. En una prueba con un partido real, la IA citó jugadas que no ocurrieron en el segundo indicado, mencionó dorsales que no existían y devolvió una posesión 50/50 sin base. Se activará solo cuando supere una validación contra eventos anotados por personas.",
+      "serverRefused": "El servidor también lo ha rechazado: análisis de partido completo en validación.",
+      "meanwhile": "Mientras tanto, el informe sin video (solo notas) funciona con normalidad.",
+      "useNotes": "Usar el informe sin video (solo notas)",
+      "demoPreview": "Ver un ejemplo (datos de ejemplo)",
+      "baselineSuffix": "El análisis de partido completo está en validación y todavía no se ofrece: usa un clip corto o el modo texto."
     }
   }
 }
