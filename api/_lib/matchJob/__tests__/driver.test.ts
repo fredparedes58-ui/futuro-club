@@ -390,20 +390,53 @@ describe("kill switch and tick", () => {
     expect(files.startResumableSession).not.toHaveBeenCalled();
     expect(job().status).toBe("failed");
   });
-  it("tick: stale heartbeats are re-dispatched with epoch++; orphan files of other epochs are deleted", async () => {
-    seedJob({ status: "observing", dispatch_epoch: 1, dispatch_attempts: 1, heartbeat_at: new Date(Date.now() - 3600_000).toISOString(), gemini_file_name: "files/abc", gemini_file_uri: FILE_URI, gemini_file_expires_at: new Date(Date.now() + 40 * 3600_000).toISOString() });
+  it("tick: a stale heartbeat is re-dispatched with epoch++ KEEPING the attached file (named in the old epoch); the next worker resumes without re-transcode", async () => {
+    // Epoch 2 uploaded files/abc (displayName …-2) after epoch 1 died mid-upload (files/zombie, …-1).
+    seedJob({ status: "observing", dispatch_epoch: 2, dispatch_attempts: 2, heartbeat_at: new Date(Date.now() - 3600_000).toISOString(), gemini_file_name: "files/abc", gemini_file_uri: FILE_URI, gemini_file_display_name: geminiDisplayName(JOB_ID, 2), gemini_file_expires_at: new Date(Date.now() + 40 * 3600_000).toISOString(), segments_total: 2 });
+    db.segs.set(JOB_ID, [0, 1].map((idx) => ({ match_analysis_id: JOB_ID, idx, start_sec: idx * 900, end_sec: (idx + 1) * 900, status: idx === 0 ? "done" : "pending", attempts: idx === 0 ? 1 : 0, invalid_attempts: 0, cost_usd: 0, lease_until: null, lease_epoch: null, result: null, error: null })));
     files.listFilesByDisplayNamePrefix.mockResolvedValueOnce({
       files: [
-        { name: "files/abc", displayName: geminiDisplayName(JOB_ID, 2), createTime: new Date().toISOString() },
-        { name: "files/zombie", displayName: geminiDisplayName(JOB_ID, 1), createTime: new Date().toISOString() },
+        { name: "files/abc", displayName: geminiDisplayName(JOB_ID, 2), createTime: new Date(Date.now() - 2 * 3600_000).toISOString() },
+        { name: "files/zombie", displayName: geminiDisplayName(JOB_ID, 1), createTime: new Date(Date.now() - 3 * 3600_000).toISOString() },
       ],
       more: false,
     });
     const r = await runTick();
     expect(r.redispatched).toBe(1);
-    expect(job()).toMatchObject({ status: "observing", dispatch_epoch: 2 }); // fichero aún ACTIVE ⇒ sin re-transcode
+    expect(job()).toMatchObject({ status: "observing", dispatch_epoch: 3, gemini_file_name: "files/abc", gemini_file_deleted_at: null }); // fichero aún ACTIVE ⇒ sin re-transcode
     expect(files.deleteFile).toHaveBeenCalledWith("files/zombie");
     expect(files.deleteFile).not.toHaveBeenCalledWith("files/abc");
+    expect(r.geminiFilesDeleted).toBe(1);
+
+    // The epoch-3 worker's advance uses the kept file: it claims the pending segment, no new spawn.
+    spawnMatchWorker.mockClear();
+    generateJson.mockResolvedValueOnce({ ok: true, json: segObs(), usage: VIDEO_USAGE, finishReason: "STOP", modelVersion: "m" });
+    const a = await advanceJob(job());
+    expect(a).toEqual({ kind: "state", state: "observing", retryAfterSec: 0 });
+    expect(generateJson).toHaveBeenCalledTimes(1);
+    expect(spawnMatchWorker).not.toHaveBeenCalled();
+    expect(job()).toMatchObject({ dispatch_epoch: 3, dispatch_attempts: 3, gemini_file_name: "files/abc" });
+    expect(segs()[1]).toMatchObject({ status: "done", lease_epoch: 3 });
+  });
+  it("orphan sweep rule: a file attached to a live job is never deleted whatever its epoch or age; the rest go when terminal/unknown, from another epoch, or older than 24 h", async () => {
+    const { shouldSweepGeminiFile } = await import("../driver");
+    const now = new Date();
+    const young = new Date(now.getTime() - 3600_000).toISOString();
+    const old = new Date(now.getTime() - 30 * 3600_000).toISOString();
+    const ref = (epoch: number) => ({ jobId: JOB_ID, epoch });
+    const live = { status: "observing" as const, dispatch_epoch: 3, gemini_file_name: "files/abc", gemini_file_deleted_at: null };
+    // attached to the live job: kept even from an older epoch and past 24 h
+    expect(shouldSweepGeminiFile({ name: "files/abc", createTime: young }, ref(2), live, now)).toBe(false);
+    expect(shouldSweepGeminiFile({ name: "files/abc", createTime: old }, ref(1), live, now)).toBe(false);
+    // unattached upload of the CURRENT epoch (before proxy_ready): kept while young, swept past 24 h
+    expect(shouldSweepGeminiFile({ name: "files/new", createTime: young }, ref(3), live, now)).toBe(false);
+    expect(shouldSweepGeminiFile({ name: "files/new", createTime: old }, ref(3), live, now)).toBe(true);
+    // unattached upload of a superseded epoch: swept at once
+    expect(shouldSweepGeminiFile({ name: "files/zombie", createTime: young }, ref(2), live, now)).toBe(true);
+    // terminal or unknown job: swept (even the attached file); a file the DB already marks deleted is not "attached"
+    expect(shouldSweepGeminiFile({ name: "files/abc", createTime: young }, ref(3), { ...live, status: "completed" }, now)).toBe(true);
+    expect(shouldSweepGeminiFile({ name: "files/abc", createTime: young }, ref(3), undefined, now)).toBe(true);
+    expect(shouldSweepGeminiFile({ name: "files/abc", createTime: young }, ref(2), { ...live, gemini_file_deleted_at: young }, now)).toBe(true);
   });
   it("tick does not re-dispatch while the heartbeat is fresh", async () => {
     seedJob({ status: "preparing", dispatch_epoch: 1, dispatch_attempts: 1, heartbeat_at: new Date().toISOString() });

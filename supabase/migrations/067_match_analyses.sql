@@ -10,7 +10,9 @@
 --     presupuesto y el dedup de POST /api/match/start. Toda escritura va por service
 --     role desde api/match (que además comprueba la propiedad EN CÓDIGO).
 --   - match_analysis_segments: RLS activo y SIN políticas (ningún acceso de cliente).
---   - Las RPC son SECURITY DEFINER y solo las ejecuta service_role.
+--   - Las RPC son SECURITY DEFINER y solo las ejecuta service_role: EXECUTE revocado de
+--     PUBLIC, anon Y authenticated (Supabase concede EXECUTE a anon/authenticated por
+--     default privileges; revocar solo de PUBLIC no basta).
 --
 -- RGPD / retención:
 --   - video_id REFERENCES videos(id) ON DELETE CASCADE: la purga de vídeos no se rompe
@@ -218,9 +220,15 @@ AS $$
     AND (p_exclude_job IS NULL OR id <> p_exclude_job);
 $$;
 
-REVOKE ALL ON FUNCTION claim_next_match_segment(uuid, int, int, int) FROM PUBLIC;
-REVOKE ALL ON FUNCTION add_match_spend(uuid, text, numeric) FROM PUBLIC;
-REVOKE ALL ON FUNCTION match_active_reservations_usd(uuid) FROM PUBLIC;
+-- En Supabase los default privileges del esquema public conceden EXECUTE sobre cada
+-- función nueva a anon y authenticated EXPLÍCITAMENTE (no vía PUBLIC). Revocar solo de
+-- PUBLIC las dejaría invocables por /rest/v1/rpc/* y, al ser SECURITY DEFINER (saltan
+-- RLS), un cliente podría inflar spend_usd (anulando la reserva por partido), bloquear
+-- o re-facturar tramos y leer segmentos o reservas globales. Linter Supabase 0028/0029;
+-- mismo patrón que 057_custom_access_token_hook.sql.
+REVOKE EXECUTE ON FUNCTION claim_next_match_segment(uuid, int, int, int) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION add_match_spend(uuid, text, numeric) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION match_active_reservations_usd(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION claim_next_match_segment(uuid, int, int, int) TO service_role;
 GRANT EXECUTE ON FUNCTION add_match_spend(uuid, text, numeric) TO service_role;
 GRANT EXECUTE ON FUNCTION match_active_reservations_usd(uuid) TO service_role;

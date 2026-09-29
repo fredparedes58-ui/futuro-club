@@ -47,13 +47,19 @@ describe("migration 067 · RLS", () => {
     expect(CODE).toMatch(/REVOKE ALL ON match_analysis_segments FROM anon, authenticated/);
     expect(CODE).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE|ALL)[^;]*TO\s+(anon|authenticated)/i);
   });
-  it("SECURITY DEFINER RPCs are executable only by service_role", () => {
+  it("SECURITY DEFINER RPCs are executable only by service_role (EXECUTE revoked from PUBLIC, anon AND authenticated)", () => {
     const fns = [...CODE.matchAll(/CREATE OR REPLACE FUNCTION (\w+)\(/g)].map((m) => m[1]);
     expect(fns).toEqual(["claim_next_match_segment", "add_match_spend", "match_active_reservations_usd"]);
     for (const fn of fns) {
-      expect(CODE).toMatch(new RegExp(`REVOKE ALL ON FUNCTION ${fn}\\([^)]*\\) FROM PUBLIC`));
+      // Supabase's default privileges grant EXECUTE on every new public function to anon and
+      // authenticated explicitly, so REVOKE ... FROM PUBLIC alone would leave /rest/v1/rpc/* open
+      // (Supabase lints 0028/0029). Each client role must be named in the revoke.
+      const revoke = new RegExp(`REVOKE (?:EXECUTE|ALL) ON FUNCTION ${fn}\\([^)]*\\) FROM ([^;]+);`).exec(CODE);
+      expect(revoke, `missing REVOKE for ${fn}`).not.toBeNull();
+      const roles = revoke![1].split(",").map((r) => r.trim().toLowerCase());
+      expect(roles).toEqual(expect.arrayContaining(["public", "anon", "authenticated"]));
       expect(CODE).toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION ${fn}\\([^)]*\\) TO service_role;`));
-      expect(CODE).not.toMatch(new RegExp(`GRANT EXECUTE ON FUNCTION ${fn}\\([^)]*\\) TO (anon|authenticated)`));
+      expect(CODE).not.toMatch(new RegExp(`GRANT (?:EXECUTE|ALL)[^;]*ON FUNCTION ${fn}\\([^)]*\\) TO [^;]*\\b(anon|authenticated|PUBLIC)\\b`, "i"));
     }
     expect((CODE.match(/SECURITY DEFINER/g) ?? []).length).toBe(3);
     expect((CODE.match(/SET search_path = public/g) ?? []).length).toBe(3);

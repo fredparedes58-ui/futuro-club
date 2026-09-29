@@ -636,11 +636,15 @@ vídeo, equipo `home | away | ambiguous`, categoría, texto en el locale del job
   `gemini_file_deleted_at`. Aceptación: `files.get` → 404.
 - `proxy_ready` de un epoch obsoleto: Vercel borra **ese** fichero en el acto.
 - **Barrido** en cada tick: `files.list` y, para cada `displayName` con prefijo
-  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`), se borra si el job
-  es terminal o no existe, si el epoch no es el vigente, o si tiene más de 24 h y
-  no pertenece a un job vivo. No depende del estado de BD: caza huérfanos de epochs
-  que murieron. (Gemini borra solo a las 48 h de todos modos:
-  https://ai.google.dev/gemini-api/docs/files.)
+  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`): **nunca** se borra
+  un fichero ADJUNTO a un job vivo (no terminal y `gemini_file_name` = ese fichero),
+  sea cual sea el epoch de su `displayName` — un re-despacho que conserva el fichero
+  sube el epoch a N+1 pero el fichero se llamó `-N` al subirse, y borrarlo rompería
+  la reanudación sin re-transcode. Cualquier otro se borra si el job es terminal o
+  no existe, si el epoch no es el vigente, o si tiene más de 24 h. Caza huérfanos de
+  epochs que murieron. (Gemini borra solo a las 48 h de todos modos:
+  https://ai.google.dev/gemini-api/docs/files.) Implementación única:
+  `shouldSweepGeminiFile` en `api/_lib/matchJob/driver.ts`.
 
 ---
 

@@ -318,6 +318,31 @@ export interface TickResult {
   more: boolean;
 }
 
+/**
+ * Regla del barrido de huérfanos (diseño §12). Un fichero ADJUNTO a un job vivo (no
+ * terminal, `gemini_file_name` = este fichero, no marcado como borrado) NUNCA se borra,
+ * sea cual sea el epoch de su displayName: un re-despacho que conserva el fichero sube
+ * el epoch a N+1 pero el fichero se llamó `-N` al subirse, y borrarlo rompería la
+ * reanudación sin re-transcode (y re-facturaría Modal + subida + tramos). El resto se
+ * borra si el job es terminal o no existe, si su epoch no es el vigente (subida de un
+ * worker obsoleto), o si tiene más de `orphanFileMaxAgeHours` (subida del epoch vigente
+ * que nunca llegó a proxy_ready).
+ */
+export function shouldSweepGeminiFile(
+  f: { name: string; createTime?: string | null },
+  ref: { jobId: string; epoch: number },
+  job: Pick<MatchJobRow, "status" | "dispatch_epoch" | "gemini_file_name" | "gemini_file_deleted_at"> | undefined,
+  now: Date,
+): boolean {
+  const live = !!job && !isTerminal(job.status);
+  const attachedToLive = live && job!.gemini_file_name === f.name && !job!.gemini_file_deleted_at;
+  if (attachedToLive) return false;
+  const currentEpoch = live && ref.epoch === job!.dispatch_epoch;
+  const ageMs = f.createTime ? now.getTime() - Date.parse(f.createTime) : 0;
+  const tooOld = ageMs > CFG.orphanFileMaxAgeHours * HOUR_MS;
+  return !currentEpoch || tooOld;
+}
+
 export async function sweepGeminiFiles(now: Date, result: TickResult): Promise<void> {
   // 1. Ficheros de jobs terminales aún sin borrar.
   const terminal = await repo.listTerminalJobsWithFiles(CFG.tickBatchSize + 1);
@@ -340,13 +365,8 @@ export async function sweepGeminiFiles(now: Date, result: TickResult): Promise<v
   const parsed = listed.files.map((f) => ({ f, ref: parseGeminiDisplayName(f.displayName ?? "") })).filter((x) => x.ref);
   const jobs = new Map((await repo.getJobsByIds([...new Set(parsed.map((x) => x.ref!.jobId))])).map((j) => [j.id, j]));
   for (const { f, ref } of parsed) {
+    if (!shouldSweepGeminiFile(f, ref!, jobs.get(ref!.jobId), now)) continue;
     const job = jobs.get(ref!.jobId);
-    const ageMs = f.createTime ? now.getTime() - Date.parse(f.createTime) : 0;
-    const liveOwner = !!job && !isTerminal(job.status) && ref!.epoch === job.dispatch_epoch;
-    const attachedToLive = liveOwner && job!.gemini_file_name === f.name;
-    const tooOld = ageMs > CFG.orphanFileMaxAgeHours * HOUR_MS;
-    const shouldDelete = !liveOwner || (tooOld && !attachedToLive);
-    if (!shouldDelete) continue;
     const ok = await deleteFile(f.name);
     if (ok) {
       result.geminiFilesDeleted++;
