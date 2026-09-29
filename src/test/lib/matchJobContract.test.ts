@@ -21,6 +21,9 @@ import {
   INDIVIDUAL_LEVEL_KEYS,
   LLM_PROVENANCES,
   MATCH_ATTESTATION_VERSION,
+  MATCH_AVAILABILITY_CODES,
+  MATCH_JOB_ERROR_CODES,
+  POSSESSION_LOW_CONFIDENCE_CODES,
   MATCH_JOB_STATUSES,
   MATCH_JOB_TRANSITIONS,
   MATCH_METRIC_REGISTRY_PLAN,
@@ -40,7 +43,9 @@ import {
   TERMINAL_MATCH_JOB_STATUSES,
   evidenceId,
   geminiDisplayName,
+  matchAvailabilityResponseSchema,
   matchCoverageSchema,
+  possessionLowConfidenceSchema,
   matchDispatchReplySchema,
   matchJobStatusResponseSchema,
   matchMetricSchema,
@@ -797,5 +802,40 @@ describe("match job · canonical formatters", () => {
     expect(evidenceId(3, 2)).toBe("s3-e2");
     expect(EVIDENCE_ID_RE.test(evidenceId(0, 1))).toBe(true);
     expect(EVIDENCE_ID_RE.test("s0-e0")).toBe(false);
+  });
+});
+
+// ─── 10 · owner update 2026-09-29: analysis OFF until validated ─────────────
+
+describe("match job · availability and possession low-confidence (2026-09-29)", () => {
+  it("availability: enabled ⇔ code === null ⇔ reason === null", () => {
+    expect(matchAvailabilityResponseSchema.safeParse({ enabled: true, code: null, reason: null }).success).toBe(true);
+    expect(
+      matchAvailabilityResponseSchema.safeParse({ enabled: false, code: "match_video_disabled", reason: "Análisis de partido completo en validación." }).success,
+    ).toBe(true);
+    expect(matchAvailabilityResponseSchema.safeParse({ enabled: false, code: null, reason: null }).success).toBe(false);
+    expect(matchAvailabilityResponseSchema.safeParse({ enabled: true, code: "match_video_disabled", reason: "x" }).success).toBe(false);
+    expect([...MATCH_AVAILABILITY_CODES]).toEqual(["match_video_disabled", "real_inference_disabled"]);
+  });
+
+  it("the server kill switch has its own job error code", () => {
+    expect(MATCH_JOB_ERROR_CODES).toContain("analysis_disabled");
+    expect(MATCH_JOB_ERROR_CODES).toContain("video_too_long");
+  });
+
+  it("possession low-confidence flags are a closed set with a human reason", () => {
+    expect([...POSSESSION_LOW_CONFIDENCE_CODES]).toEqual(["no_visual_basis", "uniform_output"]);
+    expect(possessionLowConfidenceSchema.safeParse({ code: "uniform_output", reason: "Todo 50/50.", segments: [0, 1] }).success).toBe(true);
+    expect(possessionLowConfidenceSchema.safeParse({ code: "uniform_output", reason: "", segments: [] }).success).toBe(false);
+    expect(possessionLowConfidenceSchema.safeParse({ code: "confident", reason: "x", segments: [] }).success).toBe(false);
+  });
+
+  it("text that singles out ONE player (spike: '#11' on a team with no numbers) is caught; collective wording is not", () => {
+    for (const t of ["El #11 del visitante", "la camiseta 7", "el blanco (10) conduce", "el portero juega en largo", "a player in red", "their captain shouts"]) {
+      expect(mentionsIndividual(t), t).toBe(true);
+    }
+    for (const t of ["los jugadores del local presionan", "the home back line", "los porteros apenas intervienen", "bloque 4-4-2"]) {
+      expect(mentionsIndividual(t), t).toBe(false);
+    }
   });
 });

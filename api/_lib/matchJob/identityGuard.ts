@@ -97,11 +97,14 @@ function tokens(sentence: string): string[] {
 /**
  * Candidatos a nombre propio en las notas del entrenador: palabras en mayúscula que NO
  * abren la frase (una palabra inicial siempre va en mayúscula) y no están en NOT_A_NAME.
+ * Excepción: la palabra inicial SÍ cuenta si la sigue otro candidato ("Pablo Ruiz juega…"
+ * → "Pablo Ruiz", "Pablo", "Ruiz"): sobre-filtrar es la dirección segura.
  * Devuelve tokens sueltos y frases de ≥2 tokens consecutivos ("Pablo Ruiz").
  */
 export function extractNamesFromNotes(notes: string | null | undefined): string[] {
   if (!notes) return [];
   const out = new Set<string>();
+  const looksLikeName = (t: string | undefined) => !!t && NAME_TOKEN_RE.test(t) && !NOT_A_NAME.has(normalizeText(t));
   for (const sentence of notes.split(SENTENCE_SPLIT_RE)) {
     const toks = tokens(sentence);
     let run: string[] = [];
@@ -110,7 +113,7 @@ export function extractNamesFromNotes(notes: string | null | undefined): string[
       run = [];
     };
     toks.forEach((t, i) => {
-      const isCandidate = i > 0 && NAME_TOKEN_RE.test(t) && !NOT_A_NAME.has(normalizeText(t));
+      const isCandidate = looksLikeName(t) && (i > 0 || looksLikeName(toks[1]));
       if (isCandidate) {
         out.add(t);
         run.push(t);
