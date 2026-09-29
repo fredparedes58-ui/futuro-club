@@ -6118,6 +6118,7 @@
       "deletionSuccess": "Verwijderingsverzoek geregistreerd",
       "deletionDemo": "Verzoek geregistreerd (demomodus)",
       "deletionError": "Fout bij aanvragen van verwijdering",
+      "dsarNotAllowed": "Geen toestemming voor deze speler: alleen wie hem heeft geregistreerd of zijn academie kan dit AVG-recht uitoefenen",
       "consentSuccess": "Toestemming succesvol geregistreerd",
       "consentError": "Fout bij registreren van toestemming"
     },

@@ -20,10 +20,16 @@ export default withHandler(
   { schema: FeedbackSchema, requireAuth: true, maxRequests: 30 },
   async ({ body, ip }) => {
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+    // Solo service_role: la migración 072 quita la política INSERT WITH CHECK (true)
+    // sin rol de rag_feedback. Sin fallback a la clave anon: fail-closed con 503.
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      return errorResponse("Supabase not configured", 503);
+      return errorResponse(
+        "Feedback RAG no disponible: el servidor no tiene SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
+        503,
+        "RAG_NOT_CONFIGURED",
+      );
     }
 
     const { traceId, score, comment } = body;
