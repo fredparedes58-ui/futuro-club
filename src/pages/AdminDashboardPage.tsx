@@ -11,6 +11,7 @@
  *   4. Análisis por agente
  *   5. Insights recientes
  *   6. Suscripción y renovación
+ *   7. Revisión VSI — 57.5 fabricados antes de #146 pendientes de revisión humana (070)
  */
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -19,6 +20,7 @@ import {
   Brain, Shield, Clock, CreditCard, RefreshCw, Loader2, AlertCircle,
 } from "lucide-react";
 import { useBusinessAnalytics, topEndpoints, endpointLabel } from "@/hooks/useBusinessAnalytics";
+import LegacyHistoryReviewPanel from "@/components/admin/LegacyHistoryReviewPanel";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +38,7 @@ export default function AdminDashboardPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
   const { data, isLoading, error, refetch, isRefetching } = useBusinessAnalytics();
-  const [activeTab, setActiveTab] = useState<"overview" | "usage" | "team" | "insights">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "usage" | "team" | "insights" | "vsiReview">("overview");
 
   if (!isAdmin(user?.email)) {
     return (
@@ -94,6 +96,7 @@ export default function AdminDashboardPage() {
             { id: "usage", label: t("adminDashboardPage.tabUsage") },
             { id: "team", label: t("adminDashboardPage.tabTeam") },
             { id: "insights", label: t("adminDashboardPage.tabInsights") },
+            { id: "vsiReview", label: t("adminDashboardPage.tabVsiReview") },
           ].map(tab => (
             <button
               key={tab.id}
@@ -181,6 +184,9 @@ export default function AdminDashboardPage() {
             {activeTab === "insights" && <InsightsTab data={data} />}
           </>
         )}
+
+        {/* Revisión VSI (070): independiente de las analíticas — su propia consulta. */}
+        {activeTab === "vsiReview" && <LegacyHistoryReviewPanel />}
       </div>
     </motion.div>
   );
