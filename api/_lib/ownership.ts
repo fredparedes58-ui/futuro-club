@@ -120,6 +120,25 @@ export async function ownsVideo(
 }
 
 /**
+ * ¿El usuario/tenant puede ver/gestionar este job de partido (`match_analyses`)?
+ * Predicado PURO sobre la fila ya cargada con service role — el MISMO que la política
+ * RLS `match_analyses_select_owner` (migración 067): creador (user_id) o mismo tenant.
+ * NO confundir con `ownsMatch` (tabla `analyses`). Si el JWT no trae el claim tenant_id,
+ * solo funciona la propiedad por user_id (los compañeros de club no ven el job).
+ * Fail-closed: sin userId ni tenantId → false.
+ */
+export function ownsMatchAnalysis(
+  job: { user_id?: string | null; tenant_id?: string | null } | null | undefined,
+  userId: string | null,
+  tenantId: string | null,
+): boolean {
+  if (!job) return false;
+  if (job.user_id && userId && job.user_id === userId) return true;
+  if (job.tenant_id && tenantId && job.tenant_id === tenantId) return true;
+  return false;
+}
+
+/**
  * Cláusula PostgREST `.or(...)` para restringir una consulta de MÚLTIPLES jugadores
  * a los que gestiona el usuario (players.user_id) o su academia (players.tenant_id).
  * Es el análogo multi-fila de ownsPlayerOrTenant (que es por objeto único): mismos

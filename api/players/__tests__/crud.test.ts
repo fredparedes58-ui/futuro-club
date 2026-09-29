@@ -131,6 +131,22 @@ describe("/api/players/crud", () => {
       expect(body.data.vsi).toBeGreaterThan(0);
       expect(body.data.vsiHistory).toHaveLength(1);
       expect(insertedBody.user_id).toBe("user-crud-123");
+      // La evaluación queda con fecha y origen (base de toda variación del VSI).
+      expect(body.data.vsiEvaluations).toHaveLength(1);
+      expect(body.data.vsiEvaluations[0]).toMatchObject({ value: body.data.vsi, source: "players_api" });
+      expect(Number.isFinite(Date.parse(body.data.vsiEvaluations[0].at))).toBe(true);
+    });
+
+    it("sin métricas (alta rápida) ⇒ sin VSI y sin evaluaciones registradas", async () => {
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+        const parsed = JSON.parse(init?.body as string);
+        return new Response(JSON.stringify([{ id: parsed.id, data: parsed.data }]), { status: 201 });
+      });
+      const { metrics: _omit, ...noMetrics } = VALID_PLAYER;
+      const res = await crudHandler(makeRequest("POST", noMetrics));
+      const body = await res.json();
+      expect(body.data.vsi).toBeNull();
+      expect(body.data.vsiEvaluations).toEqual([]);
     });
 
     it("rejects invalid player data", async () => {
@@ -178,6 +194,48 @@ describe("/api/players/crud", () => {
       const body = await res.json();
       expect(body.data.vsi).toBeGreaterThan(70);
       expect(body.data.vsiHistory).toHaveLength(2);
+      // El legacy sin fechas no se convierte en evaluación: solo la NUEVA queda fechada.
+      expect(body.data.vsiEvaluations).toHaveLength(1);
+      expect(body.data.vsiEvaluations[0]).toMatchObject({ value: body.data.vsi, source: "players_api" });
+    });
+
+    it("PATCH con métricas AÑADE una evaluación fechada a las previas", async () => {
+      const prevEval = { value: 70, at: "2026-09-01T10:00:00.000Z", source: "coach_form" };
+      const currentData = { name: "Lucas", metrics: VALID_PLAYER.metrics, vsi: 70, vsiHistory: [70], vsiEvaluations: [prevEval] };
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("select=data")) return new Response(JSON.stringify([{ data: currentData }]));
+        if (init?.method === "PATCH") {
+          const b = JSON.parse(init.body as string);
+          return new Response(JSON.stringify([{ id: "p1", data: b.data }]));
+        }
+        return new Response("{}", { status: 404 });
+      });
+      const res = await crudHandler(makeRequest("PATCH", {
+        id: "p1",
+        metrics: { speed: 90, technique: 85, vision: 80, stamina: 75, shooting: 70, defending: 60 },
+      }));
+      const body = await res.json();
+      expect(body.data.vsiEvaluations).toHaveLength(2);
+      expect(body.data.vsiEvaluations[0]).toEqual(prevEval);
+      expect(body.data.vsiEvaluations[1]).toMatchObject({ value: body.data.vsi, source: "players_api" });
+    });
+
+    it("PATCH sin métricas NO registra evaluación", async () => {
+      const prevEval = { value: 70, at: "2026-09-01T10:00:00.000Z", source: "coach_form" };
+      const currentData = { name: "Lucas", metrics: VALID_PLAYER.metrics, vsi: 70, vsiHistory: [70], vsiEvaluations: [prevEval] };
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("select=data")) return new Response(JSON.stringify([{ data: currentData }]));
+        if (init?.method === "PATCH") {
+          const b = JSON.parse(init.body as string);
+          return new Response(JSON.stringify([{ id: "p1", data: b.data }]));
+        }
+        return new Response("{}", { status: 404 });
+      });
+      const res = await crudHandler(makeRequest("PATCH", { id: "p1", name: "Otro" }));
+      const body = await res.json();
+      expect(body.data.vsiEvaluations).toEqual([prevEval]);
     });
 
     it("returns 404 for non-existent player", async () => {

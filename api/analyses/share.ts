@@ -14,6 +14,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { hmacSha256Hex, timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
+import { withoutUndatedVsiSeries } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -140,7 +141,9 @@ export default withHandler(
       .order("report_type", { ascending: true });
 
     return successResponse({
-      analysis,
+      // Enlace público (familia): vsi.trend / vsi.history de filas antiguas = serie legacy
+      // SIN fechas (57.5 fabricado) → se retiran al leer (src/lib/scoring/vsiDelta.ts).
+      analysis: { ...analysis, vsi: withoutUndatedVsiSeries(analysis.vsi) },
       player: player ?? null,
       reports: reports ?? [],
       shared: true,
