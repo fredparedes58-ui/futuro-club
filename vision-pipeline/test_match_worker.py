@@ -238,9 +238,35 @@ def test_modal_resources_follow_the_phase1_decisions():
     assert (mw.TRANSCODE_CPU, mw.TRANSCODE_MEMORY_MB, mw.TRANSCODE_TIMEOUT_SEC) == (2.0, 4096, 7200)
     assert (mw.DRIVE_CPU, mw.DRIVE_MEMORY_MB, mw.DRIVE_TIMEOUT_SEC) == (0.25, 1024, 10800)
     assert mw.TRANSCODE_CPU_LIMIT >= mw.TRANSCODE_CPU
-    assert mw.DEADLINE_MARGIN_SEC > 300  # room for one last step call (Vercel maxDuration 300 s)
     assert mw.STEP_REQUEST_TIMEOUT_SEC > 300
+    # Room for a step call already in flight at the deadline AND the whole op=fail after it.
+    assert mw.FAIL_REQUEST_TIMEOUT_SEC < mw.STEP_REQUEST_TIMEOUT_SEC
+    assert mw.DEADLINE_MARGIN_SEC >= mw.STEP_REQUEST_TIMEOUT_SEC + mw.FAIL_REPORT_BUDGET_SEC + mw.FAIL_REQUEST_TIMEOUT_SEC
     assert mp.FFMPEG_THREADS == int(mw.TRANSCODE_CPU)  # ffmpeg threads = reserved cores (billing)
+
+
+def test_public_match_start_cannot_fan_out():
+    # modal is stubbed here; the real SDK (1.4.2) registers max_containers=2 and
+    # max_concurrent_inputs=16 for this function (checked when the PR was written).
+    src = WORKER_PATH.read_text(encoding="utf-8")
+    end = src.index("def match_start(")
+    block = src[src.rindex("@app.function(", 0, end) : end]
+    assert "max_containers=MATCH_START_MAX_CONTAINERS" in block
+    assert "@modal.concurrent(max_inputs=MATCH_START_MAX_INPUTS)" in block
+    assert "scaledown_window=SCALEDOWN_WINDOW_SEC" in block
+    assert block.index("@modal.concurrent") < block.index("@modal.fastapi_endpoint")
+    assert 1 <= mw.MATCH_START_MAX_CONTAINERS <= 2
+    assert mw.MATCH_START_MAX_INPUTS >= mw.MAX_CONCURRENT_TRANSCODES
+
+
+def test_readme_documents_the_heartbeat_staleness_bound():
+    assert mw.DRIVE_HEARTBEAT_GAP_MAX_SEC == (
+        mw.STEP_REQUEST_TIMEOUT_SEC + mw.STEP_RETRY_AFTER_MAX_SEC + max(mw.STEP_BACKOFF_SEC)
+    ) == 680
+    readme = (HERE / "README.md").read_text(encoding="utf-8")
+    assert "staleHeartbeatSec" in readme
+    assert f"{mw.DRIVE_HEARTBEAT_GAP_MAX_SEC} s" in readme
+    assert f"{mw.DEADLINE_MARGIN_SEC} s" in readme
 
 
 def test_every_image_ships_the_local_modules():
@@ -358,6 +384,64 @@ def test_step_client_deadline_stops_the_retries():
         client.post({"op": "advance", "jobId": JOB, "epoch": 1}, deadline=clock() + 12)
     assert clock.sleeps == [5]  # 5 fits, the next 10 would cross the deadline
     assert len(seen) == 2
+
+
+def test_step_client_per_call_timeout_overrides_the_client_default():
+    timeouts: list[dict] = []
+
+    def handler(request):
+        timeouts.append(request.extensions["timeout"])
+        return _ok({"state": "failed"})
+
+    client, _, _ = _step_client(handler)
+    fail = {"op": "fail", "jobId": JOB, "epoch": 1, "code": "internal", "reason": "x"}
+    client.post(fail, timeout=mw.FAIL_REQUEST_TIMEOUT_SEC)
+    client.post({"op": "advance", "jobId": JOB, "epoch": 1})
+    assert timeouts[0] == dict.fromkeys(("connect", "read", "write", "pool"), mw.FAIL_REQUEST_TIMEOUT_SEC)
+    assert timeouts[1] != timeouts[0]  # without the override: the client's own timeout
+
+
+def test_step_client_401_logs_a_secret_free_diagnostic_and_stops(capsys):
+    client, seen, clock = _step_client(lambda r: httpx.Response(401, json={"ok": False}))
+    with pytest.raises(mw.StepUnauthorized):
+        client.post({"op": "advance", "jobId": JOB, "epoch": 1})
+    out = capsys.readouterr().out
+    assert "op=advance HTTP 401" in out and "MODAL_CALLBACK_SECRET" in out and "byte a byte" in out
+    assert HMAC_SECRET not in out and "salto de línea: revísalo" not in out
+    assert len(seen) == 1 and clock.sleeps == []
+
+
+def test_step_client_signs_with_the_secret_exactly_as_stored(capsys):
+    # Vercel (process.env) and vitas-vision never trim MODAL_CALLBACK_SECRET, so neither does
+    # the worker: a stray "\r\n" is signed as is and the 401 says so without printing it.
+    padded = HMAC_SECRET + "\r\n"
+    seen: list[httpx.Request] = []
+
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(401)
+
+    http = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
+    clock = _Clock(1790000000)
+    client = mw.StepClient("https://futuro-club.vercel.app/api/match/step", padded, http=http, clock=clock, sleep=clock.sleep)
+    with pytest.raises(mw.StepUnauthorized):
+        client.post(json.loads(HMAC_VECTORS[0][1]))
+    sig = seen[0].headers["X-Vitas-Signature"]
+    assert sig == mw.sign_step(padded, HMAC_VECTORS[0][0], seen[0].content) and sig != HMAC_VECTORS[0][3]
+    out = capsys.readouterr().out
+    assert "salto de línea: revísalo" in out and HMAC_SECRET not in out
+
+
+def test_callback_secret_is_never_stripped_and_blank_is_missing():
+    assert mw.callback_secret({"MODAL_CALLBACK_SECRET": " s-test\n"}) == " s-test\n"
+    for blank in ("", "   ", "\r\n"):
+        with pytest.raises(mw.WorkerConfigError):
+            mw.callback_secret({"MODAL_CALLBACK_SECRET": blank})
+    deps = mw.build_deps(dict(FULL_ENV, MODAL_CALLBACK_SECRET="s-test-not-real\r\n"), spawn_drive=lambda j, e: None)
+    try:
+        assert deps.step._secret == deps.heartbeat_step._secret == "s-test-not-real\r\n"
+    finally:
+        deps.close()
 
 
 def test_step_client_single_attempt_mode():
@@ -1044,11 +1128,13 @@ class FakeStep:
     def __init__(self, script: dict) -> None:
         self.script = script
         self.calls: list[dict] = []
+        self.timeouts: list = []
         self._lock = threading.Lock()
 
-    def post(self, body, *, deadline=None, retry=True):
+    def post(self, body, *, deadline=None, retry=True, timeout=None):
         with self._lock:
             self.calls.append(json.loads(mw.canonical_json(body)))
+            self.timeouts.append(timeout)
             entry = self.script[body["op"]]
             reply = entry(body) if callable(entry) else entry.pop(0)
         if isinstance(reply, Exception):
@@ -1392,7 +1478,14 @@ def test_unauthorized_step_exits_without_fail():
     assert step.ops() == ["begin"]
 
 
-@pytest.mark.parametrize("hb_reply,outcome", [({"superseded": True}, "superseded"), ({"action": "stop", "state": "cancelled"}, "stopped")])
+@pytest.mark.parametrize(
+    "hb_reply,outcome",
+    [
+        ({"superseded": True}, "superseded"),
+        ({"action": "stop", "state": "cancelled"}, "stopped"),
+        (mw.StepUnauthorized("HTTP 401"), "unauthorized"),  # 401: kill ffmpeg, POST nothing further
+    ],
+)
 def test_heartbeat_stop_kills_ffmpeg(tmp_path, hb_reply, outcome):
     started = threading.Event()
 
@@ -1435,8 +1528,28 @@ def test_drive_loop_honours_retry_after_until_terminal():
     deps, _ = _deps(step)
     assert mw.run_drive_loop(JOB, 1, deps) == "terminal:completed"
     assert step.ops() == ["advance"] * 4
-    assert deps.clock.sleeps == [15, 30]
+    assert deps.clock.sleeps == [15, mw.ADVANCE_MIN_WAIT_SEC, 30]  # 0 → the 2 s floor
     assert all(set(c) == {"op", "jobId", "epoch"} for c in step.calls)
+
+
+def test_drive_loop_caps_a_zero_wait_loop_instead_of_hammering_the_step():
+    n = mw.ADVANCE_MAX_CONSECUTIVE_ZERO_WAITS
+    step = FakeStep({"advance": lambda body: {"state": "observing", "retryAfterSec": 0}, "fail": [{"state": "failed"}]})
+    deps, _ = _deps(step)
+    assert mw.run_drive_loop(JOB, 1, deps) == "failed:internal"
+    assert step.ops() == ["advance"] * n + ["fail"]
+    assert deps.clock.sleeps == [mw.ADVANCE_MIN_WAIT_SEC] * (n - 1)
+    assert f"retryAfterSec=0 {n} veces seguidas" in step.calls[-1]["reason"]
+
+
+def test_drive_loop_zero_wait_counter_resets_on_a_real_wait():
+    n = mw.ADVANCE_MAX_CONSECUTIVE_ZERO_WAITS
+    burst = [{"state": "observing", "retryAfterSec": 0}] * (n - 1) + [{"state": "observing", "retryAfterSec": 10}]
+    replies = [dict(r) for r in burst * 3] + [{"state": "completed", "retryAfterSec": 0}]
+    step = FakeStep({"advance": replies})
+    deps, _ = _deps(step)
+    assert mw.run_drive_loop(JOB, 1, deps) == "terminal:completed"
+    assert "fail" not in step.ops() and min(deps.clock.sleeps) == mw.ADVANCE_MIN_WAIT_SEC
 
 
 def test_drive_loop_superseded_exits_without_fail():
@@ -1446,12 +1559,45 @@ def test_drive_loop_superseded_exits_without_fail():
     assert step.ops() == ["advance", "advance"]
 
 
+def test_drive_loop_unauthorized_posts_nothing_further():
+    step = FakeStep({"advance": [{"state": "observing", "retryAfterSec": 5}, mw.StepUnauthorized("HTTP 401")]})
+    deps, _ = _deps(step)
+    assert mw.run_drive_loop(JOB, 1, deps) == "unauthorized"
+    assert step.ops() == ["advance", "advance"]  # no op=fail: it would be rejected too
+
+
 def test_drive_loop_deadline_reports_deadline_exceeded():
     step = FakeStep({"advance": lambda body: {"state": "observing", "retryAfterSec": 300}, "fail": [{"state": "failed"}]})
     deps, _ = _deps(step)
     assert mw.run_drive_loop(JOB, 1, deps) == "failed:deadline_exceeded"
     assert step.ops()[-1] == "fail" and step.calls[-1]["code"] == "deadline_exceeded"
+    assert step.timeouts[-1] == mw.FAIL_REQUEST_TIMEOUT_SEC  # short op=fail, not the 320 s advance timeout
     assert sum(deps.clock.sleeps) <= mw.DRIVE_TIMEOUT_SEC - mw.DEADLINE_MARGIN_SEC
+
+
+def test_final_fail_is_delivered_before_modal_kills_the_driver():
+    """Worst case: the last advance starts 1 s before the deadline and runs the full request
+    timeout; then every op=fail attempt times out. It must all end before DRIVE_TIMEOUT_SEC."""
+    clock = _Clock()
+    kill_at = clock() + mw.DRIVE_TIMEOUT_SEC
+    deadline = kill_at - mw.DEADLINE_MARGIN_SEC
+    fail_attempts: list[tuple[float, dict]] = []
+
+    def handler(request):
+        op = json.loads(request.content)["op"]
+        if op == "advance":
+            clock.t = max(clock.t, deadline - 1) + mw.STEP_REQUEST_TIMEOUT_SEC
+            return httpx.Response(504)
+        fail_attempts.append((clock(), request.extensions["timeout"]))
+        clock.t += request.extensions["timeout"]["read"]
+        raise httpx.ReadTimeout("slow", request=request)
+
+    step, _, _ = _step_client(handler, clock)
+    deps, _ = _deps(step, clock=clock)
+    assert mw.run_drive_loop(JOB, 1, deps) == "failed:deadline_exceeded"
+    assert len(fail_attempts) >= 2  # retried within the budget
+    assert all(t["read"] == mw.FAIL_REQUEST_TIMEOUT_SEC for _, t in fail_attempts)
+    assert clock() <= kill_at - mw.DEADLINE_SLACK_SEC
 
 
 def test_drive_loop_invalid_reply_reports_internal():
@@ -1530,6 +1676,21 @@ def test_match_start_refuses_to_spawn_a_worker_that_cannot_report(drop):
     env = {k: v for k, v in FULL_ENV.items() if k != drop}
     reply, spawned = _start({"jobId": JOB, "epoch": 1}, "Bearer k-test-not-real", env)
     assert reply == {"status": "error", "reason": "server_misconfigured"} and spawned == []
+
+
+@pytest.mark.parametrize("key", ["API_KEY", "MODAL_CALLBACK_SECRET"])
+def test_match_start_treats_a_blank_secret_as_missing(key):
+    reply, spawned = _start({"jobId": JOB, "epoch": 1}, "Bearer k-test-not-real", dict(FULL_ENV, **{key: " \r\n"}))
+    assert reply == {"status": "error", "reason": "server_misconfigured"} and spawned == []
+
+
+def test_match_start_compares_the_api_key_exactly_as_stored(capsys):
+    # Raw, like vitas-vision and Vercel's `Bearer ${MODAL_API_KEY}`: no silent strip on one side.
+    env = dict(FULL_ENV, API_KEY="k-test-not-real\n")
+    reply, spawned = _start({"jobId": JOB, "epoch": 1}, "Bearer k-test-not-real", env)
+    assert reply == {"status": "error", "reason": "unauthorized"} and spawned == []
+    out = capsys.readouterr().out
+    assert "API_KEY" in out and "salto de línea" in out and "k-test-not-real" not in out
 
 
 def test_step_url_resolution():

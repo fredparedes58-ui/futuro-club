@@ -259,9 +259,9 @@ Vercel (`api/match/[action].ts`, `config/matchVideo.json`). Contrato:
 
 | Función | Recursos | Papel |
 |---|---|---|
-| `match_start` (web, POST) | 0,125 CPU · 256 MiB · 30 s | `Authorization: Bearer <API_KEY>` (comparación `hmac.compare_digest`), cuerpo `{jobId, epoch}` estricto → `spawn(transcode_and_upload)` → `{status:"spawned", call_id}` |
+| `match_start` (web, POST) | 0,125 CPU · 256 MiB · 30 s · máx. 2 contenedores × 16 peticiones concurrentes | `Authorization: Bearer <API_KEY>` (comparación `hmac.compare_digest`), cuerpo `{jobId, epoch}` estricto → `spawn(transcode_and_upload)` → `{status:"spawned", call_id}`. La URL es pública y el Bearer se comprueba dentro del contenedor: un POST sin auth arranca como mucho esos 2 contenedores ligeros, nunca un worker |
 | `transcode_and_upload` | `cpu=2` (tope duro 2) · 4 GiB · 2 h · `retries=0` · máx. 2 contenedores | `begin` → allowlist + variante HLS → proxy (`match_proxy.py`) → comprobaciones → `upload_session` → subida reanudable a Gemini (`upload, finalize`; si falla, `query` y reanuda desde el offset) → `proxy_ready` → `spawn(drive)`. Hilo de `heartbeat` cada 60 s |
-| `drive` | `cpu=0.25` · 1 GiB · 3 h · `retries=0` | bucle `advance` respetando `retryAfterSec` hasta estado terminal (separado para no pagar 2 cores reservados mientras Vercel analiza los tramos) |
+| `drive` | `cpu=0.25` · 1 GiB · 3 h · `retries=0` | bucle `advance` respetando `retryAfterSec` hasta estado terminal (separado para no pagar 2 cores reservados mientras Vercel analiza los tramos). Espera mínima 2 s aunque llegue `0`; 60 respuestas seguidas con `0` sin estado terminal = bucle del backend → `fail internal` |
 | `tick` | 0,125 CPU · 256 MiB · `modal.Period(minutes=5)` | `op=tick` firmado: despacha jobs codificados, re-despacha epochs caducados y barre ficheros Gemini (lo hace Vercel) |
 | `spike_proxy` + entrypoint `spike` | como `transcode_and_upload`, máx. 1 contenedor | **solo operador** (`modal run`): allowlist + proxy en Modal desde una URL de Bunny, **sin Vercel y sin Gemini** |
 
@@ -271,11 +271,52 @@ Protocolo: toda llamada a Vercel es `POST <step URL>` con
 (vectores de prueba del contrato en `test_match_worker.py`, que además los cruza
 con `contract.ts` para detectar deriva). `{superseded:true}`, `{action:"stop"}` o un
 estado terminal → el worker sale sin tocar nada. Un error fatal → `op=fail {code,
-reason}` con el motivo **sin URLs ni tokens**. 401 → sale (secreto desalineado);
-400/404 → sale y registra; 5xx/504/429/red → reintento con retroceso 5-10-20-40-60 s
-hasta el plazo global. Si `spawn(drive)` falla, el job no se marca como fallido: el
-heartbeat caduca, el tick re-despacha y `begin` responde `advance` (el fichero
-Gemini sigue ACTIVE).
+reason}` con el motivo **sin URLs ni tokens**. 401 → registra un diagnóstico sin
+valores (ver «Política de secretos») y sale sin enviar nada más; 400/404 → sale y
+registra; 5xx/504/429/red → reintento con retroceso 5-10-20-40-60 s hasta el plazo
+global. Si `spawn(drive)` falla, el job no se marca como fallido: el heartbeat
+caduca, el tick re-despacha y `begin` responde `advance` (el fichero Gemini sigue
+ACTIVE).
+
+Plazo global: el bucle para 500 s antes del timeout de Modal
+(`DEADLINE_MARGIN_SEC` = una llamada en vuelo de hasta 320 s + el `op=fail` entero:
+reintentos hasta 120 s, cada intento con timeout corto de 30 s + 30 s de holgura), de
+modo que el `op=fail deadline_exceeded` llega a Vercel antes de que Modal mate el
+contenedor. Un test simula el peor caso (advance en vuelo que agota su timeout y todos
+los intentos de `fail` agotando el suyo).
+
+### Heartbeat y re-despacho (restricción para el backend)
+
+Vercel refresca `heartbeat_at` al **recibir** cualquier op del epoch vigente, y el
+tick re-despacha (epoch + 1) los jobs cuyo heartbeat es más viejo que
+`config.staleHeartbeatSec`. Durante `drive` no hay hilo de heartbeat: el hueco entre
+dos llamadas que llegan a Vercel puede alcanzar `DRIVE_HEARTBEAT_GAP_MAX_SEC` =
+`STEP_REQUEST_TIMEOUT_SEC` (320) + `retryAfterSec` máximo del contrato (300) + un paso
+de retroceso (60) = **680 s** (supone como mucho un intento fallido entre dos
+llegadas; con la red caída de forma persistente el heartbeat caduca a propósito).
+Durante transcode + subida el hilo de heartbeat late cada 60 s (timeout 30 s), y el
+paso `proxy_ready` → primer `advance` del driver cabe en 320 s + el arranque del
+contenedor.
+
+Por tanto `staleHeartbeatSec` **debe ser mayor que 680 s** (con margen), o el tick
+re-despachará un driver sano: nuevo epoch, el driver viejo recibe `superseded` y un
+contenedor nuevo repite `begin`. Es una cota de protocolo, no un umbral medido: el
+valor de la config queda **pendiente de validar**. Con los `retryAfterSec` que emite
+hoy el backend (≤ 30 s) el hueco real ronda 320 + 30 s; la cota de 680 s es la que
+permite el contrato (`retryAfterSec` ≤ 300).
+
+### Política de secretos (igual en los tres lados)
+
+`MODAL_CALLBACK_SECRET` y `API_KEY` se usan **tal cual están guardados, sin
+recortar**, igual que Vercel (`process.env.MODAL_CALLBACK_SECRET`, `Bearer
+${MODAL_API_KEY}`) y `vitas-vision` (`app.py`). Recortar en un solo lado convertiría
+un salto de línea perdido en un 401 invisible. Un valor vacío o solo con espacios
+cuenta como ausente (`match_start` responde `server_misconfigured` y no lanza
+nada). Si el step responde 401, el worker registra qué comprobar (mismo valor byte a
+byte en Modal y en Vercel, reloj a menos de 300 s) y si el valor de Modal empieza o
+acaba con espacio o salto de línea, **sin imprimir nunca el valor**, y no envía nada
+más. Ojo: `vercel env add` con el valor por tubería desde PowerShell guarda un `\r\n`
+literal (usar `cmd /c` o pegarlo a mano).
 
 ### El proxy (lo que ve Gemini)
 

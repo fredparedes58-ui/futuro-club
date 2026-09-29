@@ -170,15 +170,34 @@ LIGHT_CPU_LIMIT = 0.5
 # these only stop a bug from fanning out containers.
 MAX_CONCURRENT_TRANSCODES = 2
 MAX_CONCURRENT_DRIVERS = 4
+# match_start is a PUBLIC URL and the bearer check runs inside the container, so an
+# unauthenticated POST still boots (and bills) a light container: at most this many,
+# each serving concurrent requests instead of fanning out (Vercel dispatches ≤ 2 jobs).
+MATCH_START_MAX_CONTAINERS = 2
+MATCH_START_MAX_INPUTS = 16
 SCALEDOWN_WINDOW_SEC = 2  # one-shot spawns: do not keep a reserved container idle
-# Room left before the Modal timeout for one last step call (Vercel maxDuration 300 s).
-DEADLINE_MARGIN_SEC = 330
 STEP_REQUEST_TIMEOUT_SEC = 320  # > Vercel maxDuration (300 s) of one advance unit
 HEARTBEAT_REQUEST_TIMEOUT_SEC = 30
 TICK_TIMEOUT_SEC = 330
 # Backoff on 5xx / 504 / 429 / network errors, then 60 s until the deadline (§6.4).
 STEP_BACKOFF_SEC = (5, 10, 20, 40, 60)
-FAIL_REPORT_BUDGET_SEC = 120  # best-effort op=fail after a fatal error
+FAIL_REPORT_BUDGET_SEC = 120  # best-effort op=fail after a fatal error (retries stop here)
+FAIL_REQUEST_TIMEOUT_SEC = 30  # per op=fail attempt: short, it must land before the Modal kill
+DEADLINE_SLACK_SEC = 30  # connect phase (httpx timeouts are per phase), logging, shutdown
+# Room left before the Modal timeout: one step call that started just before the deadline
+# (≤ STEP_REQUEST_TIMEOUT_SEC) + the whole op=fail (last retry starts ≤ budget, lasts ≤ 30 s).
+DEADLINE_MARGIN_SEC = STEP_REQUEST_TIMEOUT_SEC + FAIL_REPORT_BUDGET_SEC + FAIL_REQUEST_TIMEOUT_SEC + DEADLINE_SLACK_SEC
+# drive: floor for retryAfterSec (0 = "call again now") and a cap on consecutive 0 replies.
+# A healthy job answers 0 about once per finished segment or state change (today ≈ 10
+# segments of 15 min in a 150-min video + a few transitions); 60 in a row is a backend
+# loop → op=fail internal instead of hammering /api/match/step for 3 h.
+ADVANCE_MIN_WAIT_SEC = 2
+ADVANCE_MAX_CONSECUTIVE_ZERO_WAITS = 60
+# Longest gap between two step calls that REACH Vercel while drive is healthy (every op
+# refreshes heartbeat_at on arrival): one advance in flight + the largest retryAfterSec
+# the contract allows + one backoff step. config.staleHeartbeatSec (Vercel) must exceed it,
+# or the tick re-dispatches a healthy driver (README, "Heartbeat y re-despacho").
+DRIVE_HEARTBEAT_GAP_MAX_SEC = STEP_REQUEST_TIMEOUT_SEC + STEP_RETRY_AFTER_MAX_SEC + max(STEP_BACKOFF_SEC)
 SOURCE_FETCH_ATTEMPTS = 3
 SOURCE_FETCH_TIMEOUT_SEC = 60.0
 PLAYLIST_MAX_BYTES = 4 * 1024 * 1024
@@ -338,10 +357,39 @@ def resolve_step_url(env: Mapping[str, str]) -> str:
     return base + STEP_ROUTE
 
 
+def _padded(value: str) -> bool:
+    """Leading/trailing whitespace or line break (e.g. the \\r\\n a piped `vercel env add` keeps)."""
+    return value != value.strip()
+
+
+def callback_secret(env: Mapping[str, str]) -> str:
+    """MODAL_CALLBACK_SECRET exactly as stored, never stripped: Vercel (process.env) and
+    vitas-vision use the raw value too, and trimming on one side only would turn a stray
+    newline into a 401 nobody can see. Blank (empty or whitespace only) counts as missing."""
+    raw = env.get("MODAL_CALLBACK_SECRET") or ""
+    if not raw.strip():
+        raise WorkerConfigError("MODAL_CALLBACK_SECRET no está en el secret de Modal")
+    return raw
+
+
+def unauthorized_diagnostic(op: object, secret: str) -> str:
+    """Secret-free hint for a 401 from the step (names and one whitespace flag, never values)."""
+    msg = (
+        f"op={op} HTTP 401 del step: Vercel no verificó la firma. MODAL_CALLBACK_SECRET debe ser el "
+        "mismo valor byte a byte en el secret de Modal vitas-api-key y en Vercel (ningún lado recorta "
+        "espacios ni saltos de línea) y el reloj no puede diferir más de 300 s; esta ejecución no envía nada más"
+    )
+    if _padded(secret):
+        msg += ". El valor de Modal empieza o acaba con espacio o salto de línea: revísalo (y el de Vercel)"
+    return msg
+
+
 def missing_worker_env(env: Mapping[str, str]) -> list[str]:
     """Names (never values) of what a dispatched worker would need but cannot find."""
     missing: list[str] = []
-    if not (env.get("MODAL_CALLBACK_SECRET") or "").strip():
+    try:
+        callback_secret(env)
+    except WorkerConfigError:
         missing.append("MODAL_CALLBACK_SECRET")
     try:
         resolve_step_url(env)
@@ -428,13 +476,22 @@ class StepClient:
         if self._owns_http:
             self._http.close()
 
-    def post(self, body: Mapping[str, Any], *, deadline: Optional[float] = None, retry: bool = True) -> dict[str, Any]:
+    def post(
+        self,
+        body: Mapping[str, Any],
+        *,
+        deadline: Optional[float] = None,
+        retry: bool = True,
+        timeout: Optional[float] = None,
+    ) -> dict[str, Any]:
+        """timeout overrides the client's per-attempt timeout (op=fail uses a short one)."""
         raw = canonical_json(body)
+        per_request: dict[str, Any] = {} if timeout is None else {"timeout": timeout}
         attempt = 0
         while True:
             headers = step_headers(self._secret, raw, self._clock())  # fresh ts per attempt
             try:
-                resp = self._http.post(self.url, content=raw, headers=headers, follow_redirects=False)
+                resp = self._http.post(self.url, content=raw, headers=headers, follow_redirects=False, **per_request)
             except httpx.TransportError as err:
                 problem = f"error de red ({type(err).__name__})"
             else:
@@ -446,6 +503,7 @@ class StepClient:
                         raise StepProtocolError("respuesta de step no es JSON") from None
                     return parse_envelope(payload)
                 if status == 401:
+                    _log(unauthorized_diagnostic(body.get("op"), self._secret))
                     raise StepUnauthorized("HTTP 401 (MODAL_CALLBACK_SECRET desalineado)")
                 if status not in (408, 425, 429) and status < 500:
                     raise StepRejected(status, _error_code(resp))
@@ -1108,7 +1166,7 @@ class Deps:
 
 def build_deps(env: Mapping[str, str], *, spawn_drive: Callable[[str, int], None]) -> Deps:
     step_url = resolve_step_url(env)
-    secret = (env.get("MODAL_CALLBACK_SECRET") or "").strip()
+    secret = callback_secret(env)
     return Deps(
         step=StepClient(step_url, secret, timeout=STEP_REQUEST_TIMEOUT_SEC),
         heartbeat_step=StepClient(step_url, secret, timeout=HEARTBEAT_REQUEST_TIMEOUT_SEC),
@@ -1123,12 +1181,12 @@ def _job_ref(job_id: str, epoch: int) -> dict[str, Any]:
 
 
 def report_fail(deps: Deps, job_id: str, epoch: int, code: str, reason: str) -> None:
-    """Best-effort op=fail (never raises)."""
+    """Best-effort op=fail (never raises); ends ≤ budget + one short attempt (DEADLINE_MARGIN_SEC)."""
     if code not in WORKER_FAIL_CODES:
         code = "internal"
     body = {"op": "fail", **_job_ref(job_id, epoch), "code": code, "reason": redact(reason) or code}
     try:
-        deps.step.post(body, deadline=deps.clock() + FAIL_REPORT_BUDGET_SEC)
+        deps.step.post(body, deadline=deps.clock() + FAIL_REPORT_BUDGET_SEC, timeout=FAIL_REQUEST_TIMEOUT_SEC)
         _log(f"job={job_id} epoch={epoch} op=fail code={code}")
     except StepError as err:
         _log(f"job={job_id} epoch={epoch} op=fail no entregado ({type(err).__name__}: {err})")
@@ -1245,9 +1303,11 @@ def run_transcode_job(job_id: str, epoch: int, deps: Deps) -> str:
 
 
 def run_drive_loop(job_id: str, epoch: int, deps: Deps) -> str:
-    """op=advance until a terminal state, honouring retryAfterSec, under an overall deadline."""
+    """op=advance until a terminal state, honouring retryAfterSec (floor ADVANCE_MIN_WAIT_SEC,
+    at most ADVANCE_MAX_CONSECUTIVE_ZERO_WAITS zero replies in a row), under an overall deadline."""
     deadline = deps.clock() + DRIVE_TIMEOUT_SEC - DEADLINE_MARGIN_SEC
     ref = _job_ref(job_id, epoch)
+    zero_waits = 0
     try:
         while True:
             if deps.clock() > deadline:
@@ -1256,10 +1316,17 @@ def run_drive_loop(job_id: str, epoch: int, deps: Deps) -> str:
             if reply.state in TERMINAL_MATCH_JOB_STATUSES:
                 _log(f"job={job_id} epoch={epoch} terminal: {reply.state}")
                 return f"terminal:{reply.state}"
-            if reply.retry_after_sec:
-                if deps.clock() + reply.retry_after_sec > deadline:
-                    raise StepDeadlineExceeded("plazo global del bucle advance agotado")
-                deps.sleep(reply.retry_after_sec)
+            zero_waits = zero_waits + 1 if reply.retry_after_sec == 0 else 0
+            if zero_waits >= ADVANCE_MAX_CONSECUTIVE_ZERO_WAITS:
+                raise WorkerFailure(
+                    "internal",
+                    f"advance respondió retryAfterSec=0 {zero_waits} veces seguidas sin estado terminal "
+                    f"(estado {reply.state}): posible bucle del backend; el driver para",
+                )
+            wait = max(reply.retry_after_sec, ADVANCE_MIN_WAIT_SEC)
+            if deps.clock() + wait > deadline:
+                raise StepDeadlineExceeded("plazo global del bucle advance agotado")
+            deps.sleep(wait)
     except Superseded:
         _log(f"job={job_id} epoch={epoch} superseded: el driver sale")
         return "superseded"
@@ -1271,6 +1338,9 @@ def run_drive_loop(job_id: str, epoch: int, deps: Deps) -> str:
     except StepDeadlineExceeded as err:
         report_fail(deps, job_id, epoch, "deadline_exceeded", str(err))
         return "failed:deadline_exceeded"
+    except WorkerFailure as err:
+        report_fail(deps, job_id, epoch, err.code, err.reason)
+        return f"failed:{err.code}"
     except StepProtocolError as err:
         report_fail(deps, job_id, epoch, "internal", f"respuesta de advance inválida: {err}")
         return "failed:internal"
@@ -1414,10 +1484,15 @@ def handle_match_start(
     spawn: Callable[[str, int], str],
 ) -> dict[str, str]:
     """Reply per matchDispatchReplySchema: {status:"spawned", call_id} | {status:"error", reason}."""
-    api_key = (env.get("API_KEY") or "").strip()
-    if not api_key:
+    api_key = env.get("API_KEY") or ""  # raw, like vitas-vision and Vercel (never stripped)
+    if not api_key.strip():
         return {"status": "error", "reason": "server_misconfigured"}
     if not bearer_matches(authorization, api_key):
+        if _padded(api_key):  # names only: an HTTP header cannot carry the trailing whitespace
+            _log(
+                "match_start: API_KEY del secret empieza o acaba con espacio o salto de línea y se "
+                "compara tal cual: recrea el secret sin ellos"
+            )
         return {"status": "error", "reason": "unauthorized"}
     try:
         job_id, epoch = parse_dispatch_request(payload)
@@ -1510,11 +1585,7 @@ def drive(job_id: str, epoch: int) -> str:
 )
 def tick() -> Optional[dict]:
     try:
-        step = StepClient(
-            resolve_step_url(os.environ),
-            (os.environ.get("MODAL_CALLBACK_SECRET") or "").strip(),
-            timeout=TICK_TIMEOUT_SEC - 20,
-        )
+        step = StepClient(resolve_step_url(os.environ), callback_secret(os.environ), timeout=TICK_TIMEOUT_SEC - 20)
     except WorkerConfigError as err:
         _log(f"tick: secret incompleto: {err}")
         return None
@@ -1530,8 +1601,10 @@ def tick() -> Optional[dict]:
     cpu=(LIGHT_CPU, LIGHT_CPU_LIMIT),
     memory=LIGHT_MEMORY_MB,
     timeout=30,
+    max_containers=MATCH_START_MAX_CONTAINERS,
     scaledown_window=SCALEDOWN_WINDOW_SEC,
 )
+@modal.concurrent(max_inputs=MATCH_START_MAX_INPUTS)
 @modal.fastapi_endpoint(method="POST")
 def match_start(payload: dict, authorization: Optional[str] = Header(default=None)) -> dict:
     """POST {jobId, epoch} with Authorization: Bearer <API_KEY> → {status:"spawned", call_id}."""
