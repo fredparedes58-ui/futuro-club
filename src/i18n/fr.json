@@ -342,6 +342,9 @@
       "minutesPlayed": "Minutes jouées",
       "performanceMetrics": "Métriques de performance",
       "vsiRealtime": "VSI calculé en temps réel",
+      "metricsConfirm": "J'ai évalué les 6 dimensions : enregistrer comme évaluation de l'entraîneur",
+      "metricsConfirmHint": "Si la case n'est pas cochée, les barres ne comptent pas comme évaluation : le joueur reste « non évalué » ou garde sa dernière évaluation.",
+      "metricsConfirmRequired": "Vous avez déplacé des barres : cochez « J'ai évalué les 6 dimensions » pour les enregistrer comme évaluation, ou laissez-les telles quelles.",
       "submit": "Créer le joueur",
       "submitEdit": "Enregistrer les modifications",
       "submitting": "Enregistrement…",
@@ -492,6 +495,15 @@
       "percentileLabel": "Percentile dans le groupe"
     }
   },
+  "vsiDelta": {
+    "gate": {
+      "no_evaluations": "Pas encore d'évaluations datées de l'entraîneur à comparer",
+      "single_evaluation": "Une seule évaluation datée pour l'instant : la variation apparaîtra avec la suivante",
+      "legacy_undated": "L'historique antérieur n'a ni date ni origine : la variation n'est pas calculée",
+      "same_instant": "Les deux dernières évaluations ont la même date : la variation n'est pas calculée",
+      "current_mismatch": "Le VSI actuel ne correspond pas à la dernière évaluation enregistrée : la variation n'est pas calculée"
+    }
+  },
   "scout": {
     "title": "ScoutFeed",
     "subtitleInsights": "Insights IA · Temps réel",
@@ -526,7 +538,12 @@
     "viewPlayer": "Voir le joueur",
     "viewVideo": "Voir la vidéo",
     "benchmark": "Benchmark",
-    "metricTrend": "Évolution par rapport aux évaluations précédentes",
+    "vsiDelta": {
+      "label": "Variation du VSI",
+      "between": "Entre le {{from}} ({{fromValue}}) et le {{to}} ({{toValue}})",
+      "tooltip": "Calculé par VITAS entre les deux dernières évaluations datées de l'entraîneur (non rédigé par l'IA)"
+    },
+    "legacyDeltaUnverified": "Cet ancien insight contenait une variation rédigée par l'IA, sans date ni base vérifiables : elle n'est pas affichée.",
     "recommendedDrills": "Drills recommandés",
     "actionItems": "Actions pour l'entraîneur",
     "loadMore": "Charger plus",
@@ -1554,7 +1571,7 @@
     "badgeConsistentTitle": "Régularité",
     "badgeConsistentDesc": "5 rapports ou plus générés",
     "badgeImprovingTitle": "En hausse",
-    "badgeImprovingDesc": "Le VSI a augmenté de +2 points ou plus",
+    "badgeImprovingDesc": "Le VSI a augmenté de 2 points ou plus entre deux évaluations datées",
     "badgeEliteTitle": "Talent",
     "badgeEliteDesc": "Le VSI a atteint 70+",
     "noReportsShareInfo": "Pas encore de rapports · générez le premier pour le partager",
@@ -1566,7 +1583,8 @@
     "familyViewProgress": "Vue famille · progrès",
     "currentLevel": "Son niveau actuel",
     "outOf100VsiScore": "sur 100 · Score VSI",
-    "ptsVsOneMonthAgo": "pts vs il y a 1 mois",
+    "vsiDeltaBetween": "entre le {{from}} et le {{to}}",
+    "shareDelta": " ({{arrow}} {{value}} pts entre le {{from}} et le {{to}})",
     "phaseLabel": "Phase :",
     "phv_early": "Avant la poussée",
     "phv_ontime": "En pleine poussée",
@@ -2304,6 +2322,22 @@
     "tabUsage": "Usage",
     "tabTeam": "Équipe",
     "tabInsights": "Insights",
+    "tabVsiReview": "Révision VSI",
+    "vsiReview": {
+      "title": "Révision humaine de l'historique VSI",
+      "desc": "Joueurs créés avant le 22 août (#146) dont l'historique contient 57.5 : le VSI des barres par défaut (60/60/60/60/50/50) que l'app enregistrait sans évaluation. Rien n'est supprimé : vérifiez avec l'entraîneur.",
+      "count": "{{count}} joueurs en attente de révision",
+      "empty": "Aucun joueur en attente de révision.",
+      "error": "Impossible de charger la liste (migration 070 appliquée ?)",
+      "colPlayer": "Joueur (id)",
+      "colOwner": "Propriétaire",
+      "colCreated": "Créé",
+      "colHistory": "Historique ancien",
+      "colFlags": "Signaux",
+      "flagCurrentDefault": "VSI actuel = 57.5",
+      "flagMetricsDefault": "Barres actuelles = valeurs par défaut",
+      "resolveHint": "Pour résoudre : après vérification avec l'entraîneur, marquez le cas comme révisé avec l'UPDATE documenté dans la migration 070 (supabase/migrations/070_vsi_default_suspects_review.sql)."
+    },
     "plansManagement": "Gestion des abonnements",
     "plansManagementDesc": "Configurez les prix et abonnements",
     "biasAudit": "Audit de biais",

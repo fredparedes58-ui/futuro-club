@@ -1,0 +1,235 @@
+/**
+ * VITAS · Evaluaciones de VSI de ficha con fecha y origen + variación entre ellas.
+ *
+ * Fuente ÚNICA (invariante #7) de:
+ *   - el registro de evaluaciones `vsiEvaluations: [{ value, at, source }]` que se
+ *     guarda en el blob `data` del jugador cada vez que el entrenador evalúa las 6
+ *     barras (PlayerService en el navegador, api/players/_crud.ts en el servidor);
+ *   - la VARIACIÓN del VSI entre las dos últimas evaluaciones reales (`computeVsiDelta`),
+ *     que consumen el ScoutFeed (api/scout/generate.ts → InsightCard) y el panel de
+ *     familia (ParentDashboardPage).
+ *
+ * Por qué existe: el «67.4 (+9.9)» del ScoutFeed lo escribía el LLM como texto libre y
+ * el panel de familia rotulaba «+X pts vs hace 1 mes» restando posiciones de
+ * `vsiHistory`, un array SIN fechas ni origen en el que además quedaron valores
+ * fabricados (57.5 = calculateFichaVsi de las barras por defecto antes de #146).
+ * Una variación solo es presentable si compara DOS evaluaciones reales con fecha y
+ * origen conocidos; si no, se BLOQUEA (value null + gate_reason, invariante #2).
+ * El historial legacy (`vsiHistory`) NUNCA entra en la variación: solo sirve para
+ * explicar por qué está bloqueada.
+ *
+ * Solo imports relativos: este módulo lo importan también las Edge Functions de api/.
+ */
+
+import { derived, gated, ORIENTATIVE_CONFIDENCE, type MetricResult } from "../metrics/MetricResult";
+
+// ── Registro de evaluaciones ─────────────────────────────────────────────────
+
+/**
+ * Origen de una evaluación.
+ *  - `coach_form`   — el entrenador guardó las 6 barras en la app (PlayerService).
+ *  - `players_api`  — el entrenador guardó las 6 barras vía /api/players/crud.
+ *  - `demo_seed`    — jugador de ejemplo sembrado por el modo demo (NO es real).
+ */
+export type VsiEvaluationSource = "coach_form" | "players_api" | "demo_seed";
+
+/** Orígenes que cuentan como evaluación REAL de una persona (entran en la variación). */
+export const REAL_VSI_EVALUATION_SOURCES: readonly VsiEvaluationSource[] = ["coach_form", "players_api"];
+
+const ALL_SOURCES: readonly VsiEvaluationSource[] = ["coach_form", "players_api", "demo_seed"];
+
+export interface VsiEvaluation {
+  /** VSI de ficha (calculateFichaVsi) de esa evaluación, 0..100. */
+  value: number;
+  /** Instante ISO-8601 en que se guardó la evaluación. */
+  at: string;
+  source: VsiEvaluationSource;
+}
+
+function isValidEvaluation(e: unknown): e is VsiEvaluation {
+  if (!e || typeof e !== "object") return false;
+  const r = e as Record<string, unknown>;
+  return (
+    typeof r.value === "number" &&
+    Number.isFinite(r.value) &&
+    r.value >= 0 &&
+    r.value <= 100 &&
+    typeof r.at === "string" &&
+    Number.isFinite(Date.parse(r.at)) &&
+    typeof r.source === "string" &&
+    (ALL_SOURCES as readonly string[]).includes(r.source)
+  );
+}
+
+/**
+ * Lee un registro de evaluaciones de forma defensiva (viene de jsonb/localStorage):
+ * descarta entradas sin valor, sin fecha parseable o con origen desconocido, y
+ * devuelve el resto ordenado por fecha ascendente (orden estable).
+ */
+export function parseVsiEvaluations(raw: unknown): VsiEvaluation[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(isValidEvaluation)
+    .map((e) => ({ value: e.value, at: e.at, source: e.source }))
+    .map((e, i) => ({ e, i, t: Date.parse(e.at) }))
+    .sort((a, b) => a.t - b.t || a.i - b.i)
+    .map(({ e }) => e);
+}
+
+/**
+ * Añade una evaluación al registro. El registro previo se sanea (entradas inválidas
+ * fuera). `at` por defecto = ahora. Pura: no muta `previous`.
+ */
+export function appendVsiEvaluation(
+  previous: unknown,
+  value: number,
+  source: VsiEvaluationSource,
+  at: string = new Date().toISOString(),
+): VsiEvaluation[] {
+  const next = [...parseVsiEvaluations(previous), { value, at, source }];
+  return parseVsiEvaluations(next);
+}
+
+// ── Variación entre las dos últimas evaluaciones reales ──────────────────────
+
+/** Motivo de bloqueo en forma de código (la UI lo traduce; `gate_reason` es el texto canónico). */
+export type VsiDeltaGateCode =
+  | "no_evaluations"
+  | "single_evaluation"
+  | "legacy_undated"
+  | "same_instant"
+  | "current_mismatch";
+
+export const VSI_DELTA_GATE_REASONS: Record<VsiDeltaGateCode, string> = {
+  no_evaluations: "sin evaluaciones del entrenador con fecha y origen registradas",
+  single_evaluation: "solo hay una evaluación con fecha; hace falta una segunda para calcular la variación",
+  legacy_undated: "historial anterior sin fecha ni origen",
+  same_instant: "las dos últimas evaluaciones tienen la misma fecha",
+  current_mismatch: "el VSI actual no coincide con la última evaluación registrada",
+};
+
+/**
+ * Variación del VSI de ficha como MetricResult (DERIVADA) + la trazabilidad que la
+ * hace legible: qué dos evaluaciones compara y de qué fechas. Se persiste tal cual en
+ * `scout_insights.context_data.vsi_delta`.
+ */
+export interface VsiDelta extends MetricResult<number> {
+  from_at: string | null;
+  to_at: string | null;
+  from_value: number | null;
+  to_value: number | null;
+  gate_code: VsiDeltaGateCode | null;
+}
+
+export const VSI_DELTA_SOURCE_REF = "src/lib/scoring/vsiDelta.ts#computeVsiDelta";
+const UNITS = "pts";
+
+/** Redondeo a 1 decimal: la misma precisión con la que calculateFichaVsi emite el VSI. */
+function round1(x: number): number {
+  return Math.round(x * 10) / 10;
+}
+
+function blocked(code: VsiDeltaGateCode): VsiDelta {
+  return {
+    ...gated<number>(VSI_DELTA_GATE_REASONS[code], { units: UNITS, source_ref: VSI_DELTA_SOURCE_REF }),
+    from_at: null,
+    to_at: null,
+    from_value: null,
+    to_value: null,
+    gate_code: code,
+  };
+}
+
+function legacyLength(raw: unknown): number {
+  return Array.isArray(raw) ? raw.filter((v) => typeof v === "number" && Number.isFinite(v)).length : 0;
+}
+
+export interface VsiDeltaInput {
+  /** Registro `vsiEvaluations` del blob del jugador (jsonb/localStorage, sin validar). */
+  evaluations: unknown;
+  /** `vsiHistory` legacy (sin fechas ni origen). NUNCA entra en la cuenta: solo explica el bloqueo. */
+  legacyHistory?: unknown;
+  /**
+   * VSI actual del jugador. Si se pasa (número o null) y no coincide con la última
+   * evaluación registrada, la variación se bloquea: el VSI se movió por otra ruta
+   * (p.ej. el antiguo ajuste PHV) y la variación no describiría el valor mostrado.
+   * `undefined` = no comprobar.
+   */
+  currentVsi?: number | null;
+}
+
+/**
+ * Variación del VSI de ficha entre las dos ÚLTIMAS evaluaciones reales (origen
+ * persona, fecha conocida). value = última − penúltima, redondeada a 1 decimal.
+ * Sin dos evaluaciones reales ⇒ value null + gate_reason (nunca un 0, nunca el
+ * historial sin fechas).
+ *
+ * confidence = ORIENTATIVE_CONFIDENCE: la resta es exacta, pero sus dos entradas son
+ * valoraciones SUBJETIVAS del entrenador (sliders), no medidas.
+ */
+export function computeVsiDelta(input: VsiDeltaInput): VsiDelta {
+  const real = parseVsiEvaluations(input.evaluations).filter((e) =>
+    REAL_VSI_EVALUATION_SOURCES.includes(e.source),
+  );
+
+  if (real.length < 2) {
+    if (legacyLength(input.legacyHistory) >= 2) return blocked("legacy_undated");
+    return blocked(real.length === 1 ? "single_evaluation" : "no_evaluations");
+  }
+
+  const from = real[real.length - 2];
+  const to = real[real.length - 1];
+  if (Date.parse(to.at) === Date.parse(from.at)) return blocked("same_instant");
+
+  if (input.currentVsi !== undefined) {
+    const current = input.currentVsi;
+    if (current === null || !Number.isFinite(current) || round1(current) !== round1(to.value)) {
+      return blocked("current_mismatch");
+    }
+  }
+
+  return {
+    ...derived(round1(to.value - from.value), {
+      units: UNITS,
+      confidence: ORIENTATIVE_CONFIDENCE,
+      source_ref: VSI_DELTA_SOURCE_REF,
+    }),
+    from_at: from.at,
+    to_at: to.at,
+    from_value: from.value,
+    to_value: to.value,
+    gate_code: null,
+  };
+}
+
+/**
+ * Lee un `vsi_delta` persistido (context_data de scout_insights) de forma defensiva.
+ * Devuelve null si no tiene la forma de un VsiDelta (insights anteriores a este cambio).
+ */
+export function readVsiDelta(raw: unknown): VsiDelta | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  if (r.provenance !== "DERIVADA") return null;
+  const value = r.value;
+  if (value !== null && (typeof value !== "number" || !Number.isFinite(value))) return null;
+  const gateReason = typeof r.gate_reason === "string" && r.gate_reason.trim() !== "" ? r.gate_reason : null;
+  if (value === null && gateReason === null) return null;
+  const str = (v: unknown) => (typeof v === "string" ? v : null);
+  const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const code = str(r.gate_code);
+  const confidence = num(r.confidence);
+  return {
+    value: value as number | null,
+    provenance: "DERIVADA",
+    confidence: confidence !== null && confidence >= 0 && confidence <= 1 ? confidence : 0,
+    units: str(r.units),
+    calibrated: false,
+    gate_reason: gateReason,
+    source_ref: str(r.source_ref) ?? undefined,
+    from_at: str(r.from_at),
+    to_at: str(r.to_at),
+    from_value: num(r.from_value),
+    to_value: num(r.to_value),
+    gate_code: code && code in VSI_DELTA_GATE_REASONS ? (code as VsiDeltaGateCode) : null,
+  };
+}

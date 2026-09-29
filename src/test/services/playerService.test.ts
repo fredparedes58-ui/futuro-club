@@ -109,6 +109,35 @@ describe("PlayerService", () => {
       const result = await PlayerService.updateMetrics("no-existe", samplePlayer.metrics!);
       expect(result).toBeNull();
     });
+
+    it("registra cada evaluación con fecha y origen (vsiEvaluations) y permite una variación honesta", async () => {
+      const player = PlayerService.create(samplePlayer);
+      expect(player.vsiEvaluations).toHaveLength(1);
+      expect(player.vsiEvaluations![0]).toMatchObject({ value: player.vsi, source: "coach_form" });
+      expect(Number.isFinite(Date.parse(player.vsiEvaluations![0].at))).toBe(true);
+
+      const updated = await PlayerService.updateMetrics(player.id, { speed: 90, technique: 85, vision: 80, stamina: 75, shooting: 70, defending: 65 });
+      expect(updated!.vsiEvaluations).toHaveLength(2);
+      expect(updated!.vsiEvaluations![1]).toMatchObject({ value: updated!.vsi, source: "coach_form" });
+      // Persistido en localStorage (sobrevive recargas).
+      expect(PlayerService.getById(player.id)!.vsiEvaluations).toHaveLength(2);
+    });
+
+    it("jugador de ejemplo (isDemo): sus evaluaciones se marcan demo_seed, nunca como reales", async () => {
+      const demo = PlayerService.create({ ...samplePlayer, isDemo: true });
+      expect(demo.vsiEvaluations![0].source).toBe("demo_seed");
+      const upd = await PlayerService.updateMetrics(demo.id, samplePlayer.metrics!);
+      expect(upd!.vsiEvaluations!.every((e) => e.source === "demo_seed")).toBe(true);
+    });
+  });
+
+  describe("create sin métricas", () => {
+    it("alta sin evaluar ⇒ vsi null, sin evaluaciones", () => {
+      const { metrics: _m, ...noMetrics } = samplePlayer;
+      const p = PlayerService.create(noMetrics);
+      expect(p.vsi).toBeNull();
+      expect(p.vsiEvaluations).toEqual([]);
+    });
   });
 
   describe("updatePHV", () => {

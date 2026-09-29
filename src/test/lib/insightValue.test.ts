@@ -34,9 +34,10 @@ describe("splitMetricValue — desambigua 'valor (±delta)'", () => {
     });
   });
 
-  it("null/undefined/'' → placeholder, sin delta", () => {
-    expect(splitMetricValue(null)).toEqual({ base: "—", delta: null, up: true });
-    expect(splitMetricValue(undefined)).toEqual({ base: "—", delta: null, up: true });
-    expect(splitMetricValue("")).toEqual({ base: "—", delta: null, up: true });
+  it("null/undefined/''/espacios → base null (sin placeholder '—'), sin delta", () => {
+    expect(splitMetricValue(null)).toEqual({ base: null, delta: null, up: true });
+    expect(splitMetricValue(undefined)).toEqual({ base: null, delta: null, up: true });
+    expect(splitMetricValue("")).toEqual({ base: null, delta: null, up: true });
+    expect(splitMetricValue("   ")).toEqual({ base: null, delta: null, up: true });
   });
 });
