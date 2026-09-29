@@ -136,7 +136,7 @@ export function toSegmentStates(rows: readonly SegmentRow[]): SegmentState[] {
 }
 
 /**
- * → failed CONSERVANDO lo ya observado (presupuesto agotado, kill switch): los tramos
+ * → failed CONSERVANDO lo ya observado (presupuesto agotado, kill switch, despachos agotados): los tramos
  * abiertos pasan a skipped y se agrega la observación parcial (cobertura < 100 % con el
  * motivo de cada hueco). Los tramos hechos nunca se refacturan.
  */
@@ -196,12 +196,21 @@ export type DispatchOutcome =
 /**
  * Despacha (awaiting_encode) o re-despacha (epoch caducado) un job. CAS sobre
  * (status, dispatch_epoch): si otra invocación ya lo movió, `conflict` y no se lanza nada.
+ * `fileLost`: Gemini ya dijo que el fichero no está (files.get 404 / file_unavailable)
+ * aunque la BD lo tenga adjunto y sin caducar ⇒ se trata como no utilizable y se
+ * re-transcodifica; conservarlo haría chocar al siguiente worker con el mismo 404 hasta
+ * dispatch_exhausted. Agotados los despachos, lo ya observado (y facturado) se conserva.
  */
-export async function dispatchJob(job: MatchJobRow, reason: string, now = new Date()): Promise<DispatchOutcome> {
+export async function dispatchJob(
+  job: MatchJobRow,
+  reason: string,
+  now = new Date(),
+  opts: { fileLost?: boolean } = {},
+): Promise<DispatchOutcome> {
   if (job.dispatch_attempts >= MATCH_MAX_DISPATCH_ATTEMPTS) {
-    return { kind: "failed", job: await failJob(job, "dispatch_exhausted", { now }) };
+    return { kind: "failed", job: await failJobKeepingPartial(job, "dispatch_exhausted", { now }) };
   }
-  const fileUsable = isFileUsable(job, now);
+  const fileUsable = !opts.fileLost && isFileUsable(job, now);
   const target: MatchJobStatus | null = job.status === "awaiting_encode" ? "dispatched" : redispatchTarget(job.status, fileUsable);
   if (target === null) return { kind: "not_dispatchable" };
   if (target !== job.status) assertTransition(job.status, target);
@@ -250,7 +259,7 @@ export async function dispatchJob(job: MatchJobRow, reason: string, now = new Da
     { epoch },
   );
   if ((after ?? updated).dispatch_attempts >= MATCH_MAX_DISPATCH_ATTEMPTS) {
-    return { kind: "failed", job: await failJob(after ?? updated, "dispatch_exhausted", { now }) };
+    return { kind: "failed", job: await failJobKeepingPartial(after ?? updated, "dispatch_exhausted", { now }) };
   }
   return { kind: "spawn_failed", epoch, reason: spawn.reason, job: after };
 }

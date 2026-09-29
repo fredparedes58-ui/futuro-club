@@ -171,6 +171,7 @@ afterEach(() => {
   delete process.env.MATCH_VIDEO_ENABLED;
   delete process.env.GEMINI_API_KEY;
   delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.BUNNY_CDN_HOSTNAME;
 });
 
 describe("dispatchJob", () => {
@@ -339,6 +340,112 @@ describe("advance · observing", () => {
     await advanceJob(job());
     expect(job().status).toBe("aggregating");
     expect(files.deleteFile).toHaveBeenCalledWith("files/abc");
+  });
+});
+
+describe("advance · Gemini says the file is gone while the DB still has it attached (not deleted, not expiring)", () => {
+  const DONE_RESULT = { observation: segObs({ evidence: [{ t_start: 10, t_end: 20, team: "home", category: "build_up", text: "Salida corta" }] }), visual_basis: "confirmed", time_base_applied: "absolute", guard: { keys_stripped: 0, items_dropped: 0 }, malformed_dropped: 0, out_of_range_dropped: 0 };
+  const lostFileJob = (status: "observing" | "gemini_processing", over: Record<string, unknown> = {}) =>
+    seedJob({
+      status,
+      dispatch_epoch: 1,
+      dispatch_attempts: 1,
+      heartbeat_at: new Date().toISOString(),
+      proxy: { bytes: 5000, sha256: "b".repeat(64), durationSec: 1800, mime: "video/mp4" },
+      gemini_file_name: "files/abc",
+      gemini_file_uri: FILE_URI,
+      gemini_file_display_name: geminiDisplayName(JOB_ID, 1),
+      gemini_file_expires_at: new Date(Date.now() + 40 * 3600_000).toISOString(),
+      segments_total: 2,
+      ...over,
+    });
+  const seedDoneAndPending = () =>
+    db.segs.set(JOB_ID, [0, 1].map((idx) => ({ match_analysis_id: JOB_ID, idx, start_sec: idx * 900, end_sec: (idx + 1) * 900, status: idx === 0 ? "done" : "pending", attempts: idx === 0 ? 1 : 0, invalid_attempts: 0, cost_usd: idx === 0 ? 0.05 : 0, lease_until: null, lease_epoch: idx === 0 ? 1 : null, result: idx === 0 ? DONE_RESULT : null, error: null })));
+  const FILE_404 = { ok: false, kind: "file_unavailable", status: 404, usage: null, message: "HTTP 404" };
+
+  /** Re-despachado a `dispatched` con los campos del fichero limpios: el siguiente worker re-transcodifica. */
+  async function expectRetranscode() {
+    expect(job()).toMatchObject({
+      status: "dispatched",
+      dispatch_epoch: 2,
+      dispatch_attempts: 2,
+      proxy: null,
+      gemini_file_name: null,
+      gemini_file_uri: null,
+      gemini_file_display_name: null,
+      gemini_file_expires_at: null,
+      gemini_file_deleted_at: null,
+    });
+    expect(spawnMatchWorker).toHaveBeenCalledTimes(1);
+    expect(spawnMatchWorker).toHaveBeenCalledWith({ jobId: JOB_ID, epoch: 2 });
+    expect(files.deleteFile).toHaveBeenCalledWith("files/abc"); // best effort: 404 = ya no está
+    // The billed segment is kept as is and will never be asked again.
+    expect(segs()[0]).toMatchObject({ status: "done", attempts: 1, result: DONE_RESULT });
+    // The epoch-2 worker transcodes again instead of advancing on the dead file.
+    process.env.BUNNY_CDN_HOSTNAME = "vz-test.b-cdn.net";
+    expect(await stepBegin(job(), 2)).toMatchObject({ ok: true, data: { action: "transcode", epoch: 2 } });
+    expect(job().status).toBe("preparing");
+  }
+
+  it("observing + generateContent file_unavailable → dispatched (re-transcode), done segments kept, the lost segment back to pending without spending an attempt", async () => {
+    lostFileJob("observing");
+    seedDoneAndPending();
+    generateJson.mockResolvedValueOnce(FILE_404);
+    expect(await advanceJob(job())).toEqual({ kind: "superseded" });
+    expect(segs()[1]).toMatchObject({ status: "pending", attempts: 0, result: null });
+    await expectRetranscode();
+
+    // Full resume on a NEW upload: only the pending segment is asked (and billed) again.
+    const NEW_URI = "https://generativelanguage.googleapis.com/v1beta/files/new";
+    const proxy = { bytes: 6000, sha256: "c".repeat(64), durationSec: 1800 };
+    expect(await stepUploadSession(job(), { op: "upload_session", jobId: JOB_ID, epoch: 2, mime: "video/mp4", ...proxy })).toMatchObject({ ok: true });
+    files.getFile.mockResolvedValueOnce({ ok: true, file: { name: "files/new", displayName: geminiDisplayName(JOB_ID, 2), sizeBytes: "6000", uri: NEW_URI, state: "PROCESSING" } });
+    await stepProxyReady(job(), { op: "proxy_ready", jobId: JOB_ID, epoch: 2, file: { name: "files/new", uri: NEW_URI }, ...proxy });
+    expect(job()).toMatchObject({ status: "gemini_processing", gemini_file_name: "files/new" });
+    files.getFile.mockResolvedValueOnce({ ok: true, file: { name: "files/new", state: "ACTIVE", uri: NEW_URI } });
+    await advanceJob(job());
+    expect(job()).toMatchObject({ status: "observing", segments_total: 2 });
+    generateJson.mockResolvedValueOnce({ ok: true, json: segObs(), usage: VIDEO_USAGE, finishReason: "STOP", modelVersion: "m" });
+    await advanceJob(job());
+    expect(generateJson).toHaveBeenCalledTimes(2); // the lost call + the resumed segment 1, never segment 0 again
+    expect(JSON.stringify(generateJson.mock.calls[1][0])).toContain(NEW_URI);
+    expect(segs().map((s) => s.status)).toEqual(["done", "done"]);
+    expect(segs()[0]).toMatchObject({ attempts: 1, result: DONE_RESULT });
+  });
+
+  it("gemini_processing + files.get 404 → dispatched (re-transcode), done segments kept", async () => {
+    lostFileJob("gemini_processing");
+    seedDoneAndPending();
+    files.getFile.mockResolvedValueOnce({ ok: false, status: 404 });
+    expect(await advanceJob(job())).toEqual({ kind: "superseded" });
+    expect(generateJson).not.toHaveBeenCalled();
+    expect(segs()[1]).toMatchObject({ status: "pending", attempts: 0 });
+    await expectRetranscode();
+  });
+
+  it("with no dispatch left the job fails dispatch_exhausted KEEPING the billed segments (partial observation, honest coverage)", async () => {
+    lostFileJob("observing", { dispatch_attempts: 3 });
+    seedDoneAndPending();
+    generateJson.mockResolvedValueOnce(FILE_404);
+    expect(await advanceJob(job())).toMatchObject({ kind: "state", state: "failed" });
+    expect(spawnMatchWorker).not.toHaveBeenCalled();
+    expect(job()).toMatchObject({ status: "failed", reservation_usd: 0, error: { code: "dispatch_exhausted" }, segments_done: 1, report_gate: null });
+    expect(segs().map((s) => s.status)).toEqual(["done", "skipped"]);
+    const obs = job().observation as { coverage: { analysed_fraction: { value: number } } };
+    expect(obs.coverage.analysed_fraction.value).toBe(0.5);
+  });
+
+  it("the spawn-failure exit to dispatch_exhausted also keeps the billed segments", async () => {
+    lostFileJob("observing", { dispatch_epoch: 2, dispatch_attempts: 2, heartbeat_at: new Date(Date.now() - 3600_000).toISOString() });
+    seedDoneAndPending();
+    spawnMatchWorker.mockResolvedValueOnce({ ok: false, reason: "http_500" });
+    const out = await dispatchJob(job(), "stale_heartbeat");
+    expect(out.kind).toBe("failed");
+    expect(job()).toMatchObject({ status: "failed", dispatch_attempts: 3, error: { code: "dispatch_exhausted" }, segments_done: 1 });
+    expect(segs().map((s) => s.status)).toEqual(["done", "skipped"]);
+    const obs = job().observation as { coverage: { analysed_fraction: { value: number } } };
+    expect(obs.coverage.analysed_fraction.value).toBe(0.5);
+    expect(spend.recorded).toEqual([]); // a failed spawn is never billed
   });
 });
 

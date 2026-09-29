@@ -78,8 +78,9 @@ export async function jobNameGuard(job: MatchJobRow): Promise<NameGuard> {
   return buildNameGuard({ notes: job.notes, rosterNames: roster, exclude });
 }
 
+/** Fichero Gemini perdido/caducado ⇒ re-despacho a `dispatched` (re-transcode); los tramos hechos se conservan. */
 async function redispatchLostFile(job: MatchJobRow, now: Date): Promise<AdvanceReply> {
-  const out = await dispatchJob(job, "gemini_file_lost", now);
+  const out = await dispatchJob(job, "gemini_file_lost", now, { fileLost: true });
   if (out.kind === "failed") return reply(out.job?.status ?? "failed", 0);
   // Epoch nuevo (o conflicto: otro ya lo re-despachó) ⇒ este worker queda obsoleto.
   return { kind: "superseded" };
