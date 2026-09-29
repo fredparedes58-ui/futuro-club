@@ -77,3 +77,41 @@ describe("069 · backfill del PHV persistido", () => {
     expect(sql).toMatch(/primero desplegar el código de este PR, DESPUÉS aplicar/);
   });
 });
+
+/**
+ * CREATE OR REPLACE VIEW REEMPLAZA las opciones de la vista con las que lista el
+ * statement (ninguna si no hay WITH). Si 072 (security_invoker = true + REVOKE)
+ * ya está aplicada, re-ejecutar 069 dejaba la vista con derechos del DUEÑO
+ * (salta la RLS de player_anthropometrics). Visto en una SIMULACIÓN PGlite 18.3
+ * (no en producción). 069 debe re-fijar security_invoker en la misma transacción,
+ * condicionado a PG15+ (la versión de Postgres de producción no está verificada;
+ * un WITH sin condición abortaría 069 entero en PG<15).
+ */
+describe("069 · la vista player_latest_anthropometrics no vuelve a derechos de dueño", () => {
+  const VIEW = "public.player_latest_anthropometrics";
+  const createRe = new RegExp(`CREATE OR REPLACE VIEW ${VIEW.replace(".", "\\.")}\\b`, "g");
+  const alterRe =
+    /DO \$\$\s*BEGIN\s*IF current_setting\('server_version_num'\)::int >= 150000 THEN\s*EXECUTE 'ALTER VIEW public\.player_latest_anthropometrics SET \(security_invoker = true\)';\s*END IF;\s*END \$\$;/;
+
+  it("re-fija security_invoker (PG15+) después del ÚLTIMO CREATE OR REPLACE de la vista y antes del COMMIT", () => {
+    const creates = [...code.matchAll(createRe)].map((m) => m.index ?? -1);
+    expect(creates.length).toBeGreaterThan(0);
+    const alter = code.match(alterRe);
+    expect(alter).not.toBeNull();
+    const alterAt = alter?.index ?? -1;
+    expect(alterAt).toBeGreaterThan(Math.max(...creates));
+    expect(alterAt).toBeLessThan(code.lastIndexOf("COMMIT;"));
+    // Sin WITH (...) en el CREATE: en PG<15 security_invoker no existe y abortaría 069.
+    expect(code).not.toMatch(/CREATE OR REPLACE VIEW public\.player_latest_anthropometrics\s+WITH\b/);
+  });
+
+  it("no concede lectura de la vista a anon/authenticated/PUBLIC (el REVOKE es de 072)", () => {
+    expect(code).not.toMatch(/GRANT[^;]*ON[^;]*player_latest_anthropometrics[^;]*TO[^;]*(anon|authenticated|PUBLIC)/i);
+    expect(code).not.toMatch(/security_invoker\s*=\s*false/i);
+  });
+
+  it("documenta para el operador la relación con 072 al re-ejecutar 069", () => {
+    expect(sql).toMatch(/072/);
+    expect(sql).toMatch(/security_invoker/);
+  });
+});

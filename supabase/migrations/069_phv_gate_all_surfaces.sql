@@ -23,6 +23,27 @@
 --      antiguas quedan con age_source NULL ⇒ NO fiables para PHV (se conservan
 --      como histórico de medidas). La vista player_latest_anthropometrics añade
 --      ambas columnas AL FINAL (CREATE OR REPLACE: se conservan grants).
+--      1b) CREATE OR REPLACE VIEW NO conserva las OPCIONES de la vista: las
+--      reemplaza por las del statement (ninguna). Si 072 (rama
+--      fix/revoke-definer-rpc-execute: security_invoker = true + REVOKE a
+--      anon/authenticated) ya estaba aplicada, re-ejecutar 069 devolvía la vista a
+--      derechos del DUEÑO (salta la RLS de player_anthropometrics). Por eso 069
+--      re-fija security_invoker = true justo después, en la misma transacción,
+--      solo en PG15+ (antes la opción no existe; un WITH sin condición abortaría
+--      069 entero). Los REVOKE de 072 sobreviven al CREATE OR REPLACE (la ACL se
+--      conserva). VERIFICADO SOLO EN SIMULACIÓN (PGlite 18.3; cadena 000-066, en
+--      la que 7 ficheros ajenos fallan en PGlite; + 069 + borrador de 072 + 069
+--      otra vez): tras la re-ejecución la vista sigue con security_invoker=true,
+--      anon/authenticated sin SELECT, service_role lee sus filas y el backfill (3)
+--      conserva el PHV respaldado por una fila fiable, también ejecutando 069 con
+--      un rol dueño sin superusuario ni BYPASSRLS. Verificado en el
+--      código (grep): los 7 lectores de la vista (api/agents/_pipeline-
+--      orchestrator, api/crons/process-analyses-queue, api/pipeline/_gemini-
+--      analyze, api/players/{anthropometrics,baseline-analysis,phv-window-plan},
+--      api/transfer/_create-listing) usan SUPABASE_SERVICE_ROLE_KEY y ningún
+--      código de src/ la lee. NO VERIFICADO: versión de Postgres, grants y
+--      reloptions de producción. En PG<15 este paso no hace nada y lo único que
+--      cierra la vista a anon/authenticated es el REVOKE de 072.
 --   2) sync_player_columns_from_jsonb(): deja de copiar phv_category/phv_offset
 --      desde el blob (resto de columnas byte-idéntico a 059) y solo deja
 --      cambiarlas a escrituras service_role. Esas columnas pasan a ser propiedad
@@ -49,6 +70,9 @@
 -- fiable ⇒ PHV oculto). Aplicarla antes deja al código antiguo re-escribir
 -- players.phv_category desde el blob con service_role; si ocurrió, basta con
 -- volver a ejecutarla tras el despliegue.
+-- CON 072: el orden previsto es 069 y después 072. Si 072 ya está aplicada y se
+-- vuelve a ejecutar 069, ver 1b): en PG15+ 069 re-fija security_invoker y los
+-- REVOKE de 072 se conservan (simulación PGlite; en producción no verificado).
 --   4) scout_insights: + archived_at / archived_reason (archivo de SISTEMA,
 --      distinto del is_archived que pulsa el usuario) y se archivan las filas
 --      creadas ANTES de #156 que mencionan maduración/PHV en su texto visible.
@@ -76,7 +100,8 @@ COMMENT ON COLUMN public.player_anthropometrics.phv_gate_reason IS
   'Motivo por el que el PHV de esta medición es NULL (p.ej. ''Falta: fecha de nacimiento del jugador'').';
 
 -- Mismas columnas y orden que 053 + las dos nuevas AL FINAL (permitido por
--- CREATE OR REPLACE VIEW; no hace falta DROP y se conservan los permisos).
+-- CREATE OR REPLACE VIEW; no hace falta DROP y se conservan los permisos, pero
+-- NO las opciones de la vista: ver 1b justo debajo).
 CREATE OR REPLACE VIEW public.player_latest_anthropometrics AS
 SELECT DISTINCT ON (player_id)
   id,
@@ -96,6 +121,22 @@ SELECT DISTINCT ON (player_id)
   phv_gate_reason
 FROM public.player_anthropometrics
 ORDER BY player_id, measured_at DESC;
+
+-- 1b) El CREATE OR REPLACE de arriba acaba de BORRAR las opciones de la vista
+-- (p.ej. security_invoker = true puesto por 072; visto en simulación PGlite
+-- 18.3 con el 069 anterior a este cambio). Se re-fija aquí para que 069
+-- nunca deje la vista con derechos del dueño. PG15+ solo; EXECUTE para que en
+-- PG<15 el bloque no llegue a analizar la opción y 069 no se aborte.
+-- El backfill (3) lee esta vista como quien ejecuta la migración, que tiene que
+-- ser su dueño (o miembro del rol dueño) para poder hacer el CREATE OR REPLACE:
+-- con o sin security_invoker se comprueban los derechos de ese mismo rol
+-- (simulación PGlite con un dueño sin BYPASSRLS: mismo resultado del backfill).
+DO $$
+BEGIN
+  IF current_setting('server_version_num')::int >= 150000 THEN
+    EXECUTE 'ALTER VIEW public.player_latest_anthropometrics SET (security_invoker = true)';
+  END IF;
+END $$;
 
 COMMENT ON VIEW public.player_latest_anthropometrics IS
   'Última medida antropométrica por jugador (+ age_source / phv_gate_reason, 069).';
