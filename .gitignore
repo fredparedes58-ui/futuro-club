@@ -53,6 +53,12 @@ public/ort-wasm-*.mjs
 .vercel
 scripts/data/kaggle/
 
+# Clips de validación del partido completo (menores): el vídeo nunca se versiona
+fixtures/partido/**/*.mp4
+fixtures/partido/**/*.mov
+fixtures/partido/**/*.mkv
+fixtures/partido/**/*.webm
+
 # Python bytecode
 __pycache__/
 *.py[cod]

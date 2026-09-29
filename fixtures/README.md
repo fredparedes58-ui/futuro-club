@@ -30,10 +30,14 @@ fixtures/
 │   ├── README.md             ← protocolo + formato
 │   ├── _plantilla/           ← plantillas vacías para copiar (NO son datos)
 │   └── <clip_id>/            ← un directorio por clip anotado (lo crea la persona)
-└── golden/                   ← G2/G3/G4: distancia, duelos, VSI (clip de referencia)
-    ├── README.md             ← protocolo + formato
+├── golden/                   ← G2/G3/G4: distancia, duelos, VSI (clip de referencia)
+│   ├── README.md             ← protocolo + formato
+│   ├── _plantilla/           ← plantillas vacías
+│   └── <clip_id>/            ← un directorio por clip de referencia anotado
+└── partido/                  ← GT10: eventos de equipo anotados (activa el partido completo)
+    ├── README.md             ← protocolo + formato (lo puntúa scripts/validate-match-observation.mjs)
     ├── _plantilla/           ← plantillas vacías
-    └── <clip_id>/            ← un directorio por clip de referencia anotado
+    └── <clip_id>/            ← clip.meta.json + eventos.json (el vídeo NO se versiona)
 ```
 
 Los directorios `_plantilla/` **nunca** cuentan como fixture real: el validador los

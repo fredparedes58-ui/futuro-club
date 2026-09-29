@@ -226,13 +226,16 @@ primer worker recibe `epoch = 1`). Toda op por job lleva `{jobId, epoch}`; si
 El re-despacho es ortogonal a la tabla:
 - `preparing | uploading` → `dispatched` (se rehace el transcode);
 - `gemini_processing | observing` → `dispatched` **solo** si el fichero Gemini
-  caducó (48 h) o se perdió; los tramos hechos se conservan y **no se refacturan**;
+  caducó (48 h) o se perdió (también cuando Gemini responde 404 / `file_unavailable`
+  aunque la BD aún lo tenga adjunto y sin caducar: se limpian sus campos y se
+  re-transcodifica); los tramos hechos se conservan y **no se refacturan**;
 - `dispatched | gemini_processing | observing | aggregating | reporting` con el
   fichero aún `ACTIVE` → mismo estado, `epoch++`, y `begin` responde
   `action: "advance"` (se salta el transcode).
 
 Máximo `MATCH_MAX_DISPATCH_ATTEMPTS = 3` despachos por job; al agotarse,
-`failed: dispatch_exhausted`.
+`failed: dispatch_exhausted` conservando lo ya observado (los tramos hechos, ya
+facturados, se agregan con su cobertura real; los abiertos pasan a `skipped`).
 
 **Etapas de UI** (`MATCH_STATUS_TO_STAGE`): `encoding` («Bunny procesando, puede
 tardar horas») → `preparing` («Preparando vídeo») → `analysing` («Analizando tramo
@@ -636,11 +639,15 @@ vídeo, equipo `home | away | ambiguous`, categoría, texto en el locale del job
   `gemini_file_deleted_at`. Aceptación: `files.get` → 404.
 - `proxy_ready` de un epoch obsoleto: Vercel borra **ese** fichero en el acto.
 - **Barrido** en cada tick: `files.list` y, para cada `displayName` con prefijo
-  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`), se borra si el job
-  es terminal o no existe, si el epoch no es el vigente, o si tiene más de 24 h y
-  no pertenece a un job vivo. No depende del estado de BD: caza huérfanos de epochs
-  que murieron. (Gemini borra solo a las 48 h de todos modos:
-  https://ai.google.dev/gemini-api/docs/files.)
+  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`): **nunca** se borra
+  un fichero ADJUNTO a un job vivo (no terminal y `gemini_file_name` = ese fichero),
+  sea cual sea el epoch de su `displayName` — un re-despacho que conserva el fichero
+  sube el epoch a N+1 pero el fichero se llamó `-N` al subirse, y borrarlo rompería
+  la reanudación sin re-transcode. Cualquier otro se borra si el job es terminal o
+  no existe, si el epoch no es el vigente, o si tiene más de 24 h. Caza huérfanos de
+  epochs que murieron. (Gemini borra solo a las 48 h de todos modos:
+  https://ai.google.dev/gemini-api/docs/files.) Implementación única:
+  `shouldSweepGeminiFile` en `api/_lib/matchJob/driver.ts`.
 
 ---
 
