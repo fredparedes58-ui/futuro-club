@@ -14,7 +14,32 @@ invariantes). Donde chocaban, gana la revisión.
 
 ## 0. Decisiones del owner (cerradas)
 
-1. **Se construye y se activa ya.** La función queda detrás de
+> **Actualización 2026-09-29 (sustituye a la decisión 1 en lo que choque).** Un spike
+> sobre un partido real del owner (Veo follow-cam, sub-10 fútbol 8, tramo de 15 min)
+> mostró que Gemini 2.5 Flash viendo el vídeo a 1 fps **fabrica** eventos de equipo: 0
+> de 5 tiros citados existían en el segundo citado (verificado con fotogramas), los
+> eventos llegaban en pasos plantilla de ~10 s, la posesión salió 50/50 a LOW y citó
+> dorsales inexistentes («#11» en un equipo sin números). Decisión: **se construye
+> toda la infraestructura de la Fase 1 pero el análisis queda APAGADO hasta que pase
+> una validación** (§20):
+> - `MATCH_VIDEO_ENABLED` está apagado por defecto: solo el string exacto `"true"` lo
+>   enciende. Apagado ⇒ `POST /api/match/start` responde `503 match_video_disabled`
+>   con el motivo «análisis de partido completo en validación» (en el locale pedido) y
+>   `GET /api/match/availability` devuelve `enabled:false` para que la UI muestre la
+>   ruta de vídeo como **«En validación»** (deshabilitada, con el motivo) y deje el
+>   informe con notas funcionando. Si se apaga con jobs en vuelo, el protocolo step
+>   los detiene (`failed: analysis_disabled`, sin gasto nuevo, conservando lo ya
+>   observado) y el tick sigue barriendo ficheros de Gemini.
+> - Motor configurable y medible: longitud de tramo, fps enviados a Gemini
+>   (`videoMetadata.fps` = `geminiVideoFps`, default 1, «pendiente de validar») y
+>   resolución, todo en `config/matchVideo.json` con `_source`.
+> - Arnés de validación `scripts/validate-match-observation.mjs` (§20).
+> - La guarda de identidad descarta también cualquier texto que mencione números de
+>   camiseta o a un solo jugador (§7).
+> - La posesión sigue siendo `ESTIMADA_LLM` con su propio gate de baja confianza (§8).
+
+1. **Se construye y se activa ya** *(activación sustituida por la actualización de
+   arriba: se activa solo tras la validación)*. La función queda detrás de
    `MATCH_VIDEO_ENABLED === "true"` en el servidor **y** exige una casilla de
    declaración del entrenador:
    > «Declaro que tengo el consentimiento y los derechos para analizar este vídeo»
@@ -75,8 +100,8 @@ flowchart LR
   end
   subgraph Modal["Modal · vitas-match-worker (sin claves de terceros)"]
     MS[match_start]
-    RJ[run_match_job<br/>cpu=2 · 4 GiB]
-    DR[drive_match_job<br/>cpu=0.25 · 1 GiB]
+    RJ[transcode_and_upload<br/>cpu=2 · 4 GiB]
+    DR[drive<br/>cpu=0.25 · 1 GiB]
     TK[tick<br/>modal.Period 5 min]
   end
   UI -- TUS --> BUNNY[(Bunny Stream)]
@@ -101,7 +126,7 @@ flowchart LR
 | `BUNNY_STREAM_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | sí | no | no |
 | `MODAL_API_KEY` (= `API_KEY` en Modal) | sí | sí | no |
 | `MODAL_CALLBACK_SECRET` | sí | sí | no |
-| `VITAS_MATCH_STEP_URL` | — | sí (el worker **nunca** toma la URL de la petición) | — |
+| `VITAS_PUBLIC_URL` (step URL = `+ /api/match/step`) o `VITAS_MATCH_STEP_URL` (URL completa, tiene prioridad) | — | sí (el worker **nunca** toma la URL de la petición) | — |
 | `BUNNY_CDN_HOSTNAME` (+ `VIDEO_URL_EXTRA_HOSTS`) | sí | sí (allowlist de hosts de origen, ya exigida por #288) | — |
 
 La URL de subida reanudable de Gemini es una **URL de capacidad** que acuña
@@ -201,13 +226,16 @@ primer worker recibe `epoch = 1`). Toda op por job lleva `{jobId, epoch}`; si
 El re-despacho es ortogonal a la tabla:
 - `preparing | uploading` → `dispatched` (se rehace el transcode);
 - `gemini_processing | observing` → `dispatched` **solo** si el fichero Gemini
-  caducó (48 h) o se perdió; los tramos hechos se conservan y **no se refacturan**;
+  caducó (48 h) o se perdió (también cuando Gemini responde 404 / `file_unavailable`
+  aunque la BD aún lo tenga adjunto y sin caducar: se limpian sus campos y se
+  re-transcodifica); los tramos hechos se conservan y **no se refacturan**;
 - `dispatched | gemini_processing | observing | aggregating | reporting` con el
   fichero aún `ACTIVE` → mismo estado, `epoch++`, y `begin` responde
   `action: "advance"` (se salta el transcode).
 
 Máximo `MATCH_MAX_DISPATCH_ATTEMPTS = 3` despachos por job; al agotarse,
-`failed: dispatch_exhausted`.
+`failed: dispatch_exhausted` conservando lo ya observado (los tramos hechos, ya
+facturados, se agregan con su cobertura real; los abiertos pasan a `skipped`).
 
 **Etapas de UI** (`MATCH_STATUS_TO_STAGE`): `encoding` («Bunny procesando, puede
 tardar horas») → `preparing` («Preparando vídeo») → `analysing` («Analizando tramo
@@ -266,6 +294,13 @@ Sustituye el sondeo de `api/videos/_status.ts`, que no comprueba propiedad.
 Respuesta: `matchJobStatusResponseSchema` → `job`, `progress`, `encode`,
 `playback` (URL base del embed de Bunny acuñada en servidor), `coverage`,
 `observation`, `report`, `reportGate`, `error`, `cost {estimate, spend}`.
+
+### 5.2-bis `GET /api/match/availability?locale=` (solo lectura)
+
+`matchAvailabilityResponseSchema` → `{ enabled, code, reason }`. `code` =
+`match_video_disabled` (flag apagado: «en validación») o `real_inference_disabled`
+(flag encendido pero configuración incompleta); `reason` en el locale pedido. No lista
+nombres de variables. La UI lo consulta antes de ofrecer la ruta de vídeo.
 
 ### 5.3 `GET /api/match/list` · `POST /api/match/cancel`
 
@@ -369,23 +404,39 @@ Detalles vinculantes:
   `chunkGranularityBytes`); si falla, `query` → `X-Goog-Upload-Size-Received` →
   reanudar desde ese offset.
 - ffprobe debe cuadrar con `expectedDurationSec ± durationToleranceSec`; si no,
-  `fail {code:"duration_mismatch"}`.
-- Lógica mínima en Python. Los vectores HMAC viven en el test TS (CI solo corre
-  vitest); si el PR del worker añade tests pytest, debe añadir también el job de
-  pytest a `.github/workflows/ci.yml`.
+  `fail {code:"duration_mismatch"}`. Además: exactamente una pista h264 ≤ `maxHeight`
+  y **sin audio** (si no, no se sube).
+- **Continuidad** (verificado con ffmpeg 8.1: con un segmento HLS perdido ffmpeg sale
+  con 0 y el filtro `fps` rellena el hueco con fotogramas repetidos, así que la
+  duración cuadra): segmento HLS perdido → `source_unavailable`; más fotogramas
+  repetidos que `floor(fps × durationToleranceSec)` o sin estadísticas del filtro
+  → `transcode_failed`. Nunca llega a Gemini un proxy con imagen congelada.
+- Receta y comprobaciones en `vision-pipeline/match_proxy.py` (una sola
+  implementación: la usan el worker y el CLI local que genera el proxy del arnés de
+  validación). Restricciones para `config/matchVideo.json`: `fps` de Gemini
+  (`videoMetadata.fps`) ≤ `proxyFps`, y `durationToleranceSec` ≥ 1/`proxyFps`.
+- Lógica mínima en Python. Los vectores HMAC se comprueban en los tests TS **y**
+  en `vision-pipeline/test_match_worker.py` (Python `hmac`, cruzados con el
+  contrato para detectar deriva); el job `Python tests (vision-pipeline)` de
+  `.github/workflows/ci.yml` corre `python -m pytest vision-pipeline/test_*.py`
+  (httpx + pytest, sin Modal ni red).
 
 ### 6.5 Funciones Modal (`vision-pipeline/match_worker.py`, app `vitas-match-worker`)
 
 | Función | Recursos | Papel |
 |---|---|---|
-| `match_start` (web endpoint) | mínima | Bearer `API_KEY` con `hmac.compare_digest`; `spawn(run_match_job, jobId, epoch)`; responde `{status:"spawned", call_id}` |
-| `run_match_job` | `cpu=2`, `memory=4096`, `timeout=10800`, `retries=0` | begin → ffmpeg → heartbeat (hilo, 60 s) → upload_session → subida → proxy_ready → `spawn(drive_match_job)` |
-| `drive_match_job` | `cpu=0.25`, `memory=1024`, `timeout=10800`, `retries=0` | bucle `advance` hasta terminal / superseded (los cores reservados se facturan todo el tiempo de reloj: https://modal.com/pricing) |
-| `tick` | mínima, `modal.Period(minutes=5)` | op=tick firmada |
+| `match_start` (web endpoint) | `cpu=0.125`, 256 MiB | Bearer `API_KEY` con `hmac.compare_digest`; cuerpo estricto `{jobId, epoch}`; comprueba que el secret tiene lo necesario; `spawn(transcode_and_upload, jobId, epoch)`; responde `{status:"spawned", call_id}` |
+| `transcode_and_upload` | `cpu=(2, 2)`, `memory=4096`, `timeout=7200`, `retries=0`, `max_containers=2` | begin → allowlist + variante HLS → ffmpeg (receta de `match_proxy.py`) → heartbeat (hilo, 60 s) → continuidad + ffprobe → upload_session → subida → proxy_ready → `spawn(drive)` |
+| `drive` | `cpu=0.25`, `memory=1024`, `timeout=10800`, `retries=0` | bucle `advance` hasta terminal / superseded (los cores reservados se facturan todo el tiempo de reloj: https://modal.com/pricing) |
+| `tick` | `cpu=0.125`, 256 MiB, `modal.Period(minutes=5)`, `max_containers=1` | op=tick firmada |
+| `spike_proxy` (+ `modal run …::spike`) | como `transcode_and_upload`, `max_containers=1` | solo operador: allowlist + proxy en Modal desde una URL de Bunny, **sin Vercel ni Gemini** (puntos (e) y (h) del §18 con el análisis apagado; copia opcional del proxy para el arnés) |
 
-Imagen ligera (ffmpeg + httpx). Sin claves de Gemini, Supabase ni Bunny API.
-Allowlist de origen: reutilizar `video_host_policy` de `vision-pipeline/app.py`
-(#288), extraída a un módulo compartido (inv. #7), solo `https`.
+Imágenes ligeras (transcode: ffmpeg + httpx; resto: httpx + FastAPI). Sin claves
+de Gemini, Anthropic, Supabase ni Bunny API. Allowlist de origen: la de #288
+extraída a `vision-pipeline/video_url_guard.py` (inv. #7; `app.py` la importa),
+solo `https`; el worker valida también la variante y cada segmento/clave de la
+playlist antes de lanzar ffmpeg, y ffmpeg solo puede abrir `https,tls,tcp,crypto`.
+Despliegue y checklist del secret: `vision-pipeline/README.md`.
 
 ### 6.6 Despacho Vercel → Modal
 
@@ -400,8 +451,11 @@ registra gasto. Se guarda `modal_call_id`.
 ## 7. Gemini por tramo
 
 - `parts`: `fileData{fileUri, mimeType:"video/mp4"}` +
-  `videoMetadata{startOffset:"900s", endOffset:"1800s", fps: 1}` + prompt
-  `segment.v1`.
+  `videoMetadata{startOffset:"900s", endOffset:"1800s", fps: geminiVideoFps}` + prompt
+  `segment.v1`. La petición completa la construye **una sola función**
+  (`api/_lib/matchJob/segmentRequest.ts`), que usan el job y el arnés de validación:
+  lo validado es exactamente lo que corre. `geminiVideoFps` (default 1, «pendiente de
+  validar») nunca puede superar `proxyFps` (el loader de config lo exige).
 - `generationConfig`: `temperature 0`, `mediaResolution MEDIA_RESOLUTION_LOW`,
   `responseMimeType application/json`, `responseSchema =
   SEGMENT_GEMINI_RESPONSE_SCHEMA` (subconjunto OpenAPI; su aceptación por
@@ -421,9 +475,14 @@ registra gasto. Se guarda `modal_call_id`.
   `pressing` (altura e intensidad ordinales), `block`, `transitions`,
   `set_pieces`, `note`, y `evidence[{t_start, t_end, team, category, text}]`
   acotado. **Ningún campo individual.**
-- Tras la llamada: `identityGuard` (claves `INDIVIDUAL_LEVEL_KEYS` + texto
-  `INDIVIDUAL_TEXT_PATTERNS` + nombres de la plantilla del tenant y de las notas)
-  descarta y cuenta; zod; normalización de tiempos a **tiempo de vídeo absoluto**
+- Tras la llamada: si `usageMetadata.promptTokensDetails` existe y **no** trae tokens
+  `VIDEO`/`IMAGE`, la IA respondió sin ver el tramo → tramo fallido
+  (`no_visual_input`, como mucho 1 reintento), nada de él se usa. Después
+  `identityGuard` (claves `INDIVIDUAL_LEVEL_KEYS` + texto `INDIVIDUAL_TEXT_PATTERNS`
+  — dorsales, `#10`, «camiseta 7», «(10)», y desde el 2026-09-29 cualquier referencia
+  a **un solo jugador**: «el jugador», «a player», «el portero», «the striker», «their
+  captain» — + nombres de la plantilla del tenant y de las notas) descarta y cuenta;
+  zod; normalización de tiempos a **tiempo de vídeo absoluto**
   (la regla absoluto/relativo sale del spike (d), se aplica una vez); evidencias
   fuera de `[start, end]` se descartan; `finishReason MAX_TOKENS` o JSON inválido
   = tramo fallido con motivo (nunca parseo parcial; como mucho 1 reintento).
@@ -448,8 +507,19 @@ en metros, nada por jugador. PHV y bio-banding no se tocan.
   **Sigue siendo `ESTIMADA_LLM`** (una función determinista sobre entradas LLM no
   es `DERIVADA`). Sin tramos válidos → null + `no_usable_segments`.
   `possession_detail` declara los tramos usados y excluidos.
+- **Gate de baja confianza (actualización 2026-09-29).** El valor se conserva (es la
+  estimación del modelo) pero su confianza baja a `possessionLowConfidence` (config,
+  «pendiente de validar») y se declara el motivo
+  (`possession_detail.low_confidence[]`, `segments[*].possession_low_confidence`,
+  copiado al informe como `possession_low_confidence`):
+  - `no_visual_basis`: el tramo no tiene base visual confirmada (el `usageMetadata`
+    no confirma tokens de vídeo, o el tramo no cita ninguna evidencia);
+  - `uniform_output`: **todos** los tramos utilizables salieron 50/50 con dominio
+    «equilibrado» (o sin dominio): indistinguible de un valor por defecto.
+  La confianza agregada es la menor de los tramos usados; Claude recibe la advertencia
+  y no puede apoyar ninguna afirmación en la posesión.
 - UI: «Posesión estimada por IA 58 % – 42 %», con badge, nunca con estilo de
-  estadística oficial. Solapa con la métrica heredada `posesion`
+  estadística oficial; con bandera de baja confianza, el motivo al lado. Solapa con la métrica heredada `posesion`
   (`api/agents/team-observation.ts`, concepto `tactico.posesion`): concepto nuevo
   `partido.posesion.*`; la ruta heredada se retira en la Fase 2 (deuda anotada).
 
@@ -585,11 +655,15 @@ vídeo, equipo `home | away | ambiguous`, categoría, texto en el locale del job
   `gemini_file_deleted_at`. Aceptación: `files.get` → 404.
 - `proxy_ready` de un epoch obsoleto: Vercel borra **ese** fichero en el acto.
 - **Barrido** en cada tick: `files.list` y, para cada `displayName` con prefijo
-  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`), se borra si el job
-  es terminal o no existe, si el epoch no es el vigente, o si tiene más de 24 h y
-  no pertenece a un job vivo. No depende del estado de BD: caza huérfanos de epochs
-  que murieron. (Gemini borra solo a las 48 h de todos modos:
-  https://ai.google.dev/gemini-api/docs/files.)
+  `vitas-match-` (`parseGeminiDisplayName` → `{jobId, epoch}`): **nunca** se borra
+  un fichero ADJUNTO a un job vivo (no terminal y `gemini_file_name` = ese fichero),
+  sea cual sea el epoch de su `displayName` — un re-despacho que conserva el fichero
+  sube el epoch a N+1 pero el fichero se llamó `-N` al subirse, y borrarlo rompería
+  la reanudación sin re-transcode. Cualquier otro se borra si el job es terminal o
+  no existe, si el epoch no es el vigente, o si tiene más de 24 h. Caza huérfanos de
+  epochs que murieron. (Gemini borra solo a las 48 h de todos modos:
+  https://ai.google.dev/gemini-api/docs/files.) Implementación única:
+  `shouldSweepGeminiFile` en `api/_lib/matchJob/driver.ts`.
 
 ---
 
@@ -696,12 +770,16 @@ Supuestos Fase 1: proxy 360p a 1 fps, sin audio, `MEDIA_RESOLUTION_LOW`, tramos 
 
 `config/matchVideo.json` (cada valor con `_source`; sin fuente →
 `"pendiente de validar"` y confianza reducida):
-`segmentSec` 900 · `proxyFps` 1 · `proxyHeight` 360 · `proxyCrf` 30 ·
-`mediaResolution` LOW · `durationToleranceSec` 2 · `maxSegmentAttempts` 3 ·
+`segmentSec` 900 · `proxyFps` 1 · `geminiVideoFps` 1 (`videoMetadata.fps`,
+«pendiente de validar», ≤ `proxyFps`) · `proxyHeight` 360 · `proxyCrf` 30 ·
+`mediaResolution` LOW (`tokensPerFrameLow` 66 / `tokensPerFrameDefault` 258 solo para
+estimar coste) · `durationToleranceSec` 2 · `maxSegmentAttempts` 3 ·
 `thinkingBudget` · `maxOutputTokens` · `llmConfidence`,
-`llmConfidencePartialFactor`, `possessionConfidence`, `kitDeltaEWarn`,
-`staleHeartbeatSec`, `maxEncodeWaitHours` (todos `"pendiente de validar"`) ·
-`maxActiveJobsPerUser` 1 · `maxActiveJobsGlobal` 2.
+`llmConfidencePartialFactor`, `possessionConfidence`, `possessionLowConfidence`,
+`kitDeltaEWarn`, `staleHeartbeatSec`, `maxEncodeWaitHours` (todos `"pendiente de
+validar"`) · `maxActiveJobsPerUser` 1 · `maxActiveJobsGlobal` 2 ·
+`validationTimeToleranceSec` 5, `validationMinPrecision` 0,9,
+`validationMinRecall` 0,5 (arnés §20, «pendiente de validar»).
 
 `config/aiPricing.json`: Gemini 2.5 Flash ($0,30/M vídeo, $2,50/M salida, $1,00/M
 audio) y tier reasoning de Claude con su fallback, cada uno con URL y fecha.
@@ -717,7 +795,7 @@ El límite de duración **no** se duplica: `MAX_MATCH_DURATION_MIN` de
 |---|---|---|
 | **PR-0 (este)** | contrato + diseño + tests | — |
 | **PR-A backend** | migración `067_match_analyses.sql` (tablas, CHECK, índice único parcial, RLS SELECT-only), `api/match/[action].ts`, `api/_lib/matchJob/*` (plan, stateMachine, fencing, prompts/segment.v1, identityGuard, aggregate, citations, costing, dispatch, repo), `api/_lib/gemini/*`, extensiones de `budgetGuard`, `_teamReportCore.ts`, `baseline-analysis` a nodejs, delete-me + data-retention, `config/*.json`, registro de métricas, entradas en `docs/pendientes-metricas.md` | PR-0, #292 |
-| **PR-B worker** | `vision-pipeline/match_worker.py` (+ módulo de allowlist compartido, + job pytest en CI si añade tests) | PR-0 |
+| **PR-B worker** | `vision-pipeline/match_worker.py` + `match_proxy.py` (receta del proxy + CLI local) + `video_url_guard.py` (allowlist compartida) + `test_match_worker.py` + job pytest en CI | PR-0 |
 | **PR-C UI** | servicio, hook, componentes, páginas, `TeamReportView`, i18n ×7, CSP `player.mediadelivery.net`, fixture demo MOCK | PR-0 (mock del contrato hasta PR-A) |
 
 Integración: los tres contra este contrato; prueba E2E con un clip real tras el
@@ -735,18 +813,22 @@ spike.
    relativos al tramo?; (e) latencia PROCESSING→ACTIVE y tamaño real del proxy;
    (f) ¿funciona DELETE?; (g) ¿se rechaza el `start` sin Content-Length?; (h) ¿da
    403 el HLS de Bunny desde una IP de Modal? (y ruta exacta de la variante);
-   (i) estado real del límite y la tarjeta en Modal.
+   (i) estado real del límite y la tarjeta en Modal. (e) y (h) se miden sin activar
+   el análisis con `modal run vision-pipeline/match_worker.py::spike …`
+   (`vision-pipeline/README.md`).
 2. **Rotar credenciales C3** (`API_KEY` / `MODAL_API_KEY`, `MODAL_CALLBACK_SECRET`)
    antes de datos reales, en Vercel y en el secret `vitas-api-key`.
 3. **Modal**: método de pago + **límite de gasto del workspace $10/mes**; añadir
-   `VITAS_MATCH_STEP_URL` (y confirmar `BUNNY_CDN_HOSTNAME`) al secret
-   `vitas-api-key`; desplegar `vitas-match-worker` tras mergear PR-B; copiar la
-   URL de `match_start`.
+   `VITAS_PUBLIC_URL` (o `VITAS_MATCH_STEP_URL`) y confirmar `BUNNY_CDN_HOSTNAME`
+   en el secret `vitas-api-key`; desplegar `vitas-match-worker` tras mergear PR-B
+   **y** con PR-A ya desplegado (el tick llama a Vercel cada 5 min); copiar la URL
+   de `match_start`. Pasos exactos: `vision-pipeline/README.md`.
 4. **Vercel (futuro-club)**: `MODAL_MATCH_START_URL`,
    `GLOBAL_MONTHLY_BUDGET_USD=20`, clave Gemini **de pago** (Tier 1) en
    `GEMINI_API_KEY`, `BUNNY_WEBHOOK_SECRET` = API key de solo lectura de la
    librería (#292); `MATCH_VIDEO_ENABLED=true` **solo** cuando PR-A/B/C estén
-   mergeados, la migración aplicada y el spike hecho.
+   mergeados, la migración aplicada, el spike hecho **y el arnés de validación (§20)
+   apruebe varios partidos anotados a mano** (decisión del owner del 2026-09-29).
 5. **Vercel (vitas-demo)**: `MATCH_VIDEO_ENABLED` **sin definir**.
 6. **Supabase**: aplicar la migración `067` tras mergear PR-A.
 7. **Bunny**: URL del webhook, revisar token auth / referrer rules / embed token
@@ -774,3 +856,56 @@ spike.
   declara como limitación, sin deduplicación heurística.
 - Grabaciones 4K de 90 min (~30–34 GB) superan `MAX_UPLOAD_SIZE_MB`: decidir entre
   subir el tope o guiar la exportación a 1080p.
+
+---
+
+## 20. Validación del motor de observación (condición para activar)
+
+El análisis de partido completo queda **apagado** hasta que el motor de observación
+supere esta validación. No es un test de CI: lo corre el **operador** con clips reales
+anotados a mano y la clave de Gemini de su entorno local.
+
+```bash
+node --env-file=.env.local scripts/validate-match-observation.mjs \
+  --fixture fixtures/partido/<clip_id> [--clip proxy.mp4] [--start 0 --end 900] \
+  [--save-response raw.json] [--keep-file] [--json]
+node scripts/validate-match-observation.mjs --fixture fixtures/partido/<clip_id> --response raw.json
+node scripts/validate-match-observation.mjs --print-ffmpeg
+```
+
+- **Misma petición que producción**: el CLI carga con el module runner de Vite
+  `api/_lib/matchJob/validationHarness.ts`, que usa `buildSegmentGenerateRequest`
+  (prompt `segment.v1`, `SEGMENT_GEMINI_RESPONSE_SCHEMA`, `videoMetadata.fps =
+  geminiVideoFps`, `mediaResolution`, topes de thinking y salida), la misma
+  normalización (`visualBasisFromUsage`, `normalizeSegmentOutput` con la guarda de
+  identidad) y la misma agregación de posesión. Cambiar cualquier parámetro del motor
+  obliga a re-validar **todos** los clips.
+- **Fixture** (`fixtures/partido/README.md`): `clip.meta.json` (anotador, fecha,
+  duración, locale, categoría, colores declarados como los declararía el entrenador) y
+  `eventos.json` = `[{t, team: home|away, category}]` con `category` de
+  `EVIDENCE_CATEGORIES`. El vídeo no se versiona. `_plantilla/` se rechaza.
+- **Puntuación** (`api/_lib/matchJob/validation.ts`, pura y testeada): emparejamiento
+  uno a uno por categoría + equipo, instante anotado dentro de
+  `[t_start − tol, t_end + tol]` (`validationTimeToleranceSec`); precisión = aciertos /
+  evidencias citadas, exhaustividad = aciertos / anotados, por categoría y total. Una
+  evidencia `ambiguous` nunca acierta un evento de equipo (el modo sin equipo se
+  imprime solo como diagnóstico). Los eventos de tramos fallidos cuentan como no
+  encontrados.
+- **Veredicto**: sale **1** si alguna categoría (o el total) queda por debajo de
+  `validationMinPrecision` / `validationMinRecall` (config, «pendiente de validar»), o
+  si no hay eventos anotados en los tramos evaluados; **0** si aprueba; **2** si hay un
+  error de uso, de fixture o de red.
+- **Diagnósticos** por tramo: base visual (¿consta que Gemini recibió vídeo?),
+  identificación de equipos, posesión y dominio crudos, evidencias, descartes por
+  identidad y fracción de tiempos múltiplos de 10 s (la señal de plantilla del spike);
+  además, la posesión que mostraría el producto con sus banderas de baja confianza y
+  el coste de la ejecución.
+- **Reglas**: la key se lee de `GEMINI_API_KEY` y nunca se imprime; el fichero subido a
+  Gemini se borra al terminar (salvo `--keep-file`); las anotaciones son humanas y son
+  **evaluación, nunca entrenamiento** (ningún umbral ni prompt se ajusta mirando un
+  clip); un clip aprobado no basta: el owner decide con varios partidos. Ninguna cifra
+  de precisión se muestra al usuario.
+
+Nota de nombres: el precio de los modelos vive en `config/aiPricing.json` (no
+`geminiPricing.json`): incluye Gemini y los modelos de Claude del informe, y el contrato
+lo referencia como `pricing_ref = "config/aiPricing.json@<fecha>"`.

@@ -11,8 +11,10 @@
  *   - phv-stratification (Haiku): mix de precoz/ontime/tardío y plan
  *   - opponent-readiness (Haiku): vulnerabilidades genéricas + drills
  *
- * Body: { playerIds?: string[] }
+ * Body: { playerIds?: string[], matchAnalysisId?: uuid }
  *   · si no se pasa, usa todos los players del tenant del usuario
+ *   · matchAnalysisId: job de partido (team_baseline, completed) del usuario/tenant; la
+ *     observación del equipo foco se carga en servidor (nunca del cliente)
  * Returns: { reports: {...}, teamSize, vsiPromedio, phvDistribution }
  */
 
@@ -26,8 +28,14 @@ import { ownedPlayersOrFilter } from "../_lib/ownership";
 import { avgEvaluatedVsi, byVsiDescNullsLast, formatVsi } from "../_lib/vsiStats";
 import { localeSchema, normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { createClient } from "@supabase/supabase-js";
+import { ownsMatchAnalysis } from "../_lib/ownership";
+import { getJob } from "../_lib/matchJob/repo";
+import { buildMatchObservationSection } from "../_lib/matchJob/baselineSection";
+import { matchObservationSchema } from "../../src/lib/shared/matchJob/contract";
 
-export const config = { runtime: "edge" };
+// nodejs + 300 s: hace 5 llamadas a Claude (1 Opus, que siempre piensa) antes de
+// responder; en Edge debía empezar a responder en 25 s → 504 con un partido completo.
+export const config = { runtime: "nodejs", maxDuration: 300 };
 
 const SUPABASE_URL = (process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL)!;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -39,6 +47,8 @@ const bodySchema = z.object({
   playerIds: z.array(z.string()).optional(),
   teamName: z.string().max(80).optional(),
   videoObservation: z.record(z.unknown()).optional(),
+  /** Job de partido (purpose team_baseline, completed): la observación se carga EN SERVIDOR. */
+  matchAnalysisId: z.string().uuid().optional(),
   locale: localeSchema.optional(),
 });
 
@@ -130,7 +140,12 @@ function buildVideoSection(video: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
-function teamProfileBlock(players: PlayerSummary[], teamName: string, videoObservation?: Record<string, unknown>): string {
+function teamProfileBlock(
+  players: PlayerSummary[],
+  teamName: string,
+  videoObservation?: Record<string, unknown>,
+  matchSection?: string,
+): string {
   const n = players.length;
   const ages = players.map((p) => p.age ?? 0).filter((a) => a > 0);
   const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : "?";
@@ -194,7 +209,13 @@ ${[...players]
   .map((p, i) => `${i + 1}. ${p.name ?? "?"} (${p.position ?? "?"}, ${p.age ?? "?"}a, VSI ${formatVsi(p.vsi)}, PHV ${p.phv_category ?? "?"})`)
   .join("\n")}
 
-${videoObservation
+${matchSection
+    ? `${matchSection}
+
+VENTAJA: Análisis baseline CON VÍDEO del partido completo (job de partido, nivel
+equipo, estimado por IA). Usa esas observaciones como indicios con su cobertura;
+no inventes lo que no se evaluó.`
+    : videoObservation
     ? `${buildVideoSection(videoObservation)}
 
 VENTAJA: Análisis baseline CON VÍDEO via Gemini. Usa las observaciones
@@ -312,6 +333,30 @@ export default withHandler(
     const reportLocale = normalizeLocale(input.locale);
     const startedAt = Date.now();
 
+    // ── 0. Observación del partido (job) cargada EN SERVIDOR, con comprobación de propiedad ──
+    // Con matchAnalysisId se ignora cualquier `videoObservation` del cliente.
+    let matchSection: string | undefined;
+    let matchTeamName: string | undefined;
+    if (input.matchAnalysisId) {
+      const job = await getJob(input.matchAnalysisId);
+      if (!job || !ownsMatchAnalysis(job, userId, tenantId)) {
+        return errorResponse({ code: "job_not_found", message: "Análisis de partido no encontrado", status: 404 });
+      }
+      if (job.purpose !== "team_baseline" || !job.focus_team) {
+        return errorResponse({ code: "job_not_baseline", message: "El análisis de partido no es un baseline de equipo", status: 409 });
+      }
+      if (job.status !== "completed") {
+        return errorResponse({ code: "job_not_completed", message: "El análisis de partido aún no ha terminado", status: 409 });
+      }
+      const observation = matchObservationSchema.safeParse(job.observation);
+      if (!observation.success) {
+        return errorResponse({ code: "observation_unavailable", message: "Observación del partido no disponible", status: 409 });
+      }
+      const focus = job.focus_team === "home" ? job.home : job.away;
+      matchSection = buildMatchObservationSection(observation.data, job.focus_team, focus?.kit?.shirt?.label ?? focus?.kit?.shirt?.hex ?? null);
+      matchTeamName = focus?.name;
+    }
+
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
     });
@@ -354,8 +399,13 @@ export default withHandler(
       unknown: players.filter((p) => !p.phv_category).length,
     };
 
-    const teamName = input.teamName ?? "Mi equipo";
-    const userMessage = teamProfileBlock(players as PlayerSummary[], teamName, input.videoObservation as Record<string, unknown> | undefined);
+    const teamName = input.teamName ?? matchTeamName ?? "Mi equipo";
+    const userMessage = teamProfileBlock(
+      players as PlayerSummary[],
+      teamName,
+      matchSection ? undefined : (input.videoObservation as Record<string, unknown> | undefined),
+      matchSection,
+    );
 
     // ── 2. Generar 4 reportes Claude en paralelo ───────────────────
     const reportPromises = (Object.keys(TEAM_PROMPTS) as ReportType[]).map(async (type) => {
@@ -391,6 +441,7 @@ export default withHandler(
       reportsGenerated: successful.length,
       reportsFailed: Object.keys(TEAM_PROMPTS).length - successful.length,
       pipelineVersion: PIPELINE_VERSION,
+      matchAnalysisId: input.matchAnalysisId ?? null,
       generatedBy: userId,
       totalLatencyMs: Date.now() - startedAt,
     });

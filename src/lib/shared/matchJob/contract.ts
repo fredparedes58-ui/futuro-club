@@ -139,6 +139,7 @@ export const MATCH_STATUS_TO_STAGE: Readonly<Record<MatchJobStatus, MatchJobStag
 export const MATCH_JOB_ERROR_CODES = [
   "encode_failed", //         Bunny reported Error / UploadFailed
   "encode_timeout", //        encode never finished within config.maxEncodeWaitHours
+  "video_too_long", //        Bunny length (unknown at start, encode pending) turned out > MAX_MATCH_DURATION_MIN
   "dispatch_exhausted", //    MATCH_MAX_DISPATCH_ATTEMPTS reached
   "source_forbidden", //      CDN answered 401/403 to the worker (token auth / referrer rules)
   "source_unavailable", //    CDN 404/5xx or no playable variant
@@ -148,6 +149,7 @@ export const MATCH_JOB_ERROR_CODES = [
   "gemini_upload_failed",
   "gemini_file_failed", //    files.get → FAILED
   "budget_exhausted", //      partial results kept; remaining segments "skipped"
+  "analysis_disabled", //     MATCH_VIDEO_ENABLED turned off while the job was in flight (server kill switch)
   "worker_failed", //         op=fail with an unmapped code
   "deadline_exceeded",
   "internal_error",
@@ -200,8 +202,35 @@ export const MATCH_API_ROUTES = {
   status: "/api/match/status", // GET ?jobId= · user JWT · READ-ONLY (CWE-650)
   list: "/api/match/list", //     GET · user JWT · owner's jobs
   cancel: "/api/match/cancel", // POST · user JWT
+  /** GET ?locale= · user JWT · READ-ONLY: is the video path offered? (UI shows "En validación" when not). */
+  availability: "/api/match/availability",
   step: "/api/match/step", //     POST · HMAC (Modal worker only, never a browser)
 } as const;
+
+/**
+ * Why the video path is not offered (GET /api/match/availability). The feature is OFF
+ * by default and stays OFF until the observation engine passes the validation harness
+ * (scripts/validate-match-observation.mjs, docs/diseno-partido-completo.md §20):
+ *   - match_video_disabled     MATCH_VIDEO_ENABLED !== "true" → "en validación"
+ *   - real_inference_disabled  flag on but server configuration incomplete
+ * Env var NAMES are never listed here (only /start lists them, to the operator).
+ */
+export const MATCH_AVAILABILITY_CODES = ["match_video_disabled", "real_inference_disabled"] as const;
+
+export const matchAvailabilityResponseSchema = z
+  .object({
+    enabled: z.boolean(),
+    code: z.enum(MATCH_AVAILABILITY_CODES).nullable(),
+    /** Human text in the requested locale; null when enabled. */
+    reason: z.string().trim().min(1).max(500).nullable(),
+  })
+  .strict()
+  .superRefine((a, ctx) => {
+    if (a.enabled !== (a.code === null) || a.enabled !== (a.reason === null)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["code"], message: "enabled ⇔ code === null ⇔ reason === null" });
+    }
+  });
+export type MatchAvailabilityResponse = z.infer<typeof matchAvailabilityResponseSchema>;
 
 /** Header carrying hex(HMAC_SHA256(MODAL_CALLBACK_SECRET, ts + "." + rawBody)), lowercase. */
 export const STEP_SIGNATURE_HEADER = "X-Vitas-Signature" as const;
@@ -232,9 +261,10 @@ export function stepSignatureBase(ts: string, rawBody: string): string {
 /**
  * Protocol test vectors (part of the spec, like an RFC's). Computed with
  * node:crypto createHmac and cross-checked with Python hmac; asserted by
- * src/test/lib/matchJobContract.test.ts (Web Crypto) and
- * api/_lib/__tests__/matchStepHmac.test.ts (node:crypto). The Python worker must
- * reproduce them with
+ * src/test/lib/matchJobContract.test.ts (Web Crypto),
+ * api/_lib/__tests__/matchStepHmac.test.ts (node:crypto) and
+ * vision-pipeline/test_match_worker.py (Python hmac; it also parses this block to
+ * catch drift). The Python worker reproduces them with
  *   body = json.dumps(obj, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
  *   hmac.new(secret, ts.encode() + b"." + body, hashlib.sha256).hexdigest()
  * Vector 2 contains non-ASCII characters to pin UTF-8. The secret is a test value.
@@ -423,7 +453,7 @@ export const MATCH_START_ERROR_CODES = [
   "video_too_long", //           422 (Bunny length > MAX_MATCH_DURATION_MIN, videoLimits.ts)
   "concurrency_limit", //        429 (1 active job per user, small global cap)
   "budget_exceeded", //          429 details.estimate: UsdAmount
-  "match_video_disabled", //     503 MATCH_VIDEO_ENABLED !== "true"
+  "match_video_disabled", //     503 MATCH_VIDEO_ENABLED !== "true" ("análisis de partido completo en validación"; default OFF)
   "real_inference_disabled", //  503 details.missing: env var NAMES (never values)
 ] as const;
 export type MatchStartErrorCode = (typeof MATCH_START_ERROR_CODES)[number];
@@ -468,6 +498,13 @@ export const INDIVIDUAL_LEVEL_KEYS = [
  * Names are scrubbed separately by the backend against the tenant roster and the
  * coach notes (dynamic lists, not expressible here).
  * No /g flag on purpose: RegExp.test must be stateless.
+ *
+ * 2026-09-29 (spike on a real U10 match): Gemini added "#10"/"#11" to evidence text
+ * despite the prompt (even for a team with no numbers), so the list also drops any
+ * reference to ONE player: a singular "player" noun with an article ("el jugador",
+ * "a player", "der Spieler") and single-person roles with a definite/possessive
+ * determiner ("el portero", "the striker", "their captain"). Plural / collective
+ * wording ("los jugadores", "los centrales", "the back line") is team-level and kept.
  */
 export const INDIVIDUAL_TEXT_PATTERNS: readonly RegExp[] = [
   /#\s?\d{1,2}\b/,
@@ -477,6 +514,14 @@ export const INDIVIDUAL_TEXT_PATTERNS: readonly RegExp[] = [
   /\b(n[úu]mero|num[ée]ro|number|nummer|n\.?º|no\.)\s*\d{1,2}\b/i,
   /\b(jugador|jugadora|player|giocatore|joueur|joueuse|spieler|spielerin|speler|portero|goalkeeper|keeper|delantero|striker|lateral|extremo|winger|pivote|mediocentro|defensa|defender)\s+\d{1,2}\b/i,
   /\b(el|la|al|del|the)\s+\d{1,2}\s+(del|de|of|local|visitante|rival|home|away|visitor|visitors)\b/i,
+  // shirt/jersey + a number: "camiseta 10", "shirt 7", "maglia 9", "Trikot 11"
+  /\b(camiseta|camisa|shirt|jersey|maglia|maillot|trikot|shirtje)\s*(n[úu]mero\s*)?\d{1,2}\b/i,
+  // a bare number in parentheses next to a description: "el blanco (10) conduce"
+  /\(\s*#?\d{1,2}\s*\)/,
+  // ONE player, with an article: "el jugador", "un jugador", "a player", "der Spieler", "de speler"
+  /\b(el|al|del|un|una|la|the|a|an|one|il|lo|uno|le|une|der|die|den|dem|des|ein|eine|einen|einem|einer|de|het|een)\s+(jugador|jugadora|futbolista|player|footballer|giocatore|giocatrice|calciatore|calciatrice|joueur|joueuse|footballeur|footballeuse|spieler|spielerin|speler|speelster)\b/i,
+  // single-person roles with a definite/possessive determiner: "el portero", "the striker", "their captain"
+  /\b(el|al|del|la|su|the|their|its|his|her|il|lo|suo|sua|le|son|sa|leur|der|die|den|dem|des|sein|seine|seinen|ihr|ihre|ihren|de|het|hun|zijn|haar)\s+(portero|portera|guardameta|arquero|arquera|goalkeeper|keeper|goalie|portiere|gardien|gardienne|torwart|torh[üu]ter|torh[üu]terin|doelman|delantero\s+centro|nueve|striker|centre[-\s]forward|center[-\s]forward|centravanti|avant-centre|mittelst[üu]rmer|spits|capit[áa]n|capitana|captain|capitano|capitaine|kapit[äa]n|kapit[äa]nin|aanvoerder)\b/i,
 ];
 
 /** True when a text mentions an individual (dorsal/number). Pure predicate shared by identityGuard and acceptance checks. */
@@ -1167,7 +1212,8 @@ export const matchJobListResponseSchema = z.object({ jobs: z.array(matchJobListI
 /**
  * POST MODAL_MATCH_START_URL · Authorization: Bearer <MODAL_API_KEY> (worker
  * compares with hmac.compare_digest). The worker takes the step URL from its own
- * secret (VITAS_MATCH_STEP_URL), NEVER from this request.
+ * secret (VITAS_MATCH_STEP_URL, else VITAS_PUBLIC_URL + MATCH_API_ROUTES.step),
+ * NEVER from this request.
  */
 export const matchDispatchRequestSchema = z.object({ jobId: jobIdSchema, epoch: epochSchema }).strict();
 

@@ -1,0 +1,15 @@
+{
+  "__plantilla__": true,
+  "__instruccion__": "Copia este directorio _plantilla/ a fixtures/partido/<clip_id>/ y rellena. Pon __plantilla__ a false (o borra la clave). El arnés se niega a usar cualquier cosa marcada como plantilla. El vídeo NO se versiona.",
+  "clip_id": "<rellenar: identificador corto y estable>",
+  "fuente": "<rellenar: nombre del fichero de vídeo original>",
+  "clip": "<rellenar: ruta local del proxy relativa a este directorio (opcional si pasas --clip)>",
+  "duracion_s": 0,
+  "anotador": "<rellenar: nombre real de quien anota>",
+  "fecha_anotacion": "<rellenar: YYYY-MM-DD>",
+  "locale": "es",
+  "category": null,
+  "attackingDir1h": null,
+  "home": { "kit": { "shirt": { "hex": "#000000", "label": "<rellenar: color de camiseta del local>" } } },
+  "away": { "kit": { "shirt": { "hex": "#000000", "label": "<rellenar: color de camiseta del visitante>" } } }
+}
