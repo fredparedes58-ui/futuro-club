@@ -6265,9 +6265,8 @@
       "note": "Schatting van de AI op basis van de video, gewogen naar geanalyseerde tijd. Geen officiële statistiek.",
       "lowConfidenceTag": "Lage betrouwbaarheid",
       "lowConfidence": {
-        "uniform_balanced": "Lage betrouwbaarheid: de AI gaf in elk deel 50 % – 50 % en ‘In evenwicht’. Dat is het antwoord dat ze geeft als ze geen visuele basis voor een schatting heeft; lees het niet als een gegeven.",
-        "no_stated_basis": "Lage betrouwbaarheid: in minstens één deel gaf de AI niet aan waarop de schatting was gebaseerd.",
-        "generic": "Lage betrouwbaarheid: alleen als ruwe indicatie gebruiken."
+        "no_visual_basis": "Lage betrouwbaarheid: deze schatting is niet te koppelen aan wat de AI zag (video-invoer niet bevestigd of geen bewijs geciteerd).",
+        "uniform_output": "Lage betrouwbaarheid: elk bruikbaar deel kwam uit op 50 % – 50 % met ‘In evenwicht’ (of geen) dominantie, niet te onderscheiden van een standaardantwoord; lees het niet als een gegeven."
       }
     },
     "dominance": {
@@ -6318,7 +6317,7 @@
         "counter_press": "Tegenpressing",
         "retreat": "Terugzakken"
       },
-      "uniformWarning": "Elk deel komt uit op ‘In evenwicht’ en 50/50: lage betrouwbaarheid, de AI had mogelijk geen visuele basis."
+      "uniformWarning": "Elk bruikbaar deel komt uit op ‘In evenwicht’ en 50/50: lage betrouwbaarheid, de AI had mogelijk geen visuele basis."
     },
     "report": {
       "summaryTitle": "Belangrijkste conclusies",
@@ -6429,6 +6428,8 @@
       "start": "Hele wedstrijd analyseren",
       "completedHint": "Wedstrijdobservatie klaar. Je kunt nu de rapporten maken.",
       "notCompleted": "De rapporten kunnen worden gemaakt zodra de analyse voltooid is.",
+      "coverageNote": "Deze rapporten gebruiken de video van de hele wedstrijd. Wat de AI er echt van analyseerde:",
+      "coverageUnavailable": "De dekking van de wedstrijdvideo is niet beschikbaar: lees deze rapporten niet alsof ze op de hele wedstrijd zijn gebaseerd.",
       "unavailableHint": "Gebruik een korte clip voor de snelle analyse."
     },
     "demo": {

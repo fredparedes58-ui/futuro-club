@@ -872,6 +872,29 @@ export const teamSegmentMetricsSchema = z
 
 const possessionPairSchema = z.object({ home: llmMetric(pct), away: llmMetric(pct) }).strict();
 
+/**
+ * Why a possession estimate is surfaced as LOW-CONFIDENCE (its own gate, owner update
+ * 2026-09-29: the spike returned 50/50 at LOW resolution and templated events):
+ *   - no_visual_basis  the segment result cannot be tied to what the model saw: the
+ *                      usage report does not confirm video tokens, or the segment cites
+ *                      no evidence at all;
+ *   - uniform_output   every usable segment came back 50/50 with dominance "balanced"
+ *                      — indistinguishable from a default, so never a confident figure.
+ * The value is kept (it is still the model's estimate) but its confidence drops to
+ * config `possessionLowConfidence` ("pendiente de validar") and the UI must say why.
+ */
+export const POSSESSION_LOW_CONFIDENCE_CODES = ["no_visual_basis", "uniform_output"] as const;
+export type PossessionLowConfidenceCode = (typeof POSSESSION_LOW_CONFIDENCE_CODES)[number];
+
+export const possessionLowConfidenceSchema = z
+  .object({
+    code: z.enum(POSSESSION_LOW_CONFIDENCE_CODES),
+    /** Human text in the job locale. */
+    reason: z.string().trim().min(1).max(500),
+    segments: z.array(z.number().int().nonnegative()),
+  })
+  .strict();
+
 export const segmentSummarySchema = z
   .object({
     idx: z.number().int().nonnegative(),
@@ -884,6 +907,8 @@ export const segmentSummarySchema = z
     /** Estimated possession % (ESTIMADA_LLM, units "%"); never MEDIDA, never an official statistic. */
     possession: possessionPairSchema,
     possession_basis: z.enum(POSSESSION_BASES).nullable(),
+    /** Set when this segment's possession value is kept but low-confidence (see POSSESSION_LOW_CONFIDENCE_CODES). */
+    possession_low_confidence: z.enum(POSSESSION_LOW_CONFIDENCE_CODES).nullable().optional(),
     teams: z.object({ home: teamSegmentMetricsSchema, away: teamSegmentMetricsSchema }).strict(),
     not_evaluable_intervals: z.array(notEvaluableIntervalSchema),
     source_ref: z.string().min(1),
@@ -905,6 +930,8 @@ export const matchObservationSchema = z
         segments_excluded: z.array(
           z.object({ idx: z.number().int().nonnegative(), gate_code: z.enum(MATCH_GATE_CODES) }).strict(),
         ),
+        /** Low-confidence flags of the estimate (empty = none). The UI shows each reason next to the value. */
+        low_confidence: z.array(possessionLowConfidenceSchema).max(POSSESSION_LOW_CONFIDENCE_CODES.length).optional(),
       })
       .strict(),
     coverage: matchCoverageSchema,
@@ -1013,6 +1040,8 @@ export const matchReportV2Schema = z
     claims: z.array(reportClaimSchema).max(REPORT_BOUNDS.maxSummaryClaims),
     teams: z.object({ home: reportTeamSectionSchema, away: reportTeamSectionSchema }).strict(),
     possession: possessionPairSchema,
+    /** Copied from observation.possession_detail.low_confidence (never recomputed). */
+    possession_low_confidence: z.array(possessionLowConfidenceSchema).max(POSSESSION_LOW_CONFIDENCE_CODES.length).optional(),
     segments: z.array(segmentSummarySchema),
     evidence: z.array(evidenceItemSchema),
     coverage: matchCoverageSchema,

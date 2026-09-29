@@ -57,9 +57,9 @@ const fetchMock = vi.fn();
 const callsTo = (path: string) => fetchMock.mock.calls.filter(([u]) => String(u).split("?")[0] === path);
 const matchCalls = () => fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/api/match/"));
 
-function renderPage() {
+function renderPage(entry = "/equipo/baseline") {
   return render(
-    <MemoryRouter initialEntries={["/equipo/baseline"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <TeamBaselinePage />
     </MemoryRouter>,
   );
@@ -145,5 +145,48 @@ describe("TeamBaselinePage · full-match video", () => {
     expect(gen).not.toHaveProperty("videoObservation");
     expect(gen).not.toHaveProperty("playerContext");
     expect(callsTo("/api/agents/video-observation")).toHaveLength(0);
+  });
+
+  it("the generated reports keep the match coverage above them: a partial video never reads as complete", async () => {
+    vi.stubEnv("VITE_MATCH_VIDEO_ENABLED", "true");
+    const partial = buildObservation([{ status: "done" }, { status: "failed" }]);
+    fetchMock.mockImplementation(async (url: string) => {
+      const u = String(url);
+      if (u.startsWith("/api/match/list")) return okJson({ jobs: [] });
+      if (u.startsWith("/api/match/status")) {
+        return okJson(buildStatus({ status: "completed", purpose: "team_baseline", focusTeam: "home", segmentsDone: 1, segmentsTotal: 2, observation: partial }));
+      }
+      if (u.startsWith("/api/team/baseline-analysis")) {
+        return new Response(
+          JSON.stringify({ success: true, data: { teamName: "CD Cantera", teamSize: 0, vsiPromedio: null, phvDistribution: { early: 0, ontime: 0, late: 0, unknown: 0 }, reports: [], reportsGenerated: 0, reportsFailed: 0 } }),
+          { status: 200 },
+        );
+      }
+      return new Response("{}", { status: 500 });
+    });
+    renderPage(`/equipo/baseline?job=${JOB_ID}`);
+    expect(await screen.findByText(i18n.t("matchJob.baseline.completedHint"))).toBeInTheDocument();
+    const generate = screen.getByRole("button", { name: new RegExp(i18n.t("teamBaselinePage.generateButton")) });
+    await waitFor(() => expect(generate).toBeEnabled());
+    fireEvent.click(generate);
+
+    // Results view (the upload card is gone): coverage first, before squad/VSI/reports.
+    const box = await screen.findByTestId("baseline-match-coverage");
+    expect(screen.queryByTestId("baseline-match-job")).toBeNull();
+    const banner = within(box).getByTestId("coverage-banner");
+    expect(banner).toHaveTextContent(i18n.t("matchJob.coverage.partialNote"));
+    expect(banner).not.toHaveTextContent(i18n.t("matchJob.coverage.complete"));
+    expect(within(banner).getByTestId("coverage-gaps")).toHaveTextContent("MAX_TOKENS tras 2 intentos");
+    expect(banner.textContent).not.toMatch(/100 %/);
+    const stats = screen.getByText(i18n.t("teamBaselinePage.statSquad"));
+    expect(box.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("reports generated without a match job show no match coverage", async () => {
+    demoState.demo = true;
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("teamBaselinePage.generateButton")) }));
+    expect(await screen.findByText(i18n.t("teamBaselinePage.statSquad"))).toBeInTheDocument();
+    expect(screen.queryByTestId("baseline-match-coverage")).toBeNull();
   });
 });

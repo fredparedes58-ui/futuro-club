@@ -1,7 +1,7 @@
 /**
  * Match video job UI (PR-C) — pure logic: fixtures, demo fixture, kit colour
- * distance, evidence embed URL, video-time labels, availability flag, possession
- * reliability gate and the UI config file.
+ * distance, evidence embed URL, video-time labels, availability flag and the UI
+ * config file. (Possession low confidence is the server's gate; the UI only renders it.)
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -10,10 +10,6 @@ import {
   matchReportV2Schema,
   mentionsIndividual,
 } from "@/lib/shared/matchJob/contract";
-import {
-  assessPossessionReliability,
-  isSegmentPossessionLowConfidence,
-} from "@/lib/shared/matchJob/possessionReliability";
 import { buildDemoMatchJob } from "@/lib/demo/demoMatchJob";
 import {
   assessKitSimilarity,
@@ -46,6 +42,23 @@ describe("match UI test fixtures", () => {
       const r = matchJobStatusResponseSchema.safeParse(buildStatus({ status, observation: obs, report: status === "completed" ? rep : null }));
       expect(r.success, `${status}: ${r.success ? "" : JSON.stringify(r.error.issues.slice(0, 2))}`).toBe(true);
     }
+  });
+
+  it("carry the server's possession low-confidence flags in the contract shape (segment code, observation list, report copy)", () => {
+    const flag = { code: "no_visual_basis" as const, reason: "Baja confianza (tramo 1).", segments: [0] };
+    const obs = buildObservation([{ status: "done", homePct: 62, lowConfidence: "no_visual_basis" }, { status: "done", lowConfidence: null }], {
+      lowConfidence: [flag],
+    });
+    const po = matchObservationSchema.safeParse(obs);
+    expect(po.success, po.success ? "" : JSON.stringify(po.error.issues.slice(0, 2))).toBe(true);
+    expect(obs.segments[0].possession_low_confidence).toBe("no_visual_basis");
+    expect(obs.possession.home.confidence).toBeLessThan(obs.segments[1].possession.home.confidence); // min of the segments used
+    const rep = buildReport(obs);
+    expect(matchReportV2Schema.safeParse(rep).success).toBe(true);
+    expect(rep.possession_low_confidence).toEqual([flag]);
+    // an unknown code is not part of the contract
+    const bad = { ...obs, possession_detail: { ...obs.possession_detail, low_confidence: [{ ...flag, code: "uniform_balanced" }] } };
+    expect(matchObservationSchema.safeParse(bad).success).toBe(false);
   });
 });
 
@@ -217,55 +230,6 @@ describe("match video availability", () => {
     expect(resolveMatchVideoAvailability({ clientFlag: false, isDemo: false, serverDisabled: false })).toBe("in_validation");
     expect(resolveMatchVideoAvailability({ clientFlag: true, isDemo: true, serverDisabled: false })).toBe("in_validation");
     expect(resolveMatchVideoAvailability({ clientFlag: true, isDemo: false, serverDisabled: true })).toBe("in_validation");
-  });
-});
-
-// ─── possession reliability gate ─────────────────────────────────────────────
-
-describe("possession reliability", () => {
-  const segs = (specs: Parameters<typeof buildObservation>[0]) => buildObservation(specs).segments;
-
-  it("flags the flat 50/50 + balanced-everywhere pattern (the spike's no-visual-basis answer)", () => {
-    const r = assessPossessionReliability(segs([
-      { status: "done", homePct: 50, dominance: "balanced" },
-      { status: "done", homePct: 50, dominance: "balanced" },
-    ]));
-    expect(r.flags).toEqual(["uniform_balanced"]);
-    expect(r.lowConfidence).toBe(true);
-  });
-
-  it("flags a single 50/50 balanced segment and ignores gated segments", () => {
-    const r = assessPossessionReliability(segs([{ status: "done", homePct: 50, dominance: "balanced" }, { status: "failed" }]));
-    expect(r.flags).toContain("uniform_balanced");
-    expect(isSegmentPossessionLowConfidence(r, 0)).toBe(true);
-    expect(isSegmentPossessionLowConfidence(r, 1)).toBe(false); // no value to flag
-  });
-
-  it("does not flag when any segment reports a dominance or the split varies", () => {
-    expect(assessPossessionReliability(segs([
-      { status: "done", homePct: 50, dominance: "balanced" },
-      { status: "done", homePct: 50, dominance: "home" },
-    ])).lowConfidence).toBe(false);
-    expect(assessPossessionReliability(segs([
-      { status: "done", homePct: 60, dominance: "balanced" },
-      { status: "done", homePct: 40, dominance: "balanced" },
-    ])).lowConfidence).toBe(false);
-  });
-
-  it("flags a value without a stated basis, only for that segment", () => {
-    const r = assessPossessionReliability(segs([
-      { status: "done", homePct: 58, dominance: "home", basis: "ball_control_observed" },
-      { status: "done", homePct: 61, dominance: "home", basis: null },
-    ]));
-    expect(r.flags).toEqual(["no_stated_basis"]);
-    expect(r.segmentsWithoutBasis).toEqual([1]);
-    expect(isSegmentPossessionLowConfidence(r, 0)).toBe(false);
-    expect(isSegmentPossessionLowConfidence(r, 1)).toBe(true);
-  });
-
-  it("has nothing to flag when no segment has an estimate", () => {
-    const r = assessPossessionReliability(segs([{ status: "failed" }, { status: "done", homePct: null }]));
-    expect(r).toMatchObject({ lowConfidence: false, flags: [], segmentsWithEstimate: [] });
   });
 });
 

@@ -4,7 +4,10 @@
  *   start(req)  → POST /api/match/start, then ?job=<id> in the URL
  *   polling     → GET /api/match/status every 10 s; while nothing changes the
  *                 interval grows ×1.5 up to 30 s; any progress resets it to 10 s
- *                 (config/matchVideoUi.json). Stops at a terminal status.
+ *                 (config/matchVideoUi.json). Stops at a terminal status and
+ *                 at a fatal error (isFatalMatchError: 4xx other than 408/429,
+ *                 e.g. 404 job_not_found for a stale ?job= link, 401 for an
+ *                 expired session; transient errors keep backing off).
  *   resume      → ?job=<id> survives reloads; without it, GET /api/match/list
  *                 re-opens the newest ACTIVE job of this purpose (a Bunny encode
  *                 can take hours, the coach will close the tab).
@@ -24,14 +27,16 @@ import {
   type MatchStartRequest,
   type MatchStartResponse,
 } from "@/lib/shared/matchJob/contract";
-import { MatchAnalysisService, MatchApiError, type MatchJobListItem } from "@/services/real/matchAnalysisService";
+import {
+  isFatalMatchError,
+  MatchAnalysisService,
+  MatchApiError,
+  type MatchJobListItem,
+} from "@/services/real/matchAnalysisService";
 import { MATCH_UI_CONFIG } from "@/lib/match/matchUiConfig";
 
 /** URL search param that keeps the job across reloads. */
 export const MATCH_JOB_URL_PARAM = "job";
-
-/** Errors after which polling stops (retrying cannot fix them). */
-const FATAL_STATUS_ERRORS = new Set(["not_found", "unauthorized", "not_owner", "invalid_request", "invalid_response"]);
 
 export function isTerminalMatchStatus(s: MatchJobStatus | null | undefined): boolean {
   return !!s && (TERMINAL_MATCH_JOB_STATUSES as readonly string[]).includes(s);
@@ -186,7 +191,9 @@ export function useMatchAnalysisJob(opts: UseMatchAnalysisJobOptions): UseMatchA
         if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
         const e = err instanceof MatchApiError ? err : new MatchApiError("network", String(err));
         setError(e);
-        if (FATAL_STATUS_ERRORS.has(e.code)) return; // retrying cannot fix it
+        // A missing / foreign job (404 job_not_found), an expired session (401
+        // UNAUTHORIZED), a refused role (403) or a contract violation: stop.
+        if (isFatalMatchError(e)) return;
       }
       delay = nextPollDelaySec(delay, progressed);
       setNextPollInSec(delay);

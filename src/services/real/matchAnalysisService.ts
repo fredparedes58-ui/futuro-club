@@ -54,6 +54,41 @@ export class MatchApiError extends Error {
   }
 }
 
+/**
+ * Server codes that name the same condition as a client code, so the UI explains
+ * them with one message. The raw code is still kept on the error (`code`); this
+ * only feeds `canonicalMatchErrorCode`. Sources: api/match/_status.ts and _cancel.ts
+ * answer a missing or foreign job with 404 `job_not_found`; withHandler
+ * (api/_lib/withHandler.ts) answers a missing / expired session with 401
+ * `UNAUTHORIZED`; the match routes answer a bad id with 400 `invalid_input`.
+ */
+const SERVER_CODE_ALIASES: Readonly<Record<string, string>> = {
+  job_not_found: "not_found",
+  UNAUTHORIZED: "unauthorized",
+  invalid_input: "invalid_request",
+};
+
+/** The client vocabulary for a server code (matchErrorMessage, fatal classification). */
+export function canonicalMatchErrorCode(code: string): string {
+  return SERVER_CODE_ALIASES[code] ?? code;
+}
+
+/** Codes after which repeating the same request cannot succeed. */
+const FATAL_CODES = new Set(["not_found", "unauthorized", "not_owner", "invalid_request", "invalid_response"]);
+
+/**
+ * True when retrying the same request cannot fix the error, so polling must stop:
+ * by HTTP status (4xx except 408 Request Timeout and 429 Too Many Requests: a
+ * missing or foreign job, an expired session, a refused role, a bad id) as well as
+ * by code (client-side refusals and contract violations have no HTTP status).
+ * Network errors, 408, 429 and 5xx are transient: polling keeps backing off.
+ */
+export function isFatalMatchError(err: Pick<MatchApiError, "code" | "status">): boolean {
+  const s = err.status;
+  if (s !== null && s >= 400 && s < 500 && s !== 408 && s !== 429) return true;
+  return FATAL_CODES.has(canonicalMatchErrorCode(err.code));
+}
+
 const jobIdSchema = z.string().uuid();
 
 interface Envelope {

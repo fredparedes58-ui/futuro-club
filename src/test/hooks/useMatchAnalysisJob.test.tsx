@@ -14,6 +14,8 @@ vi.mock("@/lib/apiAuth", () => ({ getAuthHeaders: vi.fn(async () => ({ Authoriza
 import { nextPollDelaySec, useMatchAnalysisJob } from "@/hooks/useMatchAnalysisJob";
 import { MATCH_ATTESTATION_VERSION } from "@/lib/shared/matchJob/contract";
 import { buildStatus, errJson, JOB_ID, JOB_ID_2, okJson, VIDEO_ID } from "../fixtures/matchJob";
+// The REAL server envelope (pinned to api/_lib/apiResponse.ts errorResponse by an api test).
+import { REAL_SERVER_ERRORS as E, serverErrorResponse } from "../fixtures/serverEnvelope";
 
 type StatusReply = () => Response | Promise<Response>;
 
@@ -164,6 +166,38 @@ describe("useMatchAnalysisJob · polling", () => {
     expect(second.result.current.error?.code).toBe("not_found");
     await advance(120_000);
     expect(statusCalls()).toHaveLength(1);
+  });
+
+  // The replies the real endpoints send (api/match/_status.ts, api/_lib/withHandler.ts).
+  it.each([
+    ["stale / foreign ?job= link → 404 job_not_found", () => serverErrorResponse(E.jobNotFound)],
+    ["expired session → 401 UNAUTHORIZED (withHandler)", () => serverErrorResponse(E.unauthorized)],
+    ["refused role → 403 FORBIDDEN (withHandler)", () => serverErrorResponse(E.forbidden)],
+    ["bad id → 400 invalid_input", () => serverErrorResponse(E.invalidInput)],
+  ])("stops polling on the real server envelope: %s", async (_label, reply) => {
+    statusReplies = [reply];
+    const { result } = renderHook(() => useMatchAnalysisJob({ purpose: "match_ab" }), { wrapper: wrapperAt(`/?job=${JOB_ID}`) });
+    await flush();
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.nextPollInSec).toBeNull();
+    await advance(10 * 60_000);
+    expect(statusCalls()).toHaveLength(1);
+  });
+
+  it.each([
+    ["rate limit → 429 RATE_LIMITED", () => serverErrorResponse(E.rateLimited)],
+    ["server error → 500 INTERNAL_ERROR", () => serverErrorResponse(E.internal)],
+  ])("keeps polling (backing off) on a transient server error: %s", async (_label, reply) => {
+    statusReplies = [reply, reply, () => okJson(buildStatus({ status: "observing", segmentsTotal: 7 }))];
+    const { result } = renderHook(() => useMatchAnalysisJob({ purpose: "match_ab" }), { wrapper: wrapperAt(`/?job=${JOB_ID}`) });
+    await flush();
+    expect(result.current.nextPollInSec).toBe(10);
+    await advance(10_000);
+    expect(result.current.nextPollInSec).toBe(15);
+    await advance(15_000);
+    expect(statusCalls()).toHaveLength(3);
+    expect(result.current.error).toBeNull();
+    expect(result.current.data?.job.status).toBe("observing");
   });
 });
 

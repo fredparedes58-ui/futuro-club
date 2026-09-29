@@ -29,7 +29,9 @@ import { VideoService } from "@/services/real/videoService";
 import { resolveSyncAnalysisInput, syncAnalysisRefusalMessage } from "@/lib/syncVideoAnalysisGate";
 import { useMatchAnalysisJob } from "@/hooks/useMatchAnalysisJob";
 import BaselineMatchJobPanel from "@/components/match/BaselineMatchJobPanel";
+import CoverageBanner from "@/components/match/CoverageBanner";
 import { isMatchVideoClientFlagOn, resolveMatchVideoAvailability } from "@/lib/match/matchVideoAvailability";
+import type { MatchCoverage } from "@/lib/shared/matchJob/contract";
 
 type AnalysisMode = "text" | "video";
 
@@ -76,6 +78,9 @@ export default function TeamBaselinePage() {
   const matchAnalysisId = matchJob.data?.job.status === "completed" ? matchJob.jobId : null;
   const focusSide = matchJob.data?.job.focusTeam;
   const matchTeamName = focusSide ? matchJob.data?.job[focusSide]?.name : null;
+  // Coverage of the match job the shown reports were built from (null = no match job used):
+  // a partial video is never read as a complete session (CoverageBanner above the results).
+  const [dataCoverage, setDataCoverage] = useState<{ coverage: MatchCoverage | null } | null>(null);
 
   async function handleVideoAnalysis(url: string) {
     setVideoUrl(url);
@@ -135,6 +140,7 @@ export default function TeamBaselinePage() {
         throw new Error(json?.error?.message ?? t("teamBaselinePage.errorGeneratingAnalysis"));
       }
       setData(json.data as TeamBaselineResponse);
+      setDataCoverage(matchAnalysisId ? { coverage: matchJob.data?.coverage ?? null } : null);
       toast.success(t("teamBaselinePage.toastReportsGenerated", { generated: json.data.reportsGenerated, size: json.data.teamSize }));
       setExpanded(json.data.reports[0]?.type ?? null);
     } catch (err) {
@@ -273,6 +279,18 @@ export default function TeamBaselinePage() {
 
         {data && (
           <>
+            {dataCoverage && (
+              <div className="space-y-2" data-testid="baseline-match-coverage">
+                <p className="text-[11px] text-muted-foreground">{t("matchJob.baseline.coverageNote")}</p>
+                {dataCoverage.coverage ? (
+                  <CoverageBanner coverage={dataCoverage.coverage} />
+                ) : (
+                  <p role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-foreground">
+                    {t("matchJob.baseline.coverageUnavailable")}
+                  </p>
+                )}
+              </div>
+            )}
             {/* Stats overview */}
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-2xl p-4">
               <div className="grid grid-cols-3 gap-3">

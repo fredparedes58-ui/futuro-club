@@ -19,8 +19,15 @@ import {
   type MatchObservation,
   type MatchPurpose,
   type MatchReportV2,
+  type PossessionLowConfidenceCode,
   type SegmentSummary,
 } from "@/lib/shared/matchJob/contract";
+
+/** A server low-confidence flag of the aggregated possession (observation.possession_detail.low_confidence[]). */
+export type LowConfidenceFlag = NonNullable<MatchObservation["possession_detail"]["low_confidence"]>[number];
+
+/** Confidence the server gives a low-confidence possession (config possessionLowConfidence, "pendiente de validar"). */
+export const POSSESSION_LOW_CONF = 0.05;
 
 export const JOB_ID = "8f6d2c1e-3b4a-4c5d-9e8f-0a1b2c3d4e5f";
 export const JOB_ID_2 = "9a7e3d2f-4c5b-4d6e-8f90-1b2c3d4e5f60";
@@ -83,6 +90,8 @@ export interface SegSpec {
   dominance?: "home" | "balanced" | "away" | null;
   basis?: "ball_control_observed" | "territorial_proxy" | "mixed" | null;
   homeNote?: string | null;
+  /** Server flag of THIS segment's possession (segments[*].possession_low_confidence); omitted = field absent. */
+  lowConfidence?: PossessionLowConfidenceCode | null;
 }
 
 export function buildSegment(idx: number, spec: SegSpec, durationSec: number): SegmentSummary {
@@ -95,6 +104,8 @@ export function buildSegment(idx: number, spec: SegSpec, durationSec: number): S
   const dom = spec.dominance === undefined ? "home" : spec.dominance;
   const home = teamMetrics(src, !done);
   if (done && spec.homeNote !== undefined) home.note = spec.homeNote;
+  // Like the server: a flagged value is kept, its confidence drops to possessionLowConfidence.
+  const pctMetric = (v: number) => (spec.lowConfidence ? { ...llm(v, "%", src), confidence: POSSESSION_LOW_CONF } : llm(v, "%", src));
   return {
     idx,
     start_sec: start,
@@ -104,12 +115,13 @@ export function buildSegment(idx: number, spec: SegSpec, durationSec: number): S
     dominance: done && dom !== null ? llm(dom, null, src) : gatedLlm(done ? "teams_ambiguous" : "segment_failed", done ? "Equipos no distinguibles." : failReason, src),
     possession:
       done && pct !== null
-        ? { home: llm(pct, "%", src), away: llm(100 - pct, "%", src) }
+        ? { home: pctMetric(pct), away: pctMetric(100 - pct) }
         : {
             home: gatedLlm(done ? "possession_missing" : "segment_failed", done ? "La IA no estimó la posesión." : failReason, src),
             away: gatedLlm(done ? "possession_missing" : "segment_failed", done ? "La IA no estimó la posesión." : failReason, src),
           },
     possession_basis: done && pct !== null ? (spec.basis === undefined ? "mixed" : spec.basis) : null,
+    ...(spec.lowConfidence !== undefined ? { possession_low_confidence: spec.lowConfidence } : {}),
     teams: { home, away: teamMetrics(src, !done) },
     not_evaluable_intervals: [],
     source_ref: src,
@@ -167,7 +179,7 @@ export function buildCoverage(segments: SegmentSummary[], durationSec: number, o
 
 export function buildObservation(
   specs: SegSpec[],
-  opts: { durationSec?: number; evidence?: EvidenceItem[]; ambiguousSec?: number } = {},
+  opts: { durationSec?: number; evidence?: EvidenceItem[]; ambiguousSec?: number; lowConfidence?: LowConfidenceFlag[] } = {},
 ): MatchObservation {
   const durationSec = opts.durationSec ?? specs.length * SEG_SEC;
   const segments = specs.map((s, i) => buildSegment(i, s, durationSec));
@@ -179,7 +191,9 @@ export function buildObservation(
     used.length > 0
       ? (() => {
           const home = Math.round(used.reduce((a, s) => a + (s.possession.home.value as number) * (s.end_sec - s.start_sec), 0) / w);
-          return { home: llm(home, "%", aggSrc), away: llm(100 - home, "%", aggSrc) };
+          // Like the server: the aggregate takes the lowest confidence of the segments used.
+          const confidence = Math.min(...used.map((s) => s.possession.home.confidence));
+          return { home: { ...llm(home, "%", aggSrc), confidence }, away: { ...llm(100 - home, "%", aggSrc), confidence } };
         })()
       : {
           home: gatedLlm("no_usable_segments", "Ningún tramo con posesión utilizable.", aggSrc),
@@ -199,6 +213,7 @@ export function buildObservation(
       weighting: "analysed_sec",
       segments_used: used.map((s) => s.idx),
       segments_excluded: segments.filter((s) => !used.includes(s)).map((s) => ({ idx: s.idx, gate_code: "segment_failed" as const })),
+      ...(opts.lowConfidence !== undefined ? { low_confidence: opts.lowConfidence } : {}),
     },
     coverage,
     cited_events: { home: count("home"), away: count("away"), ambiguous: count("ambiguous") },
@@ -231,6 +246,8 @@ export function buildReport(
       away: { ...EMPTY_SECTIONS, transitions: [{ text: "Transiciones rápidas por la derecha.", evidence_ids: ["s0-e2"] }] },
     },
     possession: obs.possession,
+    // Copied from the observation (never recomputed), as the backend does.
+    ...(obs.possession_detail.low_confidence !== undefined ? { possession_low_confidence: obs.possession_detail.low_confidence } : {}),
     segments: obs.segments,
     evidence: obs.evidence,
     coverage: obs.coverage,

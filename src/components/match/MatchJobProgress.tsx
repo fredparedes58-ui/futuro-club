@@ -12,7 +12,7 @@
 import { useTranslation } from "react-i18next";
 import { AlertCircle, Ban, CheckCircle2, Circle, Loader2, RefreshCw } from "lucide-react";
 import type { MatchJobStage, MatchJobStatusResponse } from "@/lib/shared/matchJob/contract";
-import type { MatchApiError } from "@/services/real/matchAnalysisService";
+import { isFatalMatchError, type MatchApiError } from "@/services/real/matchAnalysisService";
 import { formatVideoRange } from "@/lib/match/videoTime";
 import { matchErrorMessage } from "@/components/match/matchErrorMessage";
 
@@ -54,6 +54,8 @@ export default function MatchJobProgress({
   const stage = job?.stage ?? null;
   const purpose = job?.purpose;
   const terminal = stage === "done" || stage === "failed" || stage === "cancelled";
+  // Polling stopped on a fatal error with nothing to show (stale / foreign ?job= link, expired session).
+  const stuck = !data && !!error && isFatalMatchError(error);
   const currentIdx = stage && (STEPS as readonly string[]).includes(stage) ? STEPS.indexOf(stage as Step) : starting ? 1 : -1;
 
   // Segment k/n + its video-time range (only what the server reports).
@@ -164,7 +166,7 @@ export default function MatchJobProgress({
             {cancelling ? t("matchJob.progress.cancelling") : t("matchJob.progress.cancel")}
           </button>
         )}
-        {terminal && onStartNew && (
+        {(terminal || stuck) && onStartNew && (
           <button type="button" onClick={onStartNew} className="ml-auto text-[10px] font-bold text-primary hover:underline">
             {t("matchJob.progress.startNew")}
           </button>

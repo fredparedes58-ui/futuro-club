@@ -6264,9 +6264,8 @@
       "note": "Stima dell'IA sul video, ponderata per il tempo analizzato. Non è una statistica ufficiale.",
       "lowConfidenceTag": "Bassa confidenza",
       "lowConfidence": {
-        "uniform_balanced": "Bassa confidenza: l'IA ha restituito 50 % – 50 % ed «Equilibrio» in tutti i segmenti. È la risposta che dà quando non ha una base visiva per stimare; non leggerla come un dato.",
-        "no_stated_basis": "Bassa confidenza: in almeno un segmento l'IA non ha indicato su cosa si basava la stima.",
-        "generic": "Bassa confidenza: consideralo solo un'indicazione."
+        "no_visual_basis": "Bassa confidenza: questa stima non si può collegare a ciò che l'IA ha visto (input video non confermato o nessuna evidenza citata).",
+        "uniform_output": "Bassa confidenza: tutti i segmenti utilizzabili sono risultati 50 % – 50 % con dominio «Equilibrio» (o senza dominio), indistinguibile da una risposta predefinita; non leggerla come un dato."
       }
     },
     "dominance": {
@@ -6317,7 +6316,7 @@
         "counter_press": "Riaggressione",
         "retreat": "Ripiegamento"
       },
-      "uniformWarning": "Tutti i segmenti risultano «Equilibrio» e 50/50: bassa confidenza, l'IA potrebbe non aver avuto una base visiva."
+      "uniformWarning": "Tutti i segmenti utilizzabili risultano «Equilibrio» e 50/50: bassa confidenza, l'IA potrebbe non aver avuto una base visiva."
     },
     "report": {
       "summaryTitle": "Conclusioni principali",
@@ -6428,6 +6427,8 @@
       "start": "Analizza la partita completa",
       "completedHint": "Osservazione della partita pronta. Ora puoi generare i report.",
       "notCompleted": "I report si possono generare quando l'analisi è completa.",
+      "coverageNote": "Questi report usano il video della partita completa. Ciò che l'IA ne ha analizzato davvero:",
+      "coverageUnavailable": "La copertura del video della partita non è disponibile: non leggere questi report come basati sull'intera partita.",
       "unavailableHint": "Usa un clip breve per l'analisi rapida."
     },
     "demo": {

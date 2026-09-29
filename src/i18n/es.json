@@ -6265,9 +6265,8 @@
       "note": "Estimación de la IA sobre el vídeo, ponderada por el tiempo analizado. No es una estadística oficial.",
       "lowConfidenceTag": "Baja confianza",
       "lowConfidence": {
-        "uniform_balanced": "Baja confianza: la IA devolvió 50 % – 50 % y «equilibrado» en todos los tramos. Es la respuesta que da cuando no tiene base visual para estimar; no la leas como un dato.",
-        "no_stated_basis": "Baja confianza: en algún tramo la IA no indicó en qué basó la estimación.",
-        "generic": "Baja confianza: tómalo solo como una orientación."
+        "no_visual_basis": "Baja confianza: esta estimación no se puede ligar a lo que vio la IA (entrada de vídeo no confirmada o ninguna evidencia citada).",
+        "uniform_output": "Baja confianza: todos los tramos utilizables salieron 50 % – 50 % con dominio «equilibrado» (o sin dominio), indistinguible de una respuesta por defecto; no la leas como un dato."
       }
     },
     "dominance": {
@@ -6318,7 +6317,7 @@
         "counter_press": "Presión tras pérdida",
         "retreat": "Repliegue"
       },
-      "uniformWarning": "Todos los tramos salen «equilibrado» y 50/50: baja confianza, puede que la IA no tuviera base visual."
+      "uniformWarning": "Todos los tramos utilizables salen «equilibrado» y 50/50: baja confianza, puede que la IA no tuviera base visual."
     },
     "report": {
       "summaryTitle": "Conclusiones clave",
@@ -6429,6 +6428,8 @@
       "start": "Analizar el partido completo",
       "completedHint": "Observación del partido lista. Ya puedes generar los informes.",
       "notCompleted": "Los informes se pueden generar cuando el análisis esté completo.",
+      "coverageNote": "Estos informes usan el vídeo del partido completo. Lo que la IA analizó realmente:",
+      "coverageUnavailable": "No hay datos de cobertura del vídeo del partido: no leas estos informes como basados en el partido completo.",
       "unavailableHint": "Usa un clip corto para el análisis rápido."
     },
     "demo": {

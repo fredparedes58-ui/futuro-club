@@ -7,11 +7,10 @@
 
 import type { TFunction } from "i18next";
 import { MAX_MATCH_DURATION_MIN } from "@/lib/shared/videoLimits";
-import type { MatchApiError } from "@/services/real/matchAnalysisService";
+import { canonicalMatchErrorCode, type MatchApiError } from "@/services/real/matchAnalysisService";
 
 const KNOWN = new Set([
   "attestation_required",
-  "invalid_input",
   "invalid_request",
   "unauthorized",
   "plan_required",
@@ -28,7 +27,8 @@ const KNOWN = new Set([
 ]);
 
 export function matchErrorMessage(t: TFunction, err: Pick<MatchApiError, "code" | "message">): string {
-  const code = err.code === "invalid_input" ? "invalid_request" : err.code;
+  // job_not_found → not_found, UNAUTHORIZED → unauthorized, invalid_input → invalid_request.
+  const code = canonicalMatchErrorCode(err.code);
   if (KNOWN.has(code)) return t(`matchJob.errors.${code}`, { max: MAX_MATCH_DURATION_MIN });
   return t("matchJob.errors.generic", { message: err.message });
 }

@@ -87,22 +87,79 @@ describe("TeamReportView · v2 (video job)", () => {
     expect(screen.getByTestId("identity-scrubbed")).toHaveTextContent(i18n.t("matchJob.report.identityScrubbed", { n: 4 }));
   });
 
-  it("marks the flat 50/50 + balanced pattern as low confidence (possession and per segment)", () => {
-    const obs = buildObservation([
-      { status: "done", homePct: 50, dominance: "balanced" },
-      { status: "done", homePct: 50, dominance: "balanced" },
-    ]);
-    render(<TeamReportView report={buildReport(obs)} match={ctx(obs)} />);
-    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(i18n.t("matchJob.possession.lowConfidence.uniform_balanced"));
-    expect(screen.getByTestId("segments-uniform-warning")).toBeInTheDocument();
-    expect(screen.getAllByTestId("possession-low-confidence-tag").length).toBe(3); // aggregate + 2 segments
+  // Low confidence is the SERVER's gate (api/_lib/matchJob/aggregate.ts, inv #7): the UI
+  // renders segments[*].possession_low_confidence and possession_detail.low_confidence /
+  // report.possession_low_confidence, and never re-derives it.
+  const NO_VISUAL = "Baja confianza (tramo 1): no consta que la IA viera el vídeo de ese tramo o no citó ninguna evidencia.";
+  const UNIFORM = "Baja confianza: todos los tramos utilizables salieron 50/50 y «equilibrado».";
+
+  it("a segment the server flags no_visual_basis (62/38, no evidence) shows the tag and the server's reason", () => {
+    const obs = buildObservation(
+      [
+        { status: "done", homePct: 62, dominance: "home", lowConfidence: "no_visual_basis" },
+        { status: "done", homePct: 45, dominance: "away", lowConfidence: null },
+      ],
+      { lowConfidence: [{ code: "no_visual_basis", reason: NO_VISUAL, segments: [0] }] },
+    );
+    const report = buildReport(obs);
+    expect(report.possession_low_confidence).toEqual([{ code: "no_visual_basis", reason: NO_VISUAL, segments: [0] }]);
+    render(<TeamReportView report={report} match={ctx(obs)} />);
+    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(NO_VISUAL);
+    const breakdown = screen.getByTestId("segment-breakdown");
+    const rows = within(breakdown).getAllByTestId("possession-estimate");
+    expect(within(rows[0]).getByTestId("possession-low-confidence-tag")).toBeInTheDocument();
+    expect(within(rows[0]).getByTestId("possession-low-confidence-reason")).toHaveTextContent(
+      i18n.t("matchJob.possession.lowConfidence.no_visual_basis"),
+    );
+    expect(within(rows[1]).queryByTestId("possession-low-confidence-tag")).toBeNull();
+    expect(screen.getAllByTestId("possession-low-confidence-tag")).toHaveLength(2); // aggregate + segment 0
+    expect(screen.queryByTestId("segments-uniform-warning")).toBeNull();
   });
 
-  it("does not flag a varied possession", () => {
-    const obs = buildObservation([{ status: "done", homePct: 62, dominance: "home" }, { status: "done", homePct: 45, dominance: "away" }]);
+  it("uniform_output from the server: reason next to the aggregate, one warning over the list, a tag per segment", () => {
+    const obs = buildObservation(
+      [
+        { status: "done", homePct: 50, dominance: "balanced", lowConfidence: "uniform_output" },
+        { status: "done", homePct: 50, dominance: "balanced", lowConfidence: "uniform_output" },
+      ],
+      { lowConfidence: [{ code: "uniform_output", reason: UNIFORM, segments: [0, 1] }] },
+    );
+    render(<TeamReportView report={buildReport(obs)} match={ctx(obs)} />);
+    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(UNIFORM);
+    expect(screen.getByTestId("segments-uniform-warning")).toHaveTextContent(i18n.t("matchJob.segments.uniformWarning"));
+    expect(screen.getAllByTestId("possession-low-confidence-tag")).toHaveLength(3); // aggregate + 2 segments
+    // said once above the list, not repeated in every segment row
+    const breakdown = screen.getByTestId("segment-breakdown");
+    expect(within(breakdown).queryByTestId("possession-low-confidence-reason")).toBeNull();
+  });
+
+  it("follows the server even when the UI could not have guessed it (50/50 + a gated segment with dominance 'home')", () => {
+    const obs = buildObservation(
+      [
+        { status: "done", homePct: 50, dominance: "balanced", lowConfidence: "uniform_output" },
+        { status: "done", homePct: null, dominance: "home" }, // possession gated (e.g. possession_incoherent)
+      ],
+      { lowConfidence: [{ code: "uniform_output", reason: UNIFORM, segments: [0] }] },
+    );
+    render(<TeamReportView report={buildReport(obs)} match={ctx(obs)} />);
+    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(UNIFORM);
+    expect(screen.getByTestId("segments-uniform-warning")).toBeInTheDocument();
+  });
+
+  it("without a written report, takes the flags from observation.possession_detail.low_confidence", () => {
+    const obs = buildObservation([{ status: "done", homePct: 62, lowConfidence: "no_visual_basis" }], {
+      lowConfidence: [{ code: "no_visual_basis", reason: NO_VISUAL, segments: [0] }],
+    });
+    render(<TeamReportView report={null} match={ctx(obs, { reportGate: { code: "report_engine_unavailable", reason: "Sin motor." } })} />);
+    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(NO_VISUAL);
+  });
+
+  it("never re-derives the gate: no server flag ⇒ no low-confidence tag, even for 50/50", () => {
+    const obs = buildObservation([{ status: "done", homePct: 50, dominance: "balanced" }], { lowConfidence: [] });
     render(<TeamReportView report={buildReport(obs)} match={ctx(obs)} />);
     expect(screen.queryByTestId("possession-low-confidence")).toBeNull();
     expect(screen.queryByTestId("possession-low-confidence-tag")).toBeNull();
+    expect(screen.queryByTestId("segments-uniform-warning")).toBeNull();
   });
 
   it("without a written report, shows the gate reason and still the observation", () => {

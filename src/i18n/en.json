@@ -6265,9 +6265,8 @@
       "note": "AI estimate from the video, weighted by analysed time. Not an official statistic.",
       "lowConfidenceTag": "Low confidence",
       "lowConfidence": {
-        "uniform_balanced": "Low confidence: the AI returned 50 % – 50 % and “balanced” in every segment. That is the answer it gives when it has no visual basis for an estimate; do not read it as data.",
-        "no_stated_basis": "Low confidence: in at least one segment the AI did not say what the estimate was based on.",
-        "generic": "Low confidence: treat it as a rough indication only."
+        "no_visual_basis": "Low confidence: this estimate cannot be tied to what the AI saw (video input not confirmed, or no evidence cited).",
+        "uniform_output": "Low confidence: every usable segment came back 50 % – 50 % with “balanced” (or no) dominance, indistinguishable from a default answer; do not read it as data."
       }
     },
     "dominance": {
@@ -6318,7 +6317,7 @@
         "counter_press": "Counter-press",
         "retreat": "Retreat"
       },
-      "uniformWarning": "Every segment comes out “balanced” and 50/50: low confidence, the AI may have had no visual basis."
+      "uniformWarning": "Every usable segment comes out “balanced” and 50/50: low confidence, the AI may have had no visual basis."
     },
     "report": {
       "summaryTitle": "Key findings",
@@ -6429,6 +6428,8 @@
       "start": "Analyse the full match",
       "completedHint": "Match observation ready. You can generate the reports now.",
       "notCompleted": "The reports can be generated once the analysis is complete.",
+      "coverageNote": "These reports use the full-match video. What the AI actually analysed of it:",
+      "coverageUnavailable": "The coverage of the match video is not available: do not read these reports as based on the whole match.",
       "unavailableHint": "Use a short clip for the quick analysis."
     },
     "demo": {

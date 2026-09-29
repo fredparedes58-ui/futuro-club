@@ -24,6 +24,7 @@ import MatchJobProgress from "@/components/match/MatchJobProgress";
 import MatchVideoValidationNotice from "@/components/match/MatchVideoValidationNotice";
 import { EMPTY_KIT_DRAFT, type KitDraft } from "@/lib/match/kitColour";
 import { MATCH_ATTESTATION_TEXT_ES, MATCH_ATTESTATION_VERSION } from "@/lib/shared/matchJob/contract";
+import { MatchApiError } from "@/services/real/matchAnalysisService";
 import { buildEvidence, buildObservation, buildStatus, der, EMBED_URL, gatedLlm, llm } from "../../fixtures/matchJob";
 
 const LLM_LABEL = provenanceLabel("ESTIMADA_LLM") as string;
@@ -216,19 +217,45 @@ describe("PossessionEstimate", () => {
     expect(box.textContent).not.toMatch(/\b0 %|—|--/);
   });
 
-  it("labels a no-visual-basis estimate as low confidence (values still shown, never as a confident figure)", () => {
+  it("shows the server's low-confidence reason next to the value (values still shown, never as a confident figure)", () => {
+    const reason = "Baja confianza (tramo 1): sin base visual confirmada.";
     render(
       <PossessionEstimate
-        possession={{ home: llm(50, "%"), away: llm(50, "%") }}
+        possession={{ home: llm(62, "%"), away: llm(38, "%") }}
         homeName="Cantera"
         awayName="Barrio"
-        lowConfidence
-        reliabilityFlags={["uniform_balanced"]}
+        lowConfidence={[{ code: "no_visual_basis", reason, segments: [0] }]}
       />,
     );
     expect(screen.getByTestId("possession-low-confidence-tag")).toHaveTextContent(i18n.t("matchJob.possession.lowConfidenceTag"));
-    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(i18n.t("matchJob.possession.lowConfidence.uniform_balanced"));
-    expect(screen.getByTestId("possession-estimate")).toHaveTextContent("50 %");
+    expect(screen.getByTestId("possession-low-confidence")).toHaveTextContent(reason);
+    expect(screen.getByTestId("possession-estimate")).toHaveTextContent("62 %");
+  });
+
+  it("per segment: the server's code gives the tag and its translated reason; no code ⇒ no tag", () => {
+    const { unmount } = render(
+      <PossessionEstimate
+        possession={{ home: llm(62, "%"), away: llm(38, "%") }}
+        homeName="Cantera"
+        awayName="Barrio"
+        compact
+        lowConfidenceCode="no_visual_basis"
+      />,
+    );
+    expect(screen.getByTestId("possession-low-confidence-tag")).toBeInTheDocument();
+    expect(screen.getByTestId("possession-low-confidence-reason")).toHaveTextContent(i18n.t("matchJob.possession.lowConfidence.no_visual_basis"));
+    unmount();
+    render(<PossessionEstimate possession={{ home: llm(50, "%"), away: llm(50, "%") }} homeName="Cantera" awayName="Barrio" compact />);
+    expect(screen.queryByTestId("possession-low-confidence-tag")).toBeNull();
+  });
+
+  it("never flags a gated estimate (nothing to qualify)", () => {
+    const g = gatedLlm("segment_failed", "Tramo no analizado.");
+    render(
+      <PossessionEstimate possession={{ home: g, away: g }} homeName="Cantera" awayName="Barrio" compact lowConfidenceCode="no_visual_basis" />,
+    );
+    expect(screen.queryByTestId("possession-low-confidence-tag")).toBeNull();
+    expect(screen.getByText("Tramo no analizado.")).toBeInTheDocument();
   });
 });
 
@@ -269,6 +296,31 @@ describe("MatchJobProgress", () => {
   it("team_baseline has no written report in the job: its last stage is aggregation", () => {
     render(<MatchJobProgress data={buildStatus({ status: "aggregating", purpose: "team_baseline", focusTeam: "home" })} />);
     expect(screen.getByTestId("match-job-stage")).toHaveTextContent(i18n.t("matchJob.stage.aggregating"));
+  });
+
+  it("a stale / foreign ?job= link (real 404 job_not_found): explains it and offers a new analysis", () => {
+    const onStartNew = vi.fn();
+    render(
+      <MatchJobProgress
+        data={null}
+        error={new MatchApiError("job_not_found", "Análisis no encontrado", 404)}
+        onRefresh={() => {}}
+        onStartNew={onStartNew}
+      />,
+    );
+    expect(screen.getByText(i18n.t("matchJob.progress.statusError", { message: i18n.t("matchJob.errors.not_found") }))).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("matchJob.progress.startNew") }));
+    expect(onStartNew).toHaveBeenCalledTimes(1);
+  });
+
+  it("an expired session (withHandler 401 UNAUTHORIZED) gets the translated sign-in message", () => {
+    render(<MatchJobProgress data={null} error={new MatchApiError("UNAUTHORIZED", "No autenticado", 401)} onStartNew={() => {}} />);
+    expect(screen.getByText(i18n.t("matchJob.progress.statusError", { message: i18n.t("matchJob.errors.unauthorized") }))).toBeInTheDocument();
+  });
+
+  it("a transient error keeps the progress view without offering a new analysis", () => {
+    render(<MatchJobProgress data={null} error={new MatchApiError("network", "offline")} onStartNew={() => {}} />);
+    expect(screen.queryByRole("button", { name: i18n.t("matchJob.progress.startNew") })).toBeNull();
   });
 });
 

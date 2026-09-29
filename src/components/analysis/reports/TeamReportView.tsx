@@ -12,8 +12,10 @@
  *         "Calculado"); a null value renders its gate_reason, never "—" or 0;
  *       - NO overall_rating and NO LLM self-reported confidence chip (the contract
  *         rejects them); possession is an AI estimate, never an official statistic,
- *         labelled "baja confianza" when it has the no-visual-basis pattern
- *         (src/lib/shared/matchJob/possessionReliability.ts);
+ *         labelled "baja confianza" with the reason next to it when the SERVER
+ *         flags it (report `possession_low_confidence` / observation
+ *         `possession_detail.low_confidence`, per segment
+ *         `possession_low_confidence`). The UI never re-derives that gate (inv #7);
  *       - defence in depth for identidad.md: any text that still mentions a shirt
  *         number or an individual (contract `mentionsIndividual`, the same predicate
  *         as the backend identityGuard) is NOT rendered, a claim left without a
@@ -38,15 +40,10 @@ import DemoDataBanner from "@/components/DemoDataBanner";
 import { MetricValue, ProvenanceBadge } from "@/components/metrics/MetricValue";
 import CoverageBanner from "@/components/match/CoverageBanner";
 import EvidenceLink, { EvidencePlayerDialog, type OpenEvidence } from "@/components/match/EvidenceLink";
-import PossessionEstimate from "@/components/match/PossessionEstimate";
+import PossessionEstimate, { type PossessionLowConfidenceFlag } from "@/components/match/PossessionEstimate";
 import { estimatedLLM, gated, mock, type MetricResult } from "@/lib/metrics/MetricResult";
 import { MATCH_UI_CONFIG } from "@/lib/match/matchUiConfig";
 import { formatVideoRange } from "@/lib/match/videoTime";
-import {
-  assessPossessionReliability,
-  isSegmentPossessionLowConfidence,
-  type PossessionReliability,
-} from "@/lib/shared/matchJob/possessionReliability";
 import {
   MATCH_REPORT_SCHEMA_VERSION,
   matchReportV2Schema,
@@ -156,6 +153,11 @@ function MatchReportV2View({ report: rawReport, match }: { report: unknown; matc
   const rawEvidence = useMemo<EvidenceItem[]>(() => report?.evidence ?? observation?.evidence ?? [], [report, observation]);
   const segments = useMemo<SegmentSummary[]>(() => report?.segments ?? observation?.segments ?? [], [report, observation]);
   const possession = report?.possession ?? observation?.possession ?? null;
+  // The server's low-confidence flags (the report copies them from the observation, never recomputes).
+  const possessionFlags = useMemo<PossessionLowConfidenceFlag[]>(
+    () => report?.possession_low_confidence ?? observation?.possession_detail.low_confidence ?? [],
+    [report, observation],
+  );
   const homeName = match?.homeName || t("teamReport.home");
   const awayName = match?.awayName || t("teamReport.away");
   const embedUrl = match?.embedUrl ?? null;
@@ -167,7 +169,6 @@ function MatchReportV2View({ report: rawReport, match }: { report: unknown; matc
   // Identity defence in depth: never render a text that names a dorsal / individual.
   const scrubbed = useMemo(() => scrubIndividualTexts(report, rawEvidence, segments), [report, rawEvidence, segments]);
   const { evidence, evidenceById } = scrubbed;
-  const reliability = useMemo(() => assessPossessionReliability(segments), [segments]);
 
   const teamLabel = (team: string) => (team === "home" ? homeName : team === "away" ? awayName : t("matchJob.evidence.teamAmbiguous"));
 
@@ -229,8 +230,7 @@ function MatchReportV2View({ report: rawReport, match }: { report: unknown; matc
           possession={possession}
           homeName={homeName}
           awayName={awayName}
-          lowConfidence={reliability.lowConfidence}
-          reliabilityFlags={reliability.flags}
+          lowConfidence={possessionFlags}
         />
       )}
 
@@ -253,7 +253,7 @@ function MatchReportV2View({ report: rawReport, match }: { report: unknown; matc
           segments={segments}
           homeName={homeName}
           awayName={awayName}
-          reliability={reliability}
+          possessionFlags={possessionFlags}
           showDetails={showDetails}
           onToggleDetails={() => setShowDetails((v) => !v)}
         />
@@ -439,14 +439,15 @@ function SegmentBreakdown({
   segments,
   homeName,
   awayName,
-  reliability,
+  possessionFlags,
   showDetails,
   onToggleDetails,
 }: {
   segments: SegmentSummary[];
   homeName: string;
   awayName: string;
-  reliability: PossessionReliability;
+  /** Match-level server flags (only used for the "uniform output" line above the list). */
+  possessionFlags: readonly PossessionLowConfidenceFlag[];
   showDetails: boolean;
   onToggleDetails: () => void;
 }) {
@@ -459,6 +460,8 @@ function SegmentBreakdown({
         : t("matchJob.dominance.balanced");
   const valueFormat = (v: number | string) => t(`matchJob.segments.value.${String(v)}`, { defaultValue: String(v) });
   const rawFormat = (v: number | string) => String(v);
+  const uniformOutput =
+    possessionFlags.some((f) => f.code === "uniform_output") || segments.some((s) => s.possession_low_confidence === "uniform_output");
 
   return (
     <section className="space-y-2" data-testid="segment-breakdown">
@@ -466,7 +469,7 @@ function SegmentBreakdown({
         <Scale size={13} className="text-primary" />
         <h5 className="font-display font-bold text-xs text-primary">{t("matchJob.segments.title")}</h5>
       </div>
-      {reliability.flags.includes("uniform_balanced") && (
+      {uniformOutput && (
         <p role="status" data-testid="segments-uniform-warning" className="text-[10px] text-amber-600 dark:text-amber-400">
           {t("matchJob.segments.uniformWarning")}
         </p>
@@ -487,7 +490,9 @@ function SegmentBreakdown({
               homeName={homeName}
               awayName={awayName}
               compact
-              lowConfidence={isSegmentPossessionLowConfidence(reliability, s.idx)}
+              lowConfidenceCode={s.possession_low_confidence ?? null}
+              // The uniform-output reason is said once above the list, not once per segment.
+              showReason={!(uniformOutput && s.possession_low_confidence === "uniform_output")}
             />
             {showDetails && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">

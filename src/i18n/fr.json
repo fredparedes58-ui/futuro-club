@@ -6264,9 +6264,8 @@
       "note": "Estimation de l'IA sur la vidéo, pondérée par le temps analysé. Ce n'est pas une statistique officielle.",
       "lowConfidenceTag": "Confiance faible",
       "lowConfidence": {
-        "uniform_balanced": "Confiance faible : l'IA a renvoyé 50 % – 50 % et « Équilibré » sur toutes les tranches. C'est la réponse qu'elle donne quand elle n'a pas de base visuelle pour estimer ; ne la lisez pas comme une donnée.",
-        "no_stated_basis": "Confiance faible : sur au moins une tranche, l'IA n'a pas indiqué sur quoi reposait l'estimation.",
-        "generic": "Confiance faible : à prendre seulement comme une indication."
+        "no_visual_basis": "Confiance faible : cette estimation ne peut pas être reliée à ce que l'IA a vu (entrée vidéo non confirmée ou aucune preuve citée).",
+        "uniform_output": "Confiance faible : toutes les tranches exploitables sont ressorties à 50 % – 50 % avec une domination « Équilibré » (ou aucune), impossible à distinguer d'une réponse par défaut ; ne la lisez pas comme une donnée."
       }
     },
     "dominance": {
@@ -6317,7 +6316,7 @@
         "counter_press": "Contre-pressing",
         "retreat": "Repli"
       },
-      "uniformWarning": "Toutes les tranches ressortent « Équilibré » et 50/50 : confiance faible, l'IA n'avait peut-être pas de base visuelle."
+      "uniformWarning": "Toutes les tranches exploitables ressortent « Équilibré » et 50/50 : confiance faible, l'IA n'avait peut-être pas de base visuelle."
     },
     "report": {
       "summaryTitle": "Conclusions clés",
@@ -6428,6 +6427,8 @@
       "start": "Analyser le match complet",
       "completedHint": "Observation du match prête. Vous pouvez maintenant générer les rapports.",
       "notCompleted": "Les rapports pourront être générés une fois l'analyse terminée.",
+      "coverageNote": "Ces rapports utilisent la vidéo du match complet. Ce que l'IA en a réellement analysé :",
+      "coverageUnavailable": "La couverture de la vidéo du match n'est pas disponible : ne lisez pas ces rapports comme fondés sur le match complet.",
       "unavailableHint": "Utilisez un clip court pour l'analyse rapide."
     },
     "demo": {

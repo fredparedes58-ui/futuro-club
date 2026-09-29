@@ -6264,9 +6264,8 @@
       "note": "Schätzung der KI aus dem Video, gewichtet nach analysierter Zeit. Keine offizielle Statistik.",
       "lowConfidenceTag": "Geringe Konfidenz",
       "lowConfidence": {
-        "uniform_balanced": "Geringe Konfidenz: Die KI hat in jedem Abschnitt 50 % – 50 % und „Ausgeglichen“ geliefert. Das ist die Antwort, die sie ohne visuelle Grundlage für eine Schätzung gibt; lies sie nicht als Datum.",
-        "no_stated_basis": "Geringe Konfidenz: In mindestens einem Abschnitt hat die KI nicht angegeben, worauf die Schätzung beruht.",
-        "generic": "Geringe Konfidenz: nur als grobe Orientierung nehmen."
+        "no_visual_basis": "Geringe Konfidenz: Diese Schätzung lässt sich nicht mit dem verknüpfen, was die KI gesehen hat (Videoeingabe nicht bestätigt oder kein Beleg zitiert).",
+        "uniform_output": "Geringe Konfidenz: Jeder verwertbare Abschnitt ergab 50 % – 50 % mit „Ausgeglichen“ (oder ohne) Dominanz, nicht von einer Standardantwort zu unterscheiden; lies sie nicht als Datum."
       }
     },
     "dominance": {
@@ -6317,7 +6316,7 @@
         "counter_press": "Gegenpressing",
         "retreat": "Rückzug"
       },
-      "uniformWarning": "Jeder Abschnitt ergibt „Ausgeglichen“ und 50/50: geringe Konfidenz, die KI hatte möglicherweise keine visuelle Grundlage."
+      "uniformWarning": "Jeder verwertbare Abschnitt ergibt „Ausgeglichen“ und 50/50: geringe Konfidenz, die KI hatte möglicherweise keine visuelle Grundlage."
     },
     "report": {
       "summaryTitle": "Wichtigste Erkenntnisse",
@@ -6428,6 +6427,8 @@
       "start": "Ganzes Spiel analysieren",
       "completedHint": "Spielbeobachtung bereit. Du kannst jetzt die Berichte erstellen.",
       "notCompleted": "Die Berichte können erstellt werden, sobald die Analyse abgeschlossen ist.",
+      "coverageNote": "Diese Berichte nutzen das Video des ganzen Spiels. Das hat die KI davon tatsächlich analysiert:",
+      "coverageUnavailable": "Die Abdeckung des Spielvideos ist nicht verfügbar: Lies diese Berichte nicht so, als beruhten sie auf dem ganzen Spiel.",
       "unavailableHint": "Nutze einen kurzen Clip für die Schnellanalyse."
     },
     "demo": {

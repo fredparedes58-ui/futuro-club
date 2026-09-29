@@ -6,8 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/apiAuth", () => ({ getAuthHeaders: vi.fn(async () => ({ Authorization: "Bearer test-token" })) }));
 
-import { MatchAnalysisService, MatchApiError } from "@/services/real/matchAnalysisService";
+import {
+  canonicalMatchErrorCode,
+  isFatalMatchError,
+  MatchAnalysisService,
+  MatchApiError,
+} from "@/services/real/matchAnalysisService";
 import { MATCH_ATTESTATION_VERSION, type MatchStartRequest } from "@/lib/shared/matchJob/contract";
+// The REAL server envelope (pinned to api/_lib/apiResponse.ts errorResponse by an api test).
+import { REAL_SERVER_ERRORS as E, serverErrorResponse } from "../fixtures/serverEnvelope";
 import { buildObservation, buildStatus, errJson, JOB_ID, JOB_ID_2, okJson, VIDEO_ID } from "../fixtures/matchJob";
 
 const fetchMock = vi.fn();
@@ -122,9 +129,42 @@ describe("MatchAnalysisService.status", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("maps a 404 to not_found", async () => {
+  it("maps a bare 404 to not_found", async () => {
     fetchMock.mockResolvedValue(new Response("{}", { status: 404 }));
     expect((await rejection(MatchAnalysisService.status(JOB_ID))).code).toBe("not_found");
+  });
+
+  it("reads the real server envelope: 404 job_not_found (api/match/_status.ts) is fatal and means not_found", async () => {
+    fetchMock.mockResolvedValue(serverErrorResponse(E.jobNotFound));
+    const e = await rejection(MatchAnalysisService.status(JOB_ID));
+    expect(e.code).toBe("job_not_found"); // the server code is kept
+    expect(e.status).toBe(404);
+    expect(e.message).toBe("Análisis no encontrado");
+    expect(canonicalMatchErrorCode(e.code)).toBe("not_found");
+    expect(isFatalMatchError(e)).toBe(true);
+  });
+
+  it("reads the real withHandler 401 (uppercase UNAUTHORIZED) as a fatal unauthorized", async () => {
+    fetchMock.mockResolvedValue(serverErrorResponse(E.unauthorized));
+    const e = await rejection(MatchAnalysisService.status(JOB_ID));
+    expect(e.code).toBe("UNAUTHORIZED");
+    expect(e.status).toBe(401);
+    expect(canonicalMatchErrorCode(e.code)).toBe("unauthorized");
+    expect(isFatalMatchError(e)).toBe(true);
+  });
+});
+
+describe("isFatalMatchError", () => {
+  it("is fatal for 4xx other than 408/429, whatever the code", () => {
+    for (const status of [400, 401, 403, 404, 410]) expect(isFatalMatchError({ code: "SOMETHING_NEW", status }), String(status)).toBe(true);
+  });
+  it("is transient for network errors, 408, 429 and 5xx", () => {
+    expect(isFatalMatchError({ code: "network", status: null })).toBe(false);
+    for (const status of [408, 429, 500, 502, 503]) expect(isFatalMatchError({ code: "http_error", status }), String(status)).toBe(false);
+  });
+  it("is fatal for client-side refusals and contract violations (no HTTP status)", () => {
+    expect(isFatalMatchError({ code: "invalid_request", status: null })).toBe(true);
+    expect(isFatalMatchError({ code: "invalid_response", status: null })).toBe(true);
   });
 });
 
