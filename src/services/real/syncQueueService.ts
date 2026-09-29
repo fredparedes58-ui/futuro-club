@@ -59,9 +59,13 @@ export const SyncQueueService = {
     return this.getQueue().filter((q) => q.ownerId === ownerId);
   },
 
-  /** Número de operaciones pendientes: de `ownerId` si se pasa; sin argumento, el total del dispositivo. */
-  pendingCount(ownerId?: string | null): number {
-    return ownerId === undefined ? this.getQueue().length : this.getQueueFor(ownerId).length;
+  /**
+   * Número de operaciones pendientes DE `ownerId` (sin cuenta ⇒ 0). La cuenta es
+   * obligatoria: no hay recuento «del dispositivo», porque las ops de otra cuenta
+   * no pueden decidir nada de la sesión actual (p.ej. conservar su caché).
+   */
+  pendingCount(ownerId: string | null | undefined): number {
+    return this.getQueueFor(ownerId).length;
   },
 
   /**
@@ -217,9 +221,9 @@ export const SyncQueueService = {
 
   // ── Estado de sync ─────────────────────────────────────────────────────
 
-  /** Verificar si hay operaciones pendientes */
-  hasPending(): boolean {
-    return this.pendingCount() > 0;
+  /** ¿Tiene ESTA cuenta operaciones pendientes? */
+  hasPending(ownerId: string | null | undefined): boolean {
+    return this.pendingCount(ownerId) > 0;
   },
 
   /** Verificar si estamos online */
@@ -227,11 +231,11 @@ export const SyncQueueService = {
     return navigator.onLine;
   },
 
-  /** Resumen del estado de sync para UI */
-  getStatus(): { pending: number; lastPlayers: string | null; lastVideos: string | null; online: boolean } {
+  /** Resumen del estado de sync para UI (pendientes de ESTA cuenta) */
+  getStatus(ownerId: string | null | undefined): { pending: number; lastPlayers: string | null; lastVideos: string | null; online: boolean } {
     const ts = this.getTimestamps();
     return {
-      pending: this.pendingCount(),
+      pending: this.pendingCount(ownerId),
       lastPlayers: ts.players,
       lastVideos: ts.videos,
       online: this.isOnline(),

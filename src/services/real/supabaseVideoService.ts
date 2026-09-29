@@ -57,16 +57,22 @@ export const SupabaseVideoService = {
         .order("updated_at", { ascending: false });
       if (error) throw error;
 
+      // Vídeos con cambios locales pendientes DE ESTA CUENTA. Las ops de otra cuenta
+      // del dispositivo (p.ej. un jugador que A editó sin red antes de salir) no
+      // cuentan: antes un recuento del dispositivo entero hacía que la nube vacía de
+      // B conservara y mostrara los vídeos locales de A (y pushAll los subiera como B).
+      const pendingVideoIds = new Set(
+        SyncQueueService.getQueueFor(userId)
+          .filter((op) => op.entity === "video")
+          .map((op) => op.entityId),
+      );
+
       if (!data || data.length === 0) {
-        // Cloud vacío — verificar si hay videos locales pendientes de sync
-        const localVideos = VideoService.getAll();
-        const pending = SyncQueueService.pendingCount();
-        if (localVideos.length > 0 && pending > 0) {
-          return localVideos;
-        }
+        // Nube vacía: solo sobreviven los vídeos locales pendientes de subir de esta cuenta.
+        const kept = VideoService.getAll().filter((v) => pendingVideoIds.has(v.id));
         const { StorageService } = await import("./storageService");
-        StorageService.set("videos", []);
-        return [];
+        StorageService.set("videos", kept);
+        return kept;
       }
 
       // Supabase-first: cloud reemplaza localStorage. Filas sin `data` (sembradas por
@@ -87,14 +93,11 @@ export const SupabaseVideoService = {
         return cv;
       });
 
-      // Preservar videos locales con operaciones pendientes
-      const pending = SyncQueueService.getQueue().filter(
-        (op) => op.entity === "video" && op.status === "pending"
-      );
-      const pendingIds = new Set(pending.map((op) => op.entityId));
+      // Preservar videos locales con operaciones pendientes de ESTA cuenta (antes se
+      // filtraba por `op.status`, un campo que SyncQueueItem no tiene → nunca nada).
       const cloudIds = new Set(cloudVideos.map((v) => v.id));
       for (const lv of localVideos) {
-        if (pendingIds.has(lv.id) && !cloudIds.has(lv.id)) {
+        if (pendingVideoIds.has(lv.id) && !cloudIds.has(lv.id)) {
           result.push(lv);
         }
       }

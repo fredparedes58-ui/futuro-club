@@ -26,10 +26,10 @@ describe("SyncQueueService", () => {
       expect(SyncQueueService.getQueue()).toHaveLength(2);
     });
 
-    it("pendingCount refleja la cola", () => {
-      expect(SyncQueueService.pendingCount()).toBe(0);
-      SyncQueueService.enqueue("create", "player", "p1", {});
-      expect(SyncQueueService.pendingCount()).toBe(1);
+    it("pendingCount refleja la cola de la cuenta", () => {
+      expect(SyncQueueService.pendingCount("u1")).toBe(0);
+      SyncQueueService.enqueue("create", "player", "p1", {}, "u1");
+      expect(SyncQueueService.pendingCount("u1")).toBe(1);
     });
   });
 
@@ -144,7 +144,7 @@ describe("SyncQueueService", () => {
 
   describe("getStatus", () => {
     it("retorna estado completo", () => {
-      const status = SyncQueueService.getStatus();
+      const status = SyncQueueService.getStatus("u1");
       expect(status).toHaveProperty("pending");
       expect(status).toHaveProperty("online");
       expect(status).toHaveProperty("lastPlayers");
