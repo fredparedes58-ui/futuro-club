@@ -7,6 +7,7 @@
 import type { Player } from "./playerService";
 import type { ScoutInsightOutput } from "@/agents/contracts";
 import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { vsiTrendArrow } from "@/lib/scoring/vsiDelta";
 
 // Avatares por defecto usando iniciales (sin CDN externo)
 const PLACEHOLDER_AVATARS = [
@@ -23,12 +24,14 @@ const PLAYER_IMAGES = [
 // ─────────────────────────────────────────
 export function adaptPlayerForUI(player: Player) {
   // vsi puede ser null ("sin evaluar"): se propaga tal cual, nunca se convierte
-  // en 0. La tendencia solo tiene sentido con dos VSIs reales.
-  const vsiHistory = player.vsiHistory ?? (player.vsi !== null ? [player.vsi] : []);
-  const prevVSI = vsiHistory.at(-2) ?? player.vsi;
-  const delta = player.vsi !== null && prevVSI !== null ? player.vsi - prevVSI : 0;
-  const trending: "up" | "down" | "stable" =
-    delta > 2 ? "up" : delta < -2 ? "down" : "stable";
+  // en 0. La tendencia solo sale de dos evaluaciones reales con fecha (vsiTrendArrow →
+  // computeVsiDelta); el vsiHistory legacy solo cuenta para jugadores demo.
+  const trending: "up" | "down" | "stable" = vsiTrendArrow({
+    evaluations: player.vsiEvaluations,
+    legacyHistory: player.vsiHistory,
+    currentVsi: player.vsi,
+    isDemo: player.isDemo,
+  });
 
   // "ontme" → "on-time" para compatibilidad con componentes existentes
   const phvCategoryMap: Record<string, "early" | "on-time" | "late"> = {

@@ -55,19 +55,31 @@ describe("adaptPlayerForUI", () => {
     expect(ui.vsi).toBe(72);
   });
 
-  it("calculates trending=up when delta > 2", () => {
-    const ui = adaptPlayerForUI(makePlayer({ vsi: 75, vsiHistory: [68, 70] }));
+  // La flecha sale de dos evaluaciones REALES con fecha (vsiTrendArrow → computeVsiDelta),
+  // nunca del vsiHistory legacy (sin fechas; con el 57.5 fabricado antes de #146).
+  const evals = (from: number, to: number) => [
+    { value: from, at: "2026-09-01T10:00:00.000Z", source: "coach_form" as const },
+    { value: to, at: "2026-09-15T10:00:00.000Z", source: "coach_form" as const },
+  ];
+
+  it("calculates trending=up when the dated real delta > 2", () => {
+    const ui = adaptPlayerForUI(makePlayer({ vsi: 75, vsiHistory: [70, 75], vsiEvaluations: evals(70, 75) }));
     expect(ui.trending).toBe("up");
   });
 
-  it("calculates trending=down when delta < -2", () => {
-    const ui = adaptPlayerForUI(makePlayer({ vsi: 65, vsiHistory: [68, 70] }));
+  it("calculates trending=down when the dated real delta < -2", () => {
+    const ui = adaptPlayerForUI(makePlayer({ vsi: 65, vsiHistory: [70, 65], vsiEvaluations: evals(70, 65) }));
     expect(ui.trending).toBe("down");
   });
 
-  it("calculates trending=stable for small delta", () => {
-    // prevVSI = vsiHistory.at(-2) = second to last, here 70. delta = 72-70 = 2
-    const ui = adaptPlayerForUI(makePlayer({ vsi: 72, vsiHistory: [68, 70, 72] }));
+  it("calculates trending=stable for a small dated real delta", () => {
+    // delta = 72 - 70 = 2 → dentro de la banda ±2
+    const ui = adaptPlayerForUI(makePlayer({ vsi: 72, vsiHistory: [70, 72], vsiEvaluations: evals(70, 72) }));
+    expect(ui.trending).toBe("stable");
+  });
+
+  it("legacy vsiHistory alone never yields an arrow for a real player (was ↑ from [68, 70] → 75)", () => {
+    const ui = adaptPlayerForUI(makePlayer({ vsi: 75, vsiHistory: [68, 70], vsiEvaluations: undefined }));
     expect(ui.trending).toBe("stable");
   });
 
