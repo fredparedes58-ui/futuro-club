@@ -1,0 +1,28 @@
+{
+  "$comment": "UI-only tunables of the full-match video job (PR-C). The backend tunables (segment length, proxy, confidences, staleness, caps) live in config/matchVideo.json (PR-A); none of these keys is duplicated there (invariant #7). Every value carries _source; without a source the value is literally 'pendiente de validar'. Loaded by src/lib/match/matchUiConfig.ts.",
+  "kitDeltaEWarn": {
+    "value": 20,
+    "units": "CIEDE2000",
+    "_source": "pendiente de validar — distancia CIEDE2000 entre las camisetas declaradas por debajo de la cual la UI avisa de que la IA puede no distinguir los equipos en un proxy de 360p. Elegido sobre pares sintéticos (rojo/granate 18.7, negro/marino 21.6, rojo/azul 45.1); sin validar con partidos reales. Solo es un aviso: no bloquea el inicio ni cambia lo que se envía."
+  },
+  "statusPollInitialSec": {
+    "value": 10,
+    "units": "s",
+    "_source": "diseño docs/diseno-partido-completo.md §3.8 y §14: sondeo de GET /api/match/status cada 10 s con retroceso a 30 s"
+  },
+  "statusPollMaxSec": {
+    "value": 30,
+    "units": "s",
+    "_source": "diseño docs/diseno-partido-completo.md §3.8 y §14: tope del retroceso del sondeo (30 s)"
+  },
+  "statusPollBackoffFactor": {
+    "value": 1.5,
+    "units": null,
+    "_source": "decisión de diseño de la UI: mientras el job no cambia de etapa ni de tramo el intervalo crece 10 → 15 → 23 → 30 s; vuelve a 10 s en cuanto hay progreso"
+  },
+  "notesOnlyReportConfidence": {
+    "value": 0.2,
+    "units": null,
+    "_source": "pendiente de validar — confianza fija (nunca la autoinformada por el LLM) con la que la UI envuelve la valoración numérica del informe «solo notas» (ESTIMADA_LLM sobre texto del entrenador, sin vídeo ni ground truth). Baja a propósito."
+  }
+}

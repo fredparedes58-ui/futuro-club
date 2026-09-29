@@ -151,54 +151,8 @@ Basa el reporte en el perfil del jugador y la valoración subjetiva del coach.
 Sé honesto sobre las limitaciones del análisis sin vídeo.`;
 }
 
-// ── VSI trend · slope + momentum + confidence ──────────────────────
-
-function computeVsiTrend(history: number[]): {
-  slope: number | null;          // VSI puntos por medición
-  momentum: "up" | "flat" | "down" | null;
-  confidence: "high" | "medium" | "low";
-  delta: number | null;          // ultimos 3 vs anteriores 3
-  samples: number;
-} {
-  if (!Array.isArray(history) || history.length < 2) {
-    return { slope: null, momentum: null, confidence: "low", delta: null, samples: history?.length ?? 0 };
-  }
-
-  const n = history.length;
-  const xs = history.map((_, i) => i);
-  const ys = history;
-
-  const meanX = xs.reduce((a, b) => a + b, 0) / n;
-  const meanY = ys.reduce((a, b) => a + b, 0) / n;
-
-  const num = xs.reduce((acc, x, i) => acc + (x - meanX) * (ys[i] - meanY), 0);
-  const den = xs.reduce((acc, x) => acc + (x - meanX) ** 2, 0);
-  const slope = den === 0 ? 0 : num / den;
-
-  let momentum: "up" | "flat" | "down" = "flat";
-  if (slope > 0.5) momentum = "up";
-  else if (slope < -0.5) momentum = "down";
-
-  let confidence: "high" | "medium" | "low" = "low";
-  if (n >= 6) confidence = "high";
-  else if (n >= 3) confidence = "medium";
-
-  // Delta = media últimos 3 vs media anteriores 3
-  let delta: number | null = null;
-  if (n >= 6) {
-    const recent = ys.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const older = ys.slice(-6, -3).reduce((a, b) => a + b, 0) / 3;
-    delta = Number((recent - older).toFixed(2));
-  }
-
-  return {
-    slope: Number(slope.toFixed(2)),
-    momentum,
-    confidence,
-    delta,
-    samples: n,
-  };
-}
+// (Sin «tendencia VSI» aquí: el antiguo computeVsiTrend —pendiente/momentum/delta—
+//  corría sobre players.vsi_history, legacy SIN fechas ni origen, ver el handler.)
 
 // ── Compute VSI score from metrics ──────────────────────────────────
 
@@ -441,16 +395,14 @@ export default withHandler(
     const vsiBase = computeVsi(profile);
     const peer = await computePeerPercentile(supabase, profile);
 
-    // VSI trend desde history del player (incluye el actual al final si no esta)
-    const historyArr = Array.isArray(playerRow.vsi_history)
-      ? (playerRow.vsi_history as unknown[]).map((v) => Number(v)).filter((v) => !Number.isNaN(v))
-      : [];
-    const fullHistory = historyArr.length > 0 && historyArr[historyArr.length - 1] !== vsiBase.vsi
-      ? [...historyArr, vsiBase.vsi]
-      : historyArr;
-    const trend = computeVsiTrend(fullHistory);
-
-    const vsiData = { ...vsiBase, peer, trend, history: fullHistory };
+    // Ni `trend` ni `history` en analyses.vsi. Antes se calculaban (pendiente, momentum,
+    // «delta») sobre players.vsi_history —legacy SIN fechas ni origen, con el 57.5
+    // fabricado antes de #146— con este VSI de OTRA fórmula añadido al final: para
+    // [57.5, 67.4] el panel de análisis pintaba «↗» y «+9.x pts». La única variación
+    // válida del VSI de ficha es computeVsiDelta (src/lib/scoring/vsiDelta.ts), solo
+    // entre dos evaluaciones con fecha; aquí no se inventa otra (invariante #7). Las
+    // filas ya guardadas se limpian al leer (withoutUndatedVsiSeries).
+    const vsiData = { ...vsiBase, peer };
 
     // ── 2. Insertar analysis row (placeholder video_id sentinel) ───
     const sentinelVideoId = `baseline-${profile.id}-${Date.now()}`;

@@ -4,7 +4,7 @@
  *
  * Vista padre/madre · simplificada, sin jerga técnica. Pensada para que
  * cualquier familia entienda el progreso de su hijo en 30 segundos:
- *   - Score VSI grande con delta vs hace 1 mes
+ *   - Score VSI grande + variación SOLO entre dos evaluaciones con fecha (con esas fechas)
  *   - Badges/logros desbloqueados
  *   - Última medición + cuándo toca la próxima
  *   - Botón "Compartir progreso" (genera share-link al último análisis)
@@ -41,6 +41,8 @@ import {
 } from "@/hooks/useParentalConsent";
 import { Shield, CheckCircle2, AlertCircle } from "lucide-react";
 import { PlayerTrackingService } from "@/services/real/playerTrackingService";
+import { computeVsiDelta } from "@/lib/scoring/vsiDelta";
+import { MetricValue } from "@/components/metrics/MetricValue";
 
 interface Badge {
   id: string;
@@ -58,7 +60,7 @@ const PHV_EMOJIS: Record<string, string> = {
 };
 
 export default function ParentDashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { playerId } = useParams<{ playerId: string }>();
   const navigate = useNavigate();
   const player = playerId ? PlayerService.getById(playerId) : null;
@@ -81,11 +83,19 @@ export default function ParentDashboardPage() {
   // ─── Cálculos ──────────────────────────────────────────────────
   // vsi null ⇒ jugador sin evaluar: NUNCA se muestra un "0 / de 100" fabricado a la
   // familia de un menor (invariante #2). El héroe se nombra "sin evaluar".
-  const vsiRated = rawPlayer?.vsi != null;
-  const vsiCurrent = Number(rawPlayer?.vsi ?? 0);
-  const vsiHistory = (rawPlayer?.vsiHistory ?? []) as number[];
-  const vsiBefore = vsiHistory.length >= 2 ? vsiHistory[Math.max(0, vsiHistory.length - 4)] : vsiCurrent;
-  const vsiDelta = Number((vsiCurrent - vsiBefore).toFixed(1));
+  const vsiCurrent: number | null =
+    typeof rawPlayer?.vsi === "number" && Number.isFinite(rawPlayer.vsi) ? rawPlayer.vsi : null;
+  const vsiRated = vsiCurrent !== null;
+  // Variación SOLO entre dos evaluaciones reales con fecha y origen (fuente única:
+  // src/lib/scoring/vsiDelta.ts). Antes se restaba vsiHistory[len-4] — un historial sin
+  // fechas, con 57.5 fabricados — y se rotulaba «vs hace 1 mes»: una fecha inventada.
+  const vsiDelta = computeVsiDelta({
+    evaluations: rawPlayer?.vsiEvaluations,
+    legacyHistory: rawPlayer?.vsiHistory,
+    currentVsi: vsiCurrent,
+  });
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(i18n.language, { day: "numeric", month: "short", year: "numeric" }) : "";
 
   // Fase de estirón SOLO desde el gate único de PHV (regla del owner 28-sep).
   const phvGateResult = phvGate(rawPlayer ?? player);
@@ -132,14 +142,15 @@ export default function ParentDashboardPage() {
       emoji: "📈",
       title: t("parentDashboardPage.badgeImprovingTitle"),
       description: t("parentDashboardPage.badgeImprovingDesc"),
-      unlocked: vsiDelta >= 2,
+      // Solo con una subida CALCULADA entre dos evaluaciones con fecha.
+      unlocked: vsiDelta.value !== null && vsiDelta.value >= 2,
     },
     {
       id: "elite",
       emoji: "👑",
       title: t("parentDashboardPage.badgeEliteTitle"),
       description: t("parentDashboardPage.badgeEliteDesc"),
-      unlocked: vsiCurrent >= 70,
+      unlocked: vsiCurrent !== null && vsiCurrent >= 70,
     },
   ];
 
@@ -164,8 +175,17 @@ export default function ParentDashboardPage() {
       }
       const fullUrl = `${window.location.origin}${data.data.url}`;
       // Sin evaluar (vsi null): no se comparte a la familia un "VSI: 0 (+0 pts)"
-      // fabricado (invariante #2) — se dice "sin evaluar" y sin delta.
-      const deltaLabel = !vsiRated ? "" : vsiDelta >= 0 ? ` (↗ +${Math.abs(vsiDelta)} pts)` : ` (↘ ${Math.abs(vsiDelta)} pts)`;
+      // fabricado (invariante #2) — se dice "sin evaluar" y sin delta. La variación
+      // solo viaja si se CALCULÓ entre dos evaluaciones con fecha, y con esas fechas.
+      const d = vsiDelta.value;
+      const deltaLabel = !vsiRated || d === null
+        ? ""
+        : t("parentDashboardPage.shareDelta", {
+            arrow: d >= 0 ? "↗" : "↘",
+            value: `${d > 0 ? "+" : ""}${d}`,
+            from: fmtDate(vsiDelta.from_at),
+            to: fmtDate(vsiDelta.to_at),
+          });
       const text = t("parentDashboardPage.shareText", {
         name: player.name,
         vsi: vsiRated ? vsiCurrent : t("common.notEvaluated"),
@@ -219,7 +239,7 @@ export default function ParentDashboardPage() {
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
             {t("parentDashboardPage.currentLevel")}
           </div>
-          {vsiRated ? (
+          {vsiCurrent !== null ? (
             <>
               <div className="font-display font-bold text-6xl text-foreground leading-none">
                 {Math.round(vsiCurrent)}
@@ -232,15 +252,42 @@ export default function ParentDashboardPage() {
             </div>
           )}
 
-          {vsiHistory.length >= 2 && (
-            <div className={`mt-3 inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-display font-bold ${
-              vsiDelta > 0 ? "bg-green-400/15 text-green-400"
-              : vsiDelta < 0 ? "bg-red-400/15 text-red-400"
-              : "bg-secondary text-muted-foreground"
-            }`}>
-              {vsiDelta > 0 ? <TrendingUp size={12} /> : vsiDelta < 0 ? <TrendingDown size={12} /> : null}
-              {vsiDelta >= 0 ? "+" : ""}{vsiDelta} {t("parentDashboardPage.ptsVsOneMonthAgo")}
-            </div>
+          {/* Variación: calculada entre dos evaluaciones con fecha (se muestran las
+              fechas reales) o, si no se puede, su motivo — nunca una fecha inventada. */}
+          {vsiRated && (
+            vsiDelta.value !== null ? (
+              <div data-testid="family-vsi-delta" className="mt-3 flex flex-col items-center gap-1">
+                <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-display font-bold ${
+                  vsiDelta.value > 0 ? "bg-green-400/15 text-green-400"
+                  : vsiDelta.value < 0 ? "bg-red-400/15 text-red-400"
+                  : "bg-secondary text-muted-foreground"
+                }`}>
+                  {vsiDelta.value > 0 ? <TrendingUp size={12} /> : vsiDelta.value < 0 ? <TrendingDown size={12} /> : null}
+                  <MetricValue
+                    result={vsiDelta}
+                    format={(v, u) => `${Number(v) > 0 ? "+" : ""}${v}${u ? ` ${u}` : ""}`}
+                  />
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {t("parentDashboardPage.vsiDeltaBetween", {
+                    from: fmtDate(vsiDelta.from_at),
+                    to: fmtDate(vsiDelta.to_at),
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div data-testid="family-vsi-delta-gated" className="mt-3">
+                <MetricValue
+                  className="text-[10px]"
+                  result={{
+                    ...vsiDelta,
+                    gate_reason: vsiDelta.gate_code
+                      ? t(`vsiDelta.gate.${vsiDelta.gate_code}`, { defaultValue: vsiDelta.gate_reason ?? "" })
+                      : vsiDelta.gate_reason,
+                  }}
+                />
+              </div>
+            )
           )}
 
           {phvGateResult.ok ? (

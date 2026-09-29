@@ -8,6 +8,7 @@
  *   GET  /api/admin/list-orgs   → list all orgs with usage (Fase 3)
  *   GET  /api/admin/list-users  → paginated user list (Fase 3)
  *   POST /api/admin/reset-quota → reset user's monthly quota (Fase 3)
+ *   GET  /api/admin/vsi-suspects → jugadores con 57.5 fabricado pendientes de revisión (070)
  */
 import { errorResponse } from "../_lib/apiResponse";
 
@@ -16,6 +17,7 @@ import managePlan from "./_manage-plan";
 import listOrgs from "./_list-orgs";
 import listUsers from "./_list-users";
 import resetQuota from "./_reset-quota";
+import vsiSuspects from "./_vsi-suspects";
 
 export const config = { runtime: "edge" };
 
@@ -25,6 +27,7 @@ const routes: Record<string, (req: Request) => Promise<Response>> = {
   "list-orgs": listOrgs,
   "list-users": listUsers,
   "reset-quota": resetQuota,
+  "vsi-suspects": vsiSuspects,
 };
 
 export default async function handler(req: Request): Promise<Response> {

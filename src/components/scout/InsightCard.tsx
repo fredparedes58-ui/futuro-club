@@ -20,6 +20,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import VsiGauge from "@/components/VsiGauge";
+import { MetricValue } from "@/components/metrics/MetricValue";
+import { estimatedLLM, mock, type MetricResult } from "@/lib/metrics/MetricResult";
+import { readVsiDelta } from "@/lib/scoring/vsiDelta";
 import { splitMetricValue } from "@/lib/scout/insightValue";
 import type { ScoutInsightRow } from "@/hooks/useScoutFeed";
 
@@ -69,6 +72,70 @@ export function relativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
+// ── Cifra del insight (con procedencia) ───────────────────────────────────────
+
+/**
+ * La cifra de un insight SIEMPRE pasa por el componente canónico MetricValue
+ * (procedencia → badge; value null → gate_reason; nunca un "—").
+ *
+ *  - Insight nuevo: `context_data.vsi_delta` = variación del VSI calculada en el
+ *    servidor entre dos evaluaciones reales con fecha (DERIVADA → «Calculado»), o
+ *    bloqueada con su motivo. Se muestran las dos fechas comparadas.
+ *  - Insight legacy: `metric_value` era texto libre del LLM → «Estimado por IA». Si
+ *    traía una variación embebida ("67.4 (+9.9)") NO se pinta como tendencia: no
+ *    tiene base ni fecha verificables (el caso del +9.9 contra un 57.5 fabricado).
+ */
+function InsightMetric({ insight }: { insight: ScoutInsightRow }) {
+  const { t, i18n } = useTranslation();
+  const delta = readVsiDelta(insight.context_data?.vsi_delta);
+
+  if (delta) {
+    const fmtDate = (iso: string) =>
+      new Date(iso).toLocaleDateString(i18n.language, { day: "numeric", month: "short", year: "numeric" });
+    // Bloqueada: el motivo se muestra traducido (el gate_reason canónico es el fallback).
+    const shown: MetricResult<number> = delta.value === null && delta.gate_code
+      ? { ...delta, gate_reason: t(`vsiDelta.gate.${delta.gate_code}`, { defaultValue: delta.gate_reason ?? "" }) }
+      : delta;
+    return (
+      <div data-testid="insight-vsi-delta" title={t("scout.vsiDelta.tooltip")}>
+        <div className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{t("scout.vsiDelta.label")}</div>
+        <MetricValue
+          result={shown}
+          format={(v, u) => `${Number(v) > 0 ? "+" : ""}${v}${u ? ` ${u}` : ""}`}
+          className={delta.value === null ? "text-[11px]" : "font-display font-bold text-xl text-primary"}
+        />
+        {delta.value !== null && delta.from_at && delta.to_at && (
+          <div className="text-[10px] text-muted-foreground">
+            {t("scout.vsiDelta.between", {
+              from: fmtDate(delta.from_at),
+              to: fmtDate(delta.to_at),
+              fromValue: delta.from_value,
+              toValue: delta.to_value,
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const mv = splitMetricValue(insight.metric_value);
+  if (mv.base === null) return null; // sin cifra ⇒ no se pinta nada (ni "—")
+  const legacy = insight.context_data?.metric_provenance === "MOCK"
+    ? mock(mv.base)
+    : estimatedLLM(mv.base, { source_ref: "scout_insights.metric_value (texto libre del LLM)" });
+  return (
+    <div data-testid="insight-legacy-metric">
+      {insight.metric && (
+        <div className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{insight.metric}</div>
+      )}
+      <MetricValue result={legacy} className="font-display font-bold text-xl text-primary" />
+      {mv.delta && (
+        <div className="text-[10px] italic text-muted-foreground">{t("scout.legacyDeltaUnverified")}</div>
+      )}
+    </div>
+  );
+}
+
 export interface InsightCardProps {
   insight: ScoutInsightRow;
   /** Marca leído al abrir la card. Opcional: si no se pasa, no cambia estado. */
@@ -90,6 +157,8 @@ export default function InsightCard({
 }: InsightCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  // VSI actual en el momento del insight (número o null "sin evaluar"; nunca un 0 pintado).
+  const ctxVsi = insight.context_data?.vsi;
 
   return (
     <motion.div
@@ -164,29 +233,10 @@ export default function InsightCard({
       {/* Metric + benchmark */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <div className="flex items-center gap-3">
-          {insight.context_data?.vsi && (
-            <VsiGauge value={insight.context_data.vsi as number} size="sm" />
+          {typeof ctxVsi === "number" && (
+            <VsiGauge value={ctxVsi} size="sm" />
           )}
-          {(() => {
-            const mv = splitMetricValue(insight.metric_value);
-            return (
-              <div>
-                <div className="text-[10px] text-muted-foreground font-display uppercase tracking-wider">{insight.metric}</div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-display font-bold text-xl text-primary">{mv.base}</span>
-                  {mv.delta && (
-                    <span
-                      title={t("scout.metricTrend")}
-                      className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-semibold ${mv.up ? "bg-green-400/15 text-green-500" : "bg-red-400/15 text-red-500"}`}
-                    >
-                      {mv.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-                      {mv.delta}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+          <InsightMetric insight={insight} />
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
           <Clock size={10} />

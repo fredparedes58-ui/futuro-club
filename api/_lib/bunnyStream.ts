@@ -89,6 +89,10 @@ export interface BunnyVideoInfo {
   length: number;
   width: number;
   height: number;
+  /** "240p,360p,720p" según la API (vacío mientras no hay renditions). Aditivo (match job). */
+  availableResolutions: string[];
+  /** 0–100 según la API; null si no viene. Dato operativo, no métrica. */
+  encodeProgress: number | null;
 }
 
 /** GET del vídeo en Bunny. null si no está configurado o falla (el llamador decide). */
@@ -104,13 +108,21 @@ export async function getBunnyVideo(opts: {
       { headers: { AccessKey: opts.apiKey, Accept: "application/json" } },
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as Partial<BunnyVideoInfo>;
+    const data = (await res.json()) as Partial<Omit<BunnyVideoInfo, "availableResolutions">> & {
+      availableResolutions?: string | null;
+    };
+    const progress = Number(data.encodeProgress);
     return {
       guid: String(data.guid ?? opts.videoGuid),
       status: Number(data.status),
       length: Number(data.length ?? 0),
       width: Number(data.width ?? 0),
       height: Number(data.height ?? 0),
+      availableResolutions: String(data.availableResolutions ?? "")
+        .split(",")
+        .map((r) => r.trim())
+        .filter(Boolean),
+      encodeProgress: Number.isFinite(progress) ? progress : null,
     };
   } catch {
     return null;

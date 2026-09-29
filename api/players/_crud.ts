@@ -10,6 +10,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
+import { appendVsiEvaluation } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -190,6 +191,9 @@ export default withHandler(
         id: playerId,
         vsi,
         vsiHistory: vsi !== null ? [vsi] : [],
+        // Evaluación con fecha y origen: la única base válida para una variación del
+        // VSI (src/lib/scoring/vsiDelta.ts). vsiHistory queda como legacy sin fechas.
+        vsiEvaluations: vsi !== null ? appendVsiEvaluation([], vsi, "players_api", now) : [],
         createdAt: now,
         updatedAt: now,
       };
@@ -303,6 +307,7 @@ export default withHandler(
         const history = Array.isArray(currentData.vsiHistory) ? [...(currentData.vsiHistory as number[])] : [];
         history.push(newVSI);
         updatedData.vsiHistory = history.slice(-10);
+        updatedData.vsiEvaluations = appendVsiEvaluation(currentData.vsiEvaluations, newVSI, "players_api", now);
       }
 
       updatedData.updatedAt = now;

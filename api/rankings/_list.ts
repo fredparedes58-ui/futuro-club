@@ -14,6 +14,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
 import { phvGate, matchesTimingFilter, type MaturityTiming, type PhvGateInput } from "../../src/lib/phv/phvGate";
+import { vsiTrendArrow } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -262,11 +263,15 @@ export default withHandler(
         const vsi: number | null =
           typeof d.vsi === "number" ? d.vsi : hasMetrics ? calculateFichaVsi(metrics) : null;
         const age = (d.age as number) ?? 15;
-        const vsiHistory = Array.isArray(d.vsiHistory)
-          ? (d.vsiHistory as number[])
-          : vsi !== null ? [vsi] : [];
-        const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
-        const delta = vsi !== null && prevVSI !== null ? vsi - prevVSI : 0;
+        // Flecha ↑/↓ solo desde dos evaluaciones reales con fecha (fuente única
+        // vsiTrendArrow → computeVsiDelta, invariante #7); el vsiHistory legacy (sin
+        // fechas, con el 57.5 fabricado antes de #146) solo cuenta para jugadores demo.
+        const trending = vsiTrendArrow({
+          evaluations: d.vsiEvaluations,
+          legacyHistory: d.vsiHistory,
+          currentVsi: vsi,
+          isDemo: d.isDemo === true,
+        });
 
         return {
           id: row.id,
@@ -278,7 +283,7 @@ export default withHandler(
           ...gatedPhvFields(d),
           competitiveLevel: (d.competitiveLevel as string) ?? "Regional",
           ageGroup: getAgeGroup(age),
-          trending: delta > 2 ? "up" : delta < -2 ? "down" : "stable",
+          trending,
           percentile: 0, // calculated below
           percentileInAgeGroup: 0, // calculated below
           updatedAt: row.updated_at,

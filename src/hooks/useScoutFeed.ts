@@ -91,10 +91,13 @@ function buildDemoInsights(filters: InsightsFilters = {}): InsightsResponse {
         ? `${first} madura por detrás de sus pares; su percentil está frenado por el crecimiento y proyecta al alza. Talento a menudo infravalorado — datos de ejemplo del demo.`
         : `${first} muestra un nivel destacado en ${METRIC_ES[topKey].toLowerCase()} (${Math.round(m[topKey] ?? 0)}). Insight de ejemplo del demo.`,
       metric: METRIC_ES[topKey],
-      metric_value: `${Math.round(m[topKey] ?? 0)}`,
+      // Sin barra real ⇒ sin cifra (nunca un "0" de relleno).
+      metric_value: typeof m[topKey] === "number" ? `${Math.round(m[topKey])}` : null,
       urgency: isLate ? "high" : "low",
       tags: ["ejemplo", type],
-      context_data: {},
+      // Dato de ejemplo del demo: InsightCard lo rotula «Datos de ejemplo» (MOCK),
+      // no «Estimado por IA». El banner global del demo acompaña (GlobalDemoBanner).
+      context_data: { metric_provenance: "MOCK" },
       rag_drills: [],
       action_items: ["Dar continuidad de minutos"],
       benchmark: "Referencia de ejemplo para su categoría",

@@ -11,6 +11,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayerOrTenant } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
+import { withoutUndatedVsiSeries } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -80,7 +81,9 @@ export default withHandler(
     }
 
     return successResponse({
-      analysis: analysisRes.data,
+      // vsi.trend / vsi.history de filas antiguas = serie legacy SIN fechas (57.5
+      // fabricado): se retiran al leer, nunca llegan a la UI (src/lib/scoring/vsiDelta.ts).
+      analysis: { ...analysisRes.data, vsi: withoutUndatedVsiSeries(analysisRes.data.vsi) },
       reports: reportsRes.data ?? [],
       reportCount: reportsRes.data?.length ?? 0,
     });
