@@ -104,7 +104,7 @@ describe("PlayerForm · editar · guardado honesto", () => {
     fireEvent.click(await screen.findByRole("button", { name: /players\.form\.submitEdit/ }));
     await waitFor(() => expect(toastMock.warning).toHaveBeenCalledWith("toasts.playerSavedPendingSync"));
     expect(toastMock.success).not.toHaveBeenCalled();
-    expect(SyncQueueService.hasPendingFor("player", p.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", p.id, "user-1")).toBe(true);
   });
 });
 
@@ -145,7 +145,7 @@ describe("PlayerForm · alta · guardado honesto", () => {
     const created = PlayerService.getAll().find((p) => p.name === "Nuevo Jugador");
     expect(created).toBeTruthy();
     expect(db.rows.has(created!.id)).toBe(true);
-    expect(SyncQueueService.hasPendingFor("player", created!.id)).toBe(false);
+    expect(SyncQueueService.hasPendingFor("player", created!.id, "user-1")).toBe(false);
   });
 
   it("nube caída ⇒ NO «agregado»: «pendiente de sincronizar» y alta en SyncQueue", async () => {

@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { OrganizationService } from "@/services/real/organizationService";
+import { LocalAccountScope } from "@/services/real/localAccountScope";
 import { IS_DEMO, DEMO_USER } from "@/lib/demoMode";
 
 // ─── Tipos ─────────────────────────────────────────────────────────────────────
@@ -86,13 +87,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Carga sesión inicial
     supabase.auth.getSession().then(({ data }) => {
+      // La caché local de jugadores es de UNA cuenta: si la llenó otra, fuera
+      // (antes de que el pull y la cola trabajen con esta sesión).
+      if (data.session?.user) LocalAccountScope.onSignedIn(data.session.user.id);
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
 
     // Escucha cambios de sesion
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
+      // SIGNED_OUT también llega si la sesión se revoca o caduca sin signOut().
+      if (event === "SIGNED_OUT") LocalAccountScope.onSignedOut();
+      else if (newSession?.user) LocalAccountScope.onSignedIn(newSession.user.id);
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
@@ -153,6 +160,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!SUPABASE_CONFIGURED) return;
     OrganizationService.clearCurrent();
     setOrgId(null);
+    // Dispositivo compartido (datos de menores): la caché de jugadores no se queda
+    // para la siguiente cuenta. Los cambios aún sin subir de ESTA cuenta se
+    // conservan en la cola a su nombre (se suben cuando vuelva a entrar).
+    LocalAccountScope.onSignedOut();
     await supabase.auth.signOut();
   }, []);
 

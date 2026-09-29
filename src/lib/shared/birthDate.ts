@@ -33,6 +33,33 @@ export function localIsoDate(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
+/**
+ * Última fecha que acepta `toIsoBirthDate` (AYER en el dispositivo): el `max` del
+ * `<input type="date">`. Con `max` = hoy el selector ofrecía una fecha que la
+ * validación rechaza.
+ */
+export function latestBirthDateIso(now: Date = new Date()): string {
+  return localIsoDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+}
+
+/**
+ * ¿Rechazó PostgREST la escritura porque la columna `birth_date` no existe?
+ * (PGRST204 «schema cache» / 42703 undefined_column.) DEFENSIVO frente al orden
+ * de despliegue: 036 creó la columna; si una base no la tuviera, los escritores
+ * de `players` reintentan UNA vez sin ella (la fila se guarda como antes de
+ * enviarla) en vez de romper todos los guardados. Acepta el error de supabase-js
+ * ({ code, message, details, hint }) o el cuerpo de texto de la respuesta REST.
+ */
+export function isMissingBirthDateColumnError(err: unknown): boolean {
+  let text = "";
+  if (typeof err === "string") text = err;
+  else if (err && typeof err === "object") {
+    const e = err as Record<string, unknown>;
+    text = [e.code, e.message, e.details, e.hint].filter((v) => typeof v === "string").join(" ");
+  }
+  return /birth_date/.test(text) && /PGRST204|42703|schema cache|does not exist/i.test(text);
+}
+
 function daysInMonth(year: number, month1to12: number): number {
   if (month1to12 === 2) {
     const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;

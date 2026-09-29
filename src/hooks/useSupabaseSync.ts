@@ -36,7 +36,7 @@ export function useSupabaseSync() {
 
   const [syncState, setSyncState] = useState<SyncState>({
     syncing: false,
-    pending: SyncQueueService.pendingCount(),
+    pending: SyncQueueService.pendingCount(user?.id ?? null),
     online:  navigator.onLine,
     lastSync: null,
     error: null,
@@ -59,7 +59,9 @@ export function useSupabaseSync() {
   const processQueue = useCallback(async () => {
     if (!user || !configured) return;
 
-    const queue = SyncQueueService.getQueue();
+    // Solo las ops de ESTA cuenta: las de otra cuenta del dispositivo se quedan a
+    // su nombre (subirlas aquí escribiría sus cambios en esta cuenta).
+    const queue = SyncQueueService.getQueueFor(user.id);
     if (queue.length === 0) return;
 
     let processed = 0;
@@ -98,7 +100,7 @@ export function useSupabaseSync() {
     // Limpiar items con demasiados reintentos
     const pruned = SyncQueueService.pruneStale();
 
-    const remaining = SyncQueueService.pendingCount();
+    const remaining = SyncQueueService.pendingCount(user.id);
     setSyncState(s => ({ ...s, pending: remaining }));
 
     // Log resultado para auditoría
@@ -152,7 +154,7 @@ export function useSupabaseSync() {
         ...s,
         syncing: false,
         lastSync: now,
-        pending: SyncQueueService.pendingCount(),
+        pending: SyncQueueService.pendingCount(user.id),
       }));
 
       // Procesar cola offline acumulada
@@ -189,7 +191,7 @@ export function useSupabaseSync() {
           ...s,
           syncing: false,
           lastSync: new Date().toISOString(),
-          pending: SyncQueueService.pendingCount(),
+          pending: SyncQueueService.pendingCount(user.id),
         }));
       }).catch((err) => {
         console.warn("[Sync] Reconnect push failed:", err);

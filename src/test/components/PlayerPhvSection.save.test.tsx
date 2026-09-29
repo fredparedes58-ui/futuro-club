@@ -65,6 +65,7 @@ vi.mock("@/components/player/PhvWindowPlan", () => ({ PhvWindowPlan: () => null 
 import PlayerPhvSection from "@/components/player/PlayerPhvSection";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { SyncQueueService } from "@/services/real/syncQueueService";
+import { BIRTH_DATE_MIN_ISO, latestBirthDateIso, localIsoDate, toIsoBirthDate } from "@/lib/shared/birthDate";
 
 const BASE = {
   name: "Samu Prueba",
@@ -116,6 +117,23 @@ describe("PlayerPhvSection · rótulos", () => {
     expect(birth.closest(".grid")).toBeNull();
     expect(screen.getByRole("button", { name: /Guardar fecha de nacimiento y alturas/ })).toBeInTheDocument();
   });
+
+  it("el selector no ofrece fechas que la validación rechaza: max = ayer, min = 1900-01-01", () => {
+    renderSection(PlayerService.create(BASE));
+    const birth = screen.getByLabelText("Fecha de nacimiento del jugador");
+    const max = birth.getAttribute("max");
+    expect(max).toBe(latestBirthDateIso());
+    expect(toIsoBirthDate(max)).toBe(max); // el último día elegible es válido
+    expect(toIsoBirthDate(localIsoDate())).toBeNull(); // hoy no lo es
+    expect(birth.getAttribute("min")).toBe(BIRTH_DATE_MIN_ISO);
+  });
+
+  it("el aviso «pendiente» es de ESTA cuenta: la op de otra cuenta del dispositivo no se muestra", () => {
+    const p = PlayerService.create(BASE);
+    SyncQueueService.enqueue("update", "player", p.id, p, "otra-cuenta");
+    renderSection(p);
+    expect(screen.queryByText("Pendiente de sincronizar")).toBeNull();
+  });
 });
 
 describe("PlayerPhvSection · guardado honesto", () => {
@@ -138,7 +156,7 @@ describe("PlayerPhvSection · guardado honesto", () => {
     await waitFor(() => expect(toastMock.warning).toHaveBeenCalledTimes(1));
     expect(toastMock.success).not.toHaveBeenCalled();
     expect(await screen.findByText("Pendiente de sincronizar")).toBeInTheDocument();
-    expect(SyncQueueService.hasPendingFor("player", p.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", p.id, "user-1")).toBe(true);
   });
 
   it("jugador que no está en la caché local ⇒ error y nada guardado (antes: «guardado»)", async () => {
@@ -165,7 +183,7 @@ describe("PlayerPhvSection · guardado honesto", () => {
 
   it("al montar con cambios pendientes ya encolados, el estado se ve sin guardar de nuevo", () => {
     const p = PlayerService.create(BASE);
-    SyncQueueService.enqueue("update", "player", p.id, p);
+    SyncQueueService.enqueue("update", "player", p.id, p, "user-1");
     renderSection(p);
     expect(screen.getByText("Pendiente de sincronizar")).toBeInTheDocument();
   });

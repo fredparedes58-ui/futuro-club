@@ -199,7 +199,7 @@ export const SupabaseVideoService = {
     // Sync a Supabase (await si online, queue si offline)
     this.pushOne(userId, video).catch((err) => {
       console.warn("[SupabaseVideoService] save: Supabase failed, queuing:", err);
-      SyncQueueService.enqueue("update", "video", video.id, video);
+      SyncQueueService.enqueue("update", "video", video.id, video, userId);
     });
   },
 
@@ -208,7 +208,7 @@ export const SupabaseVideoService = {
     if (updated) {
       this.pushOne(userId, updated).catch((err) => {
         console.warn("[SupabaseVideoService] updateStatus: Supabase failed, queuing:", err);
-        SyncQueueService.enqueue("update", "video", id, updated);
+        SyncQueueService.enqueue("update", "video", id, updated, userId);
       });
     }
     return updated;
@@ -219,7 +219,7 @@ export const SupabaseVideoService = {
     if (updated) {
       this.pushOne(userId, updated).catch((err) => {
         console.warn("[SupabaseVideoService] saveAnalysis: Supabase failed, queuing:", err);
-        SyncQueueService.enqueue("update", "video", id, updated);
+        SyncQueueService.enqueue("update", "video", id, updated, userId);
       });
     }
     return updated;
@@ -229,7 +229,7 @@ export const SupabaseVideoService = {
     VideoService.delete(id);
     this.deleteOne(userId, id).catch((err) => {
       console.warn("[SupabaseVideoService] delete: Supabase failed, queuing:", err);
-      SyncQueueService.enqueue("delete", "video", id, null);
+      SyncQueueService.enqueue("delete", "video", id, null, userId);
     });
   },
 };

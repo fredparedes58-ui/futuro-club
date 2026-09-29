@@ -17,6 +17,9 @@ const db = vi.hoisted(() => ({
   rows: new Map<string, Record<string, unknown>>(),
   upserts: [] as Array<Record<string, unknown> | Array<Record<string, unknown>>>,
   failUpsert: false,
+  // Base sin la columna birth_date (036 sin aplicar): PostgREST rechaza la fila.
+  noBirthDateColumn: false,
+  otherMissingColumn: false,
 }));
 
 vi.mock("@/lib/supabase", () => ({
@@ -26,7 +29,14 @@ vi.mock("@/lib/supabase", () => ({
       upsert: async (payload: Record<string, unknown> | Array<Record<string, unknown>>) => {
         db.upserts.push(payload);
         if (db.failUpsert) return { error: { message: "network down" } };
-        for (const r of Array.isArray(payload) ? payload : [payload]) {
+        const incoming = Array.isArray(payload) ? payload : [payload];
+        if (db.noBirthDateColumn && incoming.some((r) => "birth_date" in r)) {
+          return { error: { code: "PGRST204", message: "Could not find the 'birth_date' column of 'players' in the schema cache", details: null, hint: null } };
+        }
+        if (db.otherMissingColumn) {
+          return { error: { code: "PGRST204", message: "Could not find the 'leg_length' column of 'players' in the schema cache", details: null, hint: null } };
+        }
+        for (const r of incoming) {
           db.rows.set(r.id as string, { ...(db.rows.get(r.id as string) ?? {}), ...r });
         }
         return { error: null };
@@ -50,6 +60,7 @@ vi.mock("@/services/real/agentService", () => ({ AgentService: { invalidateCache
 import { SupabasePlayerService, playerToColumns } from "@/services/real/supabasePlayerService";
 import { PlayerService, type Player, type CreatePlayerInput } from "@/services/real/playerService";
 import { SyncQueueService } from "@/services/real/syncQueueService";
+import { LocalAccountScope } from "@/services/real/localAccountScope";
 
 const USER = "user-1";
 const BASE: CreatePlayerInput = {
@@ -75,6 +86,8 @@ beforeEach(() => {
   db.rows.clear();
   db.upserts.length = 0;
   db.failUpsert = false;
+  db.noBirthDateColumn = false;
+  db.otherMissingColumn = false;
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
@@ -131,7 +144,7 @@ describe("pushOne ya no se traga el error", () => {
   it("create() encola en SyncQueue cuando la nube falla (antes nunca llegaba al catch)", async () => {
     db.failUpsert = true;
     const player = await SupabasePlayerService.create(USER, BASE);
-    expect(SyncQueueService.hasPendingFor("player", player.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", player.id, USER)).toBe(true);
   });
 
   it("updateMetrics() encola en SyncQueue cuando la nube falla", async () => {
@@ -140,7 +153,49 @@ describe("pushOne ya no se traga el error", () => {
     await SupabasePlayerService.updateMetrics(USER, created.id, {
       speed: 70, technique: 70, vision: 70, stamina: 70, shooting: 70, defending: 70,
     });
-    expect(SyncQueueService.hasPendingFor("player", created.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(true);
+  });
+});
+
+describe("orden de despliegue · base sin players.birth_date (036 sin aplicar)", () => {
+  it("pushOne reintenta UNA vez sin birth_date: el guardado llega a la nube como antes", async () => {
+    db.noBirthDateColumn = true;
+    const created = PlayerService.create({ ...BASE, birthDate: "2015-05-10" });
+    await expect(SupabasePlayerService.pushOne(USER, created)).resolves.toBeUndefined();
+    expect(db.upserts).toHaveLength(2);
+    const stored = db.rows.get(created.id);
+    expect(stored).toBeTruthy();
+    expect(stored).not.toHaveProperty("birth_date");
+    expect((stored?.data as Player).birthDate).toBe("2015-05-10"); // el blob conserva la fecha
+  });
+
+  it("saveProfile ⇒ synced (no todo «pendiente de sincronizar») y nada en cola", async () => {
+    db.noBirthDateColumn = true;
+    const created = PlayerService.create(BASE);
+    const r = await SupabasePlayerService.saveProfile(USER, created.id, { birthDate: "2015-05-10" });
+    expect(r.status).toBe("synced");
+    expect(SyncQueueService.getQueue()).toHaveLength(0);
+  });
+
+  it("pushAll y la subida inicial (LocalStorageMigrationService) también degradan", async () => {
+    db.noBirthDateColumn = true;
+    const a = PlayerService.create({ ...BASE, birthDate: "2015-05-10" });
+    await SupabasePlayerService.pushAll(USER);
+    expect(db.rows.get(a.id)).not.toHaveProperty("birth_date");
+
+    const { LocalStorageMigrationService } = await import("@/services/real/localStorageMigrationService");
+    db.upserts.length = 0;
+    const res = await LocalStorageMigrationService.run("user-migr");
+    expect(res.errors.filter((e) => e.startsWith("players"))).toEqual([]);
+    expect(db.upserts).toHaveLength(2);
+    expect((db.upserts[1] as Array<Record<string, unknown>>)[0]).not.toHaveProperty("birth_date");
+  });
+
+  it("otra columna ausente NO se enmascara: el error sigue saliendo (y se encola)", async () => {
+    db.otherMissingColumn = true;
+    const created = PlayerService.create(BASE);
+    await expect(SupabasePlayerService.pushOne(USER, created)).rejects.toThrow(/leg_length/);
+    expect(db.upserts).toHaveLength(1);
   });
 });
 
@@ -150,7 +205,7 @@ describe("persistOrQueue / saveProfile · estado real", () => {
     const r = await SupabasePlayerService.saveProfile(USER, created.id, { birthDate: "2015-05-10" });
     expect(r.status).toBe("synced");
     expect(db.rows.get(created.id)?.birth_date).toBe("2015-05-10");
-    expect(SyncQueueService.hasPendingFor("player", created.id)).toBe(false);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(false);
   });
 
   it("queued: nube falla ⇒ guardado en local + pendiente de sincronizar (no «guardado»)", async () => {
@@ -159,7 +214,7 @@ describe("persistOrQueue / saveProfile · estado real", () => {
     const r = await SupabasePlayerService.saveProfile(USER, created.id, { birthDate: "2015-05-10" });
     expect(r.status).toBe("queued");
     expect(PlayerService.getById(created.id)?.birthDate).toBe("2015-05-10");
-    expect(SyncQueueService.hasPendingFor("player", created.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(true);
     expect(db.rows.has(created.id)).toBe(false);
   });
 
@@ -169,10 +224,20 @@ describe("persistOrQueue / saveProfile · estado real", () => {
     expect(db.upserts).toHaveLength(0);
   });
 
-  it("sin sesión con nube configurada ⇒ queued (el cambio NO está en la nube)", async () => {
+  it("sin sesión con nube configurada ⇒ queued A NOMBRE de la cuenta dueña de la caché (el cambio NO está en la nube)", async () => {
+    LocalAccountScope.onSignedIn(USER); // la caché local la llenó USER
     const created = PlayerService.create(BASE);
     const r = await SupabasePlayerService.persistOrQueue(null, created);
     expect(r.status).toBe("queued");
+    expect(db.upserts).toHaveLength(0);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(true);
+    expect(SyncQueueService.getQueue().every((q) => q.ownerId === USER)).toBe(true);
+  });
+
+  it("sin sesión y sin cuenta dueña conocida ⇒ falla y NO encola una op sin dueño (la subiría otra cuenta)", async () => {
+    const created = PlayerService.create(BASE);
+    await expect(SupabasePlayerService.persistOrQueue(null, created)).rejects.toThrow(/no session/);
+    expect(SyncQueueService.getQueue()).toHaveLength(0);
     expect(db.upserts).toHaveLength(0);
   });
 
@@ -180,11 +245,11 @@ describe("persistOrQueue / saveProfile · estado real", () => {
     const created = PlayerService.create(BASE);
     db.failUpsert = true;
     await SupabasePlayerService.saveProfile(USER, created.id, { birthDate: "2015-05-10" });
-    expect(SyncQueueService.hasPendingFor("player", created.id)).toBe(true);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(true);
     db.failUpsert = false;
     const r = await SupabasePlayerService.saveProfile(USER, created.id, { birthDate: "2015-05-11" });
     expect(r.status).toBe("synced");
-    expect(SyncQueueService.hasPendingFor("player", created.id)).toBe(false);
+    expect(SyncQueueService.hasPendingFor("player", created.id, USER)).toBe(false);
     expect(db.rows.get(created.id)?.birth_date).toBe("2015-05-11");
   });
 });
@@ -217,7 +282,7 @@ describe("pullAll no pisa ediciones locales sin sincronizar", () => {
     const created = PlayerService.create(BASE);
     await SupabasePlayerService.pushOne(USER, created);
     PlayerService.delete(created.id);
-    SyncQueueService.enqueue("delete", "player", created.id, null);
+    SyncQueueService.enqueue("delete", "player", created.id, null, USER);
     const pulled = await SupabasePlayerService.pullAll(USER);
     expect(pulled.some((p) => p.id === created.id)).toBe(false);
   });

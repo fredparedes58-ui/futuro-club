@@ -34,7 +34,7 @@ import type { Player } from "@/services/real/playerService";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { SyncQueueService } from "@/services/real/syncQueueService";
 import { useAuth } from "@/context/AuthContext";
-import { localIsoDate, toIsoBirthDate } from "@/lib/shared/birthDate";
+import { BIRTH_DATE_MIN_ISO, latestBirthDateIso, toIsoBirthDate } from "@/lib/shared/birthDate";
 
 interface Props {
   player: Player;
@@ -59,7 +59,7 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
   // «Pendiente de sincronizar»: hay un cambio de este jugador que aún no llegó a la
   // nube. Se lee de SyncQueue en cada render (no se congela en estado): cuando la
   // cola se procesa y el host re-renderiza, el aviso desaparece solo.
-  const pendingSync = SyncQueueService.hasPendingFor("player", player.id);
+  const pendingSync = SyncQueueService.hasPendingFor("player", player.id, user?.id);
   const [, rerenderAfterSave] = useState(0);
 
   function outOfRange(v: string, [min, max]: readonly [number, number]): boolean {
@@ -153,7 +153,8 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
           <input
             type="date"
             value={birthDate}
-            max={localIsoDate()}
+            min={BIRTH_DATE_MIN_ISO}
+            max={latestBirthDateIso()}
             onChange={(e) => setBirthDate(e.target.value)}
             className="w-full sm:max-w-[12rem] rounded-md bg-secondary/40 border border-border px-2 py-1.5 text-xs text-foreground"
           />

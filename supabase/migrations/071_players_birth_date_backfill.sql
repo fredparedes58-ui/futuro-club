@@ -27,10 +27,20 @@
 --   · 14 o más: 'not_required' (036:41-43) — incluye filas que tenían
 --     'granted' o 'denied'. Es la lógica existente; el NOTICE de abajo cuenta
 --     cuántas filas cambian así para que el operador lo revise.
--- Ese trigger NO se desactiva. Sí se desactiva, SOLO durante el backfill y
--- dentro de esta transacción, trg_sync_player_columns (024/059): en cualquier
--- UPDATE rellena con 0 las metric_* que estén a NULL, y un backfill que solo
--- cambia birth_date no debe fabricar ceros (invariante #2).
+-- Ese trigger NO se desactiva. Sí se desactivan, SOLO durante el backfill y
+-- dentro de esta transacción:
+--   · trg_sync_player_columns (024/059): en cualquier UPDATE rellena con 0 las
+--     metric_* que estén a NULL, y un backfill que solo cambia birth_date no debe
+--     fabricar ceros (invariante #2);
+--   · players_updated_at (001): pondría updated_at = now() en cada fila
+--     rellenada. Eso silenciaría 30 días la regla de inactividad de
+--     api/notifications/_cron.ts (p.updated_at < hace 30 días) y reordenaría el
+--     listado de GET /api/players/crud (ordena por updated_at por defecto). Un
+--     backfill de una columna derivada no es una edición del jugador.
+--
+-- REQUIERE 036 aplicada (columnas birth_date + parental_consent_status y su
+-- trigger). Si falta, la migración aborta con un mensaje claro ANTES de tocar
+-- nada: sin 036 no hay control de consentimiento que alimentar.
 --
 -- Idempotente. NO toca PHV/bio-banding ni sus fórmulas (invariante #4): la edad
 -- decimal de maduración ya sale de data->>'birthDate', que aquí no cambia.
@@ -38,8 +48,18 @@
 
 BEGIN;
 
--- 0) Defensivo: 036 crea la columna. Si faltara, se crea igual (sin DEFAULT).
-ALTER TABLE public.players ADD COLUMN IF NOT EXISTS birth_date DATE;
+-- 0) Precondición (solo lectura): 036 aplicada. Sin ella el informe de abajo
+--    fallaría a medias (parental_consent_status no existe) y no habría trigger.
+DO $$
+BEGIN
+  IF (SELECT count(*) FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'players'
+         AND column_name IN ('birth_date', 'parental_consent_status')) <> 2 THEN
+    RAISE EXCEPTION '071 requiere la migración 036 (players.birth_date y players.parental_consent_status). Aplica 036 primero; 071 no ha cambiado nada.';
+  END IF;
+END;
+$$;
 
 -- 1) Parser estricto, temporal (se borra al final). Misma regla que toIsoBirthDate.
 CREATE OR REPLACE FUNCTION public._vitas_071_iso_birth_date(p_raw text)
@@ -124,7 +144,8 @@ BEGIN
 END;
 $$;
 
--- 3) Sin trg_sync_player_columns durante el backfill (no fabricar metric_* = 0).
+-- 3) Sin trg_sync_player_columns (no fabricar metric_* = 0) ni players_updated_at
+--    (no marcar como «editadas» las filas rellenadas) durante el backfill.
 DO $$
 BEGIN
   IF EXISTS (
@@ -134,16 +155,24 @@ BEGIN
   ) THEN
     ALTER TABLE public.players DISABLE TRIGGER trg_sync_player_columns;
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+     WHERE tgname = 'players_updated_at'
+       AND tgrelid = 'public.players'::regclass
+  ) THEN
+    ALTER TABLE public.players DISABLE TRIGGER players_updated_at;
+  END IF;
 END;
 $$;
 
 -- 4) Backfill. Dispara trg_check_parental_consent (UPDATE OF birth_date).
+--    updated_at NO cambia (ni aquí ni por trigger).
 UPDATE public.players
    SET birth_date = public._vitas_071_iso_birth_date(data->>'birthDate')
  WHERE birth_date IS NULL
    AND public._vitas_071_iso_birth_date(data->>'birthDate') IS NOT NULL;
 
--- 5) Restaurar el trigger de sincronización.
+-- 5) Restaurar ambos triggers (misma transacción).
 DO $$
 BEGIN
   IF EXISTS (
@@ -152,6 +181,13 @@ BEGIN
        AND tgrelid = 'public.players'::regclass
   ) THEN
     ALTER TABLE public.players ENABLE TRIGGER trg_sync_player_columns;
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_trigger
+     WHERE tgname = 'players_updated_at'
+       AND tgrelid = 'public.players'::regclass
+  ) THEN
+    ALTER TABLE public.players ENABLE TRIGGER players_updated_at;
   END IF;
 END;
 $$;

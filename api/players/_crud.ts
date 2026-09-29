@@ -10,7 +10,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
-import { toIsoBirthDate } from "../../src/lib/shared/birthDate";
+import { toIsoBirthDate, isMissingBirthDateColumnError } from "../../src/lib/shared/birthDate";
 
 export const config = { runtime: "edge" };
 
@@ -22,6 +22,23 @@ const BirthDateSchema = z
   .refine((s) => toIsoBirthDate(s) !== null, {
     message: "birthDate debe ser YYYY-MM-DD, una fecha real anterior a hoy y desde 1900",
   });
+
+// DEFENSIVO frente al orden de despliegue: si la base no tuviera la columna
+// players.birth_date (036), PostgREST rechaza la fila ENTERA. Se reintenta UNA vez
+// sin esa columna (la fila se guarda como antes de enviarla) en vez de un 500.
+// errText === null ⇒ escritura correcta (res es la respuesta buena).
+async function retryWithoutMissingBirthDate(
+  res: Response,
+  payload: Record<string, unknown>,
+  resend: (body: string) => Promise<Response>,
+): Promise<{ res: Response; errText: string | null }> {
+  if (res.ok) return { res, errText: null };
+  const errText = await res.text();
+  if (!isMissingBirthDateColumnError(errText)) return { res, errText };
+  const { birth_date: _omitted, ...withoutBirthDate } = payload;
+  const retried = await resend(JSON.stringify(withoutBirthDate));
+  return { res: retried, errText: retried.ok ? null : await retried.text() };
+}
 
 // ── Schemas ─────────────────────────────────────────────────────────────────
 
@@ -245,12 +262,18 @@ export default withHandler(
         body: JSON.stringify(row),
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        return errorResponse(`Failed to create player: ${errText.slice(0, 200)}`, 500);
+      const created = await retryWithoutMissingBirthDate(res, row, (retryBody) =>
+        fetch(`${supabaseUrl}/rest/v1/players`, {
+          method: "POST",
+          headers: { ...headers, Prefer: "return=representation" },
+          body: retryBody,
+        }),
+      );
+      if (created.errText !== null) {
+        return errorResponse(`Failed to create player: ${created.errText.slice(0, 200)}`, 500);
       }
 
-      const [saved] = await res.json() as Array<{ id: string; data: Record<string, unknown> }>;
+      const [saved] = await created.res.json() as Array<{ id: string; data: Record<string, unknown> }>;
       return successResponse({ ...saved.data, id: saved.id }, 201);
     }
 
@@ -361,12 +384,17 @@ export default withHandler(
         },
       );
 
-      if (!patchRes.ok) {
-        const errText = await patchRes.text();
-        return errorResponse(`Failed to update player: ${errText.slice(0, 200)}`, 500);
+      const patched = await retryWithoutMissingBirthDate(patchRes, patchPayload, (retryBody) =>
+        fetch(
+          `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&updated_at=eq.${originalUpdatedAt}`,
+          { method: "PATCH", headers: { ...headers, Prefer: "return=representation" }, body: retryBody },
+        ),
+      );
+      if (patched.errText !== null) {
+        return errorResponse(`Failed to update player: ${patched.errText.slice(0, 200)}`, 500);
       }
 
-      const patchedRows = await patchRes.json() as Array<{ id: string; data: Record<string, unknown> }>;
+      const patchedRows = await patched.res.json() as Array<{ id: string; data: Record<string, unknown> }>;
       if (patchedRows.length === 0) {
         return errorResponse("Conflicto: el jugador fue modificado por otra sesión. Reintenta.", 409, "CONFLICT");
       }

@@ -70,16 +70,42 @@ describe("071 · backfill birth_date", () => {
     expect(code).not.toMatch(/session_replication_role/i); // desactivaría TODOS los triggers
   });
 
-  it("desactiva solo trg_sync_player_columns durante el backfill y lo reactiva", () => {
+  it("desactiva solo trg_sync_player_columns y players_updated_at durante el backfill y los reactiva", () => {
     const disables = code.match(/DISABLE TRIGGER (\w+)/g) ?? [];
     const enables = code.match(/ENABLE TRIGGER (\w+)/g) ?? [];
-    expect(disables).toEqual(["DISABLE TRIGGER trg_sync_player_columns"]);
-    expect(enables).toEqual(["ENABLE TRIGGER trg_sync_player_columns"]);
-    const iDisable = code.indexOf("DISABLE TRIGGER");
+    expect(disables).toEqual([
+      "DISABLE TRIGGER trg_sync_player_columns",
+      "DISABLE TRIGGER players_updated_at",
+    ]);
+    expect(enables).toEqual([
+      "ENABLE TRIGGER trg_sync_player_columns",
+      "ENABLE TRIGGER players_updated_at",
+    ]);
     const iUpdate = code.indexOf("UPDATE public.players");
-    const iEnable = code.indexOf("ENABLE TRIGGER");
-    expect(iDisable).toBeLessThan(iUpdate);
-    expect(iUpdate).toBeLessThan(iEnable);
+    for (const trigger of ["trg_sync_player_columns", "players_updated_at"]) {
+      expect(code.indexOf(`DISABLE TRIGGER ${trigger}`)).toBeLessThan(iUpdate);
+      expect(code.indexOf(`ENABLE TRIGGER ${trigger}`)).toBeGreaterThan(iUpdate);
+    }
+    // todo dentro de la misma transacción
+    expect(code.indexOf("BEGIN;")).toBeLessThan(code.indexOf("DISABLE TRIGGER"));
+    expect(code.lastIndexOf("ENABLE TRIGGER")).toBeLessThan(code.lastIndexOf("COMMIT;"));
+  });
+
+  it("el backfill no toca updated_at (el inactivity cron y el orden por updated_at no cambian)", () => {
+    const update = (code.match(/UPDATE public\.players[\s\S]*?;/g) ?? [])[0] ?? "";
+    expect(update).not.toMatch(/updated_at/);
+  });
+
+  it("requiere 036: aborta ANTES de tocar nada si faltan sus columnas (no las crea a medias)", () => {
+    expect(code).not.toMatch(/ADD COLUMN/i);
+    const iGuard = code.indexOf("RAISE EXCEPTION");
+    expect(iGuard).toBeGreaterThan(-1);
+    expect(code).toMatch(/column_name IN \('birth_date', 'parental_consent_status'\)\) <> 2/);
+    // la precondición va antes del informe, del parser y del UPDATE
+    expect(iGuard).toBeLessThan(code.indexOf("CREATE OR REPLACE FUNCTION"));
+    expect(iGuard).toBeLessThan(code.indexOf("RAISE NOTICE"));
+    expect(iGuard).toBeLessThan(code.indexOf("UPDATE public.players"));
+    expect(sql).toMatch(/Aplica 036 primero/);
   });
 
   it("no toca el blob data ni columnas PHV (invariante #4)", () => {

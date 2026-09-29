@@ -18,7 +18,7 @@
 
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { toEngagementRow } from "./engagementRow";
-import { toIsoBirthDate } from "@/lib/shared/birthDate";
+import { toIsoBirthDate, isMissingBirthDateColumnError } from "@/lib/shared/birthDate";
 
 const MIGRATION_FLAG_KEY = "vitas_supabase_migration_v1";
 
@@ -134,7 +134,13 @@ export const LocalStorageMigrationService = {
           birth_date: toIsoBirthDate(p.birthDate),
           data: p,
         }));
-        const { error } = await supabase.from("players").upsert(rows, { onConflict: "id" });
+        let { error } = await supabase.from("players").upsert(rows, { onConflict: "id" });
+        if (error && isMissingBirthDateColumnError(error)) {
+          // Orden de despliegue (036 sin aplicar): se sube sin la columna, como antes.
+          ({ error } = await supabase
+            .from("players")
+            .upsert(rows.map(({ birth_date: _omitted, ...rest }) => rest), { onConflict: "id" }));
+        }
         if (error) result.errors.push(`players: ${error.message}`);
         else result.uploaded.players = rows.length;
       }

@@ -283,6 +283,57 @@ describe("/api/players/crud", () => {
       expect(cap.body).toHaveProperty("birth_date", null);
       expect(cap.body.data as Record<string, unknown>).not.toHaveProperty("birthDate");
     });
+
+    // Orden de despliegue: el código se despliega antes de que el operador aplique
+    // migraciones. Si una base no tuviera players.birth_date (036), PostgREST
+    // rechaza la fila ENTERA: el endpoint reintenta sin esa columna (como antes)
+    // en vez de devolver 500 al alta del FirstRunWizard.
+    const MISSING_BIRTH_DATE = JSON.stringify({
+      code: "PGRST204",
+      message: "Could not find the 'birth_date' column of 'players' in the schema cache",
+    });
+
+    it("base SIN birth_date ⇒ POST reintenta sin la columna: 201, el blob conserva la fecha", async () => {
+      const bodies: Array<Record<string, unknown>> = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+        const body = JSON.parse(init?.body as string) as Record<string, unknown>;
+        bodies.push(body);
+        if ("birth_date" in body) return new Response(MISSING_BIRTH_DATE, { status: 400 });
+        return new Response(JSON.stringify([{ id: body.id, data: body.data }]), { status: 201 });
+      });
+      const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: "2015-05-10" }));
+      expect(res.status).toBe(201);
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1]).not.toHaveProperty("birth_date");
+      expect((bodies[1].data as Record<string, unknown>).birthDate).toBe("2015-05-10");
+    });
+
+    it("base SIN birth_date ⇒ PATCH reintenta sin la columna: 200", async () => {
+      const patches: Array<Record<string, unknown>> = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("select=data")) {
+          return new Response(JSON.stringify([{ data: { name: "Old", vsi: null, vsiHistory: [] }, updated_at: "2026-01-01" }]));
+        }
+        const body = JSON.parse(init?.body as string) as Record<string, unknown>;
+        patches.push(body);
+        if ("birth_date" in body) return new Response(MISSING_BIRTH_DATE, { status: 400 });
+        return new Response(JSON.stringify([{ id: "p1", data: body.data }]));
+      });
+      const res = await crudHandler(makeRequest("PATCH", { id: "p1", birthDate: "2015-05-10" }));
+      expect(res.status).toBe(200);
+      expect(patches).toHaveLength(2);
+      expect(patches[1]).not.toHaveProperty("birth_date");
+    });
+
+    it("otro error de escritura NO se enmascara: 500 y sin reintento", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+        new Response(JSON.stringify({ code: "23505", message: "duplicate key value violates unique constraint" }), { status: 409 }),
+      );
+      const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: "2015-05-10" }));
+      expect(res.status).toBe(500);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("DELETE — remove player", () => {

@@ -4,7 +4,13 @@
  * La migración 071 replica esta regla; ver 071_birth_date_backfill.test.ts.
  */
 import { describe, it, expect } from "vitest";
-import { toIsoBirthDate, localIsoDate, BIRTH_DATE_MIN_ISO } from "@/lib/shared/birthDate";
+import {
+  toIsoBirthDate,
+  localIsoDate,
+  latestBirthDateIso,
+  isMissingBirthDateColumnError,
+  BIRTH_DATE_MIN_ISO,
+} from "@/lib/shared/birthDate";
 
 const NOW = new Date(2026, 8, 29, 12, 0, 0); // 29-sep-2026 (local)
 
@@ -47,5 +53,38 @@ describe("toIsoBirthDate", () => {
 
   it("localIsoDate formatea con ceros a la izquierda", () => {
     expect(localIsoDate(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+});
+
+describe("latestBirthDateIso · max del selector alineado con la validación", () => {
+  it("es AYER: la última fecha que toIsoBirthDate acepta (hoy la rechaza)", () => {
+    expect(latestBirthDateIso(NOW)).toBe("2026-09-28");
+    expect(toIsoBirthDate(latestBirthDateIso(NOW), NOW)).toBe("2026-09-28");
+    expect(toIsoBirthDate(localIsoDate(NOW), NOW)).toBeNull();
+  });
+
+  it("cruza mes, año y bisiesto", () => {
+    expect(latestBirthDateIso(new Date(2026, 0, 1, 9))).toBe("2025-12-31");
+    expect(latestBirthDateIso(new Date(2024, 2, 1, 9))).toBe("2024-02-29");
+    expect(latestBirthDateIso(new Date(2026, 9, 1, 0, 5))).toBe("2026-09-30");
+  });
+});
+
+describe("isMissingBirthDateColumnError · orden de despliegue", () => {
+  it("reconoce la columna ausente (supabase-js y cuerpo REST)", () => {
+    expect(isMissingBirthDateColumnError({
+      code: "PGRST204",
+      message: "Could not find the 'birth_date' column of 'players' in the schema cache",
+    })).toBe(true);
+    expect(isMissingBirthDateColumnError(
+      '{"code":"42703","message":"column \\"birth_date\\" of relation \\"players\\" does not exist"}',
+    )).toBe(true);
+  });
+
+  it("no enmascara otros errores (otra columna, red, RLS)", () => {
+    expect(isMissingBirthDateColumnError({ code: "PGRST204", message: "Could not find the 'leg_length' column" })).toBe(false);
+    expect(isMissingBirthDateColumnError({ message: "network down" })).toBe(false);
+    expect(isMissingBirthDateColumnError('{"code":"42501","message":"new row violates row-level security policy"}')).toBe(false);
+    expect(isMissingBirthDateColumnError(null)).toBe(false);
   });
 });
