@@ -75,8 +75,8 @@ flowchart LR
   end
   subgraph Modal["Modal · vitas-match-worker (sin claves de terceros)"]
     MS[match_start]
-    RJ[run_match_job<br/>cpu=2 · 4 GiB]
-    DR[drive_match_job<br/>cpu=0.25 · 1 GiB]
+    RJ[transcode_and_upload<br/>cpu=2 · 4 GiB]
+    DR[drive<br/>cpu=0.25 · 1 GiB]
     TK[tick<br/>modal.Period 5 min]
   end
   UI -- TUS --> BUNNY[(Bunny Stream)]
@@ -101,7 +101,7 @@ flowchart LR
 | `BUNNY_STREAM_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | sí | no | no |
 | `MODAL_API_KEY` (= `API_KEY` en Modal) | sí | sí | no |
 | `MODAL_CALLBACK_SECRET` | sí | sí | no |
-| `VITAS_MATCH_STEP_URL` | — | sí (el worker **nunca** toma la URL de la petición) | — |
+| `VITAS_PUBLIC_URL` (step URL = `+ /api/match/step`) o `VITAS_MATCH_STEP_URL` (URL completa, tiene prioridad) | — | sí (el worker **nunca** toma la URL de la petición) | — |
 | `BUNNY_CDN_HOSTNAME` (+ `VIDEO_URL_EXTRA_HOSTS`) | sí | sí (allowlist de hosts de origen, ya exigida por #288) | — |
 
 La URL de subida reanudable de Gemini es una **URL de capacidad** que acuña
@@ -369,23 +369,39 @@ Detalles vinculantes:
   `chunkGranularityBytes`); si falla, `query` → `X-Goog-Upload-Size-Received` →
   reanudar desde ese offset.
 - ffprobe debe cuadrar con `expectedDurationSec ± durationToleranceSec`; si no,
-  `fail {code:"duration_mismatch"}`.
-- Lógica mínima en Python. Los vectores HMAC viven en el test TS (CI solo corre
-  vitest); si el PR del worker añade tests pytest, debe añadir también el job de
-  pytest a `.github/workflows/ci.yml`.
+  `fail {code:"duration_mismatch"}`. Además: exactamente una pista h264 ≤ `maxHeight`
+  y **sin audio** (si no, no se sube).
+- **Continuidad** (verificado con ffmpeg 8.1: con un segmento HLS perdido ffmpeg sale
+  con 0 y el filtro `fps` rellena el hueco con fotogramas repetidos, así que la
+  duración cuadra): segmento HLS perdido → `source_unavailable`; más fotogramas
+  repetidos que `floor(fps × durationToleranceSec)` o sin estadísticas del filtro
+  → `transcode_failed`. Nunca llega a Gemini un proxy con imagen congelada.
+- Receta y comprobaciones en `vision-pipeline/match_proxy.py` (una sola
+  implementación: la usan el worker y el CLI local que genera el proxy del arnés de
+  validación). Restricciones para `config/matchVideo.json`: `fps` de Gemini
+  (`videoMetadata.fps`) ≤ `proxyFps`, y `durationToleranceSec` ≥ 1/`proxyFps`.
+- Lógica mínima en Python. Los vectores HMAC se comprueban en los tests TS **y**
+  en `vision-pipeline/test_match_worker.py` (Python `hmac`, cruzados con el
+  contrato para detectar deriva); el job `Python tests (vision-pipeline)` de
+  `.github/workflows/ci.yml` corre `python -m pytest vision-pipeline/test_*.py`
+  (httpx + pytest, sin Modal ni red).
 
 ### 6.5 Funciones Modal (`vision-pipeline/match_worker.py`, app `vitas-match-worker`)
 
 | Función | Recursos | Papel |
 |---|---|---|
-| `match_start` (web endpoint) | mínima | Bearer `API_KEY` con `hmac.compare_digest`; `spawn(run_match_job, jobId, epoch)`; responde `{status:"spawned", call_id}` |
-| `run_match_job` | `cpu=2`, `memory=4096`, `timeout=10800`, `retries=0` | begin → ffmpeg → heartbeat (hilo, 60 s) → upload_session → subida → proxy_ready → `spawn(drive_match_job)` |
-| `drive_match_job` | `cpu=0.25`, `memory=1024`, `timeout=10800`, `retries=0` | bucle `advance` hasta terminal / superseded (los cores reservados se facturan todo el tiempo de reloj: https://modal.com/pricing) |
-| `tick` | mínima, `modal.Period(minutes=5)` | op=tick firmada |
+| `match_start` (web endpoint) | `cpu=0.125`, 256 MiB | Bearer `API_KEY` con `hmac.compare_digest`; cuerpo estricto `{jobId, epoch}`; comprueba que el secret tiene lo necesario; `spawn(transcode_and_upload, jobId, epoch)`; responde `{status:"spawned", call_id}` |
+| `transcode_and_upload` | `cpu=(2, 2)`, `memory=4096`, `timeout=7200`, `retries=0`, `max_containers=2` | begin → allowlist + variante HLS → ffmpeg (receta de `match_proxy.py`) → heartbeat (hilo, 60 s) → continuidad + ffprobe → upload_session → subida → proxy_ready → `spawn(drive)` |
+| `drive` | `cpu=0.25`, `memory=1024`, `timeout=10800`, `retries=0` | bucle `advance` hasta terminal / superseded (los cores reservados se facturan todo el tiempo de reloj: https://modal.com/pricing) |
+| `tick` | `cpu=0.125`, 256 MiB, `modal.Period(minutes=5)`, `max_containers=1` | op=tick firmada |
+| `spike_proxy` (+ `modal run …::spike`) | como `transcode_and_upload`, `max_containers=1` | solo operador: allowlist + proxy en Modal desde una URL de Bunny, **sin Vercel ni Gemini** (puntos (e) y (h) del §18 con el análisis apagado; copia opcional del proxy para el arnés) |
 
-Imagen ligera (ffmpeg + httpx). Sin claves de Gemini, Supabase ni Bunny API.
-Allowlist de origen: reutilizar `video_host_policy` de `vision-pipeline/app.py`
-(#288), extraída a un módulo compartido (inv. #7), solo `https`.
+Imágenes ligeras (transcode: ffmpeg + httpx; resto: httpx + FastAPI). Sin claves
+de Gemini, Anthropic, Supabase ni Bunny API. Allowlist de origen: la de #288
+extraída a `vision-pipeline/video_url_guard.py` (inv. #7; `app.py` la importa),
+solo `https`; el worker valida también la variante y cada segmento/clave de la
+playlist antes de lanzar ffmpeg, y ffmpeg solo puede abrir `https,tls,tcp,crypto`.
+Despliegue y checklist del secret: `vision-pipeline/README.md`.
 
 ### 6.6 Despacho Vercel → Modal
 
@@ -717,7 +733,7 @@ El límite de duración **no** se duplica: `MAX_MATCH_DURATION_MIN` de
 |---|---|---|
 | **PR-0 (este)** | contrato + diseño + tests | — |
 | **PR-A backend** | migración `067_match_analyses.sql` (tablas, CHECK, índice único parcial, RLS SELECT-only), `api/match/[action].ts`, `api/_lib/matchJob/*` (plan, stateMachine, fencing, prompts/segment.v1, identityGuard, aggregate, citations, costing, dispatch, repo), `api/_lib/gemini/*`, extensiones de `budgetGuard`, `_teamReportCore.ts`, `baseline-analysis` a nodejs, delete-me + data-retention, `config/*.json`, registro de métricas, entradas en `docs/pendientes-metricas.md` | PR-0, #292 |
-| **PR-B worker** | `vision-pipeline/match_worker.py` (+ módulo de allowlist compartido, + job pytest en CI si añade tests) | PR-0 |
+| **PR-B worker** | `vision-pipeline/match_worker.py` + `match_proxy.py` (receta del proxy + CLI local) + `video_url_guard.py` (allowlist compartida) + `test_match_worker.py` + job pytest en CI | PR-0 |
 | **PR-C UI** | servicio, hook, componentes, páginas, `TeamReportView`, i18n ×7, CSP `player.mediadelivery.net`, fixture demo MOCK | PR-0 (mock del contrato hasta PR-A) |
 
 Integración: los tres contra este contrato; prueba E2E con un clip real tras el
@@ -735,13 +751,16 @@ spike.
    relativos al tramo?; (e) latencia PROCESSING→ACTIVE y tamaño real del proxy;
    (f) ¿funciona DELETE?; (g) ¿se rechaza el `start` sin Content-Length?; (h) ¿da
    403 el HLS de Bunny desde una IP de Modal? (y ruta exacta de la variante);
-   (i) estado real del límite y la tarjeta en Modal.
+   (i) estado real del límite y la tarjeta en Modal. (e) y (h) se miden sin activar
+   el análisis con `modal run vision-pipeline/match_worker.py::spike …`
+   (`vision-pipeline/README.md`).
 2. **Rotar credenciales C3** (`API_KEY` / `MODAL_API_KEY`, `MODAL_CALLBACK_SECRET`)
    antes de datos reales, en Vercel y en el secret `vitas-api-key`.
 3. **Modal**: método de pago + **límite de gasto del workspace $10/mes**; añadir
-   `VITAS_MATCH_STEP_URL` (y confirmar `BUNNY_CDN_HOSTNAME`) al secret
-   `vitas-api-key`; desplegar `vitas-match-worker` tras mergear PR-B; copiar la
-   URL de `match_start`.
+   `VITAS_PUBLIC_URL` (o `VITAS_MATCH_STEP_URL`) y confirmar `BUNNY_CDN_HOSTNAME`
+   en el secret `vitas-api-key`; desplegar `vitas-match-worker` tras mergear PR-B
+   **y** con PR-A ya desplegado (el tick llama a Vercel cada 5 min); copiar la URL
+   de `match_start`. Pasos exactos: `vision-pipeline/README.md`.
 4. **Vercel (futuro-club)**: `MODAL_MATCH_START_URL`,
    `GLOBAL_MONTHLY_BUDGET_USD=20`, clave Gemini **de pago** (Tier 1) en
    `GEMINI_API_KEY`, `BUNNY_WEBHOOK_SECRET` = API key de solo lectura de la
