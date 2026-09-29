@@ -36,6 +36,19 @@
 --      debe mover updated_at ni la sincronización offline del cliente).
 --      3b) Igual para player_metric_snapshots.phv_offset/phv_category (serie
 --      «PHV offset» del histórico, calculada con edad entera).
+--      RE-EJECUTABLE: el criterio no es «aún sin archivar» sino «NO respaldado
+--      por una fila FIABLE de player_anthropometrics» (misma regla que
+--      trustAnthropometricsRow en src/lib/phv/phvGate.ts). Si 069 se aplicó antes
+--      del despliegue y código antiguo re-escribió la columna, volver a ejecutarla
+--      archiva lo re-contaminado y conserva lo que escribió el endpoint gateado.
+--      phv_legacy nunca se pisa: la 1.ª copia se conserva y las siguientes se
+--      añaden a phv_legacy->'rearchived'.
+--
+-- ORDEN DEL OPERADOR: primero desplegar el código de este PR, DESPUÉS aplicar
+-- esta migración (el código degrada sin ella: sin age_source ninguna fila es
+-- fiable ⇒ PHV oculto). Aplicarla antes deja al código antiguo re-escribir
+-- players.phv_category desde el blob con service_role; si ocurrió, basta con
+-- volver a ejecutarla tras el despliegue.
 --   4) scout_insights: + archived_at / archived_reason (archivo de SISTEMA,
 --      distinto del is_archived que pulsa el usuario) y se archivan las filas
 --      creadas ANTES de #156 que mencionan maduración/PHV en su texto visible.
@@ -151,7 +164,7 @@ ALTER TABLE public.players
   ADD COLUMN IF NOT EXISTS phv_legacy jsonb;
 
 COMMENT ON COLUMN public.players.phv_legacy IS
-  'Copia auditable del phv_category/phv_offset anterior a 069 (no calculados con edad por fecha de nacimiento ⇒ no fiables). No se lee en ninguna superficie.';
+  'Copia auditable del phv_category/phv_offset anulado por 069 (no respaldado por una fila fiable de player_anthropometrics; las re-ejecuciones se añaden en ''rearchived''). No se lee en ninguna superficie.';
 
 -- Backfill de sistema: sin mover updated_at ni re-sincronizar columnas.
 DO $$
@@ -166,17 +179,45 @@ BEGIN
   END IF;
 END $$;
 
-UPDATE public.players
-SET phv_legacy = jsonb_build_object(
-      'phv_category', phv_category,
-      'phv_offset',   phv_offset,
-      'archived_at',  now(),
-      'reason',       'pre_069_untrusted_inputs'
-    ),
+-- Se anula todo PHV de la columna que NO coincida con la ÚLTIMA fila FIABLE del
+-- jugador: 4 medidas (pierna introducida o talla > talla sentado), edad por fecha
+-- de nacimiento (age_source), offset y categoría. En la 1.ª ejecución ninguna fila
+-- tiene age_source ⇒ se archiva todo; al re-ejecutar se conserva lo gateado.
+UPDATE public.players p
+SET phv_legacy = CASE
+      WHEN p.phv_legacy IS NULL THEN jsonb_build_object(
+        'phv_category', p.phv_category,
+        'phv_offset',   p.phv_offset,
+        'archived_at',  now(),
+        'reason',       'pre_069_untrusted_inputs'
+      )
+      ELSE p.phv_legacy || jsonb_build_object(
+        'rearchived',
+        COALESCE(p.phv_legacy -> 'rearchived', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+          'phv_category', p.phv_category,
+          'phv_offset',   p.phv_offset,
+          'archived_at',  now(),
+          'reason',       'not_backed_by_trusted_row'
+        ))
+      )
+    END,
     phv_category = NULL,
     phv_offset   = NULL
-WHERE (phv_category IS NOT NULL OR phv_offset IS NOT NULL)
-  AND phv_legacy IS NULL;
+WHERE (p.phv_category IS NOT NULL OR p.phv_offset IS NOT NULL)
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.player_latest_anthropometrics a
+    WHERE a.player_id = p.id
+      AND a.age_source = 'birth_date'
+      AND a.height_cm IS NOT NULL
+      AND a.weight_kg IS NOT NULL
+      AND a.sitting_height_cm IS NOT NULL
+      AND (a.leg_length_cm IS NOT NULL OR a.height_cm > a.sitting_height_cm)
+      AND a.maturity_offset IS NOT NULL
+      AND a.phv_category IS NOT NULL
+      AND p.phv_offset = a.maturity_offset
+      AND (CASE p.phv_category WHEN 'ontme' THEN 'ontime' ELSE p.phv_category END) = a.phv_category
+  );
 
 DO $$
 BEGIN
@@ -193,18 +234,42 @@ END $$;
 -- 3b) Snapshots longitudinales: el «PHV offset» que pinta SnapshotHistoryChart
 --     salía del maturity_offset de filas con edad ENTERA (orquestador). Misma
 --     regla: copia auditable + anulación. Desde este PR el orquestador solo
---     escribe PHV de filas fiables (gateAnthropometricsRow).
+--     escribe PHV de filas fiables (gateAnthropometricsRow). Re-ejecutable igual
+--     que 3): se conserva el PHV de un snapshot solo si coincide con ALGUNA fila
+--     fiable del jugador (el snapshot es histórico, no tiene por qué ser la última).
 DO $$
 BEGIN
   IF to_regclass('public.player_metric_snapshots') IS NOT NULL THEN
     ALTER TABLE public.player_metric_snapshots ADD COLUMN IF NOT EXISTS phv_legacy jsonb;
-    UPDATE public.player_metric_snapshots
-    SET phv_legacy   = jsonb_build_object('phv_category', phv_category, 'phv_offset', phv_offset,
-                                          'archived_at', now(), 'reason', 'pre_069_untrusted_inputs'),
+    UPDATE public.player_metric_snapshots s
+    SET phv_legacy = CASE
+          WHEN s.phv_legacy IS NULL THEN jsonb_build_object(
+            'phv_category', s.phv_category, 'phv_offset', s.phv_offset,
+            'archived_at', now(), 'reason', 'pre_069_untrusted_inputs')
+          ELSE s.phv_legacy || jsonb_build_object(
+            'rearchived',
+            COALESCE(s.phv_legacy -> 'rearchived', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+              'phv_category', s.phv_category, 'phv_offset', s.phv_offset,
+              'archived_at', now(), 'reason', 'not_backed_by_trusted_row')))
+        END,
         phv_category = NULL,
         phv_offset   = NULL
-    WHERE (phv_category IS NOT NULL OR phv_offset IS NOT NULL)
-      AND phv_legacy IS NULL;
+    WHERE (s.phv_category IS NOT NULL OR s.phv_offset IS NOT NULL)
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.player_anthropometrics a
+        WHERE a.player_id = s.player_id
+          AND a.age_source = 'birth_date'
+          AND a.height_cm IS NOT NULL
+          AND a.weight_kg IS NOT NULL
+          AND a.sitting_height_cm IS NOT NULL
+          AND (a.leg_length_cm IS NOT NULL OR a.height_cm > a.sitting_height_cm)
+          AND a.maturity_offset IS NOT NULL
+          AND a.phv_category IS NOT NULL
+          -- phv_offset es REAL en snapshots; maturity_offset numeric(4,2).
+          AND round(s.phv_offset::numeric, 2) = a.maturity_offset
+          AND (CASE s.phv_category WHEN 'ontme' THEN 'ontime' ELSE s.phv_category END) = a.phv_category
+      );
   END IF;
 END $$;
 

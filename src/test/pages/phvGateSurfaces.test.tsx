@@ -12,7 +12,7 @@
  * pintaba el phvCategory persistido; PlayerComparison.tsx:258-263/277-281 sumaba
  * +5 fijo por phvCategory "early".
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 
@@ -111,7 +111,8 @@ vi.mock("recharts", () => {
 });
 
 import { adaptPlayerForUI } from "@/services/real/adapters";
-import { phvGate } from "@/lib/phv/phvGate";
+import { phvGate, pahGate } from "@/lib/phv/phvGate";
+import { PHVProductCard } from "@/components/phv/PHVProductCard";
 import PlayerHubPrint from "@/pages/PlayerHubPrint";
 import TeamPage from "@/pages/TeamPage";
 import PlayerComparison from "@/pages/PlayerComparison";
@@ -164,6 +165,63 @@ describe("TeamPage · lista de jugadores", () => {
     if (!g.ok) throw new Error("gate cerrado");
     const key = g.category === "early" ? "teamPage.prePhv" : g.category === "late" ? "teamPage.postPhv" : "teamPage.inPhv";
     expect(document.body.textContent).toContain(key);
+  });
+});
+
+describe("Misma fase PHV en todas las superficies con alturas parentales (%PAH ≠ PHV)", () => {
+  // Caso del review (hoy = 2026-09-29): Mirwald da offset ≈ −0.9 (En PHV) y el
+  // %PAH con padres daba «Pre-PHV». Antes el Hub (assessment.status) decía Pre-PHV
+  // y el equipo/familia/PDF (category) En PHV.
+  const BOY = {
+    ...COMPLETE, id: "samu", name: "Chico", age: 13,
+    height: 158, weight: 46, sittingHeight: 80, legLength: 78, birthDate: "2013-06-01", gender: "M",
+    motherHeightCm: 170, fatherHeightCm: 185,
+  };
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("gate: fase única «en PHV» (category y status coinciden)", () => {
+    const g = phvGate(BOY);
+    expect(g.ok && g.category).toBe("ontme");
+    expect(g.ok && g.status).toBe("circa_phv");
+    expect(g.ok && g.assessment.status).toBe("circa_phv");
+  });
+
+  it("Hub print y lista del equipo rotulan la MISMA fase", () => {
+    PLAYERS = [BOY];
+    const { unmount } = render(<PlayerHubPrint />);
+    const print = document.body.textContent ?? "";
+    expect(print).toContain("maturity.status.circa_phv");
+    expect(print).not.toContain("maturity.status.pre_phv");
+    unmount();
+
+    render(<TeamPage />);
+    const team = document.body.textContent ?? "";
+    expect(team).toContain("teamPage.inPhv");
+    expect(team).not.toContain("teamPage.prePhv");
+  });
+
+  it("tarjeta PHV del Hub: fase de Mirwald y el %PAH solo como «% talla adulta»", () => {
+    const g = phvGate(BOY);
+    if (!g.ok) throw new Error("gate cerrado");
+    const pah = pahGate(BOY);
+    expect(pah.ok).toBe(true);
+    render(
+      <PHVProductCard
+        data={{
+          assessment: g.assessment, pah, mirwald: g.mirwald, projection: null,
+          shield: { active: false } as never, rawVSI: null, adjustedVSI: null, playerName: "Chico",
+        }}
+      />,
+    );
+    const card = document.body.textContent ?? "";
+    expect(card).toContain("maturity.status.circa_phv");
+    expect(card).not.toContain("maturity.status.pre_phv");
+    expect(card).toContain("maturity.percentPAH");
+    expect(card).toContain(`${pah.percent.value}%`);
   });
 });
 

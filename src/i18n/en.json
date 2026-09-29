@@ -1243,6 +1243,8 @@
     "toastUpdated": "Measurement updated",
     "toastSaved": "Measurement saved · PHV recalculated",
     "toastQueuedSave": "📡 Saved to queue · will sync when the network returns",
+    "toastProfilePendingSync": "Measurement saved, but the player profile is pending sync: the profile PHV will update once it syncs",
+    "toastProfileNotOnDevice": "Measurement saved, but the profile on this device was not updated (the player is not loaded here): reload the profile to see the PHV",
     "errUnknown": "Unknown error",
     "confirmDelete": "Delete this measurement? The historical PHV for this date will be lost.",
     "queueLabelDelete": "Delete measurement",

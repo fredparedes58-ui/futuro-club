@@ -1243,6 +1243,8 @@
     "toastUpdated": "Meting bijgewerkt",
     "toastSaved": "Meting opgeslagen · PHV herberekend",
     "toastQueuedSave": "📡 In wachtrij opgeslagen · wordt gesynchroniseerd zodra het netwerk terug is",
+    "toastProfilePendingSync": "Meting opgeslagen, maar het spelersprofiel wacht op synchronisatie: de PHV in het profiel wordt bijgewerkt na synchronisatie",
+    "toastProfileNotOnDevice": "Meting opgeslagen, maar het profiel op dit apparaat is niet bijgewerkt (de speler is hier niet geladen): herlaad het profiel om de PHV te zien",
     "errUnknown": "Onbekende fout",
     "confirmDelete": "Deze meting verwijderen? De historische PHV van deze datum gaat verloren.",
     "queueLabelDelete": "Meting verwijderen",

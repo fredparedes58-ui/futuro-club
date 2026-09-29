@@ -34,13 +34,16 @@ const COMPLETE = {
 };
 
 let rpcOk = true;
+let lastRpcBody: Record<string, unknown> | null = null;
 
 beforeEach(() => {
   process.env.SUPABASE_URL = "https://test.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "svc";
-  vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+  lastRpcBody = null;
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
     const u = typeof url === "string" ? url : url.toString();
     if (u.includes("/rpc/get_ranked_players")) {
+      lastRpcBody = JSON.parse(String(init?.body ?? "{}"));
       if (!rpcOk) return new Response("no rpc", { status: 404 });
       return new Response(JSON.stringify({
         players: [
@@ -61,13 +64,17 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-async function list(): Promise<Array<Record<string, unknown>>> {
+async function listPage(qs = ""): Promise<{ players: Array<Record<string, unknown>>; total: number }> {
   const res = await listHandler(
-    new Request("https://x.test/api/rankings/list", { headers: { Authorization: "Bearer user-jwt" } }),
+    new Request(`https://x.test/api/rankings/list${qs}`, { headers: { Authorization: "Bearer user-jwt" } }),
   );
   expect(res.status).toBe(200);
-  const body = (await res.json()) as { data: { players: Array<Record<string, unknown>> } };
-  return body.data.players;
+  const body = (await res.json()) as { data: { players: Array<Record<string, unknown>>; total: number } };
+  return body.data;
+}
+
+async function list(): Promise<Array<Record<string, unknown>>> {
+  return (await listPage()).players;
 }
 
 const g = phvGate(COMPLETE);
@@ -94,5 +101,39 @@ describe.each([
     expect(full.phvCategory).toBe(expectedCat);
     expect(full.phvOffset).toBe(g.ok ? g.offset.value : null);
     expect(full.phvGateReason).toBeNull();
+  });
+});
+
+// Filtro PHV: la RPC filtraba por el phvCategory PERSISTIDO del blob (Samu «early»
+// salía al filtrar «early» rotulado «PHV no disponible») y la ruta en memoria por
+// el recálculo. Ahora ambas filtran DESPUÉS del gate: lo que se filtra = lo que se ve.
+describe.each([
+  ["RPC", true],
+  ["fallback en memoria", false],
+])("rankings (%s) · filtro PHV sobre la categoría gateada", (_label, useRpc) => {
+  it.each(["early", "on-time", "late"])("phv=%s devuelve solo quien el gate clasifica así", async (phv) => {
+    rpcOk = useRpc as boolean;
+    const { players, total } = await listPage(`?phv=${phv}`);
+    const ids = players.map((p) => p.id);
+    // Samu (blob «early», sin medidas) NUNCA pasa un filtro PHV: su gate está cerrado.
+    expect(ids).not.toContain("samu");
+    expect(ids).toEqual(expectedCat === phv ? ["full"] : []);
+    expect(total).toBe(ids.length);
+    for (const p of players) expect(p.phvCategory).toBe(phv);
+    if (useRpc) {
+      // La RPC ya no filtra por la categoría persistida: lista completa, sin p_phv.
+      expect(lastRpcBody?.p_phv).toBeNull();
+      expect(lastRpcBody?.p_offset).toBe(0);
+    }
+  });
+
+  it("sin filtro PHV la RPC conserva su paginación", async () => {
+    rpcOk = useRpc as boolean;
+    await listPage("?limit=10&offset=5");
+    if (useRpc) {
+      expect(lastRpcBody?.p_phv).toBeNull();
+      expect(lastRpcBody?.p_limit).toBe(10);
+      expect(lastRpcBody?.p_offset).toBe(5);
+    }
   });
 });

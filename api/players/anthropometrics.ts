@@ -335,8 +335,14 @@ export default withHandler(
             phv_category: trusted.trusted ? latest.phv_category : null,
             phv_offset: trusted.trusted ? trusted.offset : null,
           }).eq("id", rowToDelete.player_id);
+        } else {
+          // Sin mediciones: las medidas del perfil se conservan, pero el PHV no puede
+          // sobrevivir a la fila que lo respaldaba (no hay fila fiable ⇒ sin PHV).
+          await supabase.from("players").update({
+            phv_category: null,
+            phv_offset: null,
+          }).eq("id", rowToDelete.player_id);
         }
-        // Si no quedan mediciones, dejamos el player con los valores que tuviera
       }
 
       return successResponse({ deleted: true, id });
@@ -451,13 +457,16 @@ export default withHandler(
           .maybeSingle();
 
         if (latest?.id === id) {
+          // PHV a la columna solo si la fila GUARDADA es fiable (sin 069 aplicada
+          // la fila queda sin age_source ⇒ no fiable ⇒ la columna no lo recibe).
+          const rowTrusted = trustAnthropometricsRow(row).trusted;
           await supabase.from("players").update({
             height_cm: input.heightCm,
             weight_kg: input.weightKg,
             sitting_height: input.sittingHeightCm ?? null,
             leg_length: input.legLengthCm ?? null,
-            phv_category: phv?.category ?? null,
-            phv_offset: phv?.offset ?? null,
+            phv_category: rowTrusted ? phv?.category ?? null : null,
+            phv_offset: rowTrusted ? phv?.offset ?? null : null,
           }).eq("id", row.player_id);
         }
       }
@@ -548,14 +557,17 @@ export default withHandler(
       return errorResponse({ code: "save_failed", message: error.message, status: 500 });
     }
 
-    // Sincronizar al player record · POST siempre es la nueva más reciente
+    // Sincronizar al player record · POST siempre es la nueva más reciente. El PHV
+    // solo si la fila GUARDADA es fiable (ver PATCH): la columna nunca va por
+    // delante de una fila que la respalde.
+    const rowTrusted = trustAnthropometricsRow(row).trusted;
     await supabase.from("players").update({
       height_cm: input.heightCm,
       weight_kg: input.weightKg,
       sitting_height: input.sittingHeightCm ?? null,
       leg_length: input.legLengthCm ?? null,
-      phv_category: phv?.category ?? null,
-      phv_offset: phv?.offset ?? null,
+      phv_category: rowTrusted ? phv?.category ?? null : null,
+      phv_offset: rowTrusted ? phv?.offset ?? null : null,
     }).eq("id", input.playerId);
 
     return successResponse({ saved: true, record: row, phv, phvGate: gateSummary(m) });

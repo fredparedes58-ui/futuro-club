@@ -1242,6 +1242,8 @@
     "toastUpdated": "Mesure mise à jour",
     "toastSaved": "Mesure enregistrée · PHV recalculé",
     "toastQueuedSave": "📡 Enregistrement en file · sera synchronisé au retour du réseau",
+    "toastProfilePendingSync": "Mesure enregistrée, mais la fiche du joueur est en attente de synchronisation : le PHV de la fiche sera mis à jour après la synchronisation",
+    "toastProfileNotOnDevice": "Mesure enregistrée, mais la fiche de cet appareil n'a pas été mise à jour (le joueur n'est pas chargé ici) : rechargez la fiche pour voir le PHV",
     "errUnknown": "Erreur inconnue",
     "confirmDelete": "Supprimer cette mesure ? Le PHV historique de cette date sera perdu.",
     "queueLabelDelete": "Supprimer la mesure",

@@ -28,6 +28,7 @@ import { useAuth } from "@/context/AuthContext";
 import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PlayerService } from "@/services/real/playerService";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
+import { SyncQueueService } from "@/services/real/syncQueueService";
 
 interface Props {
   playerId: string;
@@ -161,25 +162,40 @@ export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gen
     }
   }, [loading, history.length, fallback, showForm]);
 
-  async function adoptMeasuresLocally(m: SavedMeasures) {
-    try {
-      const updated = await PlayerService.update(playerId, {
-        height: m.heightCm,
-        weight: m.weightKg,
-        sittingHeight: m.sittingHeightCm,
-        legLength: m.legLengthCm,
-      });
-      if (updated && user && SUPABASE_CONFIGURED) {
-        await SupabasePlayerService.pushOne(user.id, updated).catch(() => {});
+  /**
+   * La ficha (blob que lee el gate de PHV del Hub) adopta las medidas guardadas.
+   * Devuelve el estado REAL — nunca se traga un fallo de sincronización:
+   *   synced / local_only → la ficha ya lee las medidas nuevas;
+   *   queued    → la nube falló (o no hay sesión): en SyncQueue, pendiente;
+   *   not_found → el jugador no está en este dispositivo: la ficha NO cambió.
+   */
+  async function adoptMeasuresLocally(m: SavedMeasures): Promise<"synced" | "local_only" | "queued" | "not_found"> {
+    const updated = await PlayerService.update(playerId, {
+      height: m.heightCm,
+      weight: m.weightKg,
+      sittingHeight: m.sittingHeightCm,
+      legLength: m.legLengthCm,
+    }).catch(() => null); // caché local inaccesible ⇒ la ficha no cambió (se avisa)
+    if (!updated) return "not_found";
+    let status: "synced" | "local_only" | "queued" = "local_only";
+    if (SUPABASE_CONFIGURED) {
+      try {
+        if (!user) throw new Error("no_session");
+        await SupabasePlayerService.pushOne(user.id, updated);
+        status = "synced";
+      } catch {
+        // Mismo patrón que create/updateMetrics: el cambio queda en la cola y se
+        // reintenta; el pull no lo pisa mientras esté pendiente.
+        SyncQueueService.enqueue("update", "player", playerId, updated);
+        status = "queued";
       }
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["player", playerId] }),
-        queryClient.invalidateQueries({ queryKey: ["player-raw", playerId] }),
-        queryClient.invalidateQueries({ queryKey: ["players-all"] }),
-      ]);
-    } catch {
-      // La medida YA está en el servidor; la ficha se re-sincroniza en el próximo pull.
     }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["player", playerId] }),
+      queryClient.invalidateQueries({ queryKey: ["player-raw", playerId] }),
+      queryClient.invalidateQueries({ queryKey: ["players-all"] }),
+    ]).catch(() => {});
+    return status;
   }
 
   function startNew() {
@@ -267,7 +283,11 @@ export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gen
         // Medición NUEVA (la más reciente): la ficha local adopta las medidas
         // introducidas para que el gate único de PHV de la ficha lea lo mismo que se
         // acaba de medir (el endpoint solo escribe columnas; la ficha lee el blob).
-        if (!editingId) await adoptMeasuresLocally({ heightCm, weightKg, sittingHeightCm, legLengthCm });
+        if (!editingId) {
+          const adopted = await adoptMeasuresLocally({ heightCm, weightKg, sittingHeightCm, legLengthCm });
+          if (adopted === "queued") toast.info(t("anthroForm.toastProfilePendingSync"), { duration: 6000 });
+          if (adopted === "not_found") toast.warning(t("anthroForm.toastProfileNotOnDevice"), { duration: 6000 });
+        }
         onSaved?.({ heightCm, weightKg, sittingHeightCm, legLengthCm });
         await loadHistory();
       } else if (result.queued) {

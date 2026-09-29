@@ -29,8 +29,10 @@ import { phvGate, pahGate, type PhvGate, type PahGate, type PhvGateInput } from 
 import type { MaturityAssessment } from "@/lib/phv/maturity";
 
 export interface PHVProduct {
-  /** Evaluación canónica (fuente ÚNICA para la UI: estado/timing/%PAH/APHV). */
+  /** Evaluación canónica (fuente ÚNICA para la UI: fase de Mirwald/timing/APHV). */
   assessment: MaturityAssessment;
+  /** %talla adulta (Khamis-Roche): métrica APARTE con su propio gate; no decide la fase. */
+  pah: PahGate;
   mirwald: MirwaldResult;
   /** Proyección a madurez: null sin VSI real (no se proyecta desde un percentil inventado). */
   projection: MaturityProjection | null;
@@ -86,6 +88,7 @@ export function usePHVGate(playerId: string | undefined): PHVGateState {
       pah,
       product: {
         assessment,
+        pah,
         mirwald,
         projection,
         shield,

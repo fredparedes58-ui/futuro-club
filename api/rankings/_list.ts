@@ -95,6 +95,13 @@ type PlayerRow = {
   fatherHeightCm: number | null;
 };
 
+/**
+ * p_limit de la RPC cuando hay filtro PHV: la lista COMPLETA del usuario (el
+ * filtro y la paginación se aplican aquí tras el gate). La ruta en memoria ya
+ * carga todos los jugadores del usuario; esto no amplía qué se lee.
+ */
+const RPC_ALL_ROWS = 100_000;
+
 const rankingsCache = new Map<string, { data: PlayerRow[]; timestamp: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -121,7 +128,11 @@ export default withHandler(
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
 
     // Filters
-    const phvFilter = url.searchParams.get("phv"); // "early", "ontme", "late"
+    // PHV: "early" | "on-time" | "late" (se acepta también la forma interna "ontme").
+    // Se filtra SIEMPRE sobre el recálculo del gate único (gatedPhvFields), nunca
+    // sobre la categoría persistida: ver la ruta RPC.
+    const phvParam = url.searchParams.get("phv");
+    const phvFilter = phvParam && phvParam !== "all" ? mapPhv(phvParam) : null;
     const posFilter = url.searchParams.get("position"); // Position string
     const ageGroupFilter = url.searchParams.get("ageGroup"); // "Sub-14", etc.
     const levelFilter = url.searchParams.get("level"); // competitive level
@@ -135,6 +146,12 @@ export default withHandler(
 
     // Try RPC first (server-side percentiles, O(n) in Postgres)
     try {
+      // La RPC filtra PHV por el phvCategory PERSISTIDO del blob (con default
+      // 'ontme', 059) mientras la fila muestra el recálculo del gate: filtrar por
+      // «early» devolvía a un pre-púber sin medidas rotulado «PHV no disponible».
+      // Con filtro PHV se pide la lista completa ordenada SIN p_phv y se filtra +
+      // pagina aquí, DESPUÉS del gate (misma fuente que muestra la fila y que la
+      // ruta en memoria). Los percentiles siguen siendo los de la RPC.
       const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/get_ranked_players`, {
         method: "POST",
         headers: { ...headers, Prefer: "return=representation" },
@@ -142,10 +159,10 @@ export default withHandler(
           p_user_id: userId,
           p_sort_by: sortBy,
           p_sort_dir: sortDir,
-          p_limit: limit,
-          p_offset: offset,
+          p_limit: phvFilter ? RPC_ALL_ROWS : limit,
+          p_offset: phvFilter ? 0 : offset,
           p_search: search || null,
-          p_phv: phvFilter || null,
+          p_phv: null,
           p_position: posFilter || null,
           p_age_group: ageGroupFilter || null,
           p_level: levelFilter || null,
@@ -156,7 +173,7 @@ export default withHandler(
         const rpcData = await rpcRes.json();
         // RPC returns the full response object directly
         // Map player data format to match existing API contract
-        const players = (rpcData.players || []).map((p: Record<string, unknown>) => ({
+        const mapped: Array<Record<string, unknown>> = (rpcData.players || []).map((p: Record<string, unknown>) => ({
           id: p.id,
           name: p.name,
           age: p.age,
@@ -173,10 +190,13 @@ export default withHandler(
           // blob NO llega al cliente; solo el recálculo gateado (o null + motivo).
           ...gatedPhvFields((p.data || {}) as Record<string, unknown>),
         }));
+        // Filtro PHV sobre la categoría GATEADA (la que se muestra), no la persistida.
+        const matching = phvFilter ? mapped.filter((p) => p.phvCategory === phvFilter) : mapped;
+        const players = phvFilter ? matching.slice(offset, offset + limit) : mapped;
 
         return successResponse({
           players,
-          total: rpcData.total || 0,
+          total: phvFilter ? matching.length : rpcData.total || 0,
           limit,
           offset,
           totalUnfiltered: rpcData.totalUnfiltered || 0,
@@ -311,7 +331,7 @@ export default withHandler(
     if (search) {
       filtered = filtered.filter((p) => p.name.toLowerCase().includes(search));
     }
-    if (phvFilter && phvFilter !== "all") {
+    if (phvFilter) {
       filtered = filtered.filter((p) => p.phvCategory === phvFilter);
     }
     if (posFilter && posFilter !== "Todos") {

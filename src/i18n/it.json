@@ -1242,6 +1242,8 @@
     "toastUpdated": "Misura aggiornata",
     "toastSaved": "Misura salvata · PHV ricalcolato",
     "toastQueuedSave": "📡 Salvataggio in coda · si sincronizzerà al ritorno della rete",
+    "toastProfilePendingSync": "Misura salvata, ma la scheda del giocatore è in attesa di sincronizzazione: il PHV della scheda si aggiornerà dopo la sincronizzazione",
+    "toastProfileNotOnDevice": "Misura salvata, ma la scheda su questo dispositivo non è stata aggiornata (il giocatore non è caricato qui): ricarica la scheda per vedere il PHV",
     "errUnknown": "Errore sconosciuto",
     "confirmDelete": "Eliminare questa misurazione? Il PHV storico di questa data andrà perso.",
     "queueLabelDelete": "Elimina misurazione",

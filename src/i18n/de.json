@@ -1242,6 +1242,8 @@
     "toastUpdated": "Messung aktualisiert",
     "toastSaved": "Messung gespeichert · PHV neu berechnet",
     "toastQueuedSave": "📡 In Warteschlange gespeichert · wird synchronisiert, sobald das Netz zurück ist",
+    "toastProfilePendingSync": "Messung gespeichert, aber das Spielerprofil wartet auf Synchronisierung: das PHV im Profil wird nach der Synchronisierung aktualisiert",
+    "toastProfileNotOnDevice": "Messung gespeichert, aber das Profil auf diesem Gerät wurde nicht aktualisiert (der Spieler ist hier nicht geladen): lade das Profil neu, um das PHV zu sehen",
     "errUnknown": "Unbekannter Fehler",
     "confirmDelete": "Diese Messung löschen? Der historische PHV dieses Datums geht verloren.",
     "queueLabelDelete": "Messung löschen",

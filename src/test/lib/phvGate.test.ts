@@ -7,12 +7,14 @@
  * El gate NO cambia fórmulas: con entradas completas devuelve exactamente lo que
  * el motor existente (computeMirwald / resolveMaturity) calcula.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   phvGate,
   gatedMaturity,
   sanitizePlayerPhv,
   pahGate,
+  phvLabelEs,
+  PHV_STATUS_LABEL_ES,
   trustAnthropometricsRow,
   gateAnthropometricsRow,
   missingPhvInputs,
@@ -148,6 +150,66 @@ describe("gatedMaturity · sustituto de playerMaturity", () => {
   it("abierto ⇒ la evaluación canónica", () => {
     const g = phvGate(COMPLETE, AT);
     expect(gatedMaturity(COMPLETE, AT)).toEqual(g.ok ? g.assessment : null);
+  });
+});
+
+describe("phvGate · UNA sola fase aunque haya alturas parentales (%PAH ≠ PHV)", () => {
+  // Casos reales del review (at = 2026-09-29): con alturas parentales el motor
+  // decide su `status` por %PAH (Khamis-Roche) y discrepaba de la categoría de
+  // Mirwald → «En PHV» en equipo/familia/PDF y «Pre-PHV» en el Hub.
+  const TODAY = "2026-09-29T12:00:00Z";
+  const BOY = {
+    height: 158, weight: 46, sittingHeight: 80, legLength: 78,
+    birthDate: "2013-06-01", gender: "M" as const, motherHeightCm: 170, fatherHeightCm: 185,
+  };
+  const GIRL = {
+    height: 150, weight: 40, sittingHeight: 78, legLength: 72,
+    birthDate: "2014-03-01", gender: "F" as const, motherHeightCm: 165, fatherHeightCm: 178,
+  };
+
+  beforeEach(() => {
+    // Solo Date: sanitizePlayerPhv / phvLabelEs / las superficies usan «hoy».
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(TODAY));
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it.each([
+    ["chico", BOY],
+    ["chica", GIRL],
+  ])("%s: todas las lecturas de la fase coinciden (Mirwald), el %PAH va aparte", (_l, p) => {
+    const g = phvGate(p);
+    expect(g.ok).toBe(true);
+    if (!g.ok) return;
+    const age = decimalAgeYears(p.birthDate, TODAY)!;
+
+    // El caso es significativo: el motor CON padres daba otra fase (por %PAH).
+    const withParents = resolveMaturity({
+      sex: p.gender, ageYears: age, heightCm: p.height, weightKg: p.weight,
+      sittingHeightCm: p.sittingHeight, legLengthCm: p.legLength,
+      motherHeightCm: p.motherHeightCm, fatherHeightCm: p.fatherHeightCm,
+    });
+    expect(withParents.method).toBe("khamis_roche_pah");
+    expect(withParents.status).toBe("pre_phv");
+
+    // Fase única = Mirwald (offset en ±1 ⇒ en PHV) en TODAS las lecturas.
+    expect(Math.abs(g.offset.value as number)).toBeLessThanOrEqual(1);
+    expect(g.status).toBe("circa_phv");
+    expect(g.category).toBe("ontme");
+    expect(g.assessment.status).toBe(g.status); // Hub header, Hub print, PHVProductCard, ScoutFeed
+    expect(gatedMaturity(p).status).toBe(g.status); // VitasCard, ShareablePlayerCard, adaptadores
+    expect(phvLabelEs(g)).toBe(PHV_STATUS_LABEL_ES.ontme); // PDF / prompts
+    expect(sanitizePlayerPhv({ ...p, phvCategory: "early", phvOffset: -2 }).phvCategory).toBe("ontme"); // Team, familia, rankings
+
+    // El timing (y por tanto el factor VSI) no cambia: sale del APHV en ambos métodos.
+    expect(g.assessment.timing).toBe(withParents.timing);
+    expect(g.assessment.adjustmentFactor).toBe(withParents.adjustmentFactor);
+
+    // %PAH: NO viaja en la evaluación PHV; es su propia métrica «% talla adulta».
+    expect(g.assessment.percentPredictedAdultHeight).toBeUndefined();
+    const pah = pahGate(p);
+    expect(pah.ok).toBe(true);
+    expect(pah.percent.value).toBe(withParents.percentPredictedAdultHeight);
   });
 });
 

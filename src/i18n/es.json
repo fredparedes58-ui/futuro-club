@@ -1243,6 +1243,8 @@
     "toastUpdated": "Medida actualizada",
     "toastSaved": "Medida guardada · PHV recalculado",
     "toastQueuedSave": "📡 Guardado en cola · se sincronizará al volver la red",
+    "toastProfilePendingSync": "Medida guardada, pero la ficha del jugador está pendiente de sincronizar: el PHV de la ficha se actualizará al sincronizar",
+    "toastProfileNotOnDevice": "Medida guardada, pero la ficha de este dispositivo no se actualizó (el jugador no está cargado aquí): recarga la ficha para ver el PHV",
     "errUnknown": "Error desconocido",
     "confirmDelete": "¿Eliminar esta medición? El PHV histórico de esta fecha se perderá.",
     "queueLabelDelete": "Eliminar medición",

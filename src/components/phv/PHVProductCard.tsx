@@ -41,7 +41,9 @@ export function PHVProductCard({ data, compact = false }: Props) {
   // Solo mostramos el VSI ajustado si el timing es firme (factor ≠ 1).
   const showAdjusted = rawVSI != null && adjustedVSI != null && a.adjustmentFactor !== 1;
   const statusLabel = a.status !== "unknown" ? t(maturityStatusKey(a.status)) : null;
-  const pct = a.percentPredictedAdultHeight;
+  // %talla adulta desde SU gate (Khamis-Roche), rotulado «% talla adulta»: no es
+  // la fase PHV (esa es `a.status`, de Mirwald, la misma en todas las superficies).
+  const pct = data.pah?.ok ? data.pah.percent.value : null;
 
   return (
     <motion.div

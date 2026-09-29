@@ -27,6 +27,8 @@ let inserts: Array<{ table: string; values: Record<string, unknown> }> = [];
 let updates: Array<{ table: string; values: Record<string, unknown> }> = [];
 /** Simula la BD SIN la migración 069 aplicada (no existen age_source/phv_gate_reason). */
 let pre069 = false;
+/** Resultado de maybeSingle() por tabla cuando difiere de single() (p.ej. tras un DELETE). */
+let maybeSingleOverride: Record<string, Row> = {};
 
 function chainFor(table: string) {
   let inserted: Record<string, unknown> | null = null;
@@ -53,7 +55,10 @@ function chainFor(table: string) {
       }
       return { data: inserted ? { id: "row-1", ...inserted } : tables[table] ?? null, error: null };
     },
-    maybeSingle: async () => ({ data: tables[table] ?? null, error: null }),
+    maybeSingle: async () => ({
+      data: table in maybeSingleOverride ? maybeSingleOverride[table] : tables[table] ?? null,
+      error: null,
+    }),
     then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
       Promise.resolve({ data: null, error: null }).then(resolve, reject),
   });
@@ -91,6 +96,7 @@ beforeEach(() => {
   inserts = [];
   updates = [];
   pre069 = false;
+  maybeSingleOverride = {};
   tables = {
     players: { tenant_id: "t1", birth_date: null, data: { birthDate: BIRTH, gender: "M" } },
   };
@@ -171,11 +177,48 @@ describe("anthropometrics POST · edad decimal desde la fecha de nacimiento", ()
     expect(anthro[1].values).not.toHaveProperty("phv_gate_reason");
     // La edad guardada sigue siendo la DECIMAL.
     expect(anthro[1].values.chronological_age).not.toBe(14);
+    // La fila guardada NO es fiable (sin age_source) ⇒ la columna players.phv_* no
+    // recibe PHV: nunca va por delante de una fila que la respalde.
+    expect(playersUpdate().phv_category).toBeNull();
+    expect(playersUpdate().phv_offset).toBeNull();
   });
 
   it("fecha de nacimiento que da edad < 5 → 400 (no se inserta)", async () => {
     const { status } = await run({ ...MEASURE, birthDate: "2024-01-01" });
     expect(status).toBe(400);
     expect(inserts.length).toBe(0);
+  });
+});
+
+describe("anthropometrics DELETE · el PHV de la columna no sobrevive a su fila", () => {
+  async function del(id: string) {
+    const { default: handler } = await import("../anthropometrics");
+    const res = await handler(
+      new Request(`https://x.test/api/players/anthropometrics?id=${id}`, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer user-jwt" },
+      }),
+    );
+    return res.status;
+  }
+
+  it("borrar la ÚLTIMA medición anula players.phv_category/phv_offset", async () => {
+    tables.player_anthropometrics = { player_id: "p1" };
+    maybeSingleOverride.player_anthropometrics = null; // no quedan filas
+    expect(await del("row-9")).toBe(200);
+    const u = playersUpdate();
+    expect(u).toHaveProperty("phv_category", null);
+    expect(u).toHaveProperty("phv_offset", null);
+  });
+
+  it("si queda una fila antigua (sin age_source) la columna tampoco recibe su PHV", async () => {
+    tables.player_anthropometrics = { player_id: "p1" };
+    maybeSingleOverride.player_anthropometrics = {
+      player_id: "p1", height_cm: 160, weight_kg: 50, sitting_height_cm: 82, leg_length_cm: 78,
+      chronological_age: 13, maturity_offset: -1.2, phv_category: "early",
+    };
+    expect(await del("row-9")).toBe(200);
+    expect(playersUpdate().phv_category).toBeNull();
+    expect(playersUpdate().phv_offset).toBeNull();
   });
 });

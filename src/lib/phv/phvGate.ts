@@ -72,13 +72,21 @@ export interface PhvGateInput {
   birthDate?: string | null;
   /** Sexo registrado. Cualquier valor que no sea "M"/"F" cuenta como ausente. */
   gender?: string | null;
-  /** Solo para %PAH / método Khamis-Roche del motor; NO son entradas del PHV. */
+  /** Solo para %PAH (`pahGate`, Khamis-Roche); NO son entradas del PHV ni deciden su fase. */
   motherHeightCm?: number | null;
   fatherHeightCm?: number | null;
 }
 
 /** Categoría persistida (convención interna, POR ESTADO: early = pre-PHV). */
 export type PhvCategory = "early" | "ontme" | "late";
+
+/**
+ * Fase PHV ÚNICA (estado en SU curva, de Mirwald). Es la MISMA respuesta que
+ * `category` con otra notación: pre_phv ⇔ early, circa_phv ⇔ ontme, post_phv ⇔
+ * late. `assessment.status` es siempre esta fase (inv #7: una sola respuesta). El
+ * %PAH (Khamis-Roche) NO decide la fase: es otra métrica («% talla adulta»).
+ */
+export type PhvPhase = "pre_phv" | "circa_phv" | "post_phv";
 
 export type PhvBlockReason = "missing_inputs" | "out_of_range";
 
@@ -94,10 +102,16 @@ export interface PhvGateOpen {
   /** true ⇒ la pierna se obtuvo como talla − talla sentado (ambas introducidas). */
   legLengthDerived: boolean;
   mirwald: MirwaldResult;
-  /** Evaluación canónica (estado/timing/factor) sobre SOLO entradas introducidas. */
+  /**
+   * Evaluación canónica (timing/factor) sobre SOLO las entradas del PHV. Su
+   * `status` === `status` del gate (fase de Mirwald), nunca el estado por %PAH.
+   * Sin %PAH (`percentPredictedAdultHeight` ausente): ese dato sale de `pahGate`.
+   */
   assessment: MaturityAssessment;
   offset: MetricResult<number>;
   aphv: MetricResult<number>;
+  /** Fase PHV única (Mirwald). Misma respuesta que `category`. */
+  status: PhvPhase;
   category: PhvCategory;
 }
 
@@ -111,6 +125,7 @@ export interface PhvGateBlocked {
   assessment: null;
   offset: MetricResult<number>;
   aphv: MetricResult<number>;
+  status: null;
   category: null;
 }
 
@@ -143,6 +158,7 @@ function blocked(reason: PhvBlockReason, missing: PhvInputKey[], gate_reason: st
     assessment: null,
     offset: gated(gate_reason, { units: "años", source_ref: MIRWALD_REF }),
     aphv: gated(gate_reason, { units: "años", source_ref: MIRWALD_REF }),
+    status: null,
     category: null,
   };
 }
@@ -194,21 +210,29 @@ export function phvGate(input: PhvGateInput, at?: string | Date): PhvGate {
     legLength: legLengthCm,
   });
 
-  // Motor canónico con SOLO entradas introducidas (+ alturas parentales si existen,
-  // que el motor usa para el estado por %PAH). Fórmulas intactas (inv #4).
-  const assessment = resolveMaturity({
-    sex,
-    ageYears,
-    heightCm: height,
-    weightKg: weight,
-    sittingHeightCm: sittingHeight,
-    legLengthCm,
-    motherHeightCm: num(input.motherHeightCm),
-    fatherHeightCm: num(input.fatherHeightCm),
-  });
+  // UNA sola fase (inv #7): la de Mirwald. Antes el motor recibía también las
+  // alturas parentales y, con ellas, su `status` salía del %PAH (Khamis-Roche)
+  // mientras `category` salía de Mirwald: el mismo jugador era «En PHV» en equipo,
+  // familia y PDF y «Pre-PHV» en el Hub. El %PAH es OTRA métrica (`pahGate`).
+  const status: PhvPhase =
+    mirwald.phvStatus === "pre_phv" ? "pre_phv" : mirwald.phvStatus === "post_phv" ? "post_phv" : "circa_phv";
+  const category: PhvCategory = status === "pre_phv" ? "early" : status === "post_phv" ? "late" : "ontme";
 
-  const category: PhvCategory =
-    mirwald.phvStatus === "pre_phv" ? "early" : mirwald.phvStatus === "post_phv" ? "late" : "ontme";
+  // Motor canónico con SOLO las entradas del PHV (sin alturas parentales). El
+  // timing sale del APHV de Mirwald en ambos métodos del motor, así que el factor
+  // de ajuste no cambia. Fórmulas intactas (inv #4); se fija `status` a la fase
+  // única (el motor usa los mismos umbrales ±1 sobre el mismo offset).
+  const assessment: MaturityAssessment = {
+    ...resolveMaturity({
+      sex,
+      ageYears,
+      heightCm: height,
+      weightKg: weight,
+      sittingHeightCm: sittingHeight,
+      legLengthCm,
+    }),
+    status,
+  };
 
   return {
     ok: true,
@@ -222,6 +246,7 @@ export function phvGate(input: PhvGateInput, at?: string | Date): PhvGate {
     assessment,
     offset: derived(mirwald.offset, { units: "años", confidence: mirwald.confidence, source_ref: MIRWALD_REF }),
     aphv: derived(mirwald.ageAtPHV, { units: "años", confidence: mirwald.confidence, source_ref: MIRWALD_REF }),
+    status,
     category,
   };
 }
