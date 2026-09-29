@@ -242,10 +242,12 @@ END $$;
 DROP FUNCTION IF EXISTS public.dsar_export_player_data(uuid);
 DROP FUNCTION IF EXISTS public.dsar_request_deletion(uuid, text);
 
--- ¿El llamador gestiona este jugador? Espejo de api/_lib/ownership.ts
--- ownsPlayerOrTenant (misma regla, invariante #7): players.user_id = auth.uid()
--- O players.tenant_id = tenant del JWT (claim raíz tenant_id; si falta,
--- app_metadata.tenant_id, como extractTenantId en api/_lib/auth.ts:34-45).
+-- ¿El llamador gestiona este jugador? Espejo en SQL de api/_lib/ownership.ts
+-- ownsPlayerOrTenant (la base de datos no puede llamar al código TS, así que la
+-- regla existe dos veces; invariante #7: si cambia una, cambiar la otra):
+-- players.user_id = auth.uid() O players.tenant_id = tenant del JWT (claim raíz
+-- tenant_id; si falta, app_metadata.tenant_id, como extractTenantId en
+-- api/_lib/auth.ts:34-45).
 -- service_role (claim role del JWT firmado) pasa siempre. Pertenecer a la
 -- organización (org_id) NO basta, igual que en ownsPlayerOrTenant.
 -- INVOKER y revocada a todos: solo la llaman las DSAR (SECURITY DEFINER).
