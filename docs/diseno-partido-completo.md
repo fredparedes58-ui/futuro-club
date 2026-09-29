@@ -14,7 +14,32 @@ invariantes). Donde chocaban, gana la revisión.
 
 ## 0. Decisiones del owner (cerradas)
 
-1. **Se construye y se activa ya.** La función queda detrás de
+> **Actualización 2026-09-29 (sustituye a la decisión 1 en lo que choque).** Un spike
+> sobre un partido real del owner (Veo follow-cam, sub-10 fútbol 8, tramo de 15 min)
+> mostró que Gemini 2.5 Flash viendo el vídeo a 1 fps **fabrica** eventos de equipo: 0
+> de 5 tiros citados existían en el segundo citado (verificado con fotogramas), los
+> eventos llegaban en pasos plantilla de ~10 s, la posesión salió 50/50 a LOW y citó
+> dorsales inexistentes («#11» en un equipo sin números). Decisión: **se construye
+> toda la infraestructura de la Fase 1 pero el análisis queda APAGADO hasta que pase
+> una validación** (§20):
+> - `MATCH_VIDEO_ENABLED` está apagado por defecto: solo el string exacto `"true"` lo
+>   enciende. Apagado ⇒ `POST /api/match/start` responde `503 match_video_disabled`
+>   con el motivo «análisis de partido completo en validación» (en el locale pedido) y
+>   `GET /api/match/availability` devuelve `enabled:false` para que la UI muestre la
+>   ruta de vídeo como **«En validación»** (deshabilitada, con el motivo) y deje el
+>   informe con notas funcionando. Si se apaga con jobs en vuelo, el protocolo step
+>   los detiene (`failed: analysis_disabled`, sin gasto nuevo, conservando lo ya
+>   observado) y el tick sigue barriendo ficheros de Gemini.
+> - Motor configurable y medible: longitud de tramo, fps enviados a Gemini
+>   (`videoMetadata.fps` = `geminiVideoFps`, default 1, «pendiente de validar») y
+>   resolución, todo en `config/matchVideo.json` con `_source`.
+> - Arnés de validación `scripts/validate-match-observation.mjs` (§20).
+> - La guarda de identidad descarta también cualquier texto que mencione números de
+>   camiseta o a un solo jugador (§7).
+> - La posesión sigue siendo `ESTIMADA_LLM` con su propio gate de baja confianza (§8).
+
+1. **Se construye y se activa ya** *(activación sustituida por la actualización de
+   arriba: se activa solo tras la validación)*. La función queda detrás de
    `MATCH_VIDEO_ENABLED === "true"` en el servidor **y** exige una casilla de
    declaración del entrenador:
    > «Declaro que tengo el consentimiento y los derechos para analizar este vídeo»
@@ -267,6 +292,13 @@ Respuesta: `matchJobStatusResponseSchema` → `job`, `progress`, `encode`,
 `playback` (URL base del embed de Bunny acuñada en servidor), `coverage`,
 `observation`, `report`, `reportGate`, `error`, `cost {estimate, spend}`.
 
+### 5.2-bis `GET /api/match/availability?locale=` (solo lectura)
+
+`matchAvailabilityResponseSchema` → `{ enabled, code, reason }`. `code` =
+`match_video_disabled` (flag apagado: «en validación») o `real_inference_disabled`
+(flag encendido pero configuración incompleta); `reason` en el locale pedido. No lista
+nombres de variables. La UI lo consulta antes de ofrecer la ruta de vídeo.
+
 ### 5.3 `GET /api/match/list` · `POST /api/match/cancel`
 
 `list`: los últimos jobs del usuario (`matchJobListResponseSchema`). `cancel`:
@@ -400,8 +432,11 @@ registra gasto. Se guarda `modal_call_id`.
 ## 7. Gemini por tramo
 
 - `parts`: `fileData{fileUri, mimeType:"video/mp4"}` +
-  `videoMetadata{startOffset:"900s", endOffset:"1800s", fps: 1}` + prompt
-  `segment.v1`.
+  `videoMetadata{startOffset:"900s", endOffset:"1800s", fps: geminiVideoFps}` + prompt
+  `segment.v1`. La petición completa la construye **una sola función**
+  (`api/_lib/matchJob/segmentRequest.ts`), que usan el job y el arnés de validación:
+  lo validado es exactamente lo que corre. `geminiVideoFps` (default 1, «pendiente de
+  validar») nunca puede superar `proxyFps` (el loader de config lo exige).
 - `generationConfig`: `temperature 0`, `mediaResolution MEDIA_RESOLUTION_LOW`,
   `responseMimeType application/json`, `responseSchema =
   SEGMENT_GEMINI_RESPONSE_SCHEMA` (subconjunto OpenAPI; su aceptación por
@@ -421,9 +456,14 @@ registra gasto. Se guarda `modal_call_id`.
   `pressing` (altura e intensidad ordinales), `block`, `transitions`,
   `set_pieces`, `note`, y `evidence[{t_start, t_end, team, category, text}]`
   acotado. **Ningún campo individual.**
-- Tras la llamada: `identityGuard` (claves `INDIVIDUAL_LEVEL_KEYS` + texto
-  `INDIVIDUAL_TEXT_PATTERNS` + nombres de la plantilla del tenant y de las notas)
-  descarta y cuenta; zod; normalización de tiempos a **tiempo de vídeo absoluto**
+- Tras la llamada: si `usageMetadata.promptTokensDetails` existe y **no** trae tokens
+  `VIDEO`/`IMAGE`, la IA respondió sin ver el tramo → tramo fallido
+  (`no_visual_input`, como mucho 1 reintento), nada de él se usa. Después
+  `identityGuard` (claves `INDIVIDUAL_LEVEL_KEYS` + texto `INDIVIDUAL_TEXT_PATTERNS`
+  — dorsales, `#10`, «camiseta 7», «(10)», y desde el 2026-09-29 cualquier referencia
+  a **un solo jugador**: «el jugador», «a player», «el portero», «the striker», «their
+  captain» — + nombres de la plantilla del tenant y de las notas) descarta y cuenta;
+  zod; normalización de tiempos a **tiempo de vídeo absoluto**
   (la regla absoluto/relativo sale del spike (d), se aplica una vez); evidencias
   fuera de `[start, end]` se descartan; `finishReason MAX_TOKENS` o JSON inválido
   = tramo fallido con motivo (nunca parseo parcial; como mucho 1 reintento).
@@ -448,8 +488,19 @@ en metros, nada por jugador. PHV y bio-banding no se tocan.
   **Sigue siendo `ESTIMADA_LLM`** (una función determinista sobre entradas LLM no
   es `DERIVADA`). Sin tramos válidos → null + `no_usable_segments`.
   `possession_detail` declara los tramos usados y excluidos.
+- **Gate de baja confianza (actualización 2026-09-29).** El valor se conserva (es la
+  estimación del modelo) pero su confianza baja a `possessionLowConfidence` (config,
+  «pendiente de validar») y se declara el motivo
+  (`possession_detail.low_confidence[]`, `segments[*].possession_low_confidence`,
+  copiado al informe como `possession_low_confidence`):
+  - `no_visual_basis`: el tramo no tiene base visual confirmada (el `usageMetadata`
+    no confirma tokens de vídeo, o el tramo no cita ninguna evidencia);
+  - `uniform_output`: **todos** los tramos utilizables salieron 50/50 con dominio
+    «equilibrado» (o sin dominio): indistinguible de un valor por defecto.
+  La confianza agregada es la menor de los tramos usados; Claude recibe la advertencia
+  y no puede apoyar ninguna afirmación en la posesión.
 - UI: «Posesión estimada por IA 58 % – 42 %», con badge, nunca con estilo de
-  estadística oficial. Solapa con la métrica heredada `posesion`
+  estadística oficial; con bandera de baja confianza, el motivo al lado. Solapa con la métrica heredada `posesion`
   (`api/agents/team-observation.ts`, concepto `tactico.posesion`): concepto nuevo
   `partido.posesion.*`; la ruta heredada se retira en la Fase 2 (deuda anotada).
 
@@ -696,12 +747,16 @@ Supuestos Fase 1: proxy 360p a 1 fps, sin audio, `MEDIA_RESOLUTION_LOW`, tramos 
 
 `config/matchVideo.json` (cada valor con `_source`; sin fuente →
 `"pendiente de validar"` y confianza reducida):
-`segmentSec` 900 · `proxyFps` 1 · `proxyHeight` 360 · `proxyCrf` 30 ·
-`mediaResolution` LOW · `durationToleranceSec` 2 · `maxSegmentAttempts` 3 ·
+`segmentSec` 900 · `proxyFps` 1 · `geminiVideoFps` 1 (`videoMetadata.fps`,
+«pendiente de validar», ≤ `proxyFps`) · `proxyHeight` 360 · `proxyCrf` 30 ·
+`mediaResolution` LOW (`tokensPerFrameLow` 66 / `tokensPerFrameDefault` 258 solo para
+estimar coste) · `durationToleranceSec` 2 · `maxSegmentAttempts` 3 ·
 `thinkingBudget` · `maxOutputTokens` · `llmConfidence`,
-`llmConfidencePartialFactor`, `possessionConfidence`, `kitDeltaEWarn`,
-`staleHeartbeatSec`, `maxEncodeWaitHours` (todos `"pendiente de validar"`) ·
-`maxActiveJobsPerUser` 1 · `maxActiveJobsGlobal` 2.
+`llmConfidencePartialFactor`, `possessionConfidence`, `possessionLowConfidence`,
+`kitDeltaEWarn`, `staleHeartbeatSec`, `maxEncodeWaitHours` (todos `"pendiente de
+validar"`) · `maxActiveJobsPerUser` 1 · `maxActiveJobsGlobal` 2 ·
+`validationTimeToleranceSec` 5, `validationMinPrecision` 0,9,
+`validationMinRecall` 0,5 (arnés §20, «pendiente de validar»).
 
 `config/aiPricing.json`: Gemini 2.5 Flash ($0,30/M vídeo, $2,50/M salida, $1,00/M
 audio) y tier reasoning de Claude con su fallback, cada uno con URL y fecha.
@@ -746,7 +801,8 @@ spike.
    `GLOBAL_MONTHLY_BUDGET_USD=20`, clave Gemini **de pago** (Tier 1) en
    `GEMINI_API_KEY`, `BUNNY_WEBHOOK_SECRET` = API key de solo lectura de la
    librería (#292); `MATCH_VIDEO_ENABLED=true` **solo** cuando PR-A/B/C estén
-   mergeados, la migración aplicada y el spike hecho.
+   mergeados, la migración aplicada, el spike hecho **y el arnés de validación (§20)
+   apruebe varios partidos anotados a mano** (decisión del owner del 2026-09-29).
 5. **Vercel (vitas-demo)**: `MATCH_VIDEO_ENABLED` **sin definir**.
 6. **Supabase**: aplicar la migración `067` tras mergear PR-A.
 7. **Bunny**: URL del webhook, revisar token auth / referrer rules / embed token
@@ -774,3 +830,56 @@ spike.
   declara como limitación, sin deduplicación heurística.
 - Grabaciones 4K de 90 min (~30–34 GB) superan `MAX_UPLOAD_SIZE_MB`: decidir entre
   subir el tope o guiar la exportación a 1080p.
+
+---
+
+## 20. Validación del motor de observación (condición para activar)
+
+El análisis de partido completo queda **apagado** hasta que el motor de observación
+supere esta validación. No es un test de CI: lo corre el **operador** con clips reales
+anotados a mano y la clave de Gemini de su entorno local.
+
+```bash
+node --env-file=.env.local scripts/validate-match-observation.mjs \
+  --fixture fixtures/partido/<clip_id> [--clip proxy.mp4] [--start 0 --end 900] \
+  [--save-response raw.json] [--keep-file] [--json]
+node scripts/validate-match-observation.mjs --fixture fixtures/partido/<clip_id> --response raw.json
+node scripts/validate-match-observation.mjs --print-ffmpeg
+```
+
+- **Misma petición que producción**: el CLI carga con el module runner de Vite
+  `api/_lib/matchJob/validationHarness.ts`, que usa `buildSegmentGenerateRequest`
+  (prompt `segment.v1`, `SEGMENT_GEMINI_RESPONSE_SCHEMA`, `videoMetadata.fps =
+  geminiVideoFps`, `mediaResolution`, topes de thinking y salida), la misma
+  normalización (`visualBasisFromUsage`, `normalizeSegmentOutput` con la guarda de
+  identidad) y la misma agregación de posesión. Cambiar cualquier parámetro del motor
+  obliga a re-validar **todos** los clips.
+- **Fixture** (`fixtures/partido/README.md`): `clip.meta.json` (anotador, fecha,
+  duración, locale, categoría, colores declarados como los declararía el entrenador) y
+  `eventos.json` = `[{t, team: home|away, category}]` con `category` de
+  `EVIDENCE_CATEGORIES`. El vídeo no se versiona. `_plantilla/` se rechaza.
+- **Puntuación** (`api/_lib/matchJob/validation.ts`, pura y testeada): emparejamiento
+  uno a uno por categoría + equipo, instante anotado dentro de
+  `[t_start − tol, t_end + tol]` (`validationTimeToleranceSec`); precisión = aciertos /
+  evidencias citadas, exhaustividad = aciertos / anotados, por categoría y total. Una
+  evidencia `ambiguous` nunca acierta un evento de equipo (el modo sin equipo se
+  imprime solo como diagnóstico). Los eventos de tramos fallidos cuentan como no
+  encontrados.
+- **Veredicto**: sale **1** si alguna categoría (o el total) queda por debajo de
+  `validationMinPrecision` / `validationMinRecall` (config, «pendiente de validar»), o
+  si no hay eventos anotados en los tramos evaluados; **0** si aprueba; **2** si hay un
+  error de uso, de fixture o de red.
+- **Diagnósticos** por tramo: base visual (¿consta que Gemini recibió vídeo?),
+  identificación de equipos, posesión y dominio crudos, evidencias, descartes por
+  identidad y fracción de tiempos múltiplos de 10 s (la señal de plantilla del spike);
+  además, la posesión que mostraría el producto con sus banderas de baja confianza y
+  el coste de la ejecución.
+- **Reglas**: la key se lee de `GEMINI_API_KEY` y nunca se imprime; el fichero subido a
+  Gemini se borra al terminar (salvo `--keep-file`); las anotaciones son humanas y son
+  **evaluación, nunca entrenamiento** (ningún umbral ni prompt se ajusta mirando un
+  clip); un clip aprobado no basta: el owner decide con varios partidos. Ninguna cifra
+  de precisión se muestra al usuario.
+
+Nota de nombres: el precio de los modelos vive en `config/aiPricing.json` (no
+`geminiPricing.json`): incluye Gemini y los modelos de Claude del informe, y el contrato
+lo referencia como `pricing_ref = "config/aiPricing.json@<fecha>"`.
