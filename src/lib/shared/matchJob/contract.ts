@@ -261,9 +261,10 @@ export function stepSignatureBase(ts: string, rawBody: string): string {
 /**
  * Protocol test vectors (part of the spec, like an RFC's). Computed with
  * node:crypto createHmac and cross-checked with Python hmac; asserted by
- * src/test/lib/matchJobContract.test.ts (Web Crypto) and
- * api/_lib/__tests__/matchStepHmac.test.ts (node:crypto). The Python worker must
- * reproduce them with
+ * src/test/lib/matchJobContract.test.ts (Web Crypto),
+ * api/_lib/__tests__/matchStepHmac.test.ts (node:crypto) and
+ * vision-pipeline/test_match_worker.py (Python hmac; it also parses this block to
+ * catch drift). The Python worker reproduces them with
  *   body = json.dumps(obj, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
  *   hmac.new(secret, ts.encode() + b"." + body, hashlib.sha256).hexdigest()
  * Vector 2 contains non-ASCII characters to pin UTF-8. The secret is a test value.
@@ -1211,7 +1212,8 @@ export const matchJobListResponseSchema = z.object({ jobs: z.array(matchJobListI
 /**
  * POST MODAL_MATCH_START_URL · Authorization: Bearer <MODAL_API_KEY> (worker
  * compares with hmac.compare_digest). The worker takes the step URL from its own
- * secret (VITAS_MATCH_STEP_URL), NEVER from this request.
+ * secret (VITAS_MATCH_STEP_URL, else VITAS_PUBLIC_URL + MATCH_API_ROUTES.step),
+ * NEVER from this request.
  */
 export const matchDispatchRequestSchema = z.object({ jobId: jobIdSchema, epoch: epochSchema }).strict();
 
