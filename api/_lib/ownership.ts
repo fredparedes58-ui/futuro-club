@@ -70,6 +70,10 @@ export async function ownsPlayer(playerId: string | null | undefined, userId: st
  * estricto que el WRITE/SHARE (invariante #7: una sola implementación).
  * Fail-closed: sin playerId, sin userId ni tenantId, sin Supabase, query no-ok o
  * error → false.
+ *
+ * Espejo en SQL: public.dsar_caller_manages_player (migración 072) aplica esta
+ * misma regla dentro de la base de datos para las RPC DSAR que llama el navegador.
+ * Si cambia esta regla, cambiar también esa función (con una migración nueva).
  */
 export async function ownsPlayerOrTenant(
   playerId: string | null | undefined,

@@ -32,10 +32,18 @@ export default withHandler(
   { schema: QueryRequestSchema, requireAuth: true, maxRequests: 30 },
   async ({ body, req }) => {
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+    // Solo service_role: match_knowledge / search_knowledge_text son SECURITY DEFINER
+    // y la migración 072 las revoca a anon/authenticated. Sin fallback a la clave anon
+    // (fail-closed): sin la service key el endpoint responde 503 y los llamadores
+    // siguen sin contexto RAG, como ya hacían ante cualquier error.
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      return errorResponse("Supabase not configured", 503);
+      return errorResponse(
+        "RAG no disponible: el servidor no tiene SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
+        503,
+        "RAG_NOT_CONFIGURED",
+      );
     }
 
     const { query, category, player_id, limit } = body;
