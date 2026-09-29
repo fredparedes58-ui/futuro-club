@@ -97,6 +97,7 @@ global.fetch = vi.fn(async () => ({
 })) as typeof fetch;
 
 import { useVideos, useVideoCount, useDeleteVideo } from "@/hooks/useVideos";
+import { saveTusSession, loadTusSession } from "@/lib/tusUploadSession";
 
 function createWrapper() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -137,5 +138,20 @@ describe("useDeleteVideo", () => {
     const { result } = renderHook(() => useDeleteVideo(), { wrapper: createWrapper() });
     expect(result.current.mutateAsync).toBeDefined();
     expect(typeof result.current.mutateAsync).toBe("function");
+  });
+
+  it("borrar un vídeo descarta su sesión TUS reanudable (re-subir el fichero hace video-init)", async () => {
+    localStorage.clear();
+    const live = { uploadUrl: "u", authSignature: "s", libraryId: 42, playerId: null, savedAt: 0 };
+    const expire = Math.floor(Date.now() / 1000) + 86400;
+    saveTusSession("fp-deleted", { ...live, videoId: "v-del", authExpire: expire });
+    saveTusSession("fp-other", { ...live, videoId: "v-other", authExpire: expire });
+
+    const { result } = renderHook(() => useDeleteVideo(), { wrapper: createWrapper() });
+    await result.current.mutateAsync("v-del");
+
+    const now = Math.floor(Date.now() / 1000);
+    expect(loadTusSession("fp-deleted", { playerId: null, nowSec: now })).toBeNull();
+    expect(loadTusSession("fp-other", { playerId: null, nowSec: now })?.videoId).toBe("v-other");
   });
 });

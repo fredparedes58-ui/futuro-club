@@ -78,6 +78,12 @@ export interface ErrorResponseOpts {
   status?: number;
   code?: string;
   extraHeaders?: Record<string, string>;
+  /**
+   * Datos estructurados opcionales que acompañan al código (p. ej. la duración real
+   * de un vídeo rechazado) → el cliente compone su mensaje traducido sin parsear texto.
+   * Se añaden a `errorDetail` (nunca pisan `message` ni `code`).
+   */
+  details?: Record<string, unknown>;
 }
 export function errorResponse(message: string, status?: number, code?: string, extraHeaders?: Record<string, string>): Response;
 export function errorResponse(opts: ErrorResponseOpts): Response;
@@ -97,7 +103,7 @@ export function errorResponse(
       ok: false,
       success: false,
       error: opts.message,
-      errorDetail: { message: opts.message, code: opts.code },
+      errorDetail: { ...(opts.details ?? {}), message: opts.message, code: opts.code },
     }),
     {
       status: finalStatus,

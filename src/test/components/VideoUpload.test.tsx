@@ -1,14 +1,29 @@
 /**
  * VideoUpload component — Tests
- * Valida UI de upload: drag & drop, file validation, progress, size limit,
- * y el contrato onDone(videoId) — upload() resuelve el videoId real (#26).
+ * Valida UI de upload: drag & drop, file validation, progress, size limit
+ * (límite compartido MAX_UPLOAD_SIZE_MB), gate de duración (metadatos del
+ * navegador ≤ MAX_MATCH_DURATION_MIN) y el contrato onDone(videoId, info) —
+ * upload() resuelve el videoId real (#26).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  MAX_UPLOAD_SIZE_MB,
+  MAX_UPLOAD_SIZE_GB,
+  MAX_MATCH_DURATION_MIN,
+} from "@/lib/shared/videoLimits";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 vi.mock("@/hooks/useVideoUpload", () => ({
   useVideoUpload: vi.fn(),
+}));
+
+// Duración leída del navegador: controlada por test (jsdom no decodifica vídeo).
+const { mockReadDuration } = vi.hoisted(() => ({
+  mockReadDuration: vi.fn(async (): Promise<number | null> => null),
+}));
+vi.mock("@/lib/localVideoUtils", () => ({
+  readVideoDurationSec: mockReadDuration,
 }));
 
 // t() devuelve la clave (+ valores interpolados) — mismo patrón que el resto
@@ -49,6 +64,8 @@ const makeState = (overrides: Partial<UploadState> = {}): UploadState => ({
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
+  encodeStatus: null,
+  syncGateDurationSec: null,
   ...overrides,
 });
 
@@ -69,6 +86,7 @@ describe("VideoUpload", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal("alert", vi.fn());
+    mockReadDuration.mockResolvedValue(null);
     mockUseVideoUpload.mockReturnValue(makeHook());
   });
 
@@ -77,33 +95,112 @@ describe("VideoUpload", () => {
     vi.unstubAllGlobals();
   });
 
-  it("renders upload area in idle state", () => {
-    render(<VideoUpload />);
-    expect(screen.getByText("videoUpload.dragOrClick")).toBeDefined();
-    // formatsHint interpola el tamaño máximo (2048 MB)
-    expect(screen.getByText(/videoUpload\.formatsHint 2048/)).toBeDefined();
-  });
-
-  it("rejects files larger than MAX_SIZE_MB (2048)", () => {
-    const upload = vi.fn(async () => null);
-    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
-
-    render(<VideoUpload />);
-
+  const pickFile = (file: File) => {
     const input = document.querySelector("input[type='file']") as HTMLInputElement;
     // querySelector devuelve null (no undefined) si falta → toBeDefined() nunca
     // fallaría; toBeInstanceOf sí exige que el input exista de verdad.
     expect(input).toBeInstanceOf(HTMLInputElement);
+    fireEvent.change(input, { target: { files: [file] } });
+  };
 
-    // Create a file that exceeds 2048MB
-    const bigFile = new File(["x"], "huge.mp4", { type: "video/mp4" });
-    Object.defineProperty(bigFile, "size", { value: 2049 * 1024 * 1024 });
+  const sizedFile = (name: string, bytes: number) => {
+    const f = new File(["x"], name, { type: "video/mp4" });
+    Object.defineProperty(f, "size", { value: bytes });
+    return f;
+  };
 
-    fireEvent.change(input, { target: { files: [bigFile] } });
+  it("renders upload area in idle state", () => {
+    render(<VideoUpload />);
+    expect(screen.getByText("videoUpload.dragOrClick")).toBeDefined();
+    // formatsHint interpola el límite COMPARTIDO (GB) y la duración de partido
+    expect(
+      screen.getByText(`videoUpload.formatsHint ${MAX_UPLOAD_SIZE_GB} ${MAX_MATCH_DURATION_MIN}`),
+    ).toBeDefined();
+  });
 
-    // Should NOT call upload for oversized files — alert instead
+  it("acepta un partido completo de más de 2048 MB (antes: 'Máximo 2048 MB')", async () => {
+    const upload = vi.fn(async () => null);
+    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
+    mockReadDuration.mockResolvedValue(95 * 60); // 90' + descuento
+
+    render(<VideoUpload />);
+    pickFile(sizedFile("partido.mp4", 6 * 1024 * 1024 * 1024)); // 6 GB
+
+    await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  it("rejects files larger than MAX_UPLOAD_SIZE_MB (shared limit)", async () => {
+    const upload = vi.fn(async () => null);
+    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
+
+    render(<VideoUpload />);
+    pickFile(sizedFile("huge.mp4", (MAX_UPLOAD_SIZE_MB + 1) * 1024 * 1024));
+
+    // Should NOT call upload for oversized files — alert instead (no se lee duración)
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(`videoUpload.fileTooLarge ${MAX_UPLOAD_SIZE_GB}`),
+    );
     expect(upload).not.toHaveBeenCalled();
-    expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("2048"));
+    expect(mockReadDuration).not.toHaveBeenCalled();
+  });
+
+  it("rechaza un vídeo más largo que MAX_MATCH_DURATION_MIN (duración real del navegador)", async () => {
+    const upload = vi.fn(async () => null);
+    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
+    mockReadDuration.mockResolvedValue((MAX_MATCH_DURATION_MIN + 10) * 60);
+
+    render(<VideoUpload />);
+    pickFile(sizedFile("maraton.mp4", 1024));
+
+    await waitFor(() =>
+      expect(window.alert).toHaveBeenCalledWith(
+        `videoUpload.durationTooLong ${MAX_MATCH_DURATION_MIN + 10} ${MAX_MATCH_DURATION_MIN}`,
+      ),
+    );
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it("acepta exactamente MAX_MATCH_DURATION_MIN y pasa la duración real a upload()", async () => {
+    const upload = vi.fn(async () => null);
+    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
+    mockReadDuration.mockResolvedValue(MAX_MATCH_DURATION_MIN * 60);
+
+    render(<VideoUpload />);
+    const file = sizedFile("final.mp4", 1024);
+    pickFile(file);
+
+    await waitFor(() =>
+      expect(upload).toHaveBeenCalledWith(
+        file,
+        expect.objectContaining({ durationSec: MAX_MATCH_DURATION_MIN * 60 }),
+      ),
+    );
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  it("duración ilegible → no bloquea y NO inventa un valor (durationSec: null)", async () => {
+    const upload = vi.fn(async () => null);
+    mockUseVideoUpload.mockReturnValue(makeHook(makeState(), { upload }));
+    mockReadDuration.mockResolvedValue(null);
+
+    render(<VideoUpload />);
+    const file = sizedFile("raro.mkv", 1024);
+    pickFile(file);
+
+    await waitFor(() =>
+      expect(upload).toHaveBeenCalledWith(file, expect.objectContaining({ durationSec: null })),
+    );
+    expect(window.alert).not.toHaveBeenCalled();
+  });
+
+  it("done con encodeStatus 'processing' → aviso de codificación en curso (no error)", () => {
+    mockUseVideoUpload.mockReturnValue(
+      makeHook(makeState({ phase: "done", progress: 100, videoId: "v1", encodeStatus: "processing" })),
+    );
+    render(<VideoUpload />);
+    expect(screen.getByText("videoUpload.encodingPendingTitle")).toBeDefined();
+    expect(screen.queryByText("videoUpload.uploadErrorTitle")).toBeNull();
   });
 
   it("shows uploading progress", () => {
@@ -167,12 +264,15 @@ describe("VideoUpload", () => {
     const file = new File(["x"], "clip.mp4", { type: "video/mp4" });
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(upload).toHaveBeenCalledWith(
-      file,
-      expect.objectContaining({ title: "clip.mp4", onDuplicate: expect.any(Function) })
+    await waitFor(() =>
+      expect(upload).toHaveBeenCalledWith(
+        file,
+        expect.objectContaining({ title: "clip.mp4", onDuplicate: expect.any(Function) })
+      ),
     );
-    // onDone recibe el videoId devuelto por upload(), no state.videoId (#26)
-    await waitFor(() => expect(onDone).toHaveBeenCalledWith("vid-42"));
+    // onDone recibe el videoId devuelto por upload(), no state.videoId (#26),
+    // + la duración que leyó el navegador (null aquí: no se inventa).
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith("vid-42", { durationSec: null }));
   });
 
   it("does not call onDone when upload resolves null (failed upload)", async () => {

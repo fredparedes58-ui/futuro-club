@@ -58,6 +58,42 @@ BUNNY_CDN_HOSTNAME       = vz-abc123-def.b-cdn.net
 
 Apply to **Production, Preview, Development**.
 
+### 4b. Webhook (encode-complete → analysis queue)
+
+Bunny calls `POST /api/webhooks/bunny-uploaded` when encoding changes state.
+Official contract (https://bunny.net/docs/stream-webhook):
+
+- Signature headers: `X-BunnyStream-Signature` (lowercase hex HMAC-SHA256 of the
+  **raw** body), `X-BunnyStream-Signature-Version: v1`,
+  `X-BunnyStream-Signature-Algorithm: hmac-sha256`.
+- Signing key: the library's **Read-Only API key** (Library → API).
+- Webhook `Status`: `3 = Finished` is the only terminal state that triggers work;
+  `4 = Resolution finished` arrives once per resolution and is ignored.
+  (The REST API uses a different enum where `4 = Finished`.)
+
+```
+BUNNY_WEBHOOK_SECRET = <the library's Read-Only API key>   (NOT the read/write API key)
+```
+
+Without it the endpoint answers 503 (fail-closed). In the Bunny dashboard set the
+library's webhook URL to `https://<your-domain>/api/webhooks/bunny-uploaded`.
+
+`/api/upload/video-init` also inserts the `videos` row with the **user's** JWT
+(PostgREST + anon key), so it needs `VITE_SUPABASE_URL` (or `SUPABASE_URL`) and
+`VITE_SUPABASE_ANON_KEY` (or `SUPABASE_ANON_KEY`) on the server. Without them the
+upload still works; the row is created later by the client sync.
+
+### Limits (single source: `src/lib/shared/videoLimits.ts`)
+
+- Upload: up to `MAX_UPLOAD_SIZE_MB` = 20 GB and `MAX_MATCH_DURATION_MIN` = 150 min
+  (full match + extra time + penalties). Bunny does not document a maximum upload
+  size, so 20 GB is "pendiente de validar". TUS signatures last 24 h: Bunny checks
+  `AuthorizationExpire` on every POST/HEAD/PATCH and re-signing does not extend an
+  upload's original expiry (https://bunny.net/docs/stream/tus-resumable-uploads).
+- Quick (synchronous) analysis paths only accept clips up to
+  `SYNC_ANALYSIS_MAX_DURATION_SEC` = 300 s; longer videos are stored but refused by
+  those paths until the match-analysis job ships.
+
 ### 5. Redeploy
 
 Either push a new commit or hit **Deployments → Redeploy** in Vercel.

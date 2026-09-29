@@ -84,6 +84,54 @@ export function generateLocalVideoId(): string {
 
 // ── Metadata ─────────────────────────────────────────────────────────────────
 
+/**
+ * Duración REAL (s) leída de los metadatos del navegador, o `null` si no se puede leer
+ * (formato que el navegador no abre, entorno sin <video>, timeout, duración Infinity
+ * de algunos WebM grabados). NUNCA devuelve 0 ni un valor por defecto (invariante #2):
+ * los gates de videoLimits tratan null como "desconocida → no bloquear".
+ *
+ * Solo pide `preload="metadata"`: el navegador lee la cabecera/índice del fichero, no
+ * el vídeo entero → vale para ficheros de varios GB. (extractVideoMetadata, más abajo,
+ * es para el flujo local sin CDN: además busca un frame para ancho/alto.)
+ */
+export function readVideoDurationSec(file: Blob, timeoutMs = 8000): Promise<number | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let blobUrl: string | null = null;
+    let video: HTMLVideoElement | null = null;
+
+    const finish = (value: number | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { if (blobUrl) URL.revokeObjectURL(blobUrl); } catch { /* noop */ }
+      try { video?.removeAttribute("src"); video?.remove(); } catch { /* noop */ }
+      resolve(value);
+    };
+
+    const timer = setTimeout(() => finish(null), timeoutMs);
+
+    try {
+      if (typeof document === "undefined" || typeof URL === "undefined" || typeof URL.createObjectURL !== "function") {
+        finish(null);
+        return;
+      }
+      video = document.createElement("video");
+      video.preload = "metadata";
+      video.muted = true;
+      video.onloadedmetadata = () => {
+        const d = video?.duration;
+        finish(typeof d === "number" && Number.isFinite(d) && d > 0 ? d : null);
+      };
+      video.onerror = () => finish(null);
+      blobUrl = URL.createObjectURL(file);
+      video.src = blobUrl;
+    } catch {
+      finish(null);
+    }
+  });
+}
+
 /** Extrae metadata de un archivo de video (duration, width, height) */
 export function extractVideoMetadata(
   file: File

@@ -19,7 +19,8 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayerOrTenant } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
-import { sha256Hex, randomHex } from "../_lib/edgeCrypto";
+import { randomHex } from "../_lib/edgeCrypto";
+import { signTusUpload } from "../_lib/bunnyStream";
 
 export const config = { runtime: "edge" };
 
@@ -68,16 +69,6 @@ async function createBunnyVideo(title: string): Promise<{ guid: string; libraryI
     console.error("[VITAS] Bunny API error:", err);
     return null;
   }
-}
-
-/**
- * Genera la signature TUS que Bunny espera.
- * Formato: SHA256(library_id + api_key + expiration_timestamp + video_id)
- * Expiración: 24h en el futuro.
- */
-async function generateTusSignature(videoId: string, expirationSec: number): Promise<string> {
-  const payload = BUNNY_LIBRARY_ID + BUNNY_API_KEY + expirationSec + videoId;
-  return await sha256Hex(payload);
 }
 
 export default withHandler(
@@ -145,9 +136,12 @@ export default withHandler(
       return errorResponse({ code: "video_create_failed", message: error.message, status: 500 });
     }
 
-    // Generar signature TUS válida 24h
-    const expirationSec = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
-    const signature = await generateTusSignature(bunnyVideo.guid, expirationSec);
+    // Firma TUS válida 24 h (helper compartido con video-init · inv #7)
+    const { signature, expire: expirationSec } = await signTusUpload({
+      libraryId: BUNNY_LIBRARY_ID,
+      apiKey: BUNNY_API_KEY,
+      videoGuid: bunnyVideo.guid,
+    });
 
     return successResponse({
       videoId: video.id,

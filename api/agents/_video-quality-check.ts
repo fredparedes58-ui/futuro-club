@@ -20,6 +20,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse } from "../_lib/apiResponse";
+import { SYNC_ANALYSIS_MAX_DURATION_SEC } from "../../src/lib/shared/videoLimits";
 
 export const config = { runtime: "edge" };
 
@@ -40,7 +41,8 @@ export const QUALITY_RULES = {
   minWidth: 1280,
   minHeight: 720,
   minDurationSec: 30,
-  maxDurationSec: 300,
+  // Límite compartido del análisis síncrono de clips cortos (inv #7 · src/lib/shared/videoLimits).
+  maxDurationSec: SYNC_ANALYSIS_MAX_DURATION_SEC,
   minFps: 24,
   minBitrateKbps: 1000,
   brightnessMin: 40,

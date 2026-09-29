@@ -4,9 +4,10 @@
  * tipado como UploadState (todas las phases asignables).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import VideoUpload from "@/components/VideoUpload";
 import type { UploadState } from "@/hooks/useVideoUpload";
+import { MAX_UPLOAD_SIZE_MB, MAX_UPLOAD_SIZE_GB } from "@/lib/shared/videoLimits";
 
 // Estado inicial canónico (fuente única — evita literales duplicados que
 // derivan cuando UploadState gana un campo).
@@ -22,6 +23,8 @@ const IDLE_STATE: UploadState = {
   phase2Pending: false,
   uploadSpeed: 0,
   etaSeconds: 0,
+  encodeStatus: null,
+  syncGateDurationSec: null,
 };
 
 // Estado mutable compartido; tipado como UploadState para que cada bloque
@@ -43,6 +46,11 @@ vi.mock("@/hooks/useVideoUpload", () => ({
     cancel: mockCancel,
     reset: mockReset,
   }),
+}));
+
+// jsdom no decodifica vídeo (loadedmetadata nunca llega) → duración "no legible".
+vi.mock("@/lib/localVideoUtils", () => ({
+  readVideoDurationSec: vi.fn(async () => null),
 }));
 
 // t() devuelve la clave (+ valores interpolados) — patrón estándar del repo.
@@ -92,18 +100,33 @@ describe("VideoUpload — idle state", () => {
     expect(screen.getByText("videoUpload.poweredBy")).toBeTruthy();
   });
 
-  it("rejects oversized files", () => {
+  it("rejects oversized files (shared MAX_UPLOAD_SIZE_MB)", async () => {
     const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
     render(<VideoUpload />);
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     const bigFile = new File(["x".repeat(100)], "big.mp4", { type: "video/mp4" });
-    Object.defineProperty(bigFile, "size", { value: 2049 * 1024 * 1024 }); // Over 2048 MB
+    Object.defineProperty(bigFile, "size", { value: (MAX_UPLOAD_SIZE_MB + 1) * 1024 * 1024 });
 
     fireEvent.change(input, { target: { files: [bigFile] } });
-    expect(alertSpy).toHaveBeenCalledWith(expect.stringContaining("2048"));
+    await waitFor(() =>
+      expect(alertSpy).toHaveBeenCalledWith(`videoUpload.fileTooLarge ${MAX_UPLOAD_SIZE_GB}`),
+    );
     expect(mockUpload).not.toHaveBeenCalled();
     // restore lo hace el afterEach (robusto ante fallo de aserción).
+  });
+
+  it("no rechaza un fichero de 2049 MB (el tope antiguo de 2048 MB ya no aplica)", async () => {
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+    render(<VideoUpload />);
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(["x"], "partido.mp4", { type: "video/mp4" });
+    Object.defineProperty(file, "size", { value: 2049 * 1024 * 1024 });
+
+    fireEvent.change(input, { target: { files: [file] } });
+    await waitFor(() => expect(mockUpload).toHaveBeenCalledTimes(1));
+    expect(alertSpy).not.toHaveBeenCalled();
   });
 });
 
