@@ -5,12 +5,14 @@
 import { PlayerService } from "@/services/real/playerService";
 import { adaptPlayerForUI } from "@/services/real/adapters";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { phvGate, matchesTimingFilter, type MaturityTiming } from "@/lib/phv/phvGate";
 
 export type SortField = "vsi" | "name" | "age" | "percentile";
 export type SortDir = "asc" | "desc";
 
 export interface RankingsFilters {
-  phv?: string;        // "all" | "early" | "on-time" | "late"
+  /** "all" | "late" | "on_time" | "early": TIMING vs pares (lo que rotula la fila), no la fase PHV. */
+  timing?: string;
   position?: string;   // Position string or "Todos"
   ageGroup?: string;   // "Sub-14", etc. or "all"
   level?: string;      // Competitive level or "all"
@@ -41,6 +43,8 @@ export interface RankedPlayer {
   vsi: number | null;                     // null ⇒ sin evaluar
   phvCategory: string | null;             // null ⇒ PHV bloqueado (gate único)
   phvOffset: number | null;
+  /** Timing vs pares del gate único (null ⇒ gate cerrado). Es lo que filtra `timing`. */
+  phvTiming?: MaturityTiming | null;
   /** Motivo del gate PHV del servidor (qué falta) cuando phvCategory es null. */
   phvGateReason?: string | null;
   competitiveLevel: string;
@@ -87,7 +91,7 @@ export async function fetchRankedPlayers(
           limit: String(limit),
           offset: String(offset),
         });
-        if (filters.phv && filters.phv !== "all") params.set("phv", filters.phv);
+        if (filters.timing && filters.timing !== "all") params.set("timing", filters.timing);
         if (filters.position && filters.position !== "Todos") params.set("position", filters.position);
         if (filters.ageGroup && filters.ageGroup !== "all") params.set("ageGroup", filters.ageGroup);
         if (filters.level && filters.level !== "all") params.set("level", filters.level);
@@ -157,7 +161,7 @@ function fetchLocalRankedPlayers(
       if (!vsiByAgeGroup[ageGroup]) vsiByAgeGroup[ageGroup] = [];
       vsiByAgeGroup[ageGroup].push(p.vsi);
     }
-    return {
+    const row = {
       id: p.id,
       name: p.name,
       age: p.age,
@@ -192,6 +196,10 @@ function fetchLocalRankedPlayers(
       fatherHeightCm: raw?.fatherHeightCm,
       birthDate: raw?.birthDate,
     } as RankedPlayer;
+    // Timing con el MISMO gate y las MISMAS entradas que pinta la fila (Rankings.tsx).
+    const g = phvGate(row);
+    row.phvTiming = g.ok ? g.assessment.timing : null;
+    return row;
   });
 
   // Calculate age group percentiles (sin evaluar queda null)
@@ -206,8 +214,8 @@ function fetchLocalRankedPlayers(
     const q = filters.search.toLowerCase();
     filtered = filtered.filter((p) => p.name.toLowerCase().includes(q));
   }
-  if (filters.phv && filters.phv !== "all") {
-    filtered = filtered.filter((p) => p.phvCategory === filters.phv);
+  if (filters.timing && filters.timing !== "all") {
+    filtered = filtered.filter((p) => matchesTimingFilter(p.phvTiming, filters.timing));
   }
   if (filters.position && filters.position !== "Todos") {
     // Incluye también jugadores que tienen la posición como secundaria (polivalencia)

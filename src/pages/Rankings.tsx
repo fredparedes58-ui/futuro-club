@@ -14,7 +14,7 @@ import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsSer
 import FeatureHint from "@/components/FeatureHint";
 import { RequirePermission } from "@/components/RequirePermission";
 import { maturityTimingKey } from "@/lib/phv/playerMaturity";
-import { phvGate, type PhvGateInput } from "@/lib/phv/phvGate";
+import { phvGate, RANKING_TIMING_FILTERS, type MaturityTiming, type PhvGateInput } from "@/lib/phv/phvGate";
 import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import { PlayerService } from "@/services/real/playerService";
@@ -26,12 +26,10 @@ const rankIcons = [
   <Shield key="3" size={16} className="text-amber-700" />,
 ];
 
-const PHV_FILTERS = [
-  { value: "all", key: "players.rankings.phvFilter.all" },
-  { value: "late", key: "players.rankings.phvFilter.late" },
-  { value: "on-time", key: "players.rankings.phvFilter.onTime" },
-  { value: "early", key: "players.rankings.phvFilter.early" },
-];
+// Filtro «Maduración»: por TIMING vs pares, rotulado con timingLabel (la MISMA
+// clave i18n y la misma ⭐ que la fila). Antes filtraba la FASE (early = pre-PHV)
+// bajo el rótulo «Tardío ⭐»: listaba a casi todo pre-púber y ocultaba a tardíos.
+const TIMING_FILTERS = ["all", ...RANKING_TIMING_FILTERS] as const;
 
 const POSITION_GROUPS = [
   "Todos",
@@ -60,7 +58,7 @@ const Rankings = () => {
   const [sortBy, setSortBy] = useState<SortField>("vsi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch] = useState("");
-  const [phvFilter, setPhvFilter] = useState("all");
+  const [timingFilter, setTimingFilter] = useState<string>("all");
   const [posFilter, setPosFilter] = useState("Todos");
   const [ageGroupFilter, setAgeGroupFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
@@ -69,14 +67,19 @@ const Rankings = () => {
   // Build filters object for API
   const filters: RankingsFilters = useMemo(
     () => ({
-      phv: phvFilter,
+      timing: timingFilter,
       position: posFilter,
       ageGroup: ageGroupFilter,
       level: levelFilter,
       search: search || undefined,
     }),
-    [phvFilter, posFilter, ageGroupFilter, levelFilter, search]
+    [timingFilter, posFilter, ageGroupFilter, levelFilter, search]
   );
+
+  // Rótulo ÚNICO del timing (fila y filtro): el chip «Madurador tardío ⭐» lista
+  // exactamente las filas rotuladas «Madurador tardío ⭐».
+  const timingLabel = (timing: MaturityTiming) =>
+    `${t(maturityTimingKey(timing))}${timing === "late" ? " ⭐" : ""}`;
 
   const { data: response, isLoading, isError } = useRankedPlayers(sortBy, sortDir, filters);
 
@@ -91,7 +94,7 @@ const Rankings = () => {
 
   if (isError) toast.error(t("toasts.rankingsError"));
 
-  const hasFilters = search !== "" || phvFilter !== "all" || posFilter !== "Todos" || ageGroupFilter !== "all" || levelFilter !== "all";
+  const hasFilters = search !== "" || timingFilter !== "all" || posFilter !== "Todos" || ageGroupFilter !== "all" || levelFilter !== "all";
   const isFiltered = players.length !== totalUnfiltered;
 
   const handleSort = useCallback((field: SortField) => {
@@ -101,7 +104,7 @@ const Rankings = () => {
 
   const clearFilters = useCallback(() => {
     setSearch("");
-    setPhvFilter("all");
+    setTimingFilter("all");
     setPosFilter("Todos");
     setAgeGroupFilter("all");
     setLevelFilter("all");
@@ -205,17 +208,17 @@ const Rankings = () => {
               {t("players.rankings.bioMaturation")}
             </p>
             <div className="flex gap-1.5 flex-wrap">
-              {PHV_FILTERS.map((f) => (
+              {TIMING_FILTERS.map((f) => (
                 <button
-                  key={f.value}
-                  onClick={() => setPhvFilter(f.value)}
+                  key={f}
+                  onClick={() => setTimingFilter(f)}
                   className={`px-3 py-1 rounded-lg text-xs font-display font-semibold border transition-all ${
-                    phvFilter === f.value
+                    timingFilter === f
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-secondary text-muted-foreground border-border hover:border-primary/50"
                   }`}
                 >
-                  {t(f.key)}
+                  {f === "all" ? t("players.rankings.phvFilter.all") : timingLabel(f)}
                 </button>
               ))}
             </div>
@@ -429,9 +432,7 @@ const Rankings = () => {
                       : mat.timing === "early" ? "text-gold"
                       : "text-muted-foreground";
                     return (
-                      <span className={cls}>
-                        {t(maturityTimingKey(mat.timing))}{mat.timing === "late" ? " ⭐" : ""}
-                      </span>
+                      <span className={cls}>{timingLabel(mat.timing)}</span>
                     );
                   })()}
                   {/* Percentile badge — oculto si el jugador no está evaluado (percentil null) */}

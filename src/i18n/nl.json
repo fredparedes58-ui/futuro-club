@@ -472,10 +472,7 @@
       "sortAge": "Leeftijd",
       "sortName": "Naam",
       "phvFilter": {
-        "all": "Alle",
-        "late": "Vroegrijp",
-        "onTime": "Normaal",
-        "early": "Laatrijp ⭐"
+        "all": "Alle"
       },
       "bioMaturation": "Biologische rijping (PHV)",
       "ofPlayers": "{filtered} van {total} spelers",

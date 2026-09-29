@@ -472,10 +472,7 @@
       "sortAge": "Alter",
       "sortName": "Name",
       "phvFilter": {
-        "all": "Alle",
-        "late": "Frühentwickler",
-        "onTime": "Normal",
-        "early": "Spätentwickler ⭐"
+        "all": "Alle"
       },
       "bioMaturation": "Biologische Reifung (PHV)",
       "ofPlayers": "{filtered} von {total} Spielern",

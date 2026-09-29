@@ -28,7 +28,7 @@
  */
 
 import { computeMirwald, canComputeMirwald, type MirwaldResult } from "./mirwald";
-import { resolveMaturity, type MaturityAssessment } from "./maturity";
+import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "./maturity";
 import { computeKhamisRoche } from "./khamisRoche";
 import { decimalAgeYears } from "../shared/age";
 import { derived, gated, type MetricResult } from "../metrics/MetricResult";
@@ -288,6 +288,29 @@ export function blockedAssessment(gate_reason: string): MaturityAssessment {
 export function gatedMaturity(input: PhvGateInput, at?: string | Date): MaturityAssessment {
   const g = phvGate(input, at);
   return g.ok ? g.assessment : blockedAssessment(g.gate_reason);
+}
+
+export type { MaturityTiming };
+
+/**
+ * Filtro «Maduración» del ranking: por TIMING vs pares, lo MISMO que rotula cada
+ * fila («Madurador tardío ⭐», `maturity.timing.*`), nunca por la fase/categoría.
+ * `early` = pre-PHV es un ESTADO, no «tardío»: el filtro «Tardío ⭐» filtraba la
+ * fase y devolvía a casi todo pre-púber mientras ocultaba a tardíos ya en PHV.
+ */
+export const RANKING_TIMING_FILTERS = ["late", "on_time", "early"] as const;
+export type RankingTimingFilter = (typeof RANKING_TIMING_FILTERS)[number];
+
+/**
+ * ¿Pasa el filtro de timing? Sin filtro ("all"/vacío) ⇒ sí. Gate cerrado (timing
+ * null) o timing «unknown» ⇒ no pasa ningún filtro. Valor desconocido ⇒ nadie.
+ */
+export function matchesTimingFilter(
+  timing: MaturityTiming | null | undefined,
+  filter: string | null | undefined,
+): boolean {
+  if (!filter || filter === "all") return true;
+  return (RANKING_TIMING_FILTERS as readonly string[]).includes(filter) && timing === filter;
 }
 
 /**

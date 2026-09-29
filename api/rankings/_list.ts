@@ -13,7 +13,7 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
-import { phvGate, type PhvGateInput } from "../../src/lib/phv/phvGate";
+import { phvGate, matchesTimingFilter, type MaturityTiming, type PhvGateInput } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
 
@@ -27,12 +27,14 @@ export const config = { runtime: "edge" };
 function gatedPhvFields(d: Record<string, unknown>): {
   phvCategory: string | null;
   phvOffset: number | null;
+  /** Timing vs pares del MISMO gate: lo que rotula la fila y lo que filtra `timing`. */
+  phvTiming: MaturityTiming | null;
   phvGateReason: string | null;
 } {
   const g = phvGate(d as PhvGateInput);
   return g.ok
-    ? { phvCategory: mapPhv(g.category), phvOffset: g.offset.value, phvGateReason: null }
-    : { phvCategory: null, phvOffset: null, phvGateReason: g.gate_reason };
+    ? { phvCategory: mapPhv(g.category), phvOffset: g.offset.value, phvTiming: g.assessment.timing, phvGateReason: null }
+    : { phvCategory: null, phvOffset: null, phvTiming: null, phvGateReason: g.gate_reason };
 }
 
 // VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
@@ -73,6 +75,7 @@ type PlayerRow = {
   // null ⇒ PHV bloqueado por el gate único (phvGateReason dice qué falta).
   phvCategory: string | null;
   phvOffset: number | null;
+  phvTiming: MaturityTiming | null;
   phvGateReason: string | null;
   competitiveLevel: string;
   ageGroup: string;
@@ -133,6 +136,11 @@ export default withHandler(
     // sobre la categoría persistida: ver la ruta RPC.
     const phvParam = url.searchParams.get("phv");
     const phvFilter = phvParam && phvParam !== "all" ? mapPhv(phvParam) : null;
+    // Filtro de la UI («Madurador tardío ⭐»): TIMING vs pares ("late" | "on_time" |
+    // "early") sobre el MISMO timing gateado que rotula la fila. `phv` filtra la FASE.
+    const timingParam = url.searchParams.get("timing");
+    const timingFilter = timingParam && timingParam !== "all" ? timingParam : null;
+    const gatedFilter = Boolean(phvFilter) || Boolean(timingFilter);
     const posFilter = url.searchParams.get("position"); // Position string
     const ageGroupFilter = url.searchParams.get("ageGroup"); // "Sub-14", etc.
     const levelFilter = url.searchParams.get("level"); // competitive level
@@ -159,8 +167,8 @@ export default withHandler(
           p_user_id: userId,
           p_sort_by: sortBy,
           p_sort_dir: sortDir,
-          p_limit: phvFilter ? RPC_ALL_ROWS : limit,
-          p_offset: phvFilter ? 0 : offset,
+          p_limit: gatedFilter ? RPC_ALL_ROWS : limit,
+          p_offset: gatedFilter ? 0 : offset,
           p_search: search || null,
           p_phv: null,
           p_position: posFilter || null,
@@ -190,13 +198,19 @@ export default withHandler(
           // blob NO llega al cliente; solo el recálculo gateado (o null + motivo).
           ...gatedPhvFields((p.data || {}) as Record<string, unknown>),
         }));
-        // Filtro PHV sobre la categoría GATEADA (la que se muestra), no la persistida.
-        const matching = phvFilter ? mapped.filter((p) => p.phvCategory === phvFilter) : mapped;
-        const players = phvFilter ? matching.slice(offset, offset + limit) : mapped;
+        // Filtros fase/timing sobre lo GATEADO (lo que se muestra), no lo persistido.
+        const matching = gatedFilter
+          ? mapped.filter(
+              (p) =>
+                (!phvFilter || p.phvCategory === phvFilter) &&
+                matchesTimingFilter(p.phvTiming as MaturityTiming | null, timingFilter),
+            )
+          : mapped;
+        const players = gatedFilter ? matching.slice(offset, offset + limit) : mapped;
 
         return successResponse({
           players,
-          total: phvFilter ? matching.length : rpcData.total || 0,
+          total: gatedFilter ? matching.length : rpcData.total || 0,
           limit,
           offset,
           totalUnfiltered: rpcData.totalUnfiltered || 0,
@@ -333,6 +347,9 @@ export default withHandler(
     }
     if (phvFilter) {
       filtered = filtered.filter((p) => p.phvCategory === phvFilter);
+    }
+    if (timingFilter) {
+      filtered = filtered.filter((p) => matchesTimingFilter(p.phvTiming, timingFilter));
     }
     if (posFilter && posFilter !== "Todos") {
       filtered = filtered.filter((p) => p.position === posFilter);

@@ -472,10 +472,7 @@
       "sortAge": "Edad",
       "sortName": "Nombre",
       "phvFilter": {
-        "all": "Todos",
-        "late": "Precoz",
-        "onTime": "Normal",
-        "early": "Tardío ⭐"
+        "all": "Todos"
       },
       "bioMaturation": "Maduración Biológica (PHV)",
       "ofPlayers": "{filtered} de {total} jugadores",

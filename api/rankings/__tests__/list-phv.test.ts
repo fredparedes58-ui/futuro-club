@@ -137,3 +137,87 @@ describe.each([
     }
   });
 });
+
+// Filtro «Maduración» de la UI = TIMING vs pares (`timing=`), el MISMO que rotula
+// la fila («Madurador tardío ⭐»). Antes el chip «Tardío ⭐» mandaba phv=early y se
+// filtraba la FASE (early = pre-PHV): el tardío en PHV quedaba oculto y el pre-PHV
+// «en fase» aparecía. Casos del hallazgo, gate de la rama a 2026-09-29.
+describe.each([
+  ["RPC", true],
+  ["fallback en memoria", false],
+])("rankings (%s) · filtro de timing = lo que rotula la fila", (_label, useRpc) => {
+  const LATE_IN_PHV = {
+    name: "Tardío en PHV", age: 15, position: "MC", height: 160, weight: 48, sittingHeight: 80, legLength: 80,
+    birthDate: "2011-09-29", gender: "M", vsi: 70, phvCategory: "early",
+  };
+  const PRE_PHV_ON_TIME = {
+    name: "Pre-PHV en fase", age: 10, position: "MC", height: 150, weight: 42, sittingHeight: 78, legLength: 72,
+    birthDate: "2016-03-29", gender: "M", vsi: 65, phvCategory: "late",
+  };
+  const rows = [
+    { id: "late", data: LATE_IN_PHV },
+    { id: "pre", data: PRE_PHV_ON_TIME },
+    { id: "samu", data: SAMU },
+  ];
+
+  beforeEach(async () => {
+    // Fecha fija (edad decimal del gate) y usuario propio: la ruta en memoria
+    // cachea por usuario 5 min y no debe servir los jugadores de otros bloques.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
+    const { verifyAuth } = await import("../../_lib/auth");
+    vi.mocked(verifyAuth).mockResolvedValue({ userId: `coach-timing-${useRpc ? "rpc" : "mem"}`, error: null } as never);
+    vi.mocked(globalThis.fetch).mockImplementation(async (url, init) => {
+      const u = typeof url === "string" ? url : url.toString();
+      if (u.includes("/rpc/get_ranked_players")) {
+        lastRpcBody = JSON.parse(String(init?.body ?? "{}"));
+        if (!useRpc) return new Response("no rpc", { status: 404 });
+        return new Response(JSON.stringify({
+          players: rows.map((r) => ({ id: r.id, name: r.data.name, vsi: r.data.vsi, data: r.data })),
+          total: rows.length,
+        }));
+      }
+      if (u.includes("/rest/v1/players")) {
+        return new Response(JSON.stringify(rows.map((r) => ({ ...r, updated_at: "2026-09-01" }))));
+      }
+      return new Response("[]");
+    });
+  });
+  afterEach(async () => {
+    vi.useRealTimers();
+    const { verifyAuth } = await import("../../_lib/auth");
+    vi.mocked(verifyAuth).mockResolvedValue({ userId: "coach-rank", error: null } as never);
+  });
+
+  /** Timing que pinta la fila en Rankings.tsx: phvGate sobre la fila del API. */
+  const rowTiming = (p: Record<string, unknown>) => {
+    const g = phvGate(p as never);
+    return g.ok ? g.assessment.timing : null;
+  };
+
+  it("timing=late lista al tardío en PHV y NO al pre-PHV en fase (el caso del hallazgo)", async () => {
+    const { players, total } = await listPage("?timing=late");
+    expect(players.map((p) => p.id)).toEqual(["late"]);
+    expect(total).toBe(1);
+    expect(players[0].phvCategory).toBe("on-time"); // en PHV: la fase NO decide el filtro
+    expect(players[0].phvTiming).toBe("late");
+  });
+
+  it.each(["late", "on_time", "early"])("timing=%s ⇒ exactamente las filas rotuladas con ese timing", async (timing) => {
+    const all = (await listPage()).players;
+    const expected = all.filter((p) => rowTiming(p) === timing).map((p) => p.id);
+    const { players, total } = await listPage(`?timing=${timing}`);
+    expect(players.map((p) => p.id)).toEqual(expected);
+    expect(total).toBe(expected.length);
+    for (const p of players) {
+      expect(rowTiming(p)).toBe(timing); // el rótulo de la fila = el chip pulsado
+      expect(p.phvTiming).toBe(timing);
+    }
+    // Samu (sin medidas) nunca pasa un filtro de maduración.
+    expect(players.map((p) => p.id)).not.toContain("samu");
+    if (useRpc) {
+      expect(lastRpcBody?.p_phv).toBeNull();
+      expect(lastRpcBody?.p_offset).toBe(0);
+    }
+  });
+});

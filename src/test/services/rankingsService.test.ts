@@ -42,6 +42,8 @@ vi.mock("@/services/real/adapters", () => ({
 }));
 
 import { fetchRankedPlayers } from "@/services/rankingsService";
+import { PlayerService } from "@/services/real/playerService";
+import { phvGate } from "@/lib/phv/phvGate";
 
 describe("fetchRankedPlayers (local fallback)", () => {
   beforeEach(() => {
@@ -123,10 +125,33 @@ describe("fetchRankedPlayers (local fallback)", () => {
     expect(result.totalUnfiltered).toBe(5); // Total before filter
   });
 
-  it("filters by PHV category", async () => {
-    const result = await fetchRankedPlayers("vsi", "desc", { phv: "early" });
-    expect(result.players.length).toBe(1);
-    expect(result.players[0].name).toBe("Bruno");
+  // Filtro «Maduración» = TIMING vs pares del gate (lo que rotula la fila), no la
+  // fase persistida: Bruno («early» persistido, sin medidas) ya no pasa nada.
+  it("filters by maturity TIMING from the gate, never by the persisted phase", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-29T12:00:00Z"));
+    try {
+      const late = { ...mockPlayers[0], id: "late", name: "Tardío", height: 160, weight: 48, sittingHeight: 80, legLength: 80, birthDate: "2011-09-29", gender: "M", phvCategory: "early" };
+      const pre = { ...mockPlayers[0], id: "pre", name: "PreFase", height: 150, weight: 42, sittingHeight: 78, legLength: 72, birthDate: "2016-03-29", gender: "M", phvCategory: "late" };
+      const roster = [...mockPlayers, late, pre];
+      vi.mocked(PlayerService.getAll).mockReturnValue(roster as never);
+      const lateOnly = await fetchRankedPlayers("vsi", "desc", { timing: "late" });
+      expect(lateOnly.players.map((p) => p.id)).toEqual(["late"]);
+      expect(lateOnly.players[0].phvTiming).toBe("late");
+      const onTime = await fetchRankedPlayers("vsi", "desc", { timing: "on_time" });
+      expect(onTime.players.map((p) => p.id)).toEqual(["pre"]);
+      // Agreement: every row's timing (same gate as Rankings.tsx) equals the chip.
+      for (const timing of ["late", "on_time", "early"]) {
+        const r = await fetchRankedPlayers("vsi", "desc", { timing });
+        for (const p of r.players) {
+          const g = phvGate(p);
+          expect(g.ok && g.assessment.timing).toBe(timing);
+        }
+      }
+    } finally {
+      vi.mocked(PlayerService.getAll).mockReturnValue(mockPlayers as never);
+      vi.useRealTimers();
+    }
   });
 
   it("filters by position", async () => {
@@ -146,8 +171,8 @@ describe("fetchRankedPlayers (local fallback)", () => {
     expect(result.players.length).toBe(3);
   });
 
-  it("phv=all returns all players", async () => {
-    const result = await fetchRankedPlayers("vsi", "desc", { phv: "all" });
+  it("timing=all returns all players", async () => {
+    const result = await fetchRankedPlayers("vsi", "desc", { timing: "all" });
     expect(result.players.length).toBe(5);
   });
 
