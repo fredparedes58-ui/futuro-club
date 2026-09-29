@@ -5,11 +5,14 @@ import { describe, it, expect, vi } from "vitest";
 import { adaptPlayerForUI, adaptInsightForUI, computeDashboardStats } from "@/services/real/adapters";
 import type { Player } from "@/services/real/playerService";
 import type { ScoutInsightOutput } from "@/agents/contracts";
+import { phvGate } from "@/lib/phv/phvGate";
 
-// hiddenTalents delega en el motor canónico playerMaturity (probado aparte).
-// Lo mockeamos para testear el CONTRATO DE GATING del adapter en aislamiento,
-// sin acoplarnos a umbrales antropométricos del motor. Clave por id de jugador.
-vi.mock("@/lib/phv/playerMaturity", () => {
+// hiddenTalents delega en el GATE ÚNICO de PHV (gatedMaturity · probado aparte en
+// phvGate.test.ts). Lo mockeamos para testear el CONTRATO DE GATING del adapter en
+// aislamiento, sin acoplarnos a umbrales antropométricos del motor. Clave por id.
+// sanitizePlayerPhv y phvGate se conservan REALES (importActual).
+vi.mock("@/lib/phv/phvGate", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/phv/phvGate")>();
   const M: Record<string, { timing: string; confidence: string }> = {
     gem_a:       { timing: "late", confidence: "high" },      // madurador tardío firme
     gem_b:       { timing: "late", confidence: "moderate" },  // tardío, confianza media
@@ -19,9 +22,13 @@ vi.mock("@/lib/phv/playerMaturity", () => {
     unk:         { timing: "unknown", confidence: "none" },   // sin datos
   };
   return {
-    playerMaturity: (p: { id: string }) => M[p.id] ?? { timing: "unknown", confidence: "none" },
+    ...actual,
+    gatedMaturity: (p: { id: string }) => M[p.id] ?? { timing: "unknown", confidence: "none" },
   };
 });
+
+// Entradas COMPLETAS introducidas (regla del owner 28-sep): el gate recalcula.
+const COMPLETE_PHV = { height: 165, weight: 55, sittingHeight: 85, legLength: 80, birthDate: "2012-03-15", gender: "M" as const };
 
 const makePlayer = (overrides: Partial<Player> = {}): Player => ({
   id: "p1",
@@ -71,19 +78,25 @@ describe("adaptPlayerForUI", () => {
     expect(ui.trending).toBe("stable");
   });
 
-  it("maps ontme to on-time", () => {
-    const ui = adaptPlayerForUI(makePlayer({ phvCategory: "ontme" }));
-    expect(ui.phvCategory).toBe("on-time");
-  });
+  // Gate único (regla del owner 28-sep): el phvCategory PERSISTIDO solo cuenta si
+  // el gate lo recalcula desde entradas introducidas; y entonces manda el recálculo.
+  it.each(["ontme", "early", "late"] as const)(
+    "phvCategory persistido %s SIN todas las entradas introducidas ⇒ null (no se muestra)",
+    (cat) => {
+      // makePlayer: sin talla sentado, pierna ni fecha de nacimiento.
+      const ui = adaptPlayerForUI(makePlayer({ phvCategory: cat, phvOffset: -1.2 }));
+      expect(ui.phvCategory).toBeNull();
+      expect(ui.phvOffset).toBeNull();
+    },
+  );
 
-  it("maps early to early", () => {
-    const ui = adaptPlayerForUI(makePlayer({ phvCategory: "early" }));
-    expect(ui.phvCategory).toBe("early");
-  });
-
-  it("maps late to late", () => {
-    const ui = adaptPlayerForUI(makePlayer({ phvCategory: "late" }));
-    expect(ui.phvCategory).toBe("late");
+  it("con entradas completas usa la categoría RECALCULADA por el gate (no la persistida)", () => {
+    const g = phvGate(COMPLETE_PHV);
+    if (!g.ok) throw new Error("gate cerrado");
+    const ui = adaptPlayerForUI(makePlayer({ ...COMPLETE_PHV, phvCategory: "late", phvOffset: 9 }));
+    const expected = g.category === "ontme" ? "on-time" : g.category;
+    expect(ui.phvCategory).toBe(expected);
+    expect(ui.phvOffset).toBe(g.offset.value);
   });
 
   it("phvCategory is null when undefined (no se asume on-time)", () => {
@@ -226,7 +239,7 @@ describe("computeDashboardStats", () => {
     expect(stats.drillsCompleted).toBe(5);
   });
 
-  it("counts hidden talents: madurador tardío confiable + VSI < 65 (gateado por playerMaturity)", () => {
+  it("counts hidden talents: madurador tardío confiable + VSI < 65 (gateado por gatedMaturity)", () => {
     const stats = computeDashboardStats([
       makePlayer({ id: "gem_a", vsi: 55 }),       // ✓ tardío + confianza alta + VSI<65
       makePlayer({ id: "gem_b", vsi: 60 }),       // ✓ tardío + confianza media + VSI<65

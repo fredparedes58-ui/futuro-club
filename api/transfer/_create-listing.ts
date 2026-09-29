@@ -52,13 +52,34 @@ export default withHandler(
     // El listing debe ser sobre un jugador que GESTIONAS (tu user/tenant): no se
     // publica en el mercado a un menor ajeno (integridad + identidad, invariante #6).
     // Solo con Supabase + auth (en offline/client_only no hay BD que consultar).
+    // PHV del snapshot: NUNCA el que mande el cliente. Solo el de players.phv_category
+    // / phv_offset (columnas que escribe en exclusiva el endpoint gateado de
+    // antropometría con fila completa — regla del owner 28-sep, migración 069),
+    // marcado phvTrusted para que las vistas lo distingan de snapshots antiguos.
+    const snapshot: Record<string, unknown> = { ...(input.playerSnapshot ?? {}) };
+    delete snapshot.phvCategory;
+    delete snapshot.phvOffset;
+    delete snapshot.phvTrusted;
+
     if (SUPABASE_URL && SUPABASE_KEY && userId) {
       const pr = await fetch(
-        `${SUPABASE_URL}/rest/v1/players?id=eq.${encodeURIComponent(input.playerId)}&select=user_id,tenant_id`,
+        `${SUPABASE_URL}/rest/v1/players?id=eq.${encodeURIComponent(input.playerId)}&select=user_id,tenant_id,phv_category,phv_offset`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
-      const rows = (await pr.json().catch(() => [])) as Array<{ user_id: string | null; tenant_id: string | null }>;
+      const rows = (await pr.json().catch(() => [])) as Array<{
+        user_id: string | null;
+        tenant_id: string | null;
+        phv_category?: string | null;
+        phv_offset?: number | string | null;
+      }>;
       const player = Array.isArray(rows) ? rows[0] : undefined;
+      const offset = player?.phv_offset == null ? null : Number(player.phv_offset);
+      if (player?.phv_category && offset !== null && Number.isFinite(offset)) {
+        snapshot.phvCategory =
+          player.phv_category === "ontime" || player.phv_category === "ontme" ? "on-time" : player.phv_category;
+        snapshot.phvOffset = offset;
+        snapshot.phvTrusted = true;
+      }
       // Solo bloquea si el jugador EXISTE en Supabase y es de OTRO. Jugadores
       // local-only (onboarding/demo, aún no persistidos en BD) → el snapshot lo
       // aporta el caller, no hay fila que validar → se permite (no rompe el alta).
@@ -91,7 +112,7 @@ export default withHandler(
       description: input.description ?? null,
       highlight_video_id: input.highlightVideoId ?? null,
       tags: input.tags,
-      player_snapshot: input.playerSnapshot ?? {},
+      player_snapshot: snapshot,
       expires_at: expiresAt,
     };
 

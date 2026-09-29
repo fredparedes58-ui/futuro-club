@@ -2,7 +2,7 @@
  * Tests for /api/scout/insights — CRUD endpoint
  * Tests the handler logic with mocked Supabase calls.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock dependencies
 vi.mock("../../_lib/rateLimit", () => ({
@@ -131,6 +131,68 @@ describe("/api/scout/insights", () => {
 
       await insightsHandler(makeRequest("GET", undefined, { limit: "999" }));
       expect(capturedUrl).toContain("limit=50");
+    });
+  });
+
+  // Migración 069: insights anteriores al gate PHV (#156) archivados por sistema.
+  describe("GET — insights archivados por sistema (069)", () => {
+    it("el feed oculta las filas con archived_at (y no las cuenta como no leídas)", async () => {
+      const urls: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        urls.push(typeof url === "string" ? url : url.toString());
+        return new Response(JSON.stringify([]), { headers: { "content-range": "0-0/0" } });
+      });
+
+      await insightsHandler(makeRequest("GET"));
+      const list = urls.find((u) => !u.includes("is_read=eq.false"))!;
+      const unread = urls.find((u) => u.includes("is_read=eq.false"))!;
+      expect(list).toContain("is_archived=eq.false");
+      expect(list).toContain("archived_at=is.null");
+      expect(unread).toContain("archived_at=is.null");
+    });
+
+    it("el Histórico del jugador (playerId) también los oculta", async () => {
+      const urls: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        urls.push(typeof url === "string" ? url : url.toString());
+        return new Response(JSON.stringify([]), { headers: { "content-range": "0-0/0" } });
+      });
+
+      await insightsHandler(makeRequest("GET", undefined, { playerId: "samu" }));
+      const list = urls.find((u) => !u.includes("is_read=eq.false"))!;
+      expect(list).toContain("player_id=eq.samu");
+      expect(list).toContain("archived_at=is.null");
+    });
+
+    it("la vista «archivados» incluye los del usuario Y los archivados por sistema", async () => {
+      const urls: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        urls.push(typeof url === "string" ? url : url.toString());
+        return new Response(JSON.stringify([]), { headers: { "content-range": "0-0/0" } });
+      });
+
+      await insightsHandler(makeRequest("GET", undefined, { archived: "true" }));
+      const list = urls.find((u) => !u.includes("is_read=eq.false"))!;
+      expect(list).toContain("or=(is_archived.eq.true,archived_at.not.is.null)");
+    });
+
+    it("sin la 069 aplicada (columna inexistente) no rompe el feed: reintenta sin el filtro", async () => {
+      const urls: string[] = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url) => {
+        const u = typeof url === "string" ? url : url.toString();
+        urls.push(u);
+        if (u.includes("archived_at")) {
+          return new Response(JSON.stringify({ code: "42703", message: "column scout_insights.archived_at does not exist" }), { status: 400 });
+        }
+        return new Response(JSON.stringify([{ id: "i1" }]), { headers: { "content-range": "0-0/1" } });
+      });
+
+      const res = await insightsHandler(makeRequest("GET"));
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.insights).toHaveLength(1);
+      const unread = urls.find((u) => u.includes("is_read=eq.false"))!;
+      expect(unread).not.toContain("archived_at");
     });
   });
 

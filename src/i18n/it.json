@@ -3273,7 +3273,23 @@
     "ageAtPHV": "PHV stimato",
     "percentPAH": "% statura adulta",
     "yearsUnit": "anni",
-    "addParentsHint": "Aggiungi l'altezza di entrambi i genitori per il calcolo per % di statura adulta (più affidabile)."
+    "addParentsHint": "Aggiungi l'altezza di entrambi i genitori per il calcolo per % di statura adulta (più affidabile).",
+    "gate": {
+      "unavailable": "PHV non disponibile",
+      "missing": "Manca: {{list}}",
+      "outOfRange": "Dati fuori dall'intervallo di validità di Mirwald (8–18 anni)",
+      "legacyRow": "Misurazione registrata prima di usare l'età esatta dalla data di nascita: salvala di nuovo",
+      "noRow": "Nessuna misurazione antropometrica registrata",
+      "notComputed": "Il PHV non è stato calcolato per questa misurazione",
+      "input": {
+        "height": "statura",
+        "weight": "peso",
+        "sittingHeight": "statura da seduto",
+        "legLength": "lunghezza della gamba",
+        "birthDate": "data di nascita del giocatore",
+        "sex": "sesso registrato"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Nessun dato di posizione per generare la mappa di calore",

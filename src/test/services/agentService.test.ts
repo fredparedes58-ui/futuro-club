@@ -103,10 +103,9 @@ describe("AgentService", () => {
         height: 165,
         weight: 55,
         sittingHeight: 82,
-        age: 14,
+        chronologicalAge: 14,
         gender: "M",
         currentVSI: 68,
-        metrics: { speed: 70, technique: 65, vision: 60, stamina: 70, shooting: 55, defending: 50 },
       };
 
       const result = await AgentService.calculatePHV(input);
@@ -126,10 +125,9 @@ describe("AgentService", () => {
         height: 165,
         weight: 55,
         sittingHeight: 82,
-        age: 14,
+        chronologicalAge: 14,
         gender: "M",
         currentVSI: 68,
-        metrics: { speed: 70, technique: 65, vision: 60, stamina: 70, shooting: 55, defending: 50 },
       };
 
       const result = await AgentService.calculatePHV(input);

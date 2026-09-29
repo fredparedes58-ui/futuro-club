@@ -13,8 +13,27 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
+import { phvGate, type PhvGateInput } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
+
+/**
+ * PHV del ranking desde el GATE ÚNICO (src/lib/phv/phvGate.ts · regla del owner
+ * 28-sep): categoría/offset solo con TODAS las entradas introducidas del blob
+ * (talla, peso, talla sentado, pierna, fecha de nacimiento → edad decimal, sexo).
+ * Si falta alguna ⇒ null + phvGateReason. Antes: el phvCategory PERSISTIDO del
+ * blob con default «ontme»/offset 0 (un pre-púber sin medidas salía «on-time»).
+ */
+function gatedPhvFields(d: Record<string, unknown>): {
+  phvCategory: string | null;
+  phvOffset: number | null;
+  phvGateReason: string | null;
+} {
+  const g = phvGate(d as PhvGateInput);
+  return g.ok
+    ? { phvCategory: mapPhv(g.category), phvOffset: g.offset.value, phvGateReason: null }
+    : { phvCategory: null, phvOffset: null, phvGateReason: g.gate_reason };
+}
 
 // VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
 
@@ -51,8 +70,10 @@ type PlayerRow = {
   position: string;
   positionShort: string;
   vsi: number | null; // null ⇒ "sin evaluar" (jugador sin evaluación del coach)
-  phvCategory: string;
-  phvOffset: number;
+  // null ⇒ PHV bloqueado por el gate único (phvGateReason dice qué falta).
+  phvCategory: string | null;
+  phvOffset: number | null;
+  phvGateReason: string | null;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
@@ -61,8 +82,8 @@ type PlayerRow = {
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
-  height: number;
-  weight: number;
+  height: number | null;
+  weight: number | null;
   // Campos de maduración para que el cliente compute el timing canónico
   // (resolveMaturity) con la misma fuente en ambas rutas (RPC/fallback).
   // gender puede ser null: sexo no registrado ⇒ resolveMaturity abstiene (invariante #5).
@@ -141,7 +162,6 @@ export default withHandler(
           age: p.age,
           position: p.position,
           vsi: p.vsi == null ? null : Number(p.vsi), // no coaccionar null→0
-          phvCategory: p.phv_category === "ontme" ? "on-time" : p.phv_category,
           competitiveLevel: p.competitive_level,
           ageGroup: p.age_group,
           percentile: p.percentile == null ? null : Math.round(Number(p.percentile)),
@@ -149,6 +169,9 @@ export default withHandler(
             p.percentile_in_age_group == null ? null : Math.round(Number(p.percentile_in_age_group)),
           updatedAt: p.updated_at,
           ...((p.data || {}) as Record<string, unknown>),
+          // DESPUÉS del spread del blob: el phvCategory/phvOffset persistido del
+          // blob NO llega al cliente; solo el recálculo gateado (o null + motivo).
+          ...gatedPhvFields((p.data || {}) as Record<string, unknown>),
         }));
 
         return successResponse({
@@ -218,8 +241,7 @@ export default withHandler(
           position: (d.position as string) ?? "CM",
           positionShort: abbreviatePosition((d.position as string) ?? "CM"),
           vsi,
-          phvCategory: mapPhv((d.phvCategory as string) ?? "ontme"),
-          phvOffset: (d.phvOffset as number) ?? 0,
+          ...gatedPhvFields(d),
           competitiveLevel: (d.competitiveLevel as string) ?? "Regional",
           ageGroup: getAgeGroup(age),
           trending: delta > 2 ? "up" : delta < -2 ? "down" : "stable",
@@ -228,8 +250,10 @@ export default withHandler(
           updatedAt: row.updated_at,
           metrics,
           foot: (d.foot as string) ?? "right",
-          height: (d.height as number) ?? 170,
-          weight: (d.weight as number) ?? 60,
+          // Sin default 170/60: son ENTRADAS del gate PHV que el cliente recalcula;
+          // una talla/peso inventados abrirían el gate (invariante #2).
+          height: typeof d.height === "number" ? d.height : null,
+          weight: typeof d.weight === "number" ? d.weight : null,
           // Sin fallback "M": sexo ausente ⇒ null → playerMaturity reenvía sex:undefined
           // y resolveMaturity abstiene ("Sexo no registrado"), igual que la ruta RPC (invariante #5).
           gender: d.gender === "M" || d.gender === "F" ? d.gender : null,

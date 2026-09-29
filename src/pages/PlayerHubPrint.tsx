@@ -18,7 +18,9 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { calculateAdvancedMetrics } from "@/services/real/advancedMetricsService";
-import { playerMaturity, maturityStatusKey, maturityConfidenceKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { maturityStatusKey, maturityConfidenceKey } from "@/lib/phv/playerMaturity";
+import { phvGate, blockedAssessment } from "@/lib/phv/phvGate";
+import { usePhvGateText } from "@/components/phv/PhvGateNotice";
 import VsiGauge from "@/components/VsiGauge";
 import { PUBLIC_HOST } from "@/lib/publicUrl";
 
@@ -26,6 +28,7 @@ export default function PlayerHubPrint() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { t } = useTranslation();
+  const phvGateText = usePhvGateText();
 
   const METRIC_LABELS: Record<keyof Player["metrics"], string> = {
     speed:     t("playerHubPrint.metricSpeed"),
@@ -60,12 +63,14 @@ export default function PlayerHubPrint() {
     return <div className="p-8 text-center text-muted-foreground">{t("common.notEvaluated")}</div>;
   }
 
-  // Maduración desde el motor canónico (fuente única · #22). Antes el PDF leía
-  // player.phvAge (campo inexistente → siempre "No disponible") y player.phvCategory
-  // crudo (campo almacenado poco fiable). Esta sección es STATUS-based (Pre/En/
-  // Post-PHV), así que mapeamos por maturity.status, no por timing-vs-pares.
-  const maturity = playerMaturity(player as PlayerMaturityInput);
-  const phvLabel = t(maturityStatusKey(maturity.status));
+  // Maduración desde el GATE ÚNICO (regla del owner 28-sep): solo con TODAS las
+  // entradas introducidas (talla, peso, sentado, pierna, fecha de nacimiento →
+  // edad decimal, sexo). Antes se imprimía «Pre-PHV» desde playerMaturity con la
+  // edad ENTERA y pierna/sentado ESTIMADOS. Sin gate abierto se imprime qué falta.
+  // Esta sección es STATUS-based (Pre/En/Post-PHV), no timing-vs-pares.
+  const phv = phvGate(player);
+  const maturity = phv.ok ? phv.assessment : blockedAssessment(phv.gate_reason);
+  const phvLabel = phv.ok ? t(maturityStatusKey(maturity.status)) : phvGateText({ gate: phv });
 
   const phvColor =
     maturity.status === "pre_phv" ? "#10b981" :    // ventana neuromotora abierta
@@ -73,8 +78,8 @@ export default function PlayerHubPrint() {
     maturity.status === "circa_phv" ? "#f59e0b" :  // estirón en curso
     "#94a3b8";                                     // unknown
 
-  const ageAtPhv = maturity.ageAtPHV;
-  const hasMaturity = maturity.confidence !== "none" && Number.isFinite(ageAtPhv);
+  const ageAtPhv = phv.aphv.value;
+  const hasMaturity = phv.ok && ageAtPhv !== null;
 
   const today = new Date().toLocaleDateString("es-ES", {
     day: "numeric", month: "long", year: "numeric",
@@ -287,7 +292,7 @@ export default function PlayerHubPrint() {
               {maturity.status === "circa_phv" && (
                 <p style={{ margin: "8px 0 0 0" }}>{t("playerHubPrint.phvBodyOntime")}</p>
               )}
-              {maturity.status === "unknown" && (
+              {maturity.status === "unknown" && phv.ok && (
                 <p style={{ margin: "8px 0 0 0" }}>{maturity.validityNote ?? t("maturity.confidence.none")}</p>
               )}
             </div>

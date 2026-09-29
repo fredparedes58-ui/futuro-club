@@ -8,6 +8,7 @@
  */
 
 import type { TransferListing, TransferSearchQuery } from "./transferTypes";
+import { trustedSnapshotPhv } from "../phv/phvGate";
 
 /**
  * Apply filter in-memory (used in offline-first cache fallback).
@@ -28,7 +29,9 @@ export function applyFiltersInMemory(
       return false;
     }
     if (query.minVSI != null && (snap.vsi ?? 0) < query.minVSI) return false;
-    if (query.phvCategory?.length && snap.phvCategory && !query.phvCategory.includes(snap.phvCategory as "early" | "on-time" | "late")) {
+    // Solo PHV marcado fiable por el servidor (gate único · regla del owner 28-sep).
+    const snapPhv = trustedSnapshotPhv(snap).phvCategory;
+    if (query.phvCategory?.length && snapPhv && !query.phvCategory.includes(snapPhv as "early" | "on-time" | "late")) {
       return false;
     }
     if (query.listingTypes?.length && !query.listingTypes.includes(l.listingType)) {

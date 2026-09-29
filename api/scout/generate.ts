@@ -11,8 +11,8 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
-import { resolveMaturity, type MaturityAssessment, type MaturityTiming } from "../../src/lib/phv/maturity";
-import { resolveChronologicalAge } from "../../src/lib/shared/age";
+import type { MaturityAssessment, MaturityTiming } from "../../src/lib/phv/maturity";
+import { gatedMaturity } from "../../src/lib/phv/phvGate";
 import { normalizeLocale, languageDirective, localeSchema } from "../../src/lib/shared/locale";
 
 export const config = { runtime: "edge" };
@@ -59,30 +59,20 @@ interface PlayerRow {
 }
 
 /**
- * Maduración canónica del jugador vía el motor gateado `resolveMaturity` — la
- * MISMA fuente, con los MISMOS inputs, que las fichas y Rankings (invariante #7,
- * una sola implementación y una sola decisión por jugador). Los inputs salen del
- * blob `data` (no de las columnas 024): sexo solo si es "M"/"F" explícito
- * (invariante #5) y edad DECIMAL desde birthDate cuando existe (evita que el
- * redondeo del entero cruce el umbral de timing y contradiga a la ficha).
+ * Maduración canónica del jugador vía el GATE ÚNICO de PHV (src/lib/phv/phvGate.ts)
+ * — la MISMA decisión, con los MISMOS inputs, que la ficha, la impresión, el equipo,
+ * el comparador y Rankings (invariante #7). Regla del owner (28-sep): sin TODAS las
+ * entradas introducidas (talla, peso, talla sentado, pierna, fecha de nacimiento →
+ * edad DECIMAL, sexo registrado) no hay PHV. Antes se llamaba al motor directamente
+ * con la edad ENTERA como respaldo y pierna/sentado ESTIMADOS, así que el ScoutFeed
+ * podía afirmar un estado que la ficha ocultaba. Los inputs salen del blob `data`
+ * (no de las columnas 024: `gender` tenía DEFAULT 'M', invariante #5).
  *
- * El motor se abstiene (timing "unknown") sin antropometría, sin sexo, o lejos
- * del PHV (p.ej. un pre-púber de 9 años, donde Mirwald pierde fiabilidad). En ese
- * caso NO se afirma nada de maduración al LLM (invariante #2: ante dato ausente,
- * se bloquea; nunca se rellena con el valor naive persistido).
+ * Gate cerrado ⇒ abstención (timing/estado "unknown"): NO se afirma nada de
+ * maduración al LLM (invariante #2: nunca el valor naive persistido).
  */
 function canonicalMaturity(player: PlayerRow): MaturityAssessment {
-  const d = player.data ?? {};
-  return resolveMaturity({
-    sex: d.gender === "M" || d.gender === "F" ? d.gender : undefined,
-    ageYears: resolveChronologicalAge({ birthDate: d.birthDate, age: d.age ?? player.age }) ?? undefined,
-    heightCm: d.height ?? undefined,
-    weightKg: d.weight ?? undefined,
-    sittingHeightCm: d.sittingHeight ?? undefined,
-    legLengthCm: d.legLength ?? undefined,
-    motherHeightCm: d.motherHeightCm ?? undefined,
-    fatherHeightCm: d.fatherHeightCm ?? undefined,
-  });
+  return gatedMaturity(player.data ?? {});
 }
 
 /**

@@ -15,6 +15,14 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
+import {
+  phvGate,
+  trustAnthropometricsRow,
+  AGE_SOURCE_BIRTH_DATE,
+  AGE_SOURCE_INTEGER,
+  type PhvGate,
+} from "../../src/lib/phv/phvGate";
+import { decimalAgeYears } from "../../src/lib/shared/age";
 
 export const config = { runtime: "edge" };
 
@@ -28,7 +36,13 @@ const postSchema = z.object({
   weightKg: z.number().min(15).max(150),
   sittingHeightCm: z.number().min(40).max(130).optional(),
   legLengthCm: z.number().min(30).max(130).optional(),
+  // Edad ENTERA del jugador: SOLO rellena la columna NOT NULL cuando no hay fecha de
+  // nacimiento (y entonces el PHV queda BLOQUEADO). Nunca entra en Mirwald: la regla
+  // del owner (28-sep) exige la edad decimal exacta desde la fecha de nacimiento.
   chronologicalAge: z.number().min(5).max(25),
+  // Fecha de nacimiento del JUGADOR (ISO). Fuente de la edad decimal de Mirwald. Si
+  // no viene, se usa la registrada en el jugador; si tampoco existe ⇒ PHV bloqueado.
+  birthDate: z.string().max(40).optional(),
   // Sexo SIN default: el PHV es sexo-específico (invariante #5). Ausente ⇒ no se
   // calcula PHV (queda null), NUNCA se asume masculino ni cae a femenino.
   gender: z.enum(["M", "F"]).optional(),
@@ -103,13 +117,133 @@ function computePhv(input: {
   };
 }
 
+// ── Gate de entradas (regla del owner 28-sep · G6: qué entra, no la fórmula) ──
+// El PHV solo se calcula con TODAS las entradas introducidas: talla, peso, talla
+// sentado, pierna (o talla − sentado), EDAD DECIMAL desde la fecha de nacimiento
+// del jugador en la fecha de la medida y sexo registrado. La decisión la toma el
+// gate ÚNICO (src/lib/phv/phvGate.ts, inv #7); computePhv no cambia (inv #4).
+// El entero `chronologicalAge` del cliente NUNCA entra en Mirwald: solo rellena la
+// columna NOT NULL cuando falta la fecha de nacimiento (y el PHV queda bloqueado).
+
+interface PlayerIdentity {
+  birthDate: string | null;
+  gender: "M" | "F" | null;
+}
+
+function sexOf(v: unknown): "M" | "F" | null {
+  return v === "M" || v === "F" ? v : null;
+}
+
+/** Fecha de nacimiento + sexo registrados del jugador (columna o blob `data`). */
+async function loadIdentity(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  playerId: string,
+): Promise<PlayerIdentity & { tenantId: string | null; found: boolean }> {
+  const { data } = await supabase
+    .from("players")
+    .select("tenant_id, birth_date, data")
+    .eq("id", playerId)
+    .single();
+  const blob = (data?.data ?? {}) as Record<string, unknown>;
+  const birth =
+    (typeof data?.birth_date === "string" && data.birth_date) ||
+    (typeof blob.birthDate === "string" && blob.birthDate) ||
+    null;
+  return {
+    found: !!data,
+    tenantId: data?.tenant_id ?? null,
+    birthDate: birth,
+    // Sexo del blob (lo introducido por una persona); la columna pudo arrastrar
+    // un 'M' asumido antes de 058 (inv #5).
+    gender: sexOf(blob.gender),
+  };
+}
+
+interface MeasurementPhv {
+  phv: ReturnType<typeof computePhv> | null;
+  gate: PhvGate;
+  chronologicalAge: number;
+  ageSource: typeof AGE_SOURCE_BIRTH_DATE | typeof AGE_SOURCE_INTEGER;
+}
+
+function phvForMeasurement(
+  input: {
+    heightCm: number;
+    weightKg: number;
+    sittingHeightCm?: number;
+    legLengthCm?: number;
+    chronologicalAge: number;
+  },
+  identity: PlayerIdentity,
+  at: string,
+): MeasurementPhv {
+  const gate = phvGate(
+    {
+      height: input.heightCm,
+      weight: input.weightKg,
+      sittingHeight: input.sittingHeightCm,
+      legLength: input.legLengthCm,
+      birthDate: identity.birthDate,
+      gender: identity.gender,
+    },
+    at,
+  );
+  const decimalAge = decimalAgeYears(identity.birthDate, at);
+  const phv = gate.ok
+    ? computePhv({
+        age: gate.ageYears,
+        height: input.heightCm,
+        weight: input.weightKg,
+        sittingHeight: input.sittingHeightCm as number,
+        legLength: gate.legLengthCm,
+        gender: identity.gender as "M" | "F",
+      })
+    : null;
+  return {
+    phv,
+    gate,
+    chronologicalAge: decimalAge ?? input.chronologicalAge,
+    ageSource: decimalAge !== null ? AGE_SOURCE_BIRTH_DATE : AGE_SOURCE_INTEGER,
+  };
+}
+
+/** Edad decimal fuera del CHECK de la tabla (5–25) ⇒ la fecha de nacimiento es errónea. */
+function invalidAge(m: MeasurementPhv): boolean {
+  return m.chronologicalAge < 5 || m.chronologicalAge > 25;
+}
+
+function gateSummary(m: MeasurementPhv) {
+  return { ok: m.gate.ok, gate_reason: m.gate.gate_reason, missing: m.gate.missing };
+}
+
+/**
+ * Columnas nuevas de la migración 069. Si el operador aún no la aplicó, PostgREST
+ * rechaza la escritura («Could not find the 'age_source' column») y la medida no se
+ * guardaría. Se reintenta UNA vez sin ellas: la fila queda con age_source NULL ⇒
+ * trustAnthropometricsRow la trata como NO fiable (falla cerrado: se guardan las
+ * medidas, el PHV de esa fila no se muestra). La app nunca se rompe por la 069.
+ */
+const MIGRATION_069_COLUMNS = ["age_source", "phv_gate_reason"] as const;
+
+function missing069Column(error: { message?: string } | null | undefined): boolean {
+  const msg = error?.message ?? "";
+  return MIGRATION_069_COLUMNS.some((c) => msg.includes(c));
+}
+
+function without069Columns<T extends Record<string, unknown>>(values: T): T {
+  const copy = { ...values } as Record<string, unknown>;
+  for (const c of MIGRATION_069_COLUMNS) delete copy[c];
+  return copy as T;
+}
+
 export default withHandler(
   {
     method: ["GET", "POST", "PATCH", "DELETE"],
     requireAuth: true,
     maxRequests: 60,
   },
-  async ({ req, userId, isServiceCall, method, query }) => {
+  async ({ req, body: postBody, userId, isServiceCall, method, query }) => {
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
       auth: { persistSession: false },
     });
@@ -181,20 +315,25 @@ export default withHandler(
       if (rowToDelete?.player_id) {
         const { data: latest } = await supabase
           .from("player_anthropometrics")
-          .select("height_cm, weight_kg, sitting_height_cm, leg_length_cm, maturity_offset, phv_category")
+          // select("*"): robusto aunque la 069 (age_source) aún no esté aplicada.
+          .select("*")
           .eq("player_id", rowToDelete.player_id)
           .order("measured_at", { ascending: false })
           .limit(1)
           .maybeSingle();
 
         if (latest) {
+          // El PHV de la nueva última fila solo se propaga si es fiable (fila completa
+          // con edad por fecha de nacimiento, 069). Una fila antigua (edad entera) NO
+          // re-contamina players.phv_category.
+          const trusted = trustAnthropometricsRow(latest);
           await supabase.from("players").update({
             height_cm: latest.height_cm,
             weight_kg: latest.weight_kg,
             sitting_height: latest.sitting_height_cm,
             leg_length: latest.leg_length_cm,
-            phv_category: latest.phv_category,
-            phv_offset: latest.maturity_offset,
+            phv_category: trusted.trusted ? latest.phv_category : null,
+            phv_offset: trusted.trusted ? trusted.offset : null,
           }).eq("id", rowToDelete.player_id);
         }
         // Si no quedan mediciones, dejamos el player con los valores que tuviera
@@ -208,10 +347,11 @@ export default withHandler(
       const id = query.id;
       if (!id) return errorResponse({ code: "missing_id", message: "Falta id en query", status: 400 });
 
-      // Resolver ownership por la fila ANTES de mutar.
+      // Resolver ownership por la fila ANTES de mutar. measured_at: la edad decimal
+      // se recalcula en la fecha ORIGINAL de la medida, no hoy.
       const { data: rowOwner } = await supabase
         .from("player_anthropometrics")
-        .select("player_id")
+        .select("player_id, measured_at")
         .eq("id", id)
         .single();
 
@@ -243,37 +383,60 @@ export default withHandler(
         });
       }
 
-      // PHV solo con sitting+leg REALES (sin estimar) Y sexo registrado (sexo-
-      // específico). Si falta cualquiera → null (no fabricar, no asumir sexo).
-      const phv =
-        input.sittingHeightCm != null && input.legLengthCm != null && input.gender
-          ? computePhv({
-              age: input.chronologicalAge,
-              height: input.heightCm,
-              weight: input.weightKg,
-              sittingHeight: input.sittingHeightCm,
-              legLength: input.legLengthCm,
-              gender: input.gender,
-            })
-          : null;
+      // PHV solo con TODAS las entradas introducidas (gate único): 4 medidas, edad
+      // decimal desde la fecha de nacimiento en la fecha de la medida y sexo
+      // registrado. Si falta cualquiera → null + motivo (no fabricar, no asumir).
+      const identity = await loadIdentity(supabase, String(rowOwner?.player_id ?? ""));
+      const measuredAt =
+        typeof rowOwner?.measured_at === "string" ? rowOwner.measured_at : new Date().toISOString();
+      const m = phvForMeasurement(
+        {
+          heightCm: input.heightCm,
+          weightKg: input.weightKg,
+          sittingHeightCm: input.sittingHeightCm,
+          legLengthCm: input.legLengthCm,
+          chronologicalAge: input.chronologicalAge,
+        },
+        { birthDate: input.birthDate ?? identity.birthDate, gender: input.gender ?? identity.gender },
+        measuredAt,
+      );
+      if (invalidAge(m)) {
+        return errorResponse({
+          code: "invalid_birth_date",
+          message: "La fecha de nacimiento da una edad fuera de 5–25 años en la fecha de la medida",
+          status: 400,
+        });
+      }
+      const phv = m.phv;
 
-      const { data: row, error } = await supabase
+      const updateValues = {
+        height_cm: input.heightCm,
+        weight_kg: input.weightKg,
+        sitting_height_cm: input.sittingHeightCm ?? null,
+        leg_length_cm: input.legLengthCm ?? null,
+        chronological_age: m.chronologicalAge,
+        age_source: m.ageSource,
+        maturity_offset: phv?.offset ?? null,
+        phv_category: phv?.category ?? null,
+        phv_status: phv?.phv_status ?? null,
+        development_window: phv?.development_window ?? null,
+        phv_gate_reason: m.gate.gate_reason,
+        notes: input.notes,
+      };
+      let { data: row, error } = await supabase
         .from("player_anthropometrics")
-        .update({
-          height_cm: input.heightCm,
-          weight_kg: input.weightKg,
-          sitting_height_cm: input.sittingHeightCm ?? null,
-          leg_length_cm: input.legLengthCm ?? null,
-          chronological_age: input.chronologicalAge,
-          maturity_offset: phv?.offset ?? null,
-          phv_category: phv?.category ?? null,
-          phv_status: phv?.phv_status ?? null,
-          development_window: phv?.development_window ?? null,
-          notes: input.notes,
-        })
+        .update(updateValues)
         .eq("id", id)
         .select()
         .single();
+      if (error && missing069Column(error)) {
+        ({ data: row, error } = await supabase
+          .from("player_anthropometrics")
+          .update(without069Columns(updateValues))
+          .eq("id", id)
+          .select()
+          .single());
+      }
 
       if (error) return errorResponse({ code: "update_failed", message: error.message, status: 500 });
 
@@ -299,12 +462,14 @@ export default withHandler(
         }
       }
 
-      return successResponse({ updated: true, record: row, phv });
+      return successResponse({ updated: true, record: row, phv, phvGate: gateSummary(m) });
     }
 
     // ── POST · nueva medida + calcular PHV ───────────────────────
-    const body = (await req.json().catch(() => null)) as unknown;
-    const parsed = postSchema.safeParse(body);
+    // withHandler YA leyó el cuerpo del POST (req.text() → ctx.body): releer
+    // req.json() fallaba siempre («Body is unusable» → null → 400 invalid_body), así
+    // que ninguna medición nueva llegaba a guardarse. Se usa el cuerpo ya parseado.
+    const parsed = postSchema.safeParse(postBody);
     if (!parsed.success) {
       return errorResponse({
         code: "invalid_body",
@@ -318,49 +483,66 @@ export default withHandler(
       return forbidden();
     }
 
-    const { data: player } = await supabase
-      .from("players")
-      .select("tenant_id")
-      .eq("id", input.playerId)
-      .single();
+    const player = await loadIdentity(supabase, input.playerId);
 
-    if (!player) {
+    if (!player.found) {
       return errorResponse({ code: "player_not_found", message: "Jugador no existe", status: 404 });
     }
 
-    // PHV solo con sitting+leg REALES (sin estimar) Y sexo registrado (sexo-
-    // específico). Si falta cualquiera → null (no fabricar, no asumir sexo).
-    const phv =
-      input.sittingHeightCm != null && input.legLengthCm != null && input.gender
-        ? computePhv({
-            age: input.chronologicalAge,
-            height: input.heightCm,
-            weight: input.weightKg,
-            sittingHeight: input.sittingHeightCm,
-            legLength: input.legLengthCm,
-            gender: input.gender,
-          })
-        : null;
+    // PHV solo con TODAS las entradas introducidas (gate único): 4 medidas, edad
+    // decimal desde la fecha de nacimiento del jugador HOY (measured_at = now()) y
+    // sexo registrado. Si falta cualquiera → null + motivo (no fabricar, no asumir).
+    const measuredAt = new Date().toISOString();
+    const m = phvForMeasurement(
+      {
+        heightCm: input.heightCm,
+        weightKg: input.weightKg,
+        sittingHeightCm: input.sittingHeightCm,
+        legLengthCm: input.legLengthCm,
+        chronologicalAge: input.chronologicalAge,
+      },
+      { birthDate: input.birthDate ?? player.birthDate, gender: input.gender ?? player.gender },
+      measuredAt,
+    );
+    if (invalidAge(m)) {
+      return errorResponse({
+        code: "invalid_birth_date",
+        message: "La fecha de nacimiento da una edad fuera de 5–25 años",
+        status: 400,
+      });
+    }
+    const phv = m.phv;
 
-    const { data: row, error } = await supabase
+    const insertValues = {
+      tenant_id: player.tenantId,
+      player_id: input.playerId,
+      height_cm: input.heightCm,
+      weight_kg: input.weightKg,
+      sitting_height_cm: input.sittingHeightCm,
+      leg_length_cm: input.legLengthCm,
+      chronological_age: m.chronologicalAge,
+      age_source: m.ageSource,
+      maturity_offset: phv?.offset ?? null,
+      phv_category: phv?.category ?? null,
+      phv_status: phv?.phv_status ?? null,
+      development_window: phv?.development_window ?? null,
+      phv_gate_reason: m.gate.gate_reason,
+      measured_by_user: userId,
+      measured_at: measuredAt,
+      notes: input.notes,
+    };
+    let { data: row, error } = await supabase
       .from("player_anthropometrics")
-      .insert({
-        tenant_id: player.tenant_id,
-        player_id: input.playerId,
-        height_cm: input.heightCm,
-        weight_kg: input.weightKg,
-        sitting_height_cm: input.sittingHeightCm,
-        leg_length_cm: input.legLengthCm,
-        chronological_age: input.chronologicalAge,
-        maturity_offset: phv?.offset ?? null,
-        phv_category: phv?.category ?? null,
-        phv_status: phv?.phv_status ?? null,
-        development_window: phv?.development_window ?? null,
-        measured_by_user: userId,
-        notes: input.notes,
-      })
+      .insert(insertValues)
       .select()
       .single();
+    if (error && missing069Column(error)) {
+      ({ data: row, error } = await supabase
+        .from("player_anthropometrics")
+        .insert(without069Columns(insertValues))
+        .select()
+        .single());
+    }
 
     if (error) {
       return errorResponse({ code: "save_failed", message: error.message, status: 500 });
@@ -376,6 +558,6 @@ export default withHandler(
       phv_offset: phv?.offset ?? null,
     }).eq("id", input.playerId);
 
-    return successResponse({ saved: true, record: row, phv });
+    return successResponse({ saved: true, record: row, phv, phvGate: gateSummary(m) });
   }
 );

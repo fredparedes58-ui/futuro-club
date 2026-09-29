@@ -12,6 +12,7 @@ export const config = { runtime: "edge" };
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { errorResponse } from "../_lib/apiResponse";
+import { phvGate, phvLabelEs, type PhvGateInput } from "../../src/lib/phv/phvGate";
 
 const PdfRequestSchema = z.object({
   playerId: z.string(),
@@ -57,7 +58,12 @@ export default withHandler(
     const foot = (player.foot as string) ?? "";
     const height = (player.height as number) ?? 0;
     const weight = (player.weight as number) ?? 0;
-    const phvCategory = (player.phvCategory as string) ?? "";
+    // Maduración desde el GATE ÚNICO (regla del owner 28-sep): solo con TODAS las
+    // entradas introducidas del blob. Antes se leía el phvCategory persistido y se
+    // rotulaba "early" (= pre-PHV, un ESTADO) como «Tardía» y, sin categoría,
+    // «Precoz» — a cualquier menor sin medidas se le imprimía una maduración.
+    // (Texto fijo del gate: sin datos de usuario que escapar.)
+    const maturityLabel = phvLabelEs(phvGate(player as PhvGateInput));
 
     // 2. Fetch latest analysis (always, for richer report)
     let analysis: Record<string, unknown> | null = null;
@@ -215,7 +221,7 @@ export default withHandler(
   <div class="info-grid">
     <div class="info-card"><div class="label">Altura</div><div class="value">${height} cm</div></div>
     <div class="info-card"><div class="label">Peso</div><div class="value">${weight} kg</div></div>
-    <div class="info-card"><div class="label">Maduración</div><div class="value">${phvCategory === "ontme" ? "En fase" : phvCategory === "early" ? "Tardía" : "Precoz"}</div></div>
+    <div class="info-card"><div class="label">Maduración</div><div class="value">${maturityLabel}</div></div>
     <div class="info-card"><div class="label">VSI</div><div class="value">${vsi.toFixed(1)}</div></div>
   </div>
 

@@ -96,7 +96,8 @@ const ScanIQCard = lazy(() =>
 );
 
 // Sprint 2: PHV como producto
-import { usePHVProduct } from "@/hooks/usePHVProduct";
+import { usePHVProduct, usePHVGate } from "@/hooks/usePHVProduct";
+import { PhvGateNotice, usePhvGateText } from "@/components/phv/PhvGateNotice";
 const PHVProductCard = lazy(() =>
   import("@/components/phv/PHVProductCard").then((m) => ({ default: m.PHVProductCard })),
 );
@@ -166,11 +167,12 @@ export default function PlayerHubPage() {
     return PlayerService.getById(id) ?? apiRawPlayer ?? null;
   }, [id, phvRefresh, apiRawPlayer]);
 
-  // PHV canónico GATEADO: null si no hay datos reales completos (Mirwald con
-  // altura sentado + longitud de pierna medidos, o Khamis-Roche con padres).
-  // Se usa para NO mostrar un PHV fabricado (jugador sin medición registrada).
-  const phvProduct = usePHVProduct(id);
+  // PHV canónico GATEADO (gate único, regla del owner 28-sep): null salvo que estén
+  // TODAS las entradas introducidas (talla, peso, sentado, pierna, fecha de
+  // nacimiento → edad decimal, sexo). El gate nombra lo que falta.
+  const { product: phvProduct, gate: phvGateState } = usePHVGate(id);
   const hasValidPhv = phvProduct !== null;
+  const phvGateText = usePhvGateText();
 
   // Analyses
   const { data: analyses } = useSavedAnalysesV2(id ?? "");
@@ -267,25 +269,19 @@ export default function PlayerHubPage() {
     );
   }
 
-  // Etapa de PHV para el badge del header. Se prefiere la categoría PERSISTIDA
-  // (comportamiento de producción intacto) y, si no está, se cae a la evaluación
-  // canónica en vivo (`assessment.status`, la MISMA fuente que usa la sección
-  // PHV). Sin esto, un jugador con PHV válidamente computado pero sin
-  // phvCategory guardado (el caso del club de ejemplo del demo, y de cualquier
-  // ficha sin persistir la categoría) mostraba "Sin datos PHV" contradiciendo su
-  // propia sección de maduración. No se toca la fórmula ni %PAH: solo se lee el
-  // estado ya calculado. status: pre_phv → Pre-PHV, post_phv → Post-PHV,
-  // circa_phv → En PHV.
+  // Etapa de PHV para el badge del header: SOLO la evaluación gateada (la misma
+  // que la sección PHV). La categoría PERSISTIDA ya no cuenta: para un menor sin
+  // medidas era un valor naive/estancado (p.ej. «Pre-PHV» sin talla sentado ni
+  // fecha de nacimiento). Sin gate abierto el header dice «Sin datos PHV» y el
+  // title nombra qué falta. No se toca la fórmula ni %PAH.
   const phvStage: "pre" | "post" | "in" | null =
-    player.phvCategory === "early" ? "pre"
-    : player.phvCategory === "late" ? "post"
-    : player.phvCategory ? "in"
-    : phvProduct?.assessment.status === "pre_phv" ? "pre"
+    phvProduct?.assessment.status === "pre_phv" ? "pre"
     : phvProduct?.assessment.status === "post_phv" ? "post"
     : phvProduct?.assessment.status === "circa_phv" ? "in"
     : null;
   const phvIcon = !hasValidPhv ? "⚪" : phvStage === "pre" ? "🟢" : phvStage === "post" ? "🔵" : phvStage === "in" ? "🟡" : "⚪";
   const phvLabel = !hasValidPhv ? t("playerHubPage.phvNoData") : phvStage === "pre" ? t("playerHubPage.phvPre") : phvStage === "post" ? t("playerHubPage.phvPost") : phvStage === "in" ? t("playerHubPage.phvIn") : t("playerHubPage.phvNoData");
+  const phvLabelTitle = phvGateState && !phvGateState.ok ? phvGateText({ gate: phvGateState }) : undefined;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -314,7 +310,7 @@ export default function PlayerHubPage() {
                 {player.secondaryPositions && player.secondaryPositions.length > 0 && (
                   <span className="text-muted-foreground/70"> / {player.secondaryPositions.join(" / ")}</span>
                 )}
-                {" · "}{phvIcon} {phvLabel}
+                {" · "}<span title={phvLabelTitle}>{phvIcon} {phvLabel}</span>
               </p>
             </div>
 
@@ -1042,12 +1038,28 @@ function DMScoreSection({ playerId }: { playerId: string }) {
 // ── PHV como producto (Sprint 2) ──────────────────────────────────
 
 function PHVProductSection({ playerId }: { playerId: string }) {
-  const phv = usePHVProduct(playerId);
-  if (!phv) return null;
+  const { t } = useTranslation();
+  const { product: phv, gate, pah } = usePHVGate(playerId);
+  if (!gate) return null;
+  // Gate cerrado: se NOMBRA qué falta (regla del owner) en vez de ocultar la
+  // sección en silencio. El %talla adulta es otra métrica con su propio gate y se
+  // rotula como tal, nunca como PHV.
+  if (!phv) {
+    return (
+      <div className="space-y-2">
+        <PhvGateNotice variant="card" gate={gate} />
+        {pah?.ok && pah.percent.value !== null && (
+          <p className="text-[11px] text-muted-foreground px-1" data-testid="pah-only">
+            {t("maturity.percentPAH")}: <span className="font-semibold text-foreground">{pah.percent.value}%</span>
+          </p>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <PHVProductCard data={phv} />
-      <MaturityProjectionChart projection={phv.projection} />
+      {phv.projection && <MaturityProjectionChart projection={phv.projection} />}
     </div>
   );
 }

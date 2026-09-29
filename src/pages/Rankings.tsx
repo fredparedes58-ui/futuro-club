@@ -13,7 +13,9 @@ import { useTranslation } from "react-i18next";
 import type { SortField, SortDir, RankingsFilters } from "@/services/rankingsService";
 import FeatureHint from "@/components/FeatureHint";
 import { RequirePermission } from "@/components/RequirePermission";
-import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { maturityTimingKey } from "@/lib/phv/playerMaturity";
+import { phvGate, type PhvGateInput } from "@/lib/phv/phvGate";
+import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
 import DemoDataBanner from "@/components/DemoDataBanner";
 import { PlayerService } from "@/services/real/playerService";
 
@@ -417,7 +419,11 @@ const Rankings = () => {
                       antropometría/sexo del jugador. "por determinar" cuando no
                       es fiable (lejos del PHV / sin datos) → sin falso positivo. */}
                   {(() => {
-                    const mat = playerMaturity(player as unknown as PlayerMaturityInput);
+                    // Gate único: sin todas las entradas introducidas se nombra
+                    // qué falta, nunca «Timing por determinar» mudo ni una fase.
+                    const phv = phvGate(player as unknown as PhvGateInput);
+                    if (!phv.ok) return <PhvGateNotice gate={phv} />;
+                    const mat = phv.assessment;
                     const cls =
                       mat.timing === "late" ? "text-primary font-semibold"
                       : mat.timing === "early" ? "text-gold"

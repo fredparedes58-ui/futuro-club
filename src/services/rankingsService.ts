@@ -39,8 +39,10 @@ export interface RankedPlayer {
   secondaryPositions?: string[];          // polivalencia
   positionShort: string;
   vsi: number | null;                     // null ⇒ sin evaluar
-  phvCategory: string;
-  phvOffset: number;
+  phvCategory: string | null;             // null ⇒ PHV bloqueado (gate único)
+  phvOffset: number | null;
+  /** Motivo del gate PHV del servidor (qué falta) cuando phvCategory es null. */
+  phvGateReason?: string | null;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
@@ -49,8 +51,8 @@ export interface RankedPlayer {
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
-  height: number;
-  weight: number;
+  height: number | null;
+  weight: number | null;
   // ── Inputs de maduración (para playerMaturity → PHV/timing en el ranking) ──
   // Sin `gender`, playerMaturity marca "sexo no registrado" y el timing sale
   // "por determinar" para TODOS. Se arrastran desde el jugador crudo.
@@ -163,8 +165,10 @@ function fetchLocalRankedPlayers(
       secondaryPositions: (p as unknown as { secondaryPositions?: string[] }).secondaryPositions,
       positionShort: p.positionShort ?? p.position.slice(0, 3).toUpperCase(),
       vsi: p.vsi,
-      phvCategory: p.phvCategory ?? "on-time",
-      phvOffset: p.phvOffset ?? 0,
+      // Sin default «on-time»/0: sin PHV gateado (adaptPlayerForUI ya retira la
+      // categoría persistida no recalculable) ⇒ null, no se inventa una fase.
+      phvCategory: p.phvCategory ?? null,
+      phvOffset: p.phvOffset ?? null,
       competitiveLevel: p.competitiveLevel ?? "Regional",
       ageGroup,
       trending: p.trending ?? "stable",
@@ -174,8 +178,9 @@ function fetchLocalRankedPlayers(
       updatedAt: p.lastActive ?? new Date().toISOString(),
       metrics: p.stats ?? {},
       foot: p.foot ?? "right",
-      height: p.height ?? 170,
-      weight: p.weight ?? 60,
+      // Entradas del gate PHV que Rankings recalcula: sin default 170/60 (inv #2).
+      height: raw?.height ?? null,
+      weight: raw?.weight ?? null,
       // Maduración desde el jugador crudo (el adaptador UI no los arrastra) → así
       // playerMaturity calcula PHV/timing en el ranking en vez de "por determinar".
       gender: raw?.gender,

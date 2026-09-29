@@ -70,8 +70,8 @@ export function CreateListingForm({ onCreated }: Props) {
       position: (selectedPlayer as unknown as { position?: string }).position,
       foot: (selectedPlayer as unknown as { foot?: string }).foot,
       vsi: (selectedPlayer as unknown as { vsi?: number }).vsi,
-      phvOffset: (selectedPlayer as unknown as { phvOffset?: number }).phvOffset,
-      phvCategory: (selectedPlayer as unknown as { phvCategory?: string }).phvCategory,
+      // Sin phvCategory/phvOffset: el servidor los copia de las columnas gateadas
+      // del jugador (api/transfer/_create-listing.ts) y los marca phvTrusted.
     };
 
     try {

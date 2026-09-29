@@ -3274,7 +3274,23 @@
     "ageAtPHV": "Geschatte PHV",
     "percentPAH": "% volwassen lengte",
     "yearsUnit": "jaar",
-    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder)."
+    "addParentsHint": "Voeg de lengte van beide ouders toe voor de berekening via % volwassen lengte (betrouwbaarder).",
+    "gate": {
+      "unavailable": "PHV niet beschikbaar",
+      "missing": "Ontbreekt: {{list}}",
+      "outOfRange": "Gegevens buiten het geldigheidsbereik van Mirwald (8–18 jaar)",
+      "legacyRow": "Meting vastgelegd voordat de exacte leeftijd uit de geboortedatum werd gebruikt: sla haar opnieuw op",
+      "noRow": "Geen antropometrische meting vastgelegd",
+      "notComputed": "De PHV is niet berekend voor deze meting",
+      "input": {
+        "height": "lengte",
+        "weight": "gewicht",
+        "sittingHeight": "zithoogte",
+        "legLength": "beenlengte",
+        "birthDate": "geboortedatum van de speler",
+        "sex": "geregistreerd geslacht"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Geen positiegegevens om een heatmap te genereren",

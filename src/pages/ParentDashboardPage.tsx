@@ -32,6 +32,8 @@ import { useDropoutRisk, useEngagementHistory } from "@/hooks/useWellbeing";
 import { useCurrentIDP } from "@/hooks/useIDP";
 import { IDPParentView } from "@/components/idp/IDPParentView";
 import { usePHVProduct } from "@/hooks/usePHVProduct";
+import { phvGate } from "@/lib/phv/phvGate";
+import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
 import { GrowthSpurtShieldAlert } from "@/components/phv/GrowthSpurtShieldAlert";
 import {
   usePlayerConsent,
@@ -85,6 +87,10 @@ export default function ParentDashboardPage() {
   const vsiBefore = vsiHistory.length >= 2 ? vsiHistory[Math.max(0, vsiHistory.length - 4)] : vsiCurrent;
   const vsiDelta = Number((vsiCurrent - vsiBefore).toFixed(1));
 
+  // Fase de estirón SOLO desde el gate único de PHV (regla del owner 28-sep).
+  const phvGateResult = phvGate(rawPlayer ?? player);
+  const phvPhaseKey = phvGateResult.category === "ontme" ? "ontime" : phvGateResult.category ?? "";
+
   const totalReports = analyses.length;
   const latestAnalysis = analyses[0];
   const latestReport = latestAnalysis?.report as { estadoActual?: { resumenEjecutivo?: string; nivelActual?: string } } | undefined;
@@ -103,7 +109,9 @@ export default function ParentDashboardPage() {
       emoji: "🧬",
       title: t("parentDashboardPage.badgePhvTrackedTitle"),
       description: t("parentDashboardPage.badgePhvTrackedDesc"),
-      unlocked: !!rawPlayer?.phvCategory,
+      // Solo con PHV REAL (gate único: todas las entradas introducidas), no por
+      // tener un phvCategory persistido (naive para un menor sin medidas).
+      unlocked: phvGateResult.ok,
     },
     {
       id: "first-report",
@@ -235,11 +243,13 @@ export default function ParentDashboardPage() {
             </div>
           )}
 
-          {rawPlayer?.phvCategory && (
+          {phvGateResult.ok ? (
             <div className="mt-3 text-[11px] text-foreground">
-              {t("parentDashboardPage.phaseLabel")} <span className="font-display font-bold">{PHV_EMOJIS[rawPlayer.phvCategory] ? `${PHV_EMOJIS[rawPlayer.phvCategory]} ${t(`parentDashboardPage.phv_${rawPlayer.phvCategory === "ontme" ? "ontime" : rawPlayer.phvCategory}`)}` : rawPlayer.phvCategory}</span>
+              {t("parentDashboardPage.phaseLabel")} <span className="font-display font-bold">{`${PHV_EMOJIS[phvPhaseKey] ?? ""} ${t(`parentDashboardPage.phv_${phvPhaseKey}`)}`}</span>
             </div>
-          )}
+          ) : rawPlayer ? (
+            <PhvGateNotice className="mt-3 block text-[11px]" gate={phvGateResult} />
+          ) : null}
         </motion.div>
 
         {/* Quick stats simples */}

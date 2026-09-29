@@ -21,10 +21,24 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { trustAnthropometricsRow, missingPhvInputs, type PhvCategory } from "@/lib/phv/phvGate";
+import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/context/AuthContext";
+import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { PlayerService } from "@/services/real/playerService";
+import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 
 interface Props {
   playerId: string;
+  /**
+   * Edad ENTERA del jugador: solo rellena la columna obligatoria cuando falta la
+   * fecha de nacimiento (y entonces el PHV queda bloqueado). Mirwald usa SIEMPRE la
+   * edad decimal que el servidor calcula desde `birthDate` (regla del owner 28-sep).
+   */
   chronologicalAge: number;
+  /** Fecha de nacimiento del JUGADOR (ISO). Sin ella no se calcula el PHV. */
+  birthDate?: string;
   gender?: "M" | "F";
   /** Fallbacks si todavía no hay mediciones en la tabla histórica */
   fallback?: {
@@ -33,7 +47,15 @@ interface Props {
     sittingHeightCm?: number;
     legLengthCm?: number;
   };
-  onSaved?: (result: PhvResult) => void;
+  /** Tras guardar (enviado al servidor): las medidas introducidas, para el host. */
+  onSaved?: (measures: SavedMeasures) => void;
+}
+
+export interface SavedMeasures {
+  heightCm: number;
+  weightKg: number;
+  sittingHeightCm: number;
+  legLengthCm: number;
 }
 
 interface PhvResult {
@@ -51,10 +73,13 @@ interface AnthroRow {
   sitting_height_cm: number | null;
   leg_length_cm: number | null;
   chronological_age: number;
-  maturity_offset: number;
-  phv_category: "early" | "ontime" | "late";
-  phv_status: PhvResult["phv_status"];
-  development_window: PhvResult["development_window"];
+  /** 'birth_date' ⇒ edad decimal desde la fecha de nacimiento (069). */
+  age_source?: string | null;
+  maturity_offset: number | null;
+  phv_category: "early" | "ontime" | "late" | null;
+  phv_status: PhvResult["phv_status"] | null;
+  development_window: PhvResult["development_window"] | null;
+  phv_gate_reason?: string | null;
   measured_at: string;
   notes?: string | null;
 }
@@ -65,10 +90,17 @@ const PHV_LABELS = {
   late:   { label: "Post-estirón", color: "#10b981", emoji: "🏆" },
 } as const;
 
+/** La categoría de la fila (convención persistida "ontime") → clave de PHV_LABELS. */
+function labelKey(c: PhvCategory): keyof typeof PHV_LABELS {
+  return c === "ontme" ? "ontime" : c;
+}
+
 const EMPTY_FORM = { height: "", weight: "", sitting: "", leg: "" };
 
-export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallback, onSaved }: Props) {
+export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gender, fallback, onSaved }: Props) {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [history, setHistory] = useState<AnthroRow[]>([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -98,7 +130,10 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
   const loadHistory = useCallback(async () => {
     setLoading(true);
     try {
+      // Bearer: el endpoint exige auth (requireAuth); sin la cabecera respondía 401
+      // y el histórico —y con él el PHV fiable de la última fila— nunca se veía.
       const res = await fetch(`/api/players/anthropometrics?playerId=${playerId}&history=true`, {
+        headers: await getAuthHeaders(),
         credentials: "include",
       });
       const data = await res.json();
@@ -125,6 +160,27 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
       });
     }
   }, [loading, history.length, fallback, showForm]);
+
+  async function adoptMeasuresLocally(m: SavedMeasures) {
+    try {
+      const updated = await PlayerService.update(playerId, {
+        height: m.heightCm,
+        weight: m.weightKg,
+        sittingHeight: m.sittingHeightCm,
+        legLength: m.legLengthCm,
+      });
+      if (updated && user && SUPABASE_CONFIGURED) {
+        await SupabasePlayerService.pushOne(user.id, updated).catch(() => {});
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["player", playerId] }),
+        queryClient.invalidateQueries({ queryKey: ["player-raw", playerId] }),
+        queryClient.invalidateQueries({ queryKey: ["players-all"] }),
+      ]);
+    } catch {
+      // La medida YA está en el servidor; la ficha se re-sincroniza en el próximo pull.
+    }
+  }
 
   function startNew() {
     setEditingId(null);
@@ -179,6 +235,9 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
       return;
     }
 
+    // birthDate: el servidor calcula con ella la edad DECIMAL de Mirwald en la
+    // fecha de la medida. chronologicalAge (entero) solo rellena la columna si
+    // falta la fecha — y entonces el PHV queda bloqueado con motivo.
     const payload = {
       playerId,
       heightCm,
@@ -186,6 +245,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
       sittingHeightCm,
       legLengthCm,
       chronologicalAge,
+      ...(birthDate ? { birthDate } : {}),
       gender,
     };
 
@@ -204,6 +264,11 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
 
       if (result.sent) {
         toast.success(editingId ? t("anthroForm.toastUpdated") : t("anthroForm.toastSaved"));
+        // Medición NUEVA (la más reciente): la ficha local adopta las medidas
+        // introducidas para que el gate único de PHV de la ficha lea lo mismo que se
+        // acaba de medir (el endpoint solo escribe columnas; la ficha lee el blob).
+        if (!editingId) await adoptMeasuresLocally({ heightCm, weightKg, sittingHeightCm, legLengthCm });
+        onSaved?.({ heightCm, weightKg, sittingHeightCm, legLengthCm });
         await loadHistory();
       } else if (result.queued) {
         toast.info(t("anthroForm.toastQueuedSave"), { duration: 5000 });
@@ -243,8 +308,20 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
   }
 
   const latest = history[0];
+  const latestTrust = trustAnthropometricsRow(latest);
 
-  const phvLabel = (category: AnthroRow["phv_category"]) =>
+  // Qué le falta al PERFIL del jugador para que una medida nueva produzca PHV
+  // (las 4 medidas las exige el propio formulario). Se avisa ANTES de guardar.
+  const identityMissing = missingPhvInputs({
+    height: Number(form.height) || fallback?.heightCm,
+    weight: Number(form.weight) || fallback?.weightKg,
+    sittingHeight: Number(form.sitting) || fallback?.sittingHeightCm,
+    legLength: Number(form.leg) || fallback?.legLengthCm,
+    birthDate,
+    gender,
+  }).filter((k) => k === "birthDate" || k === "sex");
+
+  const phvLabel = (category: keyof typeof PHV_LABELS) =>
     t(`anthroForm.phvCategory.${category}`);
 
   return (
@@ -274,9 +351,13 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
                 {latest.height_cm}cm · {latest.weight_kg}kg
               </span>
               {" · "}
-              <span style={{ color: PHV_LABELS[latest.phv_category].color }}>
-                {PHV_LABELS[latest.phv_category].emoji} {phvLabel(latest.phv_category)}
-              </span>
+              {latestTrust.trusted && latestTrust.category ? (
+                <span style={{ color: PHV_LABELS[labelKey(latestTrust.category)].color }}>
+                  {PHV_LABELS[labelKey(latestTrust.category)].emoji} {phvLabel(labelKey(latestTrust.category))}
+                </span>
+              ) : (
+                <PhvGateNotice code={latestTrust.code} missing={latestTrust.missing} />
+              )}
               {" · "}
               <span className="text-[10px]">
                 {new Date(latest.measured_at).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}
@@ -358,6 +439,10 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
               />
             </div>
 
+            {identityMissing.length > 0 && (
+              <PhvGateNotice variant="card" code="missing_inputs" missing={identityMissing} />
+            )}
+
             {error && (
               <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/30 p-2 text-[10px] text-destructive">
                 <AlertCircle size={12} />
@@ -389,7 +474,10 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
           </div>
           <div className="space-y-1">
             {history.map((row) => {
-              const phv = PHV_LABELS[row.phv_category];
+              // Solo filas FIABLES (completas + edad por fecha de nacimiento, 069)
+              // muestran categoría/offset; el resto nombra el motivo (inv #2).
+              const trust = trustAnthropometricsRow(row);
+              const phv = trust.trusted && trust.category ? PHV_LABELS[labelKey(trust.category)] : null;
               const date = new Date(row.measured_at);
               return (
                 <div
@@ -397,13 +485,19 @@ export function AnthropometricsForm({ playerId, chronologicalAge, gender, fallba
                   className="flex items-center justify-between gap-2 rounded-lg bg-secondary/30 px-2.5 py-2 border border-border/50"
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <span className="text-base shrink-0" title={phvLabel(row.phv_category)}>{phv.emoji}</span>
+                    {phv && trust.category && (
+                      <span className="text-base shrink-0" title={phvLabel(labelKey(trust.category))}>{phv.emoji}</span>
+                    )}
                     <div className="min-w-0">
                       <div className="text-[11px] text-foreground font-medium truncate">
                         {row.height_cm}cm · {row.weight_kg}kg
-                        <span className="text-muted-foreground ml-2 text-[10px]">
-                          {t("anthroForm.offsetAbbr")} {row.maturity_offset > 0 ? "+" : ""}{row.maturity_offset}
-                        </span>
+                        {trust.trusted && trust.offset !== null ? (
+                          <span className="text-muted-foreground ml-2 text-[10px]">
+                            {t("anthroForm.offsetAbbr")} {trust.offset > 0 ? "+" : ""}{trust.offset}
+                          </span>
+                        ) : (
+                          <PhvGateNotice className="ml-2 text-[10px]" code={trust.code} missing={trust.missing} />
+                        )}
                       </div>
                       <div className="text-[9px] text-muted-foreground">
                         {date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })}

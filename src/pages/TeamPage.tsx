@@ -28,6 +28,8 @@ import { PlanGuard } from "@/components/PlanGuard";
 import { useTranslation } from "react-i18next";
 import { PlayerService, type Player } from "@/services/real/playerService";
 import { EmptyPlayers } from "@/components/illustrations/EmptyIllustrations";
+import { phvGate, type PhvCategory } from "@/lib/phv/phvGate";
+import { usePhvGateText } from "@/components/phv/PhvGateNotice";
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const item = { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -68,9 +70,13 @@ export default function TeamPage() {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
-  const phvIcon = (cat?: string) => {
+  // Etapa PHV SOLO desde el gate único (regla del owner 28-sep): sin todas las
+  // entradas introducidas no se rotula Pre/En/Post-PHV — se nombra qué falta. Antes
+  // se pintaba el phvCategory PERSISTIDO (naive/estancado para un menor sin medidas).
+  const phvGateText = usePhvGateText();
+  const phvIcon = (cat: PhvCategory | null) => {
     if (cat === "early") return "🟢";
-    if (cat === "ontime" || cat === "ontme") return "🟡";
+    if (cat === "ontme") return "🟡";
     if (cat === "late") return "🔵";
     return "⚪";
   };
@@ -313,7 +319,9 @@ export default function TeamPage() {
             </button>
           ) : (
             <div className="glass rounded-xl divide-y divide-border">
-              {myPlayers.slice(0, 10).map((p) => (
+              {myPlayers.slice(0, 10).map((p) => {
+                const phv = phvGate(p);
+                return (
                 <button
                   key={p.id}
                   onClick={() => navigate(`/players/${p.id}`)}
@@ -327,13 +335,16 @@ export default function TeamPage() {
                       {p.name} <span className="text-muted-foreground font-normal">· {p.age}a · {p.position}{p.secondaryPositions && p.secondaryPositions.length > 0 ? ` / ${p.secondaryPositions.join(" / ")}` : ""}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      VSI {p.vsi == null ? "—" : Number(p.vsi).toFixed(0)} {phvIcon(p.phvCategory)}
-                      {p.phvCategory && ` · ${p.phvCategory === "early" ? t("teamPage.prePhv") : p.phvCategory === "late" ? t("teamPage.postPhv") : t("teamPage.inPhv")}`}
+                      VSI {p.vsi == null ? "—" : Number(p.vsi).toFixed(0)} {phvIcon(phv.category)}
+                      {phv.ok
+                        ? ` · ${phv.category === "early" ? t("teamPage.prePhv") : phv.category === "late" ? t("teamPage.postPhv") : t("teamPage.inPhv")}`
+                        : <span data-testid="phv-gate-notice"> · {phvGateText({ gate: phv })}</span>}
                     </p>
                   </div>
                   <span className="text-[10px] text-primary font-bold">→</span>
                 </button>
-              ))}
+                );
+              })}
               {myPlayers.length > 10 && (
                 <button
                   onClick={() => navigate("/rankings")}

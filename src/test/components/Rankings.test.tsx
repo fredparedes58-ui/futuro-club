@@ -177,6 +177,35 @@ describe("Rankings", () => {
     expect(screen.getByText(/players\.rankings\.sortName/)).toBeDefined();
   });
 
+  // Gate único de PHV (regla del owner 28-sep): sin TODAS las entradas
+  // introducidas la fila nombra qué falta; nunca una fase/timing ni el
+  // phvCategory persistido.
+  it("jugadores sin todas las entradas PHV muestran el motivo del gate, no un timing", () => {
+    render(<Rankings />);
+    const notices = screen.getAllByTestId("phv-gate-notice");
+    expect(notices.length).toBeGreaterThan(0);
+    for (const n of notices) {
+      expect(n.textContent).toContain("maturity.gate.unavailable");
+      expect(n.textContent).toContain("maturity.gate.missing");
+    }
+    expect(screen.queryByText(/maturity\.timing\./)).toBeNull();
+  });
+
+  it("jugador con entradas completas introducidas muestra timing del motor, sin aviso de gate", () => {
+    const complete = {
+      ...mockPlayers[0], id: "full", name: "Completo",
+      height: 165, weight: 55, sittingHeight: 85, legLength: 80, birthDate: "2012-03-15", gender: "M",
+    };
+    mockUseRankedPlayers.mockReturnValue({
+      data: { ...mockRankingsResponse, players: [complete], total: 1, totalUnfiltered: 1 },
+      isLoading: false,
+      isError: false,
+    });
+    render(<Rankings />);
+    expect(screen.queryByTestId("phv-gate-notice")).toBeNull();
+    expect(screen.getAllByText(/maturity\.timing\./).length).toBeGreaterThan(0);
+  });
+
   it("muestra skeleton mientras carga", () => {
     mockUseRankedPlayers.mockReturnValue({
       data: null,
