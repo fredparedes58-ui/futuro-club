@@ -19,6 +19,8 @@ import { createClient } from "@supabase/supabase-js";
 import { randomHex } from "../_lib/edgeCrypto";
 import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
 import { RESEND_FROM } from "../_lib/email";
+import { ownedPlayersOrFilter } from "../_lib/ownership";
+import { purgeMatchAnalysesForOwner } from "../_lib/matchJob/retention";
 
 export const config = { runtime: "edge" };
 
@@ -67,18 +69,28 @@ async function sendDeletionEmail(to: string, cancellationLink: string, scheduled
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function deleteUserDataCompletely(supabase: any, userId: string, tenantId: string) {
+export async function deleteUserDataCompletely(supabase: any, userId: string, tenantId: string | null) {
   const summary: Record<string, number> = {};
 
   // 0. Capturar bunny_video_id ANTES de borrar players (el cascade elimina
   //    la fila videos y perderíamos la referencia al fichero en Bunny).
-  const { data: tenantVideos } = await supabase
+  //    Por tenant O por usuario: un vídeo de partido/equipo tiene player_id NULL (no cae
+  //    en la cascada de players) y, en la ruta video-init antigua, tenant_id NULL.
+  const ownerFilter = ownedPlayersOrFilter(userId, tenantId);
+  const { data: ownVideos } = await supabase
     .from("videos")
-    .select("bunny_video_id")
-    .eq("tenant_id", tenantId);
-  const bunnyVideoIds: Array<string | null> = (tenantVideos ?? []).map(
+    .select("id, bunny_video_id")
+    .or(ownerFilter);
+  const bunnyVideoIds: Array<string | null> = (ownVideos ?? []).map(
     (v: { bunny_video_id: string | null }) => v.bunny_video_id,
   );
+
+  // 0-bis. Jobs de partido completo (+ su fichero en Gemini) ANTES de borrar vídeos:
+  //        la cascada borra la fila, pero NO el proxy del partido en Google.
+  const matchPurge = await purgeMatchAnalysesForOwner(userId, tenantId);
+  summary.match_analyses_deleted = matchPurge.match_analyses_deleted;
+  summary.gemini_files_deleted = matchPurge.gemini_files_deleted;
+  summary.gemini_delete_errors = matchPurge.gemini_delete_errors;
 
   // 1. Players (cascade a videos, analyses, reports via FK ON DELETE CASCADE)
   const { count: playersCount } = await supabase
@@ -86,6 +98,13 @@ async function deleteUserDataCompletely(supabase: any, userId: string, tenantId:
     .delete({ count: "exact" })
     .eq("tenant_id", tenantId);
   summary.players_deleted = playersCount ?? 0;
+
+  // 1-bis. Vídeos que la cascada de players NO cubre (partido/equipo, player_id NULL).
+  const { count: videosCount } = await supabase
+    .from("videos")
+    .delete({ count: "exact" })
+    .or(ownerFilter);
+  summary.videos_deleted = videosCount ?? 0;
 
   // 2. Embeddings de la knowledge_base que pertenezcan al user
   const { count: embedCount } = await supabase

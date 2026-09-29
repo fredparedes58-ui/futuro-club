@@ -52,3 +52,9 @@ public/ort-wasm-*.mjs
 *.sw?
 .vercel
 scripts/data/kaggle/
+
+# Clips de validación del partido completo (menores): el vídeo nunca se versiona
+fixtures/partido/**/*.mp4
+fixtures/partido/**/*.mov
+fixtures/partido/**/*.mkv
+fixtures/partido/**/*.webm

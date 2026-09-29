@@ -1,0 +1,36 @@
+{
+  "$comment": "Precios publicados por proveedor (USD por millón de tokens) para la contabilidad REAL del job de partido (tokens de usageMetadata / usage × precio). No son métricas de producto. Consultados el 2026-09-28; si un proveedor cambia precios, actualizar aquí (fuente única, inv #7). Lo lee api/_lib/matchJob/config.ts. El contrato referencia este fichero como pricing_ref = 'config/aiPricing.json@<fetched_at>'.",
+  "schema_version": 1,
+  "fetched_at": "2026-09-28",
+  "gemini": {
+    "gemini-2.5-flash": {
+      "input_text_image_video_usd_per_mtok": 0.30,
+      "input_audio_usd_per_mtok": 1.00,
+      "output_usd_per_mtok": 2.50,
+      "_source": "https://ai.google.dev/gemini-api/docs/pricing (consultado 2026-09-28), Standard, paid tier: input $0.30 (text / image / video), $1.00 (audio); output $2.50 'including thinking tokens'; sin tramo por encima de 200k tokens."
+    }
+  },
+  "anthropic": {
+    "claude-opus-5-5": {
+      "input_usd_per_mtok": 4.00,
+      "output_usd_per_mtok": 20.00,
+      "cache_write_5m_usd_per_mtok": 5.00,
+      "cache_read_usd_per_mtok": 0.20,
+      "_source": "https://platform.claude.com/docs/en/about-claude/pricing (tabla de modelos de Anthropic, consultada 2026-09-28): $4 / $20 por MTok, lecturas de caché $0.20; escritura de caché 5 min = 1,25 × input. El thinking se factura como output."
+    },
+    "claude-opus-4-8": {
+      "input_usd_per_mtok": 5.00,
+      "output_usd_per_mtok": 25.00,
+      "cache_write_5m_usd_per_mtok": 6.25,
+      "cache_read_usd_per_mtok": 0.50,
+      "_source": "https://platform.claude.com/docs/en/about-claude/pricing (consultada 2026-09-28): $5 / $25 por MTok; escritura de caché 5 min = 1,25 × input, lectura = 0,1 × input. Es el REASONING_FALLBACK_MODEL de api/_lib/models.ts."
+    },
+    "claude-haiku-4-5": {
+      "input_usd_per_mtok": 1.00,
+      "output_usd_per_mtok": 5.00,
+      "cache_write_5m_usd_per_mtok": 1.25,
+      "cache_read_usd_per_mtok": 0.10,
+      "_source": "https://platform.claude.com/docs/en/about-claude/pricing (consultada 2026-09-28): $1 / $5 por MTok; escritura de caché 5 min = 1,25 × input, lectura = 0,1 × input."
+    }
+  }
+}

@@ -23,6 +23,15 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { timingSafeEqual } from "../_lib/edgeCrypto";
 import { createClient } from "@supabase/supabase-js";
 import { deleteBunnyVideos } from "../_lib/bunnyCleanup";
+import { ownedPlayersOrFilter } from "../_lib/ownership";
+import {
+  purgeMatchAnalysesForOwner,
+  purgeMatchAnalysesForVideos,
+  sweepTerminalGeminiFiles,
+} from "../_lib/matchJob/retention";
+
+/** Ficheros Gemini de jobs terminales barridos por ejecución (respaldo del tick de Modal). */
+const GEMINI_SWEEP_LIMIT = 20;
 
 export const config = { runtime: "edge" };
 
@@ -71,11 +80,17 @@ async function purgeOldVideos(supabase: any, retentionDays: number) {
   );
   const bunnyResult = await deleteBunnyVideos(bunnyIds);
 
+  // Jobs de partido de esos vídeos (+ fichero Gemini): el soft-delete NO dispara la
+  // cascada de la FK → sin esto quedarían observaciones/informes huérfanos del vídeo purgado.
+  const matchPurge = await purgeMatchAnalysesForVideos(ids);
+
   return {
     count: ids.length,
     bunny_deleted: bunnyResult.deleted,
     bunny_failed: bunnyResult.failed,
     bunny_configured: bunnyResult.configured,
+    match_analyses_deleted: matchPurge.match_analyses_deleted,
+    gemini_files_deleted: matchPurge.gemini_files_deleted,
   };
 }
 
@@ -102,14 +117,22 @@ async function executePendingDeletions(supabase: any) {
       // Borrar todo (cascade vía RLS + manual)
       const summary: Record<string, number> = {};
 
-      // Capturar bunny_video_id ANTES de borrar (el delete pierde la referencia)
+      // Capturar bunny_video_id ANTES de borrar (el delete pierde la referencia).
+      // Por tenant O por usuario: los vídeos de partido/equipo (player_id NULL) y los de la
+      // ruta video-init antigua (tenant_id NULL) también son del usuario.
+      const ownerFilter = ownedPlayersOrFilter(req.user_id, req.tenant_id ?? null);
       const { data: reqVideos } = await supabase
         .from("videos")
         .select("bunny_video_id")
-        .eq("tenant_id", req.tenant_id);
+        .or(ownerFilter);
       const reqBunnyIds: Array<string | null> = (reqVideos ?? []).map(
         (v: { bunny_video_id: string | null }) => v.bunny_video_id,
       );
+
+      // Jobs de partido (+ proxy en Gemini) antes de borrar los vídeos.
+      const matchPurge = await purgeMatchAnalysesForOwner(req.user_id, req.tenant_id ?? null);
+      summary.match_analyses_deleted = matchPurge.match_analyses_deleted;
+      summary.gemini_files_deleted = matchPurge.gemini_files_deleted;
 
       const tables = ["players", "videos", "analyses", "reports", "subscriptions", "parental_consents"];
       for (const t of tables) {
@@ -119,6 +142,12 @@ async function executePendingDeletions(supabase: any) {
           .eq("tenant_id", req.tenant_id);
         summary[`${t}_deleted`] = count ?? 0;
       }
+      // Vídeos del usuario que no llevan tenant_id (no los cubre el bucle por tenant).
+      const { count: userVideos } = await supabase
+        .from("videos")
+        .delete({ count: "exact" })
+        .or(ownerFilter);
+      summary.videos_deleted = (summary.videos_deleted ?? 0) + (userVideos ?? 0);
 
       // Bunny Stream cleanup (borrado real del CDN)
       const bunnyRes = await deleteBunnyVideos(reqBunnyIds);
@@ -193,6 +222,10 @@ export default async function handler(req: Request) {
     // ── Tarea 2: ejecutar deletion requests programadas ────────────
     const deletionExecution = await executePendingDeletions(supabase);
 
+    // ── Tarea 2-bis: respaldo diario del borrado de proxies de partido en Gemini ──
+    // (el conductor normal es el tick de Modal; esto cubre un Modal caído)
+    const geminiSweep = await sweepTerminalGeminiFiles(GEMINI_SWEEP_LIMIT);
+
     // ── Tarea 3: alertar si volúmenes anormales ────────────────────
     const totalDeleted = videoPurge.count + deletionExecution.count;
     if (totalDeleted > ALERT_THRESHOLD) {
@@ -224,6 +257,9 @@ export default async function handler(req: Request) {
       bunnyFailed: videoPurge.bunny_failed,
       bunnyConfigured: videoPurge.bunny_configured,
       deletionsExecuted: deletionExecution.count,
+      matchAnalysesPurged: videoPurge.match_analyses_deleted ?? 0,
+      geminiFilesSwept: geminiSweep.deleted,
+      geminiSweepErrors: geminiSweep.errors,
       retentionDays,
     });
   } catch (err) {
