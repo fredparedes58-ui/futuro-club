@@ -52,3 +52,10 @@ public/ort-wasm-*.mjs
 *.sw?
 .vercel
 scripts/data/kaggle/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local scratch space for session experiments (not versioned)
+/scratchpad/
