@@ -2152,7 +2152,7 @@
     "teamColorPlaceholder": "ej: rojo, blanco",
     "opponentColorLabel": "Color rival",
     "opponentColorPlaceholder": "ej: azul",
-    "aiAnalysisHint": "La IA analizará a todo el equipo con ese color de uniforme: formación, posesión, pressing, métricas por jugador.",
+    "aiAnalysisHint": "La IA analizará a todo el equipo con ese color de uniforme: formación, posesión, pressing y transiciones. Solo a nivel de equipo: sin dorsales ni cifras por jugador.",
     "analyzingTeam": "Analizando equipo...",
     "analyzeFullTeam": "Analizar Equipo Completo",
     "savedAnalyses": "Análisis guardados ({{count}})",
@@ -2180,7 +2180,9 @@
     "recoveriesCount": "{{count}} recuperaciones",
     "speed": "Velocidad",
     "distance": "Distancia",
-    "heatmapTitle": "Mapa de Calor — #{{number}}"
+    "heatmapTitle": "Mapa de Calor — #{{number}}",
+    "perPlayerWithheld": "Este informe incluía filas por jugador con un dorsal estimado por la IA. Se ocultan: sin identificación por dorsal validada, VITAS no atribuye cifras a ningún jugador concreto. El análisis es solo de equipo.",
+    "individualTextsHidden": "Textos ocultos por mencionar a un jugador concreto (dorsal o número): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "SUBIR",

@@ -2151,7 +2151,7 @@
     "teamColorPlaceholder": "z. B.: rot, weiß",
     "opponentColorLabel": "Gegnerfarbe",
     "opponentColorPlaceholder": "z. B.: blau",
-    "aiAnalysisHint": "Die KI analysiert das gesamte Team mit dieser Trikotfarbe: Formation, Ballbesitz, Pressing, Kennzahlen pro Spieler.",
+    "aiAnalysisHint": "Die KI analysiert das gesamte Team mit dieser Trikotfarbe: Formation, Ballbesitz, Pressing und Umschaltspiel. Nur auf Teamebene: keine Rückennummern und keine Zahlen pro Spieler.",
     "analyzingTeam": "Team wird analysiert...",
     "analyzeFullTeam": "Gesamtes Team analysieren",
     "savedAnalyses": "Gespeicherte Analysen ({{count}})",
@@ -2179,7 +2179,9 @@
     "recoveriesCount": "{{count}} Balleroberungen",
     "speed": "Geschwindigkeit",
     "distance": "Distanz",
-    "heatmapTitle": "Heatmap — #{{number}}"
+    "heatmapTitle": "Heatmap — #{{number}}",
+    "perPlayerWithheld": "Dieser Bericht enthielt Zeilen pro Spieler mit einer von der KI geschätzten Rückennummer. Sie werden ausgeblendet: Ohne validierte Identifizierung über die Rückennummer ordnet VITAS keinem bestimmten Spieler Zahlen zu. Die Analyse erfolgt nur auf Teamebene.",
+    "individualTextsHidden": "Ausgeblendete Texte, weil sie einen bestimmten Spieler nannten (Rückennummer oder Nummer): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "HOCHLADEN",

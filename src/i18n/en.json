@@ -2152,7 +2152,7 @@
     "teamColorPlaceholder": "e.g. red, white",
     "opponentColorLabel": "Opponent color",
     "opponentColorPlaceholder": "e.g. blue",
-    "aiAnalysisHint": "The AI will analyze the entire team with that kit color: formation, possession, pressing, per-player metrics.",
+    "aiAnalysisHint": "The AI will analyze the entire team with that kit color: formation, possession, pressing and transitions. Team level only: no shirt numbers or per-player figures.",
     "analyzingTeam": "Analyzing team...",
     "analyzeFullTeam": "Analyze Full Team",
     "savedAnalyses": "Saved analyses ({{count}})",
@@ -2180,7 +2180,9 @@
     "recoveriesCount": "{{count}} recoveries",
     "speed": "Speed",
     "distance": "Distance",
-    "heatmapTitle": "Heat Map — #{{number}}"
+    "heatmapTitle": "Heat Map — #{{number}}",
+    "perPlayerWithheld": "This report included per-player rows with a shirt number estimated by the AI. They are hidden: without validated shirt-number identification, VITAS does not attribute figures to any specific player. The analysis is team-level only.",
+    "individualTextsHidden": "Texts hidden because they mentioned a specific player (shirt number or number): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "UPLOAD",

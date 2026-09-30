@@ -2151,7 +2151,7 @@
     "teamColorPlaceholder": "ex : rouge, blanc",
     "opponentColorLabel": "Couleur de l'adversaire",
     "opponentColorPlaceholder": "ex : bleu",
-    "aiAnalysisHint": "L'IA analysera toute l'équipe portant cette couleur de maillot : formation, possession, pressing, métriques par joueur.",
+    "aiAnalysisHint": "L'IA analysera toute l'équipe portant cette couleur de maillot : formation, possession, pressing et transitions. Au niveau de l'équipe uniquement : ni numéros de maillot ni chiffres par joueur.",
     "analyzingTeam": "Analyse de l'équipe...",
     "analyzeFullTeam": "Analyser toute l'équipe",
     "savedAnalyses": "Analyses enregistrées ({{count}})",
@@ -2179,7 +2179,9 @@
     "recoveriesCount": "{{count}} récupérations",
     "speed": "Vitesse",
     "distance": "Distance",
-    "heatmapTitle": "Carte de chaleur — #{{number}}"
+    "heatmapTitle": "Carte de chaleur — #{{number}}",
+    "perPlayerWithheld": "Ce rapport contenait des lignes par joueur avec un numéro de maillot estimé par l'IA. Elles sont masquées : sans identification validée par le numéro de maillot, VITAS n'attribue aucun chiffre à un joueur précis. L'analyse porte uniquement sur l'équipe.",
+    "individualTextsHidden": "Textes masqués car ils mentionnaient un joueur précis (numéro de maillot ou numéro) : {{n}}."
   },
   "vitasLab": {
     "stepUpload": "AJOUTER",

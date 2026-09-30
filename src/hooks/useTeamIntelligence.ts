@@ -3,15 +3,16 @@
  * Orquesta el análisis táctico de equipo:
  *  1. Envía video a Gemini (team-observation) para observación colectiva
  *  2. Llama a Claude (team-intelligence) via SSE streaming
- *  3. Enriquece con datos YOLO opcionales
- *  4. Devuelve TeamIntelligenceOutput
+ *  3. Devuelve TeamIntelligenceOutput — SOLO nivel de equipo (identidad.md):
+ *     sin dorsal ni filas por jugador. Antes se emparejaba la pista YOLO i con
+ *     el "jugador" i del LLM para su mapa de calor (atribución inventada).
  */
 
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { TeamIntelligenceOutput } from "@/agents/contracts";
 import { isLocalSrc, readVideoAsBase64, extractKeyframesFromVideo, getOptimalFrameCount } from "@/lib/localVideoUtils";
-import type { Track } from "@/lib/yolo/types";
+import { withholdIndividualData } from "@/lib/shared/teamReportIdentity";
 import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { getAuthHeaders } from "@/lib/apiAuth";
 import i18n from "@/i18n";
@@ -131,10 +132,9 @@ export function useTeamIntelligence() {
     opponentColor?:   string;
     competitiveLevel?: string;
     localVideoSrc?:   string;
-    yoloTracks?:      Track[];
     analysisFocus?:   string[];
   }): Promise<TeamIntelligenceOutput | null> => {
-    const { videoId, videoDuration, teamColor, opponentColor, competitiveLevel, localVideoSrc, yoloTracks, analysisFocus } = opts;
+    const { videoId, videoDuration, teamColor, opponentColor, competitiveLevel, localVideoSrc, analysisFocus } = opts;
     const hasLocalVideo = !!localVideoSrc && isLocalSrc(localVideoSrc);
     setState({ step: "analyzing", progress: 10, message: "Preparando video para análisis de equipo..." });
 
@@ -202,25 +202,10 @@ export function useTeamIntelligence() {
         throw new TeamAnalysisGateError("Sin entrada visual (ni observación de Gemini ni fotogramas)");
       }
 
-      // 2. Preparar datos YOLO si están disponibles
-      const yoloTrackData = yoloTracks?.map(t => ({
-        trackId:     t.id,
-        maxSpeedMs:  t.speedMs,
-        avgSpeedMs:  t.smoothSpeedMs,
-        distanceM:   t.distanceM,
-        sprintCount: t.sprintCount,
-        duelsWon:    0,
-        duelsLost:   0,
-        positions:   t.positions.filter((_, i) => i % 8 === 0).map(p => ({
-          fx: Math.round(p.fx * 10) / 10,
-          fy: Math.round(p.fy * 10) / 10,
-        })),
-      })) ?? null;
-
       setState({ step: "analyzing", progress: 35, message: geminiObservations ? "Generando informe táctico con Claude..." : "Enviando a VITAS Intelligence..." });
 
-      // 3. Llamar a Claude con SSE
-      const analysisResult = await readSSEStream(
+      // 2. Llamar a Claude con SSE
+      const rawResult = await readSSEStream(
         "/api/agents/team-intelligence",
         {
           teamContext: {
@@ -233,7 +218,6 @@ export function useTeamIntelligence() {
           geminiObservations,
           keyframes,
           videoId,
-          yoloTrackData,
           analysisFocus: analysisFocus ?? null,
           // FASE 5 · idioma del reporte = idioma activo de la app (bilingüe ES/EN)
           locale: normalizeLocale(i18n.language),
@@ -241,16 +225,11 @@ export function useTeamIntelligence() {
         (msg) => setState(prev => ({ ...prev, message: msg, progress: Math.min(prev.progress + 5, 85) }))
       );
 
-      // 4. Enriquecer con heatmap positions de YOLO
-      if (yoloTrackData && analysisResult.jugadores) {
-        for (let i = 0; i < analysisResult.jugadores.length && i < yoloTrackData.length; i++) {
-          if (yoloTrackData[i].positions.length > 0) {
-            analysisResult.jugadores[i].heatmapPositions = yoloTrackData[i].positions;
-          }
-        }
-      }
+      // 3. Identidad (identidad.md): nada por jugador se guarda ni se muestra,
+      //    aunque un servidor anterior lo devolviera.
+      const analysisResult = withholdIndividualData(rawResult).value as TeamIntelligenceOutput;
 
-      // 5. Guardar en Supabase
+      // 4. Guardar en Supabase
       const savedAt = new Date().toISOString();
       if (SUPABASE_CONFIGURED) {
         try {

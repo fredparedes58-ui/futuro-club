@@ -2152,7 +2152,7 @@
     "teamColorPlaceholder": "bijv.: rood, wit",
     "opponentColorLabel": "Kleur tegenstander",
     "opponentColorPlaceholder": "bijv.: blauw",
-    "aiAnalysisHint": "De AI analyseert het hele team met die tenuekleur: formatie, balbezit, pressing, metrics per speler.",
+    "aiAnalysisHint": "De AI analyseert het hele team met die tenuekleur: formatie, balbezit, pressing en omschakelingen. Alleen op teamniveau: geen rugnummers of cijfers per speler.",
     "analyzingTeam": "Team analyseren...",
     "analyzeFullTeam": "Volledig team analyseren",
     "savedAnalyses": "Opgeslagen analyses ({{count}})",
@@ -2180,7 +2180,9 @@
     "recoveriesCount": "{{count}} balveroveringen",
     "speed": "Snelheid",
     "distance": "Afstand",
-    "heatmapTitle": "Heatmap — #{{number}}"
+    "heatmapTitle": "Heatmap — #{{number}}",
+    "perPlayerWithheld": "Dit rapport bevatte rijen per speler met een door de AI geschat rugnummer. Ze worden verborgen: zonder gevalideerde identificatie via het rugnummer koppelt VITAS geen cijfers aan een specifieke speler. De analyse is alleen op teamniveau.",
+    "individualTextsHidden": "Teksten verborgen omdat ze een specifieke speler noemden (rugnummer of nummer): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "UPLOADEN",
