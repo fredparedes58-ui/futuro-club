@@ -4,7 +4,7 @@
 > una métrica bloqueada con `gate_reason` honesto es un estado de entrega aceptable, pero
 > **no** es lo mismo que resuelta. Este fichero distingue las dos y se mantiene al día.
 >
-> **Última actualización:** 2026-09-07 · **Rama de creación:** `docs/pendientes-metricas`
+> **Última actualización:** 2026-09-30 (§5-D, migración 073) · **Rama de creación:** `docs/pendientes-metricas`
 >
 > Estado del arnés a fecha de hoy: el **GATE real** (pre-commit → `audit_metrics.py
 > --baseline`) sale **exit 0** (deuda baselined). El audit CRUDO `audit_metrics.py` →
@@ -192,6 +192,49 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 > **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
 > (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
 > Solo lectura, nunca imprime la key ni PII. Probado en prod: **8/8 usuarios con tenant_id**.
+
+### D) SEGURIDAD / RLS — pendiente tras la 073 (verificado vs deducido)
+
+> La 073 sustituye las 10 políticas que comparaban `players.tenant_id` con `auth.uid()`
+> (044/050) por una regla única, `public.caller_manages_player` (dueño por `user_id` o
+> mismo tenant del JWT). Lo de abajo NO lo resuelve la 073.
+
+- [ ] **Acceso de miembros de club por organización (`team_members`)** — **VERIFICADO**
+  (consulta de solo lectura del dueño, 29-30 sep): en producción `public.user_org_ids()` y
+  `public.user_in_org(uuid)` **no son las del repo** (038:37-64): usan
+  `team_members.org_owner_id`, que según el repo es el id del **usuario** dueño
+  (`007_team_members.sql:5`, `references auth.users`), no el de la organización.
+  **DEDUCIDO, no verificado con datos:** las políticas que hacen
+  `org_id IN (SELECT user_org_ids())` comparan un id de organización con un id de usuario ⇒
+  los miembros de un club que no son dueños probablemente **no** ven por esa vía los
+  jugadores de su organización. La 073 **no usa ni toca** estas funciones. Pendiente:
+  decidir el modelo de membresía, leer los cuerpos reales línea a línea (runbook #5) y una
+  migración propia con su comprobación previa.
+- [ ] **Columnas que el navegador envía y el esquema del repo no tiene** — **SIMULADO**
+  (PGlite con el esquema del repo; columnas reales de producción **no verificadas**): tras
+  la 073 la RLS ya deja escribir, pero fallan por columna `attendance_records.notes`
+  (`wellbeingService.ts:154` cuando hay notas; `localStorageMigrationService.ts:209`),
+  `wellbeing_questionnaires.date` (`localStorageMigrationService.ts:261`) y
+  `dropout_risk_assessments.date/primary_factor` (`:291`, `:294`) → 42703; y
+  `source: 'auto_detected'` (`useWellbeing.ts:250`) viola el CHECK de `046:12` → 23514. El
+  fallo es silencioso y el dato queda en la caché local, como hoy.
+- [ ] **Alcance por tenant (decisión del dueño)** — la regla de la 073 es espejo de
+  `ownsPlayerOrTenant`: si el JWT lleva el claim raíz `tenant_id` (hook 057) y coincide con
+  el `tenant_id` de un jugador, ese usuario ve y escribe su bienestar aunque no sea el dueño.
+  Las rutas de servidor de estas mismas tablas usan `ownsPlayer` (solo dueño). La fila 13 de
+  `supabase/checks/073_previa.sql` cuenta cuántos usuarios no dueños entrarían.
+- [ ] **Seguimientos del audit de la 073 (fuera de su alcance)** — **VERIFICADO leyendo el
+  código**, no probado contra producción:
+  (a) `POST /api/agents/progression-tracker` no comprueba propiedad (`_progression-tracker.ts:46`
+  `requireAuth + allowServiceToken`; ningún `owns*`/`isServiceCall`/`userId` en el fichero) y
+  escribe con la service key (`:50-58`) ⇒ cualquier usuario con sesión puede escribir snapshots
+  (incl. `phv_offset`/`phv_category`) de cualquier jugador;
+  (b) `api/injuries/_save.ts:62` guarda el id del usuario como `tenant_id` (`?? userId`; igual en
+  `api/live/matches.ts:69` y `api/telegram/connect.ts:56`) y su insert usa columnas/valores que
+  044 no tiene (`tenant_id`, `reported_by` `:76`, severidad `'mild'` `:18`);
+  (c) respaldo a la clave anon en `api/injuries/_list.ts:18` y `_save.ts:36`;
+  (d) `api/behavioral/_compute-profile.ts:45-53` devuelve puntuaciones `Math.random`
+  (invariantes #1 y #2).
 
 ---
 

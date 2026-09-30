@@ -71,9 +71,14 @@ export async function ownsPlayer(playerId: string | null | undefined, userId: st
  * Fail-closed: sin playerId, sin userId ni tenantId, sin Supabase, query no-ok o
  * error → false.
  *
- * Espejo en SQL: public.dsar_caller_manages_player (migración 072) aplica esta
- * misma regla dentro de la base de datos para las RPC DSAR que llama el navegador.
- * Si cambia esta regla, cambiar también esa función (con una migración nueva).
+ * Espejos en SQL (la base de datos no puede llamar a este código):
+ *   - public.dsar_caller_manages_player (migración 072): RPC DSAR del navegador.
+ *   - public.caller_manages_player (migración 073): políticas RLS de
+ *     behavioral_profiles, attendance_records, engagement_snapshots,
+ *     wellbeing_questionnaires, dropout_risk_assessments y player_metric_snapshots.
+ *     Lee el tenant solo del claim RAÍZ (public.tenant_id()), no de app_metadata:
+ *     igual o más estrecha que esta función, nunca más amplia.
+ * Si cambia esta regla, cambiar también esas funciones (con una migración nueva).
  */
 export async function ownsPlayerOrTenant(
   playerId: string | null | undefined,
