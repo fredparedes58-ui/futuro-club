@@ -9,8 +9,8 @@ name: RAG Seed (manual · borra y resiembra)
 #
 # Antes era el job `rag-seed` de ci.yml: corría en CADA push a main, contra prod,
 # posiblemente antes de que Vercel desplegara ese commit, y se tragaba los errores
-# (`|| echo skipped`; en el run del 17 sep el Bearer iba vacío, fallaba y quedaba
-# en verde). Ahora:
+# (`|| echo skipped`; en los runs del 17 y del 30 sep el Bearer iba vacío, fallaba
+# y quedaba en verde). Ahora:
 #   - solo se lanza a mano: Actions → "RAG Seed (manual · borra y resiembra)" → Run workflow;
 #   - exige escribir la confirmación literal BORRAR-Y-RESEMBRAR;
 #   - el destino solo puede ser https://futuro-club*.vercel.app (el token no sale a otro dominio);
