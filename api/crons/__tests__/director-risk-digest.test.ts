@@ -241,6 +241,40 @@ describe("cron director-risk-digest", () => {
     expect(body.data.directorsNotified).toBe(0);
   });
 
+  it("jugador de ejemplo (data.isDemo) con señales altas → ni se leen sus señales ni se nombra", async () => {
+    world.players = [
+      { id: "demo-a", user_id: "dir-1", data: { name: "Ejemplo Demo", isDemo: true } },
+      // isDemo no booleano NO es demo (mismo criterio estricto que api/rankings/_list.ts)
+      { id: "p-real", user_id: "dir-1", data: { name: "Nombre Real", isDemo: "true" } },
+    ];
+    world.signals = { "demo-a": highRiskRows("demo-a"), "p-real": highRiskRows("p-real") };
+
+    const res = await handler(cronReq());
+    const body = await res.json();
+    expect(body.data.playersDemo).toBe(1);
+    expect(body.data.playersEvaluated).toBe(1);
+    expect(body.data.atRiskTotal).toBe(1);
+
+    // Ninguna lectura de señales del jugador de ejemplo.
+    expect(calls.some((c) => c.url.includes("player_id=eq.demo-a"))).toBe(false);
+
+    const email = JSON.parse(resendCalls()[0].body ?? "{}") as { html: string };
+    expect(email.html).toContain("Nombre Real");
+    expect(email.html).not.toContain("Ejemplo Demo");
+    expect(email.html).toContain("Evaluados con datos reales: <strong>1 de 2</strong>");
+  });
+
+  it("solo jugadores de ejemplo → no envía nada", async () => {
+    world.players = [{ id: "demo-a", user_id: "dir-1", data: { name: "Ejemplo Demo", isDemo: true } }];
+    world.signals = { "demo-a": highRiskRows("demo-a") };
+    const res = await handler(cronReq());
+    const body = await res.json();
+    expect(resendCalls()).toHaveLength(0);
+    expect(adminLookups()).toHaveLength(0);
+    expect(body.data.directorsNotified).toBe(0);
+    expect(body.data.playersDemo).toBe(1);
+  });
+
   it("escapa el nombre del jugador en el HTML del email", async () => {
     world.players = [{ id: "p-x", user_id: "dir-1", data: { name: "<img src=x onerror=alert(1)>" } }];
     world.signals = { "p-x": highRiskRows("p-x") };

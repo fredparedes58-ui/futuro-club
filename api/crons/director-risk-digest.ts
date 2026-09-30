@@ -14,7 +14,8 @@
  *     (`api/_lib/dropoutAssessment.ts`), la misma del panel /wellbeing (inv #7).
  *   - Un jugador SOLO aparece si su evaluación es `source: "computed"` (hay al menos
  *     una señal real: asistencia, implicación o carga). `insufficient_data` ⇒ NO se
- *     lista. Aquí no existe ninguna ruta mock/hash/demo.
+ *     lista. Aquí no existe ninguna ruta mock/hash; los jugadores de ejemplo
+ *     (`data.isDemo === true`) ni se evalúan ni se nombran.
  *   - Si ningún jugador del director tiene una evaluación real alta o crítica, NO se
  *     envía nada: ni nombres ni un resumen «sin datos». Motivo: es lo más seguro
  *     (ningún dato sobre menores sale del sistema) y un correo «sin datos» mensual
@@ -60,9 +61,21 @@ export interface DirectorDigest {
   listed: ListedPlayer[];
   /** Jugadores con evaluación real (cualquier nivel). */
   evaluated: number;
-  /** Jugadores sin datos suficientes (nunca se nombran). */
+  /** Jugadores sin datos reales suficientes (nunca se nombran). */
   withoutData: number;
+  /** Jugadores de ejemplo (`data.isDemo === true`): ni se evalúan ni se nombran. */
+  demo: number;
   total: number;
+}
+
+/**
+ * Jugador de ejemplo (club demo, `src/services/real/demoDataService.ts`): mismo
+ * marcador que ya usa el servidor en `api/rankings/_list.ts` (`d.isDemo === true`).
+ * Sus cifras son sintéticas por definición → el digest nunca las evalúa ni las envía.
+ */
+function isDemoPlayer(p: Record<string, unknown>): boolean {
+  const data = p.data;
+  return typeof data === "object" && data !== null && (data as { isDemo?: unknown }).isDemo === true;
 }
 
 /**
@@ -76,26 +89,34 @@ export async function buildDirectorDigest(
   const listed: ListedPlayer[] = [];
   let evaluated = 0;
   let withoutData = 0;
+  let demo = 0;
 
   for (let i = 0; i < players.length; i += EVAL_CONCURRENCY) {
     const chunk = players.slice(i, i + EVAL_CONCURRENCY);
     const results = await Promise.all(
       chunk.map(async (p) => {
+        // Jugador de ejemplo: ni siquiera se leen sus señales.
+        if (isDemoPlayer(p)) return { kind: "demo" as const };
         const id = typeof p.id === "string" && p.id ? p.id : null;
         if (!id) return null; // sin id no hay señales que leer → sin datos
         const result = computeDropoutAssessment(id, await fetchDropoutSignals(id, select));
-        return { p, result };
+        return { kind: "assessed" as const, p, result };
       }),
     );
 
     for (const r of results) {
+      if (r?.kind === "demo") {
+        demo++;
+        continue;
+      }
       if (!r || r.result.source !== "computed") {
         withoutData++;
         continue;
       }
       const metric = dropoutRiskMetric(r.result);
-      // Defensa en profundidad: sin value (bloqueada) no se nombra a nadie.
-      if (metric.value === null) {
+      // Defensa en profundidad: sin value (bloqueada) o con una procedencia que no
+      // es un resultado real (MOCK / CONSTANTE) no se nombra a nadie.
+      if (metric.value === null || metric.provenance === "MOCK" || metric.provenance === "CONSTANTE") {
         withoutData++;
         continue;
       }
@@ -115,7 +136,7 @@ export async function buildDirectorDigest(
   }
 
   listed.sort((a, b) => b.score - a.score);
-  return { listed, evaluated, withoutData, total: players.length };
+  return { listed, evaluated, withoutData, demo, total: players.length };
 }
 
 function signalsText(s: SignalCoverage): string {
@@ -157,7 +178,7 @@ export function digestHtml(d: DirectorDigest, computedOn: string): string {
       <div style="font-size:40px;font-weight:800;line-height:1;">${n}</div>
       <div style="font-size:13px;">jugador${n === 1 ? "" : "es"} con riesgo alto o crítico</div>
     </div>
-    <p style="color:#475569;font-size:13px;margin:0 0 16px;">Evaluados con datos reales: <strong>${d.evaluated} de ${d.total}</strong> jugadores.${notEvaluated > 0 ? ` Los otros ${notEvaluated} no tienen datos suficientes: no aparecen en este correo, y eso <strong>no</strong> significa que no tengan riesgo.` : ""}</p>
+    <p style="color:#475569;font-size:13px;margin:0 0 16px;">Evaluados con datos reales: <strong>${d.evaluated} de ${d.total}</strong> jugadores.${notEvaluated > 0 ? ` Los otros ${notEvaluated} no tienen datos reales suficientes: no aparecen en este correo, y eso <strong>no</strong> significa que no tengan riesgo.` : ""}</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">${rows}</table>
     <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-top:20px;">
       <p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.5;"><strong>Procedencia: ${esc(label)}.</strong> Resultado de un modelo de 8 factores aplicado a los datos registrados (asistencia, implicación, carga). Es una señal orientativa para priorizar conversaciones, no un diagnóstico.</p>
@@ -199,6 +220,7 @@ export default withHandler(
     let atRiskTotal = 0;
     let playersEvaluated = 0;
     let playersWithoutData = 0;
+    let playersDemo = 0;
 
     for (const userId of paidUsers) {
       // Solo los jugadores de ESTE director (minimización: no se leen los de otros).
@@ -208,6 +230,7 @@ export default withHandler(
       const digest = await buildDirectorDigest(players, select);
       playersEvaluated += digest.evaluated;
       playersWithoutData += digest.withoutData;
+      playersDemo += digest.demo;
 
       // Sin evaluación REAL alta/crítica → no se envía nada (ni nombres ni resumen).
       if (digest.listed.length === 0) continue;
@@ -240,6 +263,7 @@ export default withHandler(
       orgsScanned: paidUsers.length,
       playersEvaluated,
       playersWithoutData,
+      playersDemo,
     });
   },
 );
