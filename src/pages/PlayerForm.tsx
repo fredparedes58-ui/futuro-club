@@ -25,7 +25,7 @@ import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
 import { useAuth } from "@/context/AuthContext";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { toIsoBirthDate } from "@/lib/shared/birthDate";
 import { useTranslation } from "react-i18next";
 
 // ─── Schema del formulario ────────────────────────────────────────────────────
@@ -343,6 +343,14 @@ const PlayerForm = () => {
       return;
     }
 
+    // Fecha de nacimiento DEL JUGADOR: misma regla que la columna birth_date
+    // (toIsoBirthDate, consentimiento RGPD). Una fecha que la columna rechazaría
+    // no se guarda en el blob (dos fechas distintas para un concepto, inv #7).
+    if (data.birthDate && toIsoBirthDate(data.birthDate) === null) {
+      toast.error(t("playerPhvSection.birthDateInvalid"));
+      return;
+    }
+
     // El VSI de ficha solo existe si el entrenador EVALUÓ las barras. Alta o edición
     // SIN tocar métricas ⇒ jugador "sin evaluar" (vsi null): no se fabrica un VSI
     // desde los defaults 60/50 (calculateFichaVsi(DEFAULT_METRICS)=57.5; invariante #2).
@@ -390,12 +398,21 @@ const PlayerForm = () => {
             updatedAt: new Date().toISOString(),
           };
           StorageService.set("players", players);
-          // Sincronizar a Supabase en background
-          if (user && SUPABASE_CONFIGURED) {
-            SupabasePlayerService.pushOne(user.id, players[idx]).catch(() => {});
-          }
         }
-        toast.success(t("toasts.playerUpdated", { name: data.name }));
+        if (idx === -1) {
+          // El jugador no está en la caché local ⇒ NO se guardó nada. Antes se
+          // anunciaba «actualizado» igualmente (éxito falso).
+          toast.error(t("toasts.playerNotOnDevice", { name: data.name }));
+          return;
+        }
+        // Subir a Supabase y ESPERAR el resultado: «actualizado» solo si está en la
+        // nube (o no hay nube); si falla queda en SyncQueue («pendiente de sincronizar»).
+        const persisted = await SupabasePlayerService.persistOrQueue(user?.id, players[idx]);
+        if (persisted.status === "queued") {
+          toast.warning(t("toasts.playerSavedPendingSync", { name: data.name }));
+        } else {
+          toast.success(t("toasts.playerUpdated", { name: data.name }));
+        }
       } else {
         const input = {
           name: data.name,
@@ -416,13 +433,19 @@ const PlayerForm = () => {
           // Sin confirmar las 6 barras ⇒ sin métricas ⇒ nace "sin evaluar" (vsi null).
           metrics: saveEvaluation ? data.metrics : undefined,
         };
-        // Crear jugador: si Supabase está activo, guardar también en cloud
-        if (user && SUPABASE_CONFIGURED) {
-          await SupabasePlayerService.create(user.id, input);
+        // Crear jugador en local y, si Supabase está activo, ESPERAR la subida:
+        // «agregado» solo si llegó a la nube; si falla queda en SyncQueue y se
+        // dice «pendiente de sincronizar» (antes: «agregado» pasara lo que pasara).
+        // Misma llamada que la edición: sin nube ⇒ local_only; sin sesión ⇒ se
+        // encola a nombre de la cuenta de la caché o falla (catch) — nunca «agregado»
+        // a secas con el alta fuera de la nube y fuera de la cola.
+        const created = PlayerService.create(input);
+        const persisted = await SupabasePlayerService.persistOrQueue(user?.id, created, "create");
+        if (persisted.status === "queued") {
+          toast.warning(t("toasts.playerAddedPendingSync", { name: data.name }));
         } else {
-          PlayerService.create(input);
+          toast.success(t("toasts.playerAdded", { name: data.name }));
         }
-        toast.success(t("toasts.playerAdded", { name: data.name }));
       }
 
       // Invalida todas las caches relevantes

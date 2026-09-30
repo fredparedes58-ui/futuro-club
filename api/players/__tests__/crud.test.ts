@@ -270,6 +270,130 @@ describe("/api/players/crud", () => {
     });
   });
 
+  // La fecha de nacimiento DEL JUGADOR llega a players.birth_date: es la columna
+  // que lee el control RGPD de consentimiento parental (036). Antes el POST la
+  // descartaba (no estaba en el schema) y ni POST ni PATCH escribían la columna.
+  describe("birth_date (control RGPD de consentimiento)", () => {
+    function capturePost() {
+      const cap: { body: Record<string, unknown> } = { body: {} };
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+        cap.body = JSON.parse(init?.body as string);
+        return new Response(JSON.stringify([{ id: cap.body.id, data: cap.body.data }]), { status: 201 });
+      });
+      return cap;
+    }
+
+    function capturePatch(currentData: Record<string, unknown>) {
+      const cap: { body: Record<string, unknown> } = { body: {} };
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("select=data")) {
+          return new Response(JSON.stringify([{ data: currentData, updated_at: "2026-01-01" }]));
+        }
+        if (init?.method === "PATCH") {
+          cap.body = JSON.parse(init.body as string);
+          return new Response(JSON.stringify([{ id: "p1", data: cap.body.data }]));
+        }
+        return new Response("{}", { status: 404 });
+      });
+      return cap;
+    }
+
+    it("POST con birthDate ⇒ birth_date en la columna y birthDate en el blob", async () => {
+      const cap = capturePost();
+      const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: "2015-05-10" }));
+      expect(res.status).toBe(201);
+      expect(cap.body.birth_date).toBe("2015-05-10");
+      expect((cap.body.data as Record<string, unknown>).birthDate).toBe("2015-05-10");
+    });
+
+    it("POST sin birthDate ⇒ birth_date null (nunca una fecha inventada)", async () => {
+      const cap = capturePost();
+      await crudHandler(makeRequest("POST", VALID_PLAYER));
+      expect(cap.body).toHaveProperty("birth_date", null);
+    });
+
+    it("POST con birthDate no válida (futura / imposible) ⇒ 400, no se guarda a medias", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch");
+      for (const bad of ["2999-01-01", "2014-02-30", "10/05/2015"]) {
+        const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: bad }));
+        expect(res.status).toBe(400);
+      }
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("PATCH de otro campo ⇒ birth_date proyectado desde el blob", async () => {
+      const cap = capturePatch({ name: "Old", birthDate: "2014-03-15", vsi: null, vsiHistory: [] });
+      const res = await crudHandler(makeRequest("PATCH", { id: "p1", name: "New Name" }));
+      expect(res.status).toBe(200);
+      expect(cap.body.birth_date).toBe("2014-03-15");
+    });
+
+    it("PATCH birthDate ⇒ actualiza blob y columna; null la borra de ambos", async () => {
+      let cap = capturePatch({ name: "Old", vsi: null, vsiHistory: [] });
+      await crudHandler(makeRequest("PATCH", { id: "p1", birthDate: "2015-05-10" }));
+      expect(cap.body.birth_date).toBe("2015-05-10");
+      expect((cap.body.data as Record<string, unknown>).birthDate).toBe("2015-05-10");
+
+      vi.restoreAllMocks();
+      cap = capturePatch({ name: "Old", birthDate: "2015-05-10", vsi: null, vsiHistory: [] });
+      await crudHandler(makeRequest("PATCH", { id: "p1", birthDate: null }));
+      expect(cap.body).toHaveProperty("birth_date", null);
+      expect(cap.body.data as Record<string, unknown>).not.toHaveProperty("birthDate");
+    });
+
+    // Orden de despliegue: el código se despliega antes de que el operador aplique
+    // migraciones. Si una base no tuviera players.birth_date (036), PostgREST
+    // rechaza la fila ENTERA: el endpoint reintenta sin esa columna (como antes)
+    // en vez de devolver 500 al alta del FirstRunWizard.
+    const MISSING_BIRTH_DATE = JSON.stringify({
+      code: "PGRST204",
+      message: "Could not find the 'birth_date' column of 'players' in the schema cache",
+    });
+
+    it("base SIN birth_date ⇒ POST reintenta sin la columna: 201, el blob conserva la fecha", async () => {
+      const bodies: Array<Record<string, unknown>> = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (_url, init) => {
+        const body = JSON.parse(init?.body as string) as Record<string, unknown>;
+        bodies.push(body);
+        if ("birth_date" in body) return new Response(MISSING_BIRTH_DATE, { status: 400 });
+        return new Response(JSON.stringify([{ id: body.id, data: body.data }]), { status: 201 });
+      });
+      const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: "2015-05-10" }));
+      expect(res.status).toBe(201);
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1]).not.toHaveProperty("birth_date");
+      expect((bodies[1].data as Record<string, unknown>).birthDate).toBe("2015-05-10");
+    });
+
+    it("base SIN birth_date ⇒ PATCH reintenta sin la columna: 200", async () => {
+      const patches: Array<Record<string, unknown>> = [];
+      vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+        const urlStr = typeof url === "string" ? url : url.toString();
+        if (urlStr.includes("select=data")) {
+          return new Response(JSON.stringify([{ data: { name: "Old", vsi: null, vsiHistory: [] }, updated_at: "2026-01-01" }]));
+        }
+        const body = JSON.parse(init?.body as string) as Record<string, unknown>;
+        patches.push(body);
+        if ("birth_date" in body) return new Response(MISSING_BIRTH_DATE, { status: 400 });
+        return new Response(JSON.stringify([{ id: "p1", data: body.data }]));
+      });
+      const res = await crudHandler(makeRequest("PATCH", { id: "p1", birthDate: "2015-05-10" }));
+      expect(res.status).toBe(200);
+      expect(patches).toHaveLength(2);
+      expect(patches[1]).not.toHaveProperty("birth_date");
+    });
+
+    it("otro error de escritura NO se enmascara: 500 y sin reintento", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
+        new Response(JSON.stringify({ code: "23505", message: "duplicate key value violates unique constraint" }), { status: 409 }),
+      );
+      const res = await crudHandler(makeRequest("POST", { ...VALID_PLAYER, birthDate: "2015-05-10" }));
+      expect(res.status).toBe(500);
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("DELETE — remove player", () => {
     it("deletes player by id", async () => {
       let deletedUrl = "";

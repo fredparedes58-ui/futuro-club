@@ -25,10 +25,8 @@ import { trustAnthropometricsRow, missingPhvInputs, type PhvCategory } from "@/l
 import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { PlayerService } from "@/services/real/playerService";
-import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
-import { SyncQueueService } from "@/services/real/syncQueueService";
+import { SupabasePlayerService, type PlayerPersistStatus } from "@/services/real/supabasePlayerService";
 
 interface Props {
   playerId: string;
@@ -166,10 +164,13 @@ export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gen
    * La ficha (blob que lee el gate de PHV del Hub) adopta las medidas guardadas.
    * Devuelve el estado REAL — nunca se traga un fallo de sincronización:
    *   synced / local_only → la ficha ya lee las medidas nuevas;
-   *   queued    → la nube falló (o no hay sesión): en SyncQueue, pendiente;
-   *   not_found → el jugador no está en este dispositivo: la ficha NO cambió.
+   *   queued      → la nube falló (o no hay sesión): en SyncQueue A NOMBRE de la
+   *                 cuenta, pendiente;
+   *   sync_failed → sin sesión ni cuenta a la que atribuir el cambio: la ficha
+   *                 cambió SOLO en este dispositivo y NO está en cola (se avisa);
+   *   not_found   → el jugador no está en este dispositivo: la ficha NO cambió.
    */
-  async function adoptMeasuresLocally(m: SavedMeasures): Promise<"synced" | "local_only" | "queued" | "not_found"> {
+  async function adoptMeasuresLocally(m: SavedMeasures): Promise<PlayerPersistStatus | "sync_failed" | "not_found"> {
     const updated = await PlayerService.update(playerId, {
       height: m.heightCm,
       weight: m.weightKg,
@@ -177,18 +178,17 @@ export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gen
       legLength: m.legLengthCm,
     }).catch(() => null); // caché local inaccesible ⇒ la ficha no cambió (se avisa)
     if (!updated) return "not_found";
-    let status: "synced" | "local_only" | "queued" = "local_only";
-    if (SUPABASE_CONFIGURED) {
-      try {
-        if (!user) throw new Error("no_session");
-        await SupabasePlayerService.pushOne(user.id, updated);
-        status = "synced";
-      } catch {
-        // Mismo patrón que create/updateMetrics: el cambio queda en la cola y se
-        // reintenta; el pull no lo pisa mientras esté pendiente.
-        SyncQueueService.enqueue("update", "player", playerId, updated);
-        status = "queued";
-      }
+    // Misma semántica que el resto de guardados de la ficha (PlayerForm,
+    // PlayerPhvSection): persistOrQueue sube el jugador o lo encola A NOMBRE DE LA
+    // CUENTA. Encolarlo sin dueño (como antes) era perderlo en silencio: una op sin
+    // dueño no se sube nunca y se descarta al cerrar sesión.
+    let status: PlayerPersistStatus | "sync_failed";
+    try {
+      status = (await SupabasePlayerService.persistOrQueue(user?.id, updated, "update")).status;
+    } catch (err) {
+      // Solo lanza sin sesión NI cuenta a la que atribuir el cambio: no hay cola posible.
+      console.warn("[AnthropometricsForm] profile not synced and not queued:", err);
+      status = "sync_failed";
     }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["player", playerId] }),
@@ -286,6 +286,7 @@ export function AnthropometricsForm({ playerId, chronologicalAge, birthDate, gen
         if (!editingId) {
           const adopted = await adoptMeasuresLocally({ heightCm, weightKg, sittingHeightCm, legLengthCm });
           if (adopted === "queued") toast.info(t("anthroForm.toastProfilePendingSync"), { duration: 6000 });
+          if (adopted === "sync_failed") toast.error(t("anthroForm.toastProfileSyncFailed"), { duration: 8000 });
           if (adopted === "not_found") toast.warning(t("anthroForm.toastProfileNotOnDevice"), { duration: 6000 });
         }
         onSaved?.({ heightCm, weightKg, sittingHeightCm, legLengthCm });

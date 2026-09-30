@@ -6,6 +6,12 @@
  * FIFO cuando se recupera la conexión.
  *
  * También gestiona timestamps de última sincronización para delta sync.
+ *
+ * Cola POR CUENTA (datos de menores, dispositivo compartido): cada op guarda la
+ * cuenta dueña del cambio (`ownerId`). Solo esa cuenta la ve (pendiente), la
+ * sube (useSupabaseSync) o la protege del pull. Una op sin dueño no se sube
+ * NUNCA (se descarta al cerrar sesión): subirla con la sesión que haya abierta
+ * escribiría el cambio de una cuenta en otra.
  */
 
 import { StorageService } from "./storageService";
@@ -23,6 +29,8 @@ export interface SyncQueueItem {
   data: unknown;
   timestamp: string; // ISO
   retries: number;
+  /** Cuenta (auth user id) dueña del cambio. Ausente/null ⇒ sin dueño: no se sube nunca. */
+  ownerId?: string | null;
 }
 
 export interface SyncTimestamps {
@@ -45,18 +53,33 @@ export const SyncQueueService = {
     return StorageService.get<SyncQueueItem[]>(QUEUE_KEY, []);
   },
 
-  /** Número de operaciones pendientes */
-  pendingCount(): number {
-    return this.getQueue().length;
+  /** Operaciones pendientes de UNA cuenta. Sin cuenta ⇒ ninguna (nunca las de otra). */
+  getQueueFor(ownerId: string | null | undefined): SyncQueueItem[] {
+    if (!ownerId) return [];
+    return this.getQueue().filter((q) => q.ownerId === ownerId);
   },
 
-  /** Encolar una operación para sincronizar cuando haya conexión */
-  enqueue(action: SyncAction, entity: SyncEntity, entityId: string, data: unknown): void {
-    const queue = this.getQueue();
+  /**
+   * Número de operaciones pendientes DE `ownerId` (sin cuenta ⇒ 0). La cuenta es
+   * obligatoria: no hay recuento «del dispositivo», porque las ops de otra cuenta
+   * no pueden decidir nada de la sesión actual (p.ej. conservar su caché).
+   */
+  pendingCount(ownerId: string | null | undefined): number {
+    return this.getQueueFor(ownerId).length;
+  },
 
-    // Deduplicar: si ya hay una operación para el mismo entity+id, reemplazar
+  /**
+   * Encolar una operación para sincronizar cuando haya conexión. `ownerId` = la
+   * cuenta dueña del cambio; sin él la op queda sin dueño y NO se sube nunca.
+   */
+  enqueue(action: SyncAction, entity: SyncEntity, entityId: string, data: unknown, ownerId?: string | null): void {
+    const queue = this.getQueue();
+    const owner = ownerId ?? null;
+
+    // Deduplicar: si ya hay una operación para el mismo entity+id DE LA MISMA
+    // cuenta, reemplazar (la op de otra cuenta no se toca ni se mezcla).
     const existing = queue.findIndex(
-      (q) => q.entity === entity && q.entityId === entityId
+      (q) => q.entity === entity && q.entityId === entityId && (q.ownerId ?? null) === owner
     );
 
     const item: SyncQueueItem = {
@@ -67,6 +90,7 @@ export const SyncQueueService = {
       data,
       timestamp: new Date().toISOString(),
       retries: 0,
+      ownerId: owner,
     };
 
     if (existing >= 0) {
@@ -110,6 +134,41 @@ export const SyncQueueService = {
       item.retries += 1;
       StorageService.set(QUEUE_KEY, queue);
     }
+  },
+
+  /** ¿Tiene ESTA cuenta alguna operación sin sincronizar para esta entidad? (estado «pendiente de sincronizar») */
+  hasPendingFor(entity: SyncEntity, entityId: string, ownerId: string | null | undefined): boolean {
+    return this.getQueueFor(ownerId).some((q) => q.entity === entity && q.entityId === entityId);
+  },
+
+  /**
+   * Quitar las operaciones create/update pendientes de una entidad (de esa
+   * cuenta) cuyo estado COMPLETO acaba de llegar a la nube (upsert de fila
+   * entera): reprocesarlas después re-subiría datos más viejos encima de los
+   * nuevos. Un delete pendiente NO se toca.
+   */
+  removeUpsertsFor(entity: SyncEntity, entityId: string, ownerId: string): void {
+    const queue = this.getQueue();
+    const kept = queue.filter(
+      (q) => !(q.entity === entity && q.entityId === entityId && q.ownerId === ownerId && q.action !== "delete"),
+    );
+    if (kept.length !== queue.length) StorageService.set(QUEUE_KEY, kept);
+  },
+
+  /**
+   * Descartar las ops SIN dueño (anteriores a la cola por cuenta, o encoladas sin
+   * sesión): ninguna cuenta puede subirlas sin riesgo de escribirlas en la cuenta
+   * equivocada. Las ops con dueño se conservan para ESA cuenta. Devuelve cuántas.
+   */
+  dropUnowned(): number {
+    const queue = this.getQueue();
+    const kept = queue.filter((q) => !!q.ownerId);
+    const dropped = queue.length - kept.length;
+    if (dropped > 0) {
+      console.warn(`[SyncQueue] Dropped ${dropped} unowned item(s): they cannot be attributed to an account`);
+      StorageService.set(QUEUE_KEY, kept);
+    }
+    return dropped;
   },
 
   /** Limpiar toda la cola */
@@ -162,9 +221,9 @@ export const SyncQueueService = {
 
   // ── Estado de sync ─────────────────────────────────────────────────────
 
-  /** Verificar si hay operaciones pendientes */
-  hasPending(): boolean {
-    return this.pendingCount() > 0;
+  /** ¿Tiene ESTA cuenta operaciones pendientes? */
+  hasPending(ownerId: string | null | undefined): boolean {
+    return this.pendingCount(ownerId) > 0;
   },
 
   /** Verificar si estamos online */
@@ -172,11 +231,11 @@ export const SyncQueueService = {
     return navigator.onLine;
   },
 
-  /** Resumen del estado de sync para UI */
-  getStatus(): { pending: number; lastPlayers: string | null; lastVideos: string | null; online: boolean } {
+  /** Resumen del estado de sync para UI (pendientes de ESTA cuenta) */
+  getStatus(ownerId: string | null | undefined): { pending: number; lastPlayers: string | null; lastVideos: string | null; online: boolean } {
     const ts = this.getTimestamps();
     return {
-      pending: this.pendingCount(),
+      pending: this.pendingCount(ownerId),
       lastPlayers: ts.players,
       lastVideos: ts.videos,
       online: this.isOnline(),

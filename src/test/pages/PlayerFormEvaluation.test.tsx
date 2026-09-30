@@ -44,7 +44,8 @@ vi.mock("@/hooks/usePlan", () => ({
 vi.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: null }) }));
 vi.mock("@/lib/supabase", () => ({ SUPABASE_CONFIGURED: false, supabase: {} }));
 vi.mock("@/services/real/supabasePlayerService", () => ({
-  SupabasePlayerService: { pushOne: vi.fn().mockResolvedValue(undefined), create: vi.fn() },
+  // Guardado honesto (#298): la ficha se persiste con persistOrQueue; sin nube ⇒ local_only.
+  SupabasePlayerService: { persistOrQueue: vi.fn().mockResolvedValue({ status: "local_only" }) },
 }));
 
 // Jugador SIN evaluar (sin métricas): el formulario precarga las barras por defecto.

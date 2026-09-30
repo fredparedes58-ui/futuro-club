@@ -4,33 +4,42 @@
  * Reúne en un solo sitio (la ficha del jugador) las DOS entradas que antes
  * estaban repartidas:
  *   1. Medidas antropométricas (altura/peso/altura sentado/pierna) → Mirwald.
- *   2. Datos parentales (alturas de madre+padre) + fecha nac. → Khamis-Roche
- *      (%talla adulta), la proyección fiable cuando la edad está lejos del PHV.
+ *   2. Datos de maduración (jugador y padres): la fecha de nacimiento DEL
+ *      JUGADOR (edad decimal exacta; también llega a `players.birth_date`, la
+ *      columna del control RGPD de consentimiento parental) y las alturas de
+ *      madre+padre → Khamis-Roche (%talla adulta), la proyección fiable cuando la
+ *      edad está lejos del PHV.
  *
  * Antes las alturas parentales solo vivían en "Editar jugador", así que el
  * mensaje de proyección ("añade la altura de ambos padres") era un callejón
  * sin salida. Ahora se editan aquí mismo.
  *
- * Usado por el Hub (pestaña Movimiento) y por el perfil clásico.
+ * Guardado honesto: solo se anuncia «guardado» cuando el cambio está persistido
+ * (localStorage + nube, o localStorage si no hay nube). Si la nube falla, queda
+ * en SyncQueue y se muestra «pendiente de sincronizar»; si el jugador no está en
+ * la caché local no se guarda nada y se dice.
+ *
+ * Usado por el Hub (/players/:id, pestaña Movimiento); /player/:id redirige al Hub.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Ruler, Users, Save, Loader2 } from "lucide-react";
+import { Ruler, Users, Save, Loader2, CloudOff } from "lucide-react";
 
 import { AnthropometricsForm } from "@/components/player/AnthropometricsForm";
 import GrowthVelocityChart from "@/components/player/GrowthVelocityChart";
 import { PhvWindowPlan } from "@/components/player/PhvWindowPlan";
-import { PlayerService, type Player } from "@/services/real/playerService";
+import type { Player } from "@/services/real/playerService";
 import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
+import { SyncQueueService } from "@/services/real/syncQueueService";
 import { useAuth } from "@/context/AuthContext";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
+import { BIRTH_DATE_MIN_ISO, latestBirthDateIso, toIsoBirthDate } from "@/lib/shared/birthDate";
 
 interface Props {
   player: Player;
   hasPhv: boolean;
-  /** Se llama tras guardar datos parentales — el host refresca su copia del jugador. */
+  /** Se llama tras guardar fecha de nacimiento/alturas — el host refresca su copia del jugador. */
   onSaved?: () => void;
 }
 
@@ -47,6 +56,11 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
   const [motherH, setMotherH] = useState(player.motherHeightCm?.toString() ?? "");
   const [fatherH, setFatherH] = useState(player.fatherHeightCm?.toString() ?? "");
   const [saving, setSaving] = useState(false);
+  // «Pendiente de sincronizar»: hay un cambio de este jugador que aún no llegó a la
+  // nube. Se lee de SyncQueue en cada render (no se congela en estado): cuando la
+  // cola se procesa y el host re-renderiza, el aviso desaparece solo.
+  const pendingSync = SyncQueueService.hasPendingFor("player", player.id, user?.id);
+  const [, rerenderAfterSave] = useState(0);
 
   function outOfRange(v: string, [min, max]: readonly [number, number]): boolean {
     if (!v) return false;
@@ -59,22 +73,36 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
       toast.error(t("playerPhvSection.parentalRangeError"));
       return;
     }
+    // Misma regla que la columna birth_date (toIsoBirthDate): una fecha que la
+    // columna rechazaría no se guarda en el blob (dos fechas distintas = inv #7).
+    if (birthDate && toIsoBirthDate(birthDate) === null) {
+      toast.error(t("playerPhvSection.birthDateInvalid"));
+      return;
+    }
     setSaving(true);
     try {
-      const updated = await PlayerService.update(player.id, {
+      const result = await SupabasePlayerService.saveProfile(user?.id, player.id, {
         birthDate: birthDate || undefined,
         motherHeightCm: motherH ? Number(motherH) : undefined,
         fatherHeightCm: fatherH ? Number(fatherH) : undefined,
       });
-      if (updated && user && SUPABASE_CONFIGURED) {
-        SupabasePlayerService.pushOne(user.id, updated).catch(() => {});
+      if (result.status === "not_found") {
+        // PlayerService.update no encontró al jugador en la caché local ⇒ NO se
+        // guardó nada. Antes esto mostraba «guardado» igualmente.
+        toast.error(t("playerPhvSection.notFoundError"));
+        return;
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["player", player.id] }),
         queryClient.invalidateQueries({ queryKey: ["player-raw", player.id] }),
         queryClient.invalidateQueries({ queryKey: ["players-all"] }),
       ]);
-      toast.success(t("playerPhvSection.parentalSaved"));
+      rerenderAfterSave((n) => n + 1);
+      if (result.status === "queued") {
+        toast.warning(t("playerPhvSection.pendingSyncToast"));
+      } else {
+        toast.success(t("playerPhvSection.parentalSaved"));
+      }
       onSaved?.();
     } catch {
       toast.error(t("playerPhvSection.parentalError"));
@@ -109,7 +137,8 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
         }}
       />
 
-      {/* 2 · Datos parentales → Khamis-Roche (%talla adulta) */}
+      {/* 2 · Datos de maduración (jugador y padres): fecha de nacimiento DEL
+            JUGADOR (edad decimal) + alturas de los padres → Khamis-Roche */}
       <div className="mt-4 pt-4 border-t border-border/40 space-y-3">
         <div className="flex items-center gap-2">
           <Users size={13} className="text-primary" />
@@ -121,16 +150,19 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
         <p className="text-[10px] text-muted-foreground leading-relaxed">
           {t("playerPhvSection.parentalNote")}
         </p>
-        <div className="grid grid-cols-3 gap-2">
-          <label className="text-[10px] text-muted-foreground space-y-1">
-            <span>{t("playerPhvSection.birthDate")}</span>
-            <input
-              type="date"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              className="w-full rounded-md bg-secondary/40 border border-border px-2 py-1.5 text-xs text-foreground"
-            />
-          </label>
+        {/* Fila propia: es la fecha del JUGADOR, no de un padre. */}
+        <label className="block text-[10px] text-muted-foreground space-y-1">
+          <span>{t("playerPhvSection.birthDate")}</span>
+          <input
+            type="date"
+            value={birthDate}
+            min={BIRTH_DATE_MIN_ISO}
+            max={latestBirthDateIso()}
+            onChange={(e) => setBirthDate(e.target.value)}
+            className="w-full sm:max-w-[12rem] rounded-md bg-secondary/40 border border-border px-2 py-1.5 text-xs text-foreground"
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-2">
           <label className="text-[10px] text-muted-foreground space-y-1">
             <span>{t("playerPhvSection.motherHeight")}</span>
             <input
@@ -154,14 +186,25 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
             />
           </label>
         </div>
-        <button
-          onClick={saveParental}
-          disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-display font-bold bg-primary/15 text-primary hover:bg-primary/25 transition-colors disabled:opacity-50"
-        >
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-          {t("playerPhvSection.parentalSave")}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={saveParental}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-display font-bold bg-primary/15 text-primary hover:bg-primary/25 transition-colors disabled:opacity-50"
+          >
+            {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+            {t("playerPhvSection.parentalSave")}
+          </button>
+          {pendingSync && (
+            <span
+              role="status"
+              className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+            >
+              <CloudOff size={11} />
+              {t("playerPhvSection.pendingSync")}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 3 · Curva de velocidad de crecimiento + plan de ventana PHV */}

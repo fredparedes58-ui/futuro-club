@@ -9,6 +9,7 @@
 import { SchemaMigrationService } from "./schemaMigration";
 import { StorageService } from "./storageService";
 import { SyncQueueService } from "./syncQueueService";
+import { LocalAccountScope } from "./localAccountScope";
 
 export interface HealthCheckResult {
   healthy: boolean;
@@ -131,7 +132,8 @@ export const HealthCheckService = {
   },
 
   checkSyncQueue(): HealthCheckItem {
-    const pending = SyncQueueService.pendingCount();
+    // Solo la cuenta de la sesión: las ops de otra cuenta del dispositivo no son suyas.
+    const pending = SyncQueueService.pendingCount(LocalAccountScope.getOwner());
     if (pending > 20) {
       return {
         name: "Cola de sincronización",
