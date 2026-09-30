@@ -286,6 +286,20 @@ export function useTeamIntelligence() {
 
 // ——— Hook para cargar análisis de equipo guardados ——————————————
 
+/**
+ * Identidad (identidad.md): las filas de `team_analyses` guardadas antes de la
+ * guarda aún llevan `jugadores[]` (dorsal adivinado por el LLM + cifras por
+ * jugador). Se retiran en la LECTURA, para cualquier consumidor de estos hooks;
+ * la página vuelve a aplicar la misma guarda (idempotente).
+ */
+export function teamLevelRows<T>(rows: T[] | null | undefined): T[] {
+  return (rows ?? []).map((row) => {
+    const report = (row as { report?: unknown } | null)?.report;
+    if (!report || typeof report !== "object") return row;
+    return { ...row, report: withholdIndividualData(report).value };
+  });
+}
+
 export function useSavedTeamAnalyses(videoId: string) {
   return useQuery({
     queryKey: ["team-analyses", videoId],
@@ -298,7 +312,7 @@ export function useSavedTeamAnalyses(videoId: string) {
         .order("created_at", { ascending: false })
         .limit(10);
       if (error) throw error;
-      return data ?? [];
+      return teamLevelRows(data);
     },
     enabled:   !!videoId && SUPABASE_CONFIGURED,
     staleTime: 1000 * 60 * 5,
@@ -317,7 +331,7 @@ export function useAllTeamAnalyses() {
         .order("created_at", { ascending: false })
         .limit(20);
       if (error) throw error;
-      return data ?? [];
+      return teamLevelRows(data);
     },
     enabled: SUPABASE_CONFIGURED,
     staleTime: 1000 * 60 * 5,

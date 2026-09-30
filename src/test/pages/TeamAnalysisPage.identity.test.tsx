@@ -134,8 +134,9 @@ describe("TeamAnalysisPage · identity (team level only)", () => {
     expect(text).not.toContain("95%"); // pass accuracy 19/(19+1) of the "#86" row
     expect(text).not.toContain("31.3");
     expect(text).not.toContain("6123");
-    expect(screen.queryByText(i18n.t("teamAnalysis.playersTitle"))).toBeNull();
-    expect(screen.queryByText(i18n.t("teamAnalysis.playersDesc"))).toBeNull();
+    // The old table heading ("Jugadores" / "Toca un jugador para ver detalle y mapa de calor").
+    expect(text).not.toMatch(/mapa de calor/i);
+    expect(screen.queryByText("Jugadores")).toBeNull();
     expect(screen.queryByTestId("player-heatmap")).toBeNull();
 
     // A short honest note says what was withheld and why.
@@ -181,10 +182,45 @@ describe("TeamAnalysisPage · identity (team level only)", () => {
 });
 
 describe("TeamAnalysisPage · identity i18n (7 locales)", () => {
-  const LOCALES: Record<string, { teamAnalysisPage: Record<string, string> }> = {
+  const LOCALES: Record<string, { teamAnalysis: Record<string, string>; teamAnalysisPage: Record<string, string> }> = {
     es, en, it: itJson, de: deJson, fr: frJson, nl: nlJson, "es-419": es419Json,
   };
   const vars = (s: string) => (s.match(/\{\{\w+\}\}/g) ?? []).sort();
+
+  // The per-player table and detail sheet are gone, and so are their strings
+  // (including the "Mapa de Calor — #{{number}}" shirt-number template).
+  const REMOVED = {
+    teamAnalysis: ["playersTitle", "playersDesc", "passes", "duels", "recoveries"],
+    teamAnalysisPage: ["role", "passes", "duels", "wonAbbr", "lostAbbr", "recoveriesCount", "speed", "distance", "heatmapTitle"],
+  } as const;
+  it("the per-player table / sheet strings no longer exist in any locale", () => {
+    for (const [code, json] of Object.entries(LOCALES)) {
+      for (const [block, keys] of Object.entries(REMOVED) as [keyof typeof REMOVED, readonly string[]][]) {
+        const present = Object.keys(json[block]);
+        expect(present.length, `${code}.${block} still exists`).toBeGreaterThan(0);
+        for (const key of keys) {
+          expect(present.filter((k) => k === key || k.startsWith(`${key}_`)), `${code}.${block}.${key}`).toEqual([]);
+        }
+      }
+      expect(JSON.stringify(json.teamAnalysisPage), code).not.toContain("#{{");
+    }
+  });
+
+  // The user guide described the team analysis as including "rendimiento por jugador".
+  it("the user guide no longer promises per-player performance for the team analysis", () => {
+    const OLD_PROMISES = [
+      /rendimiento por jugador/i, /per-player performance/i, /rendimento per giocatore/i,
+      /performance par joueur/i, /Leistung pro Spieler/i, /prestaties per speler/i,
+    ];
+    const guides: Record<string, { userGuide: { video: { teamText: string } } }> = {
+      es, en, it: itJson, de: deJson, fr: frJson, nl: nlJson, "es-419": es419Json,
+    };
+    for (const [code, json] of Object.entries(guides)) {
+      const text = json.userGuide.video.teamText;
+      expect(text.trim().length, code).toBeGreaterThan(0);
+      for (const re of OLD_PROMISES) expect(text, code).not.toMatch(re);
+    }
+  });
 
   for (const key of ["perPlayerWithheld", "individualTextsHidden", "aiAnalysisHint"]) {
     it(`teamAnalysisPage.${key} exists, is non-empty and has the same variables in every locale`, () => {

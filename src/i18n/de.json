@@ -1001,11 +1001,6 @@
     "width": "Breite",
     "synchronization": "Synchronisation",
     "defensiveLine": "Abwehrlinie",
-    "playersTitle": "Spieler",
-    "playersDesc": "Tippe auf einen Spieler für Details und Heatmap",
-    "passes": "Pässe",
-    "duels": "Zweikämpfe",
-    "recoveries": "Balleroberungen",
     "generalEvaluation": "Gesamtbewertung",
     "generalEvalDesc": "Schlussfolgerungen und Empfehlungen",
     "teamStrengths": "Stärken",
@@ -2171,15 +2166,6 @@
     "newAnalysisShort": "Neue Analyse",
     "noTeamAnalysis": "Keine Teamanalyse",
     "noTeamAnalysisDesc": "Lade ein Spielvideo hoch und erstelle den ersten taktischen Bericht",
-    "role": "Rolle",
-    "passes": "Pässe",
-    "duels": "Zweikämpfe",
-    "wonAbbr": "G",
-    "lostAbbr": "V",
-    "recoveriesCount": "{{count}} Balleroberungen",
-    "speed": "Geschwindigkeit",
-    "distance": "Distanz",
-    "heatmapTitle": "Heatmap — #{{number}}",
     "perPlayerWithheld": "Dieser Bericht enthielt Zeilen pro Spieler mit einer von der KI geschätzten Rückennummer. Sie werden ausgeblendet: Ohne validierte Identifizierung über die Rückennummer ordnet VITAS keinem bestimmten Spieler Zahlen zu. Die Analyse erfolgt nur auf Teamebene.",
     "individualTextsHidden": "Ausgeblendete Texte, weil sie einen bestimmten Spieler nannten (Rückennummer oder Nummer): {{n}}."
   },
@@ -2701,7 +2687,7 @@
         }
       ],
       "teamHeading": "Teamanalyse (Team Intelligence)",
-      "teamText": "Funktioniert genauso, bewertet aber das gesamte Team: Formation, Spielphasen, kollektive Metriken (Kompaktheit, Synchronisation, Pressing) und die Leistung pro Spieler.",
+      "teamText": "Funktioniert genauso, bewertet aber das gesamte Team: Formation, Spielphasen und kollektive Metriken (Kompaktheit, Synchronisation, Pressing). Nur auf Teamebene: keine Rückennummern und keine Zahlen pro Spieler.",
       "tip": "Die Videos werden sicher im Bunny CDN gespeichert. Sie können sie mit unterschiedlichen Schwerpunkten (offensiv, defensiv, Umschaltspiel) erneut analysieren, ohne sie noch einmal hochzuladen."
     },
     "rankings": {

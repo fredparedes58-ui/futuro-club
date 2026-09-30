@@ -1002,11 +1002,6 @@
     "width": "Breedte",
     "synchronization": "Synchronisatie",
     "defensiveLine": "Verdedigingslinie",
-    "playersTitle": "Spelers",
-    "playersDesc": "Tik op een speler voor details en heatmap",
-    "passes": "Passes",
-    "duels": "Duels",
-    "recoveries": "Balver.",
     "generalEvaluation": "Algemene beoordeling",
     "generalEvalDesc": "Conclusies en aanbevelingen",
     "teamStrengths": "Sterke punten",
@@ -2172,15 +2167,6 @@
     "newAnalysisShort": "Nieuwe analyse",
     "noTeamAnalysis": "Geen teamanalyse",
     "noTeamAnalysisDesc": "Upload een wedstrijdvideo en genereer het eerste tactische rapport",
-    "role": "Rol",
-    "passes": "Passes",
-    "duels": "Duels",
-    "wonAbbr": "W",
-    "lostAbbr": "V",
-    "recoveriesCount": "{{count}} balveroveringen",
-    "speed": "Snelheid",
-    "distance": "Afstand",
-    "heatmapTitle": "Heatmap — #{{number}}",
     "perPlayerWithheld": "Dit rapport bevatte rijen per speler met een door de AI geschat rugnummer. Ze worden verborgen: zonder gevalideerde identificatie via het rugnummer koppelt VITAS geen cijfers aan een specifieke speler. De analyse is alleen op teamniveau.",
     "individualTextsHidden": "Teksten verborgen omdat ze een specifieke speler noemden (rugnummer of nummer): {{n}}."
   },
@@ -2702,7 +2688,7 @@
         }
       ],
       "teamHeading": "Teamanalyse (Team Intelligence)",
-      "teamText": "Werkt op dezelfde manier, maar beoordeelt het volledige team: formatie, spelfases, collectieve statistieken (compactheid, synchronisatie, pressing) en prestaties per speler.",
+      "teamText": "Werkt op dezelfde manier, maar beoordeelt het volledige team: formatie, spelfases en collectieve statistieken (compactheid, synchronisatie, pressing). Alleen op teamniveau: geen rugnummers of cijfers per speler.",
       "tip": "De video's worden veilig opgeslagen in Bunny CDN. Je kunt ze opnieuw analyseren met verschillende invalshoeken (aanvallend, verdedigend, omschakelingen) zonder ze opnieuw te uploaden."
     },
     "rankings": {

@@ -1001,11 +1001,6 @@
     "width": "Largeur",
     "synchronization": "Synchronisation",
     "defensiveLine": "Ligne déf.",
-    "playersTitle": "Joueurs",
-    "playersDesc": "Touchez un joueur pour voir le détail et la carte de chaleur",
-    "passes": "Passes",
-    "duels": "Duels",
-    "recoveries": "Récup.",
     "generalEvaluation": "Évaluation générale",
     "generalEvalDesc": "Conclusions et recommandations",
     "teamStrengths": "Forces",
@@ -2171,15 +2166,6 @@
     "newAnalysisShort": "Nouvelle analyse",
     "noTeamAnalysis": "Aucune analyse d'équipe",
     "noTeamAnalysisDesc": "Ajoutez une vidéo de match et générez le premier rapport tactique",
-    "role": "Rôle",
-    "passes": "Passes",
-    "duels": "Duels",
-    "wonAbbr": "G",
-    "lostAbbr": "P",
-    "recoveriesCount": "{{count}} récupérations",
-    "speed": "Vitesse",
-    "distance": "Distance",
-    "heatmapTitle": "Carte de chaleur — #{{number}}",
     "perPlayerWithheld": "Ce rapport contenait des lignes par joueur avec un numéro de maillot estimé par l'IA. Elles sont masquées : sans identification validée par le numéro de maillot, VITAS n'attribue aucun chiffre à un joueur précis. L'analyse porte uniquement sur l'équipe.",
     "individualTextsHidden": "Textes masqués car ils mentionnaient un joueur précis (numéro de maillot ou numéro) : {{n}}."
   },
@@ -2701,7 +2687,7 @@
         }
       ],
       "teamHeading": "Analyse d'équipe (Team Intelligence)",
-      "teamText": "Le fonctionnement est identique, mais l'évaluation porte sur l'équipe entière : formation, phases de jeu, métriques collectives (compacité, synchronisation, pressing) et performance par joueur.",
+      "teamText": "Le fonctionnement est identique, mais l'évaluation porte sur l'équipe entière : formation, phases de jeu et métriques collectives (compacité, synchronisation, pressing). Au niveau de l'équipe uniquement : ni numéros de maillot ni chiffres par joueur.",
       "tip": "Les vidéos sont stockées de manière sécurisée sur Bunny CDN. Vous pouvez les réanalyser sous différents angles (offensif, défensif, transitions) sans avoir à les téléverser à nouveau."
     },
     "rankings": {

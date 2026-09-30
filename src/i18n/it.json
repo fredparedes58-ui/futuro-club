@@ -1001,11 +1001,6 @@
     "width": "Ampiezza",
     "synchronization": "Sincronizzazione",
     "defensiveLine": "Linea dif.",
-    "playersTitle": "Giocatori",
-    "playersDesc": "Tocca un giocatore per vedere il dettaglio e la mappa di calore",
-    "passes": "Passaggi",
-    "duels": "Duelli",
-    "recoveries": "Recuperi",
     "generalEvaluation": "Valutazione generale",
     "generalEvalDesc": "Conclusioni e raccomandazioni",
     "teamStrengths": "Punti di forza",
@@ -2171,15 +2166,6 @@
     "newAnalysisShort": "Nuova analisi",
     "noTeamAnalysis": "Nessuna analisi di squadra",
     "noTeamAnalysisDesc": "Carica un video di partita e genera il primo report tattico",
-    "role": "Ruolo",
-    "passes": "Passaggi",
-    "duels": "Duelli",
-    "wonAbbr": "V",
-    "lostAbbr": "P",
-    "recoveriesCount": "{{count}} recuperi",
-    "speed": "Velocità",
-    "distance": "Distanza",
-    "heatmapTitle": "Mappa di calore — #{{number}}",
     "perPlayerWithheld": "Questo report includeva righe per giocatore con un numero di maglia stimato dall'IA. Sono nascoste: senza un'identificazione convalidata tramite il numero di maglia, VITAS non attribuisce cifre a nessun giocatore specifico. L'analisi è solo di squadra.",
     "individualTextsHidden": "Testi nascosti perché menzionavano un giocatore specifico (numero di maglia o numero): {{n}}."
   },
@@ -2701,7 +2687,7 @@
         }
       ],
       "teamHeading": "Analisi di squadra (Team Intelligence)",
-      "teamText": "Funziona allo stesso modo ma valuta l'intera squadra: formazione, fasi di gioco, metriche collettive (compattezza, sincronizzazione, pressing) e rendimento per giocatore.",
+      "teamText": "Funziona allo stesso modo ma valuta l'intera squadra: formazione, fasi di gioco e metriche collettive (compattezza, sincronizzazione, pressing). Solo a livello di squadra: niente numeri di maglia né cifre per giocatore.",
       "tip": "I video vengono archiviati in modo sicuro su Bunny CDN. Puoi rianalizzarli con diversi approcci (offensivo, difensivo, transizioni) senza doverli ricaricare."
     },
     "rankings": {
