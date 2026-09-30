@@ -15,12 +15,17 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
+import { phvGate, type PhvGateBlocked } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
 
 const phvSchema = z.object({
   playerId: z.string().min(1),
+  // Edad ENTERA del cliente: NO entra en Mirwald (regla del owner 28-sep). La edad
+  // de la fórmula es la DECIMAL desde `birthDate`; sin fecha ⇒ 422.
   chronologicalAge: z.number().min(5).max(25),
+  // Fecha de nacimiento del JUGADOR (ISO): fuente única de la edad decimal.
+  birthDate: z.string().max(40).optional(),
   height: z.number().positive().optional(),         // cm
   weight: z.number().positive().optional(),         // kg
   sittingHeight: z.number().positive().optional(),  // cm
@@ -40,7 +45,12 @@ interface PhvResult {
   category: "early" | "ontime" | "late";
   phvStatus: "pre_phv" | "during_phv" | "post_phv";
   developmentWindow: "critical" | "active" | "stable";
-  adjustedVSI: number;
+  /** null sin VSI real del jugador (antes: base fija 70 ⇒ 78.4/70/64.4 inventados). */
+  adjustedVSI: number | null;
+  /** Motivo cuando adjustedVSI es null. */
+  adjustedVSIGateReason: string | null;
+  /** Edad usada en Mirwald: DECIMAL desde la fecha de nacimiento. */
+  ageSource: "birth_date";
   recommendation: string;
   confidence: number;
   formula: "mirwald_male" | "mirwald_female";
@@ -160,10 +170,59 @@ function categorize(offset: number): {
   return { category, phvStatus, developmentWindow };
 }
 
-function adjustVSI(currentVSI: number | undefined, category: PhvResult["category"]): number {
-  const base = currentVSI ?? 70;
-  const factor = category === "early" ? 1.12 : category === "late" ? 0.92 : 1.0;
-  return Math.max(0, Math.min(100, Number((base * factor).toFixed(1))));
+/**
+ * VSI ajustado por maduración: SOLO con VSI real del jugador y con el factor
+ * CANÓNICO del motor (maturity.ts · adjustmentFactor, por TIMING vs pares y 1
+ * cuando el timing no es firme) que devuelve el gate único. Antes: base fija 70
+ * sin VSI y ×1.12 a todo "early" (= pre-PHV, un ESTADO, no un timing) — una 5ª
+ * copia paralela del ajuste (invariante #7) que inflaba a cualquier pre-púber.
+ */
+export const ADJUSTED_VSI_NO_VSI_REASON =
+  "Sin VSI real del jugador: no se calcula un VSI ajustado por maduración.";
+
+function adjustVSI(
+  currentVSI: number | undefined,
+  canonicalFactor: number,
+): { value: number | null; gate_reason: string | null } {
+  if (typeof currentVSI !== "number" || !Number.isFinite(currentVSI)) {
+    return { value: null, gate_reason: ADJUSTED_VSI_NO_VSI_REASON };
+  }
+  return {
+    value: Math.max(0, Math.min(100, Number((currentVSI * canonicalFactor).toFixed(1)))),
+    gate_reason: null,
+  };
+}
+
+/** Código/HTTP del bloqueo del gate (se conservan los códigos históricos). */
+function gateError(g: PhvGateBlocked): { code: string; message: string } {
+  const measures = g.missing.filter((k) => k !== "birthDate" && k !== "sex");
+  if (measures.length > 0) {
+    return {
+      code: "phv_incomplete_data",
+      message:
+        "PHV_INCOMPLETE_DATA: Se requieren las 4 mediciones antropométricas reales " +
+        "(altura, peso, altura sentado, longitud de pierna) para calcular el PHV. " +
+        `No se permiten estimaciones. ${g.gate_reason}`,
+    };
+  }
+  if (g.missing.includes("sex")) {
+    return {
+      code: "phv_missing_sex",
+      message:
+        "PHV_MISSING_SEX: El sexo del jugador es obligatorio para el cálculo PHV " +
+        "(la fórmula de Mirwald y las medias de referencia son sexo-específicas). " +
+        `No se asume un sexo por defecto. ${g.gate_reason}`,
+    };
+  }
+  if (g.missing.includes("birthDate")) {
+    return {
+      code: "phv_missing_birth_date",
+      message:
+        "PHV_MISSING_BIRTH_DATE: Mirwald exige la edad EXACTA (decimal) desde la fecha " +
+        `de nacimiento del jugador; no se usa la edad entera. ${g.gate_reason}`,
+    };
+  }
+  return { code: "phv_out_of_range", message: `PHV_OUT_OF_RANGE: ${g.gate_reason}` };
 }
 
 function buildRecommendation(result: Omit<PhvResult, "recommendation">): string {
@@ -192,19 +251,42 @@ export default withHandler(
   { schema: phvSchema, requireAuth: true, maxRequests: 100 },
   async ({ body }) => {
     try {
-      const input = body as PhvInput;
+      const rawInput = body as PhvInput;
+      // GATE ÚNICO (src/lib/phv/phvGate.ts · regla del owner 28-sep): talla, peso,
+      // talla sentado, pierna (o talla − sentado), fecha de nacimiento → edad
+      // DECIMAL y sexo registrado. Falta cualquiera ⇒ 422 con el motivo. Solo
+      // cambia QUÉ entra (G6); la fórmula de abajo no se toca (invariante #4).
+      const gate = phvGate({
+        height: rawInput.height,
+        weight: rawInput.weight,
+        sittingHeight: rawInput.sittingHeight,
+        legLength: rawInput.legLength,
+        birthDate: rawInput.birthDate,
+        gender: rawInput.gender,
+      });
+      if (!gate.ok) {
+        const e = gateError(gate);
+        return errorResponse({ code: e.code, message: e.message, status: 422 });
+      }
+      const input: PhvInput = {
+        ...rawInput,
+        chronologicalAge: gate.ageYears, // decimal desde la fecha de nacimiento
+        legLength: gate.legLengthCm,     // introducida, o talla − sentado introducidas
+      };
       const { offset, formula, inputsUsed, confidence } = calculateMaturityOffset(input);
       const { category, phvStatus, developmentWindow } = categorize(offset);
-      const adjustedVSI = adjustVSI(input.currentVSI, category);
+      const adjusted = adjustVSI(input.currentVSI, gate.assessment.adjustmentFactor);
 
       const partialResult = {
         playerId: input.playerId,
         chronologicalAge: input.chronologicalAge,
+        ageSource: "birth_date" as const,
         offset,
         category,
         phvStatus,
         developmentWindow,
-        adjustedVSI,
+        adjustedVSI: adjusted.value,
+        adjustedVSIGateReason: adjusted.gate_reason,
         confidence,
         formula,
         inputsUsed,

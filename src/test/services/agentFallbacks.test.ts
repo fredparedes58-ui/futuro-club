@@ -3,75 +3,16 @@
  * Pure TypeScript logic — no mocks needed.
  */
 import { describe, it, expect } from "vitest";
-import { phvFallback, roleProfileFallback, scoutInsightFallback } from "../../../api/_lib/agentFallbacks";
+import { roleProfileFallback, scoutInsightFallback } from "../../../api/_lib/agentFallbacks";
 
-// ─── PHV Fallback ───────────────────────────────────────────────────────────
-
-describe("phvFallback", () => {
-  const baseInput = {
-    playerId: "p1",
-    chronologicalAge: 13,
-    height: 160,
-    weight: 50,
-  };
-
-  it("returns valid PHV result with _fallback flag", () => {
-    const r = phvFallback(baseInput, "no_api_key");
-    expect(r._fallback).toBe(true);
-    expect(r._fallbackReason).toBe("no_api_key");
-    expect(r.agentName).toBe("PHVCalculatorAgent");
-    expect(r.tokensUsed).toBe(0);
-    expect(r.playerId).toBe("p1");
-  });
-
-  it("calculates Mirwald offset correctly", () => {
-    const r = phvFallback(baseInput, "no_api_key");
-    expect(typeof r.offset).toBe("number");
-    // biologicalAge (edad+offset) fue retirado por inválido — ya no se emite.
-    expect(r).not.toHaveProperty("biologicalAge");
-  });
-
-  it("categorizes early (offset < -1)", () => {
-    // Young player with small height → likely early
-    const r = phvFallback({ ...baseInput, chronologicalAge: 10, height: 130, weight: 30 }, "no_api_key");
-    if (r.offset < -1) {
-      expect(r.category).toBe("early");
-      expect(r.phvStatus).toBe("pre_phv");
-    }
-  });
-
-  it("sets lower confidence without real sitting height data", () => {
-    const r = phvFallback(baseInput, "no_api_key");
-    expect(r.confidence).toBe(0.5);
-  });
-
-  it("sets higher confidence with real sitting height data", () => {
-    const r = phvFallback({ ...baseInput, sitingHeight: 83, legLength: 77 }, "no_api_key");
-    expect(r.confidence).toBe(0.62);
-  });
-
-  it("adjustedVSI is clamped to [0, 100]", () => {
-    const r = phvFallback({ ...baseInput, currentVSI: 99 }, "no_api_key");
-    expect(r.adjustedVSI).toBeGreaterThanOrEqual(0);
-    expect(r.adjustedVSI).toBeLessThanOrEqual(100);
-  });
-
-  it("uses 70 as default VSI when not provided", () => {
-    const r = phvFallback({ playerId: "p1", chronologicalAge: 13 }, "no_api_key");
-    // adjustedVSI should be based on 70
-    expect(r.adjustedVSI).toBeGreaterThan(0);
-  });
-
-  it("developmentWindow is critical during PHV", () => {
-    const r = phvFallback(baseInput, "no_api_key");
-    if (r.phvStatus === "during_phv") {
-      expect(r.developmentWindow).toBe("critical");
-    }
-  });
-
-  it("recommendation is in Spanish", () => {
-    const r = phvFallback(baseInput, "no_api_key");
-    expect(r.recommendation.length).toBeGreaterThan(10);
+// ── PHV Calculator Fallback ─────────────────────────────────────────────
+// phvFallback() se RETIRÓ (regla del owner 28-sep): estimaba talla sentado/pierna,
+// rellenaba talla/peso/VSI por defecto y aplicaba ×1.12/×0.92 por categoría de
+// estado. El PHV se bloquea sin todas las entradas introducidas (phvGate.ts).
+describe("phvFallback (retirado)", () => {
+  it("ya no se exporta: el PHV no tiene un fallback que aproxime", async () => {
+    const mod = (await import("../../../api/_lib/agentFallbacks")) as Record<string, unknown>;
+    expect(mod.phvFallback).toBeUndefined();
   });
 });
 

@@ -17,7 +17,8 @@ import { Share2, X, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { Player } from "@/services/real/playerService";
-import { playerMaturity, maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { maturityTimingKey, type PlayerMaturityInput } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import { SprintTestService } from "@/services/real/sprintTestService";
 import { shareNative, shareToWhatsApp } from "@/lib/share";
 import { PUBLIC_HOST } from "@/lib/publicUrl";
@@ -45,7 +46,7 @@ export default function ShareablePlayerCard({ player }: { player: Player }) {
   const hasVsi = player.vsi > 0;
   // Maduración por el motor gateado: solo se muestra con timing FIRME (datos
   // reales). Sin datos ⇒ null → no se afirma "precoz/tardío" (invariantes #2/#7).
-  const maturity = playerMaturity(player as PlayerMaturityInput);
+  const maturity = gatedMaturity(player as PlayerMaturityInput);
   const phv = maturity.timing !== "unknown" ? t(maturityTimingKey(maturity.timing)) : null;
   // Datos de EJEMPLO (demo, o jugador marcado isDemo): el PNG se comparte fuera de
   // la app → debe llevar el sello dentro de la imagen y el texto de share debe

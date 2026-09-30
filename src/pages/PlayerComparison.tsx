@@ -17,6 +17,8 @@ import VsiGauge from "@/components/VsiGauge";
 import VitasCard from "@/components/VitasCard";
 import { PlayerListSkeleton } from "@/components/shared/Skeletons";
 import DemoDataBanner from "@/components/DemoDataBanner";
+import { phvGate } from "@/lib/phv/phvGate";
+import { usePhvGateText } from "@/components/phv/PhvGateNotice";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -123,6 +125,7 @@ function CloneCard({ similarity, playerName }: { similarity: SimilarityResult | 
 // ─── Componente principal ─────────────────────────────────────────────────────
 const PlayerComparison = () => {
   const { t } = useTranslation();
+  const phvGateText = usePhvGateText();
   const navigate = useNavigate();
   const [playerAIndex, setPlayerAIndex] = useState(0);
   const [playerBIndex, setPlayerBIndex] = useState(1);
@@ -216,13 +219,22 @@ const PlayerComparison = () => {
     fullMark: 100,
   }));
 
-  // PHV labels. OJO: el enum phvCategory está invertido respecto al lenguaje de
-  // pares: "early" = pre-PHV = madurador TARDÍO; "late" = post-PHV = PRECOZ.
-  const phvLabel = (cat: string) =>
-    cat === "early" ? t("compare.phvLate") : cat === "late" ? t("compare.phvEarly") : t("compare.phvNormal");
+  // Maduración SOLO desde el gate único (regla del owner 28-sep) y por TIMING vs
+  // pares del motor canónico — nunca desde el phvCategory persistido. Antes el
+  // enum POR ESTADO se traducía a timing ("early" = pre-PHV ⇒ «TARDÍO»), así que a
+  // cualquier pre-púber sin medidas se le llamaba madurador tardío. Sin gate
+  // abierto la etiqueta nombra qué falta; con timing no firme, «sin determinar».
+  const gateA = phvGate(rawA ?? {});
+  const gateB = phvGate(rawB ?? {});
+  const phvTag = (g: typeof gateA) =>
+    !g.ok ? phvGateText({ gate: g })
+    : g.assessment.timing === "late" ? t("compare.phvLate")
+    : g.assessment.timing === "early" ? t("compare.phvEarly")
+    : g.assessment.timing === "on_time" ? t("compare.phvNormal")
+    : t("maturity.timing.unknown");
 
-  const phvTagA = phvLabel(playerA.phvCategory);
-  const phvTagB = phvLabel(playerB.phvCategory);
+  const phvTagA = phvTag(gateA);
+  const phvTagB = phvTag(gateB);
 
   // Métricas de comparación
   const metrics = [
@@ -253,14 +265,15 @@ const PlayerComparison = () => {
       name: t("compare.ubiIndex"),
       description: t("compare.ubiDesc"),
       icon: <Target size={18} className="text-electric" />,
-      // phvCategory "early" = pre-PHV = madurador TARDÍO (talento infravalorado)
-      // → recibe el ajuste al alza; "late" = post-PHV = precoz → a la baja.
+      // Sin bonus PHV fijo (+5 / −3 por el phvCategory persistido): era un ajuste
+      // de maduración paralelo al motor canónico (inv #7) y se aplicaba sin
+      // medidas. La corrección por maduración vive SOLO en el factor gateado.
       getValueA: () => advA?.ubi
         ? Math.round(advA.ubi.ubi * 100)
-        : Math.round(playerA.vsi * 0.85 + (playerA.phvCategory === "early" ? 5 : playerA.phvCategory === "late" ? -3 : 0)),
+        : Math.round(playerA.vsi * 0.85),
       getValueB: () => advB?.ubi
         ? Math.round(advB.ubi.ubi * 100)
-        : Math.round(playerB.vsi * 0.85 + (playerB.phvCategory === "early" ? 5 : playerB.phvCategory === "late" ? -3 : 0)),
+        : Math.round(playerB.vsi * 0.85),
     },
   ];
 
@@ -273,12 +286,11 @@ const PlayerComparison = () => {
     return isWinner ? t("compare.superior") : t("compare.below");
   };
 
-  // IA winner
+  // IA winner. Sin el +5 fijo por phvCategory "early" persistido (antes: todo
+  // pre-púber, con o sin medidas, sumaba 5 puntos de «probabilidad de élite»).
   const aiWinner = playerA.vsi >= playerB.vsi ? playerA : playerB;
-  const probabilityElite = (
-    aiWinner.vsi * 0.95 +
-    (aiWinner.phvCategory === "early" ? 5 : 0) // "early" = madurador tardío (su talento emergerá)
-  ).toFixed(1);
+  const winnerGate = aiWinner === playerA ? gateA : gateB;
+  const probabilityElite = (aiWinner.vsi * 0.95).toFixed(1);
 
   // Informe REAL del ganador (el más reciente). Si no tiene análisis generado, la
   // exportación avisa y lleva a generarlo — nunca un informe fabricado (invariante #2).
@@ -571,11 +583,15 @@ const PlayerComparison = () => {
               <span className="font-semibold text-foreground">{playerB.name}</span>{t("playerComparison.analysisBiasFilter")}{" "}
               <span className="text-primary font-bold">{aiWinner.name}</span> {t("playerComparison.analysisHigherCeiling")}{" "}
               <span className="font-bold text-foreground">
-                {aiWinner.phvCategory === "early"
+                {!winnerGate.ok
+                  ? phvGateText({ gate: winnerGate })
+                  : winnerGate.assessment.timing === "late"
                   ? t("playerComparison.maturationLate")
-                  : aiWinner.phvCategory === "late"
+                  : winnerGate.assessment.timing === "early"
                   ? t("playerComparison.maturationEarly")
-                  : t("playerComparison.maturationNormal")}
+                  : winnerGate.assessment.timing === "on_time"
+                  ? t("playerComparison.maturationNormal")
+                  : t("maturity.timing.unknown")}
               </span>{" "}
               {t("playerComparison.analysisModelProjects")}{" "}
               <span className="text-primary font-bold">{probabilityElite}%</span> {t("playerComparison.analysisEliteIn36")}

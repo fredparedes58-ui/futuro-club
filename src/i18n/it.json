@@ -342,6 +342,9 @@
       "minutesPlayed": "Minuti giocati",
       "performanceMetrics": "Metriche di rendimento",
       "vsiRealtime": "VSI calcolato in tempo reale",
+      "metricsConfirm": "Ho valutato le 6 dimensioni: salva come valutazione dell'allenatore",
+      "metricsConfirmHint": "Se non selezionato, le barre non contano come valutazione: il giocatore resta «non valutato» o mantiene l'ultima valutazione.",
+      "metricsConfirmRequired": "Hai spostato alcune barre: seleziona «Ho valutato le 6 dimensioni» per salvarle come valutazione, oppure lasciale com'erano.",
       "submit": "Crea giocatore",
       "submitEdit": "Salva modifiche",
       "submitting": "Salvataggio…",
@@ -472,10 +475,7 @@
       "sortAge": "Età",
       "sortName": "Nome",
       "phvFilter": {
-        "all": "Tutti",
-        "late": "Precoce",
-        "onTime": "Normale",
-        "early": "Tardivo ⭐"
+        "all": "Tutti"
       },
       "bioMaturation": "Maturazione biologica (PHV)",
       "ofPlayers": "{filtered} di {total} giocatori",
@@ -490,6 +490,15 @@
       "minVsi": "Min",
       "maxVsi": "Max",
       "percentileLabel": "Percentile nel gruppo"
+    }
+  },
+  "vsiDelta": {
+    "gate": {
+      "no_evaluations": "Non ci sono ancora valutazioni datate dell'allenatore da confrontare",
+      "single_evaluation": "C'è una sola valutazione datata: la variazione apparirà con la prossima",
+      "legacy_undated": "Lo storico precedente non ha data né origine: la variazione non viene calcolata",
+      "same_instant": "Le ultime due valutazioni hanno la stessa data: la variazione non viene calcolata",
+      "current_mismatch": "Il VSI attuale non coincide con l'ultima valutazione registrata: la variazione non viene calcolata"
     }
   },
   "scout": {
@@ -526,7 +535,12 @@
     "viewPlayer": "Vedi giocatore",
     "viewVideo": "Vedi video",
     "benchmark": "Benchmark",
-    "metricTrend": "Variazione rispetto alle valutazioni precedenti",
+    "vsiDelta": {
+      "label": "Variazione VSI",
+      "between": "Tra il {{from}} ({{fromValue}}) e il {{to}} ({{toValue}})",
+      "tooltip": "Calcolato da VITAS tra le ultime due valutazioni datate dell'allenatore (non scritto dall'IA)"
+    },
+    "legacyDeltaUnverified": "Questo insight precedente includeva una variazione scritta dall'IA, senza data né base verificabili: non viene mostrata.",
     "recommendedDrills": "Drill consigliati",
     "actionItems": "Azioni per l'allenatore",
     "loadMore": "Carica altri",
@@ -1245,6 +1259,9 @@
     "toastUpdated": "Misura aggiornata",
     "toastSaved": "Misura salvata · PHV ricalcolato",
     "toastQueuedSave": "📡 Salvataggio in coda · si sincronizzerà al ritorno della rete",
+    "toastProfilePendingSync": "Misura salvata, ma la scheda del giocatore è in attesa di sincronizzazione: il PHV della scheda si aggiornerà dopo la sincronizzazione",
+    "toastProfileNotOnDevice": "Misura salvata, ma la scheda su questo dispositivo non è stata aggiornata (il giocatore non è caricato qui): ricarica la scheda per vedere il PHV",
+    "toastProfileSyncFailed": "Misura salvata, ma la scheda del giocatore non è stata né sincronizzata né messa in coda: nessun account con sessione attiva a cui attribuire la modifica. Accedi di nuovo e salva di nuovo la misura per aggiornare il PHV della scheda",
     "errUnknown": "Errore sconosciuto",
     "confirmDelete": "Eliminare questa misurazione? Il PHV storico di questa data andrà perso.",
     "queueLabelDelete": "Elimina misurazione",
@@ -1557,7 +1574,7 @@
     "badgeConsistentTitle": "Costanza",
     "badgeConsistentDesc": "5 o più report generati",
     "badgeImprovingTitle": "In crescita",
-    "badgeImprovingDesc": "Il VSI è salito di +2 o più punti",
+    "badgeImprovingDesc": "Il VSI è salito di 2 o più punti tra due valutazioni datate",
     "badgeEliteTitle": "Talento",
     "badgeEliteDesc": "VSI ha raggiunto 70+",
     "noReportsShareInfo": "Ancora nessun report · genera il primo per condividere",
@@ -1569,7 +1586,8 @@
     "familyViewProgress": "Vista famiglia · progresso",
     "currentLevel": "Il suo livello attuale",
     "outOf100VsiScore": "su 100 · VSI Score",
-    "ptsVsOneMonthAgo": "pt vs un mese fa",
+    "vsiDeltaBetween": "tra il {{from}} e il {{to}}",
+    "shareDelta": " ({{arrow}} {{value}} pt tra il {{from}} e il {{to}})",
     "phaseLabel": "Fase:",
     "phv_early": "Pre-scatto",
     "phv_ontime": "In scatto",
@@ -2311,6 +2329,22 @@
     "tabUsage": "Utilizzo",
     "tabTeam": "Squadra",
     "tabInsights": "Insight",
+    "tabVsiReview": "Revisione VSI",
+    "vsiReview": {
+      "title": "Revisione umana dello storico VSI",
+      "desc": "Giocatori creati prima del 22 ago (#146) il cui storico contiene 57.5: il VSI delle barre predefinite (60/60/60/60/50/50) che l'app salvava senza valutazione. Non si cancella nulla: verificalo con l'allenatore.",
+      "count": "{{count}} giocatori in attesa di revisione",
+      "empty": "Nessun giocatore in attesa di revisione.",
+      "error": "Impossibile caricare l'elenco (migrazione 070 applicata?)",
+      "colPlayer": "Giocatore (id)",
+      "colOwner": "Proprietario",
+      "colCreated": "Creato",
+      "colHistory": "Storico legacy",
+      "colFlags": "Segnali",
+      "flagCurrentDefault": "VSI attuale = 57.5",
+      "flagMetricsDefault": "Barre attuali = valori predefiniti",
+      "resolveHint": "Per risolvere: dopo averlo verificato con l'allenatore, segna il caso come revisionato con l'UPDATE documentato nella migrazione 070 (supabase/migrations/070_vsi_default_suspects_review.sql)."
+    },
     "plansManagement": "Gestione dei piani",
     "plansManagementDesc": "Configura prezzi e abbonamenti",
     "biasAudit": "Audit di bias",
@@ -3280,7 +3314,23 @@
     "ageAtPHV": "PHV stimato",
     "percentPAH": "% statura adulta",
     "yearsUnit": "anni",
-    "addParentsHint": "Aggiungi l'altezza di entrambi i genitori per il calcolo per % di statura adulta (più affidabile)."
+    "addParentsHint": "Aggiungi l'altezza di entrambi i genitori per il calcolo per % di statura adulta (più affidabile).",
+    "gate": {
+      "unavailable": "PHV non disponibile",
+      "missing": "Manca: {{list}}",
+      "outOfRange": "Dati fuori dall'intervallo di validità di Mirwald (8–18 anni)",
+      "legacyRow": "Misurazione registrata prima di usare l'età esatta dalla data di nascita: salvala di nuovo",
+      "noRow": "Nessuna misurazione antropometrica registrata",
+      "notComputed": "Il PHV non è stato calcolato per questa misurazione",
+      "input": {
+        "height": "statura",
+        "weight": "peso",
+        "sittingHeight": "statura da seduto",
+        "legLength": "lunghezza della gamba",
+        "birthDate": "data di nascita del giocatore",
+        "sex": "sesso registrato"
+      }
+    }
   },
   "playerHeatmap": {
     "noData": "Nessun dato di posizione per generare la mappa di calore",
@@ -3327,11 +3377,9 @@
     "technicalProfile": "Profilo tecnico",
     "values": "Valori",
     "vsiEvolution": "Evoluzione VSI",
-    "trend": "Tendenza",
-    "trendRising": "↑ In crescita",
-    "trendFalling": "↓ In calo",
-    "trendStable": "→ Stabile",
-    "evaluationsCount": "{{count}} valutazioni",
+    "vsiChange": "Variazione",
+    "vsiDeltaBetween": "tra il {{from}} e il {{to}}",
+    "datedEvaluationsCount": "{{count}} valutazioni con data",
     "biologicalMaturation": "Maturazione biologica (PHV)",
     "maturationNormal": "Maturazione normale",
     "maturationEarly": "Maturatore precoce",
@@ -3344,7 +3392,7 @@
     "specialization": "Specializzazione",
     "vaepDescription": "Valore offensivo + difensivo aggiunto per ogni 90 minuti giocati",
     "minutesPlayed": "Minuti giocati",
-    "evaluations": "Valutazioni",
+    "datedEvaluations": "Valutazioni con data",
     "footRight": "Destro",
     "footLeft": "Sinistro",
     "footBoth": "Ambidestro",
@@ -6092,6 +6140,7 @@
       "deletionSuccess": "Richiesta di eliminazione registrata",
       "deletionDemo": "Richiesta registrata (modalità demo)",
       "deletionError": "Errore nella richiesta di eliminazione",
+      "dsarNotAllowed": "Nessun permesso su questo giocatore: solo chi lo ha registrato o la sua accademia può esercitare questo diritto GDPR",
       "consentSuccess": "Consenso registrato correttamente",
       "consentError": "Errore nella registrazione del consenso"
     },
@@ -6161,6 +6210,295 @@
       "analysisFailed": "Analisi non riuscita",
       "loadingReports": "Errore nel caricamento dei report",
       "notFound": "Non trovato"
+    }
+  },
+  "matchJob": {
+    "stage": {
+      "uploading": "Caricamento",
+      "encoding": "Bunny in elaborazione (può richiedere ore)",
+      "preparing": "Preparazione del video",
+      "analysing": "Analisi in corso",
+      "reporting": "Stesura del report",
+      "aggregating": "Aggregazione dell'osservazione",
+      "done": "Pronto",
+      "failed": "Non riuscito",
+      "cancelled": "Annullato"
+    },
+    "progress": {
+      "title": "Analisi della partita completa",
+      "stepsLabel": "Fasi dell'analisi",
+      "segment": "Segmento {{k}}/{{n}}",
+      "segmentsPending": "I segmenti vengono pianificati quando il video è pronto",
+      "segmentRange": "tempo video {{range}}",
+      "encodeProgress": "Bunny segnala {{pct}} % codificato",
+      "encodeHint": "La codifica gratuita di Bunny può richiedere da pochi minuti a diverse ore.",
+      "nextPoll": "Prossimo controllo tra {{sec}} s",
+      "retry": "Controlla ora",
+      "cancel": "Annulla analisi",
+      "cancelling": "Annullamento…",
+      "confirmCancel": "Annullare questa analisi? Non potrà essere ripresa.",
+      "failedTitle": "Non è stato possibile completare l'analisi",
+      "errorCode": "Codice: {{code}}",
+      "cancelledTitle": "Analisi annullata",
+      "startNew": "Avvia una nuova analisi",
+      "statusError": "Impossibile verificare lo stato: {{message}}",
+      "closeHint": "Puoi chiudere questa pagina: l'analisi continua e puoi tornarci da qui."
+    },
+    "coverage": {
+      "title": "Copertura (tempo video)",
+      "analysedLabel": "Analizzato",
+      "ofLabel": "di",
+      "complete": "Tutti i segmenti sono stati analizzati.",
+      "noSegments": "Nessun segmento è ancora stato analizzato.",
+      "partialNote": "Parte del video non è stata analizzata: le conclusioni coprono solo i segmenti analizzati.",
+      "videoTimeNote": "I tempi sono tempo video (pre-partita e intervallo inclusi), non minuti di gioco.",
+      "gapSegment": "{{range}} non analizzato: {{reason}}",
+      "gapAmbiguous": "{{range}} squadre non distinguibili: {{reason}}",
+      "gapNotEvaluable": "{{range}} non valutabile: {{reason}}",
+      "failedSegments": "Segmenti non analizzati:",
+      "ambiguousLabel": "Squadre non distinguibili (secondo l'IA):",
+      "notEvaluableLabel": "Non valutabile (secondo l'IA):",
+      "moreGaps": "Mostra altri {{n}}",
+      "showLess": "Mostra meno"
+    },
+    "kit": {
+      "title": "Divisa · {{team}}",
+      "shirt": "Maglia",
+      "shorts": "Pantaloncini (facoltativo)",
+      "gk": "Portiere (facoltativo)",
+      "clear": "Rimuovi",
+      "custom": "Altro colore",
+      "label": "Descrizione",
+      "labelPlaceholder": "es. rossa a strisce bianche",
+      "shirtRequired": "Scegli il colore della maglia (obbligatorio).",
+      "similarWarning": "Le due maglie sono molto simili. L'IA potrebbe non distinguere le squadre e si asterrà in quei momenti. Se i pantaloncini sono diversi, aggiungili.",
+      "identityNote": "Le squadre si distinguono solo dai colori delle divise che dichiari: mai dai volti né dai numeri di maglia.",
+      "colour": {
+        "white": "Bianco",
+        "black": "Nero",
+        "red": "Rosso",
+        "maroon": "Granata",
+        "orange": "Arancione",
+        "yellow": "Giallo",
+        "green": "Verde",
+        "skyBlue": "Celeste",
+        "blue": "Blu",
+        "navy": "Blu navy",
+        "purple": "Viola",
+        "pink": "Rosa",
+        "grey": "Grigio"
+      }
+    },
+    "attestation": {
+      "text_2026_09_28_v1": "Dichiaro di avere il consenso e i diritti per analizzare questo video",
+      "required": "Obbligatorio per avviare l'analisi.",
+      "version": "Versione della dichiarazione {{version}}"
+    },
+    "evidence": {
+      "chipTitle": "Tempo video {{time}} · indicazione dell'IA, non verificata",
+      "unavailable": "Video non disponibile per questo momento",
+      "legend": "I riferimenti temporali sono indicazioni dell'IA, non fatti verificati: aprili per controllare.",
+      "dialogTitle": "Tempo video {{time}}",
+      "dialogNote": "Indicazione dell'IA, non verificata. Controlla cosa succede intorno a questo momento.",
+      "openNewTab": "Apri in una nuova scheda",
+      "listTitle": "Tutte le evidenze ({{n}})",
+      "teamAmbiguous": "Squadra non chiara",
+      "category": {
+        "build_up": "Costruzione",
+        "pressing": "Pressing",
+        "defensive_block": "Blocco difensivo",
+        "attacking_transition": "Transizione offensiva",
+        "defensive_transition": "Transizione difensiva",
+        "set_piece": "Palla inattiva",
+        "chance": "Occasione",
+        "possession_spell": "Fase di possesso",
+        "other": "Altro"
+      }
+    },
+    "possession": {
+      "title": "Possesso stimato dall'IA",
+      "note": "Stima dell'IA sul video, ponderata per il tempo analizzato. Non è una statistica ufficiale.",
+      "lowConfidenceTag": "Bassa confidenza",
+      "lowConfidence": {
+        "no_visual_basis": "Bassa confidenza: questa stima non si può collegare a ciò che l'IA ha visto (input video non confermato o nessuna evidenza citata).",
+        "uniform_output": "Bassa confidenza: tutti i segmenti utilizzabili sono risultati 50 % – 50 % con dominio «Equilibrio» (o senza dominio), indistinguibile da una risposta predefinita; non leggerla come un dato."
+      }
+    },
+    "dominance": {
+      "home": "Domina {{team}}",
+      "balanced": "Equilibrio",
+      "away": "Domina {{team}}"
+    },
+    "segments": {
+      "title": "Per segmento (~15 min di video)",
+      "dominance": "Dominio territoriale:",
+      "detailsShow": "Mostra i dettagli di ogni squadra per segmento",
+      "detailsHide": "Nascondi i dettagli",
+      "status": {
+        "pending": "In attesa",
+        "running": "In analisi",
+        "done": "Analizzato",
+        "failed": "Non analizzato",
+        "skipped": "Saltato"
+      },
+      "descriptor": {
+        "formation": "Modulo",
+        "phases": "Fase predominante",
+        "build_up": "Costruzione",
+        "pressing_height": "Altezza del pressing",
+        "pressing_intensity": "Intensità del pressing",
+        "block_height": "Altezza del blocco",
+        "block_compactness": "Compattezza del blocco",
+        "transition_attacking": "Transizione offensiva",
+        "transition_defensive": "Transizione difensiva",
+        "set_pieces": "Pericolosità su palla inattiva"
+      },
+      "value": {
+        "organised_attack": "Attacco organizzato",
+        "organised_defence": "Difesa organizzata",
+        "attacking_transition": "Transizione offensiva",
+        "defensive_transition": "Transizione difensiva",
+        "short": "Corta",
+        "direct": "Diretta",
+        "mixed": "Mista",
+        "low": "Bassa",
+        "mid": "Media",
+        "high": "Alta",
+        "compact": "Compatto",
+        "medium": "Intermedio",
+        "stretched": "Allungato",
+        "fast": "Rapida",
+        "controlled": "Controllata",
+        "counter_press": "Riaggressione",
+        "retreat": "Ripiegamento"
+      },
+      "uniformWarning": "Tutti i segmenti utilizzabili risultano «Equilibrio» e 50/50: bassa confidenza, l'IA potrebbe non aver avuto una base visiva."
+    },
+    "report": {
+      "summaryTitle": "Conclusioni principali",
+      "noClaims": "Il report non contiene affermazioni supportate da evidenze.",
+      "gateTitle": "Report scritto non disponibile",
+      "observationOnly": "Di seguito è mostrata l'osservazione del video fatta dall'IA.",
+      "citedEventsTitle": "Momenti citati dall'IA",
+      "citedEventsNote": "Conteggio delle indicazioni dell'IA, non una statistica degli eventi.",
+      "emptySection": "Nessuna affermazione per questa squadra.",
+      "section": {
+        "in_possession": "In possesso",
+        "out_of_possession": "Senza palla",
+        "transitions": "Transizioni",
+        "set_pieces": "Palle inattive",
+        "strengths": "Punti di forza",
+        "areas_to_improve": "Da migliorare",
+        "recommendations": "Raccomandazioni"
+      },
+      "notEvaluatedTitle": "Non valutato",
+      "droppedClaims": "Affermazioni scartate per mancanza di evidenze valide:",
+      "coachNotes": "Sono state fornite note dell'allenatore: fornite dall'allenatore, non osservate nel video.",
+      "generatedBy": "Redatto da {{model}} · {{prompt}}",
+      "generatedByMock": "Report di esempio · {{prompt}}",
+      "identityScrubbed": "Testi nascosti perché citavano numeri di maglia o singoli giocatori: {{n}}. Questa analisi è solo di squadra."
+    },
+    "fallback": {
+      "mock": "Questo report non è stato redatto dall'IA: il motore di analisi non è disponibile. È un'astensione onesta, non un'analisi.",
+      "error": "Il motore di analisi ha restituito un errore: questo report non è disponibile.",
+      "schema": "La risposta del modello aveva una struttura non valida ed è stata scartata: questo report non è disponibile."
+    },
+    "legacy": {
+      "sectionEmpty": "Il report non contiene dati per questa squadra.",
+      "noRecommendations": "Il report non contiene raccomandazioni.",
+      "ratingMissing": "Il report non include una valutazione."
+    },
+    "errors": {
+      "attestation_required": "Seleziona la dichiarazione per avviare l'analisi.",
+      "invalid_request": "Mancano dei dati o non sono validi. Controlla i nomi delle squadre e i colori delle maglie.",
+      "unauthorized": "La sessione è scaduta. Accedi di nuovo.",
+      "plan_required": "Il tuo piano non include l'analisi video delle partite complete.",
+      "not_owner": "Questo video non appartiene al tuo account.",
+      "video_not_found": "Video non trovato. Caricalo di nuovo o scegline un altro.",
+      "video_too_long": "Il video dura più di {{max}} minuti, il massimo per una partita.",
+      "concurrency_limit": "Hai già un'analisi in corso. Attendi che finisca o annullala.",
+      "budget_exceeded": "È stato raggiunto il budget mensile di analisi. Riprova più tardi.",
+      "match_video_disabled": "L'analisi video della partita completa è in validazione e il server non la offre ancora.",
+      "real_inference_disabled": "Il servizio di analisi non è ancora configurato del tutto. Puoi usare il report senza video (solo note).",
+      "not_found": "Analisi non trovata.",
+      "network": "Impossibile raggiungere il server. Controlla la connessione.",
+      "invalid_response": "Il server ha restituito dati che non rispettano il formato previsto, quindi non vengono mostrati.",
+      "generic": "Qualcosa è andato storto: {{message}}"
+    },
+    "video": {
+      "title": "Video della partita",
+      "upload": "Carica video",
+      "pickExisting": "Usa un video già caricato",
+      "pickPlaceholder": "Scegli un video",
+      "noExisting": "Non ci sono ancora video caricati nel tuo account.",
+      "selected": "Video: {{title}}",
+      "change": "Cambia video",
+      "localOnly": "Questo video è salvato solo in questo browser. L'analisi della partita completa richiede il video caricato nel cloud."
+    },
+    "form": {
+      "modeVideo": "Report dal video",
+      "modeNotes": "Report senza video (solo note)",
+      "modeNotesHint": "Opzione secondaria: l'IA legge solo ciò che scrivi. Nessun video viene osservato.",
+      "namesRequired": "Inserisci i nomi di entrambe le squadre.",
+      "kitsRequired": "Scegli i colori di entrambe le maglie.",
+      "videoRequired": "Carica o scegli il video della partita.",
+      "options": "Dettagli facoltativi",
+      "category": "Categoria",
+      "categoryNone": "Non indicata",
+      "categoryYouth": "Settore giovanile",
+      "categorySenior": "Senior",
+      "direction": "La squadra di casa attacca nel 1° tempo (come si vede sullo schermo)",
+      "directionNone": "Non indicata",
+      "directionLtr": "Da sinistra a destra",
+      "directionRtl": "Da destra a sinistra",
+      "notes": "Note dell'allenatore (facoltative)",
+      "notesHint": "Fornite dall'allenatore, non osservate. Usate solo per redigere il report; mai inviate al modello video.",
+      "notesPlaceholder": "Competizione, contesto, qualsiasi cosa rilevante…",
+      "start": "Analizza la partita",
+      "starting": "Avvio…",
+      "startedToast": "Analisi avviata",
+      "startHint": "Analisi asincrona: può richiedere ore mentre Bunny codifica il video. Puoi chiudere la pagina.",
+      "autoStartHint": "Con il modulo completo, l'analisi parte da sola al termine del caricamento.",
+      "recentTitle": "Analisi recenti",
+      "recentOpen": "Apri",
+      "newAnalysis": "Nuova analisi",
+      "resultTitle": "{{home}} vs {{away}}",
+      "resultSubtitle": "Report tattico dal video · stime dell'IA",
+      "notesResultSubtitle": "Report senza video (solo note)",
+      "notesGenerate": "Genera report senza video",
+      "modeNotesHintPrimary": "L'IA legge solo ciò che scrivi: nessun video viene osservato."
+    },
+    "baseline": {
+      "fullMatchTitle": "Analisi della partita completa",
+      "fullMatchDesc": "Questo video ({{duration}} min) è troppo lungo per l'analisi rapida. Verrà analizzato come processo asincrono, segmento per segmento.",
+      "fullMatchDescNoDuration": "Questo video verrà analizzato come processo asincrono, segmento per segmento.",
+      "ownTeam": "La tua squadra",
+      "ownTeamName": "Nome della tua squadra",
+      "ownSide": "In questo video la tua squadra gioca",
+      "sideHome": "In casa",
+      "sideAway": "In trasferta",
+      "rival": "Avversario",
+      "rivalName": "Nome dell'avversario (facoltativo)",
+      "rivalHint": "Il colore della maglia dell'avversario (facoltativo) aiuta l'IA a distinguere le squadre.",
+      "start": "Analizza la partita completa",
+      "completedHint": "Osservazione della partita pronta. Ora puoi generare i report.",
+      "notCompleted": "I report si possono generare quando l'analisi è completa.",
+      "coverageNote": "Questi report usano il video della partita completa. Ciò che l'IA ne ha analizzato davvero:",
+      "coverageUnavailable": "La copertura del video della partita non è disponibile: non leggere questi report come basati sull'intera partita.",
+      "unavailableHint": "Usa un clip breve per l'analisi rapida."
+    },
+    "demo": {
+      "banner": "Questa analisi della partita è un esempio: la funzione è in validazione, non è stato analizzato alcun video reale e tutti i valori sono dati di esempio."
+    },
+    "validation": {
+      "badge": "In validazione",
+      "title": "Analisi video della partita completa",
+      "reason": "È in fase di validazione e non è ancora disponibile. In una prova su una partita reale, l'IA ha citato azioni che non sono avvenute al secondo indicato, ha menzionato numeri di maglia inesistenti e ha restituito un possesso 50/50 senza fondamento. Verrà attivata solo quando supererà una validazione con eventi annotati da persone.",
+      "serverRefused": "Anche il server l'ha rifiutata: analisi della partita completa in validazione.",
+      "meanwhile": "Nel frattempo, il report senza video (solo note) funziona normalmente.",
+      "useNotes": "Usa il report senza video (solo note)",
+      "demoPreview": "Vedi un esempio (dati di esempio)",
+      "baselineSuffix": "L'analisi della partita completa è in validazione e non è ancora disponibile: usa una clip breve o la modalità testo."
     }
   }
 }

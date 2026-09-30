@@ -25,7 +25,6 @@ import { SupabasePlayerService } from "@/services/real/supabasePlayerService";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePlan } from "@/hooks/usePlan";
 import { useAuth } from "@/context/AuthContext";
-import { SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { toIsoBirthDate } from "@/lib/shared/birthDate";
 import { useTranslation } from "react-i18next";
 
@@ -309,6 +308,9 @@ const PlayerForm = () => {
   // En edit mode mostramos todo a la vez (el coach ya conoce la app)
   const useSteps = !isEditMode;
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // Confirmación EXPLÍCITA de que el entrenador valoró las 6 barras. Sin ella no se
+  // guarda evaluación (ni VSI, ni entrada en vsiEvaluations).
+  const [metricsConfirmed, setMetricsConfirmed] = useState(false);
 
   // Campos de cada paso para validación parcial (trigger)
   const STEP_FIELDS = {
@@ -349,18 +351,28 @@ const PlayerForm = () => {
       return;
     }
 
-    // El VSI de ficha solo existe si el entrenador TOCÓ las barras. Alta o edición
+    // El VSI de ficha solo existe si el entrenador EVALUÓ las barras. Alta o edición
     // SIN tocar métricas ⇒ jugador "sin evaluar" (vsi null): no se fabrica un VSI
     // desde los defaults 60/50 (calculateFichaVsi(DEFAULT_METRICS)=57.5; invariante #2).
     // Esto alinea el alta por formulario completo con onboarding/FirstRunWizard.
+    //
+    // Y tocar UNA barra no convierte las otras 5 (defaults 60/50 o la evaluación
+    // anterior) en valoración del entrenador: la evaluación se guarda SOLO si el
+    // entrenador confirma explícitamente las 6 barras. Si movió barras sin confirmar,
+    // se bloquea el guardado (no se descarta su trabajo en silencio ni se inventa).
     const metricsTouched =
       !!dirtyFields.metrics && Object.keys(dirtyFields.metrics).length > 0;
+    if (metricsTouched && !metricsConfirmed) {
+      toast.error(t("players.form.metricsConfirmRequired"));
+      return;
+    }
+    const saveEvaluation = metricsConfirmed;
     try {
       if (isEditMode && id) {
         // Editar otros campos (p.ej. fecha de nacimiento o alturas parentales para
-        // el PHV) de un jugador sin evaluar preserva metrics/vsi (null); solo se
-        // (re)escribe el VSI si tocó las barras.
-        if (metricsTouched) {
+        // el PHV) preserva metrics/vsi; solo se (re)escribe el VSI —y se registra una
+        // evaluación con fecha— si el entrenador confirmó las 6 barras.
+        if (saveEvaluation) {
           await PlayerService.updateMetrics(id, data.metrics);
         }
         const players = PlayerService.getAll();
@@ -418,17 +430,18 @@ const PlayerForm = () => {
           fatherHeightCm: data.fatherHeightCm || undefined,
           competitiveLevel: data.competitiveLevel,
           minutesPlayed: data.minutesPlayed,
-          // Sin tocar las barras ⇒ sin métricas ⇒ nace "sin evaluar" (vsi null).
-          metrics: metricsTouched ? data.metrics : undefined,
+          // Sin confirmar las 6 barras ⇒ sin métricas ⇒ nace "sin evaluar" (vsi null).
+          metrics: saveEvaluation ? data.metrics : undefined,
         };
         // Crear jugador en local y, si Supabase está activo, ESPERAR la subida:
         // «agregado» solo si llegó a la nube; si falla queda en SyncQueue y se
         // dice «pendiente de sincronizar» (antes: «agregado» pasara lo que pasara).
+        // Misma llamada que la edición: sin nube ⇒ local_only; sin sesión ⇒ se
+        // encola a nombre de la cuenta de la caché o falla (catch) — nunca «agregado»
+        // a secas con el alta fuera de la nube y fuera de la cola.
         const created = PlayerService.create(input);
-        const persisted = user && SUPABASE_CONFIGURED
-          ? await SupabasePlayerService.persistOrQueue(user.id, created, "create")
-          : null;
-        if (persisted?.status === "queued") {
+        const persisted = await SupabasePlayerService.persistOrQueue(user?.id, created, "create");
+        if (persisted.status === "queued") {
           toast.warning(t("toasts.playerAddedPendingSync", { name: data.name }));
         } else {
           toast.success(t("toasts.playerAdded", { name: data.name }));
@@ -869,6 +882,25 @@ const PlayerForm = () => {
               )}
             />
           ))}
+
+          {/* Confirmación explícita de las 6 barras: sin ella no hay evaluación. */}
+          <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-1">
+            <label htmlFor="metricsConfirmed" className="flex items-start gap-2 cursor-pointer">
+              <input
+                id="metricsConfirmed"
+                type="checkbox"
+                checked={metricsConfirmed}
+                onChange={(e) => setMetricsConfirmed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span className="text-xs font-display font-semibold text-foreground">
+                {t("players.form.metricsConfirm")}
+              </span>
+            </label>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              {t("players.form.metricsConfirmHint")}
+            </p>
+          </div>
         </motion.div>
 
         {/* Botones */}

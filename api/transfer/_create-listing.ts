@@ -10,6 +10,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { DEFAULTS } from "../../src/lib/transfer/transferConfig";
+import { trustAnthropometricsRow, type AnthropometricsRowLike } from "../../src/lib/phv/phvGate";
 
 export const config = { runtime: "edge" };
 
@@ -38,6 +39,33 @@ const CreateListingSchema = z.object({
 
 const uuid = (): string => crypto.randomUUID();
 
+/**
+ * PHV fiable para el snapshot, desde la última medición (vista
+ * player_latest_anthropometrics) y el gate único `trustAnthropometricsRow`.
+ * select=*: antes de la migración 069 la vista no tiene age_source ⇒ la fila no
+ * es fiable ⇒ sin PHV (falla cerrado, sin error). Cualquier fallo de lectura ⇒
+ * sin PHV; el listing se crea igual.
+ */
+async function trustedListingPhv(playerId: string): Promise<Record<string, unknown>> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/player_latest_anthropometrics?player_id=eq.${encodeURIComponent(playerId)}&select=*`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+    );
+    if (!res.ok) return {};
+    const rows = (await res.json().catch(() => [])) as AnthropometricsRowLike[];
+    const t = trustAnthropometricsRow(Array.isArray(rows) ? rows[0] : null);
+    if (!t.trusted || t.category === null || t.offset === null) return {};
+    return {
+      phvCategory: t.category === "ontme" ? "on-time" : t.category,
+      phvOffset: t.offset,
+      phvTrusted: true,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export default withHandler(
   { method: "POST", schema: CreateListingSchema, optionalAuth: true, maxRequests: 30 },
   async ({ body, userId, tenantId }) => {
@@ -52,12 +80,26 @@ export default withHandler(
     // El listing debe ser sobre un jugador que GESTIONAS (tu user/tenant): no se
     // publica en el mercado a un menor ajeno (integridad + identidad, invariante #6).
     // Solo con Supabase + auth (en offline/client_only no hay BD que consultar).
+    // PHV del snapshot: NUNCA el que mande el cliente, y tampoco la columna
+    // players.phv_category/phv_offset (antes de aplicar 069 guarda aún el valor
+    // naive legacy, y el snapshot lo congelaría como fiable para siempre). Solo el
+    // de la ÚLTIMA fila de player_anthropometrics que el gate único da por fiable
+    // (4 medidas + edad decimal por fecha de nacimiento — regla del owner 28-sep),
+    // marcado phvTrusted para que las vistas lo distingan de snapshots antiguos.
+    const snapshot: Record<string, unknown> = { ...(input.playerSnapshot ?? {}) };
+    delete snapshot.phvCategory;
+    delete snapshot.phvOffset;
+    delete snapshot.phvTrusted;
+
     if (SUPABASE_URL && SUPABASE_KEY && userId) {
       const pr = await fetch(
         `${SUPABASE_URL}/rest/v1/players?id=eq.${encodeURIComponent(input.playerId)}&select=user_id,tenant_id`,
         { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
       );
-      const rows = (await pr.json().catch(() => [])) as Array<{ user_id: string | null; tenant_id: string | null }>;
+      const rows = (await pr.json().catch(() => [])) as Array<{
+        user_id: string | null;
+        tenant_id: string | null;
+      }>;
       const player = Array.isArray(rows) ? rows[0] : undefined;
       // Solo bloquea si el jugador EXISTE en Supabase y es de OTRO. Jugadores
       // local-only (onboarding/demo, aún no persistidos en BD) → el snapshot lo
@@ -67,6 +109,7 @@ export default withHandler(
           (!!player.user_id && player.user_id === userId) ||
           (!!player.tenant_id && !!tenantId && player.tenant_id === tenantId);
         if (!ownsPlayer) return errorResponse("Forbidden: no gestionas este jugador", 403);
+        Object.assign(snapshot, await trustedListingPhv(input.playerId));
       }
     }
 
@@ -91,7 +134,7 @@ export default withHandler(
       description: input.description ?? null,
       highlight_video_id: input.highlightVideoId ?? null,
       tags: input.tags,
-      player_snapshot: input.playerSnapshot ?? {},
+      player_snapshot: snapshot,
       expires_at: expiresAt,
     };
 

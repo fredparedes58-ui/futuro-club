@@ -304,28 +304,8 @@ export const SupabasePlayerService = {
     return updated;
   },
 
-  // ── UPDATE PHV (Supabase-first → localStorage cache) ──────────────
-  async updatePHV(
-    userId: string,
-    id: string,
-    phvCategory: Player["phvCategory"],
-    phvOffset: number,
-    adjustedVSI: number
-  ): Promise<Player | null> {
-    const updated = await PlayerService.updatePHV(id, phvCategory, phvOffset, adjustedVSI);
-    if (!updated) return null;
-
-    if (SUPABASE_CONFIGURED) {
-      try {
-        await this.pushOne(userId, updated);
-      } catch (err) {
-        console.warn("[SupabasePlayerService] updatePHV: Supabase failed, queuing:", err);
-        SyncQueueService.enqueue("update", "player", id, updated);
-      }
-    }
-
-    return updated;
-  },
+  // updatePHV() RETIRADO (ver PlayerService): sobrescribía vsi sin historial ni
+  // procedencia. La maduración ya no se persiste desde el cliente.
 
   // ── DELETE (Supabase-first → localStorage cache) ──────────────────
   async delete(userId: string, id: string): Promise<boolean> {

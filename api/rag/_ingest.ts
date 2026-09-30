@@ -39,10 +39,16 @@ export default withHandler(
       return errorResponse("No autenticado", 401, "UNAUTHORIZED");
     }
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+    // Solo service_role (knowledge_base solo admite escrituras de service_role por
+    // RLS, 002). Sin fallback a la clave anon: fail-closed con 503.
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      return errorResponse("Supabase not configured", 503);
+      return errorResponse(
+        "RAG no disponible: el servidor no tiene SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
+        503,
+        "RAG_NOT_CONFIGURED",
+      );
     }
 
     // withHandler ya consumió el body (rawBody: true) y nos pasa el texto crudo.

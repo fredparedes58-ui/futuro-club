@@ -11,6 +11,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
 import { toIsoBirthDate, isMissingBirthDateColumnError } from "../../src/lib/shared/birthDate";
+import { appendVsiEvaluation } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
 
@@ -221,6 +222,9 @@ export default withHandler(
         id: playerId,
         vsi,
         vsiHistory: vsi !== null ? [vsi] : [],
+        // Evaluación con fecha y origen: la única base válida para una variación del
+        // VSI (src/lib/scoring/vsiDelta.ts). vsiHistory queda como legacy sin fechas.
+        vsiEvaluations: vsi !== null ? appendVsiEvaluation([], vsi, "players_api", now) : [],
         createdAt: now,
         updatedAt: now,
       };
@@ -256,6 +260,10 @@ export default withHandler(
         birth_date: toIsoBirthDate(input.birthDate),
       };
 
+      // players.phv_category / phv_offset son propiedad EXCLUSIVA del endpoint
+      // gateado de antropometría (migración 069 · regla del owner 28-sep): el CRUD
+      // no las escribe desde lo que traiga el cliente.
+      stripPersistedPhvColumns(row);
       const res = await fetch(`${supabaseUrl}/rest/v1/players`, {
         method: "POST",
         headers: { ...headers, Prefer: "return=representation" },
@@ -340,6 +348,7 @@ export default withHandler(
         const history = Array.isArray(currentData.vsiHistory) ? [...(currentData.vsiHistory as number[])] : [];
         history.push(newVSI);
         updatedData.vsiHistory = history.slice(-10);
+        updatedData.vsiEvaluations = appendVsiEvaluation(currentData.vsiEvaluations, newVSI, "players_api", now);
       }
 
       updatedData.updatedAt = now;
@@ -375,6 +384,7 @@ export default withHandler(
         birth_date: toIsoBirthDate(ud.birthDate),
       };
 
+      stripPersistedPhvColumns(patchPayload); // ver POST: propiedad del endpoint gateado (069)
       const patchRes = await fetch(
         `${supabaseUrl}/rest/v1/players?id=eq.${id}&user_id=eq.${userId}&updated_at=eq.${originalUpdatedAt}`,
         {
@@ -428,3 +438,17 @@ export default withHandler(
     return errorResponse("Method not allowed", 405);
   },
 );
+
+/**
+ * Retira players.phv_category / phv_offset de una escritura del CRUD. Esas columnas
+ * solo las escribe api/players/anthropometrics.ts cuando el gate único de PHV
+ * (src/lib/phv/phvGate.ts) se abre con una fila COMPLETA de medidas introducidas +
+ * edad decimal por fecha de nacimiento + sexo (regla del owner 28-sep, migración
+ * 069). Aceptarlas del cliente re-contaminaba la columna que leen Telegram, el
+ * benchmark de pares, el comparador de rival y el baseline de equipo.
+ */
+function stripPersistedPhvColumns(cols: object): void {
+  const c = cols as Record<string, unknown>;
+  delete c.phv_category;
+  delete c.phv_offset;
+}

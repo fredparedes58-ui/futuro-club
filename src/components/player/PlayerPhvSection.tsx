@@ -125,6 +125,9 @@ export default function PlayerPhvSection({ player, hasPhv, onSaved }: Props) {
       <AnthropometricsForm
         playerId={player.id}
         chronologicalAge={player.age}
+        // Mirwald usa la edad DECIMAL desde la fecha de nacimiento del jugador
+        // (regla del owner 28-sep); sin ella el PHV queda bloqueado con motivo.
+        birthDate={player.birthDate}
         gender={player.gender}
         fallback={{
           heightCm: player.height,

@@ -3,33 +3,39 @@
  *
  * Compone (client-side, sin IA, sin Supabase) desde los datos antropométricos
  * que el jugador ya tiene:
- *   - Mirwald offset + edad biológica
+ *   - Mirwald offset + edad del estirón (APHV)
  *   - Estado de maduración vs pares (madurador tardío/precoz/en fase)
  *   - VSI ajustado por maduración + proyección a madurez
  *   - Escudo de Estirón (riesgo PHV × lesión)
- *   - Bio-band vs chrono-band
  *
- * Devuelve null si el jugador no tiene datos antropométricos mínimos.
+ * GATE ÚNICO (src/lib/phv/phvGate.ts · regla del owner 28-sep): el producto PHV
+ * solo existe con TODAS las entradas introducidas — talla, peso, talla sentado,
+ * pierna (o talla − sentado), edad DECIMAL desde la fecha de nacimiento y sexo
+ * registrado. Si falta cualquiera, `usePHVProduct` devuelve null y `usePHVGate`
+ * expone el motivo (qué falta) para que la ficha lo nombre en vez de callar.
+ * Antes bastaban las alturas de los padres (Khamis-Roche) para mostrar un PHV con
+ * pierna ESTIMADA (×0.48) y la edad ENTERA: eso ya no ocurre.
  */
 import { useMemo } from "react";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import {
-  computeMirwald,
-  canComputeMirwald,
   projectToMaturity,
   assessGrowthSpurtShield,
   type MirwaldResult,
   type MaturityProjection,
   type GrowthSpurtShield,
 } from "@/lib/phv";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { phvGate, pahGate, type PhvGate, type PahGate, type PhvGateInput } from "@/lib/phv/phvGate";
 import type { MaturityAssessment } from "@/lib/phv/maturity";
 
 export interface PHVProduct {
-  /** Evaluación canónica (fuente ÚNICA para la UI: estado/timing/%PAH/APHV). */
+  /** Evaluación canónica (fuente ÚNICA para la UI: fase de Mirwald/timing/APHV). */
   assessment: MaturityAssessment;
+  /** %talla adulta (Khamis-Roche): métrica APARTE con su propio gate; no decide la fase. */
+  pah: PahGate;
   mirwald: MirwaldResult;
-  projection: MaturityProjection;
+  /** Proyección a madurez: null sin VSI real (no se proyecta desde un percentil inventado). */
+  projection: MaturityProjection | null;
   shield: GrowthSpurtShield;
   /** VSI crudo del jugador (si existe). */
   rawVSI: number | null;
@@ -38,78 +44,37 @@ export interface PHVProduct {
   playerName: string;
 }
 
+export interface PHVGateState {
+  /** null mientras el jugador no ha cargado. */
+  gate: PhvGate | null;
+  /** %talla adulta (Khamis-Roche): métrica aparte, con su propio gate. */
+  pah: PahGate | null;
+  product: PHVProduct | null;
+}
+
 /** Convierte un VSI 0-100 a un percentil aproximado (proxy si no hay percentil real). */
 function vsiToPercentile(vsi: number): number {
   return Math.max(1, Math.min(99, Math.round(vsi)));
 }
 
-export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
+export function usePHVGate(playerId: string | undefined): PHVGateState {
   const { data: player } = useRawPlayerById(playerId);
 
   return useMemo(() => {
-    if (!player) return null;
-    const p = player as unknown as Record<string, unknown>;
-    const age = typeof p.age === "number" ? p.age : undefined;
-    const height = typeof p.height === "number" ? p.height : undefined;
-    const weight = typeof p.weight === "number" ? p.weight : undefined;
-    const sittingHeight = typeof p.sittingHeight === "number" ? p.sittingHeight : undefined;
-    const legLength = typeof p.legLength === "number" ? p.legLength : undefined;
-    const hasParents =
-      typeof p.motherHeightCm === "number" && typeof p.fatherHeightCm === "number";
+    if (!player) return { gate: null, pah: null, product: null };
+    const p = player as unknown as Record<string, unknown> & PhvGateInput;
+    const gate = phvGate(p);
+    const pah = pahGate(p);
+    if (!gate.ok) return { gate, pah, product: null };
 
-    // PHV solo con datos REALES completos — NO estimamos sitting/leg:
-    //  · Mirwald: edad + altura + peso + altura sentado + longitud de pierna MEDIDOS, o
-    //  · Khamis-Roche: edad + altura + peso + altura de AMBOS padres.
-    // Un jugador con solo altura/peso del alta (sin medición antropométrica registrada)
-    // NO obtiene PHV → evita mostrar una maduración fabricada.
-    // El PHV es sexo-específico (invariante #5): sin sexo registrado NO se calcula
-    // (devolvemos null, mismo camino que "faltan datos" — los consumidores ya lo
-    // manejan). NO se asume masculino para el escudo/maduración legacy.
-    const sexKnown = p.gender === "M" || p.gender === "F";
-    const baseOk = canComputeMirwald({ age, height, weight });
-    const canMirwald =
-      baseOk && typeof sittingHeight === "number" && typeof legLength === "number";
-    const canKhamis = baseOk && hasParents;
-    if ((!canMirwald && !canKhamis) || !sexKnown) return null;
-
-    const mirwald = computeMirwald({
-      chronologicalAge: age!,
-      height: height!,
-      weight: weight!,
-      gender: p.gender as "M" | "F",
-      sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : undefined,
-      // legLength FALTABA aquí (sí se pasa al assessment canónico, línea 91): sin ella
-      // computeMirwald la estimaba desde la altura y marcaba estimated=true incluso con
-      // la pierna medida. Se pasa la MEDIDA real (G6: medida sobre estimada).
-      legLength: typeof p.legLength === "number" ? p.legLength : undefined,
-    });
-
-    // Evaluación canónica (científica, con edad decimal + %PAH si hay padres +
-    // gating anti-falso-positivo). Es la que consume la UI.
-    const assessment = playerMaturity({
-      age,
-      birthDate: typeof p.birthDate === "string" ? p.birthDate : null,
-      height,
-      weight,
-      sittingHeight: typeof p.sittingHeight === "number" ? p.sittingHeight : null,
-      legLength: typeof p.legLength === "number" ? p.legLength : null,
-      gender: (p.gender as "M" | "F") ?? null,
-      motherHeightCm: typeof p.motherHeightCm === "number" ? p.motherHeightCm : null,
-      fatherHeightCm: typeof p.fatherHeightCm === "number" ? p.fatherHeightCm : null,
-    });
+    const assessment = gate.assessment;
+    const mirwald = gate.mirwald; // 4 medidas introducidas ⇒ estimated === false
 
     const rawVSI = typeof p.vsi === "number" ? p.vsi : null;
-    const currentPercentile = rawVSI != null ? vsiToPercentile(rawVSI) : 50;
-    const projection = projectToMaturity(currentPercentile, assessment, age!);
-    // G6 · gate del Escudo de Estirón: si altura-sentado o longitud-de-pierna NO están
-    // MEDIDAS, computeMirwald las estima desde la altura (estimated=true). NO se le da al
-    // padre una recomendación de reducir carga + riesgo de lesión (Osgood-Schlatter/Sever)
-    // construida sobre proporciones ESTIMADAS (inv #2). Con offset estimado → se pasa null
-    // y el escudo abstiene pidiendo las medidas. Solo se activa con antropometría real.
-    const shield = assessGrowthSpurtShield(
-      mirwald.estimated ? null : mirwald.offset,
-      String(p.name ?? "el jugador"),
-    );
+    // Sin VSI real no hay percentil del que proyectar (antes se proyectaba desde 50).
+    const projection = rawVSI != null ? projectToMaturity(vsiToPercentile(rawVSI), assessment, gate.ageYears) : null;
+    // Escudo con el offset de Mirwald sobre medidas introducidas (nunca estimadas).
+    const shield = assessGrowthSpurtShield(mirwald.offset, String(p.name ?? "el jugador"));
 
     // VSI ajustado con el factor CANÓNICO (1 cuando el timing no es firme →
     // no infla/penaliza sin base; blindaje anti-falso-positivo).
@@ -119,13 +84,22 @@ export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
         : null;
 
     return {
-      assessment,
-      mirwald,
-      projection,
-      shield,
-      rawVSI,
-      adjustedVSI,
-      playerName: String(p.name ?? "Jugador"),
+      gate,
+      pah,
+      product: {
+        assessment,
+        pah,
+        mirwald,
+        projection,
+        shield,
+        rawVSI,
+        adjustedVSI,
+        playerName: String(p.name ?? "Jugador"),
+      },
     };
   }, [player]);
+}
+
+export function usePHVProduct(playerId: string | undefined): PHVProduct | null {
+  return usePHVGate(playerId).product;
 }

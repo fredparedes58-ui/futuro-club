@@ -3,108 +3,16 @@
  * Validates PHV Mirwald formula, role profile rules, and scout insight classification.
  */
 import { describe, it, expect } from "vitest";
-import { phvFallback, roleProfileFallback, scoutInsightFallback } from "../../../api/_lib/agentFallbacks";
+import { roleProfileFallback, scoutInsightFallback } from "../../../api/_lib/agentFallbacks";
 
 // ── PHV Calculator Fallback ─────────────────────────────────────────────
-
-describe("phvFallback", () => {
-  const baseInput = {
-    playerId: "p1",
-    chronologicalAge: 14,
-    height: 165,
-    weight: 52,
-    sitingHeight: 86,
-    legLength: 79,
-    currentVSI: 70,
-  };
-
-  it("returns all required fields", () => {
-    const result = phvFallback(baseInput, "no_api_key");
-    expect(result).toHaveProperty("playerId", "p1");
-    expect(result).toHaveProperty("chronologicalAge", 14);
-    expect(result).toHaveProperty("offset");
-    expect(result).toHaveProperty("category");
-    expect(result).toHaveProperty("phvStatus");
-    expect(result).toHaveProperty("developmentWindow");
-    expect(result).toHaveProperty("adjustedVSI");
-    expect(result).toHaveProperty("recommendation");
-    expect(result).toHaveProperty("confidence");
-    expect(result).toHaveProperty("_fallback", true);
-    expect(result).toHaveProperty("_fallbackReason", "no_api_key");
-    expect(result).toHaveProperty("tokensUsed", 0);
-  });
-
-  it("categorizes correctly: early (offset < -1)", () => {
-    // Use measurements that produce offset < -1
-    const input = { ...baseInput, chronologicalAge: 12, height: 172, weight: 60, sitingHeight: 90, legLength: 82 };
-    const result = phvFallback(input, "no_api_key");
-    // Just verify it categorizes to one of the three
-    expect(["early", "ontme", "late"]).toContain(result.category);
-  });
-
-  it("maps category to phvStatus correctly", () => {
-    const result = phvFallback(baseInput, "claude_error");
-    if (result.category === "early") expect(result.phvStatus).toBe("pre_phv");
-    if (result.category === "ontme") expect(result.phvStatus).toBe("during_phv");
-    if (result.category === "late") expect(result.phvStatus).toBe("post_phv");
-  });
-
-  it("adjustedVSI is within 0-100 range", () => {
-    const result = phvFallback(baseInput, "no_api_key");
-    expect(result.adjustedVSI).toBeGreaterThanOrEqual(0);
-    expect(result.adjustedVSI).toBeLessThanOrEqual(100);
-  });
-
-  it("early maturers get VSI boost factor of 1.12", () => {
-    // Force early category by providing measurements
-    const input = { ...baseInput, currentVSI: 50 };
-    const result = phvFallback(input, "no_api_key");
-    if (result.category === "early") {
-      expect(result.adjustedVSI).toBeGreaterThan(50);
-    }
-  });
-
-  it("late maturers get VSI reduction factor of 0.92", () => {
-    const input = { ...baseInput, currentVSI: 50 };
-    const result = phvFallback(input, "no_api_key");
-    if (result.category === "late") {
-      expect(result.adjustedVSI).toBeLessThan(50);
-    }
-  });
-
-  it("confidence is higher with real measurements (0.62 vs 0.5)", () => {
-    const withData = phvFallback(baseInput, "no_api_key");
-    const withoutData = phvFallback({
-      playerId: "p2", chronologicalAge: 14, currentVSI: 70,
-    }, "no_api_key");
-    expect(withData.confidence).toBe(0.62);
-    expect(withoutData.confidence).toBe(0.5);
-  });
-
-  it("uses default measurements when not provided", () => {
-    const result = phvFallback({
-      playerId: "p2", chronologicalAge: 14,
-    }, "parse_error");
-    expect(typeof result.offset).toBe("number");
-    expect(result._fallbackReason).toBe("parse_error");
-  });
-
-  it("no longer emits the retired biologicalAge field", () => {
-    const result = phvFallback(baseInput, "no_api_key");
-    expect(result).not.toHaveProperty("biologicalAge");
-  });
-
-  it("developmentWindow is critical during PHV", () => {
-    const result = phvFallback(baseInput, "no_api_key");
-    if (result.phvStatus === "during_phv") {
-      expect(result.developmentWindow).toBe("critical");
-    }
-  });
-
-  it("recommendation matches category", () => {
-    const result = phvFallback(baseInput, "no_api_key");
-    expect(typeof result.recommendation).toBe("string");
-    expect(result.recommendation.length).toBeGreaterThan(10);
+// phvFallback() se RETIRÓ (regla del owner 28-sep): estimaba talla sentado/pierna,
+// rellenaba talla/peso/VSI por defecto y aplicaba ×1.12/×0.92 por categoría de
+// estado. El PHV se bloquea sin todas las entradas introducidas (phvGate.ts).
+describe("phvFallback (retirado)", () => {
+  it("ya no se exporta: el PHV no tiene un fallback que aproxime", async () => {
+    const mod = (await import("../../../api/_lib/agentFallbacks")) as Record<string, unknown>;
+    expect(mod.phvFallback).toBeUndefined();
   });
 });
 

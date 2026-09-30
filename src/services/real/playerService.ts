@@ -5,8 +5,10 @@
  */
 
 import { z } from "zod";
+import { sanitizePlayerPhv } from "@/lib/phv/phvGate";
 import { StorageService } from "./storageService";
 import { calculateFichaVsi, type PlayerMetrics } from "./metricsService";
+import { appendVsiEvaluation, parseVsiEvaluations } from "@/lib/scoring/vsiDelta";
 
 // ── Generador de IDs únicos (evita colisiones en llamadas rápidas) ──────────
 let _idCounter = 0;
@@ -45,7 +47,23 @@ export const PlayerSchema = z.object({
   // VSI de FICHA = evaluación del entrenador. null ⇒ "sin evaluar" (no hay
   // métricas). Nunca un 0/58 fabricado para un jugador sin evaluación real.
   vsi: z.number().nullable(),
+  // LEGACY: valores sin fecha ni origen (y con 57.5 fabricados antes de #146). Solo
+  // para mostrar el valor actual / contar guardados; NUNCA para calcular variaciones.
   vsiHistory: z.array(z.number()).default([]),
+  // Evaluaciones del entrenador con fecha y origen (fuente de toda variación del VSI:
+  // src/lib/scoring/vsiDelta.ts). Opcional: los jugadores anteriores no la tienen.
+  // Se sanea al validar (entradas inválidas fuera) en vez de rechazar al jugador entero
+  // (p.ej. al restaurar una copia de seguridad con una entrada rota).
+  vsiEvaluations: z.preprocess(
+    (v) => (v === undefined ? undefined : parseVsiEvaluations(v)),
+    z
+      .array(z.object({
+        value: z.number(),
+        at: z.string(),
+        source: z.enum(["coach_form", "players_api", "demo_seed"]),
+      }))
+      .optional(),
+  ),
   // Sin default "M": un default silencioso aplicaría la fórmula PHV masculina a
   // una jugadora sin sexo registrado. Ausente ⇒ queda sin definir y el motor de
   // maduración (resolveMaturity) BLOQUEA pidiendo el dato, en vez de asumir.
@@ -73,13 +91,13 @@ export const PlayerSchema = z.object({
 export type Player = Omit<z.infer<typeof PlayerSchema>, "metrics"> & {
   metrics?: PlayerMetrics;
 };
-export type CreatePlayerInput = Omit<Player, "id" | "vsi" | "vsiHistory" | "createdAt" | "updatedAt">;
+export type CreatePlayerInput = Omit<Player, "id" | "vsi" | "vsiHistory" | "vsiEvaluations" | "createdAt" | "updatedAt">;
 
 const STORAGE_KEY = "players";
 
 /**
  * Simple write-lock para evitar race conditions entre
- * updateMetrics() y updatePHV() ejecutados concurrentemente.
+ * updateMetrics() y update() ejecutados concurrentemente.
  * Si el lock está ocupado, espera hasta 500ms y reintenta.
  */
 let _writeLock = false;
@@ -103,7 +121,11 @@ export const PlayerService = {
    * Obtiene todos los jugadores
    */
   getAll(): Player[] {
-    return StorageService.get<Player[]>(STORAGE_KEY, []);
+    // phvCategory/phvOffset persistidos solo cuentan si el gate ÚNICO de PHV los
+    // puede recalcular desde entradas introducidas (talla, peso, sentado, pierna,
+    // fecha de nacimiento, sexo — regla del owner 28-sep); si no, se retiran. Así
+    // ningún consumidor lee una categoría naive/estancada como si fuera un hecho.
+    return StorageService.get<Player[]>(STORAGE_KEY, []).map(sanitizePlayerPhv);
   },
 
   /**
@@ -129,6 +151,11 @@ export const PlayerService = {
       id: uniquePlayerId(),
       vsi,
       vsiHistory: vsi !== null ? [vsi] : [],
+      // Evaluación con fecha y origen. Un jugador de ejemplo (demo) se marca como tal:
+      // nunca cuenta como evaluación real de una persona.
+      vsiEvaluations: vsi !== null
+        ? appendVsiEvaluation([], vsi, input.isDemo ? "demo_seed" : "coach_form", now)
+        : [],
       createdAt: now,
       updatedAt: now,
     };
@@ -140,7 +167,7 @@ export const PlayerService = {
 
   /**
    * Actualiza métricas de un jugador y recalcula VSI.
-   * Usa write-lock para evitar race condition con updatePHV.
+   * Usa write-lock para evitar race condition con update().
    */
   async updateMetrics(id: string, metrics: PlayerMetrics): Promise<Player | null> {
     await acquireWriteLock();
@@ -152,13 +179,22 @@ export const PlayerService = {
       const previous = players[idx];
       // El entrenador evaluó (aportó las 6 barras) ⇒ el VSI de ficha ya existe.
       const newVSI = calculateFichaVsi(metrics);
+      const now = new Date().toISOString();
 
       const updated: Player = {
         ...previous,
         metrics,
         vsi: newVSI,
         vsiHistory: [...(previous.vsiHistory ?? []), newVSI].slice(-10),
-        updatedAt: new Date().toISOString(),
+        // Cada evaluación queda con su fecha y origen: es lo único con lo que se
+        // puede calcular una variación honesta (src/lib/scoring/vsiDelta.ts).
+        vsiEvaluations: appendVsiEvaluation(
+          previous.vsiEvaluations,
+          newVSI,
+          previous.isDemo ? "demo_seed" : "coach_form",
+          now,
+        ),
+        updatedAt: now,
       };
 
       players[idx] = updated;
@@ -169,37 +205,17 @@ export const PlayerService = {
     }
   },
 
-  /**
-   * Actualiza datos PHV calculados por el agente.
-   * Usa write-lock para evitar race condition con updateMetrics.
-   */
-  async updatePHV(id: string, phvCategory: Player["phvCategory"], phvOffset: number, adjustedVSI: number): Promise<Player | null> {
-    await acquireWriteLock();
-    try {
-      const players = PlayerService.getAll();
-      const idx = players.findIndex((p) => p.id === id);
-      if (idx === -1) return null;
-
-      players[idx] = {
-        ...players[idx],
-        phvCategory,
-        phvOffset,
-        vsi: adjustedVSI,
-        updatedAt: new Date().toISOString(),
-      };
-
-      StorageService.set(STORAGE_KEY, players);
-      return players[idx];
-    } finally {
-      releaseWriteLock();
-    }
-  },
+  // updatePHV() RETIRADO: sobrescribía `vsi` con el «VSI ajustado» del agente PHV
+  // (base fija 70 sin VSI real, ×1.12 al pre-PHV) sin pasar por el historial ni
+  // declarar procedencia, y persistía una categoría calculada con la edad entera.
+  // Sin llamadores de UI desde #54. La maduración ya no se persiste desde el
+  // cliente: la calcula el gate único a partir de entradas introducidas.
 
   /**
    * Actualiza campos de identidad/antropometría del jugador (parcial).
    * Para datos que NO son métricas ni PHV calculado: fecha de nacimiento,
    * alturas parentales (Khamis-Roche), medidas base, sexo. Write-lock para no
-   * pisar updateMetrics/updatePHV concurrentes.
+   * pisar updateMetrics concurrentes.
    */
   async update(
     id: string,

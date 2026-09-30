@@ -24,14 +24,9 @@ export function usePHVCalculator(input: PHVInput | null) {
       const res = await AgentService.calculatePHV(input);
       if (!res.success || !res.data) throw new Error(res.error ?? "Error en PHV Agent");
 
-      // Persiste el resultado en el jugador
-      await PlayerService.updatePHV(
-        input.playerId,
-        res.data.category,
-        res.data.offset,
-        res.data.adjustedVSI
-      );
-
+      // NO se persiste en el jugador: el antiguo PlayerService.updatePHV
+      // sobrescribía el VSI con el «VSI ajustado» (sin historial ni procedencia).
+      // La maduración visible la decide el gate único (src/lib/phv/phvGate.ts).
       return res.data;
     },
     enabled: !!input,
@@ -71,8 +66,11 @@ export function useRoleProfileAgent(playerId: string | undefined) {
             // (pressing ≈ stamina, positioning ≈ vision). El prompt de Role Profile
             // solo usa las 6 métricas VSI reales: speed, technique, vision, stamina, shooting, defending.
           },
-          phvCategory: player.phvCategory ?? "ontme",
-          phvOffset: player.phvOffset ?? 0,
+          // PHV solo si el gate único lo produjo; si no, se omite (nunca «ontme»/0).
+          ...(player.phvCategory && typeof player.phvOffset === "number"
+            ? { phvCategory: player.phvCategory, phvOffset: player.phvOffset }
+            : {}),
+          phvDataAvailable: !!(player.phvCategory && typeof player.phvOffset === "number"),
         },
       };
 
@@ -136,16 +134,9 @@ export function useRecalculatePHV() {
 
   return useMutation({
     mutationFn: (input: PHVInput) => AgentService.calculatePHV(input),
-    onSuccess: async (result, input) => {
-      // Persist PHV result in player storage (same as usePHVCalculator queryFn)
-      if (result.success && result.data) {
-        await PlayerService.updatePHV(
-          input.playerId,
-          result.data.category,
-          result.data.offset,
-          result.data.adjustedVSI,
-        );
-      }
+    onSuccess: async (_result, input) => {
+      // Sin persistencia en el jugador (ver usePHVCalculator): no se sobrescribe
+      // el VSI con el ajuste del agente.
       queryClient.invalidateQueries({ queryKey: ["phv", input.playerId] });
       queryClient.invalidateQueries({ queryKey: ["role-profile-agent", input.playerId] });
     },

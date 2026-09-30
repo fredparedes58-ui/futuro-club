@@ -70,6 +70,10 @@ export async function ownsPlayer(playerId: string | null | undefined, userId: st
  * estricto que el WRITE/SHARE (invariante #7: una sola implementación).
  * Fail-closed: sin playerId, sin userId ni tenantId, sin Supabase, query no-ok o
  * error → false.
+ *
+ * Espejo en SQL: public.dsar_caller_manages_player (migración 072) aplica esta
+ * misma regla dentro de la base de datos para las RPC DSAR que llama el navegador.
+ * Si cambia esta regla, cambiar también esa función (con una migración nueva).
  */
 export async function ownsPlayerOrTenant(
   playerId: string | null | undefined,
@@ -116,6 +120,25 @@ export async function ownsVideo(
   if (video.user_id && video.user_id === userId) return true;
   if (video.tenant_id && tenantId && video.tenant_id === tenantId) return true;
   if (video.player_id) return await ownsPlayerOrTenant(video.player_id, userId, tenantId);
+  return false;
+}
+
+/**
+ * ¿El usuario/tenant puede ver/gestionar este job de partido (`match_analyses`)?
+ * Predicado PURO sobre la fila ya cargada con service role — el MISMO que la política
+ * RLS `match_analyses_select_owner` (migración 067): creador (user_id) o mismo tenant.
+ * NO confundir con `ownsMatch` (tabla `analyses`). Si el JWT no trae el claim tenant_id,
+ * solo funciona la propiedad por user_id (los compañeros de club no ven el job).
+ * Fail-closed: sin userId ni tenantId → false.
+ */
+export function ownsMatchAnalysis(
+  job: { user_id?: string | null; tenant_id?: string | null } | null | undefined,
+  userId: string | null,
+  tenantId: string | null,
+): boolean {
+  if (!job) return false;
+  if (job.user_id && userId && job.user_id === userId) return true;
+  if (job.tenant_id && tenantId && job.tenant_id === tenantId) return true;
   return false;
 }
 

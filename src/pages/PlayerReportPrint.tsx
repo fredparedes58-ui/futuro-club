@@ -8,6 +8,8 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useRawPlayerById } from "@/hooks/usePlayers";
 import { adaptPlayerForUI } from "@/services/real/adapters";
+import { phvGate } from "@/lib/phv/phvGate";
+import { PhvGateNotice } from "@/components/phv/PhvGateNotice";
 import { MetricsService } from "@/services/real/metricsService";
 import { useEffect, useRef } from "react";
 import { DominantFeaturesService } from "@/services/real/advancedMetricsService";
@@ -16,6 +18,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
 import { calculateReportBenchmark, type ReportBenchmark } from "@/services/real/benchmarkService";
+import { computeVsiDelta, realVsiEvaluations } from "@/lib/scoring/vsiDelta";
+import { MetricValue } from "@/components/metrics/MetricValue";
 
 // ─── VSI Gauge SVG ────────────────────────────────────────────────────────────
 
@@ -67,7 +71,7 @@ function VsiGauge({ value }: { value: number }) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function PlayerReportPrint() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const { data: rawPlayer, isLoading } = useRawPlayerById(id);
@@ -109,6 +113,27 @@ export default function PlayerReportPrint() {
   const vsiTier = MetricsService.classifyVSI(vsi);
   const dominantFeatures = DominantFeaturesService.calculate(rawPlayer.metrics);
 
+  // Evolución y variación del VSI SOLO desde evaluaciones del entrenador con fecha y
+  // origen: la misma fuente única (src/lib/scoring/vsiDelta.ts) que el panel de familia
+  // y el ScoutFeed. Antes se graficaba `vsiHistory` —legacy SIN fechas, con el 57.5
+  // fabricado antes de #146— y se rotulaba «En ascenso» restando sus dos últimas
+  // posiciones: con [57.5, 67.4] el informe impreso decía «Subiendo» mientras el panel
+  // de familia bloqueaba la misma variación (invariante #7).
+  const datedEvaluations = realVsiEvaluations(rawPlayer.vsiEvaluations);
+  const vsiDelta = computeVsiDelta({
+    evaluations: rawPlayer.vsiEvaluations,
+    legacyHistory: rawPlayer.vsiHistory,
+    currentVsi: vsi,
+  });
+  const vsiDeltaShown = {
+    ...vsiDelta,
+    gate_reason: vsiDelta.gate_code
+      ? t(`vsiDelta.gate.${vsiDelta.gate_code}`, { defaultValue: vsiDelta.gate_reason ?? "" })
+      : vsiDelta.gate_reason,
+  };
+  const fmtDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString(i18n.language, { day: "numeric", month: "short", year: "numeric" }) : "";
+
   const metricLabels: Record<string, string> = {
     speed: t("playerReportPrint.metricSpeed"),
     technique: t("playerReportPrint.metricTechnique"),
@@ -125,6 +150,16 @@ export default function PlayerReportPrint() {
   }));
 
   const reportId = `VIT-${rawPlayer.id?.slice(0, 6).toUpperCase() ?? "000000"}`;
+
+  // Maduración SOLO desde el gate único (regla del owner 28-sep). Antes: el
+  // phvCategory PERSISTIDO, y "early" (= pre-PHV, un ESTADO) se imprimía como
+  // «madurador TARDÍO» (un TIMING vs pares) — a todo pre-púber se le llamaba tardío.
+  const phv = phvGate(rawPlayer);
+  const phvTimingLabel = !phv.ok ? null
+    : phv.assessment.timing === "late" ? t("playerReportPrint.maturationLate")
+    : phv.assessment.timing === "early" ? t("playerReportPrint.maturationEarly")
+    : phv.assessment.timing === "on_time" ? t("playerReportPrint.maturationNormal")
+    : t("maturity.timing.unknown");
 
   // VAEP data if available (safe runtime check)
   const vaepPer90 = rawPlayer && typeof rawPlayer === "object" && "vaepPer90" in rawPlayer
@@ -201,16 +236,16 @@ export default function PlayerReportPrint() {
         </div>
       </div>
 
-      {/* VSI Evolution */}
-      {rawPlayer.vsiHistory && rawPlayer.vsiHistory.length > 1 && (
-        <div className="mb-8">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.vsiEvolution")}</h2>
+      {/* VSI Evolution — solo evaluaciones con fecha; la variación, calculada o su motivo */}
+      <div className="mb-8" data-testid="report-vsi-evolution">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">{t("playerReportPrint.vsiEvolution")}</h2>
+        {datedEvaluations.length >= 2 && (
           <div style={{ width: "100%", height: 160 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
-                data={rawPlayer.vsiHistory.map((v: number, i: number) => ({
-                  eval: `#${i + 1}`,
-                  vsi: Math.round(v * 10) / 10,
+                data={datedEvaluations.map((e) => ({
+                  eval: fmtDate(e.at),
+                  vsi: Math.round(e.value * 10) / 10,
                 }))}
                 margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
               >
@@ -232,59 +267,59 @@ export default function PlayerReportPrint() {
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-            <span>
-              {t("playerReportPrint.trend")}:{" "}
-              <span className="font-semibold text-gray-600">
-                {(() => {
-                  const h = rawPlayer.vsiHistory;
-                  if (h.length < 2) return "—";
-                  const last = h[h.length - 1];
-                  const prev = h[h.length - 2];
-                  const delta = last - prev;
-                  return delta > 2 ? t("playerReportPrint.trendRising") : delta < -2 ? t("playerReportPrint.trendFalling") : t("playerReportPrint.trendStable");
-                })()}
-              </span>
-            </span>
-            <span>{t("playerReportPrint.evaluationsCount", { count: rawPlayer.vsiHistory.length })}</span>
-          </div>
+        )}
+        <div className="flex justify-between gap-3 text-[10px] text-gray-400 mt-1">
+          <span data-testid="report-vsi-delta">
+            {t("playerReportPrint.vsiChange")}:{" "}
+            <MetricValue
+              className="font-semibold text-gray-600"
+              result={vsiDeltaShown}
+              format={(v, u) => `${Number(v) > 0 ? "+" : ""}${v}${u ? ` ${u}` : ""}`}
+            />
+            {vsiDelta.value !== null && (
+              <>
+                {" "}
+                {t("playerReportPrint.vsiDeltaBetween", {
+                  from: fmtDate(vsiDelta.from_at),
+                  to: fmtDate(vsiDelta.to_at),
+                })}
+              </>
+            )}
+          </span>
+          {datedEvaluations.length >= 2 && (
+            <span>{t("playerReportPrint.datedEvaluationsCount", { count: datedEvaluations.length })}</span>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* PHV */}
-      {rawPlayer.phvCategory && (
-        <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-            {t("playerReportPrint.biologicalMaturation")}
-          </h2>
+      {/* PHV — gate único: sin todas las entradas introducidas se imprime qué falta */}
+      <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-100">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+          {t("playerReportPrint.biologicalMaturation")}
+        </h2>
+        {phv.ok ? (
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-sm font-semibold text-purple-700 capitalize">
-                {/* enum invertido: "early"=pre-PHV=madurador TARDÍO; "late"=post-PHV=PRECOZ.
-                    on-time / desconocido → Normal (rama default). */}
-                {rawPlayer.phvCategory === "early" ? t("playerReportPrint.maturationLate") :
-                 rawPlayer.phvCategory === "late" ? t("playerReportPrint.maturationEarly") :
-                 t("playerReportPrint.maturationNormal")}
-              </span>
+              <span className="text-sm font-semibold text-purple-700 capitalize">{phvTimingLabel}</span>
               <div className="flex gap-1 mt-1.5">
                 {["early", "ontme", "late"].map((cat) => (
                   <div
                     key={cat}
                     className={`h-1.5 flex-1 rounded-full ${
-                      rawPlayer.phvCategory === cat ? "bg-purple-500" : "bg-gray-200"
+                      phv.category === cat ? "bg-purple-500" : "bg-gray-200"
                     }`}
                   />
                 ))}
               </div>
             </div>
             <span className="text-sm text-gray-500">
-              {t("playerReportPrint.offset")}: {rawPlayer.phvOffset !== undefined
-                ? (rawPlayer.phvOffset > 0 ? "+" : "") + rawPlayer.phvOffset.toFixed(2)
-                : t("playerReportPrint.notAvailable")} {t("playerReportPrint.years")}
+              {t("playerReportPrint.offset")}: {(phv.mirwald.offset > 0 ? "+" : "") + phv.mirwald.offset.toFixed(2)} {t("playerReportPrint.years")}
             </span>
           </div>
-        </div>
-      )}
+        ) : (
+          <PhvGateNotice className="text-sm" gate={phv} />
+        )}
+      </div>
 
       {/* Características dominantes */}
       <div className="mb-6">
@@ -324,9 +359,11 @@ export default function PlayerReportPrint() {
           <div className="text-2xl font-black text-gray-800">{rawPlayer.minutesPlayed}</div>
           <div className="text-xs text-gray-500">{t("playerReportPrint.minutesPlayed")}</div>
         </div>
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <div className="text-2xl font-black text-gray-800">{rawPlayer.vsiHistory?.length ?? 1}</div>
-          <div className="text-xs text-gray-500">{t("playerReportPrint.evaluations")}</div>
+        {/* Recuento de evaluaciones CON FECHA: el largo de vsiHistory contaba como
+            «evaluación» el 57.5 que la app guardaba sin que nadie evaluara (antes de #146). */}
+        <div className="text-center p-3 bg-gray-50 rounded-lg" data-testid="report-dated-evaluations">
+          <div className="text-2xl font-black text-gray-800">{datedEvaluations.length}</div>
+          <div className="text-xs text-gray-500">{t("playerReportPrint.datedEvaluations")}</div>
         </div>
         <div className="text-center p-3 bg-gray-50 rounded-lg">
           <div className="text-2xl font-black text-gray-800 capitalize">

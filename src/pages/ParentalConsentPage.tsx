@@ -5,7 +5,9 @@
  * Conecta con las tablas creadas en migración 036:
  *   - players (parental_consent_* columns)
  *   - consent_audit_log
- *   - v_players_ai_blocked
+ *   - RPC dsar_export_player_data / dsar_request_deletion (reescritas en 072:
+ *     firma TEXT y solo para el dueño del jugador o su tenant)
+ * (La vista v_players_ai_blocked de 036 NO se usa aquí; 072 la cierra a clientes.)
  *
  * Funciona con Supabase o con datos mock cuando no está configurado.
  */
@@ -23,6 +25,7 @@ import { supabase, SUPABASE_CONFIGURED } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import { dsarErrorToastKey } from "@/lib/consent/dsarError";
 
 /* ── Types ─────────────────────────────────────────────────────── */
 
@@ -314,6 +317,7 @@ interface DSARModalProps {
 
 function DSARModal({ player, onClose }: DSARModalProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -331,11 +335,13 @@ function DSARModal({ player, onClose }: DSARModalProps) {
         a.click();
         URL.revokeObjectURL(url);
         toast.success(t("parentalConsentPage.toast.exportSuccess"));
+        // 072 registra «data_exported» en consent_audit_log: refrescar la pestaña de auditoría.
+        queryClient.invalidateQueries({ queryKey: ["consent-audit"] });
       } else {
         toast.info(t("parentalConsentPage.toast.exportUnavailable"));
       }
-    } catch {
-      toast.error(t("parentalConsentPage.toast.exportError"));
+    } catch (err) {
+      toast.error(t(dsarErrorToastKey(err, "export")));
     } finally {
       setExporting(false);
     }
@@ -345,18 +351,19 @@ function DSARModal({ player, onClose }: DSARModalProps) {
     setDeleting(true);
     try {
       if (SUPABASE_CONFIGURED) {
+        // El solicitante lo toma la base de datos del JWT (072); el cliente no lo envía.
         const { error } = await supabase.rpc("dsar_request_deletion", {
           p_player_id: player.id,
-          p_requested_by: "admin",
         });
         if (error) throw error;
         toast.success(t("parentalConsentPage.toast.deletionSuccess"));
+        queryClient.invalidateQueries({ queryKey: ["consent-audit"] });
       } else {
         toast.info(t("parentalConsentPage.toast.deletionDemo"));
       }
       onClose();
-    } catch {
-      toast.error(t("parentalConsentPage.toast.deletionError"));
+    } catch (err) {
+      toast.error(t(dsarErrorToastKey(err, "deletion")));
     } finally {
       setDeleting(false);
     }

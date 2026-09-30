@@ -20,7 +20,7 @@
 
 import type { Player } from "@/services/real/playerService";
 import type { AnalysisDbRow } from "@/hooks/usePlayerAnalysisV2";
-import { playerMaturity } from "@/lib/phv/playerMaturity";
+import { gatedMaturity } from "@/lib/phv/phvGate";
 import i18n from "@/i18n";
 import { normalizeLocale, pickLocale, type ReportLocale } from "@/lib/shared/locale";
 
@@ -112,7 +112,7 @@ function rankedMetrics(player: Player, locale: ReportLocale): Array<{ key: strin
 }
 
 function maturityBlurb(player: Player, locale: ReportLocale): string {
-  const mat = playerMaturity(player as unknown as Parameters<typeof playerMaturity>[0]);
+  const mat = gatedMaturity(player as unknown as Parameters<typeof gatedMaturity>[0]);
   const byTiming: Record<string, Partial<Record<ReportLocale, string>>> = {
     late: {
       es: "Madurador tardío: hoy compite físicamente por detrás de sus pares, pero su margen de crecimiento está por llegar. Talento a menudo infravalorado — no descartar por tamaño.",

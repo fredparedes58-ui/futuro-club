@@ -15,6 +15,7 @@ import {
   LISTING_STATUS_LABELS,
 } from "@/lib/transfer/transferConfig";
 import type { TransferListing } from "@/lib/transfer/transferTypes";
+import { trustedSnapshotPhv } from "@/lib/phv/phvGate";
 
 interface Props {
   listing: TransferListing;
@@ -108,9 +109,10 @@ export function ListingCard({ listing, matchScore }: Props) {
                 VSI {Math.round(snap.vsi)}
               </Badge>
             )}
-            {snap.phvCategory && (
+            {/* PHV solo si el servidor lo marcó fiable (gate único · regla del owner). */}
+            {trustedSnapshotPhv(snap).phvCategory && (
               <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-300 border-rose-500/30">
-                PHV {snap.phvCategory}
+                PHV {trustedSnapshotPhv(snap).phvCategory}
               </Badge>
             )}
             {listing.status !== "active" && (

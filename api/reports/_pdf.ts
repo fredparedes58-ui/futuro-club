@@ -12,6 +12,8 @@ export const config = { runtime: "edge" };
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { errorResponse } from "../_lib/apiResponse";
+import { phvGate, phvLabelEs, type PhvGateInput } from "../../src/lib/phv/phvGate";
+import { realVsiEvaluations } from "../../src/lib/scoring/vsiDelta";
 
 const PdfRequestSchema = z.object({
   playerId: z.string(),
@@ -57,7 +59,12 @@ export default withHandler(
     const foot = (player.foot as string) ?? "";
     const height = (player.height as number) ?? 0;
     const weight = (player.weight as number) ?? 0;
-    const phvCategory = (player.phvCategory as string) ?? "";
+    // Maduración desde el GATE ÚNICO (regla del owner 28-sep): solo con TODAS las
+    // entradas introducidas del blob. Antes se leía el phvCategory persistido y se
+    // rotulaba "early" (= pre-PHV, un ESTADO) como «Tardía» y, sin categoría,
+    // «Precoz» — a cualquier menor sin medidas se le imprimía una maduración.
+    // (Texto fijo del gate: sin datos de usuario que escapar.)
+    const maturityLabel = phvLabelEs(phvGate(player as PhvGateInput));
 
     // 2. Fetch latest analysis (always, for richer report)
     let analysis: Record<string, unknown> | null = null;
@@ -89,7 +96,12 @@ export default withHandler(
     const areasDesarrollo = (estadoActual?.areasDesarrollo ?? []) as string[];
     const proyeccion = (analysis as Record<string, Record<string, unknown>> | null)?.proyeccionCarrera as Record<string, Record<string, string>> | undefined;
     const planDesarrollo = (analysis as Record<string, Record<string, unknown>> | null)?.planDesarrollo as Record<string, unknown> | undefined;
-    const vsiHistory = (player.vsiHistory ?? []) as number[];
+    // Evolución SOLO desde evaluaciones del entrenador con fecha y origen (fuente única:
+    // src/lib/scoring/vsiDelta.ts). Antes se graficaba `vsiHistory` —legacy SIN fechas,
+    // con el 57.5 fabricado antes de #146— como «Evolución VSI» (invariante #7).
+    const datedEvaluations = realVsiEvaluations(player.vsiEvaluations);
+    const fmtEvalDate = (iso: string) =>
+      new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
     const dimLabels: Record<string, string> = {
       velocidadDecision: "Vel. Decisión", tecnicaConBalon: "Técnica",
@@ -121,17 +133,18 @@ export default withHandler(
       </div>
     ` : "";
 
-    const evolutionSection = vsiHistory.length > 1 ? `
+    const evolutionSection = datedEvaluations.length > 1 ? `
       <div class="section">
-        <h2>Evolución VSI</h2>
+        <h2>Evolución VSI · evaluaciones del entrenador con fecha</h2>
         <div style="display:flex;align-items:end;gap:4px;height:60px">
-          ${vsiHistory.map((v, i) => {
+          ${datedEvaluations.map((e, i) => {
+            const v = e.value;
             const pct = Math.max(5, v);
-            const isLast = i === vsiHistory.length - 1;
+            const isLast = i === datedEvaluations.length - 1;
             return `<div style="flex:1;display:flex;flex-direction:column;align-items:center">
               <span style="font-size:9px;color:#6b7280">${Math.round(v)}</span>
               <div style="width:100%;height:${pct * 0.5}px;background:${isLast ? "#7c3aed" : "#c4b5fd"};border-radius:4px;min-height:4px"></div>
-              <span style="font-size:8px;color:#9ca3af">#${i + 1}</span>
+              <span style="font-size:8px;color:#9ca3af">${fmtEvalDate(e.at)}</span>
             </div>`;
           }).join("")}
         </div>
@@ -215,7 +228,7 @@ export default withHandler(
   <div class="info-grid">
     <div class="info-card"><div class="label">Altura</div><div class="value">${height} cm</div></div>
     <div class="info-card"><div class="label">Peso</div><div class="value">${weight} kg</div></div>
-    <div class="info-card"><div class="label">Maduración</div><div class="value">${phvCategory === "ontme" ? "En fase" : phvCategory === "early" ? "Tardía" : "Precoz"}</div></div>
+    <div class="info-card"><div class="label">Maduración</div><div class="value">${maturityLabel}</div></div>
     <div class="info-card"><div class="label">VSI</div><div class="value">${vsi.toFixed(1)}</div></div>
   </div>
 

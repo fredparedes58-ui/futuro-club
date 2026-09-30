@@ -13,8 +13,30 @@
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { calculateFichaVsi } from "../../src/services/real/metricsService";
+import { phvGate, matchesTimingFilter, type MaturityTiming, type PhvGateInput } from "../../src/lib/phv/phvGate";
+import { vsiTrendArrow } from "../../src/lib/scoring/vsiDelta";
 
 export const config = { runtime: "edge" };
+
+/**
+ * PHV del ranking desde el GATE ÚNICO (src/lib/phv/phvGate.ts · regla del owner
+ * 28-sep): categoría/offset solo con TODAS las entradas introducidas del blob
+ * (talla, peso, talla sentado, pierna, fecha de nacimiento → edad decimal, sexo).
+ * Si falta alguna ⇒ null + phvGateReason. Antes: el phvCategory PERSISTIDO del
+ * blob con default «ontme»/offset 0 (un pre-púber sin medidas salía «on-time»).
+ */
+function gatedPhvFields(d: Record<string, unknown>): {
+  phvCategory: string | null;
+  phvOffset: number | null;
+  /** Timing vs pares del MISMO gate: lo que rotula la fila y lo que filtra `timing`. */
+  phvTiming: MaturityTiming | null;
+  phvGateReason: string | null;
+} {
+  const g = phvGate(d as PhvGateInput);
+  return g.ok
+    ? { phvCategory: mapPhv(g.category), phvOffset: g.offset.value, phvTiming: g.assessment.timing, phvGateReason: null }
+    : { phvCategory: null, phvOffset: null, phvTiming: null, phvGateReason: g.gate_reason };
+}
 
 // VSI de ficha: pesos + fórmula en fuente ÚNICA src/services/real/metricsService.ts (invariante #7).
 
@@ -51,8 +73,11 @@ type PlayerRow = {
   position: string;
   positionShort: string;
   vsi: number | null; // null ⇒ "sin evaluar" (jugador sin evaluación del coach)
-  phvCategory: string;
-  phvOffset: number;
+  // null ⇒ PHV bloqueado por el gate único (phvGateReason dice qué falta).
+  phvCategory: string | null;
+  phvOffset: number | null;
+  phvTiming: MaturityTiming | null;
+  phvGateReason: string | null;
   competitiveLevel: string;
   ageGroup: string;
   trending: "up" | "down" | "stable";
@@ -61,8 +86,8 @@ type PlayerRow = {
   updatedAt: string;
   metrics: Record<string, number>;
   foot: string;
-  height: number;
-  weight: number;
+  height: number | null;
+  weight: number | null;
   // Campos de maduración para que el cliente compute el timing canónico
   // (resolveMaturity) con la misma fuente en ambas rutas (RPC/fallback).
   // gender puede ser null: sexo no registrado ⇒ resolveMaturity abstiene (invariante #5).
@@ -73,6 +98,13 @@ type PlayerRow = {
   motherHeightCm: number | null;
   fatherHeightCm: number | null;
 };
+
+/**
+ * p_limit de la RPC cuando hay filtro PHV: la lista COMPLETA del usuario (el
+ * filtro y la paginación se aplican aquí tras el gate). La ruta en memoria ya
+ * carga todos los jugadores del usuario; esto no amplía qué se lee.
+ */
+const RPC_ALL_ROWS = 100_000;
 
 const rankingsCache = new Map<string, { data: PlayerRow[]; timestamp: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -100,7 +132,16 @@ export default withHandler(
     const offset = parseInt(url.searchParams.get("offset") ?? "0");
 
     // Filters
-    const phvFilter = url.searchParams.get("phv"); // "early", "ontme", "late"
+    // PHV: "early" | "on-time" | "late" (se acepta también la forma interna "ontme").
+    // Se filtra SIEMPRE sobre el recálculo del gate único (gatedPhvFields), nunca
+    // sobre la categoría persistida: ver la ruta RPC.
+    const phvParam = url.searchParams.get("phv");
+    const phvFilter = phvParam && phvParam !== "all" ? mapPhv(phvParam) : null;
+    // Filtro de la UI («Madurador tardío ⭐»): TIMING vs pares ("late" | "on_time" |
+    // "early") sobre el MISMO timing gateado que rotula la fila. `phv` filtra la FASE.
+    const timingParam = url.searchParams.get("timing");
+    const timingFilter = timingParam && timingParam !== "all" ? timingParam : null;
+    const gatedFilter = Boolean(phvFilter) || Boolean(timingFilter);
     const posFilter = url.searchParams.get("position"); // Position string
     const ageGroupFilter = url.searchParams.get("ageGroup"); // "Sub-14", etc.
     const levelFilter = url.searchParams.get("level"); // competitive level
@@ -114,6 +155,12 @@ export default withHandler(
 
     // Try RPC first (server-side percentiles, O(n) in Postgres)
     try {
+      // La RPC filtra PHV por el phvCategory PERSISTIDO del blob (con default
+      // 'ontme', 059) mientras la fila muestra el recálculo del gate: filtrar por
+      // «early» devolvía a un pre-púber sin medidas rotulado «PHV no disponible».
+      // Con filtro PHV se pide la lista completa ordenada SIN p_phv y se filtra +
+      // pagina aquí, DESPUÉS del gate (misma fuente que muestra la fila y que la
+      // ruta en memoria). Los percentiles siguen siendo los de la RPC.
       const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/get_ranked_players`, {
         method: "POST",
         headers: { ...headers, Prefer: "return=representation" },
@@ -121,10 +168,10 @@ export default withHandler(
           p_user_id: userId,
           p_sort_by: sortBy,
           p_sort_dir: sortDir,
-          p_limit: limit,
-          p_offset: offset,
+          p_limit: gatedFilter ? RPC_ALL_ROWS : limit,
+          p_offset: gatedFilter ? 0 : offset,
           p_search: search || null,
-          p_phv: phvFilter || null,
+          p_phv: null,
           p_position: posFilter || null,
           p_age_group: ageGroupFilter || null,
           p_level: levelFilter || null,
@@ -135,13 +182,12 @@ export default withHandler(
         const rpcData = await rpcRes.json();
         // RPC returns the full response object directly
         // Map player data format to match existing API contract
-        const players = (rpcData.players || []).map((p: Record<string, unknown>) => ({
+        const mapped: Array<Record<string, unknown>> = (rpcData.players || []).map((p: Record<string, unknown>) => ({
           id: p.id,
           name: p.name,
           age: p.age,
           position: p.position,
           vsi: p.vsi == null ? null : Number(p.vsi), // no coaccionar null→0
-          phvCategory: p.phv_category === "ontme" ? "on-time" : p.phv_category,
           competitiveLevel: p.competitive_level,
           ageGroup: p.age_group,
           percentile: p.percentile == null ? null : Math.round(Number(p.percentile)),
@@ -149,11 +195,23 @@ export default withHandler(
             p.percentile_in_age_group == null ? null : Math.round(Number(p.percentile_in_age_group)),
           updatedAt: p.updated_at,
           ...((p.data || {}) as Record<string, unknown>),
+          // DESPUÉS del spread del blob: el phvCategory/phvOffset persistido del
+          // blob NO llega al cliente; solo el recálculo gateado (o null + motivo).
+          ...gatedPhvFields((p.data || {}) as Record<string, unknown>),
         }));
+        // Filtros fase/timing sobre lo GATEADO (lo que se muestra), no lo persistido.
+        const matching = gatedFilter
+          ? mapped.filter(
+              (p) =>
+                (!phvFilter || p.phvCategory === phvFilter) &&
+                matchesTimingFilter(p.phvTiming as MaturityTiming | null, timingFilter),
+            )
+          : mapped;
+        const players = gatedFilter ? matching.slice(offset, offset + limit) : mapped;
 
         return successResponse({
           players,
-          total: rpcData.total || 0,
+          total: gatedFilter ? matching.length : rpcData.total || 0,
           limit,
           offset,
           totalUnfiltered: rpcData.totalUnfiltered || 0,
@@ -205,11 +263,15 @@ export default withHandler(
         const vsi: number | null =
           typeof d.vsi === "number" ? d.vsi : hasMetrics ? calculateFichaVsi(metrics) : null;
         const age = (d.age as number) ?? 15;
-        const vsiHistory = Array.isArray(d.vsiHistory)
-          ? (d.vsiHistory as number[])
-          : vsi !== null ? [vsi] : [];
-        const prevVSI = vsiHistory.length >= 2 ? vsiHistory[vsiHistory.length - 2] : vsi;
-        const delta = vsi !== null && prevVSI !== null ? vsi - prevVSI : 0;
+        // Flecha ↑/↓ solo desde dos evaluaciones reales con fecha (fuente única
+        // vsiTrendArrow → computeVsiDelta, invariante #7); el vsiHistory legacy (sin
+        // fechas, con el 57.5 fabricado antes de #146) solo cuenta para jugadores demo.
+        const trending = vsiTrendArrow({
+          evaluations: d.vsiEvaluations,
+          legacyHistory: d.vsiHistory,
+          currentVsi: vsi,
+          isDemo: d.isDemo === true,
+        });
 
         return {
           id: row.id,
@@ -218,18 +280,19 @@ export default withHandler(
           position: (d.position as string) ?? "CM",
           positionShort: abbreviatePosition((d.position as string) ?? "CM"),
           vsi,
-          phvCategory: mapPhv((d.phvCategory as string) ?? "ontme"),
-          phvOffset: (d.phvOffset as number) ?? 0,
+          ...gatedPhvFields(d),
           competitiveLevel: (d.competitiveLevel as string) ?? "Regional",
           ageGroup: getAgeGroup(age),
-          trending: delta > 2 ? "up" : delta < -2 ? "down" : "stable",
+          trending,
           percentile: 0, // calculated below
           percentileInAgeGroup: 0, // calculated below
           updatedAt: row.updated_at,
           metrics,
           foot: (d.foot as string) ?? "right",
-          height: (d.height as number) ?? 170,
-          weight: (d.weight as number) ?? 60,
+          // Sin default 170/60: son ENTRADAS del gate PHV que el cliente recalcula;
+          // una talla/peso inventados abrirían el gate (invariante #2).
+          height: typeof d.height === "number" ? d.height : null,
+          weight: typeof d.weight === "number" ? d.weight : null,
           // Sin fallback "M": sexo ausente ⇒ null → playerMaturity reenvía sex:undefined
           // y resolveMaturity abstiene ("Sexo no registrado"), igual que la ruta RPC (invariante #5).
           gender: d.gender === "M" || d.gender === "F" ? d.gender : null,
@@ -287,8 +350,11 @@ export default withHandler(
     if (search) {
       filtered = filtered.filter((p) => p.name.toLowerCase().includes(search));
     }
-    if (phvFilter && phvFilter !== "all") {
+    if (phvFilter) {
       filtered = filtered.filter((p) => p.phvCategory === phvFilter);
+    }
+    if (timingFilter) {
+      filtered = filtered.filter((p) => matchesTimingFilter(p.phvTiming, timingFilter));
     }
     if (posFilter && posFilter !== "Todos") {
       filtered = filtered.filter((p) => p.position === posFilter);

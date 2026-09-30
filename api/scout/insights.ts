@@ -46,17 +46,38 @@ export default withHandler(
       const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20"), 50);
       const offset = parseInt(url.searchParams.get("offset") ?? "0");
 
-      let queryUrl = `${supabaseUrl}/rest/v1/scout_insights?user_id=eq.${userId}`;
-      queryUrl += `&is_archived=eq.${archived}`;
-      if (type) queryUrl += `&insight_type=eq.${type}`;
-      if (urgency) queryUrl += `&urgency=eq.${urgency}`;
-      if (playerId) queryUrl += `&player_id=eq.${playerId}`;
-      queryUrl += `&order=created_at.desc`;
-      queryUrl += `&limit=${limit}&offset=${offset}`;
+      // Archivo de SISTEMA (migración 069): los insights anteriores al gate PHV
+      // del ScoutFeed (#156) que afirmaban maduración con datos naive («categoría
+      // PHV early y offset −1.2») llevan archived_at y NO se muestran en el feed
+      // ni en el Histórico del Hub. Solo aparecen en la vista «archivados», con su
+      // archived_reason. No se borran (inv #8). Si la 069 aún no está aplicada, la
+      // columna no existe: se reintenta sin el filtro para no romper el feed.
+      const buildListUrl = (withSystemArchive: boolean) => {
+        let queryUrl = `${supabaseUrl}/rest/v1/scout_insights?user_id=eq.${userId}`;
+        if (!withSystemArchive) queryUrl += `&is_archived=eq.${archived}`;
+        else if (archived) queryUrl += `&or=(is_archived.eq.true,archived_at.not.is.null)`;
+        else queryUrl += `&is_archived=eq.false&archived_at=is.null`;
+        if (type) queryUrl += `&insight_type=eq.${type}`;
+        if (urgency) queryUrl += `&urgency=eq.${urgency}`;
+        if (playerId) queryUrl += `&player_id=eq.${playerId}`;
+        queryUrl += `&order=created_at.desc`;
+        queryUrl += `&limit=${limit}&offset=${offset}`;
+        return queryUrl;
+      };
 
-      const res = await fetch(queryUrl, {
+      let systemArchive = true;
+      let res = await fetch(buildListUrl(true), {
         headers: { ...headers, Prefer: "count=exact" },
       });
+      if (!res.ok && res.status === 400) {
+        const errText = await res.text().catch(() => "");
+        if (errText.includes("archived_at")) {
+          systemArchive = false;
+          res = await fetch(buildListUrl(false), {
+            headers: { ...headers, Prefer: "count=exact" },
+          });
+        }
+      }
 
       if (!res.ok) {
         return errorResponse("Failed to fetch insights", 500);
@@ -65,8 +86,8 @@ export default withHandler(
       const insights = await res.json();
       const total = parseInt(res.headers.get("content-range")?.split("/")[1] ?? "0");
 
-      // Count unread
-      const unreadUrl = `${supabaseUrl}/rest/v1/scout_insights?user_id=eq.${userId}&is_read=eq.false&is_archived=eq.false&select=id`;
+      // Count unread (sin los archivados por sistema)
+      const unreadUrl = `${supabaseUrl}/rest/v1/scout_insights?user_id=eq.${userId}&is_read=eq.false&is_archived=eq.false${systemArchive ? "&archived_at=is.null" : ""}&select=id`;
       const unreadRes = await fetch(unreadUrl, {
         headers: { ...headers, Prefer: "count=exact" },
       });

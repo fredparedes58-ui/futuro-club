@@ -208,9 +208,12 @@ export async function fetchRoleProfile(playerId: string): Promise<RoleProfileDat
       minutesPlayed: player.minutesPlayed,
       competitiveLevel: player.competitiveLevel,
       metrics: { ...player.metrics, pressing: player.metrics.stamina, positioning: player.metrics.vision },
-      phvCategory: player.phvCategory ?? "ontme",
-      phvOffset: player.phvOffset ?? 0,
-      phvDataAvailable: !!(player.phvCategory && player.phvOffset !== undefined && player.phvOffset !== null),
+      // PHV solo si el gate único lo produjo (PlayerService ya retira el persistido
+      // no recalculable). Sin él se OMITE: nunca «ontme»/0 por defecto (inv #2).
+      ...(player.phvCategory && typeof player.phvOffset === "number"
+        ? { phvCategory: player.phvCategory, phvOffset: player.phvOffset }
+        : {}),
+      phvDataAvailable: !!(player.phvCategory && typeof player.phvOffset === "number"),
       // Inyectar resumen de análisis de video para que el agente lo use
       videoAnalysisSummary: {
         totalAnalyses: videoAnalyses.length,
