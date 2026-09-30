@@ -3,7 +3,7 @@
  * Envía email de bienvenida a un nuevo usuario.
  *
  * Endpoint protegido con serviceOnly (llamado por Supabase webhook on user.created
- * o manualmente con CRON_SECRET / ADMIN_SECRET).
+ * o manualmente con CRON_SECRET / INTERNAL_API_TOKEN). ADMIN_SECRET ya no vale (CS-01).
  *
  * Body: { email: string, name?: string }
  */

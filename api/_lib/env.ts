@@ -89,7 +89,8 @@ export const env = {
 
   // ─── Security ───
   get cronSecret() { return required("CRON_SECRET"); },
-  get adminSecret() { return optional("ADMIN_SECRET"); },
+  // ADMIN_SECRET retirado (CS-01): se filtró como VITE_ADMIN_SECRET y ningún
+  // endpoint lo acepta ya. No reintroducir un getter para él.
   get allowedOrigin() { return optional("ALLOWED_ORIGIN", "https://futuro-club.vercel.app"); },
   get turnstileSecretKey() { return optional("TURNSTILE_SECRET_KEY"); },
 

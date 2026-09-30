@@ -1,0 +1,77 @@
+name: RAG Seed (manual · borra y resiembra)
+
+# ⚠️  MANUAL A PROPÓSITO (CS-12). NO añadir triggers push / pull_request / schedule.
+#
+# Qué hace: llama a /api/rag/seed y /api/rag/seed-knowledge del despliegue indicado
+# (por defecto PRODUCCIÓN). Cada seed BORRA sus filas previas de knowledge_base
+# (drills: metadata.drillId · docs: metadata.docId) y las RE-INSERTA; si el
+# embedding falla, la fila entra sin embedding (búsqueda semántica degradada).
+#
+# Antes era el job `rag-seed` de ci.yml: corría en CADA push a main, contra prod,
+# posiblemente antes de que Vercel desplegara ese commit, y se tragaba los errores
+# (`|| echo skipped`; en el run del 17 sep el Bearer iba vacío, fallaba y quedaba
+# en verde). Ahora:
+#   - solo se lanza a mano: Actions → "RAG Seed (manual · borra y resiembra)" → Run workflow;
+#   - exige escribir la confirmación literal BORRAR-Y-RESEMBRAR;
+#   - el destino solo puede ser https://futuro-club*.vercel.app (el token no sale a otro dominio);
+#   - falla en ROJO si una siembra no devuelve success con indexed == total (scripts/seed-rag.sh).
+#
+# Token: secret de GitHub INTERNAL_API_TOKEN (preferido) o CRON_SECRET, con el MISMO
+# valor que en Vercel. Ya NO usa SUPABASE_SERVICE_ROLE_KEY (la llave maestra de la
+# base no necesita vivir en GitHub) ni ADMIN_SECRET (retirado, CS-01).
+#
+# Pendiente (NO hecho aquí, ver docs/pendientes-metricas.md): seed idempotente por
+# upsert sin DELETE y fallo si quedan filas sin embedding.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Despliegue a sembrar (solo https://futuro-club*.vercel.app)"
+        required: true
+        default: "https://futuro-club.vercel.app"
+      confirm:
+        description: "Escribe BORRAR-Y-RESEMBRAR (borra y reinserta la base de conocimiento del destino)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rag-seed
+  cancel-in-progress: false
+
+jobs:
+  rag-seed:
+    name: RAG Seed (manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check confirmation and target
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+          TARGET_URL: ${{ inputs.target_url }}
+        run: |
+          if [ "$CONFIRM" != "BORRAR-Y-RESEMBRAR" ]; then
+            echo "::error::Confirmación incorrecta: escribe exactamente BORRAR-Y-RESEMBRAR."
+            exit 1
+          fi
+          if ! printf '%s' "$TARGET_URL" | grep -Eq '^https://futuro-club[a-z0-9-]*\.vercel\.app$'; then
+            echo "::error::target_url no permitido: solo https://futuro-club*.vercel.app."
+            exit 1
+          fi
+          echo "Destino: $TARGET_URL"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Seed drills + knowledge docs (fails red on any error)
+        env:
+          INTERNAL_API_TOKEN: ${{ secrets.INTERNAL_API_TOKEN }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          TARGET_URL: ${{ inputs.target_url }}
+        run: bash scripts/seed-rag.sh "$TARGET_URL"
