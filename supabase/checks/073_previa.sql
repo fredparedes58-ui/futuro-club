@@ -154,12 +154,15 @@ filas(n, comprobacion, resultado, esperado, ok) AS (
          'informativo', NULL::boolean
   UNION ALL
   -- 3 · BLOQUEA. Nadie más usa ya el nombre del helper (CREATE OR REPLACE lo pisaría).
-  SELECT 3, 'funciones public.caller_manages_player que NO son de la 073',
+  --     La de la 076 (PR #307, mismo cuerpo solo dueño, COMMENT «076 ·») no cuenta:
+  --     la 073 la conserva. Mismo criterio que la fila 3 de la previa de la 076.
+  SELECT 3, 'funciones public.caller_manages_player que NO son de la 073 ni de la 076',
          count(*)::text, '0', count(*) = 0
     FROM pg_proc p
    WHERE p.pronamespace = 'public'::regnamespace
      AND p.proname = 'caller_manages_player'
      AND coalesce(obj_description(p.oid, 'pg_proc'), '') NOT LIKE '073 ·%'
+     AND coalesce(obj_description(p.oid, 'pg_proc'), '') NOT LIKE '076 ·%'
   UNION ALL
   -- 4 · BLOQUEA. El helper es SECURITY INVOKER: lee players con los permisos de quien consulta.
   SELECT 4, 'authenticated puede hacer SELECT en players',

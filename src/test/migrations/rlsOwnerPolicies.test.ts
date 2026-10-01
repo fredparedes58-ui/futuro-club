@@ -219,9 +219,21 @@ describe("rlsPolicyLint · supabase/migrations", () => {
     expect(f?.acl.anon).toBe(false);
     expect(f?.acl.PUBLIC).toBe(false);
     expect(f?.acl.authenticated).toBe(true);
-    expect(f?.definedIn).toBe(FILE_073);
+    // La última definición es la 073 o una posterior (la 076, PR #307, deja el mismo cuerpo solo dueño).
+    expect((f?.definedIn ?? "") >= FILE_073, f?.definedIn).toBe(true);
     // COMMENT con el prefijo «073 ·»: la fila 3 de la comprobación previa depende de él.
     expect(sql073).toMatch(/COMMENT ON FUNCTION public\.caller_manages_player\(text\) IS\s*'073 ·/);
+  });
+
+  it("073 y 076 en cualquier orden: la 073 conserva el helper de la 076 y la previa no la cuenta como ajena", () => {
+    const code = sql073.replace(/--.*$/gm, "");
+    // Sección 1: si el helper ya lleva COMMENT «076 ·», no se recrea ni se le cambia el comentario.
+    expect(code).toMatch(/obj_description\(to_regprocedure\('public\.caller_manages_player\(text\)'\), 'pg_proc'\), ''\) LIKE '076 ·%' THEN\s*RAISE NOTICE/);
+    // Fila 3 de la previa: ni la 073 ni la 076 cuentan como «otra» función con ese nombre.
+    const pre = checks["/supabase/checks/073_previa.sql"] ?? "";
+    const row3 = pre.slice(pre.indexOf("SELECT 3,"), pre.indexOf("SELECT 4,"));
+    expect(row3).toContain("NOT LIKE '073 ·%'");
+    expect(row3).toContain("NOT LIKE '076 ·%'");
   });
 
   it("el helper es SOLO DUEÑO (decisión del 30 sep 2026): ninguna referencia a tenant ni a organización", () => {

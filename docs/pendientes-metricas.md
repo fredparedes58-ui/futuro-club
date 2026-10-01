@@ -228,7 +228,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
     organización ya está rota (ver «miembros de club» abajo); (4) invariante #3: abstenerse es
     un resultado válido. Coincide con las rutas de servidor de esas tablas, que usan `ownsPlayer`
     (`api/behavioral/[action].ts:59`, `api/wellbeing/[action].ts:73,132`,
-    `api/wellbeing/_dropout-risk.ts:174`, `api/injuries/_list.ts:31`, `_save.ts:46`; VERIFICADO
+    `api/wellbeing/_dropout-risk.ts:51`, `api/injuries/_list.ts:31`, `_save.ts:46`; VERIFICADO
     por grep).
   - **Cómo se revisa:** compartir con club/academia se reactivará de forma **explícita** en una
     migración posterior, junto con el diseño del alta de cuentas (directores + aprobación de
@@ -242,10 +242,11 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 - [ ] **Compartir con club/academia (reactivar, explícito)** — pendiente del diseño del alta de
   cuentas (directores + aprobación de acceso + acceso limitado al club; diferido). Requiere una
   migración nueva con su previa; hasta entonces, solo dueño.
-- [ ] **Rama por tenant que la 073 NO cierra** — prevista para una migración posterior (la
-  **076**; hoy no existe ni fichero, ni rama, ni PR: comprobado con `git log --all` sobre
-  `supabase/migrations/07[4-6]*` y `gh pr list --search 076`, control: la misma consulta
-  encuentra el commit de la 073):
+- [ ] **Rama por tenant que la 073 NO cierra** — la cubre la **076**, en curso en el **PR #307**
+  (`fix/owner-only-player-access-076`; abierto y **sin mergear** el 1 oct 2026, comprobado con
+  `gh pr list --head` y `git branch -r`; su cabecera está leída, su contenido **no** está
+  revisado aquí). La 073 y la 076 se pueden aplicar en cualquier orden (**SIMULADO**): las dos
+  dejan el mismo helper solo dueño y la 073 conserva el de la 076 si ya está:
   (a) **DSAR de la 072**: `public.dsar_caller_manages_player` compara `players.tenant_id::text`
   con el tenant del JWT, del claim raíz o de `app_metadata` (`072:264,285`). **SIMULADO**: un
   usuario no dueño con el mismo `app_metadata.tenant_id` (texto igual) exporta los datos del
@@ -258,7 +259,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
   Ya pasaba antes de la 073.
   (c) **Servidor con `ownsPlayerOrTenant`** (VERIFICADO por grep): `api/auth/sign-consent.ts:100`,
   `api/analyses/reports.ts:73`, `api/videos/create-upload.ts:106`, `api/videos/finalize.ts:114` y
-  `ownsVideo` (`api/_lib/ownership.ts:127`).
+  `ownsVideo` (`api/_lib/ownership.ts:134`).
 - [ ] **Lectura de `player_metric_snapshots` desde el navegador — RETENIDA en la 073** —
   **VERIFICADO leyendo el código**: su único lector (`useMetricSnapshots.ts:40-47` →
   `SnapshotHistoryChart.tsx:40,93`, montado en `PlayerEvolutionPage.tsx:517`) dibuja

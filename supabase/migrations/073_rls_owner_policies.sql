@@ -24,17 +24,19 @@
 --       4. Invariante #3: no dar acceso (abstenerse) es un resultado válido.
 --     Coincide con las rutas de servidor de estas mismas tablas, que ya usan
 --     ownsPlayer (solo dueño): api/behavioral/[action].ts:59,
---     api/wellbeing/[action].ts:73,132, api/wellbeing/_dropout-risk.ts:174,
+--     api/wellbeing/[action].ts:73,132, api/wellbeing/_dropout-risk.ts:51,
 --     api/injuries/_list.ts:31, api/injuries/_save.ts:46 (invariante #7: una
 --     sola regla para BD y servidor).
 --   · CÓMO SE REVISA: compartir con club/academia se reactivará de forma
 --     EXPLÍCITA en una migración POSTERIOR, junto con el diseño del alta de
 --     cuentas (directores + aprobación de acceso) y con su propia comprobación
 --     previa. No se hace editando esta migración.
---   · LO QUE LA 073 NO CUBRE (siguen teniendo rama por tenant; previsto para una
---     migración posterior, la 076, que hoy NO existe en el repo ni en ninguna
---     rama; pendiente en docs/pendientes-metricas.md §5-D; esta migración no
---     los toca):
+--   · LO QUE LA 073 NO CUBRE (siguen teniendo rama por tenant; esta migración no
+--     los toca; pendiente en docs/pendientes-metricas.md §5-D). Los cubre la 076,
+--     en curso en el PR #307 (abierto y SIN mergear el 1 oct 2026; su cabecera
+--     está leída, su contenido NO está revisado en este PR). Orden: la 073 y la
+--     076 se pueden aplicar en cualquier orden (SIMULADO): la 076 deja el mismo
+--     helper solo dueño y la 073 conserva el de la 076 si ya está:
 --       - DSAR de la 072: public.dsar_caller_manages_player compara
 --         players.tenant_id::text con el tenant del JWT, del claim raíz o de
 --         app_metadata (072:264,285). SIMULADO (PGlite): un usuario NO dueño con
@@ -49,7 +51,7 @@
 --         ownsPlayer en el servidor).
 --       - Código de servidor que usa ownsPlayerOrTenant: api/auth/sign-consent.ts:100,
 --         api/analyses/reports.ts:73, api/videos/create-upload.ts:106,
---         api/videos/finalize.ts:114 y ownsVideo (api/_lib/ownership.ts:127).
+--         api/videos/finalize.ts:114 y ownsVideo (api/_lib/ownership.ts:134).
 --
 -- LECTURA DE player_metric_snapshots: RETENIDA (no se crea política de cliente)
 --   La única lectura de navegador (useMetricSnapshots.ts:40-47 →
@@ -196,11 +198,14 @@ BEGIN;
 
 -- =====================================================================
 -- 1) Helper: ¿el llamador (JWT) es el DUEÑO de este jugador?
---    Espejo en SQL de ownsPlayer (api/_lib/ownership.ts:44). Si cambia la
+--    Espejo en SQL de ownsPlayer (api/_lib/ownership.ts:53). Si cambia la
 --    regla, cambiar ambas (invariante #7) con una migración nueva.
 --    SECURITY INVOKER (ver DECISIÓN TÉCNICA). search_path fijado y nombres
 --    cualificados. Un solo cuerpo: no depende de players.tenant_id ni de
 --    public.tenant_id().
+--    Si la 076 (PR #307) ya instaló este helper (COMMENT «076 ·», mismo cuerpo
+--    solo dueño), se conserva tal cual: la 073 no lo pisa. La guarda (sección 3)
+--    vuelve a comprobar que es solo dueño e INVOKER en cualquier caso.
 -- =====================================================================
 DO $do$
 BEGIN
@@ -209,29 +214,34 @@ BEGIN
     RETURN;
   END IF;
 
-  CREATE OR REPLACE FUNCTION public.caller_manages_player(p_player_id text)
-  RETURNS boolean
-  LANGUAGE sql
-  STABLE
-  SECURITY INVOKER
-  SET search_path = public, pg_temp
-  AS $fn$
-    SELECT EXISTS (
-      SELECT 1
-        FROM public.players p
-       WHERE p.id::text = p_player_id
-         AND p.user_id IS NOT NULL
-         AND p.user_id = (SELECT auth.uid())
-    )
-  $fn$;
+  IF to_regprocedure('public.caller_manages_player(text)') IS NOT NULL
+     AND coalesce(obj_description(to_regprocedure('public.caller_manages_player(text)'), 'pg_proc'), '') LIKE '076 ·%' THEN
+    RAISE NOTICE '073: public.caller_manages_player ya es el de la 076 (solo dueño): se conserva';
+  ELSE
+    CREATE OR REPLACE FUNCTION public.caller_manages_player(p_player_id text)
+    RETURNS boolean
+    LANGUAGE sql
+    STABLE
+    SECURITY INVOKER
+    SET search_path = public, pg_temp
+    AS $fn$
+      SELECT EXISTS (
+        SELECT 1
+          FROM public.players p
+         WHERE p.id::text = p_player_id
+           AND p.user_id IS NOT NULL
+           AND p.user_id = (SELECT auth.uid())
+      )
+    $fn$;
+
+    COMMENT ON FUNCTION public.caller_manages_player(text) IS
+      '073 · ¿El llamador (JWT) es el DUEÑO de este jugador? players.user_id = auth.uid(). Solo dueño, sin rama por tenant ni por organización (decisión del 30 sep 2026, ver cabecera de la 073). SECURITY INVOKER: respeta la RLS de players. Espejo de ownsPlayer (api/_lib/ownership.ts).';
+  END IF;
 
   -- Los default privileges de Supabase dan EXECUTE a anon al crear la función.
   -- Las políticas son TO authenticated: anon nunca las evalúa ni necesita EXECUTE.
   REVOKE ALL ON FUNCTION public.caller_manages_player(text) FROM PUBLIC, anon;
   GRANT EXECUTE ON FUNCTION public.caller_manages_player(text) TO authenticated, service_role;
-
-  COMMENT ON FUNCTION public.caller_manages_player(text) IS
-    '073 · ¿El llamador (JWT) es el DUEÑO de este jugador? players.user_id = auth.uid(). Solo dueño, sin rama por tenant ni por organización (decisión del 30 sep 2026, ver cabecera de la 073). SECURITY INVOKER: respeta la RLS de players. Espejo de ownsPlayer (api/_lib/ownership.ts).';
 END $do$;
 
 -- =====================================================================
