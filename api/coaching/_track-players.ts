@@ -10,10 +10,18 @@
  *
  * If either env var is missing the endpoint returns 503 so the client
  * can gracefully fall back to the mock pipeline (zero downtime).
+ *
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): las
+ * llamadas con JWT de USUARIO traen la declaración del entrenador (`attestation`), que se
+ * guarda (video_ref + videoUrl) DESPUÉS de los 503/400 de siempre y ANTES del tripwire de
+ * gasto y de Modal. Un bloqueo es 400/403/500, NUNCA 503 (el cliente trata 503 como
+ * «inferencia apagada → mock»). Las llamadas de servicio no cambian. El contrato con
+ * Modal (payload, Bearer MODAL_API_KEY) no cambia.
  */
 
 import { withHandler } from "../_lib/withHandler";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
 
 export const config = {
   runtime: "edge",
@@ -25,6 +33,8 @@ interface TrackingRequest {
   classes?: number[];
   /** Duración del vídeo en segundos (el cliente la conoce del archivo). */
   durationSec?: number;
+  /** Declaración del entrenador `{ accepted: true, version }` (llamadas de usuario). */
+  attestation?: unknown;
 }
 
 /**
@@ -81,7 +91,7 @@ const CORS_HEADERS: Record<string, string> = {
 // Antes era un proxy público → cualquiera podía disparar GPU de pago en Modal.
 export default withHandler(
   { method: ["POST"], requireAuth: true, allowServiceToken: true },
-  async ({ body: ctxBody }): Promise<Response> => {
+  async ({ body: ctxBody, userId, tenantId, isServiceCall, ip }): Promise<Response> => {
   const modalUrl = process.env.MODAL_TRACK_URL;
   const modalKey = process.env.MODAL_API_KEY;
   if (!modalUrl || !modalKey) {
@@ -98,6 +108,19 @@ export default withHandler(
   const body = (ctxBody ?? {}) as TrackingRequest;
   if (!body.videoUrl) {
     return json({ error: "missing_fields", required: ["videoUrl"] }, 400);
+  }
+
+  // Consentimiento de las llamadas de USUARIO: tras los 503/400, antes de gastar.
+  if (!isServiceCall) {
+    const consent = await enforceClipConsent({
+      attestation: body.attestation,
+      resource: { type: "video_ref", id: String(body.videoUrl) },
+      playerId: null, // el body no identifica jugador: vídeo de equipo
+      actor: { userId, tenantId, ip },
+      endpoint: "coaching/track-players",
+      scope: "team",
+    });
+    if (!consent.allowed) return clipConsentErrorResponse(consent);
   }
 
   // Tripwire de presupuesto (054): GPU Modal es la llamada más cara → corta si

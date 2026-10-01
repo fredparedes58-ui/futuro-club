@@ -22,6 +22,15 @@ const enqueueMock = vi.fn();
 vi.mock("../../_lib/enqueueAnalysis", () => ({
   enqueueAnalysis: (...args: unknown[]) => enqueueMock(...args),
 }));
+// Gate de consentimiento (sus tests: api/_lib/__tests__/analysisConsentGate.test.ts).
+// Por defecto permite; los tests de consentimiento lo fuerzan a bloquear.
+const consentMock = vi.fn();
+vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
+  ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
+  enforceClipConsent: (...args: unknown[]) => consentMock(...args),
+}));
+const ALLOWED = { allowed: true, attestation: "recorded", pendingAttestation: null, minor: null };
+const ATTESTATION = { accepted: true, version: "2026-09-28.v1" };
 
 const row: { current: Record<string, unknown> } = { current: {} };
 vi.mock("@supabase/supabase-js", () => ({
@@ -62,6 +71,8 @@ function post(body: Record<string, unknown>) {
 
 describe("finalize · gate de clips cortos", () => {
   beforeEach(() => {
+    consentMock.mockReset();
+    consentMock.mockResolvedValue(ALLOWED);
     enqueueMock.mockReset();
     enqueueMock.mockResolvedValue({ status: "queued", analysisId: "an-1", triggered: false });
     row.current = { id: "g-1", bunny_video_id: "g-1", player_id: "p1", tenant_id: "t1", user_id: "user-1", duration_sec: null };
@@ -110,5 +121,53 @@ describe("finalize · gate de clips cortos", () => {
     expect(res.status).toBe(200);
     expect((await res.json()).data.ready).toBe(false);
     expect(enqueueMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("finalize · consentimiento (decisión del owner, 30 sep)", () => {
+  beforeEach(() => {
+    consentMock.mockReset();
+    consentMock.mockResolvedValue(ALLOWED);
+    enqueueMock.mockReset();
+    enqueueMock.mockResolvedValue({ status: "queued", analysisId: "an-1", triggered: false });
+    row.current = { id: "g-1", bunny_video_id: "g-1", player_id: "p1", tenant_id: "t1", user_id: "user-1", duration_sec: null };
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("pasa al gate la declaración del body, la fila del vídeo, el jugador y el usuario del JWT (nunca del body)", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => bunnyVideo(240)));
+    await handler(post({ videoId: "g-1", bunnyVideoId: "g-1", playerId: "p1", attestation: ATTESTATION, userId: "intruso" }));
+    expect(consentMock).toHaveBeenCalledTimes(1);
+    expect(consentMock.mock.calls[0][0]).toMatchObject({
+      attestation: ATTESTATION,
+      resource: { type: "videos", id: "g-1", bunnyVideoId: "g-1" },
+      playerId: "p1",
+      actor: { userId: "user-1", tenantId: "t1" },
+      endpoint: "videos/finalize",
+    });
+  });
+
+  it.each([
+    ["attestation_required", 400],
+    ["parental_consent_required", 403],
+    ["consent_check_failed", 500],
+  ] as const)("gate bloquea (%s) → %i con el código, SIN consultar Bunny ni encolar", async (code, status) => {
+    const fetchMock = vi.fn(async () => bunnyVideo(240));
+    vi.stubGlobal("fetch", fetchMock);
+    consentMock.mockResolvedValue({ allowed: false, code, status, gate_reason: "motivo traducido", minor: null });
+    const res = await handler(post({ videoId: "g-1", bunnyVideoId: "g-1", playerId: "p1" }));
+    expect(res.status).toBe(status);
+    const json = await res.json();
+    expect(json.errorDetail).toMatchObject({ code, gate_reason: "motivo traducido", attestationVersion: "2026-09-28.v1" });
+    expect(fetchMock).not.toHaveBeenCalled(); // ni Bunny
+    expect(enqueueMock).not.toHaveBeenCalled();
+  });
+
+  it("enqueueAnalysis bloqueado (defensa en profundidad) → error con su código, no 'ready'", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => bunnyVideo(240)));
+    enqueueMock.mockResolvedValue({ status: "blocked", code: "parental_consent_required", httpStatus: 403, gate_reason: "menor" });
+    const res = await handler(post({ videoId: "g-1", bunnyVideoId: "g-1", playerId: "p1", attestation: ATTESTATION }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
   });
 });

@@ -29,6 +29,8 @@ import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 import { NO_VISUAL_INPUT, hasGeminiObservations, hasVisualInput } from "../../src/lib/shared/teamVisualInput";
 import { withholdIndividualData } from "../../src/lib/shared/teamReportIdentity";
+import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
+import { errorResponse } from "../_lib/apiResponse";
 import {
   normalizeLocale,
   languageDirective,
@@ -40,7 +42,30 @@ export const config = { runtime: "edge" };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ rawBody, userId }) => {
+  async ({ rawBody, userId, tenantId, ip }) => {
+    // ── Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate) ──
+    // ANTES del stream y de la cuota: los fotogramas/observaciones vienen del navegador
+    // (vídeo de equipo, sin fila `videos` que ligar) → la declaración viene en ESTA
+    // petición y se guarda (video_ref + id del vídeo del cliente). Por jugador: no aplica.
+    let preBody: { attestation?: unknown; videoId?: unknown; locale?: unknown; teamContext?: { locale?: unknown } };
+    try {
+      const parsed: unknown = JSON.parse(rawBody ?? "");
+      if (!parsed || typeof parsed !== "object") throw new Error("body no es un objeto JSON");
+      preBody = parsed as typeof preBody;
+    } catch {
+      return errorResponse("Body JSON inválido", 400, "PARSE_ERROR");
+    }
+    const consent = await enforceClipConsent({
+      attestation: preBody.attestation,
+      resource: { type: "video_ref", id: typeof preBody.videoId === "string" && preBody.videoId ? preBody.videoId : null },
+      playerId: null,
+      actor: { userId, tenantId, ip },
+      endpoint: "agents/team-intelligence",
+      scope: "team",
+      locale: preBody.locale ?? preBody.teamContext?.locale,
+    });
+    if (!consent.allowed) return clipConsentErrorResponse(consent);
+
     // ── Usage quota check (before stream) ──────────────────────
     if (userId) {
       const usage = await checkUsageQuota(userId);

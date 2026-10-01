@@ -28,6 +28,15 @@ vi.mock("../../_lib/budgetGuard", () => ({
   ),
 }));
 
+// Gate de consentimiento (llamadas de usuario): aquí se prueba la mecánica enqueue/spawn
+// con la secuencia exacta de fetchMock, así que permite sin tocar la red. El gate REAL
+// contra esta misma ruta (y el spawn a Modal byte a byte para un vídeo declarado) está en
+// api/coaching/__tests__/track-async-consent.test.ts.
+vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
+  ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
+  enforceClipConsent: vi.fn(async () => ({ allowed: true, attestation: "recorded", pendingAttestation: null, minor: null })),
+}));
+
 // Env de módulo (SUPABASE_*) se lee vía env.ts en cada llamada → fijar antes.
 process.env.VITE_SUPABASE_URL = "https://sb.test";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";

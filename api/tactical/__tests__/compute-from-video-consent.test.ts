@@ -1,0 +1,110 @@
+/**
+ * Tests · POST /api/tactical/compute-from-video con el gate de consentimiento REAL
+ * (decisión del owner, 30 sep). SOLO las llamadas con JWT de usuario traen y guardan la
+ * declaración; la ruta de SERVICIO (cadena de modal-callback) NO cambia: ni se consulta
+ * el gate ni cambia la petición a Modal.
+ *
+ * Run: npx vitest run --config vitest.api.config.ts api/tactical/__tests__/compute-from-video-consent.test.ts
+ */
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
+import { ATTESTATION, consentFetch, emptyConsentDb, type ConsentDbState } from "../../_lib/__tests__/consentFetchMock";
+
+vi.mock("../../_lib/rateLimit", () => ({
+  checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 9, limit: 10, resetAt: Date.now() + 60000 }),
+  getClientIP: vi.fn().mockReturnValue("203.0.113.7"),
+  rateLimitHeaders: vi.fn().mockReturnValue({}),
+}));
+vi.mock("../../_lib/auth", () => ({
+  verifyAuth: vi.fn().mockResolvedValue({ userId: "11111111-1111-4111-8111-111111111111", email: null, tenantId: "22222222-2222-4222-8222-222222222222", error: null }),
+}));
+vi.mock("../../_lib/budgetGuard", () => ({
+  isOverBudget: vi.fn().mockResolvedValue(false),
+  recordSpendUsd: vi.fn().mockResolvedValue(undefined),
+  budgetExceededResponse: vi.fn(),
+}));
+vi.mock("../../_lib/ownership", async (orig) => ({
+  ...(await orig<typeof import("../../_lib/ownership")>()),
+  ownsMatch: vi.fn(async () => true),
+}));
+
+const MODAL_URL = "https://modal.test/track";
+const VIDEO_URL = "https://cdn.test/g-1/play_720p.mp4";
+const MODAL_OK = {
+  status: "ok", duration_sec: 10, fps_source: 25, sample_fps: 5,
+  players: [{ track_id: 1, timestamp_ms: 0, bbox: [0, 0, 10, 10], confidence: 0.9 }],
+  ball: [],
+};
+
+let handler: (req: Request) => Promise<Response>;
+let db: ConsentDbState;
+let mock: ReturnType<typeof consentFetch>;
+let modalCalls: Array<{ url: string; init: RequestInit }>;
+
+beforeAll(async () => {
+  // El módulo lee MODAL_TRACK_URL / MODAL_API_KEY / INTERNAL_API_TOKEN al cargarse.
+  process.env.MODAL_TRACK_URL = MODAL_URL;
+  process.env.MODAL_API_KEY = "modal-key";
+  process.env.INTERNAL_API_TOKEN = "svc-token";
+  process.env.VITAS_PUBLIC_URL = "https://vitas.test";
+  handler = (await import("../_compute-from-video")).default;
+});
+
+beforeEach(() => {
+  process.env.SUPABASE_URL = "https://sb.test";
+  process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
+  db = emptyConsentDb();
+  modalCalls = [];
+  mock = consentFetch(db, {
+    fallback: async (url, init) => {
+      if (url === MODAL_URL) {
+        modalCalls.push({ url, init });
+        return new Response(JSON.stringify(MODAL_OK), { status: 200 });
+      }
+      if (url === "https://vitas.test/api/tactical/compute-heatmap") {
+        return new Response(JSON.stringify({ data: { phasesDetected: 1, heatmapsComputed: 1, playerCount: 1 } }), { status: 200 });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    },
+  });
+  vi.stubGlobal("fetch", mock.fn);
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  delete process.env.SUPABASE_URL;
+});
+
+const post = (body: Record<string, unknown>, auth = "Bearer user-jwt") =>
+  handler(
+    new Request("https://x.test/api/tactical/compute-from-video", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: auth },
+      body: JSON.stringify({ matchId: "m-1", videoUrl: VIDEO_URL, ...body }),
+    }),
+  );
+
+const EXPECTED_MODAL_BODY = JSON.stringify({ video_url: VIDEO_URL, sample_fps: 5, classes: [0, 32] });
+
+describe("compute-from-video · consentimiento", () => {
+  it("usuario sin declaración → 400 attestation_required; Modal no se llama", async () => {
+    const res = await post({});
+    expect(res.status).toBe(400);
+    expect((await res.json()).errorDetail.code).toBe("attestation_required");
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("usuario declarado → se guarda y Modal recibe el body de siempre", async () => {
+    const res = await post({ attestation: ATTESTATION });
+    expect(res.status).toBe(200);
+    expect(mock.inserts[0]).toMatchObject({ resource_type: "video_ref", resource_id: VIDEO_URL, metadata: { endpoint: "tactical/compute-from-video" } });
+    expect(modalCalls[0].init.body).toBe(EXPECTED_MODAL_BODY);
+  });
+
+  it("SERVICIO (cadena de modal-callback) → sin gate y misma petición a Modal", async () => {
+    const res = await post({}, "Bearer svc-token");
+    expect(res.status).toBe(200);
+    expect(mock.calls.some((c) => c.url.includes("/rest/v1/"))).toBe(false);
+    expect(modalCalls).toHaveLength(1);
+    expect(modalCalls[0].init.body).toBe(EXPECTED_MODAL_BODY);
+    expect((modalCalls[0].init.headers as Record<string, string>).Authorization).toBe("Bearer modal-key");
+  });
+});

@@ -7,6 +7,12 @@
  * Retorna JSON con formación, posesión y fases de juego — SOLO nivel de equipo:
  * sin dorsales ni lista por jugador (identidad.md: no hay identificación por
  * dorsal validada; son menores). Si el modelo aún los emite, se retiran.
+ *
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): el fichero
+ * viene del navegador (no hay fila `videos` que ligar), así que CADA petición trae la
+ * declaración del entrenador (`attestation`) y se guarda (resource_type `video_ref`, id del
+ * vídeo del cliente) ANTES de gastar. Vídeo de equipo: la comprobación por jugador no
+ * aplica (decisión del owner).
  */
 
 import { withHandler } from "../_lib/withHandler";
@@ -15,18 +21,22 @@ import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/bu
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
 import { withholdIndividualData } from "../../src/lib/shared/teamReportIdentity";
+import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
 export default withHandler(
   { requireAuth: true, rawBody: true },
-  async ({ rawBody }) => {
+  async ({ rawBody, userId, tenantId, ip }) => {
     try {
       // withHandler ya leyó el cuerpo (rawBody: true) → usar ctx.rawBody, nunca req.json().
       let body: {
         videoBase64?: string;
         mediaType?: string;
         locale?: unknown;
+        /** Id del vídeo en el cliente (queda en la fila de auditoría de la declaración). */
+        videoId?: unknown;
+        attestation?: unknown;
         teamContext?: {
           teamColor?: string;
           opponentColor?: string;
@@ -53,6 +63,18 @@ export default withHandler(
       if (!apiKey) {
         return errorResponse("GEMINI_API_KEY no configurada", 503, "GEMINI_NOT_CONFIGURED");
       }
+
+      // Consentimiento ANTES de gastar: declaración de ESTA petición, guardada.
+      const consent = await enforceClipConsent({
+        attestation: body.attestation,
+        resource: { type: "video_ref", id: typeof body.videoId === "string" && body.videoId ? body.videoId : null },
+        playerId: null, // vídeo de equipo: la comprobación por jugador no aplica
+        actor: { userId, tenantId, ip },
+        endpoint: "agents/team-observation",
+        scope: "team",
+        locale,
+      });
+      if (!consent.allowed) return clipConsentErrorResponse(consent);
 
       // Tripwire de presupuesto (054).
       if (await isOverBudget()) return budgetExceededResponse();

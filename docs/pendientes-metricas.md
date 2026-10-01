@@ -192,9 +192,47 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 - [ ] **C8 · Partido completo por vídeo — activación (NO antes de validar)**: tras mergear PR-A/B/C, aplicar la migración **067** en Supabase; en Vercel `MODAL_MATCH_START_URL`, `GLOBAL_MONTHLY_BUDGET_USD=20`, clave Gemini de pago en `GEMINI_API_KEY`; Modal con tarjeta + límite de gasto $10/mes + `VITAS_MATCH_STEP_URL` en el secret `vitas-api-key`; rotar C3 antes de footage real; spike (a)–(i) en Modal con resultados literales aquí. **`MATCH_VIDEO_ENABLED=true` SOLO** cuando `scripts/validate-match-observation.mjs` apruebe varios partidos anotados (GT10) y el owner lo decida. En `vitas-demo`, sin definir.
 
+- [ ] **C9 · Gate de consentimiento de clips — comprobación ANTES de desplegar** (PR `feat/clip-consent-gate`, ver §D): ejecutar en el SQL Editor `supabase/checks/clip_consent_previa.sql` (solo lectura, una fila, probada en PGlite) y pasar el resultado. Sin `public.gdpr_audit_log` (migración 003) el gate falla cerrado: **ninguna** subida ni análisis de clip funcionaría. Que la 003 esté aplicada en producción **no está verificado** (la 072 la toca con `to_regclass`, así que aplicar la 072 no lo prueba).
+
 > **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
 > (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
 > Solo lectura, nunca imprime la key ni PII. Probado en prod: **8/8 usuarios con tenant_id**.
+
+### D) CONSENTIMIENTO PARA ANALIZAR CLIPS (decisión del owner, 30 sep · PR `feat/clip-consent-gate`)
+
+**Regla** (única, `src/lib/shared/videoConsent.ts`; servidor `api/_lib/analysisConsentGate.ts`, inv #7):
+(1) SIEMPRE la declaración versionada del entrenador (`2026-09-28.v1`, mismo texto que el job de
+partido completo), guardada con el vídeo: fila append-only en `public.gdpr_audit_log`
+(`action='video_analysis_attested'`, `user_id` = JWT, `created_at` = reloj de la base,
+`metadata.version`), escrita solo con service_role — **sin migración nueva** (las columnas jsonb
+de `videos` las sobrescribe el navegador: `data`, `analysis_result`; `target_player_bbox` es
+identidad). (2) ADEMÁS, si el jugador del vídeo es menor de 14 **conocido** (`players.birth_date`
+y `EXTRACT(YEAR FROM AGE(NOW(), birth_date)) < 14`, regla de la 036; paridad del espejo TS
+comprobada en PGlite: 23 016 casos, 0 discrepancias, control positivo 19), consentimiento
+parental de **una** fuente: `public.parental_consents` con `email_verified = true AND
+withdrawn_at IS NULL` (lo firma el tutor y lo confirma desde su email). Fecha desconocida ⇒
+basta la declaración (no se infiere la edad). Vídeo de equipo ⇒ la comprobación por jugador no
+aplica. Falla cerrado (500), nunca 503.
+
+**Puntos de control:** `upload/video-init` y `videos/create-upload` (antes de crear nada en
+Bunny), `videos/finalize`, `_lib/enqueueAnalysis` (webhook de Bunny → 200 `{ skipped }`),
+`crons/process-analyses-queue` (defensa en profundidad → `failed` con motivo), llamadas de usuario
+a `agents/video-observation` (vídeo propio + URL de ese vídeo), `team-observation`,
+`team-intelligence`, `pipeline/start`, `analyses/generate-reports`, llamadas de usuario a
+`coaching/track-players|track-async` y `tactical/compute-from-video`, `live/aggregate` (omite solo
+la observación del vídeo y lo declara). UI: casilla obligatoria (`ClipAttestationField`) en
+VideoUpload, VideoUploader, VitasLab (también para re-analizar vídeos antiguos) y análisis de
+equipo; nunca se marca sola. Modal sin cambios (test de spawn byte a byte + callback HMAC).
+
+- [ ] **Flujo de consentimiento del tutor sin montar**: `src/components/legal/ParentalConsentForm.tsx` (único llamador de `api/auth/sign-consent`) no se monta en ninguna página. Hasta montarlo, **todo jugador con fecha de nacimiento y menor de 14 queda sin análisis de vídeo** (correcto, pero bloqueado ≠ resuelto). Cuántos hay en producción: `minors_blocked_without_consent` de `supabase/checks/clip_consent_previa.sql` (dato verificado del 29-30 sep: los 3 jugadores de prod no tienen fecha ⇒ hoy 0). Requiere además Resend (C7) y que el jugador tenga `tenant_id` (`parental_consents.tenant_id` es NOT NULL).
+- [ ] **Consentimiento falsificable por UPDATE** (simulación PGlite con todas las migraciones del repo, NO la base real): un `authenticated` con claim `tenant_id` puede poner `email_verified = true` en un consentimiento PENDIENTE de su tenant (la política `consent_tenant_isolation` es `FOR ALL`; el INSERT directo sí falla, 42501 en `log_gdpr_action` tras la 072). Hoy no hay filas pendientes creadas por la app (formulario sin montar), pero **antes de montar el flujo** hace falta una migración que revoque INSERT/UPDATE/DELETE de `parental_consents` a `anon, authenticated` (todos los escritores usan service_role). No escrita: decisión del owner.
+- [ ] **El orquestador lee el consentimiento sin `withdrawn_at IS NULL`** (`api/agents/_pipeline-orchestrator.ts`: flywheel `labeled_datasets` y email al tutor) — difiere del predicado canónico (inv #7). No se tocó en este PR (cadena del callback de Modal); hoy no cambia nada porque ningún código escribe `withdrawn_at`.
+- [ ] **El tracking del navegador no se puede impedir desde el servidor** (onnxruntime-web / MediaPipe en VitasLab): la UI exige la declaración antes de la pasada local; el servidor exige declaración + consentimiento parental cuando llegan los resultados (`generate-reports`).
+- [ ] **Análisis pendientes de ANTES del gate**: el cron los cierra `failed` con «falta la declaración…»; el entrenador los relanza desde VitasLab marcando la casilla. Vídeos de partido en directo antiguos (`live_matches.video_url`) sin declaración guardada: el resumen sale solo con eventos y lo dice (no hay forma de declararlos después).
+- [ ] **Sin gate propio** (documentado): `crons/rescue-tracking-jobs` (reintenta jobs ya admitidos; los encolados antes del despliegue no pasaron por el gate), `pipeline/gemini-analyze` (serviceOnly; su único llamador, el cron, ya lo comprueba), `videos/_bunny-create` (balón parado: no crea fila ni análisis), `roboflow/analyze` (sin llamador).
+- [ ] **Partido completo**: la subida por VideoUpload pide la declaración y el inicio del job (`/api/match/start`) la vuelve a pedir — dos casillas en ese flujo (el job mantiene su propia declaración, sin cambios).
+- [ ] **`pipeline/start` (SoloDrill)** sigue rellenando edad 15 / «CM» / nota 68 por defecto (inv #1/#2) — fuera de este PR. (Sí se añadió en este PR la comprobación de propiedad del jugador: el gate lee su fecha de nacimiento.)
+- [ ] **Frontera horaria**: la regla compara en UTC. INFERIDO (no verificado): `NOW()` de la base de producción corre en UTC; si no, el día del 14.º cumpleaños podría diferir unas horas.
 
 ---
 

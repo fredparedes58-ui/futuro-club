@@ -268,6 +268,11 @@ function ConsentFormModal({ player, onClose, onSubmit, submitting }: ConsentForm
             <p className="text-[9px] text-muted-foreground mt-1">
               {t("parentalConsentPage.form.revocationNotice")}
             </p>
+            {/* El gate de análisis de clips solo acepta el consentimiento firmado por el tutor
+                y confirmado desde su email (public.parental_consents), no esta anotación. */}
+            <p data-testid="consent-form-clip-gate-notice" className="text-[9px] text-foreground font-semibold mt-1">
+              {t("parentalConsentPage.form.clipGateNotice")}
+            </p>
           </div>
 
           <div className="flex gap-2">

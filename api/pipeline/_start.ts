@@ -3,13 +3,30 @@
  * POST /api/pipeline/start
  *
  * Llama a la API de Anthropic directamente con fetch() — SIN SDK.
- * Body: { videoId, playerId, analysisMode? }
+ * Body: { videoId, playerId, analysisMode?, attestation }
+ *
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): ANTES de
+ * leer nada del jugador o de Bunny y de llamar a Claude:
+ *   - si se manda `playerId`, el jugador tiene que ser del usuario (el gate lee su fecha
+ *     de nacimiento; sin este check su resultado revelaría la edad de un menor ajeno);
+ *   - `videoId` que es una fila `videos` del usuario (SoloDrill sube por VideoUpload, que
+ *     guarda la declaración con el GUID) → cuenta la declaración guardada; si no es una
+ *     fila, la declaración tiene que venir en ESTA petición (se guarda como video_ref);
+ *   - jugador menor de 14 conocido → además su consentimiento parental verificado.
+ * PENDIENTE (fuera de este cambio, ver docs/pendientes-metricas.md): este endpoint rellena
+ * edad/posición/nota por defecto (invariantes #1/#2).
  */
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
-import { successResponse } from "../_lib/apiResponse";
+import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
+import {
+  enforceClipConsent,
+  clipConsentErrorResponse,
+  consentResourceForClientVideoId,
+} from "../_lib/analysisConsentGate";
+import { ownsPlayerOrTenant, ownsVideo } from "../_lib/ownership";
 
 export const config = { runtime: "edge" };
 
@@ -17,6 +34,8 @@ const PipelineSchema = z.object({
   videoId: z.string().min(1, "videoId es requerido"),
   playerId: z.string().optional(),
   analysisMode: z.string().optional(),
+  /** Declaración del entrenador `{ accepted: true, version }` (se valida en el gate). */
+  attestation: z.unknown().optional(),
 });
 
 interface BunnyVideoInfo {
@@ -28,8 +47,24 @@ interface BunnyVideoInfo {
 
 export default withHandler(
   { schema: PipelineSchema, requireAuth: true, maxRequests: 20 },
-  async ({ body }) => {
+  async ({ body, userId, tenantId, ip }) => {
     const { videoId, playerId, analysisMode } = body;
+
+    const actor = { userId, tenantId, ip };
+    if (playerId && !(await ownsPlayerOrTenant(playerId, userId, tenantId))) {
+      return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
+    }
+    const target = await consentResourceForClientVideoId({ videoId, actor, ownsVideo });
+    if (!target.ok) return target.response;
+    const consent = await enforceClipConsent({
+      attestation: body.attestation,
+      resource: target.resource,
+      playerId: playerId ?? null,
+      actor,
+      endpoint: "pipeline/start",
+      scope: playerId ? "player" : "team",
+    });
+    if (!consent.allowed) return clipConsentErrorResponse(consent);
 
     const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
     const bunnyApiKey    = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;

@@ -14,6 +14,11 @@
  * Endpoint diseñado para ser disparado:
  *   - Manualmente por el coach desde la UI ("Recomputar heatmap")
  *   - Automáticamente desde modal-callback cuando se completa un análisis
+ *
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): SOLO las
+ * llamadas con JWT de USUARIO traen y guardan la declaración del entrenador
+ * (`attestation`), antes del tripwire de gasto y de Modal. La ruta de SERVICIO (cadena de
+ * modal-callback) NO cambia: su análisis de origen ya pasó por el gate.
  */
 
 import { z } from "zod";
@@ -21,6 +26,7 @@ import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { ownsMatch } from "../_lib/ownership";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
 
 export const config = { runtime: "edge" };
 
@@ -42,6 +48,8 @@ const ComputeFromVideoSchema = z.object({
   frameHeight: z.number().optional(),
   /** FPS at which Modal will sample the video (default 5). */
   sampleFps: z.number().int().min(1).max(15).optional(),
+  /** Declaración del entrenador `{ accepted: true, version }` (llamadas de usuario). */
+  attestation: z.unknown().optional(),
 });
 
 interface ModalPlayer {
@@ -153,7 +161,7 @@ export default withHandler(
     allowServiceToken: true,
     maxRequests: 10,
   },
-  async ({ body, tenantId, isServiceCall }) => {
+  async ({ body, userId, tenantId, isServiceCall, ip }) => {
     const input = body as z.infer<typeof ComputeFromVideoSchema>;
 
     // Autorización a nivel de objeto: dispara Modal ($) y sobrescribe heatmaps de
@@ -170,6 +178,19 @@ export default withHandler(
         "Modal no configurado (MODAL_TRACK_URL / MODAL_API_KEY missing)",
         503,
       );
+    }
+
+    // Consentimiento de las llamadas de USUARIO (la ruta de servicio no cambia).
+    if (!isServiceCall) {
+      const consent = await enforceClipConsent({
+        attestation: input.attestation,
+        resource: { type: "video_ref", id: input.videoId ?? input.videoUrl },
+        playerId: null, // heatmap de equipo
+        actor: { userId, tenantId, ip },
+        endpoint: "tactical/compute-from-video",
+        scope: "team",
+      });
+      if (!consent.allowed) return clipConsentErrorResponse(consent);
     }
 
     // Tripwire de presupuesto (054): dispara Modal ($). Corta si el mes superó el
