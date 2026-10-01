@@ -22,22 +22,18 @@ const IngestDocSchema = z.object({
 export type IngestRequest = z.infer<typeof IngestDocSchema>;
 
 export default withHandler(
-  { optionalAuth: true, maxRequests: 20, rawBody: true },
-  async ({ req, userId, rawBody: rawBodyStr }) => {
-    // Allow authenticated users OR service role (for seed endpoints)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const cronSecret = process.env.CRON_SECRET;
-    const adminSecret = process.env.ADMIN_SECRET;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const isService =
-      (cronSecret && token === cronSecret) ||
-      (adminSecret && token === adminSecret) ||
-      (serviceKey && token === serviceKey);
-
-    if (!userId && !isService) {
+  // Usuario autenticado O token de servicio (endpoints de seed). El token se
+  // valida en withHandler (hasValidServiceToken: tiempo constante,
+  // CRON_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY). Antes se
+  // comparaba aquí con `===` y se aceptaba también ADMIN_SECRET (filtrado en
+  // bundles antiguos como VITE_ADMIN_SECRET) → retirado (CS-01).
+  { optionalAuth: true, allowServiceToken: true, maxRequests: 20, rawBody: true },
+  async ({ req, userId, isServiceCall, rawBody: rawBodyStr }) => {
+    if (!userId && !isServiceCall) {
       return errorResponse("No autenticado", 401, "UNAUTHORIZED");
     }
+    // Se reenvía tal cual a /api/rag/embed (misma identidad: usuario o servicio).
+    const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
     // Solo service_role (knowledge_base solo admite escrituras de service_role por
     // RLS, 002). Sin fallback a la clave anon: fail-closed con 503.
