@@ -281,13 +281,10 @@ describe("checkPlayerReportQuality", () => {
 
 describe("checkTeamReportQuality", () => {
   function makeTeamReport(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    // Team level only (identidad.md): no "jugadores" rows.
     return {
       resumenEjecutivo: "Buen equipo",
       formacion: "4-3-3",
-      jugadores: [
-        { nombre: "Player 1", velocidadMaxKmh: 28 },
-        { nombre: "Player 2", velocidadMaxKmh: 30 },
-      ],
       evaluacionGeneral: { nota: 7 },
       posesion: { porcentaje: 55 },
       confianza: 0.8,
@@ -300,12 +297,18 @@ describe("checkTeamReportQuality", () => {
     expect(result.valid).toBe(true);
   });
 
-  it("flags unrealistic player speed > 38 km/h", () => {
+  it("does not require per-player rows, so a retry never asks the model for them (identidad.md)", () => {
+    const result = checkTeamReportQuality(makeTeamReport());
+    expect(result.issues.some(i => i.includes("jugadores"))).toBe(false);
+    expect(result.feedbackForAgent ?? "").not.toMatch(/jugador/i);
+  });
+
+  it("does not validate (nor mention) per-player rows a model may still emit", () => {
     const result = checkTeamReportQuality(makeTeamReport({
-      jugadores: [{ nombre: "Flash", velocidadMaxKmh: 42 }],
+      jugadores: [{ dorsalEstimado: "7", velocidadMaxKmh: 42 }],
     }));
-    expect(result.valid).toBe(false);
-    expect(result.issues.some(i => i.includes("velocidad"))).toBe(true);
+    expect(result.valid).toBe(true);
+    expect(result.issues.join(" ")).not.toMatch(/jugador|dorsal/i);
   });
 
   it("flags unrealistic possession", () => {

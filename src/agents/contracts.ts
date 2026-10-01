@@ -420,30 +420,15 @@ export type VideoIntelligenceOutput = z.infer<typeof VideoIntelligenceOutputSche
 // Observación táctica del equipo completo
 // ─────────────────────────────────────────
 
+// Team level only (identidad.md): no per-player list, no dorsal. The old
+// `jugadoresObservados[]` (LLM-guessed dorsalEstimado + per-player counts) was
+// removed; src/lib/shared/teamReportIdentity.ts strips it if a model still emits it.
 export const TeamObservationOutputSchema = z.object({
   formacionDetectada: z.string(),
   posesionEstimada:   z.object({
     equipo: z.number(),
     rival:  z.number(),
   }),
-  jugadoresObservados: z.array(z.object({
-    dorsalEstimado:  z.string().nullable(),
-    posicionEstimada: z.string(),
-    acciones: z.array(z.object({
-      timestamp:   z.string(),
-      tipo:        z.string(),
-      descripcion: z.string(),
-    })).max(8),
-    eventosContados: z.object({
-      pasesCompletados: z.number(),
-      pasesFallados:    z.number(),
-      recuperaciones:   z.number(),
-      duelosGanados:    z.number(),
-      duelosPerdidos:   z.number(),
-      disparosAlArco:   z.number(),
-      centros:          z.number(),
-    }),
-  })),
   fasesJuego: z.object({
     pressing: z.object({
       tipo:           z.string(),
@@ -531,19 +516,9 @@ export const TeamIntelligenceOutputSchema = z.object({
     descripcion:           z.string().max(300),
   }),
 
-  jugadores: z.array(z.object({
-    dorsalEstimado:  z.string().nullable(),
-    posicion:        z.string(),
-    rol:             z.string().max(100),
-    rendimiento:     z.enum(["destacado", "bueno", "regular", "bajo"]),
-    velocidadMaxKmh: z.number().nullable(),
-    distanciaM:      z.number().nullable(),
-    pases:           z.object({ completados: z.number(), fallados: z.number() }),
-    duelos:          z.object({ ganados: z.number(), perdidos: z.number() }),
-    recuperaciones:  z.number(),
-    heatmapPositions: z.array(z.object({ fx: z.number(), fy: z.number() })).optional(),
-    resumen:         z.string().max(150),
-  })),
+  // Team level only (identidad.md): the old `jugadores[]` (LLM-guessed dorsalEstimado
+  // + per-player passes/duels/recoveries/speed/heatmap) was removed. Reports saved
+  // before still hold it: src/lib/shared/teamReportIdentity.ts strips it on read.
 
   evaluacionGeneral: z.object({
     fortalezasEquipo:  z.array(z.string()).max(4),
@@ -552,6 +527,12 @@ export const TeamIntelligenceOutputSchema = z.object({
   }),
 
   confianza: z.number().min(0).max(1),
+
+  /** What the identity guard withheld (per-player rows / texts naming an individual). */
+  identityWithheld: z.object({
+    perPlayerRows: z.number().int().min(0),
+    texts:         z.number().int().min(0),
+  }).optional(),
 });
 
 export type TeamIntelligenceOutput = z.infer<typeof TeamIntelligenceOutputSchema>;

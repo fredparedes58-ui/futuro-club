@@ -3,8 +3,12 @@
  * POST /api/agents/team-intelligence
  *
  * Edge runtime + raw fetch a Anthropic API.
- * Recibe observaciones de Gemini sobre el equipo + YOLO opcional.
- * Retorna SSE → TeamIntelligenceOutput completo.
+ * Recibe observaciones de Gemini sobre el equipo (o fotogramas).
+ * Retorna SSE → TeamIntelligenceOutput completo, SOLO a nivel de equipo:
+ * sin dorsales ni filas/cifras por jugador (identidad.md: no hay identificación
+ * por dorsal validada). Lo que el modelo aún emita por jugador se retira antes
+ * de enviar (src/lib/shared/teamReportIdentity.ts). `yoloTrackData` ya no se usa:
+ * solo servía para asociar pistas a jugadores (atribución sin validar).
  *
  * Histórico: marcado @deprecated en Sprint 4 d4 (no era MVP).
  * Reactivado en Sprint B1 al añadir team analysis a la oferta core
@@ -24,6 +28,7 @@ import { fetchMessages } from "../_lib/anthropic";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { checkTeamReportQuality } from "../_lib/reportQualityCheck";
 import { NO_VISUAL_INPUT, hasGeminiObservations, hasVisualInput } from "../../src/lib/shared/teamVisualInput";
+import { withholdIndividualData } from "../../src/lib/shared/teamReportIdentity";
 import {
   normalizeLocale,
   languageDirective,
@@ -53,7 +58,11 @@ export default withHandler(
           send("progress", { step: "Iniciando análisis de equipo...", percent: 5 });
           // withHandler ya leyó el cuerpo (rawBody: true) → ctx.rawBody, nunca req.json().
           const body = JSON.parse(rawBody ?? "");
-          const { teamContext, geminiObservations, keyframes, videoId, yoloTrackData, analysisFocus } = body;
+          const { teamContext, keyframes, videoId, analysisFocus } = body;
+          // Identidad (identidad.md): team level only. A per-player list (legacy
+          // jugadoresObservados with an LLM-guessed dorsal) or a text naming an
+          // individual never reaches the prompt, whoever sent it.
+          const geminiObservations = withholdIndividualData(body.geminiObservations).value as typeof body.geminiObservations;
 
           // FASE 5 · idioma + maduración biológica del equipo (diferenciador VITAS)
           const locale = normalizeLocale(body.locale ?? teamContext?.locale);
@@ -79,7 +88,6 @@ export default withHandler(
           const ctx = teamContext;
           // Un objeto vacío ({}) no es una observación del vídeo.
           const hasGemini = hasGeminiObservations(geminiObservations);
-          const hasYolo = Array.isArray(yoloTrackData) && yoloTrackData.length > 0;
 
           // Build image content blocks from keyframes (fallback mode)
           const imageBlocks: unknown[] = [];
@@ -122,24 +130,12 @@ export default withHandler(
 
           send("progress", { step: hasGemini ? "Generando informe táctico..." : `Analizando ${imageBlocks.length} fotogramas...`, percent: 30 });
 
-          // Gemini observations block
+          // Gemini observations block (team level only — see the guard above)
           const geminiBlock = hasGemini ? `
 OBSERVACIONES TÁCTICAS DEL EQUIPO (generadas por IA que analizó el video completo):
 
 FORMACIÓN DETECTADA: ${geminiObservations.formacionDetectada || "No identificada"}
 POSESIÓN ESTIMADA: Equipo ${geminiObservations.posesionEstimada?.equipo ?? "?"}% — Rival ${geminiObservations.posesionEstimada?.rival ?? "?"}%
-
-JUGADORES OBSERVADOS (${geminiObservations.jugadoresObservados?.length ?? 0}):
-${(geminiObservations.jugadoresObservados ?? []).map((j: {
-  dorsalEstimado: string | null; posicionEstimada: string;
-  acciones: Array<{ timestamp: string; tipo: string; descripcion: string }>;
-  eventosContados: Record<string, number>;
-}, i: number) => {
-  const ev = j.eventosContados ?? {};
-  return `  ${i + 1}. #${j.dorsalEstimado ?? "?"} — ${j.posicionEstimada}
-     Pases: ${ev.pasesCompletados ?? 0}✓/${ev.pasesFallados ?? 0}✗ | Recup: ${ev.recuperaciones ?? 0} | Duelos: ${ev.duelosGanados ?? 0}G/${ev.duelosPerdidos ?? 0}P | Disparos: ${ev.disparosAlArco ?? 0} | Centros: ${ev.centros ?? 0}
-     Acciones: ${(j.acciones ?? []).map((a: { timestamp: string; descripcion: string }) => `[${a.timestamp}] ${a.descripcion}`).join(" | ")}`;
-}).join("\n")}
 
 FASES DE JUEGO:
 - Pressing: ${geminiObservations.fasesJuego?.pressing?.tipo ?? "?"} (intensidad: ${geminiObservations.fasesJuego?.pressing?.intensidad ?? "?"}/10, línea: ${geminiObservations.fasesJuego?.pressing?.alturaLinea ?? "?"})
@@ -154,17 +150,6 @@ ${(geminiObservations.momentosColectivos ?? []).map((m: { timestamp: string; tip
 RESUMEN: ${geminiObservations.resumenGeneral ?? ""}
 
 Estas observaciones provienen del análisis del VIDEO COMPLETO. Úsalas como base principal.` : "";
-
-          // YOLO tracking data block
-          const yoloBlock = hasYolo ? `
-MÉTRICAS FÍSICAS POR JUGADOR (tracking por computadora, datos objetivos):
-${yoloTrackData.map((t: {
-  trackId: number; maxSpeedMs: number; avgSpeedMs: number;
-  distanceM: number; sprintCount: number; duelsWon: number; duelsLost: number;
-}) => `  Track #${t.trackId}: vel.máx ${(t.maxSpeedMs * 3.6).toFixed(1)} km/h | prom ${(t.avgSpeedMs * 3.6).toFixed(1)} km/h | dist ${t.distanceM.toFixed(0)}m | sprints ${t.sprintCount} | duelos ${t.duelsWon}G/${t.duelsLost}P`
-).join("\n")}
-
-Intenta asociar cada Track con un jugador observado por posición en el campo. Si no puedes asociar con certeza, usa null para velocidad/distancia.` : "";
 
           const introBlock = hasGemini
             ? `Eres VITAS, un sistema de análisis táctico de fútbol de nivel profesional. Combinas la visión de un analista de rendimiento de primer equipo con el conocimiento metodológico de un director de formación de cantera.
@@ -237,15 +222,19 @@ DATOS DEL EQUIPO:
 - Color uniforme: ${ctx.teamColor || "?"}
 - Color rival: ${ctx.opponentColor || "no especificado"}
 - Nivel competitivo: ${ctx.competitiveLevel || "formativo"}${phvBlock}
-${geminiBlock}${frameInstructionBlock}${yoloBlock}
+${geminiBlock}${frameInstructionBlock}
 ${analysisFocus ? `
 ENFOQUE DEL ANÁLISIS: Concentra especialmente el análisis en: ${Array.isArray(analysisFocus) ? analysisFocus.join(", ") : analysisFocus}.
-Dedica más detalle a estas acciones en el resumen ejecutivo, fases de juego, métricas colectivas y per-jugador. Si el enfoque es defensivo, profundiza en pressing, línea defensiva, recuperaciones. Si es ofensivo, profundiza en circulación, transiciones ofensivas, centros, disparos.` : ""}
+Dedica más detalle a estas acciones en el resumen ejecutivo, fases de juego y métricas colectivas. Si el enfoque es defensivo, profundiza en pressing, línea defensiva, recuperaciones. Si es ofensivo, profundiza en circulación, transiciones ofensivas, centros, disparos.` : ""}
 
 REGLAS DE HONESTIDAD (docx #14):
-- Distingue SIEMPRE la procedencia: lo del bloque "OBSERVACIONES TÁCTICAS" es OBSERVADO POR IA (análisis del vídeo), lo del bloque "MÉTRICAS FÍSICAS" es MEDIDO por tracking, y si solo hay fotogramas es INFERIDO de imágenes. Marca lo inferido como tal; no presentes inferencia como observación.
-- Si un dato no aparece en los bloques de entrada (formación, posesión, pressing, un contador de eventos, un jugador), escribe "no observado" y NO lo inventes. Un contador en 0 sin evidencia no significa "0 eventos": es "no observado" — no infieras acciones que no estén en las observaciones.
+- Distingue SIEMPRE la procedencia: lo del bloque "OBSERVACIONES TÁCTICAS" es OBSERVADO POR IA (análisis del vídeo), y si solo hay fotogramas es INFERIDO de imágenes. Marca lo inferido como tal; no presentes inferencia como observación.
+- Si un dato no aparece en los bloques de entrada (formación, posesión, pressing, un contador de eventos), escribe "no observado" y NO lo inventes. Un contador en 0 sin evidencia no significa "0 eventos": es "no observado" — no infieras acciones que no estén en las observaciones.
 - Con datos escasos, BAJA la confianza; deja listas vacías ([]) en vez de rellenar con patrones tácticos genéricos.
+
+IDENTIDAD — SOLO NIVEL DE EQUIPO (son menores de edad; no existe identificación por dorsal validada):
+- No identifiques a ningún jugador concreto. Nunca escribas dorsales, números de camiseta, nombres, ni una lista, valoración o cifra por jugador.
+- Describe por líneas o grupos ("los laterales", "la línea defensiva", "los tres delanteros"), nunca por individuo.
 
 Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con esta estructura exacta:
 
@@ -286,20 +275,6 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
     "sincronizacion": 1-10,
     "descripcion": "string max 300"
   },
-  "jugadores": [
-    {
-      "dorsalEstimado": "7" o null,
-      "posicion": "extremo derecho",
-      "rol": "desborde y profundidad por banda",
-      "rendimiento": "destacado|bueno|regular|bajo",
-      "velocidadMaxKmh": number o null,
-      "distanciaM": number o null,
-      "pases": {"completados": 8, "fallados": 2},
-      "duelos": {"ganados": 2, "perdidos": 1},
-      "recuperaciones": 1,
-      "resumen": "string max 150"
-    }
-  ],
   "evaluacionGeneral": {
     "fortalezasEquipo": ["max 4 strings"],
     "areasTrabajar": ["max 3 strings"],
@@ -309,20 +284,13 @@ Responde EXCLUSIVAMENTE con un JSON válido (sin markdown, sin backticks) con es
 }
 
 REGLAS CRÍTICAS:
-- Incluye TODOS los jugadores observados en el array "jugadores"
-- velocidadMaxKmh y distanciaM: usa datos YOLO si están disponibles, sino null
+- Solo nivel de equipo: el JSON no lleva ningún campo por jugador (ni "jugadores", ni dorsal, ni número, ni nombre)
 
 EVALUACIÓN DE MÉTRICAS COLECTIVAS:
 - compacidad (1-10): ¿Qué tan juntas están las líneas del equipo? Un equipo compacto tiene máximo 35m entre la última línea defensiva y la primera ofensiva. 8+ = bloque compacto que se mueve junto. 4- = equipo disperso con huecos entre líneas
 - alturaLineaDefensiva: "alta" si la línea defensiva está en el centro del campo o más arriba, "media" si entre el centro y el borde del área, "baja" si cerca del área propia
 - amplitud (1-10): ¿El equipo usa todo el ancho del campo? 8+ = laterales/extremos tocan la línea de banda, cambios de orientación frecuentes. 4- = juego concentrado solo por un lado o por el centro
 - sincronizacion (1-10): ¿Los jugadores se mueven como unidad o hay desconexiones? En pressing: ¿presionan todos juntos? En ataque: ¿los movimientos son coordinados? 8+ = automatismos claros. 4- = cada jugador actúa por su cuenta
-
-RENDIMIENTO POR JUGADOR:
-- "destacado": jugador que impactó el partido con acciones decisivas, lideró su zona, mostró rendimiento superior a la media del equipo
-- "bueno": jugador que cumplió su función táctica correctamente, sin errores graves, contribuyó al colectivo
-- "regular": jugador con participación intermitente, algunos aciertos y algunos errores, no impactó significativamente
-- "bajo": jugador que cometió errores frecuentes, estuvo desconectado del juego, o fue superado por su par directo
 
 RECOMENDACIONES PARA EL ENTRENADOR:
 - Deben ser ESPECÍFICAS y ACCIONABLES — no "mejorar las transiciones" sino "trabajar pressing inmediato tras pérdida con ejercicio de 6v6+2 en espacio reducido"
@@ -436,6 +404,10 @@ RECOMENDACIONES PARA EL ENTRENADOR:
               console.error("[team-intelligence] retry failed:", retryErr);
             }
           }
+
+          // Identidad (identidad.md): lo que el modelo aún emita por jugador (filas,
+          // dorsal, textos que nombran a un individuo) se retira y se cuenta.
+          report = withholdIndividualData(report).value;
 
           send("progress", { step: "Finalizando informe táctico...", percent: 95 });
           send("complete", { report, videoId, timestamp: new Date().toISOString() });

@@ -167,6 +167,36 @@ describe("useTeamIntelligence · data flow", () => {
     expect(extractKeyframesFromVideo).not.toHaveBeenCalled();
   });
 
+  it("never returns (nor saves) per-player rows with an LLM-guessed dorsal (identidad.md)", async () => {
+    vi.mocked(isLocalSrc).mockReturnValue(true);
+    vi.mocked(readVideoAsBase64).mockResolvedValue({ base64: "AAAA", mediaType: "video/mp4" } as never);
+    const legacy = {
+      ...REPORT,
+      jugadores: [{ dorsalEstimado: "7", posicion: "extremo", pases: { completados: 8, fallados: 2 }, duelos: { ganados: 2, perdidos: 1 }, recuperaciones: 1 }],
+    };
+    fetchMock.mockImplementation(async (url: string) =>
+      url.includes("team-observation")
+        ? jsonResponse({ ok: true, success: true, data: { observations: OBSERVATIONS } })
+        : sseResponse(`event: complete\ndata: ${JSON.stringify({ report: legacy })}\n\n`),
+    );
+
+    const { result } = renderHook(() => useTeamIntelligence(), { wrapper: createWrapper() });
+    const run: { out: Record<string, unknown> | null } = { out: null };
+    await act(async () => {
+      run.out = (await result.current.runAnalysis({ videoId: "v1", teamColor: "rojo", localVideoSrc: "blob:local" })) as Record<string, unknown> | null;
+    });
+
+    expect(run.out).not.toBeNull();
+    expect(run.out?.jugadores).toBeUndefined();
+    expect(JSON.stringify(run.out)).not.toContain("dorsalEstimado");
+    expect(run.out?.identityWithheld).toEqual({ perPlayerRows: 1, texts: 0 });
+    expect(result.current.analysisResult).toEqual(run.out);
+    // The request carries no YOLO track payload any more (it only served the
+    // index-based track → "player" heat-map pairing).
+    const body = JSON.parse(intelligenceCalls()[0][1].body ?? "{}");
+    expect(body).not.toHaveProperty("yoloTrackData");
+  });
+
   it("blocks a cloud-only (Bunny) video: no request, no report, a gate reason", async () => {
     const { result } = renderHook(() => useTeamIntelligence(), { wrapper: createWrapper() });
     let out: unknown = "unset";

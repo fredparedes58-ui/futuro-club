@@ -6,8 +6,11 @@
  *   - Formación detectada
  *   - Posesión y fases de juego
  *   - Métricas colectivas
- *   - Breakdown por jugador (tappable → heatmap)
  *   - Evaluación y recomendaciones
+ *
+ * SOLO nivel de equipo (identidad.md): no hay identificación por dorsal validada,
+ * así que no se muestra ningún dorsal ni fila/cifra por jugador. Los informes
+ * guardados antes aún los tienen: se retiran al leerlos y se avisa.
  */
 
 import { useState } from "react";
@@ -16,7 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Zap, Play, Users, Target, TrendingUp,
   Shield, AlertTriangle, CheckCircle, Loader2,
-  ChevronDown, ChevronUp, Swords, MapPin, Activity,
+  ChevronDown, ChevronUp,
   GitCompare, ArrowUpRight, ArrowDownRight, Minus, Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,14 +30,11 @@ import { useTranslation } from "react-i18next";
 import { VideoService, type VideoRecord } from "@/services/real/videoService";
 import { useTeamIntelligence, useAllTeamAnalyses } from "@/hooks/useTeamIntelligence";
 import VideoUpload from "@/components/VideoUpload";
-import PlayerHeatmap from "@/components/PlayerHeatmap";
 import type { TeamIntelligenceOutput } from "@/agents/contracts";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
 import { getErrorDetails } from "@/services/errorDiagnosticService";
 import AnalysisFocusSelector from "@/components/AnalysisFocusSelector";
 import { isLocalSrc } from "@/lib/localVideoUtils";
+import { withholdIndividualData } from "@/lib/shared/teamReportIdentity";
 
 // ─── Fuente visual ───────────────────────────────────────────────
 
@@ -49,14 +49,17 @@ function localSourceOf(video: VideoRecord): string | undefined {
   return undefined;
 }
 
-// ─── Helpers UI ──────────────────────────────────────────────────
+/**
+ * Team-level view of a report (identidad.md): per-player rows (LLM-guessed
+ * dorsal + per-player figures) and texts naming an individual are withheld —
+ * reports saved before the guard still carry them in the database.
+ */
+function teamLevelReport(raw: unknown): TeamIntelligenceOutput | null {
+  if (!raw || typeof raw !== "object") return null;
+  return withholdIndividualData(raw).value as TeamIntelligenceOutput;
+}
 
-const RENDIMIENTO_COLORS: Record<string, string> = {
-  destacado: "#FFD700",
-  bueno:     "#22C55E",
-  regular:   "#F59E0B",
-  bajo:      "#EF4444",
-};
+// ─── Helpers UI ──────────────────────────────────────────────────
 
 function SectionHeader({ icon: Icon, title, subtitle }: {
   icon: React.ElementType; title: string; subtitle?: string;
@@ -196,65 +199,32 @@ function MetricasColectivas({ data }: { data: TeamIntelligenceOutput["metricasCo
   );
 }
 
-// ─── Tabla de jugadores ──────────────────────────────────────────
+// ─── Identidad: lo retirado del informe ──────────────────────────
+// (Sustituye a la antigua tabla de jugadores: dorsal estimado por el LLM + pases,
+//  duelos y recuperaciones por jugador. identidad.md: sin dorsal validado no se
+//  atribuye nada a un jugador concreto.)
 
-type PlayerRow = TeamIntelligenceOutput["jugadores"][number];
-
-function JugadoresTable({ jugadores, onSelect }: {
-  jugadores: PlayerRow[];
-  onSelect: (j: PlayerRow) => void;
-}) {
+function IdentityWithheldNote({ withheld }: { withheld: TeamIntelligenceOutput["identityWithheld"] }) {
   const { t } = useTranslation();
+  if (!withheld || (withheld.perPlayerRows <= 0 && withheld.texts <= 0)) return null;
   return (
-    <div className="glass rounded-2xl p-4">
-      <SectionHeader icon={Activity} title={t("teamAnalysis.playersTitle")} subtitle={t("teamAnalysis.playersDesc")} />
-
-      <div className="space-y-1.5">
-        {(jugadores ?? []).map((j, i) => {
-          const rendColor = RENDIMIENTO_COLORS[j.rendimiento] ?? "#6B7280";
-          const totalPases = j.pases.completados + j.pases.fallados;
-          const precPases = totalPases > 0 ? Math.round((j.pases.completados / totalPases) * 100) : 0;
-
-          return (
-            <button
-              key={i}
-              onClick={() => onSelect(j)}
-              className="w-full flex items-center gap-2.5 p-2.5 rounded-xl border border-border hover:border-primary/50 transition-all text-left"
-            >
-              {/* Dorsal */}
-              <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                <span className="text-[10px] font-display font-bold text-foreground">
-                  {j.dorsalEstimado ?? "?"}
-                </span>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-display font-bold text-foreground truncate">{j.posicion}</span>
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: rendColor }} />
-                </div>
-                <p className="text-[9px] text-muted-foreground truncate">{j.rol}</p>
-              </div>
-
-              {/* Stats compactos */}
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="text-center">
-                  <span className="text-[10px] font-display font-bold text-foreground">{precPases}%</span>
-                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.passes")}</p>
-                </div>
-                <div className="text-center">
-                  <span className="text-[10px] font-display font-bold text-foreground">{j.duelos.ganados}</span>
-                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.duels")}</p>
-                </div>
-                <div className="text-center">
-                  <span className="text-[10px] font-display font-bold text-foreground">{j.recuperaciones}</span>
-                  <p className="text-[7px] text-muted-foreground">{t("teamAnalysis.recoveries")}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
+    <div
+      role="status"
+      data-testid="team-identity-withheld"
+      className="glass rounded-2xl p-4 border border-amber-500/40 bg-amber-500/5"
+    >
+      <div className="flex items-start gap-2">
+        <Shield size={14} className="text-amber-500 shrink-0 mt-0.5" />
+        <div className="space-y-1">
+          {withheld.perPlayerRows > 0 && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">{t("teamAnalysisPage.perPlayerWithheld")}</p>
+          )}
+          {withheld.texts > 0 && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {t("teamAnalysisPage.individualTextsHidden", { n: withheld.texts })}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -312,7 +282,6 @@ export default function TeamAnalysisPage() {
   const [activeTab, setActiveTab] = useState<"nuevo" | "informe">("nuevo");
   const [teamColor, setTeamColor] = useState("");
   const [opponentColor, setOpponentColor] = useState("");
-  const [selectedPlayer, setSelectedPlayer] = useState<PlayerRow | null>(null);
   const [analysisFocus, setAnalysisFocus] = useState<string[]>([]);
   const [selectedAnalysisIdx, setSelectedAnalysisIdx] = useState(0);
   const [compareMode, setCompareMode] = useState(false);
@@ -338,13 +307,14 @@ export default function TeamAnalysisPage() {
     : state.step === "blocked" && blockedVideoId === selectedVideoId
       ? state.gateReason ?? t("teamAnalysisPage.noVisualInputReason")
       : null;
+  // Team level only: every report shown goes through the identity guard.
   const savedReport = savedAnalyses && savedAnalyses[selectedAnalysisIdx]
-    ? (savedAnalyses[selectedAnalysisIdx].report as TeamIntelligenceOutput)
+    ? teamLevelReport(savedAnalyses[selectedAnalysisIdx].report)
     : null;
-  const report = analysisResult ?? savedReport;
+  const report = teamLevelReport(analysisResult) ?? savedReport;
   const compareReport: TeamIntelligenceOutput | null =
     compareMode && savedAnalyses && savedAnalyses[compareIdx]
-      ? (savedAnalyses[compareIdx].report as TeamIntelligenceOutput)
+      ? teamLevelReport(savedAnalyses[compareIdx].report)
       : null;
 
   const handleRunAnalysis = async () => {
@@ -681,13 +651,10 @@ export default function TeamAnalysisPage() {
                   </div>
                 )}
 
+                <IdentityWithheldNote withheld={report.identityWithheld} />
                 <ResumenFormacion report={report} />
                 <FasesJuego data={report.fasesJuego} />
                 <MetricasColectivas data={report.metricasColectivas} />
-                <JugadoresTable
-                  jugadores={report.jugadores}
-                  onSelect={(j) => setSelectedPlayer(j)}
-                />
                 <EvaluacionGeneral data={report.evaluacionGeneral} />
 
                 {/* Meta */}
@@ -720,101 +687,6 @@ export default function TeamAnalysisPage() {
           </>
         )}
       </div>
-
-      {/* Sheet: detalle de jugador */}
-      <Sheet open={!!selectedPlayer} onOpenChange={(open) => !open && setSelectedPlayer(null)}>
-        <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
-          {selectedPlayer && (
-            <div className="space-y-4 pb-6">
-              <SheetHeader>
-                <SheetTitle className="font-display text-sm flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                    <span className="text-xs font-bold">{selectedPlayer.dorsalEstimado ?? "?"}</span>
-                  </div>
-                  {selectedPlayer.posicion}
-                  <Badge
-                    className="text-[8px] ml-auto"
-                    style={{
-                      color: RENDIMIENTO_COLORS[selectedPlayer.rendimiento],
-                      backgroundColor: `${RENDIMIENTO_COLORS[selectedPlayer.rendimiento]}15`,
-                    }}
-                  >
-                    {selectedPlayer.rendimiento}
-                  </Badge>
-                </SheetTitle>
-              </SheetHeader>
-
-              {/* Rol y resumen */}
-              <div>
-                <p className="text-[10px] font-display uppercase tracking-wider text-muted-foreground mb-1">{t("teamAnalysisPage.role")}</p>
-                <p className="text-xs text-foreground">{selectedPlayer.rol}</p>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed">{selectedPlayer.resumen}</p>
-
-              {/* Métricas individuales */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="glass rounded-xl p-3">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Target size={10} className="text-green-400" />
-                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.passes")}</span>
-                  </div>
-                  <span className="font-display font-bold text-lg text-foreground">
-                    {(selectedPlayer.pases.completados + selectedPlayer.pases.fallados) > 0
-                      ? Math.round((selectedPlayer.pases.completados / (selectedPlayer.pases.completados + selectedPlayer.pases.fallados)) * 100)
-                      : 0}%
-                  </span>
-                  <p className="text-[9px] text-muted-foreground">{selectedPlayer.pases.completados}✓ / {selectedPlayer.pases.fallados}✗</p>
-                </div>
-
-                <div className="glass rounded-xl p-3">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Swords size={10} className="text-red-400" />
-                    <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.duels")}</span>
-                  </div>
-                  <span className="font-display font-bold text-lg text-foreground">
-                    {selectedPlayer.duelos.ganados}{t("teamAnalysisPage.wonAbbr")} / {selectedPlayer.duelos.perdidos}{t("teamAnalysisPage.lostAbbr")}
-                  </span>
-                  <p className="text-[9px] text-muted-foreground">{t("teamAnalysisPage.recoveriesCount", { count: selectedPlayer.recuperaciones })}</p>
-                </div>
-
-                {selectedPlayer.velocidadMaxKmh != null && (
-                  <div className="glass rounded-xl p-3">
-                    <div className="flex items-center gap-1 mb-1">
-                      <Zap size={10} className="text-yellow-400" />
-                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.speed")}</span>
-                    </div>
-                    <span className="font-display font-bold text-lg text-foreground">
-                      {selectedPlayer.velocidadMaxKmh.toFixed(1)}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground ml-1">km/h</span>
-                  </div>
-                )}
-
-                {selectedPlayer.distanciaM != null && (
-                  <div className="glass rounded-xl p-3">
-                    <div className="flex items-center gap-1 mb-1">
-                      <MapPin size={10} className="text-blue-400" />
-                      <span className="text-[8px] font-display uppercase tracking-wider text-muted-foreground">{t("teamAnalysisPage.distance")}</span>
-                    </div>
-                    <span className="font-display font-bold text-lg text-foreground">
-                      {selectedPlayer.distanciaM.toFixed(0)}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground ml-1">m</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Heatmap */}
-              {selectedPlayer.heatmapPositions && selectedPlayer.heatmapPositions.length > 0 && (
-                <PlayerHeatmap
-                  positions={selectedPlayer.heatmapPositions}
-                  title={t("teamAnalysisPage.heatmapTitle", { number: selectedPlayer.dorsalEstimado ?? "?" })}
-                />
-              )}
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
