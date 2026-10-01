@@ -12,25 +12,12 @@
  */
 
 import type { MetricResult, Provenance } from "@/lib/metrics/MetricResult";
+import { provenanceLabel } from "@/lib/metrics/provenanceLabel";
 
-// Etiquetas canónicas. CONSTANTE = null ⇒ no se renderiza como cifra.
-const PROVENANCE_LABEL: Record<Provenance, string | null> = {
-  MEDIDA: "Medido",
-  DERIVADA: "Calculado",
-  ESTIMADA_LLM: "Estimado por IA",
-  CONSTANTE: null,
-  MOCK: "Datos de ejemplo",
-};
-
-/** Único punto que deriva la etiqueta de la procedencia. */
-export function provenanceLabel(p: Provenance): string | null {
-  return PROVENANCE_LABEL[p];
-}
-
-/** ¿Esta procedencia exige banner visible de «dato de ejemplo»? */
-export function requiresMockBanner(p: Provenance): boolean {
-  return p === "MOCK";
-}
+// La tabla procedencia → etiqueta vive en src/lib/metrics/provenanceLabel.ts (TS
+// puro) para que el servidor (emails) use la MISMA etiqueta sin importar React.
+// Se re-exporta aquí: los consumidores existentes siguen importando de este módulo.
+export { provenanceLabel, requiresMockBanner } from "@/lib/metrics/provenanceLabel";
 
 function badgeClasses(p: Provenance): string {
   switch (p) {

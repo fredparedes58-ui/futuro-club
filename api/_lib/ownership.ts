@@ -45,9 +45,14 @@ function serviceHeaders(key: string): Record<string, string> {
  * ¿El jugador `playerId` pertenece al usuario `userId`? (players.user_id)
  * Fail-closed: ante cualquier duda (sin Supabase, query no-ok, error) → false.
  *
- * Espejo en SQL: public.caller_manages_player(text) y
- * public.dsar_caller_manages_player(text) (migración 076). Si cambia esta regla,
- * cambiar también esas funciones con una migración nueva (invariante #7).
+ * Espejo en SQL (la base de datos no puede llamar a este código):
+ * public.caller_manages_player (migración 073: políticas RLS de behavioral_profiles,
+ * attendance_records, engagement_snapshots, wellbeing_questionnaires y
+ * dropout_risk_assessments) y public.dsar_caller_manages_player (migración 076).
+ * Regla: SOLO el dueño (players.user_id = auth.uid()), sin rama por tenant ni por
+ * organización (decisión del 30 sep 2026, registrada en las cabeceras de la 073 y
+ * la 076). Si cambia esta regla, cambiar también esas funciones con una migración
+ * nueva (invariante #7).
  */
 export async function ownsPlayer(playerId: string | null | undefined, userId: string | null): Promise<boolean> {
   if (!playerId || !userId) return false;

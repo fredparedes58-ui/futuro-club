@@ -1,87 +1,194 @@
 /**
- * VITAS · Director Risk Digest (Sprint 3.7 💎)
- * GET /api/crons/director-risk-digest  (serviceOnly · mensual)
+ * VITAS · Director Risk Digest (Sprint 3.7)
+ * GET /api/crons/director-risk-digest  (serviceOnly · mensual, vercel.json)
  *
- * Envía a cada director (plan pro/club) un email con:
- *   - Los jugadores en riesgo alto/crítico de abandono ESTE MES
+ * Envía a cada director de pago (plan pro/club, active|trialing) un email con los
+ * jugadores cuya evaluación de riesgo de abandono es REAL y alta o crítica.
  *
- * Determinista, sin IA. La lógica de scoring refleja src/lib/retention/*
- * (mismos pesos) para que el email coincida con el dashboard.
- * Fallback seguro: si no hay Supabase/Resend, no-op sin romper.
- *
- * G5 (honestidad de producto): el riesgo es HOY un mock determinista sobre el id
- * del jugador (aún sin señales reales de asistencia/implicación/carga). Por eso:
- *   - se retiró el argumento de ROI en euros (prohibido mostrar € a un club a
- *     partir de datos sintéticos — CLAUDE.md invariantes #1/#2),
- *   - el email declara explícitamente que las cifras son una previsualización.
- * Igual que el dashboard, que muestra el DemoDataBanner.
+ * P0 (menores · legal): antes este cron calculaba el riesgo con un HASH del id del
+ * jugador (tercera copia del scorer) y enviaba por email NOMBRES de menores «en
+ * riesgo alto/crítico» con cifras inventadas, tapadas con un aviso de «datos de
+ * ejemplo». `.claude/rules/metricas.md` prohíbe derivar valores de un hash del id
+ * aunque haya banner. Ahora:
+ *   - El riesgo sale de la ÚNICA implementación de servidor
+ *     (`api/_lib/dropoutAssessment.ts`), la misma del panel /wellbeing (inv #7).
+ *   - Un jugador SOLO aparece si su evaluación es `source: "computed"` (hay al menos
+ *     una señal real: asistencia, implicación o carga). `insufficient_data` ⇒ NO se
+ *     lista. Aquí no existe ninguna ruta mock/hash; los jugadores de ejemplo
+ *     (`data.isDemo === true`) ni se evalúan ni se nombran.
+ *   - Si ningún jugador del director tiene una evaluación real alta o crítica, NO se
+ *     envía nada: ni nombres ni un resumen «sin datos». Motivo: es lo más seguro
+ *     (ningún dato sobre menores sale del sistema) y un correo «sin datos» mensual
+ *     puede leerse como «nadie en riesgo», que tampoco es cierto.
+ *   - El email declara procedencia (etiqueta canónica), confianza, cobertura
+ *     (evaluados con datos reales / total) y los factores que aún no tienen señal.
+ *   - Solo lectura: no persiste evaluaciones.
+ * Fallback seguro: sin Supabase → no-op; sin Resend → sendEmail devuelve false.
  */
 
 import { withHandler } from "../_lib/withHandler";
 import { env } from "../_lib/env";
 import { successResponse } from "../_lib/apiResponse";
 import { sendEmail } from "../_lib/email";
+import { esc } from "../_lib/demoAccess";
+import {
+  computeDropoutAssessment,
+  dropoutRiskMetric,
+  fetchDropoutSignals,
+  makeRowSelector,
+  type RowSelector,
+  type SignalCoverage,
+} from "../_lib/dropoutAssessment";
+import { provenanceLabel } from "../../src/lib/metrics/provenanceLabel";
+import type { Provenance } from "../../src/lib/metrics/MetricResult";
 
 export const config = { runtime: "edge" };
 
-// ── Scorer determinista (mirror de src/lib/retention/dropoutScore.ts) ───────
-const WEIGHTS: Record<string, number> = {
-  engagementDecline: 0.25, motivationRisk: 0.2, overtrainingRisk: 0.15,
-  vsiStagnation: 0.12, attendanceDecline: 0.1, injuryRecurrence: 0.08,
-  growthSpurtStress: 0.05, lowResilience: 0.05,
-};
+/** Jugadores evaluados en paralelo (3 SELECT por jugador). */
+const EVAL_CONCURRENCY = 5;
 
-function hash32(x: number): number {
-  let h = x >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
-  return (h ^ (h >>> 16)) >>> 0;
+interface ListedPlayer {
+  name: string;
+  score: number;
+  level: "high" | "critical";
+  signals: SignalCoverage;
+  provenance: Provenance;
+  confidence: number;
 }
 
-function riskFor(playerId: string): { score: number; level: string } {
-  const base = playerId.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
-  const r = (i: number, min: number, max: number) => min + (hash32(base * 131 + i * 977) % (max - min + 1));
-  const factors: Record<string, number> = {
-    engagementDecline: r(1, 10, 90), motivationRisk: r(2, 15, 90), overtrainingRisk: r(3, 10, 80),
-    vsiStagnation: r(4, 5, 75), attendanceDecline: r(5, 5, 70), injuryRecurrence: r(6, 0, 60),
-    growthSpurtStress: r(7, 0, 50), lowResilience: r(8, 10, 70),
-  };
-  const score = Math.round(
-    Object.keys(WEIGHTS).reduce((sum, k) => sum + factors[k] * WEIGHTS[k], 0),
-  );
-  const level = score >= 75 ? "critical" : score >= 50 ? "high" : score >= 25 ? "moderate" : "low";
-  return { score, level };
+export interface DirectorDigest {
+  /** Jugadores con evaluación REAL alta o crítica (orden: riesgo desc). */
+  listed: ListedPlayer[];
+  /** Jugadores con evaluación real (cualquier nivel). */
+  evaluated: number;
+  /** Jugadores sin datos reales suficientes (nunca se nombran). */
+  withoutData: number;
+  /** Jugadores de ejemplo (`data.isDemo === true`): ni se evalúan ni se nombran. */
+  demo: number;
+  total: number;
 }
 
-interface PlayerRow { id?: string; user_id: string; data?: { name?: string } }
-interface SubRow { user_id: string; plan: string; status?: string }
+/**
+ * Jugador de ejemplo (club demo, `src/services/real/demoDataService.ts`): mismo
+ * marcador que ya usa el servidor en `api/rankings/_list.ts` (`d.isDemo === true`).
+ * Sus cifras son sintéticas por definición → el digest nunca las evalúa ni las envía.
+ */
+function isDemoPlayer(p: Record<string, unknown>): boolean {
+  const data = p.data;
+  return typeof data === "object" && data !== null && (data as { isDemo?: unknown }).isDemo === true;
+}
 
-function digestHtml(players: Array<{ name: string; score: number; level: string }>, atRisk: number): string {
-  const rows = players
+/**
+ * Evalúa a los jugadores de UN director con el scorer canónico.
+ * Pura salvo por las lecturas vía `select` (inyectable en tests).
+ */
+export async function buildDirectorDigest(
+  players: Array<Record<string, unknown>>,
+  select: RowSelector,
+): Promise<DirectorDigest> {
+  const listed: ListedPlayer[] = [];
+  let evaluated = 0;
+  let withoutData = 0;
+  let demo = 0;
+
+  for (let i = 0; i < players.length; i += EVAL_CONCURRENCY) {
+    const chunk = players.slice(i, i + EVAL_CONCURRENCY);
+    const results = await Promise.all(
+      chunk.map(async (p) => {
+        // Jugador de ejemplo: ni siquiera se leen sus señales.
+        if (isDemoPlayer(p)) return { kind: "demo" as const };
+        const id = typeof p.id === "string" && p.id ? p.id : null;
+        if (!id) return null; // sin id no hay señales que leer → sin datos
+        const result = computeDropoutAssessment(id, await fetchDropoutSignals(id, select));
+        return { kind: "assessed" as const, p, result };
+      }),
+    );
+
+    for (const r of results) {
+      if (r?.kind === "demo") {
+        demo++;
+        continue;
+      }
+      if (!r || r.result.source !== "computed") {
+        withoutData++;
+        continue;
+      }
+      const metric = dropoutRiskMetric(r.result);
+      // Defensa en profundidad: sin value (bloqueada) o con una procedencia que no
+      // es un resultado real (MOCK / CONSTANTE) no se nombra a nadie.
+      if (metric.value === null || metric.provenance === "MOCK" || metric.provenance === "CONSTANTE") {
+        withoutData++;
+        continue;
+      }
+      evaluated++;
+      const level = r.result.assessment.riskLevel;
+      if (level !== "high" && level !== "critical") continue;
+      const data = (r.p.data ?? {}) as { name?: unknown };
+      listed.push({
+        name: typeof data.name === "string" && data.name.trim() ? data.name.trim() : "Jugador sin nombre",
+        score: metric.value,
+        level,
+        signals: r.result.signals,
+        provenance: metric.provenance,
+        confidence: metric.confidence,
+      });
+    }
+  }
+
+  listed.sort((a, b) => b.score - a.score);
+  return { listed, evaluated, withoutData, demo, total: players.length };
+}
+
+function signalsText(s: SignalCoverage): string {
+  const parts: string[] = [];
+  if (s.attendance) parts.push("asistencia");
+  if (s.engagement) parts.push(s.motivation ? "implicación y motivación" : "implicación");
+  if (s.fatigue) parts.push("carga (fatiga)");
+  return parts.join(" · ");
+}
+
+export function digestSubject(d: DirectorDigest): string {
+  const n = d.listed.length;
+  return `VITAS · ${n} jugador${n === 1 ? "" : "es"} con riesgo de abandono alto o crítico (calculado)`;
+}
+
+export function digestHtml(d: DirectorDigest, computedOn: string): string {
+  const n = d.listed.length;
+  // Todos los listados comparten procedencia/confianza (mismo modelo); se toman del
+  // MetricResult, nunca se escriben a mano.
+  const first = d.listed[0];
+  const label = first ? provenanceLabel(first.provenance) ?? "" : "";
+  const confidencePct = first ? Math.round(first.confidence * 100) : 0;
+  const rows = d.listed
     .map((p) => {
-      const color = p.level === "critical" ? "#f43f5e" : "#f97316";
+      const color = p.level === "critical" ? "#be123c" : "#c2410c";
       return `<tr>
-        <td style="padding:8px 0;color:#0F172A;">${p.name}</td>
-        <td style="padding:8px 0;text-align:right;"><span style="color:${color};font-weight:700;">${p.score}</span> <span style="color:#94a3b8;font-size:12px;">${p.level === "critical" ? "crítico" : "alto"}</span></td>
-      </tr>`;
+        <td style="padding:8px 0;color:#0F172A;border-bottom:1px solid #F1F5F9;">${esc(p.name)}</td>
+        <td style="padding:8px 0;text-align:right;border-bottom:1px solid #F1F5F9;"><span style="color:${color};font-weight:700;">${p.score}/100</span> <span style="color:#64748b;font-size:12px;">${p.level === "critical" ? "crítico" : "alto"}</span></td>
+      </tr>
+      <tr><td colspan="2" style="padding:0 0 8px;color:#64748b;font-size:12px;">Datos usados: ${esc(signalsText(p.signals))}</td></tr>`;
     })
     .join("");
+  const notEvaluated = d.total - d.evaluated;
   return `<!DOCTYPE html><html><body style="font-family:system-ui,-apple-system,sans-serif;background:#F4F7FB;padding:32px 16px;color:#0F172A;">
   <div style="max-width:560px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;border:1px solid #E2E8F0;">
-    <h1 style="font-size:20px;color:#0066CC;margin:0 0 4px;">🛡️ Radar de Retención · VITAS</h1>
-    <p style="color:#475569;margin:0 0 20px;">Tu resumen mensual de riesgo de abandono.</p>
-    <div style="background:linear-gradient(135deg,#e11d48,#b91c1c);color:#fff;padding:20px;border-radius:14px;text-align:center;margin-bottom:20px;">
-      <div style="font-size:44px;font-weight:800;line-height:1;">${atRisk}</div>
-      <div style="font-size:13px;opacity:.9;">jugador${atRisk === 1 ? "" : "es"} en riesgo este mes</div>
+    <h1 style="font-size:20px;color:#0066CC;margin:0 0 4px;">Radar de Retención · VITAS</h1>
+    <p style="color:#475569;margin:0 0 20px;">Resumen mensual de riesgo de abandono (calculado el ${esc(computedOn)}). Solo aparecen jugadores con una evaluación calculada a partir de datos registrados en VITAS.</p>
+    <div style="background:#FFF1F2;border:1px solid #FECDD3;color:#9F1239;padding:20px;border-radius:14px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:40px;font-weight:800;line-height:1;">${n}</div>
+      <div style="font-size:13px;">jugador${n === 1 ? "" : "es"} con riesgo alto o crítico</div>
     </div>
+    <p style="color:#475569;font-size:13px;margin:0 0 16px;">Evaluados con datos reales: <strong>${d.evaluated} de ${d.total}</strong> jugadores.${notEvaluated > 0 ? ` Los otros ${notEvaluated} no tienen datos reales suficientes: no aparecen en este correo, y eso <strong>no</strong> significa que no tengan riesgo.` : ""}</p>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">${rows}</table>
-    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:16px;margin-top:20px;">
-      <p style="margin:0;color:#92400e;font-size:13px;line-height:1.5;">🧪 <strong>Datos de ejemplo.</strong> El riesgo mostrado es una previsualización del modelo, aún sin señales reales por jugador (asistencia, implicación o carga). No representa datos medidos.</p>
+    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-top:20px;">
+      <p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.5;"><strong>Procedencia: ${esc(label)}.</strong> Resultado de un modelo de 8 factores aplicado a los datos registrados (asistencia, implicación, carga). Es una señal orientativa para priorizar conversaciones, no un diagnóstico.</p>
+      <p style="margin:0 0 8px;color:#334155;font-size:13px;line-height:1.5;"><strong>Confianza: ${confidencePct} % (orientativa).</strong> Los pesos y umbrales del modelo están pendientes de validar.</p>
+      <p style="margin:0;color:#334155;font-size:13px;line-height:1.5;">Estancamiento de VSI, lesiones recurrentes y estrés de crecimiento aún no tienen señal y suman 0, así que el riesgo puede estar infravalorado. La resiliencia, sin datos, se excluye.</p>
     </div>
     <p style="text-align:center;margin:24px 0 0;">
-      <a href="${env.publicUrl}/director" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#0066CC,#B82BD9);color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">Ver Radar completo →</a>
+      <a href="${env.publicUrl}/wellbeing" style="display:inline-block;padding:12px 28px;background:#0066CC;color:#fff;text-decoration:none;border-radius:100px;font-weight:600;">Ver Bienestar en VITAS</a>
     </p>
-    <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:20px;">VITAS · Football Intelligence · retención con corrección PHV</p>
+    <p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:20px;">VITAS · Football Intelligence</p>
   </div></body></html>`;
 }
 
@@ -95,51 +202,43 @@ export default withHandler(
       return successResponse({ skipped: true, reason: "supabase_not_configured", directorsNotified: 0 });
     }
 
-    const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" };
-    const base = `${supabaseUrl}/rest/v1`;
-
-    const [playersRes, subsRes] = await Promise.all([
-      fetch(`${base}/players?select=id,user_id,data`, { headers }),
-      fetch(`${base}/subscriptions?select=user_id,plan,status`, { headers }),
-    ]);
-
-    const players: PlayerRow[] = playersRes.ok ? await playersRes.json() : [];
-    const subs: SubRow[] = subsRes.ok ? await subsRes.json() : [];
+    const select = makeRowSelector(supabaseUrl, serviceKey);
+    const subs = await select(`subscriptions?select=user_id,plan,status`);
 
     // Solo directores de pago (pro/club) reciben el digest.
-    const paidUsers = new Set(
-      subs
-        .filter((s) => (s.status === "active" || s.status === "trialing") && (s.plan === "pro" || s.plan === "club"))
-        .map((s) => s.user_id),
-    );
+    const paidUsers = [
+      ...new Set(
+        subs
+          .filter((s) => (s.status === "active" || s.status === "trialing") && (s.plan === "pro" || s.plan === "club"))
+          .map((s) => (typeof s.user_id === "string" ? s.user_id : ""))
+          .filter(Boolean),
+      ),
+    ];
 
-    // Agrupa jugadores por owner
-    const byUser = new Map<string, PlayerRow[]>();
-    for (const p of players) {
-      if (!paidUsers.has(p.user_id)) continue;
-      const arr = byUser.get(p.user_id) ?? [];
-      arr.push(p);
-      byUser.set(p.user_id, arr);
-    }
-
+    const computedOn = new Date().toISOString().slice(0, 10);
     let directorsNotified = 0;
     let atRiskTotal = 0;
+    let playersEvaluated = 0;
+    let playersWithoutData = 0;
+    let playersDemo = 0;
 
-    for (const [userId, userPlayers] of byUser) {
-      const scored = userPlayers
-        .map((p) => ({
-          name: p.data?.name ?? "Jugador",
-          ...riskFor(String(p.id ?? p.data?.name ?? userId)),
-        }))
-        .filter((s) => s.level === "high" || s.level === "critical")
-        .sort((a, b) => b.score - a.score);
+    for (const userId of paidUsers) {
+      // Solo los jugadores de ESTE director (minimización: no se leen los de otros).
+      const players = await select(`players?user_id=eq.${encodeURIComponent(userId)}&select=id,data`);
+      if (players.length === 0) continue;
 
-      if (scored.length === 0) continue; // sin riesgo → no molestamos al director
+      const digest = await buildDirectorDigest(players, select);
+      playersEvaluated += digest.evaluated;
+      playersWithoutData += digest.withoutData;
+      playersDemo += digest.demo;
+
+      // Sin evaluación REAL alta/crítica → no se envía nada (ni nombres ni resumen).
+      if (digest.listed.length === 0) continue;
 
       // Email del director (auth admin API)
       let email: string | null = null;
       try {
-        const uRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+        const uRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
           headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
         });
         if (uRes.ok) email = ((await uRes.json()) as { email?: string }).email ?? null;
@@ -149,15 +248,22 @@ export default withHandler(
 
       const ok = await sendEmail({
         to: email,
-        subject: `🛡️ ${scored.length} jugador${scored.length === 1 ? "" : "es"} en riesgo de abandono · VITAS`,
-        html: digestHtml(scored.slice(0, 8), scored.length),
+        subject: digestSubject(digest),
+        html: digestHtml(digest, computedOn),
       });
       if (ok) {
         directorsNotified++;
-        atRiskTotal += scored.length;
+        atRiskTotal += digest.listed.length;
       }
     }
 
-    return successResponse({ directorsNotified, atRiskTotal, orgsScanned: byUser.size });
+    return successResponse({
+      directorsNotified,
+      atRiskTotal,
+      orgsScanned: paidUsers.length,
+      playersEvaluated,
+      playersWithoutData,
+      playersDemo,
+    });
   },
 );
