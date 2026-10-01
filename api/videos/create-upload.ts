@@ -17,7 +17,7 @@
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { ownsPlayerOrTenant } from "../_lib/ownership";
+import { ownsPlayer } from "../_lib/ownership";
 import { createClient } from "@supabase/supabase-js";
 import { randomHex } from "../_lib/edgeCrypto";
 import { signTusUpload } from "../_lib/bunnyStream";
@@ -73,7 +73,7 @@ async function createBunnyVideo(title: string): Promise<{ guid: string; libraryI
 
 export default withHandler(
   { schema: createUploadSchema, requireAuth: true, maxRequests: 30 },
-  async ({ body, userId, tenantId, isServiceCall }) => {
+  async ({ body, userId, isServiceCall }) => {
     const input = body as z.infer<typeof createUploadSchema>;
 
     if (!BUNNY_LIBRARY_ID || !BUNNY_API_KEY) {
@@ -101,9 +101,9 @@ export default withHandler(
 
     // Autorización a nivel de objeto: sin esto, cualquier autenticado adjuntaba una
     // subida a CUALQUIER jugador (coste Bunny + siembra un análisis vía el webhook
-    // bunny-uploaded sobre un menor ajeno). Mismo predicado que reports/share/generate
-    // (user_id del jugador OR tenant), fail-closed. Se omite en llamadas de servicio.
-    if (!isServiceCall && !(await ownsPlayerOrTenant(input.playerId, userId, tenantId))) {
+    // bunny-uploaded sobre un menor ajeno). Solo el DUEÑO del jugador (players.user_id,
+    // 076), fail-closed; nunca por tenant. Se omite en llamadas de servicio.
+    if (!isServiceCall && !(await ownsPlayer(input.playerId, userId))) {
       return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
     }
 
