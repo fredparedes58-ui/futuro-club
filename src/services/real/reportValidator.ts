@@ -316,23 +316,14 @@ export function validatePlayerReport(
 
 /**
  * Valida coherencia semántica de un reporte de Team Intelligence.
+ *
+ * Solo nivel de equipo (identidad.md): el informe ya no lleva filas por jugador
+ * (dorsal estimado por el LLM + cifras por jugador), así que las antiguas reglas
+ * por jugador (recuento de filas, velocidad/distancia por jugador, rendimiento
+ * individual frente a la evaluación) se retiraron con ellas.
  */
 export function validateTeamReport(report: TeamIntelligenceOutput): ValidationResult {
   const issues: ValidationIssue[] = [];
-
-  // ── Regla 1: Formación coherente con jugadores detectados ───────────
-  const playerCount = report.jugadores.length;
-  const detected = report.equipoAnalizado.jugadoresDetectados;
-
-  if (playerCount > detected + 2) {
-    issues.push({
-      rule: "formation_player_count",
-      severity: "warning",
-      fields: ["equipoAnalizado.jugadoresDetectados", "jugadores"],
-      message: `Se reportan ${playerCount} jugadores detallados pero solo ${detected} fueron detectados.`,
-      suggestedFix: `Ajusta jugadoresDetectados a ${playerCount} o reduce el array de jugadores.`,
-    });
-  }
 
   // ── Regla 2: Posesión realista ──────────────────────────────────────
   const posesion = report.posesion.porcentaje;
@@ -370,45 +361,6 @@ export function validateTeamReport(report: TeamIntelligenceOutput): ValidationRe
       fields: ["fasesJuego.pressing", "metricasColectivas.alturaLineaDefensiva"],
       message: `Pressing alto (${pressing.alturaLinea}, intensidad ${pressing.intensidad}/10) con línea defensiva baja es contradictorio.`,
       suggestedFix: "Si el pressing es alto e intenso, la línea defensiva debería ser media o alta.",
-    });
-  }
-
-  // ── Regla 5: Velocidades de jugadores plausibles ────────────────────
-  for (const player of report.jugadores) {
-    if (player.velocidadMaxKmh !== null && player.velocidadMaxKmh > 38) {
-      issues.push({
-        rule: "player_speed_plausibility",
-        severity: "error",
-        fields: ["jugadores[].velocidadMaxKmh"],
-        message: `Jugador ${player.dorsalEstimado ?? "?"} con velocidad ${player.velocidadMaxKmh} km/h (imposible).`,
-        suggestedFix: "Velocidad máxima realista: 15-34 km/h.",
-      });
-    }
-
-    if (player.distanciaM !== null && player.distanciaM > 15000) {
-      issues.push({
-        rule: "player_distance_plausibility",
-        severity: "warning",
-        fields: ["jugadores[].distanciaM"],
-        message: `Jugador ${player.dorsalEstimado ?? "?"} con ${(player.distanciaM / 1000).toFixed(1)}km recorridos. Excesivo.`,
-        suggestedFix: "Distancia máxima realista por partido: ~13km para mediocampistas.",
-      });
-    }
-  }
-
-  // ── Regla 6: Evaluación coherente con rendimientos individuales ─────
-  const playerPerfs = report.jugadores.map(j => j.rendimiento);
-  const lowCount = playerPerfs.filter(p => p === "bajo" || p === "regular").length;
-  const highCount = playerPerfs.filter(p => p === "destacado" || p === "bueno").length;
-
-  const hasPositiveEval = report.evaluacionGeneral.fortalezasEquipo.length >= 3;
-  if (lowCount > highCount && hasPositiveEval) {
-    issues.push({
-      rule: "evaluation_player_coherence",
-      severity: "warning",
-      fields: ["evaluacionGeneral.fortalezasEquipo", "jugadores[].rendimiento"],
-      message: `La mayoría de jugadores tiene rendimiento bajo/regular pero se listan 3+ fortalezas del equipo.`,
-      suggestedFix: "Si la mayoría de jugadores rinde bajo, reduce las fortalezas del equipo a 1-2.",
     });
   }
 

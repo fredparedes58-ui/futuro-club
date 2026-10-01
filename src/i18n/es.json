@@ -1002,11 +1002,6 @@
     "width": "Amplitud",
     "synchronization": "Sincronización",
     "defensiveLine": "Línea def.",
-    "playersTitle": "Jugadores",
-    "playersDesc": "Toca un jugador para ver detalle y mapa de calor",
-    "passes": "Pases",
-    "duels": "Duelos",
-    "recoveries": "Recup.",
     "generalEvaluation": "Evaluación General",
     "generalEvalDesc": "Conclusiones y recomendaciones",
     "teamStrengths": "Fortalezas",
@@ -2152,7 +2147,7 @@
     "teamColorPlaceholder": "ej: rojo, blanco",
     "opponentColorLabel": "Color rival",
     "opponentColorPlaceholder": "ej: azul",
-    "aiAnalysisHint": "La IA analizará a todo el equipo con ese color de uniforme: formación, posesión, pressing, métricas por jugador.",
+    "aiAnalysisHint": "La IA analizará a todo el equipo con ese color de uniforme: formación, posesión, pressing y transiciones. Solo a nivel de equipo: sin dorsales ni cifras por jugador.",
     "analyzingTeam": "Analizando equipo...",
     "analyzeFullTeam": "Analizar Equipo Completo",
     "savedAnalyses": "Análisis guardados ({{count}})",
@@ -2172,15 +2167,8 @@
     "newAnalysisShort": "Nuevo análisis",
     "noTeamAnalysis": "Sin análisis de equipo",
     "noTeamAnalysisDesc": "Sube un video de partido y genera el primer informe táctico",
-    "role": "Rol",
-    "passes": "Pases",
-    "duels": "Duelos",
-    "wonAbbr": "G",
-    "lostAbbr": "P",
-    "recoveriesCount": "{{count}} recuperaciones",
-    "speed": "Velocidad",
-    "distance": "Distancia",
-    "heatmapTitle": "Mapa de Calor — #{{number}}"
+    "perPlayerWithheld": "Este informe incluía filas por jugador con un dorsal estimado por la IA. Se ocultan: sin identificación por dorsal validada, VITAS no atribuye cifras a ningún jugador concreto. El análisis es solo de equipo.",
+    "individualTextsHidden": "Textos ocultos por mencionar a un jugador concreto (dorsal o número): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "SUBIR",
@@ -2700,7 +2688,7 @@
         }
       ],
       "teamHeading": "Analisis de equipo (Team Intelligence)",
-      "teamText": "Funciona igual pero evalua al equipo completo: formacion, fases de juego, metricas colectivas (compacidad, sincronizacion, pressing), y rendimiento por jugador.",
+      "teamText": "Funciona igual pero evalua al equipo completo: formacion, fases de juego y metricas colectivas (compacidad, sincronizacion, pressing). Solo a nivel de equipo: sin dorsales ni cifras por jugador.",
       "tip": "Los videos se almacenan de forma segura en Bunny CDN. Puedes reanalizarlos con diferentes enfoques (ofensivo, defensivo, transiciones) sin volver a subirlos."
     },
     "rankings": {

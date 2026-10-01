@@ -31,8 +31,9 @@ const ADMIN_EMAILS = new Set(
 /**
  * Comparación en tiempo constante (mitiga timing side-channels al validar secretos).
  * Recorre siempre la longitud máxima y no cortocircuita.
+ * Exportada solo para tests (api/_lib/__tests__/serviceToken.test.ts).
  */
-function constantTimeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   const enc = new TextEncoder();
   const aB = enc.encode(a);
   const bB = enc.encode(b);
@@ -46,19 +47,25 @@ function constantTimeEqual(a: string, b: string): boolean {
 
 /**
  * Comprueba si el Authorization header trae un token de servicio válido
- * (llamada interna del orchestrator, cron, o herramienta admin).
+ * (llamada server-to-server: cron de Vercel, orchestrator, seed → ingest → embed).
  * Usa comparación en tiempo constante para no filtrar el secreto por timing.
- * (Preserva el comportamiento previo de serviceOnly: acepta CRON_SECRET /
- *  ADMIN_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY.)
+ *
+ * Fuente ÚNICA de "¿es una llamada de servicio?" (invariante #7): serviceOnly,
+ * allowServiceToken y los endpoints RAG (_embed/_ingest) pasan por aquí.
+ *
+ * Acepta SOLO CRON_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY.
+ * ADMIN_SECRET YA NO se acepta (CS-01): viajó inlined en bundles antiguos del
+ * cliente como VITE_ADMIN_SECRET (src/hooks/useAdminOrgs.ts) → quien guardara un
+ * bundle podía pasar serviceOnly/allowServiceToken y saltarse la propiedad de
+ * datos de menores. La gestión admin usa el JWT de un admin (adminOnly).
  */
-function hasValidServiceToken(req: Request): boolean {
+export function hasValidServiceToken(req: Request): boolean {
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) return false;
   const token = authHeader.slice(7).trim();
   if (!token) return false;
   const secrets = [
     process.env.CRON_SECRET,
-    process.env.ADMIN_SECRET,
     process.env.INTERNAL_API_TOKEN,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   ].filter((s): s is string => Boolean(s));
@@ -83,12 +90,16 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
   requireAuth?: boolean;
   /** Intenta auth pero no falla si no hay token. Pasa userId si existe. */
   optionalAuth?: boolean;
-  /** Solo permite service role (CRON_SECRET o ADMIN_SECRET en Authorization header). */
+  /**
+   * Solo permite token de servicio en Authorization: Bearer
+   * (CRON_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY). ADMIN_SECRET no.
+   */
   serviceOnly?: boolean;
   /**
    * Gate de administrador de PLATAFORMA: exige un usuario autenticado cuyo email
    * esté en ADMIN_EMAILS. NO acepta token de servicio (el antiguo ADMIN_SECRET
-   * viajaba inlined en el bundle del cliente → cualquiera lo extraía). La única
+   * viajaba inlined en el bundle del cliente → cualquiera lo extraía; hoy ni
+   * siquiera es token de servicio, ver hasValidServiceToken). La única
    * llave válida es el JWT de un admin real. Debe emparejarse con `requireAuth`;
    * si no, no hay email y el gate falla-cerrado (403).
    */
@@ -105,7 +116,7 @@ interface HandlerOptions<T extends z.ZodSchema | undefined> {
   requiredRole?: string;
   /**
    * Permite que una llamada interna con token de servicio
-   * (CRON_SECRET / ADMIN_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY)
+   * (CRON_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY)
    * pase la puerta de auth y omita los checks de plan/rol.
    * Úsalo en agentes premium que TAMBIÉN llama el orchestrator/cron server-to-server.
    */
@@ -128,7 +139,7 @@ interface HandlerContext<T> {
    */
   tenantId: string | null;
   /**
-   * true si la request entró con token de servicio (CRON/ADMIN/INTERNAL/SERVICE_ROLE).
+   * true si la request entró con token de servicio (CRON/INTERNAL/SERVICE_ROLE).
    * Úsalo para checks de ownership — NO infieras "servicio" de userId===null,
    * que es un contrato implícito frágil (optionalAuth también deja userId null).
    */
@@ -210,7 +221,8 @@ export function withHandler<T extends z.ZodSchema | undefined = undefined>(
     // 4a. Gate admin de plataforma: el email autenticado debe estar en ADMIN_EMAILS.
     // Fail-closed: sin email (no autenticado, JWT sin email, o llamada de servicio)
     // → 403. Este gate es la ÚNICA puerta a los endpoints /api/admin/* de gestión;
-    // ya no basta un token de servicio (el ADMIN_SECRET se filtraba en el bundle).
+    // ya no basta un token de servicio (el ADMIN_SECRET se filtraba en el bundle, y
+    // tampoco es ya token de servicio en ningún endpoint).
     if (options.adminOnly) {
       const isPlatformAdmin = userEmail ? ADMIN_EMAILS.has(userEmail.toLowerCase()) : false;
       if (!isPlatformAdmin) {

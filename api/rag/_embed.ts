@@ -20,20 +20,14 @@ const EmbedSchema = z.object({
 });
 
 export default withHandler(
-  { schema: EmbedSchema, optionalAuth: true, maxRequests: 60 },
-  async ({ req, body, userId }) => {
-    // Allow authenticated users OR service role (for seed/ingest chain)
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const token = authHeader.replace("Bearer ", "");
-    const cronSecret = process.env.CRON_SECRET;
-    const adminSecret = process.env.ADMIN_SECRET;
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const isService =
-      (cronSecret && token === cronSecret) ||
-      (adminSecret && token === adminSecret) ||
-      (serviceKey && token === serviceKey);
-
-    if (!userId && !isService) {
+  // Usuario autenticado O token de servicio (cadena seed → ingest → embed).
+  // El token se valida en withHandler (hasValidServiceToken: tiempo constante,
+  // CRON_SECRET / INTERNAL_API_TOKEN / SUPABASE_SERVICE_ROLE_KEY). Antes se
+  // comparaba aquí con `===` y se aceptaba también ADMIN_SECRET (filtrado en
+  // bundles antiguos como VITE_ADMIN_SECRET) → retirado (CS-01).
+  { schema: EmbedSchema, optionalAuth: true, allowServiceToken: true, maxRequests: 60 },
+  async ({ body, userId, isServiceCall }) => {
+    if (!userId && !isServiceCall) {
       return errorResponse("No autenticado", 401, "UNAUTHORIZED");
     }
     const voyageKey = process.env.VOYAGE_API_KEY;
