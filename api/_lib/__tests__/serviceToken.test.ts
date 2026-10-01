@@ -202,10 +202,23 @@ function envReadPattern(name: string): RegExp {
   );
 }
 
+// Se lee cada fichero UNA vez y se reutiliza entre tests: leer todo el árbol en cada
+// llamada superaba el timeout de 5 s con la suite completa en paralelo (Windows).
+let scannedText: { file: string; text: string }[] | null = null;
+function scannedFiles(): { file: string; text: string }[] {
+  scannedText ??= SCANNED.map((f) => ({ file: f, text: readFileSync(f, "utf8") }));
+  return scannedText;
+}
+
 function filesReading(name: string): string[] {
   const re = envReadPattern(name);
-  return SCANNED.filter((f) => re.test(readFileSync(f, "utf8"))).map((f) => relative(ROOT, f).replace(/\\/g, "/"));
+  return scannedFiles()
+    .filter(({ text }) => re.test(text))
+    .map(({ file }) => relative(ROOT, file).replace(/\\/g, "/"));
 }
+
+// Recorrer y leer el árbol es I/O real: margen holgado para no depender de la carga del runner.
+const REPO_SCAN_TIMEOUT_MS = 30_000;
 
 describe("guard de repo · nadie vuelve a leer ADMIN_SECRET", () => {
   it("control positivo: el mismo escáner encuentra CRON_SECRET en withHandler.ts y en scripts/seed-rag.sh", () => {
@@ -213,7 +226,7 @@ describe("guard de repo · nadie vuelve a leer ADMIN_SECRET", () => {
     const hits = filesReading("CRON_SECRET");
     expect(hits).toContain("api/_lib/withHandler.ts");
     expect(hits).toContain("scripts/seed-rag.sh");
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 
   it("control positivo del patrón: detecta las formas de lectura", () => {
     const re = envReadPattern("ADMIN_SECRET");
@@ -233,7 +246,7 @@ describe("guard de repo · nadie vuelve a leer ADMIN_SECRET", () => {
 
   it("ningún fichero de código (api, src, scripts, vision-pipeline, eval, e2e, .github) lee ADMIN_SECRET", () => {
     expect(filesReading("ADMIN_SECRET")).toEqual([]);
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 
   it(".env.example ya no define ADMIN_SECRET (control positivo: sí define CRON_SECRET)", () => {
     const envExample = readFileSync(join(ROOT, ".env.example"), "utf8");
