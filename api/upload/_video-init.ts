@@ -11,8 +11,8 @@
  *     user_id = auth.uid() → con service role el org_id quedaría NULL.
  *   - id = bunny_video_id = GUID de Bunny (misma convención que el cliente:
  *     useVideoUpload usa el GUID como id del VideoRecord y pushOne hace upsert por id).
- *   - tenant_id del JWT verificado; player_id SOLO si el jugador es visible para este
- *     usuario bajo RLS (mismo predicado que SupabaseVideoService.pushOne).
+ *   - tenant_id del JWT verificado (etiqueta, no da acceso); player_id SOLO si el
+ *     usuario es el DUEÑO del jugador (RLS + players.user_id = usuario, 076).
  *   - duration_sec SOLO si el navegador la leyó de los metadatos (nunca un default).
  *   Así el webhook de Bunny encuentra la fila por bunny_video_id aunque el cliente
  *   cierre la pestaña antes de su upsert. Sin Supabase configurado → se omite (no rompe).
@@ -67,12 +67,16 @@ async function insertVideoRow(opts: {
   const authHeaders = { apikey: anonKey, Authorization: `Bearer ${opts.userJwt}` };
 
   try {
-    // player_id solo si ESTE usuario ve al jugador bajo RLS (no se adjuntan vídeos a
+    // player_id solo si ESTE usuario es el DUEÑO del jugador (no se adjuntan vídeos a
     // menores ajenos). La FK a players no aplica RLS → este check es obligatorio.
+    // Además de la RLS, se filtra por user_id = el usuario del JWT verificado (076):
+    // así vale aunque la RLS de players de la base aún tenga una rama por tenant u
+    // organización (players_tenant_isolation de 003 / 038) que dejaría «ver» al
+    // jugador de otra cuenta.
     let safePlayerId: string | null = null;
     if (opts.playerId) {
       const pRes = await fetch(
-        `${sbUrl}/rest/v1/players?id=eq.${encodeURIComponent(opts.playerId)}&select=id&limit=1`,
+        `${sbUrl}/rest/v1/players?id=eq.${encodeURIComponent(opts.playerId)}&user_id=eq.${encodeURIComponent(opts.userId)}&select=id&limit=1`,
         { headers: authHeaders },
       );
       if (pRes.ok) {

@@ -153,15 +153,16 @@ export default withHandler(
     allowServiceToken: true,
     maxRequests: 10,
   },
-  async ({ body, tenantId, isServiceCall }) => {
+  async ({ body, userId, isServiceCall }) => {
     const input = body as z.infer<typeof ComputeFromVideoSchema>;
 
     // Autorización a nivel de objeto: dispara Modal ($) y sobrescribe heatmaps de
     // este match. compute-heatmap (interno) recibe token de servicio y salta su
-    // propio ownsMatch, así que la puerta de tenant para el flujo iniciado por
-    // usuario tiene que estar AQUÍ. La cadena interna (modal-callback con token de
-    // servicio) omite el check vía isServiceCall.
-    if (!isServiceCall && !(await ownsMatch(input.matchId, tenantId))) {
+    // propio ownsMatch, así que la puerta de propiedad (076: creador o dueño del
+    // jugador de la analysis, nunca por tenant) para el flujo iniciado por usuario
+    // tiene que estar AQUÍ. La cadena interna (modal-callback con token de servicio)
+    // omite el check vía isServiceCall.
+    if (!isServiceCall && !(await ownsMatch(input.matchId, userId))) {
       return errorResponse("No autorizado para este partido", 403, "FORBIDDEN");
     }
 
