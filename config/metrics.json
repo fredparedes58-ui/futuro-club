@@ -313,11 +313,11 @@
       "name": "Riesgo de abandono (scorer 8 factores)",
       "concept": "bienestar.dropout_riesgo",
       "provenance": "DERIVADA",
-      "calc_paths": ["src/lib/wellbeing/dropoutRiskScorer.ts"],
-      "ui_paths": [],
-      "allowed_literals": [0.05, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.4, 0.6, 25, 50, 75],
+      "calc_paths": ["src/lib/wellbeing/dropoutRiskScorer.ts", "api/_lib/dropoutAssessment.ts"],
+      "ui_paths": ["api/crons/director-risk-digest.ts"],
+      "allowed_literals": [0.05, 0.08, 0.1, 0.12, 0.15, 0.2, 0.25, 0.4, 0.6, 3, 25, 50, 75, 85],
       "gated": true,
-      "notes": "Pesos del compuesto PENDIENTE DE VALIDAR → confidence reducida. DEUDA inv#2 (a gatear en PR posterior): :87 resilience ?? 50, :110 resilienceScore ?? 0, :116 ?? 0; scoreDropoutRisk nunca devuelve null. Render vía DropoutRiskGauge (PlayerHubPage). En la ruta de padre (_dropout-risk.ts) ya se gatea insufficient_data + banner isMock."
+      "notes": "Pesos del compuesto PENDIENTE DE VALIDAR → confidence reducida (ORIENTATIVE_CONFIDENCE vía dropoutRiskMetric). api/_lib/dropoutAssessment.ts = ÚNICA construcción de entradas en servidor (inv #7), la comparten GET /api/wellbeing/dropout-risk y el digest mensual al director; literales 3 (mín. snapshots reales para motivación y margen de tendencia) y 85 (umbral de tendencia de asistencia) movidos tal cual desde _dropout-risk.ts, pendiente de validar. El digest (ui_path, email) solo nombra jugadores con source computed y declara procedencia/confianza/cobertura; sin evaluación real no envía nada. DEUDA inv#2 (a gatear en PR posterior): :87 resilience ?? 50, :110 resilienceScore ?? 0, :116 ?? 0; scoreDropoutRisk nunca devuelve null; vsiStagnation/injuryRecurrence/growthSpurtStress entran como 0 SIN redistribuir su peso (compuesto infravalorado). Render vía DropoutRiskGauge (PlayerHubPage). En la ruta de padre (_dropout-risk.ts) ya se gatea insufficient_data + banner isMock."
     },
     {
       "id": "asistencia_tasa",

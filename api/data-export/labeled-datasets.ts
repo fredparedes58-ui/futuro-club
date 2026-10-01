@@ -3,7 +3,8 @@
  * GET /api/data-export/labeled-datasets            → stats (count + recientes + por base legal)
  * GET /api/data-export/labeled-datasets?format=jsonl&limit=5000  → JSONL para entrenamiento
  *
- * serviceOnly: solo con token de servicio (CRON_SECRET/ADMIN_SECRET/SERVICE_ROLE_KEY).
+ * serviceOnly: solo con token de servicio (CRON_SECRET/INTERNAL_API_TOKEN/SERVICE_ROLE_KEY;
+ * ADMIN_SECRET ya no vale, CS-01).
  * Es dataset de entrenamiento propietario — nunca expuesto al cliente.
  */
 import { withHandler } from "../_lib/withHandler";

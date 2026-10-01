@@ -55,12 +55,8 @@ function makeValidPlayerReport() {
 }
 
 function makeValidTeamReport() {
+  // Team level only (identidad.md): no per-player rows / dorsal.
   return {
-    jugadores: [
-      { velocidadMaxKmh: 28, distanciaM: 9000, dorsalEstimado: "7", rendimiento: "bueno" as const },
-      { velocidadMaxKmh: 26, distanciaM: 8500, dorsalEstimado: "10", rendimiento: "destacado" as const },
-      { velocidadMaxKmh: 24, distanciaM: 10000, dorsalEstimado: "4", rendimiento: "bueno" as const },
-    ],
     equipoAnalizado: { jugadoresDetectados: 3 },
     posesion: { porcentaje: 55 },
     metricasColectivas: {
@@ -385,17 +381,18 @@ describe("validateTeamReport", () => {
     expect(result.issues).toHaveLength(0);
   });
 
-  describe("formation_player_count", () => {
-    it("playerCount > detected + 2 → warning", () => {
+  describe("identity (team level only)", () => {
+    it("per-player rows of a legacy report are not validated nor quoted (no dorsal in any message)", () => {
       const report = makeValidTeamReport();
-      report.equipoAnalizado.jugadoresDetectados = 0;
-      // 3 jugadores en array, detectados = 0 → 3 > 0+2
+      report.jugadores = [
+        { velocidadMaxKmh: 40, distanciaM: 16000, dorsalEstimado: "7", rendimiento: "bajo" },
+      ];
 
       const result = validateTeamReport(report);
 
-      const issue = result.issues.find((i: any) => i.rule === "formation_player_count");
-      expect(issue).toBeDefined();
-      expect(issue!.severity).toBe("warning");
+      expect(result.valid).toBe(true);
+      expect(result.issues.some((i: any) => /^player_|formation_player_count|evaluation_player/.test(i.rule))).toBe(false);
+      expect(JSON.stringify(result)).not.toMatch(/dorsal|Jugador 7/i);
     });
   });
 
@@ -448,20 +445,6 @@ describe("validateTeamReport", () => {
 
       expect(result.valid).toBe(false);
       const issue = result.issues.find((i: any) => i.rule === "pressing_line_coherence");
-      expect(issue).toBeDefined();
-      expect(issue!.severity).toBe("error");
-    });
-  });
-
-  describe("player_speed_plausibility", () => {
-    it("velocidad de jugador > 38 → error", () => {
-      const report = makeValidTeamReport();
-      report.jugadores[0].velocidadMaxKmh = 40;
-
-      const result = validateTeamReport(report);
-
-      expect(result.valid).toBe(false);
-      const issue = result.issues.find((i: any) => i.rule === "player_speed_plausibility");
       expect(issue).toBeDefined();
       expect(issue!.severity).toBe("error");
     });

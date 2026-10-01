@@ -140,7 +140,7 @@ Las proyecciones ajustan las métricas de profesionales a la edad del jugador ju
 
 **Video Intelligence**: Detección de formación, pressing, movimientos clave, conteo de jugadores, detección de balón, fase táctica (ataque/defensa/transición/balón parado), intensidad física
 
-**Team Intelligence**: Formación detectada, estimación de posesión, fase táctica (pressing/transición ofensiva/transición defensiva/posesión), conteo de acciones (pases, recuperaciones, duelos, disparos, centros), momentos colectivos clave
+**Team Intelligence**: Formación detectada, estimación de posesión, fase táctica (pressing/transición ofensiva/transición defensiva/posesión), momentos colectivos clave. Solo a nivel de equipo: sin dorsales ni conteos por jugador (no hay identificación por dorsal validada; `.claude/rules/identidad.md`)
 
 ### 3.4 Resiliencia
 
@@ -381,7 +381,7 @@ Query del usuario → Sanitizer (30+ patterns) → Búsqueda semántica
 - **Invitaciones** por email con token y expiración
 - **Flujo**: Invitar → Email con enlace → Aceptar → Rol asignado
 - **Dashboard Director**: Vista ejecutiva con analytics de uso del equipo
-- **Análisis de equipo**: Formación, posesión, rendimiento colectivo, heatmaps por jugador
+- **Análisis de equipo**: Formación, posesión, rendimiento colectivo (solo nivel de equipo: sin cifras ni mapas de calor por jugador)
 
 ---
 
