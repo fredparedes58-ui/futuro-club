@@ -14,6 +14,8 @@
  * Flujo:
  *   1. SELECT analyses WHERE status='queued' LIMIT 2
  *   2. UPDATE status='processing'
+ *   2b. Gate de consentimiento (declaración guardada + consentimiento parental de un
+ *       menor de 14 conocido · api/_lib/analysisConsentGate) → si falta, failed con motivo
  *   3. Construir URL de video desde Bunny CDN
  *   4. POST a /api/agents/video-observation (Gemini · hasta 120s)
  *   5. Convertir GeminiObservation → biomechanics format
@@ -29,6 +31,7 @@ import {
   geminiToBiomechanics,
   type GeminiObservation,
 } from "../_lib/geminiBiomechanics";
+import { gateClipAnalysis } from "../_lib/analysisConsentGate";
 
 // Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
 // por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
@@ -226,6 +229,20 @@ async function triggerOrchestrator(analysisId: string): Promise<{ success: boole
 // ─── Main queue processor ───────────────────────────────────────────────
 
 /**
+ * Idioma del análisis (mig 064) para el motivo de un bloqueo. Best-effort: si la columna
+ * no existe o falla la lectura → null (el motivo sale en español, idioma por defecto).
+ */
+async function analysisLocale(supabase: SupabaseClient, analysisId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("analyses").select("locale").eq("id", analysisId).maybeSingle();
+    const loc = (data as { locale?: unknown } | null)?.locale;
+    return typeof loc === "string" ? loc : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Reaper de análisis colgados: marca 'failed' los que llevan en 'processing' /
  * 'processing_reports' más de `staleHours` (el worker murió a mitad — edge timeout,
  * crash, Gemini colgado). Filtra por started_at para no pisar uno que se complete en
@@ -300,6 +317,32 @@ async function processQueue() {
         results.push({ id: analysis.id, status: "skip", error: lockError.message });
         continue;
       }
+    }
+
+    // ── 1b. Consentimiento (defensa en profundidad) ANTES de cualquier despacho ──
+    // enqueueAnalysis ya lo exige, pero aquí llegan también filas encoladas ANTES de este
+    // gate y filas que no pasaron por él (p. ej. escritas desde el navegador bajo RLS).
+    // Solo cuenta una declaración GUARDADA con el vídeo; consentimiento parental de un
+    // menor de 14 conocido: el jugador del análisis Y el `player_id` de cada fila `videos`
+    // de ese vídeo de Bunny (B1). Bloqueado → failed con el motivo; ni Gemini ni informes.
+    const consent = await gateClipAnalysis({
+      videoId: analysis.video_id,
+      requireVideoRow: true,
+      storedOnly: true,
+      playerId: analysis.player_id,
+      actor: { userId: null, tenantId: analysis.tenant_id ?? null },
+      endpoint: "crons/process-analyses-queue",
+      scope: "player",
+      locale: await analysisLocale(supabase, analysis.id),
+      ownsVideo: null,
+    });
+    if (!consent.allowed) {
+      await supabase
+        .from("analyses")
+        .update({ status: "failed", status_message: consent.gate_reason })
+        .eq("id", analysis.id);
+      results.push({ id: analysis.id, status: "consent_blocked", error: consent.code });
+      continue;
     }
 
     // ── 2. Get video URL from Bunny ──

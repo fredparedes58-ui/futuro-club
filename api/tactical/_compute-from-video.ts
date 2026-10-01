@@ -14,13 +14,21 @@
  * Endpoint diseñado para ser disparado:
  *   - Manualmente por el coach desde la UI ("Recomputar heatmap")
  *   - Automáticamente desde modal-callback cuando se completa un análisis
+ *
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): SOLO en las
+ * llamadas con JWT de USUARIO, antes del tripwire de gasto y de Modal, el servidor resuelve
+ * el vídeo por el GUID de la `videoUrl` (+ `videoId`): fila `videos` propia obligatoria,
+ * el jugador de cada fila se comprueba (menor de 14 conocido → consentimiento parental) y
+ * se exige la declaración del entrenador (body o guardada con el vídeo). La ruta de
+ * SERVICIO (cadena de modal-callback) NO cambia: su análisis de origen ya pasó por el gate.
  */
 
 import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
-import { ownsMatch } from "../_lib/ownership";
+import { ownsMatch, ownsVideo } from "../_lib/ownership";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
 
 export const config = { runtime: "edge" };
 
@@ -42,6 +50,8 @@ const ComputeFromVideoSchema = z.object({
   frameHeight: z.number().optional(),
   /** FPS at which Modal will sample the video (default 5). */
   sampleFps: z.number().int().min(1).max(15).optional(),
+  /** Declaración del entrenador `{ accepted: true, version }` (llamadas de usuario). */
+  attestation: z.unknown().optional(),
 });
 
 interface ModalPlayer {
@@ -153,7 +163,7 @@ export default withHandler(
     allowServiceToken: true,
     maxRequests: 10,
   },
-  async ({ body, tenantId, isServiceCall }) => {
+  async ({ body, userId, tenantId, isServiceCall, ip }) => {
     const input = body as z.infer<typeof ComputeFromVideoSchema>;
 
     // Autorización a nivel de objeto: dispara Modal ($) y sobrescribe heatmaps de
@@ -170,6 +180,22 @@ export default withHandler(
         "Modal no configurado (MODAL_TRACK_URL / MODAL_API_KEY missing)",
         503,
       );
+    }
+
+    // Consentimiento de las llamadas de USUARIO (la ruta de servicio no cambia).
+    if (!isServiceCall) {
+      const consent = await gateClipAnalysis({
+        videoId: input.videoId,
+        videoUrl: input.videoUrl, // Modal descargará ESTA URL
+        requireVideoRow: true,
+        attestation: input.attestation,
+        playerId: null, // heatmap de equipo; el jugador de cada fila del vídeo sí cuenta
+        actor: { userId, tenantId, ip },
+        endpoint: "tactical/compute-from-video",
+        scope: "team",
+        ownsVideo: (video, uid, tid) => ownsVideo(video, uid, tid),
+      });
+      if (!consent.allowed) return clipGateErrorResponse(consent);
     }
 
     // Tripwire de presupuesto (054): dispara Modal ($). Corta si el mes superó el
