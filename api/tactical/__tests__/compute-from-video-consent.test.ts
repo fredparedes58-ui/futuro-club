@@ -7,7 +7,9 @@
  * Run: npx vitest run --config vitest.api.config.ts api/tactical/__tests__/compute-from-video-consent.test.ts
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { ATTESTATION, consentFetch, emptyConsentDb, type ConsentDbState } from "../../_lib/__tests__/consentFetchMock";
+import { ATTESTATION, MINOR_BIRTH_DATE, consentFetch, emptyConsentDb, type ConsentDbState } from "../../_lib/__tests__/consentFetchMock";
+
+const USER = "11111111-1111-4111-8111-111111111111";
 
 vi.mock("../../_lib/rateLimit", () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 9, limit: 10, resetAt: Date.now() + 60000 }),
@@ -53,6 +55,7 @@ beforeEach(() => {
   process.env.SUPABASE_URL = "https://sb.test";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
   db = emptyConsentDb();
+  db.videos.push({ id: "g-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-1" });
   modalCalls = [];
   mock = consentFetch(db, {
     fallback: async (url, init) => {
@@ -95,8 +98,24 @@ describe("compute-from-video · consentimiento", () => {
   it("usuario declarado → se guarda y Modal recibe el body de siempre", async () => {
     const res = await post({ attestation: ATTESTATION });
     expect(res.status).toBe(200);
-    expect(mock.inserts[0]).toMatchObject({ resource_type: "video_ref", resource_id: VIDEO_URL, metadata: { endpoint: "tactical/compute-from-video" } });
+    expect(mock.inserts[0]).toMatchObject({ resource_type: "videos", resource_id: "g-1", metadata: { endpoint: "tactical/compute-from-video" } });
     expect(modalCalls[0].init.body).toBe(EXPECTED_MODAL_BODY);
+  });
+
+  it("B1 · vídeo (fila propia) de un menor de 14 sin consentimiento → 403; Modal no se llama", async () => {
+    db.videos[0].player_id = "pMinor";
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await post({ attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("B2 · vídeo de OTRO usuario por el GUID de la URL → 403; URL sin fila → 404; Modal no se llama", async () => {
+    db.videos[0].user_id = "99999999-9999-4999-8999-999999999999";
+    expect((await post({ attestation: ATTESTATION })).status).toBe(403);
+    expect((await post({ attestation: ATTESTATION, videoUrl: "https://cdn.test/sin-fila/play.mp4" })).status).toBe(404);
+    expect(modalCalls).toHaveLength(0);
   });
 
   it("SERVICIO (cadena de modal-callback) → sin gate y misma petición a Modal", async () => {

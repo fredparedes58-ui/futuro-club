@@ -7,7 +7,9 @@
  * Run: npx vitest run --config vitest.api.config.ts api/coaching/__tests__/track-players-consent.test.ts
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from "vitest";
-import { ATTESTATION, consentFetch, emptyConsentDb, type ConsentDbState } from "../../_lib/__tests__/consentFetchMock";
+import { ATTESTATION, MINOR_BIRTH_DATE, consentFetch, emptyConsentDb, type ConsentDbState } from "../../_lib/__tests__/consentFetchMock";
+
+const USER = "11111111-1111-4111-8111-111111111111";
 
 vi.mock("../../_lib/rateLimit", () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 29, limit: 30, resetAt: Date.now() + 60000 }),
@@ -49,6 +51,8 @@ beforeEach(() => {
   process.env.SUPABASE_SERVICE_ROLE_KEY = "svc-key";
   process.env.INTERNAL_API_TOKEN = "svc-token";
   db = emptyConsentDb();
+  // Vídeo de equipo propio (sin jugador) en nuestro CDN → fila `videos` id = GUID.
+  db.videos.push({ id: "g-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-1" });
   modalCalls = [];
   mock = consentFetch(db, {
     fallback: async (url, init) => {
@@ -101,7 +105,7 @@ describe("track-players · consentimiento", () => {
   it("declarada → se guarda y Modal recibe el MISMO body y Bearer que antes", async () => {
     const res = await post({ videoUrl: VIDEO_URL, attestation: ATTESTATION });
     expect(res.status).toBe(200);
-    expect(mock.inserts[0]).toMatchObject({ resource_type: "video_ref", resource_id: VIDEO_URL, metadata: { endpoint: "coaching/track-players" } });
+    expect(mock.inserts[0]).toMatchObject({ resource_type: "videos", resource_id: "g-1", metadata: { endpoint: "coaching/track-players" } });
     expect(modalCalls).toHaveLength(1);
     expect((modalCalls[0].init.headers as Record<string, string>).Authorization).toBe("Bearer modal-key");
     const sent = JSON.parse(String(modalCalls[0].init.body));
@@ -114,5 +118,31 @@ describe("track-players · consentimiento", () => {
     expect(res.status).toBe(200);
     expect(mock.calls.some((c) => c.url.includes("/rest/v1/"))).toBe(false);
     expect(modalCalls).toHaveLength(1);
+  });
+});
+
+describe("track-players · B1/B2: el jugador del vídeo lo resuelve el SERVIDOR", () => {
+  it("B1 · vídeo (fila propia) de un menor de 14 sin consentimiento → 403 (no 503); ni gasto ni Modal", async () => {
+    db.videos[0].player_id = "pMinor";
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await post({ videoUrl: VIDEO_URL, attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(recordSpendUsd).not.toHaveBeenCalled();
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("B2 · vídeo de OTRO usuario (fila create-upload encontrada por el GUID de la URL) → 403", async () => {
+    db.videos[0] = { id: "vid-x", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: null, bunny_video_id: "g-1" };
+    const res = await post({ videoUrl: VIDEO_URL, attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("URL sin fila `videos` → 404 video_not_found (nunca 503); ni gasto ni Modal", async () => {
+    const res = await post({ videoUrl: "https://cdn.test/sin-fila/play.mp4", attestation: ATTESTATION });
+    expect(res.status).toBe(404);
+    expect(recordSpendUsd).not.toHaveBeenCalled();
+    expect(modalCalls).toHaveLength(0);
   });
 });

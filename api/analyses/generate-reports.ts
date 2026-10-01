@@ -12,9 +12,11 @@
  *
  * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): el tracking
  * corrió en el navegador (el servidor no puede impedirlo), así que ESTE es el punto donde
- * el servidor lo exige, ANTES de tocar el análisis y de llamar al orquestador: declaración
- * del entrenador (la del body `attestation`, o una guardada si `videoId` es una fila
- * `videos` propia) y, para un menor de 14 conocido, consentimiento parental verificado.
+ * el servidor lo exige, ANTES de tocar el análisis y de llamar al orquestador: el `videoId`
+ * se resuelve en el servidor (por id o por bunny_video_id; todas las filas de ese vídeo
+ * tienen que ser del usuario), declaración del entrenador (la del body `attestation`, o
+ * una guardada con la fila) y, para un menor de 14 conocido —el jugador del análisis Y el
+ * `player_id` de cada fila del vídeo (B1/B2)—, consentimiento parental verificado.
  * Bloqueado → 400/403/500 con el código; si el análisis ya existía (el navegador lo crea
  * antes), se marca `failed` con el motivo para que no quede colgado.
  */
@@ -25,11 +27,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { checkUsageQuota, incrementUsage, usageExceededResponse } from "../_lib/usageGuard";
 import { createClient } from "@supabase/supabase-js";
 import { localeSchema } from "../../src/lib/shared/locale";
-import {
-  enforceClipConsent,
-  clipConsentErrorResponse,
-  consentResourceForClientVideoId,
-} from "../_lib/analysisConsentGate";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
 import { ownsVideo } from "../_lib/ownership";
 
 export const config = { runtime: "edge" };
@@ -123,20 +121,22 @@ export default withHandler(
     }
 
     // ── 0b. Consentimiento ANTES de tocar el análisis y de llamar al orquestador ──
-    // videoId puede ser una fila `videos` (propia → cuenta una declaración guardada) o un
-    // id solo del navegador (la declaración tiene que venir en ESTA petición).
+    // videoId puede ser una fila `videos` (por id o por su GUID de Bunny: propia → cuenta
+    // una declaración guardada; ajena → 403) o un id solo del navegador (la declaración
+    // tiene que venir en ESTA petición). El jugador de cada fila del vídeo se comprueba
+    // además del jugador del análisis.
     const actor = { userId, tenantId, ip };
-    const target = await consentResourceForClientVideoId({ videoId, actor, locale, ownsVideo });
-    if (!target.ok) return target.response;
     const consentPlayerId = (ownerTargetPlayerId as string | undefined) ?? playerId;
-    const consent = await enforceClipConsent({
+    const consent = await gateClipAnalysis({
+      videoId,
+      requireVideoRow: false, // tracking del navegador: el vídeo puede no tener fila
       attestation: body.attestation,
-      resource: target.resource,
       playerId: consentPlayerId,
       actor,
       endpoint: "analyses/generate-reports",
       scope: "player",
       locale,
+      ownsVideo: (video, uid, tid) => ownsVideo(video, uid, tid),
     });
     if (!consent.allowed) {
       // El navegador ya dejó el análisis en "processing_reports" (upsert previo): se cierra
@@ -149,7 +149,7 @@ export default withHandler(
           .eq("id", analysisId)
           .eq("status", "processing_reports");
       }
-      return clipConsentErrorResponse(consent);
+      return clipGateErrorResponse(consent);
     }
 
     if (analysisId) {

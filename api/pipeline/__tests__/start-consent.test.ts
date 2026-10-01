@@ -19,10 +19,10 @@ vi.mock("../../_lib/rateLimit", () => ({
 vi.mock("../../_lib/auth", () => ({
   verifyAuth: vi.fn().mockResolvedValue({ userId: "11111111-1111-4111-8111-111111111111", email: null, tenantId: null, error: null }),
 }));
-const ownsPlayer = vi.fn(async () => true);
+const ownsPlayer = vi.fn(async (..._a: unknown[]) => true);
 vi.mock("../../_lib/ownership", async (orig) => ({
   ...(await orig<typeof import("../../_lib/ownership")>()),
-  ownsPlayerOrTenant: (...a: unknown[]) => ownsPlayer(...(a as [])),
+  ownsPlayerOrTenant: (...a: unknown[]) => ownsPlayer(...a),
 }));
 
 let handler: (req: Request) => Promise<Response>;
@@ -69,7 +69,75 @@ const post = (body: Record<string, unknown>) =>
     }),
   );
 
+describe("pipeline/start · B1/B2: el vídeo y su jugador los resuelve el SERVIDOR", () => {
+  const OTHER = "99999999-9999-4999-8999-999999999999";
+  const postRaw = (body: Record<string, unknown>) =>
+    handler(
+      new Request("https://x.test/api/pipeline/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer user-jwt" },
+        body: JSON.stringify(body),
+      }),
+    );
+
+  it("B1 · sin playerId, el vídeo (fila propia) de un menor de 14 sin consentimiento → 403; Claude no se llama", async () => {
+    db.videos.push({ id: "guid-m", user_id: USER, tenant_id: null, player_id: "pMinor", bunny_video_id: "guid-m" });
+    db.storedAttestations.push({ resource_type: "videos", resource_id: "guid-m" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await postRaw({ videoId: "guid-m" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(claudeCalls()).toHaveLength(0);
+  });
+
+  it("B1 · con el playerId de OTRO jugador propio, el menor del vídeo se sigue comprobando → 403", async () => {
+    db.videos.push({ id: "guid-m", user_id: USER, tenant_id: null, player_id: "pMinor", bunny_video_id: "guid-m" });
+    db.storedAttestations.push({ resource_type: "videos", resource_id: "guid-m" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await postRaw({ videoId: "guid-m", playerId: "p1" });
+    expect(res.status).toBe(403);
+    expect(claudeCalls()).toHaveLength(0);
+  });
+
+  it("B2 · GUID de Bunny de la fila create-upload de OTRO usuario (id vid-x) → 403 forbidden; ni Claude ni declaración guardada", async () => {
+    ownsPlayer.mockImplementation(async (pid) => pid === "p1"); // pMinor NO es del usuario
+    db.videos.push({ id: "vid-x", user_id: OTHER, tenant_id: null, player_id: "pMinor", bunny_video_id: "g-x" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await postRaw({ videoId: "g-x", attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("forbidden");
+    expect(claudeCalls()).toHaveLength(0);
+    expect(mock.inserts).toHaveLength(0);
+    // Control: la MISMA fila pedida por su id (vid-x) ya daba 403 antes del arreglo.
+    const byId = await postRaw({ videoId: "vid-x", attestation: ATTESTATION });
+    expect(byId.status).toBe(403);
+  });
+
+  it("B2 · fila PROPIA duplicada que apunta al GUID de un vídeo ajeno → 403 (todas las filas de ese vídeo cuentan)", async () => {
+    ownsPlayer.mockImplementation(async (pid) => pid === "p1");
+    db.videos.push({ id: "mine", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-v" });
+    db.videos.push({ id: "g-v", user_id: OTHER, tenant_id: null, player_id: "pMinor", bunny_video_id: "g-v" });
+    db.storedAttestations.push({ resource_type: "videos", resource_id: "mine" });
+    const res = await postRaw({ videoId: "g-v" });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("forbidden");
+    expect(claudeCalls()).toHaveLength(0);
+  });
+
+  it("videoId que no es ninguna fila `videos` → 404 video_not_found (el servidor analiza la miniatura de Bunny de ese GUID)", async () => {
+    const res = await postRaw({ videoId: "guid-sin-fila", attestation: ATTESTATION });
+    expect(res.status).toBe(404);
+    expect((await res.json()).errorDetail.code).toBe("video_not_found");
+    expect(claudeCalls()).toHaveLength(0);
+  });
+});
+
 describe("pipeline/start · consentimiento", () => {
+  beforeEach(() => {
+    // SoloDrill sube por VideoUpload → fila `videos` propia con id = GUID (video-init).
+    db.videos.push({ id: "guid-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "guid-1" });
+  });
+
   it("jugador AJENO → 403 antes de leer su fecha de nacimiento", async () => {
     ownsPlayer.mockImplementation(async () => false);
     const res = await post({ attestation: ATTESTATION });
@@ -78,7 +146,7 @@ describe("pipeline/start · consentimiento", () => {
     expect(claudeCalls()).toHaveLength(0);
   });
 
-  it("sin declaración (vídeo sin fila) → 400 attestation_required; Claude no se llama", async () => {
+  it("sin declaración (ni guardada con la fila ni en el body) → 400 attestation_required; Claude no se llama", async () => {
     const res = await post({});
     expect(res.status).toBe(400);
     expect((await res.json()).errorDetail.code).toBe("attestation_required");
@@ -94,7 +162,6 @@ describe("pipeline/start · consentimiento", () => {
   });
 
   it("vídeo subido por VideoUpload (fila videos propia + declaración guardada) → se analiza", async () => {
-    db.videos.push({ id: "guid-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "guid-1" });
     db.storedAttestations.push({ resource_type: "videos", resource_id: "guid-1" });
     const res = await post({});
     expect(res.status).toBe(200);

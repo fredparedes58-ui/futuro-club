@@ -163,6 +163,24 @@ describe("video-observation · llamadas de USUARIO", () => {
     expect(geminiCalls()).toHaveLength(0);
   });
 
+  it("URL de OTRO vídeo que solo CONTIENE el GUID propio en un segmento posterior → 400 video_url_mismatch", async () => {
+    // Pull zone: el vídeo que se descarga es el del PRIMER segmento (`otro`), no el de g-1.
+    const res = await videoObservation(
+      post("video-observation", teamObsBody({ videoId: GUID, attestation: ATTESTATION, videoUrl: `https://${CDN}/otro/${GUID}/play_720p.mp4` })),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).errorDetail.code).toBe("video_url_mismatch");
+    expect(geminiCalls()).toHaveLength(0);
+  });
+
+  it("B2 · otra fila (de OTRO usuario) apunta al mismo vídeo de Bunny → 403; Gemini no se llama", async () => {
+    db.videos.push({ id: "vid-v", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: "pMinor", bunny_video_id: GUID });
+    db.storedAttestations.push({ resource_type: "videos", resource_id: GUID });
+    const res = await videoObservation(post("video-observation", teamObsBody({ videoId: GUID })));
+    expect(res.status).toBe(403);
+    expect(geminiCalls()).toHaveLength(0);
+  });
+
   it("llamada de SERVICIO (cola / live) → el gate no se consulta", async () => {
     const res = await videoObservation(post("video-observation", teamObsBody(), "Bearer svc-token"));
     expect(res.status).toBe(200);
@@ -200,6 +218,29 @@ describe("team-observation (vídeo de equipo del navegador)", () => {
     expect(mock.calls.some((c) => c.url.includes("/rest/v1/players"))).toBe(false);
     expect(geminiCalls()).toHaveLength(1);
   });
+
+  it("B1 · el videoId es una fila `videos` propia de un menor de 14 sin consentimiento → 403 aunque se pida 'de equipo'", async () => {
+    db.videos[0].player_id = "pMinor";
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await teamObservation(post("team-observation", body({ videoId: GUID, attestation: ATTESTATION })));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(recordSpendUsd).not.toHaveBeenCalled();
+    expect(geminiCalls()).toHaveLength(0);
+  });
+
+  it("B2 · el videoId es el GUID de la fila de OTRO usuario → 403", async () => {
+    db.videos.push({ id: "vid-x", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: null, bunny_video_id: "g-x" });
+    const res = await teamObservation(post("team-observation", body({ videoId: "g-x", attestation: ATTESTATION })));
+    expect(res.status).toBe(403);
+    expect(geminiCalls()).toHaveLength(0);
+  });
+
+  it("fila `videos` propia SIN jugador → la declaración se guarda CON la fila (resource_type videos)", async () => {
+    const res = await teamObservation(post("team-observation", body({ videoId: GUID, attestation: ATTESTATION })));
+    expect(res.status).toBe(200);
+    expect(mock.inserts[0]).toMatchObject({ resource_type: "videos", resource_id: GUID, metadata: { scope: "team", player_id: null } });
+  });
 });
 
 describe("team-intelligence (informe de equipo)", () => {
@@ -223,5 +264,21 @@ describe("team-intelligence (informe de equipo)", () => {
     await res.text();
     expect(mock.inserts[0]).toMatchObject({ resource_type: "video_ref", resource_id: "local-123", metadata: { endpoint: "agents/team-intelligence" } });
     expect(fetchMessages).toHaveBeenCalled();
+  });
+
+  it("B1 · el videoId es una fila `videos` propia de un menor de 14 sin consentimiento → 403 JSON, Claude no se llama", async () => {
+    db.videos[0].player_id = "pMinor";
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await teamIntelligence(post("team-intelligence", body({ videoId: GUID, attestation: ATTESTATION })));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(fetchMessages).not.toHaveBeenCalled();
+  });
+
+  it("B2 · el videoId es el GUID de la fila de OTRO usuario → 403", async () => {
+    db.videos.push({ id: "vid-x", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: null, bunny_video_id: "g-x" });
+    const res = await teamIntelligence(post("team-intelligence", body({ videoId: "g-x", attestation: ATTESTATION })));
+    expect(res.status).toBe(403);
+    expect(fetchMessages).not.toHaveBeenCalled();
   });
 });

@@ -22,14 +22,15 @@ const enqueueMock = vi.fn();
 vi.mock("../../_lib/enqueueAnalysis", () => ({
   enqueueAnalysis: (...args: unknown[]) => enqueueMock(...args),
 }));
-// Gate de consentimiento (sus tests: api/_lib/__tests__/analysisConsentGate.test.ts).
+// Gate de consentimiento (resolución del vídeo + declaración). Sus tests:
+// api/_lib/__tests__/analysisConsentGate.test.ts y finalize-consent.test.ts (gate REAL).
 // Por defecto permite; los tests de consentimiento lo fuerzan a bloquear.
 const consentMock = vi.fn();
 vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
   ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
-  enforceClipConsent: (...args: unknown[]) => consentMock(...args),
+  gateClipAnalysis: (...args: unknown[]) => consentMock(...args),
 }));
-const ALLOWED = { allowed: true, attestation: "recorded", pendingAttestation: null, minor: null };
+const ALLOWED = { allowed: true, attestation: "recorded", pendingAttestation: null, minor: null, video: null, videoPlayerIds: [] };
 const ATTESTATION = { accepted: true, version: "2026-09-28.v1" };
 
 const row: { current: Record<string, unknown> } = { current: {} };
@@ -134,17 +135,37 @@ describe("finalize · consentimiento (decisión del owner, 30 sep)", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("pasa al gate la declaración del body, la fila del vídeo, el jugador y el usuario del JWT (nunca del body)", async () => {
+  it("pasa al gate la declaración del body, el vídeo (id + GUID de la fila), el jugador y el usuario del JWT (nunca del body)", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => bunnyVideo(240)));
     await handler(post({ videoId: "g-1", bunnyVideoId: "g-1", playerId: "p1", attestation: ATTESTATION, userId: "intruso" }));
     expect(consentMock).toHaveBeenCalledTimes(1);
     expect(consentMock.mock.calls[0][0]).toMatchObject({
       attestation: ATTESTATION,
-      resource: { type: "videos", id: "g-1", bunnyVideoId: "g-1" },
+      videoId: "g-1",
+      bunnyGuid: "g-1",
+      requireVideoRow: true,
       playerId: "p1",
       actor: { userId: "user-1", tenantId: "t1" },
       endpoint: "videos/finalize",
     });
+  });
+
+  it("fila sin GUID aún → el gate recibe el GUID que se va a sembrar (el del cliente)", async () => {
+    row.current = { ...row.current, bunny_video_id: null };
+    vi.stubGlobal("fetch", vi.fn(async () => bunnyVideo(240)));
+    await handler(post({ videoId: "g-1", bunnyVideoId: "g-nuevo", playerId: "p1", attestation: ATTESTATION }));
+    expect(consentMock.mock.calls[0][0]).toMatchObject({ videoId: "g-1", bunnyGuid: "g-nuevo" });
+  });
+
+  it("bloqueo de resolución del vídeo (otra fila ajena con el mismo GUID) → 403 con su código, sin Bunny ni encolar", async () => {
+    const fetchMock = vi.fn(async () => bunnyVideo(240));
+    vi.stubGlobal("fetch", fetchMock);
+    consentMock.mockResolvedValue({ allowed: false, code: "forbidden", status: 403, gate_reason: "No gestionas este vídeo", minor: null });
+    const res = await handler(post({ videoId: "g-1", bunnyVideoId: "g-1", playerId: "p1", attestation: ATTESTATION }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("forbidden");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(enqueueMock).not.toHaveBeenCalled();
   });
 
   it.each([

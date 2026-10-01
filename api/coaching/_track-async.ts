@@ -24,14 +24,16 @@
  * videoUrl: solo hosts Bunny de la allowlist (api/_lib/videoUrlGuard). Fuera de
  * ella → 400 sin encolar; sin BUNNY_CDN_HOSTNAME → 503 (falla cerrado).
  *
- * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): las
- * llamadas con JWT de USUARIO traen la declaración del entrenador (`attestation`) y, si
- * mandan `playerId`, ese jugador tiene que ser suyo y, si es menor de 14 conocido, con
- * consentimiento parental verificado. Va DESPUÉS de los 503/400/413 de siempre y ANTES del
- * dedup, del insert y del spawn; un bloqueo es 400/403/500, nunca 503. Para una llamada
- * permitida el spawn a Modal es BYTE A BYTE el de antes (test en
- * api/coaching/__tests__/track-async-consent.test.ts). Las llamadas de servicio y el
- * rescate (crons/rescue-tracking-jobs) no cambian.
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): en las
+ * llamadas con JWT de USUARIO el servidor resuelve el vídeo por el GUID de la `videoUrl`
+ * (y el `videoId` si viene): tiene que haber una fila `videos` de ESE vídeo, todas sus
+ * filas tienen que ser del usuario y el jugador de cada fila se comprueba SIEMPRE, además
+ * del `playerId` del body (que tiene que ser suyo). Declaración del entrenador (body o
+ * guardada con el vídeo) + consentimiento parental si hay un menor de 14 conocido. Va
+ * DESPUÉS de los 503/400/413 de siempre y ANTES del dedup, del insert y del spawn; un
+ * bloqueo es 400/403/404/500, nunca 503. Para una llamada permitida el spawn a Modal es
+ * BYTE A BYTE el de antes (test en api/coaching/__tests__/track-async-consent.test.ts).
+ * Las llamadas de servicio y el rescate (crons/rescue-tracking-jobs) no cambian.
  */
 
 import { z } from "zod";
@@ -46,8 +48,8 @@ import {
 import { env } from "../_lib/env";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { assertAllowedVideoUrl, VideoUrlError } from "../_lib/videoUrlGuard";
-import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
-import { ownsPlayerOrTenant } from "../_lib/ownership";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
+import { ownsPlayerOrTenant, ownsVideo } from "../_lib/ownership";
 
 export const config = { runtime: "edge" };
 
@@ -122,15 +124,18 @@ export default withHandler(
       if (body.playerId && !(await ownsPlayerOrTenant(body.playerId, userId, tenantId))) {
         return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
       }
-      const consent = await enforceClipConsent({
+      const consent = await gateClipAnalysis({
+        videoId: body.videoId,
+        videoUrl, // Modal descargará ESTA URL → su GUID es el vídeo que se analiza
+        requireVideoRow: true,
         attestation: body.attestation,
-        resource: { type: "video_ref", id: body.videoId ?? videoUrl },
         playerId: body.playerId ?? null,
         actor: { userId, tenantId, ip },
         endpoint: "coaching/track-async",
         scope: body.playerId ? "player" : "team",
+        ownsVideo: (video, uid, tid) => ownsVideo(video, uid, tid),
       });
-      if (!consent.allowed) return clipConsentErrorResponse(consent);
+      if (!consent.allowed) return clipGateErrorResponse(consent);
     }
 
     // Atribución: usuario del JWT; las llamadas de servicio pueden atribuir

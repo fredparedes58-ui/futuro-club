@@ -14,16 +14,17 @@
  * rompería el aislamiento multi-tenant de datos de menores (analyses.tenant_id null).
  *
  * CONSENTIMIENTO (decisión del owner, 30 sep): antes de crear un análisis NUEVO se exige
- * una declaración del entrenador YA GUARDADA para este vídeo y, si el jugador es menor de
- * 14 conocido, su consentimiento parental verificado (api/_lib/analysisConsentGate). Este
- * helper no acepta declaraciones del body (lo llama el webhook de Bunny, sin usuario):
- * finalize guarda la del body ANTES de llamarlo. Bloqueado → `status: "blocked"`
- * (webhook: 200 skipped · finalize: 400/403/500 con el código).
+ * una declaración del entrenador YA GUARDADA para este vídeo y, si hay un menor de 14
+ * conocido —el jugador del análisis o el `player_id` de cualquier fila `videos` de ese
+ * vídeo de Bunny (gateClipAnalysis, B1)—, su consentimiento parental verificado
+ * (api/_lib/analysisConsentGate). Este helper no acepta declaraciones del body (lo llama
+ * el webhook de Bunny, sin usuario): finalize guarda la del body ANTES de llamarlo.
+ * Bloqueado → `status: "blocked"` (webhook: 200 skipped · finalize: 400/403/404/500 con
+ * el código).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { enforceClipConsent, type ClipConsentGateResult } from "./analysisConsentGate";
-import type { ClipConsentCode } from "../../src/lib/shared/videoConsent";
+import { gateClipAnalysis, type ClipAnalysisGateResult } from "./analysisConsentGate";
 
 export interface EnqueueAnalysisInput {
   supabase: SupabaseClient;
@@ -45,14 +46,15 @@ export interface EnqueueAnalysisInput {
   /** Quién llama (queda en el log del gate). */
   endpoint?: string;
   /** Inyectable en tests; por defecto el gate real. */
-  checkConsent?: (input: Parameters<typeof enforceClipConsent>[0]) => Promise<ClipConsentGateResult>;
+  checkConsent?: (input: Parameters<typeof gateClipAnalysis>[0]) => Promise<ClipAnalysisGateResult>;
 }
 
 export type EnqueueAnalysisResult =
   | { status: "queued"; analysisId: string; triggered: boolean }
   | { status: "exists"; analysisId: string }
   | { status: "skipped"; reason: string }
-  | { status: "blocked"; code: ClipConsentCode; httpStatus: 400 | 403 | 500; gate_reason: string }
+  /** `code`: un ClipConsentCode o un código de resolución del vídeo (p. ej. video_not_found). */
+  | { status: "blocked"; code: string; httpStatus: number; gate_reason: string }
   | { status: "error"; error: string };
 
 export async function enqueueAnalysis(input: EnqueueAnalysisInput): Promise<EnqueueAnalysisResult> {
@@ -78,15 +80,18 @@ export async function enqueueAnalysis(input: EnqueueAnalysisInput): Promise<Enqu
 
   if (existing) return { status: "exists", analysisId: existing.id };
 
-  // Gate de consentimiento ANTES de crear el análisis (solo declaración GUARDADA).
-  const consent = await (input.checkConsent ?? enforceClipConsent)({
+  // Gate de consentimiento ANTES de crear el análisis (solo declaración GUARDADA). Ruta
+  // sin usuario: la propiedad la comprobó finalize / la firma del webhook.
+  const consent = await (input.checkConsent ?? gateClipAnalysis)({
+    videoId,
+    requireVideoRow: true,
     storedOnly: true,
-    resource: { type: "videos", id: videoId },
     playerId,
     actor: { userId: null, tenantId },
     endpoint: input.endpoint ?? "enqueueAnalysis",
     scope: "player",
     locale,
+    ownsVideo: null,
   });
   if (!consent.allowed) {
     return { status: "blocked", code: consent.code, httpStatus: consent.status, gate_reason: consent.gate_reason };

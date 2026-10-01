@@ -17,9 +17,12 @@
  *
  * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): justo tras
  * la propiedad, ANTES de tocar Bunny, se exige la declaración del entrenador (la del
- * body `attestation` —se guarda con el vídeo— o una ya guardada) y, si el jugador es
- * menor de 14 conocido, su consentimiento parental verificado. Sin ello: 400/403/500 con
- * el código, sin sembrar ni encolar. Así un vídeo subido antes pide la declaración al
+ * body `attestation` —se guarda con el vídeo— o una ya guardada) y, si hay un menor de 14
+ * conocido, su consentimiento parental verificado. Los jugadores que cuentan son el
+ * elegido al analizar Y el `player_id` de CADA fila `videos` de ese vídeo de Bunny (el
+ * elegido nunca sustituye al del vídeo; B1), y todas esas filas tienen que ser del
+ * usuario (B2: otra fila ajena con el mismo GUID → 403). Sin ello: 400/403/500 con el
+ * código, sin sembrar ni encolar. Así un vídeo subido antes pide la declaración al
  * re-analizarlo (la UI nunca la marca sola).
  *
  * Antes disparaba el webhook por HTTP SIN firma → el webhook fail-closed lo rechazaba
@@ -33,7 +36,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { createClient } from "@supabase/supabase-js";
 import { ownsVideo, ownsPlayerOrTenant } from "../_lib/ownership";
 import { enqueueAnalysis } from "../_lib/enqueueAnalysis";
-import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
 import { BUNNY_API_VIDEO_STATUS, getBunnyVideo } from "../_lib/bunnyStream";
 import { localeSchema, normalizeLocale } from "../../src/lib/shared/locale";
 import {
@@ -133,16 +136,21 @@ export default withHandler(
     }
 
     // ── Consentimiento ANTES de tocar Bunny (se guarda la declaración del body) ──
-    const consent = await enforceClipConsent({
+    // GUID = el de la fila o, si aún no tiene, el que se va a sembrar (el del cliente).
+    const consent = await gateClipAnalysis({
+      videoId: video.id,
+      bunnyGuid: vrow.bunny_video_id ?? input.bunnyVideoId,
+      requireVideoRow: true,
+      seedRow: true, // una fila aún sin GUID se siembra abajo con el del cliente
       attestation: input.attestation,
-      resource: { type: "videos", id: video.id, bunnyVideoId: vrow.bunny_video_id ?? input.bunnyVideoId },
       playerId,
       actor: { userId, tenantId, ip },
       endpoint: "videos/finalize",
       scope: playerId ? "player" : "team",
       locale: input.locale,
+      ownsVideo: (v, uid, tid) => ownsVideo(v, uid, tid, isServiceCall),
     });
-    if (!consent.allowed) return clipConsentErrorResponse(consent);
+    if (!consent.allowed) return clipGateErrorResponse(consent);
 
     // Idioma del usuario en la fila `videos` (mig 064) — se escribe AQUÍ, ANTES del
     // gate de Bunny-ready. Motivo (carrera): el cliente sondea `finalize` mientras
@@ -223,7 +231,7 @@ export default withHandler(
       return errorResponse({ code: "enqueue_failed", message: result.error, status: 500 });
     }
     if (result.status === "blocked") {
-      return clipConsentErrorResponse({
+      return clipGateErrorResponse({
         allowed: false,
         code: result.code,
         status: result.httpStatus,

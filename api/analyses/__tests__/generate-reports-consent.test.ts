@@ -150,4 +150,21 @@ describe("generate-reports · consentimiento", () => {
     expect(res.status).toBe(403);
     expect(orchestratorCalls()).toHaveLength(0);
   });
+
+  it("B2 · videoId = GUID de Bunny de la fila create-upload de OTRO usuario (id vid-x) → 403; nada guardado", async () => {
+    db.videos.push({ id: "vid-x", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: null, bunny_video_id: "g-x" });
+    const res = await post({ videoId: "g-x", attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect(mock.inserts).toHaveLength(0);
+    expect(orchestratorCalls()).toHaveLength(0);
+  });
+
+  it("B1 · la fila videos propia es de un menor de 14 sin consentimiento y el análisis es para OTRO jugador → 403", async () => {
+    db.videos.push({ id: "local-vid-1", user_id: USER, tenant_id: null, player_id: "pMinor", bunny_video_id: "local-vid-1" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const res = await post({ attestation: ATTESTATION });
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(orchestratorCalls()).toHaveLength(0);
+  });
 });

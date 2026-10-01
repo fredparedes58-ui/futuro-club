@@ -11,17 +11,20 @@
  * If either env var is missing the endpoint returns 503 so the client
  * can gracefully fall back to the mock pipeline (zero downtime).
  *
- * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): las
- * llamadas con JWT de USUARIO traen la declaración del entrenador (`attestation`), que se
- * guarda (video_ref + videoUrl) DESPUÉS de los 503/400 de siempre y ANTES del tripwire de
- * gasto y de Modal. Un bloqueo es 400/403/500, NUNCA 503 (el cliente trata 503 como
+ * Consentimiento (decisión del owner, 30 sep · api/_lib/analysisConsentGate): en las
+ * llamadas con JWT de USUARIO el servidor resuelve el vídeo por el GUID de la `videoUrl`
+ * (fila `videos` propia obligatoria; el body no identifica jugador, así que se comprueba
+ * el `player_id` de cada fila de ese vídeo) y exige la declaración del entrenador (body o
+ * guardada con el vídeo) DESPUÉS de los 503/400 de siempre y ANTES del tripwire de gasto
+ * y de Modal. Un bloqueo es 400/403/404/500, NUNCA 503 (el cliente trata 503 como
  * «inferencia apagada → mock»). Las llamadas de servicio no cambian. El contrato con
  * Modal (payload, Bearer MODAL_API_KEY) no cambia.
  */
 
 import { withHandler } from "../_lib/withHandler";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
-import { enforceClipConsent, clipConsentErrorResponse } from "../_lib/analysisConsentGate";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
+import { ownsVideo } from "../_lib/ownership";
 
 export const config = {
   runtime: "edge",
@@ -112,15 +115,17 @@ export default withHandler(
 
   // Consentimiento de las llamadas de USUARIO: tras los 503/400, antes de gastar.
   if (!isServiceCall) {
-    const consent = await enforceClipConsent({
+    const consent = await gateClipAnalysis({
+      videoUrl: String(body.videoUrl), // Modal descargará ESTA URL
+      requireVideoRow: true,
       attestation: body.attestation,
-      resource: { type: "video_ref", id: String(body.videoUrl) },
-      playerId: null, // el body no identifica jugador: vídeo de equipo
+      playerId: null, // el body no identifica jugador; el de cada fila del vídeo sí cuenta
       actor: { userId, tenantId, ip },
       endpoint: "coaching/track-players",
       scope: "team",
+      ownsVideo: (video, uid, tid) => ownsVideo(video, uid, tid),
     });
-    if (!consent.allowed) return clipConsentErrorResponse(consent);
+    if (!consent.allowed) return clipGateErrorResponse(consent);
   }
 
   // Tripwire de presupuesto (054): GPU Modal es la llamada más cara → corta si

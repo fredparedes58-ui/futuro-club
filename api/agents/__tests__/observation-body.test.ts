@@ -41,7 +41,7 @@ vi.mock("../../_lib/usageGuard", () => ({
 // api/agents/__tests__/clip-consent-agents.test.ts.
 vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
   ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
-  enforceClipConsent: vi.fn(async () => ({ allowed: true, attestation: "recorded", pendingAttestation: null, minor: null })),
+  gateClipAnalysis: vi.fn(async () => ({ allowed: true, attestation: "recorded", pendingAttestation: null, minor: null, video: null, videoPlayerIds: [] })),
   enforceUserVideoObservationConsent: vi.fn(async () => ({
     allowed: true,
     video: { id: "g-1", user_id: "user-123", tenant_id: null, player_id: null, bunny_video_id: "g-1" },

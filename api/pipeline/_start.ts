@@ -9,10 +9,12 @@
  * leer nada del jugador o de Bunny y de llamar a Claude:
  *   - si se manda `playerId`, el jugador tiene que ser del usuario (el gate lee su fecha
  *     de nacimiento; sin este check su resultado revelaría la edad de un menor ajeno);
- *   - `videoId` que es una fila `videos` del usuario (SoloDrill sube por VideoUpload, que
- *     guarda la declaración con el GUID) → cuenta la declaración guardada; si no es una
- *     fila, la declaración tiene que venir en ESTA petición (se guarda como video_ref);
- *   - jugador menor de 14 conocido → además su consentimiento parental verificado.
+ *   - `videoId` es el GUID de Bunny cuya miniatura se manda a Claude: tiene que existir una
+ *     fila `videos` de ESE vídeo (por id o por bunny_video_id) y todas las filas que lo
+ *     referencian tienen que ser del usuario (sin fila → 404, ajena → 403). Cuenta la
+ *     declaración guardada con la fila (SoloDrill sube por VideoUpload) o la del body;
+ *   - el jugador del VÍDEO (videos.player_id) se comprueba siempre, además del del body:
+ *     menor de 14 conocido → su consentimiento parental verificado (hallazgos B1/B2).
  * PENDIENTE (fuera de este cambio, ver docs/pendientes-metricas.md): este endpoint rellena
  * edad/posición/nota por defecto (invariantes #1/#2).
  */
@@ -21,11 +23,7 @@ import { z } from "zod";
 import { withHandler } from "../_lib/withHandler";
 import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { MODELS } from "../_lib/models";
-import {
-  enforceClipConsent,
-  clipConsentErrorResponse,
-  consentResourceForClientVideoId,
-} from "../_lib/analysisConsentGate";
+import { gateClipAnalysis, clipGateErrorResponse } from "../_lib/analysisConsentGate";
 import { ownsPlayerOrTenant, ownsVideo } from "../_lib/ownership";
 
 export const config = { runtime: "edge" };
@@ -54,17 +52,19 @@ export default withHandler(
     if (playerId && !(await ownsPlayerOrTenant(playerId, userId, tenantId))) {
       return errorResponse({ code: "forbidden", message: "No gestionas este jugador", status: 403 });
     }
-    const target = await consentResourceForClientVideoId({ videoId, actor, ownsVideo });
-    if (!target.ok) return target.response;
-    const consent = await enforceClipConsent({
+    // videoId = GUID de Bunny de la miniatura que se manda a Claude (abajo).
+    const consent = await gateClipAnalysis({
+      videoId,
+      bunnyGuid: videoId,
+      requireVideoRow: true,
       attestation: body.attestation,
-      resource: target.resource,
       playerId: playerId ?? null,
       actor,
       endpoint: "pipeline/start",
       scope: playerId ? "player" : "team",
+      ownsVideo: (video, uid, tid) => ownsVideo(video, uid, tid),
     });
-    if (!consent.allowed) return clipConsentErrorResponse(consent);
+    if (!consent.allowed) return clipGateErrorResponse(consent);
 
     const bunnyLibraryId = process.env.BUNNY_STREAM_LIBRARY_ID;
     const bunnyApiKey    = process.env.BUNNY_STREAM_API_KEY ?? process.env.BUNNY_API_KEY;

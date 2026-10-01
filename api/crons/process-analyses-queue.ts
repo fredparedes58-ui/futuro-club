@@ -31,7 +31,7 @@ import {
   geminiToBiomechanics,
   type GeminiObservation,
 } from "../_lib/geminiBiomechanics";
-import { enforceClipConsent } from "../_lib/analysisConsentGate";
+import { gateClipAnalysis } from "../_lib/analysisConsentGate";
 
 // Node.js runtime. maxDuration 300 (no 120): este worker encadena DOS pasos largos
 // por análisis — gemini-analyze (hasta ~120s) + pipeline-orchestrator (6 informes
@@ -321,17 +321,20 @@ async function processQueue() {
 
     // ── 1b. Consentimiento (defensa en profundidad) ANTES de cualquier despacho ──
     // enqueueAnalysis ya lo exige, pero aquí llegan también filas encoladas ANTES de este
-    // gate y filas que no pasaron por él. Solo cuenta una declaración GUARDADA con el
-    // vídeo (+ consentimiento parental de un menor de 14 conocido). Bloqueado → failed
-    // con el motivo en el idioma del análisis; ni Gemini ni informes.
-    const consent = await enforceClipConsent({
+    // gate y filas que no pasaron por él (p. ej. escritas desde el navegador bajo RLS).
+    // Solo cuenta una declaración GUARDADA con el vídeo; consentimiento parental de un
+    // menor de 14 conocido: el jugador del análisis Y el `player_id` de cada fila `videos`
+    // de ese vídeo de Bunny (B1). Bloqueado → failed con el motivo; ni Gemini ni informes.
+    const consent = await gateClipAnalysis({
+      videoId: analysis.video_id,
+      requireVideoRow: true,
       storedOnly: true,
-      resource: { type: "videos", id: analysis.video_id },
       playerId: analysis.player_id,
       actor: { userId: null, tenantId: analysis.tenant_id ?? null },
       endpoint: "crons/process-analyses-queue",
       scope: "player",
       locale: await analysisLocale(supabase, analysis.id),
+      ownsVideo: null,
     });
     if (!consent.allowed) {
       await supabase

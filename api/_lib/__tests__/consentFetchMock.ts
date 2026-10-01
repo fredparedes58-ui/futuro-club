@@ -32,6 +32,27 @@ function param(u: URL, name: string): string | null {
 }
 
 /**
+ * Valores de un filtro PostgREST `eq.x` o `in.("a","b")` (comillas con escapes \" y \\,
+ * como los escribe api/_lib/analysisConsentGate). null = el filtro no viene.
+ */
+function filterValues(u: URL, name: string): string[] | null {
+  const v = u.searchParams.get(name);
+  if (v === null) return null;
+  if (v.startsWith("eq.")) return [v.slice(3)];
+  if (v.startsWith("in.(") && v.endsWith(")")) {
+    const inner = v.slice(4, -1);
+    const out: string[] = [];
+    const re = /"((?:[^"\\]|\\.)*)"|([^,]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(inner))) {
+      out.push(m[1] !== undefined ? m[1].replace(/\\(.)/g, "$1") : m[2]);
+    }
+    return out;
+  }
+  throw new Error(`filtro no soportado por el mock: ${name}=${v}`);
+}
+
+/**
  * Crea el mock de fetch. Las llamadas a `${sbUrl}/rest/v1/{gdpr_audit_log,players,
  * parental_consents,videos}` se resuelven contra `db`; el resto va a `fallback`.
  */
@@ -96,10 +117,13 @@ export function consentFetch(
         return new Response(JSON.stringify(ok && db.activeConsents.includes(pid) ? [{ id: "c1" }] : []), { status: 200 });
       }
       if (table === "videos") {
-        const id = param(u, "id");
-        const guid = param(u, "bunny_video_id");
-        const row = db.videos.find((v) => (id !== null && v.id === id) || (guid !== null && v.bunny_video_id === guid));
-        return new Response(JSON.stringify(row ? [row] : []), { status: 200 });
+        // TODAS las filas que casan (no solo la primera): bunny_video_id no es UNIQUE (060).
+        const ids = filterValues(u, "id");
+        const guids = filterValues(u, "bunny_video_id");
+        const rows = db.videos.filter(
+          (v) => (ids !== null && ids.includes(v.id)) || (guids !== null && v.bunny_video_id !== null && guids.includes(v.bunny_video_id)),
+        );
+        return new Response(JSON.stringify(rows), { status: 200 });
       }
     }
     if (opts.fallback) return opts.fallback(url, init);

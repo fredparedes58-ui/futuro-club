@@ -42,7 +42,7 @@ vi.mock("../../_lib/anthropic", () => ({
 // Sus tests propios: api/agents/__tests__/clip-consent-agents.test.ts.
 vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
   ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
-  enforceClipConsent: vi.fn(async () => ({ allowed: true, attestation: "recorded", pendingAttestation: null, minor: null })),
+  gateClipAnalysis: vi.fn(async () => ({ allowed: true, attestation: "recorded", pendingAttestation: null, minor: null, video: null, videoPlayerIds: [] })),
 }));
 
 import teamObservation from "../team-observation";

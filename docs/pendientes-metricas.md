@@ -205,7 +205,7 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 
 - [ ] **C8 · Partido completo por vídeo — activación (NO antes de validar)**: tras mergear PR-A/B/C, aplicar la migración **067** en Supabase; en Vercel `MODAL_MATCH_START_URL`, `GLOBAL_MONTHLY_BUDGET_USD=20`, clave Gemini de pago en `GEMINI_API_KEY`; Modal con tarjeta + límite de gasto $10/mes + `VITAS_MATCH_STEP_URL` en el secret `vitas-api-key`; rotar C3 antes de footage real; spike (a)–(i) en Modal con resultados literales aquí. **`MATCH_VIDEO_ENABLED=true` SOLO** cuando `scripts/validate-match-observation.mjs` apruebe varios partidos anotados (GT10) y el owner lo decida. En `vitas-demo`, sin definir.
 
-- [ ] **C9 · Gate de consentimiento de clips — comprobación ANTES de desplegar** (PR `feat/clip-consent-gate`, ver §D): ejecutar en el SQL Editor `supabase/checks/clip_consent_previa.sql` (solo lectura, una fila, probada en PGlite) y pasar el resultado. Sin `public.gdpr_audit_log` (migración 003) el gate falla cerrado: **ninguna** subida ni análisis de clip funcionaría. Que la 003 esté aplicada en producción **no está verificado** (la 072 la toca con `to_regclass`, así que aplicar la 072 no lo prueba).
+- [ ] **C9 · Gate de consentimiento de clips — comprobación ANTES DE FUSIONAR** (PR #308 `feat/clip-consent-gate`, ver §D; fusionar a main = desplegar en Vercel, así que NO vale hacerla después): el owner ejecuta en el SQL Editor de producción `supabase/checks/clip_consent_previa.sql` (solo lectura, una fila) y pasa el resultado. Para fusionar hace falta `audit_table_exists=true`, `audit_columns=8`, `audit_open_insert_policy=0`, `auth_can_insert_audit=false` (y `auth_can_update_audit=false`). Sin `public.gdpr_audit_log` (migración 003) el gate falla cerrado (500): **ninguna** subida ni análisis de clip funcionaría (VideoUpload en 8 páginas incluido el selector del partido completo, VideoUploader, finalize, generate-reports, pipeline/start, team-*, video-observation, la cola). Que la 003 esté aplicada en producción **no está verificado** (la 072 la toca con `to_regclass`, así que aplicar la 072 no lo prueba). La consulta se volvió a probar en PGlite el 1 oct (SIMULACIÓN, no la base real): base vacía → `audit_table_exists=false` sin error; todas las migraciones → `true/8/0/false`; hasta la 071 sin la 072 (control positivo) → `audit_open_insert_policy=1`, `auth_can_insert_audit=true`. NO verificado: si la Supabase de `vitas-demo` necesita la misma comprobación (solo si allí se suben vídeos).
 
 > **Verificación automática:** `scripts/diag-jwt-tenant.mjs` (recreado) confirma la precondición
 > (usuarios con `app_metadata.tenant_id`) y, con `DIAG_TEST_EMAIL/PASSWORD`, el claim raíz del token.
@@ -227,6 +227,23 @@ withdrawn_at IS NULL` (lo firma el tutor y lo confirma desde su email). Fecha de
 basta la declaración (no se infiere la edad). Vídeo de equipo ⇒ la comprobación por jugador no
 aplica. Falla cerrado (500), nunca 503.
 
+**Qué vídeo y qué jugador — lo decide el SERVIDOR** (hallazgos B1/B2 de la review del PR #308,
+reproducidos con tests antes del arreglo: track-async sin `playerId` daba 202 + spawn a Modal sobre
+el vídeo de un menor; `pipeline/start` con el GUID de Bunny de una fila ajena daba 200 + Claude).
+Una sola regla para todas las entradas (`resolveClipVideo` / `gateClipAnalysis`, inv #7):
+1. se buscan TODAS las filas `videos` del clip, por `id` o por `bunny_video_id` = la referencia del
+   cliente y = el GUID cuyos píxeles va a leer el servidor (primer segmento de la URL de la pull
+   zone). `bunny_video_id` no es UNIQUE (060) y la RLS 038 deja al dueño escribirlo;
+2. en rutas de usuario todas tienen que ser suyas (`ownsVideo`) → si no, 403;
+3. si el servidor lee píxeles por referencia (Modal, Gemini, miniatura de Bunny) tiene que existir
+   la fila (404 `video_not_found`) y todas las filas tienen que ser de ESE vídeo (400
+   `video_url_mismatch`; antes video-observation aceptaba `https://cdn/otro/<guid-propio>/…`);
+4. el consentimiento comprueba el jugador pedido **y** el `player_id` de cada fila. Un jugador
+   distinto en el body NO se rechaza —un mismo clip se analiza para varios jugadores
+   (`enqueueAnalysis` idempotente por (vídeo, jugador), VitasLab elige vídeo y jugador por
+   separado)— pero ya no sustituye al del vídeo: si el del vídeo es un menor de 14 sin
+   consentimiento, se bloquea igual.
+
 **Puntos de control:** `upload/video-init` y `videos/create-upload` (antes de crear nada en
 Bunny), `videos/finalize`, `_lib/enqueueAnalysis` (webhook de Bunny → 200 `{ skipped }`),
 `crons/process-analyses-queue` (defensa en profundidad → `failed` con motivo), llamadas de usuario
@@ -246,6 +263,10 @@ equipo; nunca se marca sola. Modal sin cambios (test de spawn byte a byte + call
 - [ ] **Partido completo**: la subida por VideoUpload pide la declaración y el inicio del job (`/api/match/start`) la vuelve a pedir — dos casillas en ese flujo (el job mantiene su propia declaración, sin cambios).
 - [ ] **`pipeline/start` (SoloDrill)** sigue rellenando edad 15 / «CM» / nota 68 por defecto (inv #1/#2) — fuera de este PR. (Sí se añadió en este PR la comprobación de propiedad del jugador: el gate lee su fecha de nacimiento.)
 - [ ] **Frontera horaria**: la regla compara en UTC. INFERIDO (no verificado): `NOW()` de la base de producción corre en UTC; si no, el día del 14.º cumpleaños podría diferir unas horas.
+- [ ] **`videos.player_id` / `bunny_video_id` los puede reescribir el dueño** (RLS `Users update videos`, 038:118-122; `SupabaseVideoService.pushOne` manda `player_id: null` si el registro local no tiene jugador): un entrenador puede desligar a un jugador de SU vídeo y analizarlo como «de equipo». El gate usa el vínculo tal como está. Cerrarlo exige un guard de servidor (trigger que impida a `authenticated` cambiar esas columnas, o leer el jugador de la declaración guardada) — migración NO escrita: decisión del owner.
+- [ ] **Bloqueo por una fila ajena con el mismo GUID** (efecto del punto 2, falla cerrado a propósito): si otro usuario inserta una fila `videos` con el `bunny_video_id` de tu vídeo, tus análisis de ese vídeo dan 403 hasta borrarla. Requiere conocer el GUID. Mismo arreglo que el punto anterior.
+- [ ] **Bytes en el body** (`team-observation` con `videoBase64`, fotogramas de `team-intelligence`, métricas de `generate-reports`): el servidor no puede ligar el contenido a un vídeo; si el cliente NO manda `videoId` (o manda uno que no es una fila), solo cuenta la declaración de esa petición. La UI siempre manda el `videoId` de su registro (useTeamIntelligence, usePlayerAnalysisV2).
+- [ ] **Sin fila `videos` ya no se analiza por referencia** (nuevo, B1/B2): `pipeline/start`, llamadas de usuario a `track-players|track-async`, `compute-from-video` y `video-observation` → 404 `video_not_found`. SoloDrill depende de la fila que siembra `video-init` (best-effort) o del upsert del cliente; si ambos fallaran, SoloDrill muestra el error en vez del análisis (antes: análisis sin poder ligar el vídeo a su dueño ni a su jugador).
 
 ---
 

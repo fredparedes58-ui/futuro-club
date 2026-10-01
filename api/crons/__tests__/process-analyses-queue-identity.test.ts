@@ -45,15 +45,16 @@ vi.mock("@supabase/supabase-js", () => ({
 }));
 
 // Gate de consentimiento (defensa en profundidad del cron). Por defecto permite; el bloque
-// "consentimiento" de abajo lo fuerza a bloquear. Sus tests: analysisConsentGate.test.ts.
+// "consentimiento" de abajo lo fuerza a bloquear. Sus tests: analysisConsentGate.test.ts y
+// process-analyses-queue-consent.test.ts (gate REAL con los jugadores de la fila videos).
 type GateResult =
-  | { allowed: true; attestation: "stored"; pendingAttestation: null; minor: null }
+  | { allowed: true; attestation: "stored"; pendingAttestation: null; minor: null; video: null; videoPlayerIds: string[] }
   | { allowed: false; code: string; status: number; gate_reason: string; minor: null };
-const ALLOW: GateResult = { allowed: true, attestation: "stored", pendingAttestation: null, minor: null };
+const ALLOW: GateResult = { allowed: true, attestation: "stored", pendingAttestation: null, minor: null, video: null, videoPlayerIds: [] };
 const consentGate = vi.fn<(input: Record<string, unknown>) => Promise<GateResult>>(async () => ALLOW);
 vi.mock("../../_lib/analysisConsentGate", async (orig) => ({
   ...(await orig<typeof import("../../_lib/analysisConsentGate")>()),
-  enforceClipConsent: (input: Record<string, unknown>) => consentGate(input),
+  gateClipAnalysis: (input: Record<string, unknown>) => consentGate(input),
 }));
 
 const fetchMock = vi.fn();
@@ -119,10 +120,12 @@ describe("cron · consentimiento (defensa en profundidad, decisión del owner 30
     expect(consentGate).toHaveBeenCalledTimes(1);
     expect(consentGate.mock.calls[0][0]).toMatchObject({
       storedOnly: true,
-      resource: { type: "videos", id: "v1" },
+      videoId: "v1",
+      requireVideoRow: true,
       playerId: "p1",
       actor: { userId: null },
       endpoint: "crons/process-analyses-queue",
+      ownsVideo: null,
     });
   });
 

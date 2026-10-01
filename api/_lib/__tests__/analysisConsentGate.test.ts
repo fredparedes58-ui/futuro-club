@@ -10,12 +10,19 @@ import {
   enforceStoredConsentForVideoUrl,
   enforceUserVideoObservationConsent,
   bunnyGuidFromVideoUrl,
-  videoUrlReferencesBunnyGuid,
+  resolveClipVideo,
+  gateClipAnalysis,
+  clipGateErrorResponse,
+  type VideoRowLite,
 } from "../analysisConsentGate";
-import { ATTESTATION, consentFetch, emptyConsentDb, type ConsentDbState } from "./consentFetchMock";
+import { ATTESTATION, MINOR_BIRTH_DATE, consentFetch, emptyConsentDb, type ConsentDbState } from "./consentFetchMock";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const TENANT = "22222222-2222-4222-8222-222222222222";
+const OTHER = "99999999-9999-4999-8999-999999999999";
+/** Mismo predicado que ownership.ownsVideo para filas con user_id/tenant_id (sin fetch). */
+const ownsByUser = async (v: VideoRowLite, uid: string | null, tid: string | null) =>
+  (!!v.user_id && v.user_id === uid) || (!!v.tenant_id && !!tid && v.tenant_id === tid);
 const NOW = new Date("2026-09-30T12:00:00Z");
 const actor = { userId: USER, tenantId: TENANT, ip: "203.0.113.7" };
 
@@ -222,18 +229,206 @@ describe("falla cerrado (nunca 503)", () => {
   });
 });
 
-describe("helpers de vídeo", () => {
-  it("videoUrlReferencesBunnyGuid: el GUID tiene que ser un segmento de la ruta", () => {
-    expect(videoUrlReferencesBunnyGuid("https://cdn.test/g-1/play_720p.mp4", "g-1")).toBe(true);
-    expect(videoUrlReferencesBunnyGuid("https://cdn.test/g-10/play_720p.mp4", "g-1")).toBe(false);
-    expect(videoUrlReferencesBunnyGuid("https://cdn.test/x/play.mp4?g-1", "g-1")).toBe(false);
-    expect(videoUrlReferencesBunnyGuid("https://cdn.test/g-1/play.mp4", null)).toBe(false);
+describe("varios jugadores: el pedido Y los que el servidor liga al vídeo (B1)", () => {
+  it("jugador pedido adulto + jugador del vídeo menor sin consentimiento → 403 (el body no lo esquiva)", async () => {
+    db.birthDates.pAdult = "1990-01-01";
+    db.birthDates.pMinor = "2016-01-01";
+    const r = await enforceClipConsent({ ...base, attestation: ATTESTATION, playerId: "pAdult", videoPlayerIds: ["pMinor"] });
+    expect(r).toMatchObject({ allowed: false, code: "parental_consent_required", minor: "minor" });
+    expect(mock.inserts).toHaveLength(0);
   });
 
+  it("sin jugador pedido, el jugador del vídeo menor sin consentimiento → 403 aunque se pida 'de equipo'", async () => {
+    db.birthDates.pMinor = "2016-01-01";
+    const r = await enforceClipConsent({ ...base, attestation: ATTESTATION, playerId: null, videoPlayerIds: ["pMinor"], scope: "team" });
+    expect(r).toMatchObject({ allowed: false, code: "parental_consent_required" });
+  });
+
+  it("todos pasan (menor con consentimiento + fecha desconocida) → permitido; metadata.player_id = el pedido", async () => {
+    db.birthDates.pMinor = "2016-01-01";
+    db.activeConsents.push("pMinor");
+    db.birthDates.p1 = null;
+    const r = await enforceClipConsent({ ...base, attestation: ATTESTATION, playerId: "p1", videoPlayerIds: ["pMinor", "p1", null] });
+    expect(r).toMatchObject({ allowed: true, minor: "unknown" });
+    expect((mock.inserts[0].metadata as Record<string, unknown>).player_id).toBe("p1");
+    // p1 se consulta UNA vez (sin duplicar) y pMinor también.
+    expect(mock.calls.filter((c) => c.url.includes("/rest/v1/players?id=eq.p1"))).toHaveLength(1);
+  });
+
+  it("sin jugador pedido, la metadata guarda el jugador del vídeo", async () => {
+    db.birthDates.pV = null;
+    await enforceClipConsent({ ...base, attestation: ATTESTATION, playerId: null, videoPlayerIds: ["pV"] });
+    expect((mock.inserts[0].metadata as Record<string, unknown>).player_id).toBe("pV");
+  });
+
+  it("un jugador del vídeo que no existe → falla cerrado (500)", async () => {
+    const r = await enforceClipConsent({ ...base, attestation: ATTESTATION, playerId: null, videoPlayerIds: ["borrado"] });
+    expect(r).toMatchObject({ allowed: false, code: "consent_check_failed", status: 500 });
+  });
+});
+
+describe("resolveClipVideo · el vídeo y sus jugadores los resuelve el servidor (B1/B2)", () => {
+  const resolve = (over: Partial<Parameters<typeof resolveClipVideo>[0]> = {}) =>
+    resolveClipVideo({ requireVideoRow: true, actor, ownsVideo: ownsByUser, endpoint: "t", ...over });
+
+  it("por el GUID de la URL encuentra la fila create-upload (id vid-x ≠ GUID) y su jugador", async () => {
+    db.videos.push({ id: "vid-x", user_id: USER, tenant_id: null, player_id: "p1", bunny_video_id: "g-x" });
+    const r = await resolve({ videoUrl: "https://cdn.test/g-x/play_720p.mp4" });
+    expect(r).toMatchObject({ ok: true, video: { id: "vid-x" }, videoPlayerIds: ["p1"], resource: { type: "videos", id: "vid-x", bunnyVideoId: "g-x" } });
+  });
+
+  it("por un videoId que es el GUID (no el id) también la encuentra (B2)", async () => {
+    db.videos.push({ id: "vid-x", user_id: OTHER, tenant_id: null, player_id: null, bunny_video_id: "g-x" });
+    const r = await resolve({ videoId: "g-x", bunnyGuid: "g-x" });
+    expect(r).toMatchObject({ ok: false, status: 403, code: "forbidden" });
+  });
+
+  it("TODAS las filas del vídeo cuentan: una propia + otra ajena con el mismo GUID → 403", async () => {
+    db.videos.push({ id: "mine", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-v" });
+    db.videos.push({ id: "g-v", user_id: OTHER, tenant_id: null, player_id: "pMinor", bunny_video_id: "g-v" });
+    expect(await resolve({ videoId: "mine", videoUrl: "https://cdn.test/g-v/x.mp4" })).toMatchObject({ ok: false, status: 403 });
+    // Contenido del navegador (sin GUID de píxeles): la fila ajena aparece por expansión.
+    expect(await resolve({ videoId: "mine", requireVideoRow: false })).toMatchObject({ ok: false, status: 403 });
+  });
+
+  it("varias filas propias del mismo vídeo → los jugadores de todas, sin duplicar", async () => {
+    db.videos.push({ id: "vid-x", user_id: USER, tenant_id: null, player_id: "p1", bunny_video_id: "g-x" });
+    db.videos.push({ id: "g-x", user_id: null, tenant_id: TENANT, player_id: "p2", bunny_video_id: "g-x" });
+    db.videos.push({ id: "g-x-copy", user_id: USER, tenant_id: null, player_id: "p1", bunny_video_id: "g-x" });
+    const r = await resolve({ videoUrl: "https://cdn.test/g-x/play.mp4" });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect([...r.videoPlayerIds].sort()).toEqual(["p1", "p2"]);
+      expect(r.video?.id).toBe("g-x"); // la fila cuyo id ES el GUID de los píxeles
+    }
+  });
+
+  it("URL cuyo PRIMER segmento es otro vídeo (el GUID propio va después) → 400 video_url_mismatch", async () => {
+    db.videos.push({ id: "g-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-1" });
+    expect(await resolve({ videoId: "g-1", videoUrl: "https://cdn.test/otro/g-1/play.mp4" })).toMatchObject({ ok: false, status: 400, code: "video_url_mismatch" });
+  });
+
+  it("videoId de un vídeo y GUID de otro (ambos propios) → 400 video_url_mismatch", async () => {
+    db.videos.push({ id: "a", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-a" });
+    db.videos.push({ id: "b", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-b" });
+    expect(await resolve({ videoId: "a", bunnyGuid: "g-b" })).toMatchObject({ ok: false, code: "video_url_mismatch" });
+  });
+
+  it("videoId de una fila SIN GUID (otro vídeo) + URL de un vídeo con fila → 400 (no pasa en silencio)", async () => {
+    db.videos.push({ id: "local-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: null });
+    db.videos.push({ id: "g-b", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-b" });
+    expect(await resolve({ videoId: "local-1", videoUrl: "https://cdn.test/g-b/x.mp4" })).toMatchObject({ ok: false, code: "video_url_mismatch" });
+  });
+
+  it("fila sin GUID todavía: SOLO finalize (seedRow) la cuenta como fila de ese vídeo", async () => {
+    db.videos.push({ id: "local-1", user_id: USER, tenant_id: null, player_id: "p1", bunny_video_id: null });
+    // Una ruta que lee píxeles por URL no puede tomar una fila ajena al GUID como "la del vídeo".
+    expect(await resolve({ videoId: "local-1", bunnyGuid: "g-nuevo" })).toMatchObject({ ok: false, code: "video_url_mismatch" });
+    // finalize: la va a sembrar con ese GUID → es la fila del vídeo.
+    expect(await resolve({ videoId: "local-1", bunnyGuid: "g-nuevo", seedRow: true })).toMatchObject({
+      ok: true, video: { id: "local-1" }, videoPlayerIds: ["p1"], resource: { type: "videos", id: "local-1", bunnyVideoId: "g-nuevo" },
+    });
+    // ...pero si OTRA fila ajena ya apunta a ese GUID, 403 (no se siembra un vídeo ajeno).
+    db.videos.push({ id: "vid-o", user_id: OTHER, tenant_id: null, player_id: null, bunny_video_id: "g-nuevo" });
+    expect(await resolve({ videoId: "local-1", bunnyGuid: "g-nuevo", seedRow: true })).toMatchObject({ ok: false, status: 403 });
+  });
+
+  it("sin fila: 404 si el servidor lee píxeles; video_ref (sin jugadores) si el contenido es del navegador", async () => {
+    expect(await resolve({ videoUrl: "https://cdn.test/nada/x.mp4" })).toMatchObject({ ok: false, status: 404, code: "video_not_found" });
+    expect(await resolve({ videoId: "local-9", requireVideoRow: false })).toEqual({
+      ok: true, video: null, rows: [], resource: { type: "video_ref", id: "local-9" }, videoPlayerIds: [],
+    });
+  });
+
+  it("sin referencia: 400 si se exige fila; video_ref null si no", async () => {
+    expect(await resolve({})).toMatchObject({ ok: false, status: 400, code: "video_reference_required" });
+    expect(await resolve({ requireVideoRow: false })).toMatchObject({ ok: true, resource: { type: "video_ref", id: null } });
+  });
+
+  it("URL que no se puede leer → 404 (nunca se analiza)", async () => {
+    expect(await resolve({ videoUrl: "no es una url" })).toMatchObject({ ok: false, status: 404 });
+  });
+
+  it("ruta automática (ownsVideo null) → no comprueba propiedad, sí junta los jugadores", async () => {
+    db.videos.push({ id: "g-1", user_id: OTHER, tenant_id: null, player_id: "p9", bunny_video_id: "g-1" });
+    expect(await resolve({ videoId: "g-1", ownsVideo: null, actor: { userId: null, tenantId: null } })).toMatchObject({ ok: true, videoPlayerIds: ["p9"] });
+  });
+
+  it("error de la base → consent_check_failed 500 (falla cerrado, nunca 503)", async () => {
+    db.failures.videos = { status: 500, body: "boom" };
+    expect(await resolve({ videoId: "g-1" })).toMatchObject({ ok: false, status: 500, code: "consent_check_failed" });
+  });
+
+  it("la consulta usa id=in y bunny_video_id=in con valores entre comillas (PostgREST)", async () => {
+    await resolve({ videoId: 'raro,"id"', bunnyGuid: 'raro,"id"' });
+    const urls = mock.calls.filter((c) => c.url.includes("/rest/v1/videos")).map((c) => decodeURIComponent(c.url));
+    expect(urls.some((u) => u.includes('id=in.("raro,\\"id\\"")'))).toBe(true);
+    expect(urls.some((u) => u.includes('bunny_video_id=in.("raro,\\"id\\"")'))).toBe(true);
+  });
+});
+
+describe("gateClipAnalysis · resolución + consentimiento", () => {
+  it("B1 · fila propia de un menor de 14 sin consentimiento, sin jugador en el body → 403", async () => {
+    db.videos.push({ id: "guid-m", user_id: USER, tenant_id: null, player_id: "pMinor", bunny_video_id: "guid-m" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    const r = await gateClipAnalysis({
+      videoUrl: "https://cdn.test/guid-m/play_720p.mp4", requireVideoRow: true, attestation: ATTESTATION,
+      playerId: null, actor, endpoint: "t", ownsVideo: ownsByUser,
+    });
+    expect(r).toMatchObject({ allowed: false, status: 403, code: "parental_consent_required" });
+    expect(mock.inserts).toHaveLength(0);
+  });
+
+  it("permitido → guarda la declaración CON la fila resuelta y devuelve el vídeo y sus jugadores", async () => {
+    db.videos.push({ id: "vid-x", user_id: USER, tenant_id: null, player_id: "p1", bunny_video_id: "g-x" });
+    db.birthDates.p1 = null;
+    const r = await gateClipAnalysis({
+      videoId: "g-x", requireVideoRow: false, attestation: ATTESTATION, playerId: null, actor, endpoint: "t",
+      scope: "team", ownsVideo: ownsByUser,
+    });
+    expect(r).toMatchObject({ allowed: true, attestation: "recorded", video: { id: "vid-x" }, videoPlayerIds: ["p1"] });
+    expect(mock.inserts[0]).toMatchObject({ resource_type: "videos", resource_id: "vid-x", metadata: { bunny_video_id: "g-x", player_id: "p1" } });
+  });
+
+  it("clipGateErrorResponse: código de consentimiento → motivo + versión; de resolución → su código y estado", async () => {
+    const consent = clipGateErrorResponse({ allowed: false, status: 403, code: "parental_consent_required", gate_reason: "m", minor: "minor" });
+    expect(consent.status).toBe(403);
+    expect((await consent.json()).errorDetail).toMatchObject({ code: "parental_consent_required", gate_reason: "m", attestationVersion: "2026-09-28.v1" });
+    const res = clipGateErrorResponse({ allowed: false, status: 404, code: "video_not_found", gate_reason: "no", minor: null });
+    expect(res.status).toBe(404);
+    expect((await res.json()).errorDetail.code).toBe("video_not_found");
+  });
+
+  it("sin Supabase → consent_check_failed sin llamar a nada", async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const r = await gateClipAnalysis({ videoId: "x", requireVideoRow: true, playerId: null, actor, endpoint: "t", ownsVideo: ownsByUser });
+    expect(r).toMatchObject({ allowed: false, code: "consent_check_failed", status: 500 });
+    expect(mock.calls).toHaveLength(0);
+  });
+});
+
+describe("helpers de vídeo", () => {
   it("bunnyGuidFromVideoUrl: pull zone (primer segmento) y API de librería (tras /videos/)", () => {
     expect(bunnyGuidFromVideoUrl("https://vz-1.b-cdn.net/abc-guid/play_720p.mp4")).toBe("abc-guid");
     expect(bunnyGuidFromVideoUrl("https://video.bunnycdn.com/library/42/videos/abc-guid/play.mp4")).toBe("abc-guid");
+    // El vídeo que sirve la pull zone es el del PRIMER segmento, aunque otro aparezca después.
+    expect(bunnyGuidFromVideoUrl("https://vz-1.b-cdn.net/otro/abc-guid/play.mp4")).toBe("otro");
+    expect(bunnyGuidFromVideoUrl("https://vz-1.b-cdn.net/x/play.mp4?abc-guid")).toBe("x");
     expect(bunnyGuidFromVideoUrl("not a url")).toBeNull();
+  });
+
+  it("enforceStoredConsentForVideoUrl: otra fila AJENA con el mismo GUID → bloqueado (aunque la propia tenga declaración)", async () => {
+    db.videos.push({ id: "mine", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-v" });
+    db.videos.push({ id: "g-v", user_id: OTHER, tenant_id: null, player_id: "pMinor", bunny_video_id: "g-v" });
+    db.storedAttestations.push({ resource_type: "videos", resource_id: "mine" });
+    const r = await enforceStoredConsentForVideoUrl({ videoUrl: "https://cdn.test/g-v/play_720p.mp4", actor, endpoint: "t", ownsVideo: ownsByUser });
+    expect(r).toMatchObject({ allowed: false, code: "attestation_required" });
+  });
+
+  it("enforceStoredConsentForVideoUrl: base caída → consent_check_failed (no un 'sin vídeo' silencioso)", async () => {
+    db.failures.videos = { status: 500, body: "boom" };
+    const r = await enforceStoredConsentForVideoUrl({ videoUrl: "https://cdn.test/g-1/play_720p.mp4", actor, endpoint: "t", ownsVideo: ownsByUser });
+    expect(r).toMatchObject({ allowed: false, code: "consent_check_failed", status: 500 });
   });
 
   const ownsYes = async () => true;

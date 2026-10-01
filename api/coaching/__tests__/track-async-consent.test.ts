@@ -107,6 +107,10 @@ function post(body: Record<string, unknown>, auth = "Bearer user-jwt"): Request 
 const touchedTrackingJobs = () => mock.calls.some((c) => c.url.includes("/rest/v1/tracking_jobs"));
 
 describe("track-async · gate de consentimiento (llamadas de usuario)", () => {
+  beforeEach(() => {
+    db.videos.push({ id: "guid-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "guid-1" });
+  });
+
   it("sin declaración → 400 attestation_required; ni dedup, ni insert, ni Modal", async () => {
     const res = await trackAsync(post({ videoUrl: VIDEO_URL }));
     expect(res.status).toBe(400);
@@ -134,7 +138,68 @@ describe("track-async · gate de consentimiento (llamadas de usuario)", () => {
   });
 });
 
+describe("track-async · B1/B2: el vídeo y su jugador los resuelve el SERVIDOR (no el body)", () => {
+  const MINOR_URL = "https://cdn.test/guid-minor/play_720p.mp4";
+  beforeEach(() => {
+    db.videos.push({ id: "guid-minor", user_id: USER, tenant_id: null, player_id: "pMinor", bunny_video_id: "guid-minor" });
+    db.birthDates.pMinor = MINOR_BIRTH_DATE;
+    db.storedAttestations.push({ resource_type: "videos", resource_id: "guid-minor" });
+  });
+
+  it("B1 · sin playerId en el body, el vídeo de un menor de 14 sin consentimiento → 403; sin dedup/insert/Modal", async () => {
+    const res = await trackAsync(post({ videoUrl: MINOR_URL, attestation: ATTESTATION }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(touchedTrackingJobs()).toBe(false);
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("B1 · con OTRO playerId (adulto) en el body, el menor del vídeo se sigue comprobando → 403", async () => {
+    db.birthDates.pAdult = "1990-01-01";
+    const res = await trackAsync(post({ videoUrl: MINOR_URL, playerId: "pAdult", attestation: ATTESTATION }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("parental_consent_required");
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("B2 · vídeo de OTRO usuario encontrado por el GUID de la URL → 403 forbidden; sin Modal", async () => {
+    db.videos.push({ id: "vid-x", user_id: "99999999-9999-4999-8999-999999999999", tenant_id: null, player_id: null, bunny_video_id: "g-x" });
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/g-x/play_720p.mp4", attestation: ATTESTATION }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).errorDetail.code).toBe("forbidden");
+    expect(touchedTrackingJobs()).toBe(false);
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("URL de nuestro CDN sin fila `videos` → 404 video_not_found (no se analiza un vídeo que el servidor no puede ligar)", async () => {
+    const res = await trackAsync(post({ videoUrl: "https://cdn.test/sin-fila/play_720p.mp4", attestation: ATTESTATION }));
+    expect(res.status).toBe(404);
+    expect((await res.json()).errorDetail.code).toBe("video_not_found");
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("videoId del body de OTRO vídeo que el de la URL → 400 video_url_mismatch", async () => {
+    db.videos.push({ id: "g-own", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "g-own" });
+    const res = await trackAsync(post({ videoUrl: MINOR_URL, videoId: "g-own", attestation: ATTESTATION }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).errorDetail.code).toBe("video_url_mismatch");
+    expect(modalCalls).toHaveLength(0);
+  });
+
+  it("menor de 14 CON consentimiento parental verificado → 202 y Modal recibe el body de siempre", async () => {
+    db.activeConsents.push("pMinor");
+    const res = await trackAsync(post({ videoUrl: MINOR_URL }));
+    expect(res.status).toBe(202);
+    expect(modalCalls).toHaveLength(1);
+  });
+});
+
 describe("track-async · Modal sin cambios para un vídeo declarado", () => {
+  beforeEach(() => {
+    // Vídeo de equipo propio (sin jugador) subido por VideoUpload → fila `videos` id = GUID.
+    db.videos.push({ id: "guid-1", user_id: USER, tenant_id: null, player_id: null, bunny_video_id: "guid-1" });
+  });
+
   it("spawn BYTE A BYTE igual que antes + declaración guardada (quién = JWT) + callback firmado cierra el job", async () => {
     const res = await trackAsync(post({ videoUrl: VIDEO_URL, attestation: ATTESTATION }));
     expect(res.status).toBe(202);
@@ -144,9 +209,9 @@ describe("track-async · Modal sin cambios para un vídeo declarado", () => {
     expect(mock.inserts[0]).toMatchObject({
       user_id: USER,
       action: "video_analysis_attested",
-      resource_type: "video_ref",
-      resource_id: VIDEO_URL,
-      metadata: { version: "2026-09-28.v1", endpoint: "coaching/track-async" },
+      resource_type: "videos",
+      resource_id: "guid-1",
+      metadata: { version: "2026-09-28.v1", bunny_video_id: "guid-1", endpoint: "coaching/track-async" },
     });
 
     // Request a Modal: misma URL, mismas cabeceras y el MISMO body serializado que el
