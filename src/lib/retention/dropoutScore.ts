@@ -3,8 +3,12 @@
  *
  * Modelo de 8 factores (mismos pesos que api/wellbeing/_dropout-risk.ts).
  * Sin datos reales todavía (Sprint 0 pendiente) → estima cada factor con un hash
- * determinista por-jugador (mismo modelo que el digest del director), de modo que
- * el dashboard y el email mensual coinciden.
+ * determinista por-jugador. Es MOCK (registro: retencion_roi) y solo se muestra
+ * tras DemoDataBanner en /director (RetentionRadarCard).
+ * El email mensual al director YA NO usa este modelo: desde el fix P0 del digest
+ * usa la evaluación real del servidor (api/_lib/dropoutAssessment.ts) y nunca
+ * nombra a un jugador sin datos. DEUDA (pendientes-metricas): retirar este hash
+ * del cliente (rules/metricas.md lo prohíbe incluso con banner).
  * Cuando existan señales reales (engagement, asistencia, fatiga) se pasan en
  * `signals` y sustituyen a la estimación por-defecto.
  */
@@ -51,8 +55,7 @@ function hash32(x: number): number {
 
 /**
  * Factores deterministas desde el id, con varianza independiente por factor
- * (cada factor usa un hash distinto → distribución realista de riesgo).
- * Mismo modelo que el digest del director (api/crons/director-risk-digest.ts).
+ * (cada factor usa un hash distinto → distribución de ejemplo, NO real).
  */
 function seededFactors(playerId: string): DropoutFactors {
   const base = playerId.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
