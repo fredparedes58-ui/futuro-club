@@ -262,8 +262,8 @@ async function saveAttendanceApi(input: AttendanceInput): Promise<{ status?: str
  * A diferencia del resto de flujos de bienestar, engagement NO tiene endpoint
  * de servidor: se escribe directo con `WellbeingService.saveEngagement`, que usa
  * el cliente Supabase autenticado. La propiedad del jugador la garantiza la RLS
- * de la migración 073 (`engagement_snapshots_*_owner_or_tenant`: dueño por
- * players.user_id o mismo tenant del JWT, vía public.caller_manages_player). La
+ * de la migración 073 (`engagement_snapshots_*_owner`: SOLO el dueño por
+ * players.user_id, vía public.caller_manages_player, sin rama por tenant). La
  * 050 comparaba players.tenant_id con auth.uid() y no dejaba escribir a nadie:
  * hasta aplicar la 073 el upsert falla (42501) y el dato queda en la caché
  * local, igual que sin Supabase. NO existe pipeline de tracking que atribuya

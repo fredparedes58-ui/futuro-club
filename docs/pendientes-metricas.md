@@ -4,7 +4,7 @@
 > una métrica bloqueada con `gate_reason` honesto es un estado de entrega aceptable, pero
 > **no** es lo mismo que resuelta. Este fichero distingue las dos y se mantiene al día.
 >
-> **Última actualización:** 2026-09-30 (§5-D, migración 073) · **Rama de creación:** `docs/pendientes-metricas`
+> **Última actualización:** 2026-10-01 (§5-D, migración 073 solo dueño) · **Rama de creación:** `docs/pendientes-metricas`
 >
 > Estado del arnés a fecha de hoy: el **GATE real** (pre-commit → `audit_metrics.py
 > --baseline`) sale **exit 0** (deuda baselined). El audit CRUDO `audit_metrics.py` →
@@ -196,9 +196,72 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
 ### D) SEGURIDAD / RLS — pendiente tras la 073 (verificado vs deducido)
 
 > La 073 sustituye las 10 políticas que comparaban `players.tenant_id` con `auth.uid()`
-> (044/050) por una regla única, `public.caller_manages_player` (dueño por `user_id` o
-> mismo tenant del JWT). Lo de abajo NO lo resuelve la 073.
+> (044/050) por una regla única **solo dueño**, `public.caller_manages_player`
+> (`players.user_id = auth.uid()`, espejo de `ownsPlayer`), en las 5 tablas de bienestar y
+> perfil conductual. Lo de abajo NO lo resuelve la 073.
 
+- [x] **Alcance de la 073: SOLO DUEÑO — DECIDIDO (registro de la decisión)**
+  - **Qué:** por RLS y por funciones de base de datos, a los datos de un jugador solo accede su
+    dueño (`players.user_id = auth.uid()`) y `service_role`. Sin rama por tenant y sin rama por
+    organización / membresía de club.
+  - **Quién y cuándo:** el dueño del producto delegó la elección el **30 sep 2026** («la que
+    veas tú mejor») y el asistente (Claude) eligió **solo dueño**.
+  - **Por qué:** (1) datos de menores; (2) **VERIFICADO** en producción (consultas de solo
+    lectura del dueño, 29-30 sep): los 3 jugadores comparten un único `players.tenant_id` que no
+    es un `auth.users.id` ni un `organizations.id`, y no se sabe qué representa; (3) la vía por
+    organización ya está rota (ver «miembros de club» abajo); (4) invariante #3: abstenerse es
+    un resultado válido. Coincide con las rutas de servidor de esas tablas, que usan `ownsPlayer`
+    (`api/behavioral/[action].ts:59`, `api/wellbeing/[action].ts:73,132`,
+    `api/wellbeing/_dropout-risk.ts:174`, `api/injuries/_list.ts:31`, `_save.ts:46`; VERIFICADO
+    por grep).
+  - **Cómo se revisa:** compartir con club/academia se reactivará de forma **explícita** en una
+    migración posterior, junto con el diseño del alta de cuentas (directores + aprobación de
+    acceso) y con su propia comprobación previa. No editando la 073.
+  - **Lo evitado** se puede medir antes de aplicar: filas 13 y 17 de
+    `supabase/checks/073_previa.sql` (usuarios no dueños y filas por tabla que una rama por
+    tenant habría expuesto; resuelven el tenant como el hook 057 + `public.tenant_id()`, con
+    comparación uuid). **SIMULADO** (PGlite, PostgreSQL 18.3 y 16.4): coinciden con lo que lee
+    de verdad cada usuario con la versión anterior «dueño O tenant» en 11 escrituras del uuid y
+    en un conjunto mixto.
+- [ ] **Compartir con club/academia (reactivar, explícito)** — pendiente del diseño del alta de
+  cuentas (directores + aprobación de acceso + acceso limitado al club; diferido). Requiere una
+  migración nueva con su previa; hasta entonces, solo dueño.
+- [ ] **Rama por tenant que la 073 NO cierra** — prevista para una migración posterior (la
+  **076**; hoy no existe ni fichero, ni rama, ni PR: comprobado con `git log --all` sobre
+  `supabase/migrations/07[4-6]*` y `gh pr list --search 076`, control: la misma consulta
+  encuentra el commit de la 073):
+  (a) **DSAR de la 072**: `public.dsar_caller_manages_player` compara `players.tenant_id::text`
+  con el tenant del JWT, del claim raíz o de `app_metadata` (`072:264,285`). **SIMULADO**: un
+  usuario no dueño con el mismo `app_metadata.tenant_id` (texto igual) exporta los datos del
+  menor y marca su borrado; en MAYÚSCULAS no. Fila 19 de la previa: cuántos usuarios no dueños
+  pasan hoy (comparación de texto, la misma de la 072).
+  (b) **RLS de `players`**: `players_tenant_isolation` (`003:239-247`, `FOR ALL TO authenticated`
+  por tenant; en producción **no verificado**, filas 6 y 20 de la previa). **SIMULADO**: con el
+  claim raíz `tenant_id`, un compañero de tenant hace `UPDATE players SET user_id = él mismo`
+  (1 fila; sin el claim, 0) y desde ese momento es «dueño» para la 073 y para `ownsPlayer`.
+  Ya pasaba antes de la 073.
+  (c) **Servidor con `ownsPlayerOrTenant`** (VERIFICADO por grep): `api/auth/sign-consent.ts:100`,
+  `api/analyses/reports.ts:73`, `api/videos/create-upload.ts:106`, `api/videos/finalize.ts:114` y
+  `ownsVideo` (`api/_lib/ownership.ts:127`).
+- [ ] **Lectura de `player_metric_snapshots` desde el navegador — RETENIDA en la 073** —
+  **VERIFICADO leyendo el código**: su único lector (`useMetricSnapshots.ts:40-47` →
+  `SnapshotHistoryChart.tsx:40,93`, montado en `PlayerEvolutionPage.tsx:517`) dibuja
+  `phv_offset` tal cual, sin gate PHV ni procedencia; su escritor,
+  `POST /api/agents/progression-tracker`, no comprueba propiedad (`_progression-tracker.ts:46`
+  `requireAuth + allowServiceToken`; ningún `owns*`/`isServiceCall` en el fichero) y guarda el
+  PHV que manda el cliente (`:64-65`) con la service key. **VERIFICADO en producción**: ningún
+  jugador tiene fecha de nacimiento, así que ningún PHV de snapshot es fiable hoy. La 073 retira
+  la política rota (`snapshots_read_own`) y **no crea otra**: el gráfico de evolución sigue
+  vacío, como hoy. Para reabrirla: (1) progression-tracker con `ownsPlayer` en llamadas que no
+  son de servicio y sin aceptar PHV del cliente; (2) el gráfico por el gate PHV y con la
+  procedencia; (3) una migración con su previa. La fila 22 de la previa cuenta los snapshots con
+  PHV que no respalda ninguna fila fiable de `player_anthropometrics` (criterio de `069:298-313`).
+- [ ] **044 aplicada DESPUÉS de la 072** (hipótesis; si la 044 está aplicada en producción y
+  cuándo: **no verificado**) — dejaría vivas `snapshots_insert_own` / `valuations_insert_own`
+  (`WITH CHECK (true)` para todos, `044:85-86,121-122`) y los privilegios de cliente que la 072
+  retira (`072:590-607`). La previa lo bloquea (filas 10 y 21) y la 073 aborta (su guarda).
+  Remedio: re-ejecutar el bloque «044 · player_metric_snapshots / player_valuations» de la 072.
+  **SIMULADO**: bloquea, aborta sin cambiar nada y, tras el remedio, aplica.
 - [ ] **Acceso de miembros de club por organización (`team_members`)** — **VERIFICADO**
   (consulta de solo lectura del dueño, 29-30 sep): en producción `public.user_org_ids()` y
   `public.user_in_org(uuid)` **no son las del repo** (038:37-64): usan
@@ -210,25 +273,25 @@ Tipo de desbloqueo: **CÓDIGO** (implementable) · **DATOS_HUMANOS** (antropomet
   jugadores de su organización. La 073 **no usa ni toca** estas funciones. Pendiente:
   decidir el modelo de membresía, leer los cuerpos reales línea a línea (runbook #5) y una
   migración propia con su comprobación previa.
-- [ ] **Columnas que el navegador envía y el esquema del repo no tiene** — **SIMULADO**
-  (PGlite con el esquema del repo; columnas reales de producción **no verificadas**): tras
-  la 073 la RLS ya deja escribir, pero fallan por columna `attendance_records.notes`
-  (`wellbeingService.ts:154` cuando hay notas; `localStorageMigrationService.ts:209`),
-  `wellbeing_questionnaires.date` (`localStorageMigrationService.ts:261`) y
-  `dropout_risk_assessments.date/primary_factor` (`:291`, `:294`) → 42703; y
-  `source: 'auto_detected'` (`useWellbeing.ts:250`) viola el CHECK de `046:12` → 23514. El
-  fallo es silencioso y el dato queda en la caché local, como hoy.
-- [ ] **Alcance por tenant (decisión del dueño)** — la regla de la 073 es espejo de
-  `ownsPlayerOrTenant`: si el JWT lleva el claim raíz `tenant_id` (hook 057) y coincide con
-  el `tenant_id` de un jugador, ese usuario ve y escribe su bienestar aunque no sea el dueño.
-  Las rutas de servidor de estas mismas tablas usan `ownsPlayer` (solo dueño). La fila 13 de
-  `supabase/checks/073_previa.sql` cuenta cuántos usuarios no dueños entrarían.
+- [ ] **Escrituras del navegador que siguen fallando tras la 073 (no es RLS)** — **SIMULADO**
+  (PGlite con el esquema del repo; columnas reales de producción **no verificadas**): por
+  columna, `attendance_records.notes` (`wellbeingService.ts:154` cuando hay notas;
+  `localStorageMigrationService.ts:209`), `wellbeing_questionnaires.date`
+  (`localStorageMigrationService.ts:261`) y `dropout_risk_assessments.date/primary_factor`
+  (`:291`, `:294`) → 42703; `source: 'auto_detected'` (`useWellbeing.ts:250`) viola el CHECK de
+  `046:12` → 23514; una segunda asistencia del mismo jugador y día → 23505 (`046:15`
+  `UNIQUE (player_id, date)`, y el upsert del navegador va por `onConflict: "id"` sin id,
+  `wellbeingService.ts:147-157`). Además, **reportado por la revisión 2 del PR #303** (SIMULADO
+  por el revisor con la forma de PostgREST; no re-simulado aquí): la subida única de la caché
+  local pone `id: undefined` en ids que no son uuid (`localStorageMigrationService.ts:165,204,258,289`,
+  VERIFICADO leyendo) y postgrest-js incluye `id` en `columns=` ⇒ NULL ⇒ 23502 para todo el lote;
+  la marca de «ya migrado» se pone igual (`:372-373`). El fallo es silencioso y el dato queda en la
+  caché local, como hoy.
 - [ ] **Seguimientos del audit de la 073 (fuera de su alcance)** — **VERIFICADO leyendo el
   código**, no probado contra producción:
-  (a) `POST /api/agents/progression-tracker` no comprueba propiedad (`_progression-tracker.ts:46`
-  `requireAuth + allowServiceToken`; ningún `owns*`/`isServiceCall`/`userId` en el fichero) y
-  escribe con la service key (`:50-58`) ⇒ cualquier usuario con sesión puede escribir snapshots
-  (incl. `phv_offset`/`phv_category`) de cualquier jugador;
+  (a) `POST /api/agents/progression-tracker` sin comprobación de propiedad (ver «lectura de
+  snapshots retenida»): cualquier usuario con sesión puede escribir snapshots (incl.
+  `phv_offset`/`phv_category`) de cualquier jugador cuyo id sea uuid (`zod` `:26`);
   (b) `api/injuries/_save.ts:62` guarda el id del usuario como `tenant_id` (`?? userId`; igual en
   `api/live/matches.ts:69` y `api/telegram/connect.ts:56`) y su insert usa columnas/valores que
   044 no tiene (`tenant_id`, `reported_by` `:76`, severidad `'mild'` `:18`);

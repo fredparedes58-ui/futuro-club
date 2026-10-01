@@ -4,9 +4,13 @@
 -- Correcto = ok = true en TODAS las filas (resultado igual a esperado).
 -- No escribe nada (una sola consulta SELECT) y no falla si falta algún objeto:
 -- entonces el resultado lo dice («no existe», «tabla no existe»).
--- Probada en SIMULACIÓN PGlite (NO en tu base): base vacía, antes de 073 (da
--- ok = false donde toca), después de 073, 073 dos veces, cadena sin 050, y 050
--- re-ejecutada después de 073 (la detecta).
+-- La 073 es SOLO DUEÑO (decisión del 30 sep 2026); la fila 17 lo confirma en tu
+-- base (con la versión anterior «dueño O tenant» sale false). La lectura de
+-- player_metric_snapshots desde el navegador queda RETENIDA (filas 10 y 11).
+-- Probada en SIMULACIÓN PGlite (NO en tu base), PostgreSQL 18.3 y 16.4: base
+-- vacía, antes de 073 (da ok = false donde toca), después de 073, 073 dos veces,
+-- cadena sin 050, 050 re-ejecutada después de 073 (la detecta) y la versión
+-- anterior de la 073 (la detecta, fila 17).
 -- =====================================================================
 WITH
 tablas5(tabla) AS (
@@ -69,19 +73,22 @@ filas(n, comprobacion, resultado, esperado) AS (
               ELSE 'INSERT:authenticated:helper · SELECT:authenticated:helper · UPDATE:authenticated:helper' END
     FROM tablas5 t
   UNION ALL
+  -- Snapshots: solo la escritura de service_role de la 072. La lectura del
+  -- navegador queda RETENIDA (gráfico de evolución con PHV sin gate; escritor
+  -- progression-tracker sin comprobación de propiedad; ver cabecera de la 073).
   SELECT 10, 'player_metric_snapshots: políticas (nombre:cmd:rol)',
          CASE WHEN to_regclass('public.player_metric_snapshots') IS NULL THEN 'tabla no existe'
               ELSE coalesce((SELECT string_agg(policyname || ':' || cmd || ':' || array_to_string(roles, ','), ' · ' ORDER BY policyname)
                                FROM pol WHERE tablename = 'player_metric_snapshots'), 'sin políticas') END,
          CASE WHEN to_regclass('public.player_metric_snapshots') IS NULL THEN 'tabla no existe'
-              ELSE 'player_metric_snapshots_select_owner_or_tenant:SELECT:authenticated · snapshots_insert_service_role:INSERT:service_role' END
+              ELSE 'snapshots_insert_service_role:INSERT:service_role' END
   UNION ALL
-  SELECT 11, 'player_metric_snapshots: la lectura usa el helper',
+  SELECT 11, 'player_metric_snapshots: políticas de LECTURA que no son solo de service_role (retenida)',
          CASE WHEN to_regclass('public.player_metric_snapshots') IS NULL THEN 'tabla no existe'
-              ELSE coalesce((SELECT (qual LIKE '%caller_manages_player(%')::text FROM pol
-                              WHERE tablename = 'player_metric_snapshots'
-                                AND policyname = 'player_metric_snapshots_select_owner_or_tenant'), 'no existe') END,
-         CASE WHEN to_regclass('public.player_metric_snapshots') IS NULL THEN 'tabla no existe' ELSE 'true' END
+              ELSE (SELECT count(*)::text FROM pol
+                     WHERE tablename = 'player_metric_snapshots' AND cmd IN ('SELECT', 'ALL')
+                       AND roles <> ARRAY['service_role']::name[]) END,
+         CASE WHEN to_regclass('public.player_metric_snapshots') IS NULL THEN 'tabla no existe' ELSE '0' END
   UNION ALL
   SELECT 12, 'player_injuries: políticas',
          CASE WHEN to_regclass('public.player_injuries') IS NULL THEN 'tabla no existe'
@@ -113,6 +120,43 @@ filas(n, comprobacion, resultado, esperado) AS (
               WHEN to_regrole('authenticated') IS NULL THEN 'faltan roles'
               ELSE has_function_privilege('authenticated', to_regprocedure('public.dsar_caller_manages_player(text)'), 'EXECUTE')::text END,
          'false'
+  UNION ALL
+  -- La regla que ha quedado instalada es SOLO DUEÑO (decisión del 30 sep 2026): el
+  -- cuerpo del helper no tiene rama por tenant ni por organización. Sin esta fila,
+  -- las demás salen igual con un helper «dueño O tenant».
+  SELECT 17, 'helper solo dueño: el cuerpo NO tiene rama por tenant ni por organización',
+         CASE WHEN h.oid IS NULL THEN 'no existe'
+              ELSE (pg_get_functiondef(h.oid) !~* '(tenant|org|team_member)')::text END,
+         'true'
+    FROM helper h
+  UNION ALL
+  -- Privilegios de TABLA que necesita el navegador en las 5 tablas (la RLS solo
+  -- filtra filas: sin el GRANT, authenticated recibe 42501 aunque la política le
+  -- deje). La 073 no toca GRANT/REVOKE de tablas; si falta alguno, dímelo antes de
+  -- arreglar nada.
+  SELECT 18, 'authenticated: privilegios de tabla que FALTAN en las 5 tablas (SELECT/INSERT/UPDATE)',
+         CASE WHEN to_regrole('authenticated') IS NULL THEN 'faltan roles'
+              ELSE coalesce((SELECT string_agg(t.tabla || ':' || pr.priv, ', ' ORDER BY t.tabla, pr.priv)
+                               FROM tablas5 t
+                              CROSS JOIN (VALUES ('SELECT'), ('INSERT'), ('UPDATE')) pr(priv)
+                              WHERE to_regclass('public.' || t.tabla) IS NOT NULL
+                                AND NOT has_table_privilege('authenticated', to_regclass('public.' || t.tabla), pr.priv)),
+                            'ninguno') END,
+         'ninguno'
+  UNION ALL
+  -- Las escrituras de cliente que la 072 retiró en snapshots / valoraciones siguen
+  -- retiradas (si no, la 044 se aplicó después de la 072).
+  SELECT 19, 'snapshots / valoraciones: privilegios de cliente que la 072 retiró (anon: todos · authenticated: escritura)',
+         CASE WHEN to_regrole('anon') IS NULL OR to_regrole('authenticated') IS NULL THEN 'faltan roles'
+              ELSE coalesce((SELECT string_agg(rp.rol || ':' || t.tabla || ':' || rp.priv, ', ' ORDER BY t.tabla, rp.rol, rp.priv)
+                               FROM (VALUES ('player_metric_snapshots'), ('player_valuations')) t(tabla)
+                              CROSS JOIN (VALUES ('anon', 'SELECT'), ('anon', 'INSERT'), ('anon', 'UPDATE'), ('anon', 'DELETE'),
+                                                 ('authenticated', 'INSERT'), ('authenticated', 'UPDATE'),
+                                                 ('authenticated', 'DELETE')) rp(rol, priv)
+                              WHERE to_regclass('public.' || t.tabla) IS NOT NULL
+                                AND has_table_privilege(rp.rol, to_regclass('public.' || t.tabla), rp.priv)),
+                            'ninguno') END,
+         'ninguno'
 )
 SELECT n, comprobacion, resultado, esperado, resultado = esperado AS ok
   FROM filas

@@ -40,6 +40,15 @@ function serviceHeaders(key: string): Record<string, string> {
 /**
  * ¿El jugador `playerId` pertenece al usuario `userId`? (players.user_id)
  * Fail-closed: ante cualquier duda (sin Supabase, query no-ok, error) → false.
+ *
+ * Espejo en SQL (la base de datos no puede llamar a este código):
+ * public.caller_manages_player (migración 073), la regla de las políticas RLS de
+ * behavioral_profiles, attendance_records, engagement_snapshots,
+ * wellbeing_questionnaires y dropout_risk_assessments: SOLO el dueño
+ * (players.user_id = auth.uid()), sin rama por tenant ni por organización
+ * (decisión del 30 sep 2026, registrada en la cabecera de la 073). Las rutas de
+ * servidor de esas mismas tablas usan esta función. Si cambia esta regla,
+ * cambiar también esa función (con una migración nueva).
  */
 export async function ownsPlayer(playerId: string | null | undefined, userId: string | null): Promise<boolean> {
   if (!playerId || !userId) return false;
@@ -71,14 +80,12 @@ export async function ownsPlayer(playerId: string | null | undefined, userId: st
  * Fail-closed: sin playerId, sin userId ni tenantId, sin Supabase, query no-ok o
  * error → false.
  *
- * Espejos en SQL (la base de datos no puede llamar a este código):
- *   - public.dsar_caller_manages_player (migración 072): RPC DSAR del navegador.
- *   - public.caller_manages_player (migración 073): políticas RLS de
- *     behavioral_profiles, attendance_records, engagement_snapshots,
- *     wellbeing_questionnaires, dropout_risk_assessments y player_metric_snapshots.
- *     Lee el tenant solo del claim RAÍZ (public.tenant_id()), no de app_metadata:
- *     igual o más estrecha que esta función, nunca más amplia.
- * Si cambia esta regla, cambiar también esas funciones (con una migración nueva).
+ * Espejo en SQL: public.dsar_caller_manages_player (migración 072) aplica esta
+ * misma regla dentro de la base de datos para las RPC DSAR que llama el navegador.
+ * Si cambia esta regla, cambiar también esa función (con una migración nueva).
+ * La 073 (public.caller_manages_player) NO es espejo de esta función: es solo
+ * dueño, como ownsPlayer. Que la DSAR y estas rutas sigan teniendo rama por
+ * tenant está pendiente (docs/pendientes-metricas.md §5-D).
  */
 export async function ownsPlayerOrTenant(
   playerId: string | null | undefined,

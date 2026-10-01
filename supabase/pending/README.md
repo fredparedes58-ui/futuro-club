@@ -6,6 +6,12 @@
 > datos verificados de producción no dan acceso a nadie. **No los vuelvas a ejecutar
 > después de la 073**: `10` re-crea las políticas rotas (la comprobación
 > `supabase/checks/073_comprobacion.sql` lo detecta) y `04` re-crea las de lesiones.
+> Si `04` (= 044) se aplica por PRIMERA vez después de la 072, deja además
+> `snapshots_insert_own` / `valuations_insert_own` (`WITH CHECK (true)` para todos) y los
+> privilegios de cliente que la 072 retira: vuelve a ejecutar el bloque «044 ·
+> player_metric_snapshots / player_valuations» de la 072 y luego la comprobación previa
+> de la 073 (filas 10 y 21 lo bloquean; la propia 073 aborta si siguen ahí).
+> La 073 es **solo dueño** (decisión del 30 sep 2026, ver su cabecera).
 > La fuente es `supabase/migrations/`.
 
 Proyecto Supabase: **tloadypygzqyfefanrza**.

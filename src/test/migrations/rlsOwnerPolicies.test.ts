@@ -121,6 +121,11 @@ describe("rlsPolicyLint · estado de políticas", () => {
 
 const HELPER = /^\s*public\.caller_manages_player\s*\(\s*player_id(\s*::\s*text)?\s*\)\s*$/i;
 
+/** Las 5 tablas de bienestar / perfil conductual que usa el navegador. */
+const FIVE = ["behavioral_profiles", "attendance_records", "engagement_snapshots", "wellbeing_questionnaires", "dropout_risk_assessments"];
+/** Las 15 políticas que crea la 073 (solo dueño): SELECT/INSERT/UPDATE × 5 tablas. */
+const CREATED_073 = FIVE.flatMap((t) => ["insert", "select", "update"].map((c) => `${t}_${c}_owner`)).sort();
+
 /** Resumen «nombre:cmd:roles» de las políticas vigentes de una tabla. */
 function tablePolicies(state: Map<string, PolicyState>, table: string): PolicyState[] {
   return [...state.values()].filter((p) => p.table === `public.${table}`).sort((a, b) => (a.name < b.name ? -1 : 1));
@@ -157,12 +162,12 @@ describe("rlsPolicyLint · supabase/migrations", () => {
 
   it("073 deja en las 5 tablas del navegador SELECT + INSERT + UPDATE, TO authenticated, con el helper y WITH CHECK en escrituras", () => {
     const state = buildPolicyState(ALL);
-    for (const t of ["behavioral_profiles", "attendance_records", "engagement_snapshots", "wellbeing_questionnaires", "dropout_risk_assessments"]) {
+    for (const t of FIVE) {
       const ps = tablePolicies(state, t);
       expect(ps.map((p) => `${p.name}:${p.cmd}:${p.roles.join(",")}`), t).toEqual([
-        `${t}_insert_owner_or_tenant:INSERT:authenticated`,
-        `${t}_select_owner_or_tenant:SELECT:authenticated`,
-        `${t}_update_owner_or_tenant:UPDATE:authenticated`,
+        `${t}_insert_owner:INSERT:authenticated`,
+        `${t}_select_owner:SELECT:authenticated`,
+        `${t}_update_owner:UPDATE:authenticated`,
       ]);
       for (const p of ps) {
         expect(p.permissive, p.name).toBe(true);
@@ -183,25 +188,27 @@ describe("rlsPolicyLint · supabase/migrations", () => {
     }
   });
 
-  it("073: snapshots solo lectura; lesiones y valoraciones sin políticas de cliente (sin llamador de navegador)", () => {
+  it("073: snapshots SIN lectura de cliente (retenida: PHV sin gate en el gráfico); lesiones y valoraciones sin políticas de cliente", () => {
     const state = buildPolicyState(ALL);
-    const snap = tablePolicies(state, "player_metric_snapshots");
-    expect(snap.map((p) => `${p.name}:${p.cmd}:${p.roles.join(",")}`)).toEqual([
-      "player_metric_snapshots_select_owner_or_tenant:SELECT:authenticated",
+    // La lectura del navegador de player_metric_snapshots queda RETENIDA: solo la escritura
+    // de service_role de la 072 (SnapshotHistoryChart dibuja phv_offset sin gate PHV y
+    // progression-tracker no comprueba propiedad; ver cabecera de la 073).
+    expect(tablePolicies(state, "player_metric_snapshots").map((p) => `${p.name}:${p.cmd}:${p.roles.join(",")}`)).toEqual([
       "snapshots_insert_service_role:INSERT:service_role", // 072, intacta
     ]);
-    expect(snap[0].using).toMatch(HELPER);
     expect(tablePolicies(state, "player_injuries")).toEqual([]);
     expect(tablePolicies(state, "player_valuations").map((p) => `${p.name}:${p.cmd}:${p.roles.join(",")}`)).toEqual([
       "valuations_insert_service_role:INSERT:service_role", // 072, intacta
     ]);
     // Nunca anon ni public en las políticas que crea 073, y nunca FOR ALL / DELETE.
     const created073 = [...state.values()].filter((p) => p.definedIn === FILE_073);
-    expect(created073.length).toBe(16);
+    expect(created073.map((p) => p.name).sort()).toEqual(CREATED_073);
     for (const p of created073) {
       expect(p.roles, p.name).toEqual(["authenticated"]);
       expect(["SELECT", "INSERT", "UPDATE"], p.name).toContain(p.cmd);
     }
+    // Ningún nombre vigente dice «or_tenant» (sería falso con la regla solo dueño).
+    expect([...state.values()].filter((p) => /or_tenant/.test(p.name)).map((p) => `${p.table}|${p.name}`)).toEqual([]);
   });
 
   it("el helper es SECURITY INVOKER, fija search_path y queda revocado a anon/PUBLIC (ejecutable por authenticated)", () => {
@@ -213,11 +220,34 @@ describe("rlsPolicyLint · supabase/migrations", () => {
     expect(f?.acl.PUBLIC).toBe(false);
     expect(f?.acl.authenticated).toBe(true);
     expect(f?.definedIn).toBe(FILE_073);
-    // La regla: dueño por user_id O mismo tenant del JWT (public.tenant_id()), nunca tenant = usuario.
-    const body = f?.body ?? "";
+    // COMMENT con el prefijo «073 ·»: la fila 3 de la comprobación previa depende de él.
+    expect(sql073).toMatch(/COMMENT ON FUNCTION public\.caller_manages_player\(text\) IS\s*'073 ·/);
+  });
+
+  it("el helper es SOLO DUEÑO (decisión del 30 sep 2026): ninguna referencia a tenant ni a organización", () => {
+    const body = buildState(ALL).functions.get("public.caller_manages_player(text)")?.body ?? "";
     expect(body).toMatch(/p\.user_id\s*=\s*\(SELECT auth\.uid\(\)\)/);
-    expect(sql073).toMatch(/p\.tenant_id\s*=\s*\(SELECT public\.tenant_id\(\)\)/);
-    expect(comparesTenantWithUid(sql073.replace(/--.*$/gm, ""))).toBe(false);
+    // Negativo: sin tenant_id, sin public.tenant_id(), sin org / team_members.
+    expect(body).not.toMatch(/tenant/i);
+    expect(body).not.toMatch(/\borg|team_member/i);
+    // Un solo cuerpo: la 073 crea el helper UNA vez (sin variante por entorno).
+    expect(sql073.match(/CREATE OR REPLACE FUNCTION public\.caller_manages_player\(/g)?.length).toBe(1);
+    // El código ejecutable (sin comentarios) no llama a public.tenant_id() ni lee players.tenant_id.
+    const code = sql073.replace(/--.*$/gm, "");
+    expect(code).not.toMatch(/public\.tenant_id\(\)/i);
+    expect(code).not.toMatch(/\bp\.tenant_id\b/i);
+    expect(comparesTenantWithUid(code)).toBe(false);
+    // La decisión queda registrada en la cabecera (quién, cuándo, por qué, cómo se revisa).
+    expect(sql073).toMatch(/DECISIÓN DE ALCANCE \(registrada el 30 sep 2026\)/);
+    for (const k of ["QUIÉN:", "POR QUÉ:", "CÓMO SE REVISA:", "LO QUE LA 073 NO CUBRE"]) expect(sql073).toContain(k);
+  });
+
+  it("la GUARDA de la 073 aborta (RAISE EXCEPTION) y su lista de políticas propias = las que crea", () => {
+    const guard = sql073.slice(sql073.indexOf("-- 3) GUARDA"), sql073.indexOf("-- 4) Comprobación final"));
+    expect(guard.length).toBeGreaterThan(0);
+    expect(guard.replace(/--.*$/gm, "").match(/RAISE EXCEPTION/g)?.length).toBe(2); // (a) helper · (b) políticas ajenas
+    const allow = [...guard.matchAll(/\('(\w+)'(?:::name)?,\s*'(\w+)'(?:::name)?\)/g)].map((m) => m[2]).sort();
+    expect(allow).toEqual(CREATED_073);
   });
 
   it("073 es transaccional y no toca datos, permisos de tablas, PHV, DSAR ni user_org_ids/user_in_org", () => {
@@ -247,5 +277,33 @@ describe("rlsPolicyLint · supabase/migrations", () => {
       expect(m.trim(), path).toMatch(/^WITH\b/i);
       expect(m, path).not.toMatch(/\b(INSERT|UPDATE|DELETE|TRUNCATE|CREATE|ALTER|DROP|GRANT|REVOKE|COMMENT|COPY|CALL|DO|SET|RESET|LOCK|VACUUM)\b/i);
     }
+  });
+
+  it("comprobaciones al día con la regla solo dueño: nombres nuevos, fila 13 informativa con cast uuid seguro, sin políticas abiertas de la 044 en «conocidas»", () => {
+    const pre = checks["/supabase/checks/073_previa.sql"] ?? "";
+    const post = checks["/supabase/checks/073_comprobacion.sql"] ?? "";
+    const conocidas = pre.slice(pre.indexOf("conocidas(tabla, politica) AS ("), pre.indexOf("\npol AS ("));
+    const names = [...conocidas.matchAll(/\('(\w+)',\s*'(\w+)'\)/g)].map((m) => m[2]);
+    for (const n of CREATED_073) expect(names, n).toContain(n);
+    for (const t of FIVE) for (const c of ["select", "insert", "update"]) expect(names).toContain(`${t}_${c}_owner_or_tenant`); // versión anterior: la 073 las retira
+    // snapshots_insert_own / valuations_insert_own (044, WITH CHECK (true) para todos) NO son «conocidas»: bloquean (fila 10).
+    expect(names).not.toContain("snapshots_insert_own");
+    expect(names).not.toContain("valuations_insert_own");
+    // Fila 13: informativa (ok NULL), resuelve el tenant como public.tenant_id() (cast uuid tras regex, sin pg_input_is_valid).
+    const row13 = pre.slice(pre.indexOf("SELECT 13,"), pre.indexOf("SELECT 14,"));
+    expect(row13).toMatch(/'informativo', NULL::boolean/);
+    expect(pre).toContain("'^([{][0-9a-f]{4}(-?[0-9a-f]{4}){7}[}]|[0-9a-f]{4}(-?[0-9a-f]{4}){7})$'");
+    expect(pre).toMatch(/p\.tenant_id = \(case when m\.t ~\* %L then m\.t::uuid end\)/);
+    expect(pre.replace(/--.*$/gm, "")).not.toMatch(/pg_input_is_valid/); // solo existe desde PostgreSQL 16
+    // Fila 19: la comparación de TEXTO (la que usa hoy la DSAR de la 072) sigue, aparte e informativa.
+    const row19 = pre.slice(pre.indexOf("SELECT 19,"), pre.indexOf("SELECT 20,"));
+    expect(row19).toMatch(/p\.tenant_id::text = nullif\(u\.raw_app_meta_data ->> ''tenant_id'', ''''\)/);
+    expect(row19).toMatch(/'informativo', NULL::boolean/);
+    // Fila 2 (public.tenant_id()) ya no bloquea.
+    expect(pre.slice(pre.indexOf("SELECT 2,"), pre.indexOf("SELECT 3,"))).toMatch(/'informativo', NULL::boolean/);
+    // Posterior: nombres nuevos, ninguna lectura de cliente en snapshots y la fila que prueba «solo dueño».
+    expect(post).not.toMatch(/owner_or_tenant/);
+    expect(post).toContain("'snapshots_insert_service_role:INSERT:service_role'");
+    expect(post).toMatch(/pg_get_functiondef\(h\.oid\) !~\* '\(tenant\|org\|team_member\)'/);
   });
 });

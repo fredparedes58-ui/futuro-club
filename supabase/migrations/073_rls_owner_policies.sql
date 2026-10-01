@@ -1,15 +1,78 @@
 -- =====================================================================
--- 073 · RLS dueño/tenant para bienestar, perfil conductual y snapshots
+-- 073 · RLS SOLO DUEÑO para bienestar y perfil conductual
 --       · sustituye las 10 políticas que comparan players.tenant_id con
 --         auth.uid() (un id de TENANT contra un id de USUARIO)
 --       · regla única en un helper: public.caller_manages_player(text)
+--         = players.user_id = auth.uid()   (espejo de ownsPlayer)
 -- =====================================================================
--- ESTADO DE LA EVIDENCIA (léelo antes de aplicar)
+-- DECISIÓN DE ALCANCE (registrada el 30 sep 2026) · léela antes que nada
+--   · QUÉ: por RLS y por funciones de base de datos, a los datos de un jugador
+--     solo accede su DUEÑO (players.user_id = auth.uid()) y service_role. SIN
+--     rama por tenant y SIN rama por organización / membresía de club.
+--   · QUIÉN: el dueño del producto delegó la elección el 30 sep 2026 («la que
+--     veas tú mejor») y el asistente (Claude) eligió SOLO DUEÑO.
+--   · POR QUÉ:
+--       1. Son datos de menores (bienestar, conducta, asistencia, riesgo de
+--          abandono).
+--       2. VERIFICADO en producción (consultas de solo lectura del dueño, 29-30
+--          sep): los 3 jugadores comparten un ÚNICO players.tenant_id que no es
+--          un auth.users.id ni un organizations.id. No se sabe qué representa,
+--          así que «mismo tenant» no identifica a una academia concreta.
+--       3. La vía por organización ya está rota: user_org_ids()/user_in_org() de
+--          producción usan team_members.org_owner_id (docs/pendientes-metricas.md
+--          §5-D). No hay hoy un modelo de membresía en el que apoyarse.
+--       4. Invariante #3: no dar acceso (abstenerse) es un resultado válido.
+--     Coincide con las rutas de servidor de estas mismas tablas, que ya usan
+--     ownsPlayer (solo dueño): api/behavioral/[action].ts:59,
+--     api/wellbeing/[action].ts:73,132, api/wellbeing/_dropout-risk.ts:174,
+--     api/injuries/_list.ts:31, api/injuries/_save.ts:46 (invariante #7: una
+--     sola regla para BD y servidor).
+--   · CÓMO SE REVISA: compartir con club/academia se reactivará de forma
+--     EXPLÍCITA en una migración POSTERIOR, junto con el diseño del alta de
+--     cuentas (directores + aprobación de acceso) y con su propia comprobación
+--     previa. No se hace editando esta migración.
+--   · LO QUE LA 073 NO CUBRE (siguen teniendo rama por tenant; previsto para una
+--     migración posterior, la 076, que hoy NO existe en el repo ni en ninguna
+--     rama; pendiente en docs/pendientes-metricas.md §5-D; esta migración no
+--     los toca):
+--       - DSAR de la 072: public.dsar_caller_manages_player compara
+--         players.tenant_id::text con el tenant del JWT, del claim raíz o de
+--         app_metadata (072:264,285). SIMULADO (PGlite): un usuario NO dueño con
+--         el mismo app_metadata.tenant_id exporta los datos del menor y marca su
+--         borrado (con el mismo texto; en MAYÚSCULAS, no). La comprobación previa lo
+--         cuenta (fila 19).
+--       - RLS de la tabla players: players_tenant_isolation (003:239-247, FOR ALL
+--         TO authenticated por tenant). En producción NO verificado (la previa lo
+--         lista, filas 6 y 20). SIMULADO: un compañero de tenant puede hacer
+--         UPDATE players SET user_id = él mismo; desde ese momento es «dueño» y
+--         la 073 le deja entrar como a cualquier dueño (igual que ya le deja
+--         ownsPlayer en el servidor).
+--       - Código de servidor que usa ownsPlayerOrTenant: api/auth/sign-consent.ts:100,
+--         api/analyses/reports.ts:73, api/videos/create-upload.ts:106,
+--         api/videos/finalize.ts:114 y ownsVideo (api/_lib/ownership.ts:127).
+--
+-- LECTURA DE player_metric_snapshots: RETENIDA (no se crea política de cliente)
+--   La única lectura de navegador (useMetricSnapshots.ts:40-47 →
+--   SnapshotHistoryChart.tsx:40,93 en /players/:id/evolution) dibuja phv_offset
+--   tal cual viene de la fila, sin gate PHV ni procedencia. Su escritor,
+--   POST /api/agents/progression-tracker, no comprueba propiedad
+--   (_progression-tracker.ts:46: requireAuth + allowServiceToken, ningún
+--   ownsPlayer/isServiceCall en el fichero) y guarda el PHV que manda el
+--   cliente (:64-65) con la service key. VERIFICADO en producción: ningún
+--   jugador tiene fecha de nacimiento, así que ningún PHV de snapshot es fiable
+--   hoy (regla del dueño: sin todas las medidas, el PHV no se muestra). Abrir
+--   esa lectura convertiría PHV no medido en PHV visible en la ficha de un
+--   menor. Se retira la política rota (snapshots_read_own) y NO se crea otra:
+--   el gráfico sigue vacío, como hoy. Se reabrirá en una migración posterior
+--   cuando (a) progression-tracker compruebe propiedad y no acepte PHV del
+--   cliente y (b) el gráfico pase por el gate PHV y muestre la procedencia.
+-- =====================================================================
+-- ESTADO DE LA EVIDENCIA
 --
 -- VERIFICADO EN PRODUCCIÓN (consultas de solo lectura del dueño, 29-30 sep 2026):
 --   · players: 3 filas. tenant_id = user_id en 0 filas; tenant_id <> user_id en 3;
 --     tenant_id NULL en 0; user_id NULL en 0; 1 único valor de tenant_id, que NO es
---     un organizations.id NI un auth.users.id.
+--     un organizations.id NI un auth.users.id. Ninguno tiene fecha de nacimiento.
 --   · Antes de la 050, behavioral_profiles, attendance_records,
 --     engagement_snapshots, wellbeing_questionnaires y dropout_risk_assessments
 --     tenían RLS activada y NINGUNA política (Advisor de Supabase + pg_policies).
@@ -18,8 +81,7 @@
 --     questionnaires_owner_all y dropout_owner_all (FOR ALL, sin TO) con
 --     player_id IN (SELECT id FROM players WHERE tenant_id = auth.uid()).
 --   · Aplicadas también: 045-049, 051, 052, 054, 057, 060-064, 066, 067, 069,
---     070, 072, el script de emergencia anon y el script provisional 03 (DSAR).
---   · public.tenant_id() existe (lee el claim tenant_id del JWT, repo 003:126).
+--     070, 071, 072, el script de emergencia anon y el script provisional 03 (DSAR).
 --   · public.user_org_ids() / user_in_org(uuid) de producción NO son las del repo
 --     (038): usan team_members.org_owner_id. Esta migración NO las usa ni las toca.
 --
@@ -28,8 +90,8 @@
 -- abrió nada: el navegador recibe 0 filas y sus upserts fallan (42501), igual que
 -- antes de la 050.
 --
--- VERIFICADO EN EL REPOSITORIO (origin/main 0c3a438, lectura de ficheros + el
--- test src/test/migrations/rlsOwnerPolicies.test.ts, ROJO sin esta migración):
+-- VERIFICADO EN EL REPOSITORIO (lectura de ficheros + el test
+-- src/test/migrations/rlsOwnerPolicies.test.ts, ROJO sin esta migración):
 --   · Las 10 políticas rotas y aún vigentes (ninguna migración posterior las
 --     cambia; 072:590-607 solo quitó snapshots_insert_own y valuations_insert_own,
 --     y conservó snapshots_read_own a propósito, 072:566-567; 071 no define
@@ -55,53 +117,55 @@
 --         (INSERT ... ON CONFLICT DO UPDATE) exige también política SELECT
 --         (SIMULADO: sin ella, el upsert sobre una fila existente y el INSERT ...
 --         RETURNING fallan con 42501; el INSERT simple pasa) ⇒ SELECT, INSERT, UPDATE.
---       - player_metric_snapshots: solo SELECT (useMetricSnapshots.ts:40-47 →
---         /players/:id/evolution). 072:598 ya retiró las escrituras a authenticated.
+--       - player_metric_snapshots: la lectura existe pero se RETIENE (ver arriba).
 --       - player_injuries y player_valuations: NINGÚN llamador de navegador (grep de
 --         src/). Sus lectores/escritores son de servidor con service_role (salta la
 --         RLS). ⇒ se retiran sus políticas rotas y NO se crea ninguna de cliente.
 --       - DELETE: ningún llamador vivo de navegador ⇒ no se concede.
---   · Regla canónica de la app: api/_lib/ownership.ts ownsPlayer (:44, user_id) y
---     ownsPlayerOrTenant (:78-103, user_id O mismo tenant). Aquí:
---       players.user_id = auth.uid()
---       OR (players.tenant_id IS NOT NULL AND players.tenant_id = public.tenant_id())
---     public.tenant_id() lee SOLO el claim RAÍZ (003:126-132); el TS y la 072
---     (dsar_caller_manages_player) aceptan además app_metadata.tenant_id. Esta
---     versión es, por tanto, igual o MÁS estrecha, nunca más amplia.
 --   · Toda política SELECT de players del repositorio incluye user_id = auth.uid()
 --     (000:19-20, 001:27-31, 027:41-52, 038:76-80), y el listado de jugadores del
 --     propio navegador depende de ello (supabasePlayerService.ts:89-93).
 --
--- DECISIÓN: helper SECURITY INVOKER (no DEFINER).
+-- DECISIÓN TÉCNICA: helper SECURITY INVOKER (no DEFINER).
 --   Se evalúa con los permisos y la RLS de players de quien consulta. Así una
 --   tabla hija NUNCA da más que la tabla players: si el usuario no puede ver al
 --   jugador, tampoco ve su bienestar. No añade superficie SECURITY DEFINER (el lint
---   de 072 no tiene nada que permitir). Contrapartida declarada: la rama por tenant
---   solo funciona si la RLS de players deja ver al compañero de tenant (en el repo,
---   players_tenant_isolation de 003:239-247; en producción NO verificado: la
---   comprobación previa lo lista). Si falta, falla CERRADA (sin acceso), nunca abre.
---   No se reutiliza dsar_caller_manages_player: 072:386 la revoca a authenticated
---   y esta migración no toca objetos de la 072.
+--   de 072 no tiene nada que permitir). Si en producción ninguna política de
+--   players deja al dueño leer su jugador (la previa lo mira, fila 5), falla
+--   CERRADA (sin acceso), nunca abre. No se reutiliza dsar_caller_manages_player:
+--   072:386 la revoca a authenticated, tiene rama por tenant y esta migración no
+--   toca objetos de la 072.
 --
--- SIMULACIÓN PGlite 0.5.8 / PostgreSQL 18.3 (NO es la base de datos real), con
--- la forma verificada de producción (3 jugadores, 1 tenant que no es ni usuario ni
--- organización, dueños A y B, 050 y 072 aplicadas, cuerpos de producción de
--- user_org_ids/user_in_org):
+-- GUARDA (sección 3): la migración ABORTA entera (RAISE EXCEPTION; BEGIN/COMMIT
+-- deshace todo) si al terminar (a) el helper tuviera rama por tenant/organización
+-- o fuera SECURITY DEFINER, o (b) quedara en las 8 tablas alguna política
+-- PERMISSIVE que no sea de esta migración ni solo de service_role: podría dejar
+-- entrar a quien no es dueño (p. ej. snapshots_insert_own / valuations_insert_own
+-- de la 044, WITH CHECK (true) para todos, si la 044 se aplicó DESPUÉS de la 072).
+--
+-- SIMULACIÓN PGlite (NO es la base de datos real), la misma en PostgreSQL 18.3
+-- (PGlite 0.5.8) y 16.4 (PGlite 0.2.17), con la forma verificada de producción (3
+-- jugadores, 1 tenant que no es ni usuario ni organización, dueños A y B, 050 y 072
+-- aplicadas, cuerpos de producción de user_org_ids/user_in_org) y con la cadena
+-- completa del repo:
 --   · ANTES de 073: en las 5 tablas de bienestar/perfil y en player_metric_snapshots
---     y player_valuations, dueño, compañero de tenant, otro usuario y anon ven 0
---     filas (anon: permiso denegado en snapshots/valoraciones, por la 072) y sus
---     escrituras fallan (42501). EXCEPCIÓN: en player_injuries cualquier usuario con
---     sesión podía INSERTAR una lesión para CUALQUIER jugador (rama created_by).
+--     y player_valuations, nadie (dueño, compañero de tenant, otro usuario, anon)
+--     ve filas ni escribe (42501). EXCEPCIÓN: en player_injuries cualquier usuario
+--     con sesión podía INSERTAR una lesión para CUALQUIER jugador (rama created_by).
 --   · DESPUÉS: el dueño A hace EXACTAMENTE las operaciones del navegador (SELECT,
 --     INSERT, UPDATE/upsert, upsert con RETURNING) sobre filas de SU jugador y nada
---     sobre las de B (ni leer, ni insertar, ni mover una fila suya a B, ni pisar una
---     de B por upsert); DELETE borra 0 filas; anon nada; player_metric_snapshots
---     solo lectura; player_injuries y player_valuations nada para el cliente.
---   · Mismo tenant: con claim raíz tenant_id en el JWT, el compañero ve y escribe;
---     sin el claim (o con solo app_metadata.tenant_id), nada.
+--     sobre las de B. Un compañero de tenant NO dueño no ve ni escribe nada, lleve
+--     o no el claim raíz tenant_id (claims generados con el hook 057). DELETE borra
+--     0 filas; anon nada; player_metric_snapshots, player_injuries y
+--     player_valuations nada para el cliente.
 --   · 073 corre dos veces sin error y deja el mismo estado; también sobre la cadena
 --     SIN la 050 (otros entornos, p. ej. demo: no verificado si la tienen), sobre
---     una base vacía (todo se salta con NOTICE) y sin players.tenant_id.
+--     una base vacía (todo se salta con NOTICE), sin players.tenant_id y encima de
+--     la versión anterior de esta migración (dueño O tenant, PR #303 en 8508b8e; la 073
+--     no está en la lista verificada de aplicadas en producción): retira sus políticas
+--     *_owner_or_tenant.
+--   · Con una política ajena abierta en una de las 8 tablas, la 073 aborta y la
+--     base queda idéntica a como estaba.
 --   · Ninguna función, vista ni permiso distinto de los de abajo cambia (DSAR,
 --     user_org_ids, user_in_org, PHV: definición y ACL idénticas antes y después).
 --
@@ -111,85 +175,55 @@
 --   · Las políticas REALES de players en producción (la comprobación previa las
 --     mira: si ninguna deja al dueño leer su jugador, esta migración queda inerte y
 --     cerrada, no abre nada).
---   · Si los JWT de producción llevan el claim raíz tenant_id (hook 057 activado en
---     Authentication > Hooks). docs/pendientes-metricas.md (C1) dice que se activó
---     el 28 ago; no se ha vuelto a comprobar. Si lo llevan y coincide con el
---     tenant_id de los jugadores, TODOS los usuarios de ese tenant verán el
---     bienestar de esos jugadores (regla ownsPlayerOrTenant). La comprobación
---     previa cuenta cuántos usuarios no dueños quedarían dentro.
 --   · Las columnas reales de las 5 tablas en producción. Según el repo, algunas
 --     escrituras del navegador fallarán por COLUMNA aunque la RLS ya deje:
 --     attendance «notes», questionnaires «date», dropout «date»/«primary_factor»
 --     (no existen en 046). Fallo silencioso y a la caché local, como hoy.
 --
 -- QUÉ NO TOCA: PHV ni bio-banding (invariante #4: ninguna fórmula, fila ni vista);
--- DSAR ni ningún objeto de la 072; user_org_ids/user_in_org; permisos de tabla
--- (GRANT/REVOKE de tablas); datos. Solo: una función nueva, sus permisos y
--- políticas de las 8 tablas (DROP POLICY IF EXISTS + CREATE POLICY).
+-- DSAR ni ningún objeto de la 072; user_org_ids/user_in_org; la RLS de players;
+-- permisos de tabla (GRANT/REVOKE de tablas); datos. Solo: una función nueva, sus
+-- permisos y políticas de las 8 tablas (DROP POLICY IF EXISTS + CREATE POLICY).
 --
 -- ORDEN DEL OPERADOR: 1) comprobación previa de solo lectura
--- (supabase/checks/073_previa.sql): todas las filas ok = true. 2) esta migración.
--- 3) comprobación posterior (supabase/checks/073_comprobacion.sql): resultado =
--- esperado en todas. Es idempotente: se puede ejecutar varias veces.
+-- (supabase/checks/073_previa.sql): todas las filas con ok = true (ok vacío =
+-- informativa). 2) esta migración. 3) comprobación posterior
+-- (supabase/checks/073_comprobacion.sql): resultado = esperado en todas. Es
+-- idempotente: se puede ejecutar varias veces.
 -- =====================================================================
 
 BEGIN;
 
 -- =====================================================================
--- 1) Helper: ¿el llamador (JWT) gestiona este jugador?
---    Espejo en SQL de ownsPlayerOrTenant (api/_lib/ownership.ts). Si cambia la
+-- 1) Helper: ¿el llamador (JWT) es el DUEÑO de este jugador?
+--    Espejo en SQL de ownsPlayer (api/_lib/ownership.ts:44). Si cambia la
 --    regla, cambiar ambas (invariante #7) con una migración nueva.
---    SECURITY INVOKER (ver DECISIÓN en la cabecera). search_path fijado y nombres
---    cualificados. Variante sin tenant si players.tenant_id o public.tenant_id()
---    no existen (entornos que no aplicaron 003): solo cuenta el dueño.
+--    SECURITY INVOKER (ver DECISIÓN TÉCNICA). search_path fijado y nombres
+--    cualificados. Un solo cuerpo: no depende de players.tenant_id ni de
+--    public.tenant_id().
 -- =====================================================================
 DO $do$
-DECLARE
-  v_tenant boolean;
 BEGIN
   IF to_regclass('public.players') IS NULL THEN
     RAISE NOTICE '073: public.players no existe: no se crea el helper ni se tocan políticas';
     RETURN;
   END IF;
 
-  v_tenant := EXISTS (SELECT 1 FROM pg_attribute
-                       WHERE attrelid = to_regclass('public.players')
-                         AND attname = 'tenant_id' AND NOT attisdropped)
-              AND to_regprocedure('public.tenant_id()') IS NOT NULL;
-
-  IF v_tenant THEN
-    CREATE OR REPLACE FUNCTION public.caller_manages_player(p_player_id text)
-    RETURNS boolean
-    LANGUAGE sql
-    STABLE
-    SECURITY INVOKER
-    SET search_path = public, pg_temp
-    AS $fn$
-      SELECT EXISTS (
-        SELECT 1
-          FROM public.players p
-         WHERE p.id::text = p_player_id
-           AND (   (p.user_id IS NOT NULL AND p.user_id = (SELECT auth.uid()))
-                OR (p.tenant_id IS NOT NULL AND p.tenant_id = (SELECT public.tenant_id())))
-      )
-    $fn$;
-  ELSE
-    CREATE OR REPLACE FUNCTION public.caller_manages_player(p_player_id text)
-    RETURNS boolean
-    LANGUAGE sql
-    STABLE
-    SECURITY INVOKER
-    SET search_path = public, pg_temp
-    AS $fn$
-      SELECT EXISTS (
-        SELECT 1
-          FROM public.players p
-         WHERE p.id::text = p_player_id
-           AND p.user_id IS NOT NULL AND p.user_id = (SELECT auth.uid())
-      )
-    $fn$;
-    RAISE NOTICE '073: players.tenant_id o public.tenant_id() no existen: helper solo por dueño (user_id)';
-  END IF;
+  CREATE OR REPLACE FUNCTION public.caller_manages_player(p_player_id text)
+  RETURNS boolean
+  LANGUAGE sql
+  STABLE
+  SECURITY INVOKER
+  SET search_path = public, pg_temp
+  AS $fn$
+    SELECT EXISTS (
+      SELECT 1
+        FROM public.players p
+       WHERE p.id::text = p_player_id
+         AND p.user_id IS NOT NULL
+         AND p.user_id = (SELECT auth.uid())
+    )
+  $fn$;
 
   -- Los default privileges de Supabase dan EXECUTE a anon al crear la función.
   -- Las políticas son TO authenticated: anon nunca las evalúa ni necesita EXECUTE.
@@ -197,13 +231,16 @@ BEGIN
   GRANT EXECUTE ON FUNCTION public.caller_manages_player(text) TO authenticated, service_role;
 
   COMMENT ON FUNCTION public.caller_manages_player(text) IS
-    '073 · ¿El llamador (JWT) gestiona este jugador? players.user_id = auth.uid() O mismo tenant (public.tenant_id(), claim raíz). SECURITY INVOKER: respeta la RLS de players. Espejo de ownsPlayerOrTenant (api/_lib/ownership.ts).';
+    '073 · ¿El llamador (JWT) es el DUEÑO de este jugador? players.user_id = auth.uid(). Solo dueño, sin rama por tenant ni por organización (decisión del 30 sep 2026, ver cabecera de la 073). SECURITY INVOKER: respeta la RLS de players. Espejo de ownsPlayer (api/_lib/ownership.ts).';
 END $do$;
 
 -- =====================================================================
 -- 2) Políticas. Cada tabla se salta si no existe. Siempre TO authenticated
 --    (nunca anon), solo las operaciones que usa el navegador y WITH CHECK en las
 --    escrituras. service_role salta la RLS (el backend no depende de esto).
+--    Se borran también los nombres *_owner_or_tenant de la versión anterior de
+--    esta migración (dueño O tenant; PR #303 en 8508b8e) y los nuevos
+--    *_owner antes de crearlos (re-ejecutable).
 -- =====================================================================
 DO $do$
 BEGIN
@@ -219,13 +256,16 @@ BEGIN
     DROP POLICY IF EXISTS "behavioral_profiles_select_owner_or_tenant" ON public.behavioral_profiles;
     DROP POLICY IF EXISTS "behavioral_profiles_insert_owner_or_tenant" ON public.behavioral_profiles;
     DROP POLICY IF EXISTS "behavioral_profiles_update_owner_or_tenant" ON public.behavioral_profiles;
-    CREATE POLICY "behavioral_profiles_select_owner_or_tenant" ON public.behavioral_profiles
+    DROP POLICY IF EXISTS "behavioral_profiles_select_owner" ON public.behavioral_profiles;
+    DROP POLICY IF EXISTS "behavioral_profiles_insert_owner" ON public.behavioral_profiles;
+    DROP POLICY IF EXISTS "behavioral_profiles_update_owner" ON public.behavioral_profiles;
+    CREATE POLICY "behavioral_profiles_select_owner" ON public.behavioral_profiles
       FOR SELECT TO authenticated
       USING (public.caller_manages_player(player_id::text));
-    CREATE POLICY "behavioral_profiles_insert_owner_or_tenant" ON public.behavioral_profiles
+    CREATE POLICY "behavioral_profiles_insert_owner" ON public.behavioral_profiles
       FOR INSERT TO authenticated
       WITH CHECK (public.caller_manages_player(player_id::text));
-    CREATE POLICY "behavioral_profiles_update_owner_or_tenant" ON public.behavioral_profiles
+    CREATE POLICY "behavioral_profiles_update_owner" ON public.behavioral_profiles
       FOR UPDATE TO authenticated
       USING (public.caller_manages_player(player_id::text))
       WITH CHECK (public.caller_manages_player(player_id::text));
@@ -240,13 +280,16 @@ BEGIN
     DROP POLICY IF EXISTS "attendance_records_select_owner_or_tenant" ON public.attendance_records;
     DROP POLICY IF EXISTS "attendance_records_insert_owner_or_tenant" ON public.attendance_records;
     DROP POLICY IF EXISTS "attendance_records_update_owner_or_tenant" ON public.attendance_records;
-    CREATE POLICY "attendance_records_select_owner_or_tenant" ON public.attendance_records
+    DROP POLICY IF EXISTS "attendance_records_select_owner" ON public.attendance_records;
+    DROP POLICY IF EXISTS "attendance_records_insert_owner" ON public.attendance_records;
+    DROP POLICY IF EXISTS "attendance_records_update_owner" ON public.attendance_records;
+    CREATE POLICY "attendance_records_select_owner" ON public.attendance_records
       FOR SELECT TO authenticated
       USING (public.caller_manages_player(player_id::text));
-    CREATE POLICY "attendance_records_insert_owner_or_tenant" ON public.attendance_records
+    CREATE POLICY "attendance_records_insert_owner" ON public.attendance_records
       FOR INSERT TO authenticated
       WITH CHECK (public.caller_manages_player(player_id::text));
-    CREATE POLICY "attendance_records_update_owner_or_tenant" ON public.attendance_records
+    CREATE POLICY "attendance_records_update_owner" ON public.attendance_records
       FOR UPDATE TO authenticated
       USING (public.caller_manages_player(player_id::text))
       WITH CHECK (public.caller_manages_player(player_id::text));
@@ -261,13 +304,16 @@ BEGIN
     DROP POLICY IF EXISTS "engagement_snapshots_select_owner_or_tenant" ON public.engagement_snapshots;
     DROP POLICY IF EXISTS "engagement_snapshots_insert_owner_or_tenant" ON public.engagement_snapshots;
     DROP POLICY IF EXISTS "engagement_snapshots_update_owner_or_tenant" ON public.engagement_snapshots;
-    CREATE POLICY "engagement_snapshots_select_owner_or_tenant" ON public.engagement_snapshots
+    DROP POLICY IF EXISTS "engagement_snapshots_select_owner" ON public.engagement_snapshots;
+    DROP POLICY IF EXISTS "engagement_snapshots_insert_owner" ON public.engagement_snapshots;
+    DROP POLICY IF EXISTS "engagement_snapshots_update_owner" ON public.engagement_snapshots;
+    CREATE POLICY "engagement_snapshots_select_owner" ON public.engagement_snapshots
       FOR SELECT TO authenticated
       USING (public.caller_manages_player(player_id::text));
-    CREATE POLICY "engagement_snapshots_insert_owner_or_tenant" ON public.engagement_snapshots
+    CREATE POLICY "engagement_snapshots_insert_owner" ON public.engagement_snapshots
       FOR INSERT TO authenticated
       WITH CHECK (public.caller_manages_player(player_id::text));
-    CREATE POLICY "engagement_snapshots_update_owner_or_tenant" ON public.engagement_snapshots
+    CREATE POLICY "engagement_snapshots_update_owner" ON public.engagement_snapshots
       FOR UPDATE TO authenticated
       USING (public.caller_manages_player(player_id::text))
       WITH CHECK (public.caller_manages_player(player_id::text));
@@ -282,13 +328,16 @@ BEGIN
     DROP POLICY IF EXISTS "wellbeing_questionnaires_select_owner_or_tenant" ON public.wellbeing_questionnaires;
     DROP POLICY IF EXISTS "wellbeing_questionnaires_insert_owner_or_tenant" ON public.wellbeing_questionnaires;
     DROP POLICY IF EXISTS "wellbeing_questionnaires_update_owner_or_tenant" ON public.wellbeing_questionnaires;
-    CREATE POLICY "wellbeing_questionnaires_select_owner_or_tenant" ON public.wellbeing_questionnaires
+    DROP POLICY IF EXISTS "wellbeing_questionnaires_select_owner" ON public.wellbeing_questionnaires;
+    DROP POLICY IF EXISTS "wellbeing_questionnaires_insert_owner" ON public.wellbeing_questionnaires;
+    DROP POLICY IF EXISTS "wellbeing_questionnaires_update_owner" ON public.wellbeing_questionnaires;
+    CREATE POLICY "wellbeing_questionnaires_select_owner" ON public.wellbeing_questionnaires
       FOR SELECT TO authenticated
       USING (public.caller_manages_player(player_id::text));
-    CREATE POLICY "wellbeing_questionnaires_insert_owner_or_tenant" ON public.wellbeing_questionnaires
+    CREATE POLICY "wellbeing_questionnaires_insert_owner" ON public.wellbeing_questionnaires
       FOR INSERT TO authenticated
       WITH CHECK (public.caller_manages_player(player_id::text));
-    CREATE POLICY "wellbeing_questionnaires_update_owner_or_tenant" ON public.wellbeing_questionnaires
+    CREATE POLICY "wellbeing_questionnaires_update_owner" ON public.wellbeing_questionnaires
       FOR UPDATE TO authenticated
       USING (public.caller_manages_player(player_id::text))
       WITH CHECK (public.caller_manages_player(player_id::text));
@@ -303,13 +352,16 @@ BEGIN
     DROP POLICY IF EXISTS "dropout_risk_assessments_select_owner_or_tenant" ON public.dropout_risk_assessments;
     DROP POLICY IF EXISTS "dropout_risk_assessments_insert_owner_or_tenant" ON public.dropout_risk_assessments;
     DROP POLICY IF EXISTS "dropout_risk_assessments_update_owner_or_tenant" ON public.dropout_risk_assessments;
-    CREATE POLICY "dropout_risk_assessments_select_owner_or_tenant" ON public.dropout_risk_assessments
+    DROP POLICY IF EXISTS "dropout_risk_assessments_select_owner" ON public.dropout_risk_assessments;
+    DROP POLICY IF EXISTS "dropout_risk_assessments_insert_owner" ON public.dropout_risk_assessments;
+    DROP POLICY IF EXISTS "dropout_risk_assessments_update_owner" ON public.dropout_risk_assessments;
+    CREATE POLICY "dropout_risk_assessments_select_owner" ON public.dropout_risk_assessments
       FOR SELECT TO authenticated
       USING (public.caller_manages_player(player_id::text));
-    CREATE POLICY "dropout_risk_assessments_insert_owner_or_tenant" ON public.dropout_risk_assessments
+    CREATE POLICY "dropout_risk_assessments_insert_owner" ON public.dropout_risk_assessments
       FOR INSERT TO authenticated
       WITH CHECK (public.caller_manages_player(player_id::text));
-    CREATE POLICY "dropout_risk_assessments_update_owner_or_tenant" ON public.dropout_risk_assessments
+    CREATE POLICY "dropout_risk_assessments_update_owner" ON public.dropout_risk_assessments
       FOR UPDATE TO authenticated
       USING (public.caller_manages_player(player_id::text))
       WITH CHECK (public.caller_manages_player(player_id::text));
@@ -318,15 +370,15 @@ BEGIN
   END IF;
 
   -- ── player_metric_snapshots (044; política rota 044:80-83) ─────────────
-  --    Solo lectura para /players/:id/evolution. La escritura sigue siendo solo
-  --    service_role (snapshots_insert_service_role de 072, que NO se toca).
+  --    Se retira la lectura rota y NO se crea ninguna de cliente: la lectura del
+  --    navegador queda RETENIDA (ver cabecera: PHV sin gate en el gráfico de
+  --    evolución + escritor sin comprobación de propiedad). La escritura sigue
+  --    siendo solo service_role (snapshots_insert_service_role de 072, que NO se
+  --    toca).
   IF to_regclass('public.player_metric_snapshots') IS NOT NULL THEN
     ALTER TABLE public.player_metric_snapshots ENABLE ROW LEVEL SECURITY;
     DROP POLICY IF EXISTS "snapshots_read_own" ON public.player_metric_snapshots;
     DROP POLICY IF EXISTS "player_metric_snapshots_select_owner_or_tenant" ON public.player_metric_snapshots;
-    CREATE POLICY "player_metric_snapshots_select_owner_or_tenant" ON public.player_metric_snapshots
-      FOR SELECT TO authenticated
-      USING (public.caller_manages_player(player_id::text));
   ELSE
     RAISE NOTICE '073: player_metric_snapshots no existe (044 no aplicada): se salta';
   END IF;
@@ -358,9 +410,72 @@ BEGIN
 END $do$;
 
 -- =====================================================================
--- 3) Comprobación final (solo lectura): avisa con WARNING de cualquier política
---    de public que siga comparando tenant_id con auth.uid() (p. ej. creada a
---    mano). No aborta: tras 073 debería salir 0.
+-- 3) GUARDA · ABORTA la migración entera (RAISE EXCEPTION: la transacción se
+--    deshace y la base queda como estaba) si, al terminar, alguien que NO es el
+--    dueño pudiera entrar por las políticas de estas 8 tablas:
+--      a) el helper es SECURITY DEFINER o tiene rama por tenant/organización;
+--      b) queda en las 8 tablas una política PERMISSIVE que no es de la 073 y
+--         no es solo de service_role (p. ej. creada a mano, re-creada por un
+--         script de supabase/pending/, o snapshots_insert_own /
+--         valuations_insert_own de la 044 si la 044 se aplicó DESPUÉS de la
+--         072). Las RESTRICTIVE no dan acceso: no cuentan.
+--    Si aborta: manda el mensaje de error completo; no reintentes a ciegas.
+-- =====================================================================
+DO $do$
+DECLARE
+  v_definer boolean;
+  v_body text;
+  v_ajenas text;
+BEGIN
+  IF to_regprocedure('public.caller_manages_player(text)') IS NULL THEN
+    RETURN; -- public.players no existe: no se ha creado nada (NOTICE de la sección 1)
+  END IF;
+
+  SELECT p.prosecdef, p.prosrc INTO v_definer, v_body
+    FROM pg_proc p
+   WHERE p.oid = to_regprocedure('public.caller_manages_player(text)');
+  IF v_definer OR v_body ~* '(tenant|org|team_member)' THEN
+    RAISE EXCEPTION '073 GUARDA: public.caller_manages_player no es solo dueño (SECURITY DEFINER o rama por tenant/organización). No se aplica nada.';
+  END IF;
+
+  SELECT string_agg(format('%s.%s (%s, %s)', po.tablename, po.policyname, po.cmd, array_to_string(po.roles, ',')),
+                    '; ' ORDER BY po.tablename, po.policyname)
+    INTO v_ajenas
+    FROM pg_policies po
+   WHERE po.schemaname = 'public'
+     AND po.tablename IN ('behavioral_profiles', 'attendance_records', 'engagement_snapshots',
+                          'wellbeing_questionnaires', 'dropout_risk_assessments',
+                          'player_metric_snapshots', 'player_injuries', 'player_valuations')
+     AND po.permissive = 'PERMISSIVE'
+     AND po.roles <> ARRAY['service_role']::name[]
+     AND (po.tablename, po.policyname) NOT IN (
+           VALUES ('behavioral_profiles'::name, 'behavioral_profiles_select_owner'::name),
+                  ('behavioral_profiles', 'behavioral_profiles_insert_owner'),
+                  ('behavioral_profiles', 'behavioral_profiles_update_owner'),
+                  ('attendance_records', 'attendance_records_select_owner'),
+                  ('attendance_records', 'attendance_records_insert_owner'),
+                  ('attendance_records', 'attendance_records_update_owner'),
+                  ('engagement_snapshots', 'engagement_snapshots_select_owner'),
+                  ('engagement_snapshots', 'engagement_snapshots_insert_owner'),
+                  ('engagement_snapshots', 'engagement_snapshots_update_owner'),
+                  ('wellbeing_questionnaires', 'wellbeing_questionnaires_select_owner'),
+                  ('wellbeing_questionnaires', 'wellbeing_questionnaires_insert_owner'),
+                  ('wellbeing_questionnaires', 'wellbeing_questionnaires_update_owner'),
+                  ('dropout_risk_assessments', 'dropout_risk_assessments_select_owner'),
+                  ('dropout_risk_assessments', 'dropout_risk_assessments_insert_owner'),
+                  ('dropout_risk_assessments', 'dropout_risk_assessments_update_owner'));
+  IF v_ajenas IS NOT NULL THEN
+    RAISE EXCEPTION '073 GUARDA: quedan políticas que la 073 no controla y que podrían dar acceso a quien no es dueño: %. No se aplica nada. Si son snapshots_insert_own / valuations_insert_own (044 aplicada después de la 072), vuelve a ejecutar el bloque «044 · player_metric_snapshots / player_valuations» de la 072 y repite la comprobación previa.', v_ajenas;
+  END IF;
+
+  RAISE NOTICE '073: guarda superada (helper solo dueño; ninguna política ajena en las 8 tablas)';
+END $do$;
+
+-- =====================================================================
+-- 4) Comprobación final (solo lectura): avisa con WARNING de cualquier política
+--    de public que siga comparando tenant_id con auth.uid() (fuera de las 8
+--    tablas, p. ej. creada a mano; dentro de ellas ya lo impide la guarda). No
+--    aborta: tras 073 debería salir 0.
 -- =====================================================================
 DO $do$
 DECLARE
