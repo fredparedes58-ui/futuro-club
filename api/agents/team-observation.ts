@@ -4,7 +4,9 @@
  *
  * Node runtime — video puede ser grande.
  * Envía el video completo a Gemini para observación táctica del equipo.
- * Retorna JSON con formación, posesión, jugadores, fases de juego.
+ * Retorna JSON con formación, posesión y fases de juego — SOLO nivel de equipo:
+ * sin dorsales ni lista por jugador (identidad.md: no hay identificación por
+ * dorsal validada; son menores). Si el modelo aún los emite, se retiran.
  */
 
 import { withHandler } from "../_lib/withHandler";
@@ -12,6 +14,7 @@ import { successResponse, errorResponse } from "../_lib/apiResponse";
 import { isOverBudget, recordSpendUsd, budgetExceededResponse } from "../_lib/budgetGuard";
 import { normalizeLocale, languageDirective } from "../../src/lib/shared/locale";
 import { GEMINI_MODEL } from "../../src/lib/shared/geminiModel";
+import { withholdIndividualData } from "../../src/lib/shared/teamReportIdentity";
 
 export const config = { runtime: "nodejs", maxDuration: 120 };
 
@@ -98,7 +101,7 @@ METODOLOGÍA DE ANÁLISIS TÁCTICO:
    - TRANSICIÓN OFENSIVA (recuperación → ataque): ¿Ataque rápido/directo o pausa para reorganizar?
    - TRANSICIÓN DEFENSIVA (pérdida → defensa): ¿Gegenpressing (presión inmediata) o repliegue?
    - Velocidad de reacción al cambio de posesión
-   - ¿Quién lidera las transiciones? (generalmente mediocampistas)
+   - ¿Qué línea lidera las transiciones? (generalmente el mediocampo)
 
 5. BALÓN PARADO:
    - ¿Cómo defienden corners y faltas? ¿Zonal, al hombre, o mixto?
@@ -123,36 +126,15 @@ METODOLOGÍA DE ANÁLISIS TÁCTICO:
    - Si el rival es débil, no sobrevaluar el rendimiento ofensivo del equipo
    - Si el rival es fuerte, valorar más la capacidad de mantener el modelo de juego
 
-9. POR JUGADOR — Registra las acciones más relevantes:
-   - Enfócate en acciones que REVELAN la función del jugador en el sistema
-   - Un lateral que sube constantemente indica un equipo que busca amplitud
-   - Un pivote que recibe entre centrales indica salida de balón trabajada
-   - Un extremo que corta hacia adentro indica estructura de juego interior
+9. SOLO NIVEL DE EQUIPO (identidad — son menores de edad):
+   - NO identifiques a ningún jugador concreto: nunca dorsales, números de camiseta, nombres, ni una lista o un conteo de acciones por jugador. No existe identificación por dorsal validada.
+   - Describe los comportamientos por LÍNEAS o grupos ("los laterales suben", "los centrales abren", "los tres delanteros presionan"), nunca por individuo.
 
 Genera un análisis con esta estructura JSON exacta (sin markdown, sin backticks):
 
 {
   "formacionDetectada": "4-3-3",
   "posesionEstimada": {"equipo": 55, "rival": 45},
-  "jugadoresObservados": [
-    {
-      "dorsalEstimado": "7",
-      "posicionEstimada": "extremo derecho",
-      "acciones": [
-        {"timestamp": "0:15", "tipo": "accion_con_balon", "descripcion": "Recibe en banda y desborda por fuera al lateral rival con cambio de ritmo"},
-        {"timestamp": "1:30", "tipo": "defensiva", "descripcion": "Pressing alto sobre lateral rival cuando recibe de espaldas — genera pérdida"}
-      ],
-      "eventosContados": {
-        "pasesCompletados": 8,
-        "pasesFallados": 2,
-        "recuperaciones": 1,
-        "duelosGanados": 2,
-        "duelosPerdidos": 1,
-        "disparosAlArco": 0,
-        "centros": 3
-      }
-    }
-  ],
   "fasesJuego": {
     "pressing": {
       "tipo": "pressing alto tras pérdida",
@@ -181,9 +163,7 @@ Genera un análisis con esta estructura JSON exacta (sin markdown, sin backticks
 }
 
 REGLAS:
-- Incluye TODOS los jugadores visibles del equipo analizado (mínimo 7, idealmente 11)
-- Máximo 5 acciones por jugador — elige las MÁS REVELADORAS de su función en el sistema
-- eventosContados: cuenta CADA evento observando el video. Si no puedes confirmar, no cuentes. Mejor sub-contar
+- Solo nivel de equipo: no añadas ningún campo por jugador (ni dorsal, ni número, ni nombre, ni conteos por jugador)
 - Posesión estimada debe sumar 100%
 - Usa vocabulario táctico preciso: "half-space", "pressing trigger", "línea de presión", "superioridad numérica/posicional", "basculación", "escalonamiento defensivo"
 - Sé honesto y objetivo para el nivel competitivo — un equipo formativo no va a tener pressing de Champions League, pero puede tener principios claros
@@ -255,7 +235,8 @@ REGLAS:
         return errorResponse("No se pudo parsear la respuesta de Gemini", 502, "GEMINI_PARSE_ERROR");
       }
 
-      return successResponse({ observations });
+      // Identidad (identidad.md): nada por jugador sale de aquí aunque el modelo lo emita.
+      return successResponse({ observations: withholdIndividualData(observations).value });
     } catch (error: unknown) {
       console.error("[Team Gemini] Handler error:", error);
       return errorResponse(

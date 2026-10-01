@@ -1002,11 +1002,6 @@
     "width": "Width",
     "synchronization": "Synchronization",
     "defensiveLine": "Def. line",
-    "playersTitle": "Players",
-    "playersDesc": "Tap a player to see details and heat map",
-    "passes": "Passes",
-    "duels": "Duels",
-    "recoveries": "Recov.",
     "generalEvaluation": "General Evaluation",
     "generalEvalDesc": "Conclusions and recommendations",
     "teamStrengths": "Strengths",
@@ -2152,7 +2147,7 @@
     "teamColorPlaceholder": "e.g. red, white",
     "opponentColorLabel": "Opponent color",
     "opponentColorPlaceholder": "e.g. blue",
-    "aiAnalysisHint": "The AI will analyze the entire team with that kit color: formation, possession, pressing, per-player metrics.",
+    "aiAnalysisHint": "The AI will analyze the entire team with that kit color: formation, possession, pressing and transitions. Team level only: no shirt numbers or per-player figures.",
     "analyzingTeam": "Analyzing team...",
     "analyzeFullTeam": "Analyze Full Team",
     "savedAnalyses": "Saved analyses ({{count}})",
@@ -2172,15 +2167,8 @@
     "newAnalysisShort": "New analysis",
     "noTeamAnalysis": "No team analysis",
     "noTeamAnalysisDesc": "Upload a match video and generate the first tactical report",
-    "role": "Role",
-    "passes": "Passes",
-    "duels": "Duels",
-    "wonAbbr": "W",
-    "lostAbbr": "L",
-    "recoveriesCount": "{{count}} recoveries",
-    "speed": "Speed",
-    "distance": "Distance",
-    "heatmapTitle": "Heat Map — #{{number}}"
+    "perPlayerWithheld": "This report included per-player rows with a shirt number estimated by the AI. They are hidden: without validated shirt-number identification, VITAS does not attribute figures to any specific player. The analysis is team-level only.",
+    "individualTextsHidden": "Texts hidden because they mentioned a specific player (shirt number or number): {{n}}."
   },
   "vitasLab": {
     "stepUpload": "UPLOAD",
@@ -2700,7 +2688,7 @@
         }
       ],
       "teamHeading": "Team analysis (Team Intelligence)",
-      "teamText": "It works the same way but evaluates the whole team: formation, phases of play, collective metrics (compactness, synchronization, pressing), and per-player performance.",
+      "teamText": "It works the same way but evaluates the whole team: formation, phases of play and collective metrics (compactness, synchronization, pressing). Team level only: no shirt numbers or per-player figures.",
       "tip": "Videos are stored securely on Bunny CDN. You can re-analyze them with different focuses (offensive, defensive, transitions) without uploading them again."
     },
     "rankings": {

@@ -107,33 +107,22 @@ export function checkTeamReportQuality(
 ): QualityResult {
   const issues: string[] = [];
 
-  // 1. Campos requeridos
-  const required = ["resumenEjecutivo", "formacion", "jugadores", "evaluacionGeneral"];
+  // 1. Campos requeridos — solo nivel de equipo. "jugadores" ya no se pide ni se
+  //    valida (identidad.md: sin dorsal validado no hay filas por jugador); pedirlo
+  //    aquí haría que el reintento las volviera a generar.
+  const required = ["resumenEjecutivo", "formacion", "evaluacionGeneral"];
   for (const key of required) {
     if (!(key in report)) issues.push(`Campo requerido ausente: ${key}`);
   }
 
-  // 2. Jugadores debe ser array
-  const jugadores = report.jugadores as unknown[];
-  if (Array.isArray(jugadores)) {
-    // Speeds should be realistic (< 38 km/h)
-    for (let i = 0; i < jugadores.length; i++) {
-      const j = jugadores[i] as Record<string, unknown>;
-      const speed = j?.velocidadMaxKmh as number | undefined;
-      if (speed !== undefined && speed > 38) {
-        issues.push(`Jugador[${i}]: velocidad ${speed} km/h no es realista (máx 38)`);
-      }
-    }
-  }
-
-  // 3. Posesión realista
+  // 2. Posesión realista
   const posesion = report.posesion as Record<string, unknown> | undefined;
   const pct = posesion?.porcentaje as number | undefined;
   if (pct !== undefined && (pct < 20 || pct > 80)) {
     issues.push(`Posesión ${pct}% fuera de rango realista (20-80%)`);
   }
 
-  // 4. Confianza en rango
+  // 3. Confianza en rango
   const conf = report.confianza as number | undefined;
   if (conf !== undefined && (conf < 0 || conf > 1)) {
     issues.push("Confianza fuera de rango 0-1");
